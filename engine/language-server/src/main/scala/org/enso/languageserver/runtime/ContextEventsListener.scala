@@ -19,6 +19,9 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.CollectionConversions._
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.{
+  VisualizationContext => ApiVisualizationContext
+}
 
 import scala.concurrent.duration._
 
@@ -61,7 +64,7 @@ final class ContextEventsListener(
   override def receive: Receive = withState(Set(), Vector())
 
   private def withState(
-    oneshotVisualizations: Set[Api.VisualizationContext],
+    oneshotVisualizations: Set[ApiVisualizationContext],
     expressionUpdates: Vector[ExpressionUpdate]
   ): Receive = {
     case RegisterOneshotVisualization(
@@ -70,7 +73,7 @@ final class ContextEventsListener(
           expressionId
         ) =>
       val visualizationContext =
-        Api.VisualizationContext(
+        ApiVisualizationContext(
           visualizationId,
           contextId,
           expressionId
@@ -145,7 +148,7 @@ final class ContextEventsListener(
       message.pipeTo(sessionRouter)
 
     case Api.VisualizationEvaluationFailed(
-          ctx @ Api.VisualizationContext(
+          ctx @ ApiVisualizationContext(
             visualizationId,
             contextId,
             expressionId

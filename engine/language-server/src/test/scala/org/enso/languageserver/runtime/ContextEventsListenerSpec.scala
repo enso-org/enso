@@ -23,6 +23,9 @@ import org.enso.languageserver.session.SessionRouter.{
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.{
+  VisualizationContext => ApiVisualizationContext
+}
 import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -265,7 +268,7 @@ class ContextEventsListenerSpec
 
     "register oneshot visualization" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualizationContext(
+        val ctx = ApiVisualizationContext(
           UUID.randomUUID(),
           contextId,
           UUID.randomUUID()
@@ -321,7 +324,7 @@ class ContextEventsListenerSpec
 
     "detach oneshot visualization when evaluation fails" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualizationContext(
+        val ctx = ApiVisualizationContext(
           UUID.randomUUID(),
           contextId,
           UUID.randomUUID()
@@ -362,7 +365,7 @@ class ContextEventsListenerSpec
 
     "send visualization updates" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, registry, listener) =>
-        val ctx = Api.VisualizationContext(
+        val ctx = ApiVisualizationContext(
           UUID.randomUUID(),
           contextId,
           UUID.randomUUID()
@@ -471,7 +474,7 @@ class ContextEventsListenerSpec
         val visualizationId = UUID.randomUUID()
         val expressionId    = UUID.randomUUID()
         listener ! Api.VisualizationEvaluationFailed(
-          Api.VisualizationContext(
+          ApiVisualizationContext(
             visualizationId,
             contextId,
             expressionId

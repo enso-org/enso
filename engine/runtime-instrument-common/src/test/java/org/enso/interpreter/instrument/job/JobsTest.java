@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
 import org.enso.polyglot.runtime.Runtime$Api$VisualizationConfiguration;
-import org.enso.polyglot.runtime.Runtime$Api$VisualizationExpression$Text;
+import org.enso.polyglot.runtime.VisualizationExpression;
 import org.junit.Test;
 import scala.Option;
 import scala.collection.immutable.Vector$;
@@ -16,7 +16,7 @@ public class JobsTest {
     var config =
         new Runtime$Api$VisualizationConfiguration(
             UUID.randomUUID(),
-            new Runtime$Api$VisualizationExpression$Text("foo", "bar", Vector$.MODULE$.empty()),
+            new VisualizationExpression.Text("foo", "bar", Vector$.MODULE$.empty()),
             "test");
     var expression1 = UUID.randomUUID();
     var expression2 = UUID.randomUUID();

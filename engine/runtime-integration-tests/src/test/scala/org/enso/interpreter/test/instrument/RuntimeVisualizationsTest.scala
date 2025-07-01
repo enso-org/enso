@@ -10,6 +10,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.StackItem
+import org.enso.polyglot.runtime.VisualizationContext
+import org.enso.polyglot.runtime.VisualizationExpression
 import org.enso.text.editing.model
 import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
@@ -352,7 +354,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMainRes,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "x -> encode x",
                 Vector()
@@ -372,7 +374,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -401,7 +403,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -481,7 +483,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             context.Main.idMainX,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "x -> encode x",
                 Vector()
@@ -500,7 +502,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -549,7 +551,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -629,7 +631,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             context.Main.idMainX,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "x -> encode x",
                 Vector()
@@ -648,7 +650,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -685,7 +687,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -765,7 +767,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             context.Main.idMainZ,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "encode",
                 Vector()
@@ -784,7 +786,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -821,7 +823,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -901,7 +903,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             context.Main.idMainZ,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "encode",
                 Vector()
@@ -920,7 +922,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -955,7 +957,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             context.Main.idFooZ,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "encode",
                 Vector()
@@ -974,7 +976,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId2`
@@ -1041,7 +1043,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId2`
@@ -1069,7 +1071,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -1147,7 +1149,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           context.Main.idMainX,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x",
               Vector()
@@ -1167,7 +1169,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       case Api.Response(
             None,
             Api.VisualizationUpdate(
-              Api.VisualizationContext(
+              VisualizationContext(
                 `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
@@ -1187,7 +1189,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           visualizationId,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> incAndEncode x",
               Vector()
@@ -1206,7 +1208,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -1287,7 +1289,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           context.Main.idMainX,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x",
               Vector()
@@ -1306,7 +1308,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           context.Main.idMainX,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x",
               Vector()
@@ -1361,12 +1363,12 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
     val visContexts = visualizationUpdates.map(_.visualizationContext)
     visContexts should contain allOf (
-      Api.VisualizationContext(
+      VisualizationContext(
         `visualizationId`,
         `contextId`,
         `expectedExpressionId`
       ),
-      Api.VisualizationContext(
+      VisualizationContext(
         `visualizationId2`,
         `contextId`,
         `expectedExpressionId`
@@ -1385,7 +1387,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           visualizationId,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> incAndEncode x",
               Vector()
@@ -1407,7 +1409,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   modifiedId,
                   `contextId`,
                   `expectedExpressionId`
@@ -1469,7 +1471,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             context.Main.idMainX,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "x -> encode x",
                 Vector()
@@ -1512,7 +1514,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           case Api.Response(
                 None,
                 Api.VisualizationUpdate(
-                  Api.VisualizationContext(
+                  VisualizationContext(
                     `visualizationId`,
                     `contextId`,
                     `expectedExpressionId`
@@ -1644,7 +1646,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             context.Main.idMainX,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "encode",
                 Vector()
@@ -1663,7 +1665,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -1764,7 +1766,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           context.Main.idMainX,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x",
               Vector()
@@ -1784,7 +1786,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       case Api.Response(
             None,
             Api.VisualizationUpdate(
-              Api.VisualizationContext(
+              VisualizationContext(
                 `visualizationId`,
                 `contextId`,
                 `expectedExpressionId`
@@ -1804,7 +1806,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           visualizationId,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> incAndEncode x",
               Vector()
@@ -1835,7 +1837,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `expectedExpressionId`
@@ -1902,7 +1904,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Test.Undefined",
                 "x -> x",
                 Vector()
@@ -1972,7 +1974,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Standard.Visualization.Main",
                 "x -> x.default_visualization.to_text",
                 Vector()
@@ -1993,7 +1995,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -2072,7 +2074,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Main",
                 "Main.does_not_exist",
                 Vector()
@@ -2086,7 +2088,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.Response(requestId, Api.VisualizationAttached()),
         Api.Response(
           Api.VisualizationExpressionFailed(
-            Api.VisualizationContext(visualizationId, contextId, idMain),
+            VisualizationContext(visualizationId, contextId, idMain),
             "Method `does_not_exist` of type Main could not be found.",
             Some(
               ExecutionResult.Diagnostic.error(
@@ -2158,7 +2160,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 moduleName,
                 "x -> x.visualise_me",
                 Vector()
@@ -2174,7 +2176,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.Response(requestId, Api.VisualizationAttached()),
         Api.Response(
           Api.VisualizationEvaluationFailed(
-            Api.VisualizationContext(
+            VisualizationContext(
               visualizationId,
               contextId,
               idMain
@@ -2280,7 +2282,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "inc_and_encode",
                 Vector()
@@ -2296,7 +2298,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.Response(requestId, Api.VisualizationAttached()),
         Api.Response(
           Api.VisualizationEvaluationFailed(
-            Api.VisualizationContext(
+            VisualizationContext(
               visualizationId,
               contextId,
               idMain
@@ -2402,7 +2404,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 moduleName,
                 "x -> x.catch_primitive _.to_text",
                 Vector()
@@ -2422,7 +2424,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -2506,7 +2508,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 moduleName,
                 "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text",
                 Vector()
@@ -2535,7 +2537,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         ),
         Api.Response(
           Api.VisualizationEvaluationFailed(
-            Api.VisualizationContext(
+            VisualizationContext(
               visualizationId,
               contextId,
               idMain
@@ -2641,7 +2643,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           idMain,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.ModuleMethod(
+            VisualizationExpression.ModuleMethod(
               Api.MethodPointer(
                 visualizationModule,
                 visualizationModule,
@@ -2664,7 +2666,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       case Api.Response(
             None,
             Api.VisualizationUpdate(
-              Api.VisualizationContext(
+              VisualizationContext(
                 `visualizationId`,
                 `contextId`,
                 `idMain`
@@ -2745,7 +2747,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.ModuleMethod(
+              VisualizationExpression.ModuleMethod(
                 Api.MethodPointer(
                   visualizationModule,
                   visualizationModule,
@@ -2767,7 +2769,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -2836,7 +2838,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMainRes,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Main",
                 "x -> suffix -> x.to_text + suffix",
                 Vector("'_bar'")
@@ -2856,7 +2858,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -2885,7 +2887,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -2906,7 +2908,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             visualizationId,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Main",
                 "x -> suffix -> x.to_text + suffix",
                 Vector("'_quux'")
@@ -2926,7 +2928,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           case Api.Response(
                 None,
                 Api.VisualizationUpdate(
-                  Api.VisualizationContext(
+                  VisualizationContext(
                     `visualizationId`,
                     `contextId`,
                     `idMainRes`
@@ -3007,7 +3009,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMainRes,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.ModuleMethod(
+              VisualizationExpression.ModuleMethod(
                 Api.MethodPointer(
                   "Enso_Test.Test.Visualization",
                   "Enso_Test.Test.Visualization",
@@ -3030,7 +3032,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -3059,7 +3061,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -3145,7 +3147,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMainRes,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.ModuleMethod(
+              VisualizationExpression.ModuleMethod(
                 Api.MethodPointer(
                   "Enso_Test.Test.Visualization",
                   "Enso_Test.Test.Visualization",
@@ -3168,7 +3170,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -3198,7 +3200,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -3219,7 +3221,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             visualizationId,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.ModuleMethod(
+              VisualizationExpression.ModuleMethod(
                 Api.MethodPointer(
                   "Enso_Test.Test.Visualization",
                   "Enso_Test.Test.Visualization",
@@ -3242,7 +3244,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           case Api.Response(
                 None,
                 Api.VisualizationUpdate(
-                  Api.VisualizationContext(
+                  VisualizationContext(
                     `visualizationId`,
                     `contextId`,
                     `idMainRes`
@@ -3329,7 +3331,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMainRes,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.ModuleMethod(
+              VisualizationExpression.ModuleMethod(
                 Api.MethodPointer(
                   "Enso_Test.Test.Visualization",
                   "Enso_Test.Test.Visualization",
@@ -3352,7 +3354,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -3382,7 +3384,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -3420,7 +3422,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMainRes`
@@ -3502,7 +3504,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Main",
                 "x -> x.to_text",
                 Vector()
@@ -3522,7 +3524,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -3606,7 +3608,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idMain,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Main",
                 "x -> x.to_text",
                 Vector()
@@ -3626,7 +3628,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -3739,7 +3741,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idRes,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Main",
                 "x -> x.to_text",
                 Vector()
@@ -3759,7 +3761,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idRes`
@@ -3874,7 +3876,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           idRes,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text",
               Vector()
@@ -3894,7 +3896,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       case Api.Response(
             None,
             Api.VisualizationUpdate(
-              Api.VisualizationContext(
+              VisualizationContext(
                 `visualizationId`,
                 `contextId`,
                 `idRes`
@@ -4006,7 +4008,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           idRes,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text",
               Vector()
@@ -4026,7 +4028,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       case Api.Response(
             None,
             Api.VisualizationUpdate(
-              Api.VisualizationContext(
+              VisualizationContext(
                 `visualizationId`,
                 `contextId`,
                 `idRes`
@@ -4187,7 +4189,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idRes,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Main",
                 "x -> x.to_text",
                 Vector()
@@ -4208,7 +4210,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idRes`
@@ -4255,7 +4257,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idRes`
@@ -4358,7 +4360,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idYX,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 moduleName,
                 "x -> x.to_text",
                 Vector()
@@ -4381,7 +4383,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idYX`
@@ -4418,7 +4420,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idYX`
@@ -4515,7 +4517,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idYX,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 moduleName,
                 "x -> x.to_text",
                 Vector()
@@ -4535,7 +4537,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idYX`
@@ -4572,7 +4574,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idYX`
@@ -4672,7 +4674,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idOp2`
@@ -4774,7 +4776,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idRes`
@@ -4879,7 +4881,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idOp2Binding`
@@ -4981,7 +4983,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -5071,7 +5073,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -5162,7 +5164,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idMain`
@@ -5301,7 +5303,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idCollapsedA,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 "Enso_Test.Test.Visualization",
                 "encode",
                 Vector()
@@ -5319,7 +5321,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idCollapsedA`
@@ -5451,7 +5453,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idVector3,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 moduleName,
                 "x -> x.to_text",
                 Vector()
@@ -5471,7 +5473,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idVector3`
@@ -5492,7 +5494,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             idVector3Self,
             Api.VisualizationConfiguration(
               contextId,
-              Api.VisualizationExpression.Text(
+              VisualizationExpression.Text(
                 moduleName,
                 "x -> x.to_text",
                 Vector()
@@ -5512,7 +5514,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idVector3Self`
@@ -5641,7 +5643,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idVector3Self`
@@ -5656,7 +5658,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
-                Api.VisualizationContext(
+                VisualizationContext(
                   `visualizationId`,
                   `contextId`,
                   `idVector3`

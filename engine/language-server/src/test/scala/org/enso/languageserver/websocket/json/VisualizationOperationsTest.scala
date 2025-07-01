@@ -7,6 +7,7 @@ import org.enso.languageserver.runtime.{
 }
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.VisualizationContext
 import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.editing.model
 
@@ -283,7 +284,7 @@ class VisualizationOperationsTest
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
         Api.VisualizationExpressionFailed(
-          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          VisualizationContext(visualizationId, contextId, expressionId),
           expressionFailureMessage,
           Some(
             ExecutionResult.Diagnostic.error(

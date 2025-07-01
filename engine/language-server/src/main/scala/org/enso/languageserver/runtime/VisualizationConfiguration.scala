@@ -4,6 +4,9 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.logger.masking.ToLogString
+import org.enso.polyglot.runtime.{
+  VisualizationExpression => ApiVisualizationExpression
+}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -150,7 +153,7 @@ sealed trait VisualizationExpression extends ToLogString {
   def positionalArgumentsExpressions: Vector[String]
 
   /** Convert to corresponding [[Api]] message. */
-  def toApi: Api.VisualizationExpression
+  def toApi: ApiVisualizationExpression
 }
 object VisualizationExpression {
 
@@ -168,8 +171,8 @@ object VisualizationExpression {
   ) extends VisualizationExpression {
 
     /** @inheritdoc */
-    override def toApi: Api.VisualizationExpression =
-      Api.VisualizationExpression.Text(
+    override def toApi: ApiVisualizationExpression =
+      ApiVisualizationExpression.Text(
         module,
         expression,
         positionalArgumentsExpressions
@@ -200,8 +203,8 @@ object VisualizationExpression {
     override val module: String = methodPointer.module
 
     /** @inheritdoc */
-    override def toApi: Api.VisualizationExpression =
-      Api.VisualizationExpression.ModuleMethod(
+    override def toApi: ApiVisualizationExpression =
+      ApiVisualizationExpression.ModuleMethod(
         methodPointer.toApi,
         positionalArgumentsExpressions
       )

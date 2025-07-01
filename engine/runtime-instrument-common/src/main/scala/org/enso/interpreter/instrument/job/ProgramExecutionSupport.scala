@@ -48,6 +48,7 @@ import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.StackItem
+import org.enso.polyglot.runtime.VisualizationContext
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
@@ -761,8 +762,7 @@ object ProgramExecutionSupport {
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualizationEvaluationFailed(
-              Api
-                .VisualizationContext(visualizationId, contextId, expressionId),
+              VisualizationContext(visualizationId, contextId, expressionId),
               message,
               getDiagnosticOutcome.lift(error)
             )
@@ -778,7 +778,7 @@ object ProgramExecutionSupport {
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualizationUpdate(
-              Api.VisualizationContext(
+              VisualizationContext(
                 visualizationId,
                 contextId,
                 expressionId

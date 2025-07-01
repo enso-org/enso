@@ -14,6 +14,7 @@ import org.enso.languageserver.websocket.json.{
 import org.enso.polyglot.runtime.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.StackItem
+import org.enso.polyglot.runtime.VisualizationContext
 import org.enso.testkit.ReportLogsOnFailure
 
 import java.util.UUID
@@ -927,7 +928,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
         Api.VisualizationExpressionFailed(
-          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          VisualizationContext(visualizationId, contextId, expressionId),
           expressionFailureMessage,
           None
         )

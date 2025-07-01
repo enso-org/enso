@@ -13,6 +13,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   MethodCall,
   MethodPointer
 }
+import org.enso.polyglot.runtime.VisualizationExpression
 import org.enso.runtime.utils.ThreadUtils
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
@@ -739,7 +740,7 @@ class RuntimeAsyncCommandsTest
           idOp2,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x",
               Vector()
@@ -757,7 +758,7 @@ class RuntimeAsyncCommandsTest
           idOp1,
           Api.VisualizationConfiguration(
             contextId,
-            Api.VisualizationExpression.Text(
+            VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x",
               Vector()

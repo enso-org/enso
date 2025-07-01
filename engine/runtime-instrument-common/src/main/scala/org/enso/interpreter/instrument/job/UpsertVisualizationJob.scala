@@ -28,6 +28,10 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
+import org.enso.polyglot.runtime.{
+  VisualizationContext => ApiVisualizationContext
+}
+import org.enso.polyglot.runtime.VisualizationExpression
 
 import java.util.UUID
 
@@ -146,7 +150,7 @@ class UpsertVisualizationJob(
     ctx.endpoint.sendToClient(
       Api.Response(
         Api.VisualizationExpressionFailed(
-          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          ApiVisualizationContext(visualizationId, contextId, expressionId),
           message,
           executionResult
         )
@@ -353,7 +357,7 @@ object UpsertVisualizationJob {
     * @return either the evaluation result or an evaluation failure
     */
   private def evaluateVisualizationFunction(
-    expression: Api.VisualizationExpression,
+    expression: VisualizationExpression,
     expressionModule: Module,
     retryCount: Int
   )(implicit
@@ -361,12 +365,12 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] =
     Try {
       expression match {
-        case Api.VisualizationExpression.Text(_, expression, _) =>
+        case VisualizationExpression.Text(_, expression, _) =>
           ctx.executionService.evaluateExpression(
             expressionModule,
             expression
           )
-        case Api.VisualizationExpression.ModuleMethod(
+        case VisualizationExpression.ModuleMethod(
               Api.MethodPointer(_, definedOnType, name),
               _
             ) =>
@@ -428,7 +432,7 @@ object UpsertVisualizationJob {
     */
   private def evaluateModuleExpression(
     module: Module,
-    expression: Api.VisualizationExpression,
+    expression: VisualizationExpression,
     expressionModule: Module,
     retryCount: Int = 0
   )(implicit
@@ -456,7 +460,7 @@ object UpsertVisualizationJob {
     */
   private def evaluateVisualizationExpression(
     module: String,
-    expression: Api.VisualizationExpression
+    expression: VisualizationExpression
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, EvaluationResult] = {
@@ -520,17 +524,17 @@ object UpsertVisualizationJob {
     */
   private def findVisualizationExpressionId(
     module: Module,
-    visualizationExpression: Api.VisualizationExpression
+    visualizationExpression: VisualizationExpression
   ): Option[Api.ExpressionId] =
     visualizationExpression match {
-      case Api.VisualizationExpression.ModuleMethod(methodPointer, _) =>
+      case VisualizationExpression.ModuleMethod(methodPointer, _) =>
         module.getIr.bindings
           .collectFirst {
             case ExternalIdOfMethod(externalId, methodReference)
                 if methodReference.methodName.name == methodPointer.name =>
               externalId
           }
-      case _: Api.VisualizationExpression.Text => None
+      case _: VisualizationExpression.Text => None
     }
 
   private object ExternalIdOfMethod {
