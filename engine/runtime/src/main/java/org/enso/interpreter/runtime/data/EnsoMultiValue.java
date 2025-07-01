@@ -64,6 +64,14 @@ public final class EnsoMultiValue extends EnsoObject {
     return values[firstDispatch];
   }
 
+  public Type[] getVisibleTypes() {
+    return dispatch.getTypes();
+  }
+
+  public Type[] getExtraTypes() {
+    return extra.getTypes();
+  }
+
   /** Creates new instance of EnsoMultiValue from provided information. */
   @GenerateUncached
   public abstract static class NewNode extends Node {

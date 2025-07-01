@@ -109,6 +109,10 @@ final class EnsoMultiType {
     return my.removeAll(their);
   }
 
+  Type[] getTypes() {
+    return Arrays.copyOf(types, types.length);
+  }
+
   @GenerateUncached
   abstract static class FindIndexNode extends Node {
     private static final String INLINE_CACHE_LIMIT = "5";

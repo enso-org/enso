@@ -362,6 +362,11 @@ export interface ProjectSession {
   readonly userEmail: EmailAddress
 }
 
+export interface ProjectSessionLogs {
+  readonly scrollId: string
+  readonly hits: readonly string[]
+}
+
 export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
 
 export const PARALLEL_MODE_TO_TEXT_ID = {
@@ -1407,6 +1412,11 @@ export interface ListDirectoryRequestParams {
   readonly rootPath?: Path | undefined
 }
 
+/** URL query string parameters for the "get project session logs" endpoint. */
+export interface GetProjectSessionLogsRequestParams {
+  readonly scrollId: string | null
+}
+
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
   readonly fileId: AssetId | null
@@ -1803,8 +1813,9 @@ export default abstract class Backend {
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
+    params: GetProjectSessionLogsRequestParams,
     title: string,
-  ): Promise<readonly string[]>
+  ): Promise<ProjectSessionLogs>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
@@ -1821,7 +1832,7 @@ export default abstract class Backend {
   abstract getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
   /** Begin uploading a large file. */
   abstract uploadFileStart(
-    body: UploadFileRequestParams,
+    params: UploadFileRequestParams,
     file: File,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */

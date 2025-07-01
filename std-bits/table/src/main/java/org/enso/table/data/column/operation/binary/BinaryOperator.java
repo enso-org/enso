@@ -3,10 +3,7 @@ package org.enso.table.data.column.operation.binary;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
-import org.enso.table.data.column.builder.BigDecimalBuilder;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
-import org.enso.table.data.column.builder.DoubleBuilder;
-import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationNull;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
@@ -151,7 +148,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         Double doDouble(
             double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b == 0.0) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
           }
           return a % b;
         }
@@ -159,7 +156,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         @Override
         Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b == 0) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 
@@ -170,7 +167,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigInteger doBigInteger(
             BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b.equals(BigInteger.ZERO)) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 
@@ -181,7 +178,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigDecimal doBigDecimal(
             BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b.equals(BigDecimal.ZERO)) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 
@@ -195,7 +192,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         Double doDouble(
             double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b == 0.0) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
           }
           return a / b;
         }
@@ -216,7 +213,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigDecimal doBigDecimal(
             BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b.equals(BigDecimal.ZERO)) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 
@@ -451,7 +448,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<Double> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return DoubleBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(FloatType.FLOAT_64, left.getSize());
     }
 
     @Override
@@ -496,7 +493,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<BigDecimal> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return BigDecimalBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(BigDecimalType.INSTANCE, left.getSize());
     }
 
     @Override
@@ -517,7 +514,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<BigInteger> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return BigIntegerBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(BigIntegerType.INSTANCE, left.getSize());
     }
 
     @Override
@@ -538,7 +535,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<Long> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return LongBuilder.makeEmpty(left.getSize(), IntegerType.INT_64);
+      return Builder.makeEmpty(IntegerType.INT_64, left.getSize());
     }
 
     @Override

@@ -39,16 +39,16 @@ add_specs_for_backend config suite_builder =
         group_builder.specify "should be able to create a table" <|
             with_connection conn-> cleanup_tables conn ["foo"] <|
                 conn.execute "create table foo (a int)"
-                conn.get_tables . map lower . should_contain "foo"
+                conn.tables . at "Name" . to_vector . map lower . should_contain "foo"
 
         group_builder.specify "should be able to get table info" <|
             with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
                 conn.execute "create table foo (a int, b text)"
                 conn.execute "create table bar (c float, d timestamp)"
 
-                r = conn.get_table_info
-                r.at "TABLE_NAME" . to_vector . map lower . should_contain 'foo'
-                r.at "TABLE_NAME" . to_vector . map lower . should_contain 'bar'
+                r = conn.tables
+                r.at "Name" . to_vector . map lower . should_contain 'foo'
+                r.at "Name" . to_vector . map lower . should_contain 'bar'
 
         group_builder.specify "should be able to insert, update and query data using raw SQL" <|
             with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
@@ -59,7 +59,7 @@ add_specs_for_backend config suite_builder =
                 conn.execute "insert into bar (c, d) values (20, 'qqqq')"
                 conn.execute "insert into bar (c, d) values (30, 'zzzz')"
 
-                tables = conn.get_tables . map lower
+                tables = conn.tables . at "Name" . to_vector . map lower
                 tables . should_contain 'foo'
                 tables . should_contain 'bar'
 

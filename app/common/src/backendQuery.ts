@@ -153,13 +153,8 @@ export function backendQueryKey<
   method: Method,
   args: Readonly<Parameters<Backend[Method]>>,
   keyExtra?: TQueryKey | undefined,
-): TQueryKey {
-  return [
-    backend?.type,
-    method,
-    ...normalizeMethodQuery(method, args),
-    ...(keyExtra ?? []),
-  ] as unknown as TQueryKey
+) {
+  return [backend?.type, method, ...normalizeMethodQuery(method, args), ...(keyExtra ?? [])]
 }
 
 /** Returns options applicable to any method of the given backend. */

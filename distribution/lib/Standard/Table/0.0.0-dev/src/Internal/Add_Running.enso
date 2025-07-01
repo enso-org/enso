@@ -14,7 +14,7 @@ import project.Table.Table
 import project.Value_Type.Value_Type
 
 polyglot java import java.lang.ArithmeticException
-polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
+polyglot java import org.enso.table.data.column.storage.LongRangeStorage
 polyglot java import org.enso.table.operations.AddRunning
 
 ## PRIVATE

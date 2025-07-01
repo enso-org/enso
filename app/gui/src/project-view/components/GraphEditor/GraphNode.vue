@@ -569,6 +569,10 @@ const nodeName = computed(() => props.node.pattern?.code())
   align-items: center;
 }
 
+.menuVisible .binding {
+  margin-right: 50px;
+}
+
 .selected .binding {
   opacity: 1;
 }

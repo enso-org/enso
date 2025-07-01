@@ -1,4 +1,4 @@
-import { DocumentationMetadata, parseMetadata } from '@/components/DocumentationPanel/metadata'
+import { DocumentationMetadata, parseMetadata } from '@/components/ComponentHelp/metadata'
 import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import FrontMatter from '@/components/MarkdownEditor/FrontMatter.vue'
 import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'

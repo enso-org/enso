@@ -53,7 +53,7 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
   },
 )
 
-export { useCurrentProject as injectCurrentProject }
+export { useCurrentProject }
 
 function useStoreTemplate<K extends keyof OpenedProject>(
   storeKey: K,

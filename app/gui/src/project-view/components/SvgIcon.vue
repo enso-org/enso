@@ -1,9 +1,13 @@
-<script setup lang="ts">
+<script lang="ts">
 /**
  * A component displaying a SVG icon.
  *
  * It displays one group defined in `@/assets/icons.svg` file, specified by `variant` property.
  */
+export default {}
+</script>
+
+<script setup lang="ts">
 import icons from '@/assets/icons.svg'
 import type { URLString } from '@/util/data/urlString'
 import type { Icon } from '@/util/iconMetadata/iconName'

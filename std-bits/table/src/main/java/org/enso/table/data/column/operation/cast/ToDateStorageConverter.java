@@ -5,7 +5,6 @@ import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -22,9 +21,10 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   @Override
   public ColumnStorage<LocalDate> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return convertDateTimeStorage(dateTimeStorage);
-    } else if (canApply(storage.getType())) {
+    var storageType = storage.getType();
+    if (storageType instanceof DateTimeType datetimeType) {
+      return convertDateTimeStorage(datetimeType.asTypedStorage(storage));
+    } else if (canApply(storageType)) {
       return castFromObject(storage, problemAggregator);
     } else {
       throw new IllegalStateException(

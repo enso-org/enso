@@ -37,7 +37,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div v-if="label" data-testid="component-editor-label">
+  <div v-if="label" data-testid="component-editor-label" class="no-wrap">
     <span v-if="additionalTypes?.kind === 'single'" v-text="`${label} & ${additionalTypes.type}`" />
     <template v-else-if="additionalTypes?.kind === 'multiple'">
       <span v-text="`${label} & `" />
@@ -66,5 +66,9 @@ const label = computed(() => {
   background-color: rgba(0, 0, 0, 0.1);
   padding: 1px 2px;
   border-radius: 2px;
+}
+
+.no-wrap {
+  white-space: nowrap;
 }
 </style>

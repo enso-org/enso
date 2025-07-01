@@ -101,7 +101,7 @@ object GraalVM {
     // With maximal size relaxed by 30 MB.
     private val windowsX64Release = NativeImageSize(200, 470)
     private val linuxX64Release   = NativeImageSize(200, 490)
-    private val macX64Release     = NativeImageSize(200, 426)
+    private val macX64Release     = NativeImageSize(200, 457)
     private val macARM64Release   = NativeImageSize(200, 473)
     private val testNISize        = NativeImageSize(100, 592)
   }
@@ -110,8 +110,7 @@ object GraalVM {
   private def isEspressoMode(): Boolean =
     "espresso".equals(System.getenv("ENSO_JAVA"))
 
-  // Keep in sync with graalMavenPackagesVersion in build.sbt
-  private val version: String = "24.2.0"
+  private val version: String = Dependencies.graalMavenPackagesVersion
 
   final def mavenPackagesVersion: String = version
 

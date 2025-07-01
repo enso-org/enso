@@ -4,7 +4,6 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
-import type { UserSessionType } from '$/providers/auth'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
@@ -146,7 +145,6 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken?: () => string
-    toggleDevtools: () => void
     /**
      * If set to `true`, animations will be disabled.
      * Used by playwright tests to speed up execution.
@@ -180,11 +178,5 @@ declare module 'vite/client' {
      */
     const src: string
     export default src
-  }
-}
-
-declare module 'vue-router' {
-  interface RouteMeta {
-    access?: 'guest' | 'anyLoggedIn' | UserSessionType
   }
 }

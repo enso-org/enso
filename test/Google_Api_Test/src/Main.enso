@@ -1,6 +1,8 @@
 from Standard.Base import all
 from Standard.Google_Api import all
 
+from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet
+
 from Standard.Test import all
 from Standard.Table import Table
 from enso_dev.Table_Tests.Util import all
@@ -14,9 +16,91 @@ main filter=Nothing =
 add_specs suite_builder =
     suite_builder.group "Google Sheets" group_builder->
         group_builder.specify "can read a workbook via Google_Sheets.read" <|
-            r = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
-            r.sheet_names.should_equal ['Sheet1']
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
         group_builder.specify "can read a worksheet via Google_Sheets_Workbook.read" <|
-            r = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
-            r.sheet_names.should_equal ['Sheet1']
-            r.read 'Sheet1' . should_equal (Table.new [['X', ['Y', 'Z']]])
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers . should_equal (Table.new [['X', ['Y', 'Z']]])
+        group_builder.specify "can get a count of worksheets" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_count . should_equal 5
+        group_builder.specify "can read a worksheet via sheet name or index" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            wb.read 'Sheet3' ..Has_Headers . column_names . should_equal (['S3A', 'S3B', 'S3C'])
+            wb.read 1 ..Has_Headers . column_names . should_equal (['S1A', 'S1B', 'S1C'])
+            wb.read 5 ..Has_Headers . column_names . should_equal (['S5A', 'S5B', 'S5C'])
+        group_builder.specify "out of range sheet index should error" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            r0 = wb.read 0
+            r0.should_fail_with Invalid_Location
+            r0.catch.to_display_text . should_contain 'Sheet 0 is out of range (1 to 5 inclusive).'
+            r6 = wb.read 6
+            r6.should_fail_with Invalid_Location
+            r6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
+        ## group_builder.specify "Missing sheet name should error" pending='X' <|
+           x = 1
+
+    suite_builder.group "Google Sheets - Headers" group_builder->
+        group_builder.specify "should be able to read with no headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.read 'Sheet1' ..No_Headers . should_equal (Table.new [['A', ['X', 'Y', 'Z']]])
+        group_builder.specify "Should handle blank headers without warnings" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            wb.read 'BlankHeaders' ..Has_Headers . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Column 1', ['D', 'E', 'F']],['Col3', ['G', 'H', 'I']]])
+        group_builder.specify "Should handle duplicate headers with warnings" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read 'DuplicateHeaders' ..Has_Headers
+            ws . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Col2', ['D', 'E', 'F']],['Col2 1', ['G', 'H', 'I']]])
+            Problems.get_attached_warnings ws . should_equal [Duplicate_Output_Column_Names.Error ["Col2"]]
+        group_builder.specify "Warnings can be promoted to errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read 'DuplicateHeaders' ..Has_Headers on_problems=..Report_Error
+            ws.catch.should_equal (Duplicate_Output_Column_Names.Error ["Col2"])
+        group_builder.specify "Warnings can be ignored" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read 'DuplicateHeaders' ..Has_Headers on_problems=..Ignore
+            ws . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Col2', ['D', 'E', 'F']],['Col2 1', ['G', 'H', 'I']]])
+            Problems.get_attached_warnings ws . should_equal []
+        group_builder.specify "No Data Errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read 'NoData' ..Detect_Headers
+            ws.should_fail_with Empty_Sheet
+            ws.catch.to_display_text . should_contain 'There is no data in the sheet.'
+        group_builder.specify "One row of data gives no headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read '1RowStringData' ..Detect_Headers
+            ws.column_names . should_equal (['A', 'B', 'C'])
+            ws . should_equal (Table.new [['A', ['X']],['B', ['Y']],['C', ['Z']]])
+        group_builder.specify "Two rows of string data gives no headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read '2RowStringData' ..Detect_Headers
+            ws.column_names . should_equal (['A', 'B', 'C'])
+            ws . should_equal (Table.new [['A', ['X', 'U']],['B', ['Y', 'V']],['C', ['Z', 'W']]])
+        group_builder.specify "First row of string data, second row has a numeric, gives headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read 'Row1StringRow2HasNumeric' ..Detect_Headers
+            ws.column_names . should_equal (['X', 'Y', 'Z'])
+            ## TODO when types fixed ws . should_equal (Table.new [['X', ['U']],['Y', ['V']],['Z', [3]]])
+        group_builder.specify "First row has a numeric, gives no headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read 'Row1HasNumeric' ..Detect_Headers
+            ws.column_names . should_equal (['A', 'B', 'C'])
+            ws . should_equal (Table.new [['A', ['U', 'X']],['B', ['V', 'Y']],['C', [3, 'Z']]])

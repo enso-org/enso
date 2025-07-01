@@ -5,50 +5,25 @@ import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import * as backendModule from '#/services/Backend'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
-import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
-import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'
-import type RemoteBackend from '../services/RemoteBackend'
-
-const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
-
-/**
- * Modal for setting the organization name.
- * Shows up when the user is on the team plan and the organization name is the default.
- */
-export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
-  const { remoteBackend: backend } = useBackends()
-
-  const session = authProvider.useFullUserSession()
-  const { user } = session
-  const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = user
-
-  const shouldShowModal = PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin
-
-  if (shouldShowModal) {
-    return (
-      <SetupOrganizationAfterSubscribeInternal userId={userId} backend={backend}>
-        {children}
-      </SetupOrganizationAfterSubscribeInternal>
-    )
-  }
-
-  return <>{children}</>
-}
 
 /**
  * Props for the SetupOrganizationAfterSubscribeInternal component.
  * @param props - The props for the component.
  * @returns The component.
  */
-interface SetupOrganizationAfterSubscribeInternalProps {
+export interface SetupOrganizationAfterSubscribeProps {
   readonly userId: string
-  readonly backend: RemoteBackend
+  // Null is used to indicate that the user is not an admin of an organization,
+  // Or organization info has not yet been created, This means that the dialog
+  // should not be shown.
+  readonly organizationName: string | null
+  readonly userGroupsCount: number
 }
 
 /**
@@ -56,26 +31,10 @@ interface SetupOrganizationAfterSubscribeInternalProps {
  * @param props - The props for the component.
  * @returns The component.
  */
-function SetupOrganizationAfterSubscribeInternal(
-  props: React.PropsWithChildren<SetupOrganizationAfterSubscribeInternalProps>,
-) {
-  const { backend, children } = props
-
+export function SetupOrganizationAfterSubscribe(props: SetupOrganizationAfterSubscribeProps) {
+  const { organizationName, userGroupsCount } = props
+  const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
-
-  const { organizationName, userGroupsCount } = useSuspenseQueries({
-    queries: [
-      backendQueryOptions(backend, 'getOrganization', []),
-      backendQueryOptions(backend, 'listUserGroups', []),
-    ],
-    combine: ([organizationQuery, userGroupsQuery]) => ({
-      // Null is used to indicate that the user is not an admin of an organization,
-      // Or organization info has not yet been created, This means that the dialog
-      // should not be shown.
-      organizationName: organizationQuery.data?.name ?? null,
-      userGroupsCount: userGroupsQuery.data.length,
-    }),
-  })
 
   const [hideModal, setHideModal] = React.useState(false)
 
@@ -141,28 +100,24 @@ function SetupOrganizationAfterSubscribeInternal(
   })
 
   return (
-    <>
-      <Dialog
-        title={getText('setupOrganization')}
-        isDismissable={false}
-        isKeyboardDismissDisabled
-        hideCloseButton
-        size="xxxlarge"
-        padding="xlarge"
-        modalProps={{ isOpen: shouldShowModal }}
+    <Dialog
+      title={getText('setupOrganization')}
+      isDismissable={false}
+      isKeyboardDismissDisabled
+      hideCloseButton
+      size="xxxlarge"
+      padding="xlarge"
+      modalProps={{ isOpen: shouldShowModal }}
+    >
+      <Stepper
+        state={stepperState}
+        renderStep={(stepProps) => (
+          <Stepper.Step {...stepProps} title={steps[stepProps.index]?.title ?? ''} />
+        )}
       >
-        <Stepper
-          state={stepperState}
-          renderStep={(stepProps) => (
-            <Stepper.Step {...stepProps} title={steps[stepProps.index]?.title ?? ''} />
-          )}
-        >
-          {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
-        </Stepper>
-      </Dialog>
-
-      {children}
-    </>
+        {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
+      </Stepper>
+    </Dialog>
   )
 }
 

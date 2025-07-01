@@ -516,7 +516,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
-      context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
+      context.receiveNIgnoreExpressionUpdates(3) should contain allOf (
         Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
         context.executionComplete(contextId)
       )
@@ -1689,11 +1689,25 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      context.receiveNIgnoreExpressionUpdates(
-        1
-      ) should contain theSameElementsAs Seq(
+      val responsesAfterEdit = context.receiveNIgnoreExpressionUpdates(2)
+      responsesAfterEdit should contain(
         context.executionComplete(contextId)
       )
+      val Some(data2) = responsesAfterEdit.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `expectedExpressionId`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      data2.sameElements("6".getBytes) shouldBe true
   }
 
   it should "not reorder visualization commands" in withContext() { context =>
@@ -1980,7 +1994,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(7)
+      val attachVisualizationResponses = context.receiveN(8)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
@@ -5554,10 +5568,27 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
+      val editFileResponse = context.receiveNIgnoreExpressionUpdates(3)
       editFileResponse should contain(
         context.executionComplete(contextId)
       )
+
+      val Some(data4) = attachVisualizationResponses3.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idVector3Self`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+
+      new String(data4, StandardCharsets.UTF_8) shouldEqual "[1, 2, 3, 4]"
 
       // Modify the file by providing the smallest possible edits.
       // There are more efficient ways to do it but this mimics GUI requests and

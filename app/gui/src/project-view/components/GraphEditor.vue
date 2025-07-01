@@ -532,7 +532,9 @@ function collapseNodes(nodes: Node[]) {
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)
     if (!info.ok) {
-      toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
+      toasts.userActionFailed.show(
+        `Unable to create User Defined Component: ${info.error.payload}.`,
+      )
       return
     }
     const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
@@ -541,7 +543,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const topLevel = graphStore.moduleRoot
     if (!topLevel) {
-      bail('BUG: no top level, collapsing not possible.')
+      bail('BUG: no top level, creating User Defined Component not possible.')
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
@@ -563,7 +565,7 @@ function collapseNodes(nodes: Node[]) {
       }
     })
   } catch (err) {
-    console.error('Error while collapsing, this is not normal.', err)
+    console.error('Error while creating User Defined Component, this is not normal.', err)
   }
 }
 

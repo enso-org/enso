@@ -434,8 +434,9 @@ public final class ContextUtils implements TestRule, AutoCloseable {
      *
      * @param b true for automatically wrapping the test code in the context. If false, the context
      *     entering must be done manually.
+     * @return this builder
      */
-    private Builder alwaysExecuteInContext(boolean b) {
+    public Builder alwaysExecuteInContext(boolean b) {
       this.alwaysExecuteInContext = b;
       return this;
     }

@@ -56,7 +56,7 @@ export interface PathBrowsing {
 export function usePathBrowsing({
   listDirectory,
 }: {
-  listDirectory: (dir: Directory) => Promise<readonly AnyAsset[]>
+  listDirectory: (dir: Directory) => Promise<readonly AnyAsset[] | null>
 }): PathBrowsing {
   const enteredDirectories = reactive<Directory[]>([])
   const unenteredPathSuffix = ref('')
@@ -67,7 +67,7 @@ export function usePathBrowsing({
     name: string,
     parent: Directory,
   ): Promise<Result<DirectoryAsset, CannotEnterDir>> {
-    const content = await listDirectory(parent)
+    const content = (await listDirectory(parent)) ?? []
     const nextAsset = content.find((asset) => asset.title === name)
     if (!nextAsset) return Err(new CannotEnterDir('notFound', name))
     if (!assetIsDirectory(nextAsset)) return Err(new CannotEnterDir('notDir', name))

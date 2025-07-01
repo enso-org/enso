@@ -21,6 +21,7 @@ import { SETUP_PATH } from '$/appUtils'
 import { UserSessionType } from '$/providers/auth'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+  DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
 import { useLocalStorage, usePlanOverride, useText } from '$/providers/react'
@@ -28,8 +29,10 @@ import { useSetPlanOverride, useUserSession } from '$/providers/react/auth'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { motion } from 'framer-motion'
 import * as React from 'react'
 import { toast } from 'react-toastify'
+import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
 import {
@@ -38,6 +41,7 @@ import {
   usePaywallDevtools,
   useSetAnimationsDisabled,
   useSetEnableVersionChecker,
+  useShowEnsoDevtools,
   useToggleEnsoDevtools,
 } from './EnsoDevtoolsProvider'
 
@@ -71,6 +75,7 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 export function EnsoDevStatus() {
   const queryClient = useQueryClient()
   const { getText } = useText()
+  const showEnsoDevtools = useShowEnsoDevtools()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
   const animationsDisabled = useAnimationsDisabled()
@@ -88,6 +93,7 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
+    fileChunkUploadPoolSize,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
@@ -110,7 +116,21 @@ export function EnsoDevStatus() {
       }
     }
   })()
-  const isOverridden = planName != null || showDeveloperIds
+  const isOverridden =
+    planName != null ||
+    animationsDisabled ||
+    versionCheckerEnabled ||
+    !enableAssetsTableBackgroundRefresh ||
+    assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
+    !enableCloudExecution ||
+    !enableScheduledExecution ||
+    !enableHybridExecution ||
+    showDeveloperIds ||
+    overrideProfilePicture ||
+    multiplyUserList ||
+    enableMultitabs ||
+    enableAdvancedProjectExecutionOptions ||
+    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -120,9 +140,10 @@ export function EnsoDevStatus() {
 
   return (
     <Portal>
-      <div
+      <motion.div
+        layout
         className={styles.base({
-          className: 'absolute bottom-[4.25rem] left-3',
+          className: twJoin('absolute left-3', showEnsoDevtools ? 'bottom-[4.25rem]' : 'bottom-3'),
         })}
       >
         <div className={styles.dialog()}>
@@ -172,7 +193,7 @@ export function EnsoDevStatus() {
               }}
             >
               {getText(
-                'assetsTableBackgroundRefreshIntervalOverridenToXMs',
+                'assetsTableBackgroundRefreshIntervalOverriddenToXMs',
                 assetsTableBackgroundRefreshInterval,
               )}
             </DeveloperOverrideEntry>
@@ -250,8 +271,17 @@ export function EnsoDevStatus() {
               {getText('advancedProjectExecutionOptionsEnabled')}
             </DeveloperOverrideEntry>
           )}
+          {fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('fileChunkUploadPoolSize', DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE)
+              }}
+            >
+              {getText('willUploadUpToXFileChunksAtOnce', fileChunkUploadPoolSize)}
+            </DeveloperOverrideEntry>
+          )}
         </div>
-      </div>
+      </motion.div>
     </Portal>
   )
 }
@@ -530,6 +560,19 @@ export function EnsoDevtools() {
                     description="Enable Hybrid Execution"
                     onChange={(value) => {
                       setFeatureFlag('enableHybridExecution', value)
+                    }}
+                  />
+                  <Input
+                    form={form}
+                    type="number"
+                    inputMode="numeric"
+                    name="fileChunkUploadPoolSize"
+                    label={getText('ensoDevtoolsFeatureFlags.fileChunkUploadPoolSize')}
+                    description={getText(
+                      'ensoDevtoolsFeatureFlags.fileChunkUploadPoolSizeDescription',
+                    )}
+                    onChange={(event) => {
+                      setFeatureFlag('fileChunkUploadPoolSize', event.target.valueAsNumber)
                     }}
                   />
                 </>
