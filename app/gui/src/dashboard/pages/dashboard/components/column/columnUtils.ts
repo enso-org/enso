@@ -65,36 +65,21 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 
 /** Return the full list of columns given the relevant current state. */
 export function getColumnList(
-  user: backend.User,
+  plan: backend.Plan,
   backendType: backend.BackendType,
-  category: Category,
+  categoryType: Category['type'],
 ): readonly Column[] {
   const isCloud = backendType === backend.BackendType.remote
-  const isEnterprise = user.plan === backend.Plan.enterprise
-
-  const isTrash = category.type === 'trash'
-  const isRecent = category.type === 'recent'
-  const isRoot = category.type === 'cloud'
-
-  const sharedWithColumn = () => {
-    if (isTrash) return false
-    if (isRecent) return false
-    if (isRoot) return false
-    return isCloud && isEnterprise && Column.sharedWith
-  }
-
-  const pathColumn = () => {
-    if (isTrash) return Column.path
-    if (isRecent) return Column.path
-
-    return false
-  }
+  const isEnterprise = plan === backend.Plan.enterprise
+  const isTrash = categoryType === 'trash'
+  const isRecent = categoryType === 'recent'
+  const isCloudRoot = categoryType === 'cloud'
 
   const columns = [
     Column.name,
     Column.modified,
-    sharedWithColumn(),
-    pathColumn(),
+    !(isTrash || isRecent || isCloudRoot) && isCloud && isEnterprise && Column.sharedWith,
+    (isTrash || isRecent) && Column.path,
     isCloud && Column.labels,
     // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1525
     // Bring back these columns when they are ready for use again.
@@ -102,5 +87,5 @@ export function getColumnList(
     // isCloud && Column.accessedData,
   ] as const
 
-  return columns.flatMap((column) => (column !== false ? [column] : []))
+  return columns.filter((column) => column !== false)
 }

@@ -356,7 +356,12 @@ const config = [
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
       'no-restricted-imports': [
         'error',
-        { paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+        {
+          paths: [
+            { name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE },
+            { name: '#/hooks/debugHooks', message: DEBUG_STATEMENTS_MESSAGE },
+          ],
+        },
       ],
       'no-restricted-properties': [
         'error',
@@ -395,7 +400,10 @@ const config = [
       'react/prop-types': 'off',
       'react/self-closing-comp': 'error',
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': ['error', { additionalHooks: 'useOnScroll|useLazyMemoHooks' }],
+      'react-hooks/exhaustive-deps': [
+        'error',
+        { additionalHooks: 'useOnScroll|useLazyMemoHooks|useShallowMemo' },
+      ],
       'react/jsx-pascal-case': ['error', { allowNamespace: true }],
 
       // Prefer `interface` over `type`.

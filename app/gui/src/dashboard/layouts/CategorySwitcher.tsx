@@ -131,14 +131,12 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     const payloadSchema = ASSETS_DATA_TRANSFER_PAYLOAD
 
     const payloads = await Promise.all(
-      event.items
-        .filter((item) => item.kind === 'text')
-        .map(async (item) => {
-          const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-          const parsedPayload = payloadSchema.safeParse(JSON.parse(text))
+      event.items.filter(aria.isTextDropItem).map(async (item) => {
+        const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
+        const parsedPayload = payloadSchema.safeParse(JSON.parse(text))
 
-          return parsedPayload.success ? parsedPayload.data : null
-        }),
+        return parsedPayload.success ? parsedPayload.data : null
+      }),
     )
     const firstItem = payloads[0]?.items[0]
 

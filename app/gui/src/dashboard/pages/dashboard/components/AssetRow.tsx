@@ -6,32 +6,18 @@ import {
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
 import { useBackendMutationState } from '#/hooks/backendHooks'
-import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
-import { useDragDelayAction } from '#/hooks/dragDelayHooks'
-import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
+import { useDraggable } from '#/hooks/dragAndDropHooks'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
-import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
-import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
-import {
-  useDriveStore,
-  useSetCurrentDirectoryId,
-  useSetDragTargetAssetId,
-} from '#/providers/DriveProvider'
+import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import * as backendModule from '#/services/Backend'
-import * as drag from '#/utilities/drag'
-import {
-  canPermissionModifyDirectoryContents,
-  isTeamPath,
-  tryFindSelfPermission,
-} from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { useFullUserSession, useRightPanelData } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -48,9 +34,6 @@ export interface AssetRowProps {
   readonly state: assetsTable.AssetsTableState
   readonly columns: readonly columnUtils.Column[]
   readonly select: (item: backendModule.AnyAsset) => void
-  readonly onDragStart: (event: DragEvent, item: backendModule.AnyAsset) => void
-  readonly onDragEnd: (event: DragEvent, item: backendModule.AnyAsset) => void
-  readonly onDrop: (event: DragEvent, item: backendModule.AnyAsset) => void
   readonly tableRootRef: React.MutableRefObject<HTMLElement | null> | undefined
 }
 
@@ -107,15 +90,13 @@ type RealAssetRowProps = AssetRowProps
 /** Render a real asset row. */
 export function RealAssetRow(props: RealAssetRowProps) {
   const { select, state, columns, item, tableRootRef } = props
-  const { category, backend, currentDirectoryId, doCopy, doCut } = state
+  const { backend, currentDirectoryId, doCopy, doCut } = state
 
   const [isNavigating, startNavigation] = useTransition()
 
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const driveStore = useDriveStore()
   const rightPanel = useRightPanelData()
-  const { user } = useFullUserSession()
-  const getAsset = useGetAsset()
   const { isSelected, isSoleSelected, isMultiSelected } = useStore(
     driveStore,
     ({ visuallySelectedKeys, selectedIds }) => {
@@ -131,9 +112,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
-  const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
-  const [isDraggedOver, setIsDraggedOver] = React.useState(false)
-  const setDragTargetAssetId = useSetDragTargetAssetId()
+  const draggableProps = useDraggable({ isDisabled: !isSelected })
   const rootRef = React.useRef<HTMLElement | null>(null)
 
   const isDeletingSingleAsset =
@@ -182,54 +161,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
   })
   const visibility = isDeleting || isRestoring || isUpdating ? 'opacity-50' : insertionVisibility
 
-  const setDirectoryId = useSetCurrentDirectoryId()
-
-  const dragDelayProps = useDragDelayAction(
-    item.type === backendModule.AssetType.directory ?
-      () => {
-        startNavigation(() => {
-          setDirectoryId(item.id)
-        })
-      }
-    : undefined,
-  )
-
-  const onDragOver = (event: DragEvent) => {
-    const directoryId = item.type === backendModule.AssetType.directory ? item.id : item.parentId
-    const payload = drag.ASSET_ROWS.lookup(event)
-    const isPayloadMatch =
-      payload != null && payload.items.every((innerItem) => innerItem.key !== directoryId)
-    const canPaste = (() => {
-      if (!isPayloadMatch) {
-        return false
-      }
-      if (isLocalCategory(category)) {
-        return true
-      }
-      return payload.items.every(({ asset }) => {
-        const payloadParentId = getAsset(asset.id)?.parentId
-        const parent = payloadParentId == null ? null : getAsset(payloadParentId)
-        if (!parent) {
-          // Assume the parent is the root directory.
-          return true
-        }
-        if (parent.ensoPath != null && isTeamPath(parent.ensoPath)) {
-          return true
-        }
-        // Assume user path; check permissions
-        const permission = tryFindSelfPermission(user, item.permissions)
-        return permission != null && canPermissionModifyDirectoryContents(permission.permission)
-      })
-    })()
-
-    if ((isPayloadMatch && canPaste) || event.dataTransfer?.types.includes('Files') === true) {
-      event.preventDefault()
-      if (item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
-        setIsDraggedOver(true)
-      }
-    }
-  }
-
   switch (item.type) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
@@ -260,9 +191,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 }
               }
               element.oncontextmenu = (event) => {
-                // We show the asset row context menu if the asset is included in the selection.
-                // Or we click on a asset row outside of the selection. In that case we reset the
-                // selection to the clicked asset.
+                // We show the table-wide context menu if the asset is included in the selection.
                 if (isSelected && isMultiSelected) {
                   return
                 }
@@ -270,6 +199,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 event.preventDefault()
                 event.stopPropagation()
 
+                // If we click on an asset row outside of the selection, reset the selection
+                // to the clicked asset.
                 if (!isSelected) {
                   select(item)
                 }
@@ -293,59 +224,13 @@ export function RealAssetRow(props: RealAssetRowProps) {
                   />,
                 )
               }
-              // TODO: Use the more conventional solution, `useDragAndDrop`.
-              // https://react-spectrum.adobe.com/react-aria/Table.html#drag-data
-              element.ondragstart = (event) => {
-                if (
-                  item.type === backendModule.AssetType.project &&
-                  BUSY_PROJECT_STATES.has(item.projectState.type)
-                ) {
-                  event.preventDefault()
-                }
-
-                props.onDragStart(event, item)
-              }
-              element.ondragenter = (event) => {
-                // Required because `dragover` does not fire on `mouseenter`.
-                onDragOver(event)
-                dragDelayProps.onDragEnter(event)
-              }
-              element.ondragover = (event) => {
-                if (state.category.type === 'trash' && event.dataTransfer) {
-                  event.dataTransfer.dropEffect = 'none'
-                }
-                onDragOver(event)
-              }
-              element.ondragend = (event) => {
-                setIsDraggedOver(false)
-                props.onDragEnd(event, item)
-              }
-              element.ondragleave = (event) => {
-                if (
-                  event.relatedTarget instanceof Node &&
-                  event.currentTarget instanceof Node &&
-                  event.currentTarget.contains(event.relatedTarget) !== true
-                ) {
-                  setIsDraggedOver(false)
-                  setDragTargetAssetId(null)
-                }
-                dragDelayProps.onDragLeave(event)
-              }
-              element.ondrop = (event) => {
-                event.preventDefault()
-                event.stopPropagation()
-
-                setIsDraggedOver(false)
-                props.onDrop(event, item)
-              }
               element.onfocus = draggableProps.onFocus
               element.blur = draggableProps.onBlur
-              element.draggable = draggableProps.draggable
+              element.draggable = true
             }}
             className={tailwindMerge.twMerge(
-              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
+              'AssetRow h-table-row rounded-full transition-all ease-in-out rounded-rows-child selected:selected',
               visibility,
-              (isDraggedOver || isSelected) && 'selected',
             )}
             columns={columns.map((column) => ({ id: column }))}
           >

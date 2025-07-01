@@ -4,6 +4,7 @@ import {
   Cell,
   ColumnResizer,
   FileTrigger,
+  isTextDropItem,
   mergeProps,
   ResizableTableContainer,
   Row,
@@ -11,6 +12,7 @@ import {
   TableBody,
   Column as TableColumn,
   TableHeader,
+  useDragAndDrop,
 } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
@@ -44,11 +46,9 @@ import {
   useAssetsTableColumnWidths,
   useSetAssetsTableColumnWidths,
 } from '#/layouts/Drive/assetsTableColumnWidths'
-import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useAssetsTableItems, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
-import DragModal from '#/modals/DragModal'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
-import { NameColumn } from '#/pages/dashboard/components/column'
 import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
   Column,
@@ -78,18 +78,19 @@ import {
   AssetType,
   BackendType,
   getAssetPermissionName,
-  IS_OPENING_OR_OPENED,
   isDirectoryId,
   type AnyAsset,
 } from '#/services/Backend'
+import { shallowEqual } from '#/utilities/array'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
-import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
+import { type AssetRowsDragPayload } from '#/utilities/drag'
 import { fileExtension } from '#/utilities/fileInfo'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { mapEntries, unsafeEntries } from '#/utilities/object'
 import { PermissionAction } from '#/utilities/permissions'
+import { useShallowMemo } from '#/utilities/react'
 import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
@@ -114,6 +115,7 @@ import {
   useRef,
   useState,
   type Dispatch,
+  type HTMLAttributes,
   type DragEvent as ReactDragEvent,
   type ReactNode,
   type RefObject,
@@ -121,7 +123,6 @@ import {
 } from 'react'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
-import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
@@ -208,16 +209,19 @@ function AssetsTable(props: AssetsTableProps) {
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
   const rightPanel = useRightPanelData()
 
+  const allColumns = useShallowMemo(
+    () => getColumnList(user.plan, backend.type, category.type),
+    [backend.type, category.type, user.plan],
+  )
+
   const columns = useMemo(
-    () =>
-      getColumnList(user, backend.type, category).filter((column) => enabledColumns.has(column)),
-    [backend.type, category, enabledColumns, user],
+    () => allColumns.filter((column) => enabledColumns.has(column)),
+    [allColumns, enabledColumns],
   )
 
   const hiddenColumns = useMemo(
-    () =>
-      getColumnList(user, backend.type, category).filter((column) => !enabledColumns.has(column)),
-    [backend.type, category, enabledColumns, user],
+    () => allColumns.filter((column) => !enabledColumns.has(column)),
+    [allColumns, enabledColumns],
   )
 
   const [sortInfo, setSortInfo] = useState<SortInfo<SortableColumn> | null>(null)
@@ -575,7 +579,10 @@ function AssetsTable(props: AssetsTableProps) {
 
   useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')
-    if (savedEnabledColumns != null) {
+    if (
+      savedEnabledColumns != null &&
+      !shallowEqual(savedEnabledColumns, [...DEFAULT_ENABLED_COLUMNS])
+    ) {
       setEnabledColumns(new Set(savedEnabledColumns))
     }
   }, [localStorage])
@@ -644,10 +651,12 @@ function AssetsTable(props: AssetsTableProps) {
     )
 
   const onDropzoneDragOver = (event: ReactDragEvent) => {
-    const payload = ASSET_ROWS.lookup(event)
     // Unconditionally handle drag event even if drop target is invalid
     // otherwise the drag modal stays around.
-    if (payload || event.dataTransfer.types.includes('Files')) {
+    if (
+      event.dataTransfer.types.includes(ASSETS_MIME_TYPE) ||
+      event.dataTransfer.types.includes('Files')
+    ) {
       event.preventDefault()
       return
     }
@@ -842,76 +851,6 @@ function AssetsTable(props: AssetsTableProps) {
     setSelectedAssets([asset])
   })
 
-  const onRowDragStart = useEventCallback((event: DragEvent, asset: AnyAsset) => {
-    startAutoScroll()
-
-    onMouseEvent(event)
-
-    let newSelectedKeys = driveStore.getState().selectedIds
-
-    if (!newSelectedKeys.has(asset.id)) {
-      newSelectedKeys = new Set([asset.id])
-      setSelectedAssets([asset])
-    }
-    const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
-    const isPayloadInvalid = nodes.some(
-      (node) => node.type === AssetType.project && IS_OPENING_OR_OPENED[node.projectState.type],
-    )
-    if (isPayloadInvalid) {
-      event.preventDefault()
-      return
-    }
-    const payload: AssetRowsDragPayload = {
-      category,
-      items: nodes.map((node) => ({
-        key: node.id,
-        asset: node,
-      })),
-    }
-    event.dataTransfer?.setData(
-      ASSETS_MIME_TYPE,
-      JSON.stringify({
-        category,
-        items: nodes.map((node) => ({
-          id: node.id,
-          title: node.title,
-          type: node.type,
-          parentId: node.parentId,
-          parentsPath: node.parentsPath,
-          virtualParentsPath: node.virtualParentsPath,
-        })),
-      } satisfies AssetsDataTransferPayload),
-    )
-    setDragImageToBlank(event)
-    ASSET_ROWS.bind(event, payload)
-    setModal(
-      <DragModal
-        event={event}
-        className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-        onDragEnd={() => {
-          ASSET_ROWS.unbind(payload)
-        }}
-      >
-        {nodes.map((node) => (
-          <NameColumn
-            isNavigating={false}
-            key={node.id}
-            item={node}
-            backendType={backend.type}
-            state={state}
-            // The drag placeholder cannot be interacted with.
-            isEditable={false}
-          />
-        ))}
-      </DragModal>,
-    )
-  })
-
-  const onRowDragEnd = useEventCallback(() => {
-    setIsDraggingFiles(false)
-    endAutoScroll()
-  })
-
   const onRowDrop = useEventCallback(
     (event: DragEvent | ReactDragEvent, item: AnyAsset | null = null) => {
       if (category.type === 'trash' || category.type === 'recent') {
@@ -919,7 +858,11 @@ function AssetsTable(props: AssetsTableProps) {
       }
       endAutoScroll()
       const directoryId = item?.type === AssetType.directory ? item.id : currentDirectoryId
-      const payload = ASSET_ROWS.lookup(event)
+      const payload =
+        event.dataTransfer ?
+          // eslint-disable-next-line no-restricted-syntax
+          (JSON.parse(event.dataTransfer.getData(ASSETS_MIME_TYPE)) as AssetRowsDragPayload)
+        : null
       const items = payload?.items ?? []
 
       if (payload != null && items.every((innerItem) => innerItem.key !== directoryId)) {
@@ -990,10 +933,51 @@ function AssetsTable(props: AssetsTableProps) {
   }
   const columnRefs = useRef<Partial<Record<Column, HTMLTableCellElement | undefined>>>({})
 
+  // useDebugEffect(
+  //   () => {},
+  //   [visibleItems, columns, category.id, currentDirectoryId, renderId],
+  //   'table render',
+  //   ['visibleItems', 'columns', 'category.id', 'currentDirectoryId', 'renderId'],
+  // )
+
+  const getAsset = useGetAsset()
+  const { dragAndDropHooks } = useDragAndDrop({
+    getItems: (keys) => [
+      {
+        [ASSETS_MIME_TYPE]: JSON.stringify({
+          category,
+          items: [...keys].flatMap((id) => {
+            // eslint-disable-next-line no-restricted-syntax
+            const asset = getAsset(id as AssetId)
+            return asset ? [{ asset, key: asset.id }] : []
+          }),
+        } satisfies AssetRowsDragPayload),
+      },
+    ],
+    /**
+     *
+     */
+    onRootDrop(event) {
+      void (async () => {
+        const items = await Promise.all(
+          event.items.filter(isTextDropItem).map(
+            async (item): Promise<AssetRowsDragPayload> =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+              JSON.parse(await item.getText(ASSETS_MIME_TYPE)),
+          ),
+        )
+        paste(items)
+        setItems(items)
+      })()
+    },
+  })
+
   const table = (
     <div
       className="flex flex-none flex-col"
       onKeyDownCapture={(event) => {
+        // Allow `ArrowLeft` and `ArrowRight` to work in inputs, rather than using react-aria's
+        // navigation between components.
         if (event.target instanceof HTMLInputElement) {
           switch (event.key) {
             case 'ArrowLeft':
@@ -1017,7 +1001,8 @@ function AssetsTable(props: AssetsTableProps) {
             const set = new Set(selection)
             setSelectedAssets(assets.filter((asset) => set.has(asset.id)))
           }}
-          className="isolate border-collapse rounded-rows"
+          dragAndDropHooks={dragAndDropHooks}
+          className="AssetsTable isolate border-collapse rounded-rows"
         >
           <TableHeader
             columns={columns.map((column) => ({ id: column }))}
@@ -1070,19 +1055,16 @@ function AssetsTable(props: AssetsTableProps) {
             <TableBody
               ref={bodyRef}
               items={visibleItems}
-              dependencies={[visibleItems, columns, category.id, currentDirectoryId, renderId]}
+              dependencies={[visibleItems, columns]}
               className="isolate"
             >
               {(item) => (
                 <AssetRow
-                  key={`${item.id} ${item.virtualParentsPath}`}
+                  key={`${item.virtualParentsPath}/${item.id}`}
                   item={item}
                   columns={columns}
                   state={state}
                   select={selectRow}
-                  onDragStart={onRowDragStart}
-                  onDragEnd={onRowDragEnd}
-                  onDrop={onRowDrop}
                   tableRootRef={rootRef}
                 />
               )}
@@ -1119,10 +1101,7 @@ function AssetsTable(props: AssetsTableProps) {
           onDrop={(event) => {
             event.preventDefault()
             event.stopPropagation()
-            onRowDrop(event, null)
-          }}
-          onClick={() => {
-            setSelectedAssets([])
+            onRowDrop(event)
           }}
         >
           <FileTrigger
@@ -1316,13 +1295,17 @@ export function AssetsTableAssetsUnselector(props: AssetsTableAssetsUnselectorPr
     const childenArray = Children.toArray(children)
     const onlyChild = childenArray.length === 1 ? childenArray[0] : null
 
-    invariant(onlyChild != null, 'Children must be a single element when `asChild` is true')
-    invariant(isValidElement(onlyChild), 'Children must be a JSX element when `asChild` is true')
+    invariant(
+      onlyChild != null && isValidElement(onlyChild),
+      'Children must be a single JSX element when `asChild` is true',
+    )
 
     return cloneElement(
       onlyChild,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, no-restricted-syntax
-      mergeProps<any>()(onlyChild.props as any, { onPointerDown }),
+      // eslint-disable-next-line no-restricted-syntax
+      mergeProps<HTMLAttributes<HTMLElement>>()(onlyChild.props as HTMLAttributes<HTMLElement>, {
+        onPointerDown,
+      }),
     )
   }
 

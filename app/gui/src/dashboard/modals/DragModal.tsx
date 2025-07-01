@@ -9,7 +9,7 @@ import {
   Children,
   startTransition,
   useEffect,
-  useState,
+  useRef,
   type PropsWithChildren,
   type DragEvent as ReactDragEvent,
 } from 'react'
@@ -43,14 +43,17 @@ export default function DragModal(props: DragModalProps) {
     onDragEnd: onDragEndRaw,
     ...passthrough
   } = props
-  const [left, setLeft] = useState(event.pageX - (offsetPx ?? offsetXPx))
-  const [top, setTop] = useState(event.pageY - (offsetPx ?? offsetYPx))
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const onDragEndOuter = useEventCallback(onDragEndRaw)
 
   const onDrag = useEventCallback((dragEvent: MouseEvent) => {
+    const containerEl = containerRef.current
+    if (!containerEl) {
+      return
+    }
     if (dragEvent.pageX !== 0 || dragEvent.pageY !== 0) {
-      setLeft(dragEvent.pageX - (offsetPx ?? offsetXPx))
-      setTop(dragEvent.pageY - (offsetPx ?? offsetYPx))
+      containerEl.style.left = `${dragEvent.pageX - (offsetPx ?? offsetXPx)}px`
+      containerEl.style.top = `${dragEvent.pageY - (offsetPx ?? offsetYPx)}px`
     }
   })
 
@@ -80,11 +83,16 @@ export default function DragModal(props: DragModalProps) {
     <Portal>
       <div className="pointer-events-none absolute size-full overflow-hidden shadow-md">
         <div
-          {...passthrough}
-          style={{ left, top, ...style }}
+          ref={containerRef}
           className={DIALOG_BACKGROUND({
             className: ['relative w-48 translate-x-3 translate-y-3', className],
           })}
+          style={{
+            left: event.pageX - (offsetPx ?? offsetXPx),
+            top: event.pageY - (offsetPx ?? offsetYPx),
+            ...style,
+          }}
+          {...passthrough}
         >
           <div className="absolute w-full">
             {Children.toArray(children)
