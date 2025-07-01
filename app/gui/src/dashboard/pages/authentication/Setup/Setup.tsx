@@ -104,9 +104,9 @@ const BASE_STEPS: Step[] = [
 
       return (
         <PlanSelector
+          showFreePlan
           userPlan={plan}
           isOrganizationAdmin={isOrganizationAdmin}
-          hasTrial={plan === Plan.free}
           onSubscribeSuccess={goToNextStep}
         />
       )

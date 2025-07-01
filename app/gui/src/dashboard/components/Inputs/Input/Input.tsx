@@ -79,6 +79,7 @@ export const Input = forwardRef(function Input<
     className,
     contextualHelp,
     testId: testIdRaw,
+    description,
     ...inputProps
   } = props
 
@@ -158,6 +159,7 @@ export const Input = forwardRef(function Input<
             size,
             rounded,
             variants,
+            description,
           },
           omit(inputProps, 'isInvalid', 'isRequired', 'isDisabled'),
           omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),

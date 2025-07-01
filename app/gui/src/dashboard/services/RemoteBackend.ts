@@ -1402,7 +1402,7 @@ export default class RemoteBackend extends Backend {
       params,
     )
     if (!response.ok) {
-      return await this.throw(response, 'createCheckoutSessionBackendError', params.plan)
+      return await this.throw(response, 'createCheckoutSessionBackendError', params.price)
     } else {
       return await response.json()
     }

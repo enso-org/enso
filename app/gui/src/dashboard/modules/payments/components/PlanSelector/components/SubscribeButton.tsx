@@ -4,36 +4,39 @@ import { Dialog } from '#/components/Dialog'
 import { Text } from '#/components/Text'
 import { getSalesEmail } from '$/appUtils'
 import { useText } from '$/providers/react'
+import { Plan } from 'enso-common/src/services/Backend'
 import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
 /** Props for a {@link SubscribeButton}. */
 export interface SubscribeButtonProps
   extends Omit<PlanSelectorDialogProps, 'isTrialing' | 'title'> {
-  readonly isOrganizationAdmin?: boolean
+  readonly isOrganizationAdmin: boolean
   readonly userHasSubscription: boolean
-  readonly isCurrent?: boolean
-  readonly isDowngrade?: boolean
+  readonly isCurrent: boolean
+  readonly isDowngrade: boolean
+  readonly canTrial: boolean
   readonly isDisabled?: boolean
-  readonly canTrial?: boolean
   readonly defaultOpen?: boolean
 }
 
 /** A button to subscribe to a plan. */
 export function SubscribeButton(props: SubscribeButtonProps) {
   const {
-    defaultOpen,
     userHasSubscription,
-    isCurrent = false,
-    isDowngrade = false,
-    isDisabled = false,
-    canTrial = false,
+    isCurrent,
+    isDowngrade,
+    canTrial: canTrialRaw,
     plan,
     onSubmit,
     planName,
     features,
-    isOrganizationAdmin = false,
+    isOrganizationAdmin,
+    isDisabled = false,
+    defaultOpen,
   } = props
+
+  const canTrial = canTrialRaw && !(plan === Plan.team || plan === Plan.enterprise)
 
   const { getText } = useText()
 

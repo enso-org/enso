@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Dialog that shows the plan details, price, and the payment form.
- */
+/** @file Dialog that shows the plan details, price, and the payment form. */
 import { Button } from '#/components/Button'
 import { Checkbox } from '#/components/Checkbox'
 import { Dialog } from '#/components/Dialog'
@@ -13,22 +9,29 @@ import { Selector } from '#/components/Inputs/Selector'
 import { Separator } from '#/components/Separator'
 import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
-import type { Plan } from '#/services/Backend'
+import { Plan } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
-import { type GetText } from '$/providers/text'
-import type { PaymentMethod } from '@stripe/stripe-js'
+import type { GetText } from '$/providers/text'
 import { useQuery } from '@tanstack/react-query'
-import { createSubscriptionPriceQuery, useCreatePaymentMethodMutation } from '../../../api'
+import type { TextId } from 'enso-common/src/text'
 import {
   MAX_SEATS_BY_PLAN,
   PRICE_BY_PLAN,
   PRICE_CURRENCY,
   TRIAL_DURATION_DAYS,
 } from '../../../constants'
-import { AddPaymentMethodForm, createAddPaymentMethodFormSchema } from '../../AddPaymentMethodForm'
-import { StripeProvider } from '../../StripeProvider'
+import { createSubscriptionPriceQuery } from '../../../useSubscriptionPrice'
 import { PlanFeatures } from './PlanFeatures'
+
+const PLAN_TO_SEATS_DESCRIPTION_ID = {
+  free: 'freePlanSeatsDescription',
+  solo: 'soloPlanSeatsDescription',
+  team: 'teamPlanSeatsDescription',
+  enterprise: 'enterprisePlanSeatsDescription',
+} satisfies {
+  [PlanType in Plan]: TextId & `${PlanType}PlanSeatsDescription`
+}
 
 /** Props for {@link PlanSelectorDialog}. */
 export interface PlanSelectorDialogProps {
@@ -36,23 +39,25 @@ export interface PlanSelectorDialogProps {
   readonly planName: string
   readonly features: string[]
   readonly title: string
-  readonly onSubmit?:
-    | ((
-        paymentMethodId: PaymentMethod['id'],
-        seats: number,
-        interval: number,
-      ) => Promise<void> | void)
-    | undefined
+  readonly onSubmit?: ((seats: number, interval: number) => Promise<void> | void) | undefined
   /** Whether the user clicked on the trial button. */
   readonly isTrialing?: boolean
 }
 
 /** Get the string representation of a billing period. */
 function billingPeriodToString(getText: GetText, item: number) {
-  return (
+  switch (item) {
+    case 1: {
+      return getText('billingPeriodOneMonth')
+    }
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    item === 12 ? getText('billingPeriodOneYear') : getText('billingPeriodThreeYears')
-  )
+    case 12: {
+      return getText('billingPeriodOneYear')
+    }
+    default: {
+      return getText('unknownPlaceholder')
+    }
+  }
 }
 
 /** Dialog that shows the plan details, price, and the payment form. */
@@ -63,12 +68,10 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const price = PRICE_BY_PLAN[plan]
   const maxSeats = MAX_SEATS_BY_PLAN[plan]
 
-  const createPaymentMethodMutation = useCreatePaymentMethodMutation()
-
   const form = Form.useForm({
     mode: 'onChange',
     schema: (z) =>
-      createAddPaymentMethodFormSchema(z, getText).extend({
+      z.object({
         seats: z
           .number()
           .int()
@@ -83,14 +86,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
       }),
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     defaultValues: { seats: 1, period: 12, agree: [] },
-    onSubmit: async ({ cardElement, stripeInstance, seats, period }) => {
-      const res = await createPaymentMethodMutation.mutateAsync({
-        cardElement,
-        stripeInstance,
-      })
-
-      return onSubmit?.(res.paymentMethod.id, seats, period)
-    },
+    onSubmit: ({ seats, period }) => onSubmit?.(seats, period),
   })
 
   const seats = Form.useWatch({ name: 'seats', control: form.control })
@@ -126,14 +122,16 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           <PlanFeatures features={features} />
         </div>
 
-        <Separator orientation="horizontal" className="my-4" />
+        {plan !== Plan.solo && <Separator orientation="horizontal" className="my-4" />}
 
         <ErrorBoundary>
           <Suspense>
             <div className="grid grid-cols-[1fr]">
               <div className="flex flex-col gap-4">
                 <div>
-                  <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
+                  {plan !== Plan.solo && (
+                    <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
+                  )}
 
                   <Form form={form} className="mt-1">
                     <Selector
@@ -156,7 +154,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                       size="small"
                       min="1"
                       label={getText('seats')}
-                      description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
+                      description={getText(PLAN_TO_SEATS_DESCRIPTION_ID[plan], maxSeats)}
                     />
 
                     <Checkbox.Group
@@ -182,28 +180,14 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                 </div>
               </div>
 
-              <div>
-                <div className="my-4">
-                  <Summary
-                    plan={plan}
-                    seats={seats}
-                    period={period}
-                    formatter={formatter}
-                    isInvalid={form.formState.errors.seats != null}
-                  />
-                </div>
-
-                <StripeProvider>
-                  {({ stripe, elements }) => (
-                    <AddPaymentMethodForm
-                      form={form}
-                      elements={elements}
-                      stripeInstance={stripe}
-                      submitText={isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
-                      onSubmit={(paymentMethodId) => onSubmit?.(paymentMethodId, seats, period)}
-                    />
-                  )}
-                </StripeProvider>
+              <div className="my-4">
+                <Summary
+                  plan={plan}
+                  seats={seats}
+                  period={period}
+                  formatter={formatter}
+                  isInvalid={form.formState.errors.seats != null}
+                />
               </div>
             </div>
           </Suspense>
@@ -232,8 +216,6 @@ function Summary(props: SummaryProps) {
     ...createSubscriptionPriceQuery({ plan, seats, period }),
     enabled: !isInvalid,
   })
-
-  const billingPeriodText = billingPeriodToString(getText, period)
 
   return isError ?
       <ErrorDisplay
@@ -269,33 +251,7 @@ function Summary(props: SummaryProps) {
 
             {data && (
               <Text className="table-cell" variant="body">
-                {billingPeriodText}
-              </Text>
-            )}
-          </div>
-
-          <div className="table-row">
-            <Text className="table-cell w-[0%]" variant="body" nowrap>
-              {getText('originalPrice')}
-            </Text>
-            {data && (
-              <Text className="table-cell" variant="body">
-                {formatter.format(data.fullPrice)}
-              </Text>
-            )}
-          </div>
-
-          <div className="table-row">
-            <Text className="table-cell w-[0%]" variant="body" nowrap>
-              {getText('youSave')}
-            </Text>
-            {data && (
-              <Text
-                className="table-cell"
-                color={data.discount > 0 ? 'success' : 'primary'}
-                variant="body"
-              >
-                {formatter.format(data.discount)}
+                {getText('billingPeriodOneYear')}
               </Text>
             )}
           </div>

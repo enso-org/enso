@@ -16,7 +16,6 @@ const USER_REFETCH_TIMEOUT_MS = 30_000
 /** The mutation data for the `onCompleteMutation` mutation. */
 interface CreateCheckoutSessionMutation {
   readonly plan: Plan
-  readonly paymentMethodId: string
   readonly seats: number
   readonly period: number
 }
@@ -24,11 +23,10 @@ interface CreateCheckoutSessionMutation {
 /** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
   readonly userPlan: Plan
-  readonly showFreePlan?: boolean
-  readonly hasTrial?: boolean
-  readonly isOrganizationAdmin?: boolean
+  readonly showFreePlan: boolean
+  readonly isOrganizationAdmin: boolean
   readonly plan?: Plan | null | undefined
-  readonly onSubscribeSuccess?: (plan: Plan, paymentMethodId: string) => void
+  readonly onSubscribeSuccess?: (plan: Plan) => void
   readonly onSubscribeError?: (error: Error) => void
 }
 
@@ -62,12 +60,13 @@ export function PlanSelector(props: PlanSelectorProps) {
     onSubscribeError,
     plan,
     userPlan,
-    showFreePlan = true,
-    hasTrial = true,
-    isOrganizationAdmin = false,
+    showFreePlan,
+    isOrganizationAdmin,
     variants = PLAN_SELECTOR_STYLES,
   } = props
 
+  const hasTrial = plan === Plan.free
+  console.log(':)', plan, userPlan)
   const { getText } = useText()
   const { remoteBackend: backend } = useBackends()
   const { refetchSession } = useAuth()
@@ -77,8 +76,7 @@ export function PlanSelector(props: PlanSelectorProps) {
   const onCompleteMutation = useMutation({
     mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
       const { id } = await backend.createCheckoutSession({
-        plan: mutationData.plan,
-        paymentMethodId: mutationData.paymentMethodId,
+        price: mutationData.plan,
         quantity: mutationData.seats,
         interval: mutationData.period,
       })
@@ -117,10 +115,9 @@ export function PlanSelector(props: PlanSelectorProps) {
                 elevated={planProps.elevated === true ? 'xxlarge' : 'none'}
                 submitButton={
                   <planProps.submitButton
-                    onSubmit={async (paymentMethodId, seats, period) => {
+                    onSubmit={async (seats, period) => {
                       await onCompleteMutation.mutateAsync({
                         plan: newPlan,
-                        paymentMethodId,
                         seats,
                         period,
                       })
@@ -130,7 +127,7 @@ export function PlanSelector(props: PlanSelectorProps) {
                       while (true) {
                         const { data: session } = await refetchSession()
                         if (session && 'user' in session && session.user.plan === newPlan) {
-                          onSubscribeSuccess?.(newPlan, paymentMethodId)
+                          onSubscribeSuccess?.(newPlan)
                           // Invalidate "users me" query as the user has changed the plan.
                           await queryClient.invalidateQueries({
                             queryKey: [backend.type, 'usersMe'],

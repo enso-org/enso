@@ -1371,8 +1371,7 @@ export interface CreateUserGroupRequestBody {
 
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
-  readonly plan: Plan
-  readonly paymentMethodId: string
+  readonly price: Plan
   readonly quantity: number
   readonly interval: number
 }

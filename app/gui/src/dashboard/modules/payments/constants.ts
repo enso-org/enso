@@ -3,7 +3,7 @@ import type * as text from 'enso-common/src/text'
 
 import * as backendModule from '#/services/Backend'
 
-/* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 
 /** The text id for the plan name. */
 export const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
@@ -23,16 +23,10 @@ export const PLAN_TO_UPGRADE_LABEL_ID: Readonly<Record<backendModule.Plan, text.
 export const PRICE_CURRENCY = 'USD'
 export const PRICE_BY_PLAN: Readonly<Record<backendModule.Plan, number>> = {
   [backendModule.Plan.free]: 0,
-  [backendModule.Plan.solo]: 60,
+  [backendModule.Plan.solo]: 75,
   [backendModule.Plan.team]: 150,
   [backendModule.Plan.enterprise]: 250,
 } satisfies { [Plan in backendModule.Plan]: number }
-
-export const DISCOUNT_MULTIPLIER_BY_DURATION: Record<number, number> = {
-  1: 1,
-  12: 1,
-  36: 0.8,
-}
 
 export const TRIAL_DURATION_DAYS = 30
 

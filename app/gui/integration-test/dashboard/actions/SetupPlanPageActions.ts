@@ -21,7 +21,7 @@ export default class SetupPlanPageActions<Context> extends BaseActions<Context> 
   }
 
   /** Select a plan that has teams. */
-  selectTeamPlan(plan: Plan.enterprise | Plan.team, seats = 1, duration: 12 | 36 = 12) {
+  selectTeamPlan(plan: Plan.enterprise | Plan.team, seats = 1) {
     return this.step(`Select '${plan}' plan`, async (page) => {
       await page.getByLabel(TEXT[PLAN_TO_UPGRADE_LABEL_ID[plan]]).click()
       await page
@@ -29,10 +29,6 @@ export default class SetupPlanPageActions<Context> extends BaseActions<Context> 
         .getByText(TEXT.licenseAgreementCheckbox)
         .click()
       await page.getByLabel(TEXT.seats).getByRole('spinbutton').fill(String(seats))
-      await page
-        .getByLabel(TEXT.billingPeriod)
-        .getByText(duration === 12 ? TEXT.billingPeriodOneYear : TEXT.billingPeriodThreeYears)
-        .click()
       await page.getByText(TEXT.startTrial).click()
     }).into(SetupOrganizationPageActions<Context>)
   }
