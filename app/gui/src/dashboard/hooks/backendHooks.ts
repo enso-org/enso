@@ -346,14 +346,19 @@ export function useCanRunProjects() {
     // All projects can be run locally.
     // Local projects: Open normally
     // Cloud projects: Open in Hybrid
-    locally: localBackend != null,
+    locally: {
+      [BackendType.local]: localBackend != null,
+      [BackendType.remote]: localBackend != null,
+    },
     // Local projects can be run natively; only Team plans and above have access to Cloud execution.
     // Local projects: Open normally
     // Cloud projects: Open in Cloud VM
-    natively:
-      localBackend != null ||
-      (enableCloudExecution &&
-        (user.plan === backendModule.Plan.team || user.plan === backendModule.Plan.enterprise)),
+    natively: {
+      [BackendType.local]: localBackend != null,
+      [BackendType.remote]:
+        enableCloudExecution &&
+        (user.plan === backendModule.Plan.team || user.plan === backendModule.Plan.enterprise),
+    },
   }
 }
 
@@ -524,12 +529,12 @@ export function useNewProject(backend: Backend, category: Category) {
             ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
           } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
-            if (canRunProjects.locally) {
+            if (canRunProjects.locally[backend.type]) {
               // Open in background.
               void openProjectLocally(openProjectParams, backend.type)
             }
           } else {
-            if (canRunProjects.natively) {
+            if (canRunProjects.natively[backend.type]) {
               void openProjectNatively(openProjectParams, backend.type)
             }
           }

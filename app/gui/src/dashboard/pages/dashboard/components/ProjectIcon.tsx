@@ -78,7 +78,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     openProject,
   } = props
 
-  const isUnconditionallyDisabled = !useCanRunProjects().locally
+  const isUnconditionallyDisabled = !useCanRunProjects().locally[backend.type]
 
   const { user } = useFullUserSession()
   const { getText } = useText()

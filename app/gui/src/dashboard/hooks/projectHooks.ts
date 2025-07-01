@@ -555,7 +555,7 @@ export function useOpenProjectNatively() {
       asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
-      if (!canRunProjects.natively) {
+      if (!canRunProjects.natively[backendType]) {
         return
       }
       await openProject({ ...asset, type: backendType })
@@ -574,7 +574,7 @@ export function useOpenProjectLocally() {
       asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
-      if (!canRunProjects.locally) {
+      if (!canRunProjects.locally[backendType]) {
         return
       }
       const isCloud = backendType === backendModule.BackendType.remote

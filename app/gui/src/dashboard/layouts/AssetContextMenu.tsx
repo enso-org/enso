@@ -99,7 +99,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
-  const disabledTooltip = !canRunProjects.locally ? getText('downloadToOpenWorkflow') : undefined
+  const disabledTooltip =
+    !canRunProjects.locally[backend.type] ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
   const newProject = useNewProject(backend, category)
@@ -247,7 +248,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               bindingFocusScope={rootRef}
               hidden={hidden}
               action="open"
-              isDisabled={!canRunProjects.locally}
+              isDisabled={!canRunProjects.locally[backend.type]}
               tooltip={disabledTooltip}
               doAction={() => openProjectLocally(asset, backend.type)}
             />
@@ -257,7 +258,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             bindingFocusScope={rootRef}
             hidden={hidden || localBackend == null}
             action="run"
-            isDisabled={!canRunProjects.natively}
+            isDisabled={!canRunProjects.natively[backend.type]}
             tooltip={disabledTooltip}
             doAction={() => openProjectNatively(asset, backend.type)}
           />
