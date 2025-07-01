@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 final class MixedBuilder extends ObjectBuilder implements BuilderWithRetyping {
   /** Creates a new builder with the given size. Copies the data from the given source Builder. */
   static MixedBuilder fromBuilder(Builder source, int capacity) {
-    var sourceCurrentSize = source.getCurrentSize();
+    var sourceCurrentSize = Builder.checkSize(source.getCurrentSize());
 
     var dataSize = Math.max(capacity, sourceCurrentSize);
     var builder = new MixedBuilder(dataSize);

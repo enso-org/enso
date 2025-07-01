@@ -191,6 +191,7 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
     mutationFn: (args) => (backend?.[method] as any)?.(...args),
     networkMode: backend?.type === BackendType.local ? 'always' : 'online',
     meta: {
+      ...options?.meta,
       invalidates,
       awaitInvalidates: options?.meta?.awaitInvalidates ?? true,
       refetchType:

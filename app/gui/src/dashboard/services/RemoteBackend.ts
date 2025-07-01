@@ -1018,10 +1018,14 @@ export default class RemoteBackend extends Backend {
    */
   override async getProjectSessionLogs(
     projectSessionId: backend.ProjectSessionId,
+    params: backend.GetProjectSessionLogsRequestParams,
     title: string,
-  ): Promise<string[]> {
-    const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
-    const response = await this.get<string[]>(path)
+  ): Promise<backend.ProjectSessionLogs> {
+    const queryString = new URLSearchParams({
+      ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
+    }).toString()
+    const path = `${remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)}?${queryString}`
+    const response = await this.get<backend.ProjectSessionLogs>(path)
     if (!response.ok) {
       return await this.throw(response, 'getProjectLogsBackendError', title)
     } else {

@@ -37,14 +37,24 @@ public interface Locking {
   <T> T withPendingEditsLock(Class<?> where, Callable<T> callable);
 
   /**
-   * Executes `callable` while holding a context lock
+   * Executes `callable` while holding a read context lock
    *
    * @param contextLock lock used to ensure exclusive access
    * @param where the class requesting the lock
    * @param callable code to be executed while holding the lock
    * @return the result of calling `callable` or null, if no result is expected
    */
-  <T> T withContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
+  <T> T withReadContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
+
+  /**
+   * Executes `callable` while holding a write context lock
+   *
+   * @param contextLock lock used to ensure exclusive access
+   * @param where the class requesting the lock
+   * @param callable code to be executed while holding the lock
+   * @return the result of calling `callable` or null, if no result is expected
+   */
+  <T> T withWriteContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
 
   /**
    * Removes a context lock.

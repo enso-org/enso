@@ -145,6 +145,8 @@ public class RuntimeServerInstrument extends TruffleInstrument {
       } catch (IOException e) {
         env.getLogger(RuntimeServerInstrument.class)
             .warning("Sending close message to the client failed, because of: " + e.getMessage());
+      } finally {
+        handler.close();
       }
     }
     super.onDispose(env);

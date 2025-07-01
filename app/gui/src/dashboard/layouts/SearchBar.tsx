@@ -2,6 +2,7 @@
 import { Input, Label, SearchField } from '#/components/aria'
 import { Icon } from '#/components/Icon'
 import type { Dispatch, SetStateAction } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 /** Props for a {@link SearchBar}. */
 export interface SearchBarProps {
@@ -10,16 +11,20 @@ export interface SearchBarProps {
   readonly setQuery: Dispatch<SetStateAction<string>>
   readonly label: string
   readonly placeholder: string
+  readonly className?: string
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function SearchBar(props: SearchBarProps) {
-  const { query, setQuery, label, placeholder } = props
+  const { query, setQuery, label, placeholder, className } = props
 
   return (
     <Label
       data-testid={props['data-testid']}
-      className="group relative flex h-row w-full items-center gap-asset-search-bar rounded-full border-0.5 border-primary/20 px-input-x text-primary -outline-offset-1 outline-primary transition-colors focus-within:outline focus-within:outline-2 sm:w-[512px]"
+      className={twMerge(
+        'group relative flex h-row w-full items-center gap-asset-search-bar rounded-full border-0.5 border-primary/20 px-input-x text-primary -outline-offset-1 outline-primary transition-colors focus-within:outline focus-within:outline-2 sm:w-[512px]',
+        className,
+      )}
     >
       <Icon icon="find" className="text-primary/30" />
       <SearchField

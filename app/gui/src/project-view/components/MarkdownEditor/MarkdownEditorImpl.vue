@@ -11,15 +11,33 @@ import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
-import * as Y from 'yjs'
 
-const { content, toolbar, contentTestId, scrollerTestId } = defineProps<{
-  content: Y.Text | string
-  toolbar: boolean
+const {
+  toolbar = true,
+  readonly = false,
+  extensions = [],
+  contentTestId,
+  scrollerTestId,
+  onEditorReady = () => {},
+} = defineProps<{
+  toolbar?: boolean | undefined
+  readonly?: boolean | undefined
+  /**
+   * Additional extensions. This prop is read only during setup, and extensions are not refreshed
+   * afterwards!
+   */
+  extensions?: Extension | undefined
   contentTestId?: string | undefined
   scrollerTestId?: string | undefined
+  /**
+   * A callback called when CodeMirror is set up, passing {@link EditorView}. It is called in this
+   * component's setup, allowing creating watches bound to the editor view (that's why its not
+   * defined as signal)
+   */
+  onEditorReady?: ((view: EditorView) => void) | undefined
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -29,8 +47,7 @@ const images = useDocumentationImages(true)
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
-  content: () => content,
+const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   extensions: [
     drawSelection(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
@@ -41,7 +58,9 @@ const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
         images?.value &&
         ((item: ClipboardItem) => images.value.tryUploadPastedImage(editorView, item)),
     }),
+    extensions,
   ],
+  readonly: () => readonly,
   vueHost: () => vueHost,
   lineMode: 'multi',
   contentTestId,
@@ -51,7 +70,7 @@ const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
 useLinkTitles(editorView, { readonly })
 
 const { focused, focusHandlers } = useEditorFocus(editorView)
-const editing = computed(() => !readonly.value && focused.value)
+const editing = computed(() => !readonly && focused.value)
 
 const formatting = useMarkdownFormatting(editorView)
 const { formatBindings } = useFormatActions({
@@ -60,6 +79,12 @@ const { formatBindings } = useFormatActions({
   uploadImage: () => images?.value && (() => images.value.tryUploadImageFile(editorView)),
 })
 setExtraExtensions([formatBindings])
+
+onEditorReady(editorView)
+
+defineExpose({
+  editorView,
+})
 </script>
 
 <template>

@@ -200,7 +200,11 @@ impl RunContext {
             sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
         }
         if self.config.build_native_runner {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
+            if self.config.execute_benchmarks.is_some() {
+                env::ENSO_LAUNCHER.set(&engine::EngineLauncher::NativeWithoutLS)?;
+            } else {
+                env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
+            }
         }
         prepare_simple_library_server.await??;
 

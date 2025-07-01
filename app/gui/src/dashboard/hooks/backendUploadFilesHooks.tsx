@@ -20,6 +20,7 @@ import { extractTypeAndId } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import {
   queryOptions,
   useMutation,
@@ -46,7 +47,6 @@ import {
   type DirectoryId,
   type FileId,
   type ProjectId,
-  type S3MultipartPart,
   type UploadedLargeAsset,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
@@ -56,11 +56,13 @@ import { useState } from 'react'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 
-/** The number of bytes in 1 megabyte. */
-export const MB_BYTES = 1_000_000
-const S3_CHUNK_SIZE_MB = Math.round(S3_CHUNK_SIZE_BYTES / MB_BYTES)
-/** The maximum number of file chunks to upload at the same time. */
-const FILE_UPLOAD_CONCURRENCY = 5
+declare module 'enso-common/src/queryClient' {
+  /** */
+  interface MutationPools {
+    readonly uploadFileChunk: true
+  }
+}
+
 /** The delay, in milliseconds, before query data for a file being uploaded is cleared. */
 const CLEAR_PROGRESS_DELAY_MS = 5_000
 const UPLOADING_FILES_QUERY_KEY = ['uploadingFiles'] satisfies QueryKey
@@ -308,7 +310,7 @@ function setUploadingFileProgress(
   progress: UploadFileMutationProgress,
 ) {
   queryClient.setQueryData<Record<string, UploadFileMutationProgress>>(
-    UPLOADING_FILES_QUERY_KEY,
+    uploadingFilesQueryKey(),
     (data) => ({ ...data, [id]: progress }),
   )
 }
@@ -316,7 +318,7 @@ function setUploadingFileProgress(
 /** Clear the progress of file uploads if all current file uploads are done. */
 function clearUploadingFileProgressIfDone(queryClient: QueryClient) {
   queryClient.setQueryData<Record<string, UploadFileMutationProgress>>(
-    UPLOADING_FILES_QUERY_KEY,
+    uploadingFilesQueryKey(),
     (data) => {
       if (!data) {
         return
@@ -583,6 +585,7 @@ export function useUploadFileMutation(
   const queryClient = useQueryClient()
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
+  const fileChunkUploadPoolSize = useFeatureFlag('fileChunkUploadPoolSize')
   const {
     retries = 3,
     chunkRetries = retries,
@@ -595,15 +598,18 @@ export function useUploadFileMutation(
   const setProgress: typeof setUploadingFileProgress =
     updateProgress ? setUploadingFileProgress : noop
   const uploadFileStartMutation = useMutation(backendMutationOptions(backend, 'uploadFileStart'))
+  const [variables, setVariables] = useState<[params: UploadFileRequestParams, file: File]>()
+  const [sentBytes, setSentBytes] = useState(0)
+  const [totalBytes, setTotalBytes] = useState(0)
   const uploadFileChunkMutation = useMutation(
-    backendMutationOptions(backend, 'uploadFileChunk', { retry: chunkRetries }),
+    backendMutationOptions(backend, 'uploadFileChunk', {
+      retry: chunkRetries,
+      meta: { pool: { id: 'uploadFileChunk', parallelism: fileChunkUploadPoolSize } },
+    }),
   )
   const uploadFileEndMutation = useMutation(
     backendMutationOptions(backend, 'uploadFileEnd', { retry: endRetries }),
   )
-  const [variables, setVariables] = useState<[params: UploadFileRequestParams, file: File]>()
-  const [sentBytes, setSentBytes] = useState(0)
-  const [totalBytes, setTotalBytes] = useState(0)
   const mutateAsync = useEventCallback(
     async ([body, file]: [body: UploadFileRequestParams, file: File]) => {
       const progressId = uniqueString()
@@ -623,36 +629,29 @@ export function useUploadFileMutation(
           body,
           file,
         ])
-        let i = 0
         let completedChunkCount = 0
-        const parts: S3MultipartPart[] = []
-        const uploadNextChunk = async (): Promise<void> => {
-          const currentI = i
-          const url = presignedUrls[i]
-          if (url == null) {
-            return
-          }
-          i += 1
-          const promise = uploadFileChunkMutation.mutateAsync([url, file, currentI])
-          // Queue the next chunk to be uploaded after this one.
-          const fullPromise = promise.then(uploadNextChunk)
-          parts[currentI] = await promise
-          completedChunkCount += 1
-          const newSentBytes = Math.min(
-            completedChunkCount * S3_CHUNK_SIZE_MB * MB_BYTES,
-            fileSizeBytes,
-          )
-          setSentBytes(newSentBytes)
-          const chunkProgress: UploadFileMutationProgress = {
-            event: 'chunk',
-            sentBytes: newSentBytes,
-            totalBytes: fileSizeBytes,
-          }
-          options.onChunkSuccess?.(chunkProgress)
-          setProgress(queryClient, progressId, chunkProgress)
-          return fullPromise
-        }
-        await Promise.all(Array.from({ length: FILE_UPLOAD_CONCURRENCY }).map(uploadNextChunk))
+        const parts = await Promise.all(
+          presignedUrls.map((url, i) =>
+            uploadFileChunkMutation.mutateAsync([url, file, i]).then((part) => {
+              // This cannot be the `onSuccess` callback in `mutateAsync` because then it would not run
+              // if the component is unmounted beforehand (which seems to be the case?).
+              completedChunkCount += 1
+              const newSentBytes = Math.min(
+                completedChunkCount * S3_CHUNK_SIZE_BYTES,
+                fileSizeBytes,
+              )
+              setSentBytes(newSentBytes)
+              const chunkProgress: UploadFileMutationProgress = {
+                event: 'chunk',
+                sentBytes: newSentBytes,
+                totalBytes: fileSizeBytes,
+              }
+              options.onChunkSuccess?.(chunkProgress)
+              setProgress(queryClient, progressId, chunkProgress)
+              return part
+            }),
+          ),
+        )
         const result = await uploadFileEndMutation.mutateAsync([
           {
             parentDirectoryId: body.parentDirectoryId,

@@ -180,7 +180,7 @@ public final class IsInOperation {
         Builder.getForBoolean(storage.getSize()),
         (builder, index, value) -> {
           if (value instanceof Double || value instanceof Float) {
-            problemAggregator.reportFloatingPointEquality((int)index);
+            problemAggregator.reportFloatingPointEquality(index);
           }
 
           if (contains.test(result.uniqueValues, value)) {

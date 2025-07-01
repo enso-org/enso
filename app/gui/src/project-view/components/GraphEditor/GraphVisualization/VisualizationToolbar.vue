@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import ActionButton from '@/components/ActionButton.vue'
 import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
@@ -19,7 +19,7 @@ import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
 
-const { names: projectNames } = injectCurrentProject().storesRefs
+const { names: projectNames } = useCurrentProject().storesRefs
 
 const props = defineProps<{
   showControls: boolean

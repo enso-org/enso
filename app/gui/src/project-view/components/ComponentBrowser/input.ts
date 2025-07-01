@@ -177,10 +177,10 @@ export function useComponentBrowserInput(
     requiredImport: ProjectPath | undefined
   } {
     if (sourceNodeIdentifier.value && sourceNodeType.value?.type === 'known') {
-      const sourceType = sourceNodeType.value.typeInfo.primaryType
+      const sourceTypes = sourceNodeType.value.typeInfo.visibleTypes
       if (
         entryHasOwner(entry) &&
-        !sourceType.equals(entry.memberOf) &&
+        !sourceTypes.find((type) => type.equals(entry.memberOf)) &&
         !sourceNodeType.value.ancestors.find((ancestor) => ancestor.equals(entry.memberOf)) &&
         !entry.memberOf.equals(ANY_TYPE)
       ) {

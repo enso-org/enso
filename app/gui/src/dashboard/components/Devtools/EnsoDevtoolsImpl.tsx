@@ -21,6 +21,7 @@ import { SETUP_PATH } from '$/appUtils'
 import { UserSessionType } from '$/providers/auth'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+  DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
 import { useLocalStorage, usePlanOverride, useText } from '$/providers/react'
@@ -92,6 +93,7 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
+    fileChunkUploadPoolSize,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
@@ -127,7 +129,8 @@ export function EnsoDevStatus() {
     overrideProfilePicture ||
     multiplyUserList ||
     enableMultitabs ||
-    enableAdvancedProjectExecutionOptions
+    enableAdvancedProjectExecutionOptions ||
+    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -190,7 +193,7 @@ export function EnsoDevStatus() {
               }}
             >
               {getText(
-                'assetsTableBackgroundRefreshIntervalOverridenToXMs',
+                'assetsTableBackgroundRefreshIntervalOverriddenToXMs',
                 assetsTableBackgroundRefreshInterval,
               )}
             </DeveloperOverrideEntry>
@@ -266,6 +269,15 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('advancedProjectExecutionOptionsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('fileChunkUploadPoolSize', DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE)
+              }}
+            >
+              {getText('willUploadUpToXFileChunksAtOnce', fileChunkUploadPoolSize)}
             </DeveloperOverrideEntry>
           )}
         </div>
@@ -548,6 +560,19 @@ export function EnsoDevtools() {
                     description="Enable Hybrid Execution"
                     onChange={(value) => {
                       setFeatureFlag('enableHybridExecution', value)
+                    }}
+                  />
+                  <Input
+                    form={form}
+                    type="number"
+                    inputMode="numeric"
+                    name="fileChunkUploadPoolSize"
+                    label={getText('ensoDevtoolsFeatureFlags.fileChunkUploadPoolSize')}
+                    description={getText(
+                      'ensoDevtoolsFeatureFlags.fileChunkUploadPoolSizeDescription',
+                    )}
+                    onChange={(event) => {
+                      setFeatureFlag('fileChunkUploadPoolSize', event.target.valueAsNumber)
                     }}
                   />
                 </>

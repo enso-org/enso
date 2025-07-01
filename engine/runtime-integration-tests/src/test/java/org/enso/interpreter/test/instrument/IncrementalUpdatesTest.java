@@ -263,7 +263,8 @@ public class IncrementalUpdatesTest {
                 new Runtime$Api$StackItem$ExplicitCall(
                     new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
                     None(),
-                    new Vector1<>(new String[] {"0"})))));
+                    new Vector1<>(new String[] {"0"})),
+                true)));
 
     assertSameElements(
         context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
@@ -287,7 +288,7 @@ public class IncrementalUpdatesTest {
         Request(
             requestId,
             new Runtime$Api$PushContextRequest(
-                contextId, new Runtime$Api$StackItem$LocalCall(mainFoo))));
+                contextId, new Runtime$Api$StackItem$LocalCall(mainFoo), true)));
     assertSameElements(
         context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),

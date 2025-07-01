@@ -37,7 +37,7 @@ type DB_Column
 
        It can perform some additional operations, like refining the type,
        so it should always be preferred over calling `DB_Column.Value` directly.
-    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> Column =
+    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source =
         DB_Column_Refinements.refine_column <|
             DB_Column.Value internal_name connection sql_type_reference expression context
 
@@ -53,7 +53,7 @@ type DB_Column
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Column =
+    read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Column | Any =
         ## This method clashes with one defined on `Column` to redefine it as a public method.
            (On base Column it is purposefully hidden).
         self.to_table.read max_rows . at 0
@@ -63,8 +63,7 @@ type DB_Column
     to_sql self -> SQL_Statement = (self:Column).to_table.to_sql
 
     ## PRIVATE
-    pretty : Text
-    pretty self =
+    pretty self -> Text =
         "DB_Column " + (self:Column).name.pretty
 
     ## PRIVATE
