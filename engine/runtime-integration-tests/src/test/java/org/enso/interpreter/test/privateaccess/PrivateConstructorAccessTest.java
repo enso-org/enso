@@ -161,7 +161,6 @@ public class PrivateConstructorAccessTest {
 
   @Test
   public void cannotCallPrivateConstructor_ViaCallback() throws Exception {
-
     var libDir = tempFolder.newFolder("Lib").toPath();
     ProjectUtils.createProject(
         "Lib",
