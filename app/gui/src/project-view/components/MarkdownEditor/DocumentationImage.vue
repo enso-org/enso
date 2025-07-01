@@ -15,13 +15,6 @@ const props = defineProps<{
 
 const data = res.useResourceFromUrl(toRef(props, 'src'))
 
-const title = computed(() =>
-  data.value == null ? 'Loading'
-  : !data.value.ok ? data.value.error.message()
-  : props.alt !== DEFAULT_ALT_TEXT ? props.alt
-  : '',
-)
-
 const errorMessage = computed(() => {
   const result = data.value
   return result.ok ? result.value.error : result.error.message('')
@@ -29,21 +22,18 @@ const errorMessage = computed(() => {
 </script>
 
 <template>
-  <template v-if="!data.ok || data.value.status === 'error'">
-    <div class="error" :title="errorMessage || ''">
-      <SvgIcon name="error" /> Failed to load resource.
-    </div>
-  </template>
-  <template v-else-if="data.value.status === 'loading'">
-    <LoadingSpinner phase="initial" :size="20" />
-  </template>
+  <div v-if="!data.ok || data.value.status === 'error'" class="error" :title="errorMessage || ''">
+    <SvgIcon name="error" /> {{ alt }}
+  </div>
   <template v-else>
     <img
-      :src="data.value.url!"
+      v-if="data.value.url"
+      :src="data.value.url"
       :alt="alt"
-      :title="title"
+      :title="alt !== DEFAULT_ALT_TEXT ? alt : ''"
       :class="{ uploading: data.value.status === 'uploading' }"
     />
+    <LoadingSpinner v-if="data.value.status == 'loading'" phase="initial" :size="20" />
   </template>
 </template>
 

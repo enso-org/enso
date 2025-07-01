@@ -1524,17 +1524,21 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        await download.download({
-          url: URL.createObjectURL(
-            new File([JSON.stringify(value)], fileName, {
-              type: 'application/json+x-enso-data-link',
-            }),
-          ),
-          name: fileName,
-          electronOptions: {
-            path: targetPath,
-          },
+        const file = new File([JSON.stringify(value)], fileName, {
+          type: 'application/json+x-enso-data-link',
         })
+        const fileObjectUrl = URL.createObjectURL(file)
+        try {
+          await download.download({
+            url: fileObjectUrl,
+            name: fileName,
+            electronOptions: {
+              path: targetPath,
+            },
+          })
+        } finally {
+          URL.revokeObjectURL(fileObjectUrl)
+        }
         break
       }
       case backend.AssetType.secret:

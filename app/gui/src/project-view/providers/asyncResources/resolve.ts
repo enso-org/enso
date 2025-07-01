@@ -4,8 +4,9 @@ import RemoteBackend from '#/services/RemoteBackend'
 import { injectOpenedProjects } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, Ok, rejectionToResult, Result } from '@/util/data/result'
+import { toValue } from 'vue'
 import { ResourceDefinition } from './AsyncResource'
-import { LazyResourceContext } from './context'
+import { ResourceContext } from './context'
 import { parseResourceUrl } from './parse'
 
 export type AsyncResourceResolver = ReturnType<typeof initAsyncResourceResolver>
@@ -25,7 +26,7 @@ export function initAsyncResourceResolver(
 ) {
   function resolveResourceInContext(
     unparsedAssetUrl: string,
-    context: LazyResourceContext,
+    context: ResourceContext,
   ): Result<ResourceDefinition> {
     const parsedUrl = parseResourceUrl(unparsedAssetUrl, context.basePathSegments)
     if (!parsedUrl.ok) return parsedUrl
@@ -38,7 +39,7 @@ export function initAsyncResourceResolver(
       }
       case 'projectRelative': {
         {
-          const project = context.project()
+          const project = toValue(context.project)
           if (project == null) return Err('Cannot resolve relative path outside of project')
           return Ok(resolveProjectResource(project, parsedUrl.value.relativePath))
         }

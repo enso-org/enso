@@ -23,14 +23,13 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
 
     const effectiveOpenedProjectId = computed(() => {
       const id = toValue(projectId)
-      if (id == null || openedProjects.get(id)) return id
       // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
-      if (!isLocalProjectId(id)) {
+      if (id && openedProjects.get(id) == null && !isLocalProjectId(id)) {
         for (const openedId of openedProjects.listIds()) {
           if (openedId.includes('/cloud-' + id) && isLocalProjectId(openedId)) return openedId
         }
       }
-      return undefined
+      return id
     })
 
     const ref = computed(() => {

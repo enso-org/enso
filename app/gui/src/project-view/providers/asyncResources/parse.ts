@@ -1,5 +1,7 @@
 import { EnsoPath } from '#/services/Backend'
 import { Err, Ok, Result } from '@/util/data/result'
+import { ToValue } from '@/util/reactivity'
+import { toValue } from 'vue'
 
 export type ParsedAssetUrl =
   | { kind: 'projectRelative'; relativePath: string }
@@ -12,7 +14,7 @@ export type ParsedAssetUrl =
  */
 export function parseResourceUrl(
   unparsedAssetUrl: string,
-  basePathSegments: () => string[] | undefined,
+  basePathSegments: ToValue<string[] | undefined>,
 ): Result<ParsedAssetUrl> {
   const asUrl = URL.parse(unparsedAssetUrl)
   if (asUrl != null) {
@@ -30,7 +32,7 @@ export function parseResourceUrl(
 
   // relative URLs starting with '/' are always treated as project-relative.
   // Avoid creating a dependency on `basePathSegments`.
-  const segments = unparsedAssetUrl.startsWith('/') ? [] : basePathSegments()
+  const segments = unparsedAssetUrl.startsWith('/') ? [] : toValue(basePathSegments)
   if (segments) {
     const asProjectUrl = URL.parse(unparsedAssetUrl, 'project:///' + segments.join('/'))
     if (asProjectUrl?.protocol === 'project:') {

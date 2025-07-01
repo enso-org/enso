@@ -16,7 +16,7 @@ import {
   capturedContextAsLazy,
   CapturedResourceContext,
   captureResourceContext,
-  LazyResourceContext,
+  ResourceContext,
   useAmbientContext,
 } from './asyncResources/context'
 import { initAsyncResourceResolver } from './asyncResources/resolve'
@@ -81,7 +81,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
        */
       useResourceFromUrl(
         unparsedResourceUrl: ToValue<string>,
-        context: LazyResourceContext = useAmbientContext(),
+        context: ResourceContext = useAmbientContext(),
       ): ComputedRef<Result<AsyncResource>> {
         const resolved = computed(() =>
           resolveResourceInContext(toValue(unparsedResourceUrl), context),
@@ -110,7 +110,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
        */
       uploadResources(
         source: AnyUploadSource,
-        context: LazyResourceContext = useAmbientContext(),
+        context: ResourceContext,
       ): Array<Promise<Result<{ filename: string; resourceUrl: string }>>> {
         const capturedContext = captureResourceContext(context)
         // Start all uploads immediately, but yield them in original order.

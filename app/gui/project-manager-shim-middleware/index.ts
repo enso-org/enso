@@ -405,7 +405,7 @@ export default function projectManagerShimMiddleware(
                 case '--filesystem-read-path': {
                   const filePath = cliArguments[1]
                   if (filePath != null) {
-                    result = await fsSync.createReadStream(filePath, { encoding: 'binary' })
+                    result = await fsSync.createReadStream(filePath)
                   }
                   break
                 }
@@ -456,22 +456,21 @@ export default function projectManagerShimMiddleware(
               // Ignored. `result` retains its original value indicating an error.
             }
 
-            const normalizedResult = typeof result === 'string' ? Buffer.from(result) : result
-            if (normalizedResult instanceof fsSync.ReadStream) {
+            const resultData = typeof result === 'string' ? Buffer.from(result) : result
+            if (resultData instanceof fsSync.ReadStream) {
               const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
-                'Content-Length': String(normalizedResult.readableLength),
                 'Content-Type': 'application/octet-stream',
                 ...COMMON_HEADERS,
               })
-              normalizedResult.pipe(responseWithHead, { end: true })
+              resultData.pipe(responseWithHead)
             } else {
               response
                 .writeHead(HTTP_STATUS_OK, {
-                  'Content-Length': String(normalizedResult.byteLength),
+                  'Content-Length': String(resultData.byteLength),
                   'Content-Type': 'application/json',
                   ...COMMON_HEADERS,
                 })
-                .end(normalizedResult)
+                .end(resultData)
             }
           })()
         }

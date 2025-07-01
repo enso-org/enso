@@ -4,7 +4,6 @@ import { defaultEquality } from '@/util/equals'
 import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
 import type {
-  ComputedRef,
   // (it is used in docs)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DebuggerOptions,
@@ -242,7 +241,7 @@ export function syncSetDiff<T>(
 }
 
 /** Type of the parameter of `toValue`. */
-export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+export type ToValue<T> = MaybeRefOrGetter<T>
 
 /** Transforms an array to an array of refs. */
 export type MaybeRefOrGetterArray<K extends [...any[]]> = {

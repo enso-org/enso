@@ -94,10 +94,9 @@ export function initResourceUpload(openedProjects: OpenedProjectsStore) {
   ): Promise<Result<UploadProgress>> {
     const api = useProjectFiles(project.store)
     const rootId = await api.projectRootId
-    if (!rootId) return Err('Cannot upload image: unknown project file tree root.')
+    if (!rootId) return Err('Cannot upload image: unknown project file tree root')
 
-    // TODO: we might want to specify where the upload should go.
-    const UPLOAD_PATH_SEGMENTS = ['image']
+    const UPLOAD_PATH_SEGMENTS = ['images']
 
     const dirPath = { rootId, segments: UPLOAD_PATH_SEGMENTS }
     const existsResult = await api.ensureDirExists(dirPath)
