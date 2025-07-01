@@ -12,12 +12,12 @@ import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 import * as actions from '.'
 
-import type { FeatureFlags } from '#/providers/FeatureFlagsProvider'
 import {
   organizationIdToDirectoryId,
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
 } from '#/services/RemoteBackend'
+import type { FeatureFlags } from '$/providers/featureFlags'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -1307,7 +1307,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
 
-    await get(remoteBackendPaths.getProjectAssetPath(GLOB_PROJECT_ID), (route, request) => {
+    await get(remoteBackendPaths.getProjectAssetPath(GLOB_PROJECT_ID, '*'), (route, request) => {
       const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
       if (!maybeId) return
       const projectId = backend.ProjectId(maybeId)

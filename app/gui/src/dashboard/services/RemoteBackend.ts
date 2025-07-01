@@ -1709,9 +1709,10 @@ export default class RemoteBackend extends Backend {
     queryParams?: Record<string, string> | URLSearchParams,
     abort?: AbortSignal,
   ) {
-    const queryString = queryParams != null ? `?` + new URLSearchParams(queryParams).toString() : ''
+    const paramsString = queryParams != null ? new URLSearchParams(queryParams).toString() : ''
+    const query = paramsString ? '?' + paramsString : ''
     return this.checkForAuthenticationError(() =>
-      this.client.get<T>(`${$config.API_URL}/${path}${queryString}`, abort),
+      this.client.get<T>(`${$config.API_URL}/${path}${query}`, abort),
     )
   }
 
