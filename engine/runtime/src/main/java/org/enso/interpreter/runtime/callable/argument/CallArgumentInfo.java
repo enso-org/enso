@@ -218,13 +218,17 @@ public final class CallArgumentInfo {
           this.existingOversaturatedArgs.length,
           newOversaturatedArgInfo.length);
 
-      return FunctionSchema.newBuilder()
-          .callerFrameAccess(originalSchema.getCallerFrameAccess())
-          .argumentDefinitions(definitions)
-          .hasPreapplied(argumentUsed)
-          .oversaturatedArguments(oversaturatedArgInfo)
-          .annotations(originalSchema.getAnnotations())
-          .build();
+      var schemaBldr =
+          FunctionSchema.newBuilder()
+              .callerFrameAccess(originalSchema.getCallerFrameAccess())
+              .argumentDefinitions(definitions)
+              .hasPreapplied(argumentUsed)
+              .oversaturatedArguments(oversaturatedArgInfo)
+              .annotations(originalSchema.getAnnotations());
+      if (originalSchema.isProjectPrivate()) {
+        schemaBldr.projectPrivate();
+      }
+      return schemaBldr.build();
     }
   }
 
