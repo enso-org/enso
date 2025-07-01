@@ -14,58 +14,34 @@ import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.editions.LibraryName
 import org.enso.pkg.{Config, QualifiedName}
 
-import java.io.ObjectOutputStream
-import scala.annotation.unused
 import scala.collection.mutable.ArrayBuffer
 
 /** A utility structure for resolving symbols in a given module.
-  *
-  * @param definedEntities the list of entities defined in the current module
-  * @param currentModule the module holding these bindings
+  * This code is designated to be rewritten into Java. When making changes
+  * consider moving more and more functionality to BindingsMapBase.
   */
-case class BindingsMap(
-  private val _definedEntities: List[DefinedEntity],
-  private var _currentModule: ModuleReference
-) extends IRPass.IRMetadata {
+final class BindingsMap private (initial: BindingsMapBase.State)
+    extends BindingsMapBase(initial) {
   import BindingsMap._
+
+  /** Constructor with entities and module reference.
+    *
+    * @param definedEntities the list of entities defined in the current module
+    * @param currentModule the module holding these bindings
+    */
+  def this(de: List[DefinedEntity], cm: ModuleReference) =
+    this(new BindingsMapBase.State(de, cm))
 
   override val metadataName: String = "Bindings Map"
 
   override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
 
-  /** Other modules, imported by [[currentModule]].
-    */
-  private var _resolvedImports: List[ResolvedImport] = List()
-
-  def definedEntities: List[DefinedEntity] = {
-    ensureConvertedToConcrete()
-    _definedEntities
-  }
-  def currentModule: ModuleReference = {
-    ensureConvertedToConcrete()
-    _currentModule
-  }
-  def resolvedImports: List[ResolvedImport] = {
-    ensureConvertedToConcrete()
-    _resolvedImports
-  }
-  def resolvedImports_=(v: List[ResolvedImport]): Unit = {
-    _resolvedImports = v
+  def resolvedImports(v: List[ResolvedImport]): Unit = {
+    updateState(_.withResolvedImports(v), false)
   }
 
-  /** Set to non-null after deserialization to signal that conversion to concrete values is needed */
-  private var pendingRepository: PackageRepository = null
-
-  /** Symbols exported by [[currentModule]].
-    */
-  private var _exportedSymbols: Map[String, List[ResolvedName]] = Map()
-
-  def exportedSymbols: Map[String, List[ResolvedName]] = {
-    ensureConvertedToConcrete()
-    _exportedSymbols
-  }
-  def exportedSymbols_=(v: Map[String, List[ResolvedName]]): Unit = {
-    _exportedSymbols = v
+  def exportedSymbols(v: Map[String, List[ResolvedName]]): Unit = {
+    updateState(_.withExportedSymbols(v), false)
   }
 
   /** @inheritdoc */
@@ -79,7 +55,26 @@ case class BindingsMap(
   override def restoreFromSerialization(
     compiler: Compiler
   ): Option[BindingsMap] = {
-    this.pendingRepository = compiler.getPackageRepository
+    val repo = compiler.getPackageRepository
+    def ensureConvertedToConcrete(
+      state: BindingsMapBase.State
+    ): BindingsMapBase.State = {
+      toConcrete(state, repo, repo.getModuleMap).flatMap { s =>
+        val cm = s.currentModule
+        val es = s.exportedSymbols
+        val ri = s.resolvedImports
+        Some(
+          new BindingsMapBase.State(
+            s.definedEntities,
+            cm,
+            ri,
+            es
+          )
+        )
+      }.get
+    }
+    // lazily update state
+    this.updateState(ensureConvertedToConcrete, true)
     Some(this)
   }
 
@@ -88,78 +83,64 @@ case class BindingsMap(
     * @return `this` with module references converted to abstract
     */
   def toAbstract: BindingsMap = {
-    val copy = this.copy(_currentModule = _currentModule.toAbstract)
-    copy._resolvedImports = this._resolvedImports.map(_.toAbstract)
-    copy._exportedSymbols = this._exportedSymbols.map { case (key, value) =>
+    val initial = getState()
+    val cm      = initial.currentModule.toAbstract
+    val ri      = initial.resolvedImports.map(_.toAbstract)
+    val es = initial.exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
-    copy
-  }
-
-  /** Convert this [[BindingsMap]] instance to use concrete module references.
-    *
-    * @param moduleMap the mapping from qualified module names to module
-    *                  instances
-    * @return `this` with module references converted to concrete
-    */
-  private def ensureConvertedToConcrete(): Option[BindingsMap] = {
-    val r = pendingRepository
-    if (r != null) {
-      toConcrete(r, r.getModuleMap).map { b =>
-        pendingRepository     = null
-        this._currentModule   = b._currentModule
-        this._exportedSymbols = b._exportedSymbols
-        this._resolvedImports = b._resolvedImports
-        this
-      }
-    } else {
-      Some(this)
-    }
+    val state = initial
+      .withCurrentModule(cm)
+      .withResolvedImports(ri)
+      .withExportedSymbols(es)
+    new BindingsMap(state)
   }
 
   private def toConcrete(
+    state: BindingsMapBase.State,
     r: PackageRepository,
     moduleMap: ModuleMap
-  ): Option[BindingsMap] = {
-    val newMap = this._currentModule
+  ): Option[BindingsMapBase.State] = {
+    val newMap = state.currentModule
       .toConcrete(moduleMap)
       .map { module =>
-        this._currentModule = module
-        this
+        state.withCurrentModule(module)
       }
 
-    val withImports: Option[BindingsMap] = newMap.flatMap { bindings =>
-      val newImports = this._resolvedImports.map { imp =>
+    val withImports: Option[BindingsMapBase.State] = newMap.flatMap { s =>
+      val newImports = s.resolvedImports.map { imp =>
         imp.targets.foreach { t =>
-          t.toLibraryName.foreach(r.ensurePackageIsLoaded(_));
+          t.toLibraryName.foreach(r.ensurePackageIsLoaded);
         }
         imp.toConcrete(moduleMap)
       }
       if (newImports.exists(_.isEmpty)) {
         None
       } else {
-        bindings._resolvedImports = newImports.map(_.get)
-        Some(bindings)
+        val w = s.withResolvedImports(newImports.map(_.get))
+        Some(w)
       }
     }
 
-    val withSymbols: Option[BindingsMap] = withImports.flatMap { bindings =>
-      val newSymbols = this._exportedSymbols.map { case (key, value) =>
-        val newValue = value.map(_.toConcrete(moduleMap))
-        if (newValue.exists(_.isEmpty)) {
-          key -> None
-        } else {
-          key -> Some(newValue.map(_.get))
+    val withSymbols: Option[BindingsMapBase.State] = withImports.flatMap { s =>
+      val newSymbols =
+        s.exportedSymbols.map { case (key, value) =>
+          val newValue = value.map(_.toConcrete(moduleMap))
+          if (newValue.exists(_.isEmpty)) {
+            key -> None
+          } else {
+            key -> Some(newValue.map(_.get))
+          }
         }
-      }
 
       if (newSymbols.exists { case (_, v) => v.isEmpty }) {
         None
       } else {
-        bindings._exportedSymbols = newSymbols.map { case (k, v) =>
+        val newValue = newSymbols.map { case (k, v) =>
           k -> v.get
         }
-        Some(bindings)
+        val w = s.withExportedSymbols(newValue)
+        Some(w)
       }
     }
 
@@ -1253,13 +1234,6 @@ object BindingsMap {
 
       /** @inheritdoc */
       override def unsafeAsModule(message: String = ""): Module = module
-
-      /** @inheritdoc */
-      private def writeObject(@unused stream: ObjectOutputStream): Unit = {
-        throw new CompilerError(
-          s"Attempting to serialize a concrete module reference to `$getName`."
-        )
-      }
     }
 
     /** A module reference that refers to a module by qualified name, without an

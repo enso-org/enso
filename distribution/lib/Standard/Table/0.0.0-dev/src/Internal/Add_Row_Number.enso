@@ -12,7 +12,7 @@ import project.Table.Table
 from project.Errors import Duplicate_Output_Column_Names
 
 polyglot java import java.lang.ArithmeticException
-polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
+polyglot java import org.enso.table.data.column.storage.LongRangeStorage
 polyglot java import org.enso.table.operations.AddRowNumber
 
 ## PRIVATE

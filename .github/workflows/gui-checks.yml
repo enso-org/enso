@@ -94,35 +94,6 @@ jobs:
         continue-on-error: true
         run: pnpm run ci:unit-test
 
-      - name: Comment on PR
-        uses: actions/github-script@v7
-        if: always() && github.event_name == 'pull_request'
-        env:
-          ESLINT_ANNOTATE_OUTPUT: ${{ steps.eslint-annotate.outputs.markdown }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
-
-            await setMessage({
-              id: "lint-comment",
-              github,
-              context,
-              repo: context.repo,
-              prNumber: context.payload.pull_request.number,
-              header: "## 👮 Lint GUI Results",
-              body: `
-                ### Check Results
-                - 🧠 Typecheck: ${${{steps.typecheck.outcome == 'success'}} ? '✅ Passed' : '❌ Failed'}
-                - 🧹 Lint: ${${{steps.lint.outcome == 'success'}} ? '✅ Passed' : '❌ Failed'}
-                - 🧪 Unit Tests: ${${{steps.unit-tests.outcome == 'success'}} ? '✅ Passed' : '❌ Failed'}
-
-                ${${{steps.lint.outcome == 'failure'}} ? '### ESLint' : ''}
-                
-                ${process.env.ESLINT_ANNOTATE_OUTPUT}
-              `,
-            })
-
       - name: ❌ Fail if any check failed
         if: always() && (steps.lint.outcome == 'failure' || steps.compile.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
         run: |
@@ -234,36 +205,3 @@ jobs:
           name: playwright-report-${{ github.run_attempt }}-${{ github.run_id }}
           path: app/gui/playwright-report/
           retention-days: 14
-
-      - name: 📝 Create Playwright comment
-        uses: actions/github-script@v7
-        if: ${{ steps.merge-reports.outcome == 'success' }}
-        continue-on-error: true
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { format } = await import('${{ github.workspace }}/app/gui/scripts/ci/parse-playwright-json-report.mjs')
-            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
-
-            const { duration, success, errors, flaky } = format({ path: '${{ github.workspace }}/app/gui/playwright-report/report.json' })
-
-            await setMessage({
-              context,
-              id: "playwright-comment",
-              github,
-              repo: context.repo,
-              prNumber: context.payload.pull_request.number,
-
-              header: "## 🎭 Playwright Test Results",
-              body: `
-                ### Summary
-                - ⏳ Duration: ${duration}
-                - ✅ Passed: ${success} tests
-                - 🔴 Failed: ${errors} tests
-                - ⚠️ Flaky: ${flaky} tests
-                
-                [📥 Download Detailed Report](${{ steps.upload-html-report.outputs.artifact-url }})
-                
-                ${errors > 0 ? '> ⚠️ **Action Required**: Please review the failed tests and fix them before merging.' : '> ✅ **All tests passed!** Your changes look good.'}
-              `,
-            })

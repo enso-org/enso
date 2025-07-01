@@ -31,7 +31,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
   }
 
   public UnorderedMultiValueKey(
-      List<Column> columns, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
+      List<Column> columns, long rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
     this(
         columns.stream().map(Column::getStorage).toArray(ColumnStorage[]::new),
         rowIndex,
@@ -39,7 +39,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
   }
 
   public UnorderedMultiValueKey(
-      ColumnStorage<?>[] storages, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
+      ColumnStorage<?>[] storages, long rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
     super(storages, rowIndex);
     this.textFoldingStrategy = textFoldingStrategy;
 

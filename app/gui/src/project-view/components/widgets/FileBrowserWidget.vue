@@ -84,7 +84,7 @@ async function assetExists(name: string): Promise<AssetExists> {
   const currentDir = currentDirectory.value
   if (currentDir == null) return { exists: false }
   const content = await listDirectory(currentDir)
-  const asset = content.find((asset) => asset.title === name)
+  const asset = content?.find((asset) => asset.title === name)
   if (!asset) return { exists: false }
   return { exists: true, type: asset.type }
 }

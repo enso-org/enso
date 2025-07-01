@@ -26,14 +26,15 @@ import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
+import AppContainerVue from '$/components/AppContainer.vue'
 import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
-const AppContainer = React.lazy(() =>
-  import('$/components/AppContainer.vue').then(({ default: vue }) => vueComponent(vue)),
-)
+// This is a component, not a mere constant
+// eslint-disable-next-line no-restricted-syntax
+const AppContainer = vueComponent(AppContainerVue).default
 
 /** The component that contains the entire UI. */
 export default function Dashboard() {

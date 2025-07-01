@@ -78,47 +78,6 @@ jobs:
     if: needs.gui-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
     secrets: inherit
 
-  finish-message:
-    name: 📝 Finish Message
-    runs-on: ubuntu-latest
-    needs: [prettier, gui-checks, storybook]
-    if: always()
-    steps:
-      - uses: actions/checkout@v4
-        name: Checkout
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-tags: false
-
-      - name: 💬 Comment on PR
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
-
-            await setMessage({
-              id: "title-message",
-              header: "## ✨ GUI Checks Results",
-              context,
-              body: `
-                ### Summary
-                - 🧹 Prettier: ${${{needs.prettier.result == 'success'}} ? '✅ Passed' : '❌ Failed'}
-                - 🧰 GUI Checks: ${${{needs.gui-checks.result == 'success'}} ? '✅ Passed' : '❌ Failed'}
-                - 📚 Storybook: ${${{needs.storybook.result == 'success'}} ? '✅ Deployed' : '❌ Failed'}
-                
-                ${${{needs.prettier.result == 'success'}} && ${{needs.gui-checks.result == 'success'}} && ${{needs.storybook.result == 'success'}} 
-                  ? '> ✅ **All checks passed!** Your changes look good to go.'
-                  : '> ⚠️ **Action Required**: Please review the failed checks and fix them before merging.'}
-                
-                See individual check results for more details.
-              `,
-              github,
-              repo: context.repo,
-              prNumber: context.payload.pull_request.number
-            })
   required-checks:
     name: GUI Required Checks
     runs-on: ubuntu-latest

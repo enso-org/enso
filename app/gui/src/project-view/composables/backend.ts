@@ -4,7 +4,6 @@ import type {
   UseMutationOptions,
   UseMutationReturnType,
   UseQueryOptions,
-  UseQueryReturnType,
 } from '@tanstack/vue-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { BackendMutationMethod, BackendQueryMethod } from 'enso-common/src/backendQuery'
@@ -26,10 +25,11 @@ const methodDefaultOptions: Partial<Record<BackendQueryMethod, ExtraOptions>> = 
   getFileDetails: { ...noPersist },
 }
 
-function backendQueryOptions<Method extends BackendQueryMethod>(
+/** Commonly used options for tanstack queries to backend. */
+export function backendQueryOptions<Method extends BackendQueryMethod, B extends Backend | null>(
   method: Method,
   args: ToValue<Parameters<Backend[Method]> | undefined>,
-  backend: Backend | null,
+  backend: B,
 ) {
   return {
     ...backendBaseOptions(backend),
@@ -38,7 +38,13 @@ function backendQueryOptions<Method extends BackendQueryMethod>(
       const argsValue = toValue(args)
       return argsValue ? backendQueryKey(backend, method, argsValue) : []
     }),
-    queryFn: () => backend && (backend[method] as any).apply(backend, toValue(args)!),
+    queryFn: (): Promise<
+      B extends Backend ? Awaited<ReturnType<Backend[Method]>>
+      : Awaited<ReturnType<Backend[Method]>> | null
+    > =>
+      backend ?
+        (backend[method] as any).apply(backend, toValue(args)!)
+      : (Promise.resolve(null) as any),
     enabled: computed(() => !!backend && !!toValue(args)),
   }
 }
@@ -52,13 +58,16 @@ type MutationOptions<Method extends BackendMutationMethod> = ToValue<
         Parameters<Backend[Method]>
       >
     >,
-    'mutationFn' | 'mutationKey'
+    'mutationFn'
   > & { invalidate?: boolean }
 >
 
-function backendMutationOptions<Method extends BackendMutationMethod>(
+/**
+ * Create Tanstack Query mutation options for given backend method call.
+ */
+export function backendMutationOptions<Method extends BackendMutationMethod>(
   method: Method,
-  backend: Backend | null,
+  backend: ToValue<Backend | null>,
   options?: MutationOptions<Method>,
 ): UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>> | undefined,
@@ -67,17 +76,20 @@ function backendMutationOptions<Method extends BackendMutationMethod>(
 > {
   return computed(() => {
     const opts = toValue(options)
+    const backendVal = toValue(backend)
     const invalidates =
       opts?.invalidate === false ?
         []
       : (INVALIDATION_MAP[method]?.map((queryMethod) =>
-          queryMethod === INVALIDATE_ALL_QUERIES ? [backend?.type] : [backend?.type, queryMethod],
+          queryMethod === INVALIDATE_ALL_QUERIES ?
+            [backendVal?.type]
+          : [backendVal?.type, queryMethod],
         ) ?? [])
     return {
-      ...backendBaseOptions(backend),
-      mutationKey: [backend?.type, method],
-      mutationFn: (args) => (backend ? (backend[method] as any)(...args) : undefined),
+      ...backendBaseOptions(backendVal),
       ...opts,
+      mutationKey: [backendVal?.type, method, ...(toValue(opts?.mutationKey) ?? [])],
+      mutationFn: (args) => (backendVal ? (backendVal[method] as any)(...args) : undefined),
       meta: {
         invalidates,
         awaitInvalidates: true,
@@ -102,14 +114,14 @@ export function useBackend(which: 'remote' | 'project') {
   function query<Method extends BackendQueryMethod>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
-  ): UseQueryReturnType<Awaited<ReturnType<Backend[Method]>>, Error> {
+  ) {
     return useQuery(backendQueryOptions(method, args, backend))
   }
 
   function fetch<Method extends BackendQueryMethod>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
-  ): Promise<Awaited<ReturnType<Backend[Method]>>> {
+  ) {
     return queryClient.fetchQuery(backendQueryOptions(method, args, backend))
   }
 
@@ -125,7 +137,7 @@ export function useBackend(which: 'remote' | 'project') {
   function ensureQueryData<Method extends BackendQueryMethod>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
-  ): Promise<Awaited<ReturnType<Backend[Method]>>> {
+  ) {
     return queryClient.ensureQueryData(backendQueryOptions(method, args, backend))
   }
 

@@ -8,7 +8,8 @@ import {
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
-import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
+import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
+import DescriptionEditor from '@/components/DescriptionEditor.vue'
 import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -26,6 +27,8 @@ const data = useRightPanelData()
 // Not a  part of RightPanelTabInfo, because it would create cyclic imports.
 const component = computed(() => {
   switch (data.displayedTab) {
+    case 'description':
+      return DescriptionEditor
     case 'settings':
       return AssetProperties
     case 'versions':
@@ -37,7 +40,7 @@ const component = computed(() => {
     case 'documentation':
       return DocumentationEditor
     case 'help':
-      return ComponentDocumentation
+      return ComponentHelpPanel
     default:
       return undefined
   }

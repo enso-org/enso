@@ -15,6 +15,9 @@
 - type Language
     - Java
     - Unknown
+- type Multi_Type
+    - get value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
 - type Polyglot
     - get_language self -> Standard.Base.Meta.Language
     - value self -> Standard.Base.Any.Any

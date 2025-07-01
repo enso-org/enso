@@ -8,10 +8,9 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -32,14 +31,15 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   @Override
   public ColumnStorage<BigDecimal> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof BigDecimalStorage bigDecimalStorage) {
-      return bigDecimalStorage;
+    var storageType = storage.getType();
+    if (storageType instanceof BigDecimalType bigDecimalType) {
+      return bigDecimalType.asTypedStorage(storage);
     } else if (storage instanceof ColumnLongStorage longStorage) {
       return convertLongStorage(longStorage);
     } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       return convertDoubleStorage(doubleStorage);
-    } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-      return convertBigIntegerStorage(bigIntegerStorage);
+    } else if (storageType instanceof BigIntegerType bigIntegerType) {
+      return convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage));
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return convertBoolStorage(boolStorage);
     } else if (canApply(storage.getType())) {
