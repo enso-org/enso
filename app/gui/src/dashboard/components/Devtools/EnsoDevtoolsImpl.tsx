@@ -89,7 +89,6 @@ export function EnsoDevStatus() {
     assetsTableBackgroundRefreshInterval,
     enableCloudExecution,
     enableScheduledExecution,
-    enableHybridExecution,
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
@@ -124,7 +123,6 @@ export function EnsoDevStatus() {
     assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
     !enableCloudExecution ||
     !enableScheduledExecution ||
-    !enableHybridExecution ||
     showDeveloperIds ||
     overrideProfilePicture ||
     multiplyUserList ||
@@ -214,15 +212,6 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('scheduledExecutionDisabled')}
-            </DeveloperOverrideEntry>
-          )}
-          {!enableHybridExecution && (
-            <DeveloperOverrideEntry
-              reset={() => {
-                setFeatureFlag('enableHybridExecution', false)
-              }}
-            >
-              {getText('hybridExecutionDisabled')}
             </DeveloperOverrideEntry>
           )}
           {showDeveloperIds && (
@@ -551,15 +540,6 @@ export function EnsoDevtools() {
                     description="Enable Advanced Project Excecution Options"
                     onChange={(value) => {
                       setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
-                    }}
-                  />
-                  <Switch
-                    form={form}
-                    name="enableHybridExecution"
-                    label="Enable Hybrid Execution"
-                    description="Enable Hybrid Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableHybridExecution', value)
                     }}
                   />
                   <Input
