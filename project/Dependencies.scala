@@ -304,9 +304,11 @@ object Dependencies {
   val apacheArrowVersion      = "14.0.1"
   val snowflakeJDBCVersion    = "3.15.0"
   val mssqlserverJDBCVersion  = "12.6.2.jre11"
+  // Note a deliberately old version of the Azure SDK is used here, as the
+  // newer versions have a defect when using SAS tokens.
   val azureIdentityVersion    = "1.11.1"
   val azureResourceVersion    = "2.50.0"
-  val azureBlobStorageVersion = "12.24.4"
+  val azureBlobStorageVersion = "12.25.4"
   val jsoniterVersion         = "2.28.5"
   val jnaVersion              = "5.14.0"
   val googleProtobufVersion   = "3.25.1"

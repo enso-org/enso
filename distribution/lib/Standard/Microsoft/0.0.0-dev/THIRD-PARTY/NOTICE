@@ -8,7 +8,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'azure-core-http-netty', licensed under the The MIT License (MIT), is distributed with the Microsoft.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.azure.azure-core-http-netty-1.15.11`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-core-http-netty-1.14.2`.
 
 
 'azure-core-management', licensed under the The MIT License (MIT), is distributed with the Microsoft.
@@ -18,7 +18,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'azure-identity', licensed under the The MIT License (MIT), is distributed with the Microsoft.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.azure.azure-identity-1.16.1`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-identity-1.11.1`.
 
 
 'azure-json', licensed under the The MIT License (MIT), is distributed with the Microsoft.
@@ -38,7 +38,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'azure-storage-blob', licensed under the The MIT License (MIT), is distributed with the Microsoft.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-blob-12.30.0`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-blob-12.25.4`.
 
 
 'azure-storage-common', licensed under the The MIT License (MIT), is distributed with the Microsoft.
@@ -53,7 +53,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'azure-storage-internal-avro', licensed under the The MIT License (MIT), is distributed with the Microsoft.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-internal-avro-12.15.0`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-internal-avro-12.10.4`.
 
 
 'azure-xml', licensed under the The MIT License (MIT), is distributed with the Microsoft.
@@ -183,22 +183,32 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.18.1`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.17.2`.
 
 
 'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.18.1`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.17.2`.
 
 
 'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.18.1`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.17.2`.
+
+
+'jackson-dataformat-xml', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-xml-2.13.5`.
 
 
 'jackson-datatype-jsr310', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.datatype.jackson-datatype-jsr310-2.17.2`.
+
+
+'woodstox-core', licensed under the The Apache License, Version 2.0, is distributed with the Microsoft.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.woodstox.woodstox-core-6.4.0`.
 
 
 'jcip-annotations', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
@@ -208,12 +218,12 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'msal4j', licensed under the MIT License, is distributed with the Microsoft.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.msal4j-1.20.1`.
+Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.msal4j-1.14.0`.
 
 
 'msal4j-persistence-extension', licensed under the MIT License, is distributed with the Microsoft.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.msal4j-persistence-extension-1.3.0`.
+Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.msal4j-persistence-extension-1.2.0`.
 
 
 'mssql-jdbc', licensed under the MIT License, is distributed with the Microsoft.
@@ -223,7 +233,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'content-type', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.nimbusds.content-type-2.3`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.content-type-2.2`.
 
 
 'lang-tag', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
@@ -233,127 +243,127 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'nimbus-jose-jwt', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.nimbusds.nimbus-jose-jwt-10.0.1`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.nimbus-jose-jwt-9.30.2`.
 
 
 'oauth2-oidc-sdk', licensed under the Apache License, version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.nimbusds.oauth2-oidc-sdk-11.23`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.oauth2-oidc-sdk-10.7.1`.
 
 
 'netty-buffer', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-buffer-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-buffer-4.1.108.Final`.
 
 
 'netty-codec', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-4.1.108.Final`.
 
 
 'netty-codec-dns', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-dns-4.1.112.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-dns-4.1.107.Final`.
 
 
 'netty-codec-http', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http-4.1.108.Final`.
 
 
 'netty-codec-http2', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http2-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http2-4.1.108.Final`.
 
 
 'netty-codec-socks', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-socks-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-socks-4.1.108.Final`.
 
 
 'netty-common', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-common-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-common-4.1.108.Final`.
 
 
 'netty-handler', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-4.1.108.Final`.
 
 
 'netty-handler-proxy', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-proxy-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-proxy-4.1.108.Final`.
 
 
 'netty-resolver', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-4.1.108.Final`.
 
 
 'netty-resolver-dns', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-4.1.112.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-4.1.107.Final`.
 
 
 'netty-resolver-dns-classes-macos', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-classes-macos-4.1.112.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-classes-macos-4.1.107.Final`.
 
 
 'netty-resolver-dns-native-macos', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-native-macos-4.1.112.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-native-macos-4.1.107.Final`.
 
 
 'netty-tcnative-boringssl-static', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-tcnative-boringssl-static-2.0.70.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-tcnative-boringssl-static-2.0.65.Final`.
 
 
 'netty-tcnative-classes', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-tcnative-classes-2.0.70.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-tcnative-classes-2.0.65.Final`.
 
 
 'netty-transport', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-4.1.108.Final`.
 
 
 'netty-transport-classes-epoll', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-epoll-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-epoll-4.1.108.Final`.
 
 
 'netty-transport-classes-kqueue', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-kqueue-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-kqueue-4.1.108.Final`.
 
 
 'netty-transport-native-epoll', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-epoll-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-epoll-4.1.108.Final`.
 
 
 'netty-transport-native-kqueue', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-kqueue-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-kqueue-4.1.108.Final`.
 
 
 'netty-transport-native-unix-common', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-unix-common-4.1.118.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-unix-common-4.1.108.Final`.
 
 
 'reactor-netty-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.projectreactor.netty.reactor-netty-core-1.0.48`.
+Copyright notices related to this dependency can be found in the directory `io.projectreactor.netty.reactor-netty-core-1.0.43`.
 
 
 'reactor-netty-http', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.projectreactor.netty.reactor-netty-http-1.0.48`.
+Copyright notices related to this dependency can be found in the directory `io.projectreactor.netty.reactor-netty-http-1.0.43`.
 
 
 'reactor-core', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
@@ -363,17 +373,22 @@ Copyright notices related to this dependency can be found in the directory `io.p
 
 'accessors-smart', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `net.minidev.accessors-smart-2.5.2`.
+Copyright notices related to this dependency can be found in the directory `net.minidev.accessors-smart-2.4.9`.
 
 
 'json-smart', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `net.minidev.json-smart-2.5.2`.
+Copyright notices related to this dependency can be found in the directory `net.minidev.json-smart-2.4.10`.
+
+
+'stax2-api', licensed under the The BSD License, is distributed with the Microsoft.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.codehaus.woodstox.stax2-api-4.2.1`.
 
 
 'asm', licensed under the BSD-3-Clause, is distributed with the Microsoft.
 The license file can be found at `licenses/BSD-3-Clause`.
-Copyright notices related to this dependency can be found in the directory `org.ow2.asm.asm-9.7.1`.
+Copyright notices related to this dependency can be found in the directory `org.ow2.asm.asm-9.3`.
 
 
 'reactive-streams', licensed under the MIT-0, is distributed with the Microsoft.
