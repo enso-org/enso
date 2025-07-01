@@ -121,6 +121,10 @@ importers:
       zod:
         specifier: ^3.23.0
         version: 3.24.1
+    devDependencies:
+      '@fast-check/vitest':
+        specifier: ^0.2.1
+        version: 0.2.1(vitest@3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))
 
   app/gui:
     dependencies:
@@ -170,8 +174,8 @@ importers:
         specifier: ^6.36.4
         version: 6.36.4
       '@fast-check/vitest':
-        specifier: ^0.0.8
-        version: 0.0.8(vitest@3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))
+        specifier: ^0.2.1
+        version: 0.2.1(vitest@3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))
       '@floating-ui/vue':
         specifier: ^1.1.5
         version: 1.1.5(vue@3.5.13(typescript@5.7.2))
@@ -829,8 +833,8 @@ importers:
         version: 3.24.1
     devDependencies:
       '@fast-check/vitest':
-        specifier: ^0.0.8
-        version: 0.0.8(vitest@3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))
+        specifier: ^0.2.1
+        version: 0.2.1(vitest@3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
@@ -1721,6 +1725,11 @@ packages:
     resolution: {integrity: sha512-cFrcu7nwH+rk1qm1J4YrM1k4MIwvIHG7MrQUMGizqPe58XsvvpZz0X9Xkx1e+xaNg9s1YRVTd241WSR0dK/SpQ==}
     peerDependencies:
       vitest: '>=0.28.1'
+
+  '@fast-check/vitest@0.2.1':
+    resolution: {integrity: sha512-qbmGd1PC38iGvDjAY3WCpfQbWl60Bh0S5A/P60bFTVobyXzhYwq/3AtqVJWMRLnKHSfCDc2CSAApRUqrhVfcZQ==}
+    peerDependencies:
+      vitest: ^1 || ^2 || ^3
 
   '@floating-ui/core@1.6.8':
     resolution: {integrity: sha512-7XJ9cPU+yI2QeLS+FCSlqNFZJq8arvswefkZrYI1yQBbftw6FyrZOxYSh+9S7z7TpeWlRt9zJ5IhM1WIL334jA==}
@@ -9545,6 +9554,16 @@ snapshots:
   '@fal-works/esbuild-plugin-global-externals@2.1.2': {}
 
   '@fast-check/vitest@0.0.8(vitest@3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))':
+    dependencies:
+      fast-check: 3.23.2
+      vitest: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
+
+  '@fast-check/vitest@0.2.1(vitest@3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))':
+    dependencies:
+      fast-check: 3.23.2
+      vitest: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
+
+  '@fast-check/vitest@0.2.1(vitest@3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0))':
     dependencies:
       fast-check: 3.23.2
       vitest: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)

@@ -8,9 +8,8 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
-import { isRef, toRaw } from 'vue'
+import { toRaw } from 'vue'
 import { cloneDeepUnref } from './utilities/data/reactive'
-import { deepInspect } from './utilities/data/types'
 
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
@@ -78,7 +77,7 @@ declare const brandRaw: unique symbol
  * A value that is known not to be a reactive proxy; this marker type can be used to ensure
  * comparisons are free of identity hazards.
  */
-type RawValue<T> = T & { [brandRaw]: true }
+type RawValue<T> = T & { [brandRaw]: never }
 
 /** Uniquely identifies a `Mutation`. */
 type MutationKey = RawValue<queryCore.Mutation<unknown, unknown>>
@@ -112,35 +111,11 @@ export function createQueryClient<TStorageValue = string>(
 
   const invalidationKeys = new WeakMap<MutationKey, InvalidationKeys>()
 
-  function validateEvaluatedKey(key: unknown) {
-    DEV: deepInspect(key, (key) => {
-      if (
-        key == null ||
-        typeof key === 'string' ||
-        typeof key === 'number' ||
-        typeof key === 'boolean'
-      )
-        return
-      else if (isRef(key)) {
-        console.error('Unreachable: Ref in evaluated key')
-      } else {
-        // The tanstack-query Vue bindings allow getters in keys, but seemingly don't evaluate
-        // them in all usages of keys. Refs are reliably evaluated.
-        console.error(
-          'BUG: Unexpected element type in evaluated query key.' +
-            (typeof key === 'function' ?
-              ' Query key may contain refs, but must not contain getters.'
-            : ''),
-          key,
-        )
-      }
-    })
-  }
-
   const queryClient: QueryClient = new vueQuery.QueryClient({
     queryCache: new queryCore.QueryCache({
       onSettled: (_data, _error, query) => {
-        DEV: query.queryKey.forEach(validateEvaluatedKey)
+        // Run the function to trigger its dev-mode checks
+        DEV: void cloneDeepUnref(query.queryKey)
       },
     }),
     mutationCache: new queryCore.MutationCache({
@@ -153,11 +128,7 @@ export function createQueryClient<TStorageValue = string>(
           return
         }
         const keys = evaluateInvalidationKeys(mutation)
-        if (keys) {
-          DEV: keys.toIgnore.forEach(validateEvaluatedKey)
-          DEV: keys.toAwait.forEach(validateEvaluatedKey)
-          invalidationKeys.set(mutationKey(mutation), keys)
-        }
+        if (keys) invalidationKeys.set(mutationKey(mutation), keys)
       },
       onSuccess: (_data, _variables, _context, mutation) => {
         const keys = invalidationKeys.get(mutationKey(mutation))
