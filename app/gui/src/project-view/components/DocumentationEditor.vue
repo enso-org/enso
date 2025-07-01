@@ -4,7 +4,6 @@ import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
 import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
@@ -80,12 +79,6 @@ const editorMarkdown = computed(() =>
     return readOnly ? docs.toString() : docs
   }),
 )
-
-provideDocumentationImages({
-  openedProject: currentProject.ref,
-  backend: backendForAsset,
-  projectId,
-})
 </script>
 
 <template>

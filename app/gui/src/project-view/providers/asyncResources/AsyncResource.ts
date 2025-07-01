@@ -111,7 +111,6 @@ export class AsyncResource {
           return
         }
         if (result.error.payload instanceof AbortSignal) return
-        result.error.log('Failed to expose AsyncResource')
         this.lastErrorMessage = result.error.message('')
         this._status.value = 'error'
       })

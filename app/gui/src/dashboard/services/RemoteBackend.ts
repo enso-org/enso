@@ -244,7 +244,7 @@ export default class RemoteBackend extends Backend {
         // eslint-disable-next-line no-restricted-syntax
       : ((await response.json()) as RemoteBackendError)
 
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}`
     this.logger.error(message)
 
     const status = response?.status
@@ -1611,15 +1611,13 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  // async resolveEnsoPath(path: backend.EnsoPath) {
-  //   const response = await this.get<backend.PathResolveResponse>('path/resolve', {})
+  /** Resolve asset metadata from an enso path. */
+  async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    const response = await this.get<backend.Asset>(remoteBackendPaths.RESOLVE_ENSO_PATH, { path })
 
-  //   if (!response.ok) {
-  //     return await this.throw(response, 'getCustomerPortalUrlBackendError')
-  //   } else {
-  //     return (await response.json()).url
-  //   }
-  // }
+    if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
+    return await response.json()
+  }
 
   /**
    * Resolve the data of a project asset relative to the project root directory.

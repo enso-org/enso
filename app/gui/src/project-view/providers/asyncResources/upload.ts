@@ -1,6 +1,8 @@
+import { unsafeKeys } from '#/utilities/object'
 import { OpenedProject, OpenedProjectsStore } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, mapOk, Ok, Result } from '@/util/data/result'
+import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import { FetchPartialProgress } from './AsyncResource'
 import { CapturedResourceContext } from './context'
 
@@ -10,6 +12,7 @@ export type AnyUploadSource =
   | DataTransferItem
   | ClipboardItem
   | File
+  | FileList
   | Array<AnyUploadSource>
 
 export interface UploadDefinition {
@@ -26,37 +29,34 @@ export interface UploadProgress {
 /**
  * Normalize any potential `AnyUploadSource` value into a series of uploads to perform, represented by `UploadDefinition` structs.
  */
-export function* normalizeUploadSources(
-  dataSource: AnyUploadSource,
-): Generator<Result<UploadDefinition>> {
-  if (Array.isArray(dataSource)) {
-    for (const arrayElement of dataSource) {
-      return yield* normalizeUploadSources(arrayElement)
-    }
+export function* normalizeUploadSources(dataSource: AnyUploadSource): Generator<UploadDefinition> {
+  if (Array.isArray(dataSource) || dataSource instanceof FileList) {
+    for (const item of dataSource) yield* normalizeUploadSources(item)
   } else if (dataSource instanceof DragEvent) {
     const items = dataSource.dataTransfer?.items
-    if (items) return yield* normalizeUploadSources([...items])
+    if (items) yield* normalizeUploadSources([...items])
   } else if (dataSource instanceof ClipboardItem) {
     const supportedDataType = dataSource.types.find(isSupportedType)
     if (supportedDataType) {
-      return {
+      yield {
         filename: supportedResourceTypes[supportedDataType].defaultFileName,
         data: dataSource.getType(supportedDataType),
       } satisfies UploadDefinition
     }
+    return
   } else if (dataSource instanceof DataTransferItem) {
     const file = dataSource.getAsFile()
-    if (file) return yield* normalizeUploadSources(file)
+    if (file) yield* normalizeUploadSources(file)
   } else if (dataSource instanceof File) {
-    if (!isSupportedType(dataSource.type)) {
-      return Err('Unsupported resource type: ' + dataSource.type)
+    if (isSupportedType(dataSource.type)) {
+      yield {
+        filename: dataSource.name,
+        data: Promise.resolve(dataSource),
+      } satisfies UploadDefinition
     }
-    return {
-      filename: dataSource.name,
-      data: Promise.resolve(dataSource),
-    } satisfies UploadDefinition
   } else {
-    return Ok(dataSource)
+    console.log('dataSource', dataSource)
+    yield dataSource
   }
 }
 
@@ -132,6 +132,9 @@ export function initResourceUpload(openedProjects: OpenedProjectsStore) {
   return uploadResource
 }
 
+/**
+ * Create
+ */
 export function generateUploadingDefinition(
   progress: UploadProgress,
 ): Promise<Result<FetchPartialProgress>> {
@@ -141,4 +144,20 @@ export function generateUploadingDefinition(
       continue: progress.upload.then((r) => mapOk(r, () => data)),
     })
   })
+}
+
+/**
+ * Show a "open file" dialog to the user, allowing selection of any valid resource type.
+ */
+export async function selectResourceFiles(): Promise<Result<FileList>> {
+  const mimeTypes = unsafeKeys(supportedResourceTypes)
+  const extensions = Object.values(supportedResourceTypes)
+    .flatMap((ty) => ty.extensions)
+    .map((e) => `.${e}` as const)
+
+  try {
+    return Ok(await readUserSelectedFile({ accept: [...mimeTypes, ...extensions] }))
+  } catch (error) {
+    return Err(error)
+  }
 }

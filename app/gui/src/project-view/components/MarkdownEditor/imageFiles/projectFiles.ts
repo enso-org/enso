@@ -15,7 +15,7 @@ import type { Path } from 'ydoc-shared/languageServerTypes'
 import { type Result } from 'ydoc-shared/util/data/result'
 import type { Uuid } from 'ydoc-shared/yjsModel'
 
-type UploadedImagePosition = { type: 'selection' } | { type: 'coords'; coords: Vec2 }
+export type UploadedImagePosition = { type: 'selection' } | { type: 'coords'; coords: Vec2 }
 
 /**
  * A Project File management API for {@link useDocumentationImages} composable.

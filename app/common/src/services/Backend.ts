@@ -648,6 +648,11 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
+/**
+ * Response from the "path/resolve" endpoint.
+ */
+export interface PathResolveResponse extends Omit<Asset, 'type'> {}
+
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
   switch (user.plan) {

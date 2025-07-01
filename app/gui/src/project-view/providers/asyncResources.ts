@@ -3,7 +3,7 @@
 import { useBackends } from '$/providers/backends'
 import { OpenedProjectsStore } from '$/providers/openedProjects'
 import { createContextStore } from '@/providers'
-import { mapOk, Ok, Result } from '@/util/data/result'
+import { andThen, mapOk, Ok, Result } from '@/util/data/result'
 import { ToValue } from '@/util/reactivity'
 import { computed, ComputedRef, onScopeDispose, toValue } from 'vue'
 import {
@@ -25,6 +25,7 @@ import {
   generateUploadingDefinition,
   initResourceUpload,
   normalizeUploadSources,
+  UploadDefinition,
   UploadProgress,
 } from './asyncResources/upload'
 
@@ -46,8 +47,10 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
       )
       if (!resolvedDefinition.ok) return resolvedDefinition
 
-      const uploading = generateUploadingDefinition(progress)
-      const uploadDefinition: ResourceDefinition = { ...resolvedDefinition.value, uploading }
+      const uploadDefinition: ResourceDefinition = {
+        ...resolvedDefinition.value,
+        uploading: generateUploadingDefinition(progress),
+      }
 
       // Put the resource into cache, but ensure that it is not being flagged as actively used.
       retainResource(uploadDefinition)
@@ -55,6 +58,14 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
 
       // Finally, return an resource URL that can be used to retrieve the uploaded resource.
       return Ok(progress.unparsedResourceUrl)
+    }
+
+    async function uploadSingleResource(
+      definition: UploadDefinition,
+      context: CapturedResourceContext,
+    ) {
+      const progress = await uploadResource(definition, context)
+      return andThen(progress, (p) => finishResourceUpload(p, context))
     }
 
     return {
@@ -97,19 +108,22 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
        *
        * @returns resource URLs to pass into `useResourceFromUrl` to resolve uploaded assets.
        */
-      async *uploadResources(
+      uploadResources(
         source: AnyUploadSource,
         context: LazyResourceContext = useAmbientContext(),
-      ): AsyncGenerator<Result<string>> {
+      ): Array<Promise<Result<{ filename: string; resourceUrl: string }>>> {
         const capturedContext = captureResourceContext(context)
         // Start all uploads immediately, but yield them in original order.
         const normalizedSources = [...normalizeUploadSources(source)]
-        yield* normalizedSources.map(async (uploadData) => {
-          if (!uploadData.ok) return uploadData
-          const progress = await uploadResource(uploadData.value, capturedContext)
-          if (!progress.ok) return progress
-          return finishResourceUpload(progress.value, capturedContext)
-        })
+        console.log('normalizedSources', normalizedSources)
+        return normalizedSources.map((s) =>
+          uploadSingleResource(s, capturedContext).then((upload) =>
+            mapOk(upload, (resourceUrl) => ({
+              filename: s.filename,
+              resourceUrl,
+            })),
+          ),
+        )
       },
     }
   },
