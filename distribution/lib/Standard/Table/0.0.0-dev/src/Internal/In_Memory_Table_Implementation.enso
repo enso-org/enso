@@ -681,19 +681,19 @@ type In_Memory_Table_Implementation
     to_xml (this_table : Table & In_Memory_Table) (element_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = this_table.column_names) (attribute_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) (value_column : Text | Integer | Nothing = Nothing) root_name:Text="Table" row_name:Text="Row" on_problems:Problem_Behavior=..Report_Warning -> XML_Document =
         columns_helper = this_table.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
+
         resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
-        java_element_columns = resolved_element_columns.map c->(c:In_Memory_Column).java_column
-
         resolved_attribute_columns = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
-        java_attribute_column = resolved_attribute_columns.map c->(c:In_Memory_Column).java_column
-
         resolved_value_column = if value_column.is_nothing then Nothing else (this_table.at value_column)
-        java_value_column = if value_column.is_nothing then Nothing else (resolved_value_column:In_Memory_Column).java_column
+        used_names = resolved_element_columns.map .name + resolved_attribute_columns.map .name + (if Nothing == resolved_value_column then [] else [resolved_value_column.name])
 
-        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] ..Remove) . map .name
+        unused_columns = columns_helper.internal_columns.filter (c-> used_names.contains c.name . not) . map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
 
         problem_builder.attach_problems_before on_problems <|
+            java_element_columns = resolved_element_columns.map c->(c:In_Memory_Column).java_column
+            java_attribute_column = resolved_attribute_columns.map c->(c:In_Memory_Column).java_column
+            java_value_column = if value_column.is_nothing then Nothing else (resolved_value_column:In_Memory_Column).java_column
             XML_Document.new (Java_TableToXml.to_xml this_table.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
 
     columns_helper (this_table : Table & In_Memory_Table) =

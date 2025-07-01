@@ -90,7 +90,7 @@ class ExecuteJob(
   private def execute(implicit ctx: RuntimeContext): Unit = {
     ctx.state.executionHooks.run()
 
-    ctx.locking.withContextLock(
+    ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
       () =>

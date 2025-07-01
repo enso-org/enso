@@ -842,6 +842,14 @@
     <path fill-rule="evenodd" clip-rule="evenodd" d="M4 6H3V8C3 10.419 4.71776 12.4367 7 12.9V15H5.5C5.22386 15 5 15.2239 5 15.5C5 15.7761 5.22386 16 5.5 16H7H9H10.5C10.7761 16 11 15.7761 11 15.5C11 15.2239 10.7761 15 10.5 15H9V12.9C11.2822 12.4367 13 10.419 13 8V6H12V8C12 10.2091 10.2091 12 8 12C5.79086 12 4 10.2091 4 8V6Z" fill="currentColor"></path>
   </symbol>
 
+  <symbol id="microsoft_color" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M0 0H16V16H0V0Z" fill="#F3F3F3"></path>
+    <path d="M0.695656 0.695656H7.65218V7.65218H0.695656V0.695656Z" fill="#F35325"></path>
+    <path d="M8.34782 0.695656H15.3043V7.65218H8.34782V0.695656Z" fill="#81BC06"></path>
+    <path d="M0.695656 8.34782H7.65218V15.3043H0.695656V8.34782Z" fill="#05A6F0"></path>
+    <path d="M8.34782 8.34782H15.3043V15.3043H8.34782V8.34782Z" fill="#FFBA08"></path>
+  </symbol>
+
   <symbol id="minus" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <rect y="7" width="16" height="2" fill="currentColor"></rect>
   </symbol>

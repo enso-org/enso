@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument
 
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, VisualizationId}
+import com.oracle.truffle.api.CompilerDirectives
 
 import scala.collection.mutable
 
@@ -53,6 +54,7 @@ class VisualizationHolder {
     * @param expressionId the unique identifier of the expression
     * @return a list of matching visualization
     */
+  @CompilerDirectives.TruffleBoundary
   def find(expressionId: ExpressionId): List[Visualization] =
     visualizationMap(expressionId)
 

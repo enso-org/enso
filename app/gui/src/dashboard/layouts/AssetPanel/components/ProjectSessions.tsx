@@ -1,6 +1,7 @@
 /** @file A list of previous versions of an asset. */
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
+import { Scroller } from '#/components/Scroller'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
@@ -59,15 +60,17 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
 
   return projectSessionsQuery.data.length === 0 ?
       <Result status="info" centered title={getText('assetProjectSessions.noSessions')} />
-    : <div className="flex w-full flex-col justify-start">
-        {projectSessionsQuery.data.map((session, i) => (
-          <ProjectSession
-            key={session.projectSessionId}
-            backend={backend}
-            project={item}
-            projectSession={session}
-            index={projectSessionsQuery.data.length - i}
-          />
-        ))}
+    : <div className="flex min-h-0 w-full flex-col justify-start">
+        <Scroller scrollbar orientation="vertical" background="white" className="h-full">
+          {projectSessionsQuery.data.map((session, i) => (
+            <ProjectSession
+              key={session.projectSessionId}
+              backend={backend}
+              project={item}
+              projectSession={session}
+              index={projectSessionsQuery.data.length - i}
+            />
+          ))}
+        </Scroller>
       </div>
 }

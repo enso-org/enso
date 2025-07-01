@@ -4187,6 +4187,10 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       // There is no Truffle compiler available for annotation processors. Suppress the warning.
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
+    Compile / javaOptions ++= Seq(
+      // Force killing of alive threads once a benchmark is finished.
+      "-Djmh.shutdownTimeout=0"
+    ),
     Compile / moduleDependencies := {
       (`runtime-benchmarks` / Compile / moduleDependencies).value
     },

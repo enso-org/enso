@@ -30,6 +30,7 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
 public abstract class DataQualityMetrics {
@@ -71,6 +72,29 @@ public abstract class DataQualityMetrics {
       _cachedMetrics = new LeastRecentlyUsedCache<>(1000);
     }
     return _cachedMetrics;
+  }
+
+  /**
+   * Triggers the computation of data quality metrics for the given table. This method is a no-op if
+   * the metrics have already been computed.
+   *
+   * @param table the table to trigger metrics for
+   */
+  public static void triggerTable(Table table) {
+    for (var column : table.getColumns()) {
+      DataQualityMetrics.triggerColumn(column);
+    }
+  }
+
+  /**
+   * Triggers the computation of data quality metrics for the given column. This method is a no-op
+   * if the metrics have already been computed.
+   *
+   * @param column the column to trigger metrics for
+   */
+  public static void triggerColumn(Column column) {
+    var storage = column.getStorage();
+    get(storage);
   }
 
   /**
