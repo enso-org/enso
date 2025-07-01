@@ -8,6 +8,7 @@ import org.enso.interpreter.test.Metadata
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionEnvironment
+import org.enso.polyglot.runtime.InvalidatedExpressions
 import org.enso.polyglot.runtime.StackItem
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
@@ -196,7 +197,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All()),
+          Some(InvalidatedExpressions.All()),
           None,
           Seq()
         )
@@ -264,7 +265,7 @@ class RuntimeRecomputeTest
         Api.RecomputeContextRequest(
           contextId,
           Some(
-            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
+            InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
           ),
           None,
           Seq()
@@ -326,7 +327,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All()),
+          Some(InvalidatedExpressions.All()),
           Some(ExecutionEnvironment.Live()),
           Seq()
         )

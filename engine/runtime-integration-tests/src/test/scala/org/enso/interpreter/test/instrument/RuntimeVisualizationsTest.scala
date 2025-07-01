@@ -9,6 +9,7 @@ import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.InvalidatedExpressions
 import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.VisualizationContext
 import org.enso.polyglot.runtime.VisualizationExpression
@@ -533,7 +534,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.RecomputeContextRequest(
             contextId,
             Some(
-              Api.InvalidatedExpressions.Expressions(
+              InvalidatedExpressions.Expressions(
                 Vector(context.Main.idMainX)
               )
             ),
@@ -1562,7 +1563,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.RecomputeContextRequest(
             contextId,
             Some(
-              Api.InvalidatedExpressions.Expressions(
+              InvalidatedExpressions.Expressions(
                 Vector(context.Main.idMainX)
               )
             ),

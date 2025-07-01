@@ -13,6 +13,9 @@ import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.{StackItem => ApiStackItem}
+import org.enso.polyglot.runtime.{
+  InvalidatedExpressions => ApiInvalidatedExpressions
+}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -393,12 +396,12 @@ final class ContextRegistry(
 
   private def toRuntimeInvalidatedExpressions(
     expressions: InvalidatedExpressions
-  ): Api.InvalidatedExpressions =
+  ): ApiInvalidatedExpressions =
     expressions match {
       case InvalidatedExpressions.All =>
-        Api.InvalidatedExpressions.All()
+        ApiInvalidatedExpressions.All()
       case InvalidatedExpressions.Expressions(es) =>
-        Api.InvalidatedExpressions.Expressions(es)
+        ApiInvalidatedExpressions.Expressions(es)
     }
 
 }

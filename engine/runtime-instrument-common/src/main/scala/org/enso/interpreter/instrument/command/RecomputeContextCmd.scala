@@ -13,6 +13,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.InvalidatedExpressions
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -115,7 +116,7 @@ object RecomputeContextCmd {
   /** Invalidate caches for the request. */
   sealed private case class InvalidateExpressions(
     contextId: Api.ContextId,
-    expressions: Option[Api.InvalidatedExpressions],
+    expressions: Option[InvalidatedExpressions],
     expressionConfigs: Seq[Api.ExpressionConfig]
   )(implicit ctx: RuntimeContext)
       extends Runnable {

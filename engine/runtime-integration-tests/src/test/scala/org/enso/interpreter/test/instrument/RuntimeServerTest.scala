@@ -14,6 +14,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.ExecutionEnvironment
+import org.enso.polyglot.runtime.InvalidatedExpressions
 import org.enso.polyglot.runtime.StackItem
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -6351,7 +6352,7 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All()),
+          Some(InvalidatedExpressions.All()),
           None,
           Seq()
         )

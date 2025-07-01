@@ -48,18 +48,8 @@ object Runtime {
       */
     case class MethodCall(
       methodPointer: MethodPointer,
-      notAppliedArguments: Vector[Int]
+      notAppliedArguments: Vector[Int] = Vector()
     )
-    object MethodCall {
-
-      /** Create a method call with all the arguments applied.
-        *
-        * @param methodPointer the method pointer of a call
-        * @return a new [[MethodCall]].
-        */
-      def apply(methodPointer: MethodPointer): MethodCall =
-        MethodCall(methodPointer, Vector())
-    }
 
     /** Contains a method pointer with information on the partially applied
       * arguments positions.
@@ -95,25 +85,6 @@ object Runtime {
         */
       @named("executionTime")
       case class ExecutionTime(nanoTime: Long) extends ProfilingInfo
-    }
-
-    /** An object representing invalidated expressions selector.
-      */
-    sealed trait InvalidatedExpressions
-    object InvalidatedExpressions {
-
-      /** An object representing invalidation of all expressions.
-        */
-      @named("all")
-      case class All() extends InvalidatedExpressions
-
-      /** An object representing invalidation of a list of expressions.
-        *
-        * @param value a list of expressions to invalidate.
-        */
-      @named("expressions")
-      case class Expressions(value: Vector[ExpressionId])
-          extends InvalidatedExpressions
     }
 
     /** A notification about updated expressions of the context.

@@ -4,7 +4,7 @@ import org.enso.common.CachePreferences
 
 import java.util.UUID
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.InvalidatedExpressions
 
 import scala.jdk.CollectionConverters._
 
@@ -78,16 +78,16 @@ object CacheInvalidation {
     case class SetMetadata(metadata: CachePreferenceAnalysis.Metadata)
         extends Command
 
-    /** Create an invalidation command from [[Api.InvalidatedExpressions]].
+    /** Create an invalidation command from [[InvalidatedExpressions]].
       *
       * @param expressions invalidated expressions
       * @return an invalidation command
       */
-    def apply(expressions: Api.InvalidatedExpressions): Command =
+    def apply(expressions: InvalidatedExpressions): Command =
       expressions match {
-        case Api.InvalidatedExpressions.All() =>
+        case InvalidatedExpressions.All() =>
           InvalidateAll
-        case Api.InvalidatedExpressions.Expressions(ids) =>
+        case InvalidatedExpressions.Expressions(ids) =>
           InvalidateKeys(ids)
       }
   }

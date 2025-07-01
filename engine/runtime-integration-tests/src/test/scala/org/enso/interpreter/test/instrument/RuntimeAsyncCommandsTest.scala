@@ -6,13 +6,10 @@ import org.enso.common.RuntimeOptions
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.ExecutionEnvironment
+import org.enso.polyglot.runtime.InvalidatedExpressions
 import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{
-  InvalidatedExpressions,
-  MethodCall,
-  MethodPointer
-}
+import org.enso.polyglot.runtime.Runtime.Api.{MethodCall, MethodPointer}
 import org.enso.polyglot.runtime.VisualizationExpression
 import org.enso.runtime.utils.ThreadUtils
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}

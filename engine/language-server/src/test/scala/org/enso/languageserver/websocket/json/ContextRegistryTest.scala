@@ -12,9 +12,11 @@ import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
 import org.enso.polyglot.runtime.ExecutionEnvironment
+import org.enso.polyglot.runtime.InvalidatedExpressions
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.VisualizationContext
+
 import org.enso.testkit.ReportLogsOnFailure
 
 import java.util.UUID
@@ -451,7 +453,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.RecomputeContextRequest(
                   `contextId`,
-                  Some(Api.InvalidatedExpressions.All()),
+                  Some(InvalidatedExpressions.All()),
                   None,
                   Seq()
                 )
@@ -527,7 +529,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 Api.RecomputeContextRequest(
                   `contextId`,
                   Some(
-                    Api.InvalidatedExpressions.Expressions(
+                    InvalidatedExpressions.Expressions(
                       Vector(`expressionId`)
                     )
                   ),
