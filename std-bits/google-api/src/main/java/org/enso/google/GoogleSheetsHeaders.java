@@ -10,7 +10,10 @@ public class GoogleSheetsHeaders {
   private final String[] names;
 
   public GoogleSheetsHeaders(
-      HeaderBehavior headerBehavior, List<Object> firstRow, List<Object> secondRow, ProblemAggregator problemAggregator) {
+      HeaderBehavior headerBehavior,
+      List<Object> firstRow,
+      List<Object> secondRow,
+      ProblemAggregator problemAggregator) {
     deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     names =
@@ -45,7 +48,8 @@ public class GoogleSheetsHeaders {
         .toArray(String[]::new);
   }
 
-  private static String[] inferHeaders(List<Object> firstRow, List<Object> secondRow, NameDeduplicator deduplicator) {
+  private static String[] inferHeaders(
+      List<Object> firstRow, List<Object> secondRow, NameDeduplicator deduplicator) {
     // No data or 1 row of data => No Headers
     if (firstRow == null || firstRow.isEmpty() || secondRow == null) {
       return null;

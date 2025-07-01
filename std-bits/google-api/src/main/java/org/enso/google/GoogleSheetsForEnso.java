@@ -103,11 +103,8 @@ public class GoogleSheetsForEnso {
 
   private static List<Object> getDataRow(List<List<Object>> rawData, int rowIndex) {
     if (rawData.stream().anyMatch(col -> col.size() > rowIndex)) {
-      return rawData.stream()
-          .map(col -> col.size() > rowIndex ? col.get(rowIndex) : null)
-          .toList();
+      return rawData.stream().map(col -> col.size() > rowIndex ? col.get(rowIndex) : null).toList();
     }
     return null;
   }
 }
-
