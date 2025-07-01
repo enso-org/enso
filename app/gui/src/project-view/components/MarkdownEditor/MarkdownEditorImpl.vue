@@ -24,7 +24,6 @@ import {
   replaceablePlaceholders,
   replacePlaceholder,
 } from './codemirror/placeholder'
-import { UploadedImagePosition } from './imageFiles/projectFiles'
 
 const {
   toolbar = true,
@@ -69,22 +68,18 @@ function handleUpload(source: AnyUploadSource): boolean {
   console.log('uploads', uploads)
   if (uploads.length == 0) return false
 
-  const position: UploadedImagePosition =
-    source instanceof DragEvent ?
-      { type: 'coords', coords: new Vec2(source.clientX, source.clientY) }
-    : { type: 'selection' }
-  insertStartedUploads(uploads, position)
+  const coords = source instanceof DragEvent ? new Vec2(source.clientX, source.clientY) : undefined
+  insertStartedUploads(uploads, coords)
   return true
 }
 
 async function insertStartedUploads(
   uploads: Promise<Result<{ filename: string; resourceUrl: string }>>[],
-  position: UploadedImagePosition,
+  coords: Vec2 | undefined,
 ) {
   const selection = editorView.state.selection.main
-  let from =
-    position.type == 'coords' ? editorView.posAtCoords(position.coords, false) : selection.from
-  let to = position.type == 'coords' ? from : selection.to
+  let from = coords ? editorView.posAtCoords(coords, false) : selection.from
+  let to = coords ? from : selection.to
 
   for (const upload of uploads) {
     const placeholderText = `\n![]()\n`

@@ -1,5 +1,5 @@
 import { ProjectId } from '#/services/Backend'
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { ToValue } from '@/util/reactivity'
 import { toValue } from 'vue'
 
@@ -30,7 +30,7 @@ export function capturedContextAsLazy(context: CapturedResourceContext): Resourc
 
 /** Assemble resource context from current Vue's context. */
 export function useAmbientContext(): ResourceContext {
-  const currentProject = injectCurrentProject(true)
+  const currentProject = useCurrentProject(true)
   return {
     project: () => currentProject?.id.value ?? undefined,
     basePathSegments: () => {
