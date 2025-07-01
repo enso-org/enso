@@ -1307,18 +1307,21 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
 
-    await get(remoteBackendPaths.getProjectAssetPath(GLOB_PROJECT_ID, '*'), (route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
-      if (!maybeId) return
-      const projectId = backend.ProjectId(maybeId)
-      called('getProjectContent', { projectId })
-      const content = readFileSync(join(__dirname, '../mock/enso-demo.main'), 'utf8')
+    await get(
+      remoteBackendPaths.getProjectAssetPath(GLOB_PROJECT_ID, 'src/Main.enso'),
+      (route, request) => {
+        const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
+        if (!maybeId) return
+        const projectId = backend.ProjectId(maybeId)
+        called('getProjectContent', { projectId })
+        const content = readFileSync(join(__dirname, '../mock/enso-demo.main'), 'utf8')
 
-      return route.fulfill({
-        body: content,
-        contentType: 'text/plain',
-      })
-    })
+        return route.fulfill({
+          body: content,
+          contentType: 'text/plain',
+        })
+      },
+    )
 
     await get(
       remoteBackendPaths.getProjectAssetPath(GLOB_PROJECT_ID, '*'),
