@@ -132,11 +132,11 @@ type DB_Table_Implementation
             this_table.last_row . at -1
 
     first_column (this_table : Table & DB_Table) -> Column ! Index_Out_Of_Bounds =
-        Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "first_column" <|
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "first_column" <|
             this_table.at 0
 
     last_column (this_table : Table & DB_Table) -> Column ! Index_Out_Of_Bounds =
-        Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "last_column" <|
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "last_column" <|
             this_table.at -1
 
     column_count (this_table : Table & DB_Table) -> Integer = this_table.internal_columns.length
