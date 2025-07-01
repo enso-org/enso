@@ -1,12 +1,13 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import { PortId } from '@/providers/portInfo'
-import { newWidgetInstanceId, WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { WidgetEditHandler, WidgetInstanceId } from '@/providers/widgetRegistry/editHandler'
 import { useCurrentEdit } from '@/providers/widgetTree'
 import { CellPosition } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { nextTick, proxyRefs } from 'vue'
 import { EditedCell, useTableEditHandler } from '../editHandler'
 import { NEW_COLUMN_ID, ROW_INDEX_COLUMN_ID } from '../tableInputArgument'
+
 
 const colDefs = [
   { colId: ROW_INDEX_COLUMN_ID },
@@ -47,7 +48,7 @@ function fixture() {
 
   const composable = useTableEditHandler(gridApi, colDefs, (hooks) =>
     WidgetEditHandler.NewRaw(
-      newWidgetInstanceId,
+      () => 'widget-id' as WidgetInstanceId,
       () => 'port' as PortId,
       () => undefined,
       hooks,
