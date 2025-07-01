@@ -48,7 +48,7 @@ type DB_Column_Implementation
 
     to_js_object_implementation (this_column : Column & DB_Column) = this_column.to_sql.to_js_object
 
-    to_table (this_column : Column & DB_Column) -> Table & DB_Table =
+    to_table (this_column : Column & DB_Column) =
         DB_Table.new this_column.name this_column.connection [Internal_Column.from this_column] this_column.context
 
     info (this_column : Column & DB_Column) = this_column.to_table.column_info
