@@ -217,7 +217,7 @@ type Aggregate_With_Helper_Expressions
                     self.make_aggregate aggregate as [] base_table infer_return_type problem_builder
                 default_build_aggregate adapted_make_aggregate dialect base_table key_columns resolved_aggregates problem_builder
             False ->
-                name_generator = base_table.column_naming_helper.create_unique_name_strategy
+                name_generator = (base_table:Table).column_naming_helper.create_unique_name_strategy
                 name_generator.mark_used base_table.column_names
                 helper_columns = needed_expressions.map p->
                     name = name_generator.make_unique p.first
