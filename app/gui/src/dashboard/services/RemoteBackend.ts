@@ -1502,10 +1502,7 @@ export default class RemoteBackend extends Backend {
         await download.download({
           url: details.url,
           name: `${title}.enso-project`,
-          electronOptions: {
-            shouldUnpackProject,
-            path: targetPath,
-          },
+          electronOptions: { shouldUnpackProject, path: targetPath },
         })
         break
       }
@@ -1515,26 +1512,23 @@ export default class RemoteBackend extends Backend {
         await download.download({
           url: details.url,
           name: details.file.fileName ?? '',
-          electronOptions: {
-            path: targetPath,
-          },
+          electronOptions: { path: targetPath },
         })
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        const file = new File([JSON.stringify(value)], fileName, {
-          type: 'application/json+x-enso-data-link',
-        })
-        const fileObjectUrl = URL.createObjectURL(file)
+        const fileObjectUrl = URL.createObjectURL(
+          new File([JSON.stringify(value)], fileName, {
+            type: 'application/json+x-enso-data-link',
+          }),
+        )
         try {
           await download.download({
             url: fileObjectUrl,
             name: fileName,
-            electronOptions: {
-              path: targetPath,
-            },
+            electronOptions: { path: targetPath },
           })
         } finally {
           URL.revokeObjectURL(fileObjectUrl)
