@@ -83,6 +83,75 @@ type DB_Table
        The name of the SQL Dialect used by the table.
     dialect_name self -> Text = self.connection.dialect.name
 
+## GROUP Standard.Base.Selections
+       ICON select_row
+
+       Returns a new Table that will include at most `max_rows` rows from the
+       original Table.
+
+       Arguments:
+       - max_rows: The maximum number of rows to get from the table.
+
+       Since this Table is backed by an SQL database, the Table returned by the
+       `limit` method is deterministic only if the Table has been ordered (using
+       the `order_by` method).
+
+       Otherwise, no order is imposed, so the returned Table will include at most
+       `max_rows` rows, but there are no guarantees on which rows will be
+       selected. Moreover, even if the underlying table in the database did not
+       change, different sets of rows may be returned each time the returned
+       Table is materialized.
+
+       The limit is applied at the very end, so the new Table behaves exactly as
+       the old one, just limiting its results when being materialized.
+       Specifically, applying further filters will still apply to the whole
+       result set and the limit will be taken after applying these filters.
+
+       > Example
+         In the call below, assuming that the table of `t1` contains rows for
+         numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
+         result as one could expect if the limit was applied before the filters.
+
+             t1 = table.sort [..Name "A"] . limit 5
+             t2 = t1.filter 'A' (..Greater than=5)
+             t2.read
+    limit self max_rows:Integer=1000 -> DB_Table =
+        new_ctx = self.context.set_limit max_rows
+        self.updated_context new_ctx
+
+    ## PRIVATE
+       Returns the default ordering used for operations like `add_row_number` or
+       `take`.
+
+       If the table was recently ordered by operations like `order_by`, that
+       will determine the ordering. Otherwise, the primary key is used if
+       available.
+    default_ordering : Vector Order_Descriptor | Nothing
+    default_ordering self =
+        explicit_ordering = self.context.orders
+        if explicit_ordering.not_empty then explicit_ordering else
+            case self.get_primary_key of
+                Nothing -> Nothing
+                primary_key_column_names : Vector -> case self.context.from_spec of
+                    SQL_IR_From_Part.Table _ alias _ ->
+                        primary_key_column_names.map column_name->
+                            column_expression = SQL_IR_Expression.Column alias column_name
+                            Order_Descriptor.Value column_expression Sort_Direction.Ascending
+                    _ -> Nothing
+
+    ## PRIVATE
+       Returns the primary key defined for the table, if applicable.
+    get_primary_key : Vector Text | Nothing
+    get_primary_key self = case self.context.from_spec of
+        SQL_IR_From_Part.Table table_name _ _ ->
+            # The primary key may not be valid anymore after grouping!
+            is_primary_key_still_valid = self.context.groups.is_empty
+            if is_primary_key_still_valid.not then Nothing else
+                result = self.connection.dialect.fetch_primary_key self.connection table_name
+                result.catch Any _->Nothing
+        # If the key is a result of a join, union or a subquery then it has no notion of primary key.
+        _ -> Nothing
+
     ## PRIVATE
        Creates a query corresponding to this table.
     to_select_query : SQL_IR_Statement
@@ -184,39 +253,6 @@ type DB_Table
                         if trivial_counterpart.is_error then False else check_context_and_columns
             _ -> False
 
-    limit self max_rows:Integer=1000 -> Table & DB_Table =
-        new_ctx = self.context.set_limit max_rows
-        self.updated_context new_ctx
-
-    ## PRIVATE
-       Returns the default ordering used for operations like `add_row_number` or
-       `take`.
-
-       If the table was recently ordered by operations like `order_by`, that
-       will determine the ordering. Otherwise, the primary key is used if
-       available.
-    default_ordering : Vector Order_Descriptor | Nothing
-    default_ordering self =
-        explicit_ordering = self.context.orders
-        if explicit_ordering.not_empty then explicit_ordering else
-            case self.get_primary_key of
-                Nothing -> Nothing
-                primary_key_column_names : Vector -> case self.context.from_spec of
-                    SQL_IR_From_Part.Table _ alias _ ->
-                        primary_key_column_names.map column_name->
-                            column_expression = SQL_IR_Expression.Column alias column_name
-                            Order_Descriptor.Value column_expression Sort_Direction.Ascending
-                    _ -> Nothing
-
-    get_primary_key self = case self.context.from_spec of
-        SQL_IR_From_Part.Table table_name _ _ ->
-            # The primary key may not be valid anymore after grouping!
-            is_primary_key_still_valid = self.context.groups.is_empty
-            if is_primary_key_still_valid.not then Nothing else
-                result = self.connection.dialect.fetch_primary_key self.connection table_name
-                result.catch Any _->Nothing
-        # If the key is a result of a join, union or a subquery then it has no notion of primary key.
-        _ -> Nothing
 
 ## PRIVATE
 
@@ -246,6 +282,10 @@ make_table connection table_name columns ctx on_problems =
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
         problem_builder.attach_problems_before on_problems <|
             DB_Table.new table_name connection cols ctx
+
+## PRIVATE
+    The largest dataset that can be used to make a literal table, expressed in number of elements.
+MAX_LITERAL_ELEMENT_COUNT = 256
 
 ## PRIVATE
 make_literal_table connection column_vectors column_names alias =
@@ -282,9 +322,6 @@ make_literal_table connection column_vectors column_names alias =
 
             DB_Table.new alias connection internal_columns context
 
-## PRIVATE
-    The largest dataset that can be used to make a literal table, expressed in number of elements.
-MAX_LITERAL_ELEMENT_COUNT = 256
 
 ## PRIVATE
 # TODO probably not needed? because Table_Ref.from Table should be enough
