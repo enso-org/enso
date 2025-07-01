@@ -124,10 +124,15 @@ export function createQueryClient<TStorageValue = string>(
         if (invalidatesToAwait.length > 0) {
           return Promise.all(
             invalidatesToAwait.map((queryKey) =>
-              queryClient.invalidateQueries({
-                predicate: (query) => queryCore.matchQuery({ queryKey }, query),
-                refetchType,
-              }),
+              queryClient
+                .invalidateQueries(
+                  {
+                    predicate: (query) => queryCore.matchQuery({ queryKey }, query),
+                    refetchType,
+                  },
+                  { throwOnError: false },
+                )
+                .catch(() => {}),
             ),
           )
         }

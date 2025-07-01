@@ -10,14 +10,11 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { vueComponent } from '#/utilities/vue'
 import { useBackends, useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
-import { Fragment, type JSX, lazy, useRef, useState } from 'react'
+import { Fragment, type JSX, useState } from 'react'
 import { twJoin } from 'tailwind-merge'
-
-const ANIMATION_DURATION = 0.2
+import FilePathInput from './FilePathInput'
 
 /** Props for a {@link JSONSchemaInput}. */
 export interface JSONSchemaInputProps {
@@ -33,14 +30,6 @@ export interface JSONSchemaInputProps {
   readonly onChange: (value: NonNullable<unknown> | null) => void
 }
 
-const FileBrowserWidget = lazy(() =>
-  import('@/components/widgets/FileBrowserWidget.vue').then(({ default: vue }) =>
-    vueComponent(vue),
-  ),
-)
-/** TODO */
-export type FileBrowserWidgetProps = React.ComponentProps<typeof FileBrowserWidget>
-
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
@@ -52,13 +41,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,
   )
-  const [fileBrowserPath, setFileBrowserPath] = useState(() =>
-    typeof value === 'string' ? value : '',
-  )
-  const [isFileBrowserOpened, setFileBrowserOpened] = useState(false)
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const noChildBorder = dropdownTitle != null
-  const inputRef = useRef<HTMLInputElement>(null)
   const isSecret =
     'type' in schema &&
     schema.type === 'string' &&
@@ -70,7 +54,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const autocompleteItems = isSecret ? (secrets?.map((secret) => secret.path) ?? null) : null
   const isInvalid = !isAbsent && !getValidator(path)(value)
   const validationErrorClassName =
-    isInvalid && 'border border-danger focus:border-danger focus:outline-danger'
+    isInvalid ? 'border border-danger focus:border-danger focus:outline-danger' : undefined
   const errors =
     isInvalid && 'description' in schema && typeof schema.description === 'string' ?
       [<Text className="px-2 text-danger">{schema.description}</Text>]
@@ -128,73 +112,13 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             )
           } else if ('format' in schema && schema.format === 'enso-file') {
             children.push(
-              <div
-                className="flex flex-col"
-                style={{
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  '--background-color': 'var(--color-dashboard-background)',
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  '--file-browser-min-width': '280px',
-                }}
-              >
-                <FocusRing within={true}>
-                  <div
-                    style={{ position: 'relative' }}
-                    className="rounded-input focus-within:focus-ring-outset"
-                    onFocus={() => {
-                      setFileBrowserOpened(true)
-                    }}
-                    onBlur={() => {
-                      setFileBrowserOpened(false)
-                    }}
-                  >
-                    <Input
-                      ref={inputRef}
-                      type="text"
-                      readOnly={readOnly}
-                      value={fileBrowserPath}
-                      size={1}
-                      className={twMerge(
-                        roundedInputClassName(!isFileBrowserOpened, false),
-                        validationErrorClassName,
-                      )}
-                      placeholder={getText('enterText')}
-                      onChange={(event) => {
-                        const newValue: string = event.currentTarget.value
-                        setFileBrowserPath(newValue)
-                        onChange(newValue)
-                      }}
-                    />
-                    <AnimatePresence>
-                      {isFileBrowserOpened && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: ANIMATION_DURATION }}
-                          onMouseDown={(e: MouseEvent) => {
-                            // Prevent focus loss when clicking inside the file browser
-                            e.preventDefault()
-                            inputRef.current?.focus()
-                          }}
-                        >
-                          <FileBrowserWidget
-                            type="file"
-                            writeMode={true}
-                            choosenPath={fileBrowserPath}
-                            onPathAccepted={(p: string) => {
-                              setFileBrowserPath(p)
-                              onChange(p)
-                            }}
-                            fileTypes={[]}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </FocusRing>
-                {...errors}
-              </div>,
+              <FilePathInput
+                readOnly={readOnly}
+                value={typeof value === 'string' ? value : ''}
+                onChange={onChange}
+                validationErrorClassName={validationErrorClassName || undefined}
+                errors={errors}
+              />,
             )
           } else {
             children.push(
