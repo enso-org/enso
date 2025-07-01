@@ -453,7 +453,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.RecomputeContextRequest(
                   `contextId`,
-                  Some(InvalidatedExpressions.All()),
+                  Some(InvalidatedExpressions.All),
                   None,
                   Seq()
                 )

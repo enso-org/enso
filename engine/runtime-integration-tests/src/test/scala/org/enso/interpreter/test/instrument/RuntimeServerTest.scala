@@ -6352,7 +6352,7 @@ class RuntimeServerTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(InvalidatedExpressions.All()),
+          Some(InvalidatedExpressions.All),
           None,
           Seq()
         )

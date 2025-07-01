@@ -399,7 +399,7 @@ final class ContextRegistry(
   ): ApiInvalidatedExpressions =
     expressions match {
       case InvalidatedExpressions.All =>
-        ApiInvalidatedExpressions.All()
+        ApiInvalidatedExpressions.All
       case InvalidatedExpressions.Expressions(es) =>
         ApiInvalidatedExpressions.Expressions(es)
     }

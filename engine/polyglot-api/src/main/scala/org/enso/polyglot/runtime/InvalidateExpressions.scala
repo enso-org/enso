@@ -11,7 +11,7 @@ object InvalidatedExpressions {
   /** An object representing invalidation of all expressions.
     */
   @named("all")
-  case class All() extends InvalidatedExpressions
+  case object All extends InvalidatedExpressions
 
   /** An object representing invalidation of a list of expressions.
     *

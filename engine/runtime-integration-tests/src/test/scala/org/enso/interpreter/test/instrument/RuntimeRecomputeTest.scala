@@ -197,7 +197,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(InvalidatedExpressions.All()),
+          Some(InvalidatedExpressions.All),
           None,
           Seq()
         )
@@ -327,7 +327,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(InvalidatedExpressions.All()),
+          Some(InvalidatedExpressions.All),
           Some(ExecutionEnvironment.Live()),
           Seq()
         )

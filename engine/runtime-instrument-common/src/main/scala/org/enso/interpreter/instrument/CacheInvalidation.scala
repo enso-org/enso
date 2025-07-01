@@ -85,7 +85,7 @@ object CacheInvalidation {
       */
     def apply(expressions: InvalidatedExpressions): Command =
       expressions match {
-        case InvalidatedExpressions.All() =>
+        case InvalidatedExpressions.All =>
           InvalidateAll
         case InvalidatedExpressions.Expressions(ids) =>
           InvalidateKeys(ids)
