@@ -26,6 +26,7 @@ export interface Action {
   action?: (ctx: ActionContext | undefined) => void
   shortcut?: BindingInfo
   icon?: ToValue<Icon>
+  icon_toggled?: ToValue<Icon>
   description?: ToValue<string>
   toggled?: Ref<boolean> | (() => boolean)
 }
@@ -92,6 +93,7 @@ const displayableActions = {
   },
   'component.toggleVisualization': {
     icon: 'eye',
+    icon_toggled: 'eye_crossed',
     description: 'Show/Hide visualization',
     shortcut: graphBindings.bindings['graph.toggleVisualization'],
   },
@@ -267,7 +269,7 @@ const displayableActions = {
   // === Visualizations ===
 
   'visualization.hide': {
-    icon: 'eye',
+    icon: 'eye_crossed',
     description: 'Hide visualization',
   },
   'visualization.show': {

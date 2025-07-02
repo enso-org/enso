@@ -39,12 +39,4 @@ const emit = defineEmits<{ activate: [] }>()
     opacity: 0.3;
   }
 }
-
-.toggledOff svg {
-  opacity: 0.4;
-}
-
-:is(.toggledOff, .toggledOn):active svg {
-  opacity: 0.7;
-}
 </style>

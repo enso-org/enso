@@ -14,13 +14,21 @@ const descriptionWithShortcut = computed(() =>
     `${toValue(action.value.description)} (${toValue(action.value.shortcut?.humanReadable)})`
   : toValue(action.value.description),
 )
+
+const iconUsed = computed(() => {
+  const icon = toValue(action.value.icon)
+  if (toValue(action.value.toggled)) {
+    return toValue(action.value.icon_toggled) ?? icon
+  }
+  return icon
+})
 </script>
 
 <template>
   <SvgButton
     v-if="toValue(action.available)"
     :modelValue="toValue(action.toggled)"
-    :name="toValue(action.icon)"
+    :name="iconUsed"
     :disabled="!toValue(action.enabled)"
     :title="descriptionWithShortcut"
     :label="label"
