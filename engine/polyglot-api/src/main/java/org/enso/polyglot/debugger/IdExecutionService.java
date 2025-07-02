@@ -70,6 +70,15 @@ public interface IdExecutionService {
      */
     Object onFunctionReturn(Info info);
 
+    /**
+     * Returns a node-specific execution environment, if any. Operation is **not** idempotent as one
+     * can set one-off execution environments.
+     *
+     * @param info with identification of the node and {@link Info#getResult()} info about function
+     *     call
+     * @return non-{$code null} value if no node-specific execution environment is present, {@code
+     *     null} otherwise.
+     */
     Object getExecutionEnvironment(Info info);
   }
 

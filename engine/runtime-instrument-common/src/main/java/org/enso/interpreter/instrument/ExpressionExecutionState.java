@@ -26,6 +26,6 @@ public final class ExpressionExecutionState {
   }
 
   public ExecutionEnvironment getExecutionEnvironment(UUID expressionId) {
-    return expressionConfigs.get(expressionId);
+    return expressionConfigs.remove(expressionId);
   }
 }

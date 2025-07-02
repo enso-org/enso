@@ -43,4 +43,9 @@ public class ExecutionEnvironment {
         throw new IllegalArgumentException("Unsupported Execution Environment `" + name + "`");
     }
   }
+
+  @Override
+  public String toString() {
+    return "ExecutionEnvironment[name=" + name + ", permissions=" + permissions + "]";
+  }
 }

@@ -21,6 +21,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -68,6 +70,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final Timer timer;
 
     private final EvalNode evalNode = EvalNode.build();
+    private final Map<UUID, ExecutionEnvironment> nodeExecEnvironments;
 
     /**
      * Creates a new event node factory.
@@ -80,6 +83,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       this.entryCallTarget = entryCallTarget;
       this.callbacks = callbacks;
       this.timer = timer;
+      this.nodeExecEnvironments = new HashMap<>();
     }
 
     @Override
@@ -180,7 +184,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private final EventContext context;
       private long nanoTimeElapsed = 0;
-      private ExecutionEnvironment originalExecutionEnvironment = null;
 
       /**
        * Creates a new event node.
@@ -251,13 +254,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           callbacks.updateCachedResult(info);
-          resetExecutionEnvironment();
+          resetExecutionEnvironment(info.getId());
 
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
-        } else if (node instanceof ExpressionNode) {
-          resetExecutionEnvironment();
+        } else if (node instanceof ExpressionNode n) {
+          resetExecutionEnvironment(n.getId());
         }
       }
 
@@ -321,17 +324,17 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       private void setExecutionEnvironment(IdExecutionService.Info info) {
         ExecutionEnvironment nodeEnvironment =
             (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
-        if (nodeEnvironment != null && originalExecutionEnvironment == null) {
+        if (nodeEnvironment != null && !nodeExecEnvironments.containsKey(info.getId())) {
           EnsoContext context = EnsoContext.get(this);
-          originalExecutionEnvironment = context.getGlobalExecutionEnvironment();
+          nodeExecEnvironments.put(info.getId(), context.getGlobalExecutionEnvironment());
           context.setExecutionEnvironment(nodeEnvironment);
         }
       }
 
-      private void resetExecutionEnvironment() {
-        if (originalExecutionEnvironment != null) {
-          EnsoContext.get(this).setExecutionEnvironment(originalExecutionEnvironment);
-          originalExecutionEnvironment = null;
+      private void resetExecutionEnvironment(UUID id) {
+        if (nodeExecEnvironments.containsKey(id)) {
+          var env = nodeExecEnvironments.remove(id);
+          EnsoContext.get(this).setExecutionEnvironment(env);
         }
       }
     }
