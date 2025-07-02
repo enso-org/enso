@@ -64,8 +64,6 @@ export const CREATE_USER_GROUP_PATH = 'usergroups'
 export const LIST_USER_GROUPS_PATH = 'usergroups'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
 export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout/sessions'
-/** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
-const GET_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
 export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
@@ -213,10 +211,6 @@ export function deleteTagPath(tagId: backend.TagId) {
 /** Relative HTTP path to the "delete user group" endpoint of the Cloud backend API. */
 export function deleteUserGroupPath(groupId: backend.UserGroupId) {
   return `usergroups/${groupId}`
-}
-/** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
-export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
-  return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
 }
 /** Relative HTTP path to the "get oauth callback" endpoint of the Cloud backend API. */
 export function getOauthCallbackPath(service: backend.CredentialInput['type']) {

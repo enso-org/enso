@@ -1408,22 +1408,6 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Gets the status of a payment checkout session.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async getCheckoutSession(
-    sessionId: backend.CheckoutSessionId,
-  ): Promise<backend.CheckoutSessionStatus> {
-    const path = remoteBackendPaths.getCheckoutSessionPath(sessionId)
-    const response = await this.get<backend.CheckoutSessionStatus>(path)
-    if (!response.ok) {
-      return await this.throw(response, 'getCheckoutSessionBackendError', sessionId)
-    } else {
-      return await response.json()
-    }
-  }
-
   /** List events in the organization's audit log. */
   override async getLogEvents(
     params: backend.GetLogEventsRequestParams,
