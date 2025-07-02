@@ -123,7 +123,6 @@ public class ExternalLibraryCredentialHelper {
     }
 
     ObjectMapper jsonMapper = new ObjectMapper();
-    System.out.println("AAAAA |" + response.body() + "|");
     JsonNode json;
     try {
       json = jsonMapper.readTree(response.body());
