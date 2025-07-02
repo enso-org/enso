@@ -13,7 +13,9 @@ type DisplayedAdditionalTypes =
 
 const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
   if (props.selfArg?.type === 'known') {
-    const additionalTypes = props.selfArg.typeInfo?.hiddenTypes.flatMap((type) =>
+    const typeInfo = props.selfArg.typeInfo
+    const combinedTypes = [...typeInfo?.visibleTypes ?? [], ...typeInfo?.hiddenTypes ?? []]
+    const additionalTypes = combinedTypes.slice(1).flatMap((type) =>
       type.path ? qnLastSegment(type.path) : [],
     )
     if (additionalTypes.length === 0) return null
@@ -40,13 +42,12 @@ const label = computed(() => {
   <div v-if="label" data-testid="component-editor-label" class="no-wrap">
     <span v-if="additionalTypes?.kind === 'single'" v-text="`${label} & ${additionalTypes.type}`" />
     <template v-else-if="additionalTypes?.kind === 'multiple'">
-      <span v-text="`${label} & `" />
       <TooltipTrigger>
         <template #default="triggerProps">
           <span
             class="additionalTypesPlaceholder"
             v-bind="triggerProps"
-            v-text="`${additionalTypes.types.length} more`"
+            v-text="`${label} & ${additionalTypes.types.length} more`"
           />
         </template>
         <template #tooltip>
@@ -70,5 +71,10 @@ const label = computed(() => {
 
 .no-wrap {
   white-space: nowrap;
+  position:absolute;
+  top: -20px;
+  left: 40px;
+  opacity: 0.6;
+  font-style: italic;
 }
 </style>

@@ -78,7 +78,6 @@ const rootStyle = computed(() => {
     </div>
     <template v-if="props.mode.mode === 'componentBrowsing'">
       <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
-      <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
     </template>
     <CodeMirrorRoot ref="editorRoot" />
   </div>
@@ -112,9 +111,5 @@ const rootStyle = computed(() => {
     background-color: var(--color-edge-from-node);
     color: white;
   }
-}
-
-.selfArgInfoArrow {
-  margin: 0 -4px;
 }
 </style>
