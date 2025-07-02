@@ -148,7 +148,7 @@ const VARIANTS = {
   align-items: center;
   gap: 12px;
   transition: background-color 0.3s;
-  opacity: 0.5;
+  opacity: 0.2;
 
   &.enabled {
     opacity: 1;
@@ -157,6 +157,7 @@ const VARIANTS = {
     &:active {
       background-color: var(--tab-highlight);
     }
+
   }
 }
 

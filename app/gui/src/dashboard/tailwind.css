@@ -522,3 +522,9 @@ html.disable-animations * {
 .Toastify__toast {
   @apply rounded-2xl;
 }
+
+.hover-bg {
+  &:hover {
+    background-color: var(--color-background-hex);
+  }
+}

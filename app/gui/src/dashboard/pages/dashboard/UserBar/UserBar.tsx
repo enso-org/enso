@@ -179,12 +179,12 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
           if ('menu' in item) {
             return (
               <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
-                <Button href={item.url} {...getSafetyProps(item.url)}>
+                <Button href={item.url} {...getSafetyProps(item.url)} className="hover-bg">
                   {getText(item.name)}
                 </Button>
 
                 <Menu.Trigger>
-                  <Button icon={ArrowDownIcon} aria-label={getText('more')} />
+                  <Button icon={ArrowDownIcon} aria-label={getText('more')} className="hover-bg" />
 
                   <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
@@ -201,32 +201,14 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
               </Button.GroupJoin>
             )
           }
-        } else {
-          return (
-            <Menu.Trigger key={item.name}>
-              <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
-
-              <Menu placement="bottom right">
-                {item.menu.map((menuItem) => (
-                  <Menu.Item
-                    key={menuItem.name}
-                    href={menuItem.url}
-                    {...getSafetyProps(menuItem.url)}
-                  >
-                    {getText(menuItem.name)}
-                  </Menu.Item>
-                ))}
-              </Menu>
-            </Menu.Trigger>
-          )
-        }
 
         return (
-          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
+          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)} className="hover-bg">
             {getText(item.name)}
           </Button>
         )
-      })}
+      }
+  })}
     </Button.Group>
   )
 }
