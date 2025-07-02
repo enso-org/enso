@@ -79,11 +79,11 @@ generate_subquery (table : Table & DB_Table) row_column_name range =
         _ ->
             _filter_on_predicate_column table ((((table.at row_column_name - range.start) % range.step) == 0) && (table.at row_column_name < range.end))
 
-_filter_on_predicate_column (this_table : Table & DB_Table) predicate_column =
+private _filter_on_predicate_column (this_table : Table & DB_Table) predicate_column =
     _with_temporary_column this_table predicate_column name-> table->
         table.filter name Filter_Condition.Is_True
 
-_with_temporary_column (this_table : Table & DB_Table) new_column:Column f:(Text -> Table & DB_Table -> Table & DB_Table) -> Table & DB_Table =
+private _with_temporary_column (this_table : Table & DB_Table) new_column:Column f:(Text -> Table & DB_Table -> Table & DB_Table) -> Table & DB_Table =
     new_column_name = this_table.make_temp_column_name
     with_new_column = this_table.set new_column new_column_name set_mode=Set_Mode.Add
     modified_table = f new_column_name with_new_column
