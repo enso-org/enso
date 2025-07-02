@@ -107,7 +107,6 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupBackendError: [userGroupName: string]
   readonly listVersionsBackendError: [versionType: string]
   readonly createCheckoutSessionBackendError: [plan: string]
-  readonly getCheckoutSessionBackendError: [checkoutSessionId: string]
   readonly getDefaultVersionBackendError: [versionType: string]
   readonly logEventBackendError: [eventType: string]
 

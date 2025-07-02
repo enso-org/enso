@@ -12,12 +12,12 @@ import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 import * as actions from '.'
 
-import type { FeatureFlags } from '#/providers/FeatureFlagsProvider'
 import {
   organizationIdToDirectoryId,
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
 } from '#/services/RemoteBackend'
+import type { FeatureFlags } from '$/providers/featureFlags'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -55,8 +55,6 @@ const GLOB_DIRECTORY_ID = '*' as backend.DirectoryId
 const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
 const GLOB_TAG_ID = backend.TagId('*')
-/** A checkout session ID that is a path glob. */
-const GLOB_CHECKOUT_SESSION_ID = backend.CheckoutSessionId('*')
 const BASE_URL = 'https://mock/'
 const MOCK_S3_BUCKET_URL = 'https://mock-s3-bucket.com/'
 
@@ -104,10 +102,6 @@ const INITIAL_CALLS_OBJECT = {
   uploadFileEnd: array<backend.UploadFileEndRequestBody>(),
   createSecret: array<backend.CreateSecretRequestBody>(),
   createCheckoutSession: array<backend.CreateCheckoutSessionRequestBody>(),
-  getCheckoutSession: array<{
-    body: backend.CreateCheckoutSessionRequestBody
-    status: backend.CheckoutSessionStatus
-  }>(),
   updateAsset: array<{ assetId: backend.AssetId } & backend.UpdateAssetRequestBody>(),
   associateTag: array<{ assetId: backend.AssetId; labels: readonly backend.LabelName[] }>(),
   updateDirectory: array<
@@ -209,9 +203,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
-  let totalSeats = 1
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let subscriptionDuration = 0
+  const totalSeats = 1
 
   let isOnline = true
   let currentUser: backend.User | null = defaultUser
@@ -235,14 +227,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       organizationId: currentOrganization.id,
     },
   ]
-
-  const checkoutSessionsMap = new Map<
-    backend.CheckoutSessionId,
-    {
-      readonly body: backend.CreateCheckoutSessionRequestBody
-      readonly status: backend.CheckoutSessionStatus
-    }
-  >()
 
   usersMap.set(defaultUser.userId, defaultUser)
 
@@ -549,22 +533,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
-  const createCheckoutSession = (
-    body: backend.CreateCheckoutSessionRequestBody,
-    rest: Partial<backend.CheckoutSessionStatus> = {},
-  ) => {
-    const id = backend.CheckoutSessionId(`checkoutsession-${uniqueString.uniqueString()}`)
-    const status = rest.status ?? 'trialing'
-    const paymentStatus = status === 'trialing' ? 'no_payment_needed' : 'unpaid'
-    const checkoutSessionStatus = {
-      status,
-      paymentStatus,
-      ...rest,
-    } satisfies backend.CheckoutSessionStatus
-    checkoutSessionsMap.set(id, { body, status: checkoutSessionStatus })
+  const createCheckoutSession = (_body: backend.CreateCheckoutSessionRequestBody) => {
     return {
-      id,
-      clientSecret: '',
+      url: backend.HttpsUrl('http://stripe.com/checkout/session'),
     } satisfies backend.CheckoutSession
   }
 
@@ -998,28 +969,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       called('createCheckoutSession', body)
       return createCheckoutSession(body)
     })
-    await get(
-      remoteBackendPaths.getCheckoutSessionPath(GLOB_CHECKOUT_SESSION_ID) + '*',
-      (_route, request) => {
-        const checkoutSessionId = request.url().match(/[/]payments[/]subscriptions[/]([^/?]+)/)?.[1]
-        if (checkoutSessionId == null) {
-          throw new Error('GetCheckoutSession: Missing checkout session ID in path')
-        } else {
-          const result = checkoutSessionsMap.get(backend.CheckoutSessionId(checkoutSessionId))
-          if (result) {
-            called('getCheckoutSession', result)
-            if (currentUser) {
-              object.unsafeMutable(currentUser).plan = result.body.plan
-            }
-            totalSeats = result.body.quantity
-            subscriptionDuration = result.body.interval
-            return result.status
-          } else {
-            throw new Error('GetCheckoutSession: Unknown checkout session ID')
-          }
-        }
-      },
-    )
 
     await patch(remoteBackendPaths.updateAssetPath(GLOB_ASSET_ID), (route, request) => {
       const maybeId = request.url().match(/[/]assets[/]([^?]+)/)?.[1]

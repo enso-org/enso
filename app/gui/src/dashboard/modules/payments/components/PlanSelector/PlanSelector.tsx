@@ -65,8 +65,7 @@ export function PlanSelector(props: PlanSelectorProps) {
     variants = PLAN_SELECTOR_STYLES,
   } = props
 
-  const hasTrial = plan === Plan.free
-  console.log(':)', plan, userPlan)
+  const hasTrial = userPlan === Plan.free
   const { getText } = useText()
   const { remoteBackend: backend } = useBackends()
   const { refetchSession } = useAuth()
@@ -75,19 +74,12 @@ export function PlanSelector(props: PlanSelectorProps) {
   const queryClient = useQueryClient()
   const onCompleteMutation = useMutation({
     mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
-      const { id } = await backend.createCheckoutSession({
+      const { url } = await backend.createCheckoutSession({
         price: mutationData.plan,
         quantity: mutationData.seats,
         interval: mutationData.period,
       })
-
-      return backend.getCheckoutSession(id).then((data) => {
-        if (['trialing', 'active'].includes(data.status)) {
-          return data
-        } else {
-          throw new Error('The payment was not successful. Please try again or contact support.')
-        }
-      })
+      window.open(url, '_blank')?.focus()
     },
     onError: (error) => onSubscribeError?.(error),
   })

@@ -60,7 +60,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       return (
         <Button
           variant="link"
-          href="https://enso.org/pricing"
+          href="https://ensoanalytics.com/pricing"
           target="_blank"
           icon={OpenInNewTabIcon}
           iconPosition="end"
@@ -85,7 +85,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       return (
         <Button
           variant="link"
-          href="https://enso.org/pricing"
+          href="https://ensoanalytics.com/pricing"
           target="_blank"
           icon={OpenInNewTabIcon}
           iconPosition="end"
@@ -111,7 +111,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       return (
         <Button
           variant="link"
-          href="https://enso.org/pricing"
+          href="https://ensoanalytics.com/pricing"
           target="_blank"
           icon={OpenInNewTabIcon}
           iconPosition="end"

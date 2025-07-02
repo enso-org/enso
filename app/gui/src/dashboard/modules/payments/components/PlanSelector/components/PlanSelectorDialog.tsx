@@ -95,37 +95,31 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY })
 
   return (
-    <Dialog size="xxxlarge" closeButton="floating" aria-label={title}>
-      <div className="mx-auto max-w-screen-sm pb-4">
-        <Text.Heading
-          level="2"
-          variant="subtitle"
-          weight="medium"
-          disableLineHeightCompensation
-          className="-mt-0.5"
-        >
-          {title}
+    <Dialog size="xxlarge" closeButton="floating" aria-label={title} padding="large">
+      <Text.Heading level="2" variant="subtitle" weight="medium" disableLineHeightCompensation>
+        {title}
+      </Text.Heading>
+
+      <Text variant="h1" weight="medium" disableLineHeightCompensation className="mb-2 block">
+        {isTrialing ?
+          getText('tryFree', TRIAL_DURATION_DAYS) +
+          getText('priceTemplate', formatter.format(price), getText('billedAnnually'))
+        : getText('priceTemplate', formatter.format(price), getText('billedAnnually'))}
+      </Text>
+
+      <div>
+        <Text.Heading level="3" variant="body" weight="semibold" className="mb-1">
+          {getText('upgradeCTA', planName)}
         </Text.Heading>
 
-        <Text variant="h1" weight="medium" disableLineHeightCompensation className="mb-2 block">
-          {isTrialing ?
-            getText('tryFree', TRIAL_DURATION_DAYS) +
-            getText('priceTemplate', formatter.format(price), getText('billedAnnually'))
-          : getText('priceTemplate', formatter.format(price), getText('billedAnnually'))}
-        </Text>
+        <PlanFeatures features={features} />
+      </div>
 
-        <div>
-          <Text.Heading level="3" variant="body" weight="semibold" className="mb-1">
-            {getText('upgradeCTA', planName)}
-          </Text.Heading>
+      {plan !== Plan.solo && <Separator orientation="horizontal" className="my-4" />}
 
-          <PlanFeatures features={features} />
-        </div>
-
-        {plan !== Plan.solo && <Separator orientation="horizontal" className="my-4" />}
-
-        <ErrorBoundary>
-          <Suspense>
+      <ErrorBoundary>
+        <Suspense>
+          <Form form={form} className="mt-1">
             <div className="grid grid-cols-[1fr]">
               <div className="flex flex-col gap-4">
                 <div>
@@ -133,16 +127,18 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                     <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
                   )}
 
-                  <Form form={form} className="mt-1">
-                    <Selector
-                      form={form}
-                      name="period"
-                      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                      items={[12, 36]}
-                      label={getText('billingPeriod')}
-                    >
-                      {(item) => billingPeriodToString(getText, item)}
-                    </Selector>
+                  <div className="mt-1">
+                    {plan === Plan.solo && (
+                      <Selector
+                        form={form}
+                        name="period"
+                        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                        items={[1, 12]}
+                        label={getText('billingPeriod')}
+                      >
+                        {(item) => billingPeriodToString(getText, item)}
+                      </Selector>
+                    )}
 
                     <Input
                       isRequired
@@ -176,23 +172,25 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                     >
                       <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
                     </Checkbox.Group>
-                  </Form>
+                  </div>
                 </div>
               </div>
 
-              <div className="my-4">
-                <Summary
-                  plan={plan}
-                  seats={seats}
-                  period={period}
-                  formatter={formatter}
-                  isInvalid={form.formState.errors.seats != null}
-                />
-              </div>
+              <Summary
+                plan={plan}
+                seats={seats}
+                period={period}
+                formatter={formatter}
+                isInvalid={form.formState.errors.seats != null}
+              />
             </div>
-          </Suspense>
-        </ErrorBoundary>
-      </div>
+
+            <Form.Submit>
+              {isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
+            </Form.Submit>
+          </Form>
+        </Suspense>
+      </ErrorBoundary>
     </Dialog>
   )
 }
@@ -223,7 +221,7 @@ function Summary(props: SummaryProps) {
         title={getText('asyncHookError')}
         resetErrorBoundary={() => refetch()}
       />
-    : <div className="flex flex-col">
+    : <div className="mt-4 flex flex-col">
         <Text variant="subtitle">{getText('summary')}</Text>
 
         <div
@@ -251,7 +249,7 @@ function Summary(props: SummaryProps) {
 
             {data && (
               <Text className="table-cell" variant="body">
-                {getText('billingPeriodOneYear')}
+                {billingPeriodToString(getText, period)}
               </Text>
             )}
           </div>
