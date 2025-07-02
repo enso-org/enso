@@ -9,7 +9,29 @@ import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-pers
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
 import { toRaw } from 'vue'
+import { ConditionVariable } from './utilities/ConditionVariable'
 import { cloneDeepUnref } from './utilities/data/reactive'
+
+/** An enumeration of all mutation pool ids. */
+export interface MutationPools {
+  // Required otherwise in this module there are no keys, and `pools[poolMeta.id]` below becomes
+  // `never`.
+  readonly [DUMMY_MUTATION_POOL_SYMBOL]: true
+}
+declare const DUMMY_MUTATION_POOL_SYMBOL: unique symbol
+
+/**
+ * Declaration merge into `MutationPools` to add a new mutation pool id:
+ *
+ * ```ts
+ * declare module 'enso-common/src/queryClient' {
+ *   interface MutationPools {
+ *     myNewPoolId: true
+ *   }
+ * }
+ * ```
+ */
+export type MutationPoolId = keyof MutationPools
 
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
@@ -42,6 +64,10 @@ declare module '@tanstack/query-core' {
        */
       readonly awaitInvalidates?: queryCore.QueryKey[] | boolean
       readonly refetchType?: queryCore.InvalidateQueryFilters['refetchType']
+      readonly pool?: {
+        id: MutationPoolId
+        parallelism: number
+      }
     }
 
     readonly queryMeta: {
@@ -100,7 +126,7 @@ export function createQueryClient<TStorageValue = string>(
       // fallback to the local cache only if the user is offline
       maxAge: DEFAULT_QUERY_PERSIST_TIME_MS,
       buster: DEFAULT_BUSTER,
-      filters: { predicate: (query) => query.meta?.persist !== false },
+      filters: { predicate: (query) => query.meta?.persist ?? true },
       prefix: 'enso:query-persist:',
       ...(persisterStorage.serialize != null ? { serialize: persisterStorage.serialize } : {}),
       ...(persisterStorage.deserialize != null ?
@@ -108,6 +134,8 @@ export function createQueryClient<TStorageValue = string>(
       : {}),
     })
   }
+
+  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: ConditionVariable }>> = {}
 
   const invalidationKeys = new WeakMap<MutationKey, InvalidationKeys>()
 
@@ -119,16 +147,34 @@ export function createQueryClient<TStorageValue = string>(
       },
     }),
     mutationCache: new queryCore.MutationCache({
-      onMutate: (_variables, mutation) => {
+      onMutate: async (_variables, mutation) => {
         if (invalidationKeys.has(mutationKey(mutation))) {
           // A `Mutation` may begin execution again, for example, if it is re-attempted from an
           // `onError` callback. In this case, we still use the values of the invalidation keys as
           // of the time the mutation was first initiated, which is when any necessary state was
           // captured in its `variables`.
+        } else {
+          const keys = evaluateInvalidationKeys(mutation)
+          if (keys) invalidationKeys.set(mutationKey(mutation), keys)
+        }
+
+        const poolMeta = mutation.meta?.pool
+        if (!poolMeta) {
           return
         }
-        const keys = evaluateInvalidationKeys(mutation)
-        if (keys) invalidationKeys.set(mutationKey(mutation), keys)
+        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new ConditionVariable() })
+        if (poolInfo.usedLanes >= poolMeta.parallelism) {
+          await poolInfo.queue.wait()
+        }
+        poolInfo.usedLanes += 1
+      },
+      onSettled: async (_data, _error, _variables, _context, mutation) => {
+        const poolMeta = mutation.meta?.pool
+        if (poolMeta) {
+          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new ConditionVariable() })
+          poolInfo.usedLanes -= 1
+          while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.notifyOne()));
+        }
       },
       onSuccess: (_data, _variables, _context, mutation) => {
         const keys = invalidationKeys.get(mutationKey(mutation))

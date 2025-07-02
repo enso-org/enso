@@ -1,21 +1,21 @@
 package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
-
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
+import org.enso.compiler.refactoring.IRUtils
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   DataflowAnalysis
 }
-import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
   EvaluationResult,
-  ModuleNotFound
+  ModuleNotFound,
+  RequiresCompilation
 }
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
@@ -29,8 +29,8 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-
 import scala.annotation.unused
+import scala.concurrent.ExecutionException
 import scala.util.Try
 
 /** A job that upserts a visualization.
@@ -62,71 +62,135 @@ class UpsertVisualizationJob(
     }
 
   /** @inheritdoc */
-  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
-    ctx.locking.withContextLock(
+  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] =
+    ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(config.executionContextId),
-      this.getClass,
+      classOf[UpsertVisualizationJob],
       () => {
-        val maybeCallable =
-          UpsertVisualizationJob.evaluateVisualizationExpression(
-            config.visualizationModule,
-            config.expression
-          )
-
-        maybeCallable match {
-          case Left(ModuleNotFound(moduleName)) =>
-            ctx.endpoint.sendToClient(
-              Api.Response(Api.ModuleNotFound(moduleName))
-            )
-            None
-
-          case Left(EvaluationFailed(message, result)) =>
-            replyWithExpressionFailedError(
-              config.executionContextId,
-              visualizationId,
-              expressionId,
-              message,
-              result
-            )
-            None
-
-          case Right(EvaluationResult(module, callable, arguments)) =>
-            val visualization =
-              UpsertVisualizationJob.updateAttachedVisualization(
-                visualizationId,
-                expressionId,
-                module,
-                config,
-                callable,
-                arguments
+        val (needsRetryWithWriteLock, maybeResult) =
+          ctx.locking.withReadCompilationLock(
+            classOf[UpsertVisualizationJob],
+            () =>
+              evaluateAndExecuteVisualization(
+                hasWriteLock = false
               )
-            val stack =
-              ctx.contextManager.getStack(config.executionContextId)
-            val runtimeCache = stack.headOption
-              .flatMap(frame => Option(frame.cache))
-            val cachedValue = runtimeCache
-              .flatMap(c => Option(c.get(expressionId)))
-            UpsertVisualizationJob.requireVisualizationSynchronization(
-              stack,
-              expressionId
-            )
-            cachedValue match {
-              case Some(value) =>
-                ProgramExecutionSupport.executeAndSendVisualizationUpdate(
-                  config.executionContextId,
-                  runtimeCache.getOrElse(new RuntimeCache),
-                  stack.headOption.get.syncState,
-                  visualization,
-                  expressionId,
-                  value
-                )
-                None
-              case None =>
-                Some(Executable(config.executionContextId, stack))
-            }
+          )
+        if (needsRetryWithWriteLock) {
+          UpsertVisualizationJob.logger.trace(
+            "Retrying visualization {} evaluation with write lock to compile necessary modules",
+            visualizationId
+          )
+          ctx.locking.withWriteCompilationLock(
+            classOf[UpsertVisualizationJob],
+            () =>
+              evaluateAndExecuteVisualization(
+                hasWriteLock = true
+              )._2
+          )
+        } else {
+          maybeResult
         }
       }
     )
+
+  /** Attempts to evaluate the visualization expression associated with this job.
+    *
+    * @param value computed value to be visualized
+    * @param runtimeCache an instance of runtime cache associated with this frame
+    * @param stack current stackframe
+    * @param hasWriteLock true if necessary module loading/compilation can be performed, if needed. False otherwise
+    * @param ctx an instance of current `RuntimeContext`
+    * @return true if failed due to required compilation and lack of required lock, false if successful
+    */
+  private def evaluateAndExecuteVisualization(
+    hasWriteLock: Boolean
+  )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
+    UpsertVisualizationJob.logger.trace(
+      "Evaluating expression {} in observer",
+      expressionId
+    )
+    val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
+      config.visualizationModule,
+      config.expression,
+      hasWriteLock
+    )
+
+    maybeCallable match {
+      case Left(ModuleNotFound(moduleName)) =>
+        UpsertVisualizationJob.logger.trace(
+          "Evaluation of visualization {} in observer for expression {} failed. Module not found",
+          visualizationId,
+          expressionId
+        )
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ModuleNotFound(moduleName))
+        )
+        (false, None)
+      case Left(EvaluationFailed(message, result)) =>
+        UpsertVisualizationJob.logger.trace(
+          "Evaluation of visualization {} in observer for expression {} failed.",
+          visualizationId,
+          expressionId
+        )
+        replyWithExpressionFailedError(
+          config.executionContextId,
+          visualizationId,
+          expressionId,
+          message,
+          result
+        )
+        (false, None)
+      case Left(RequiresCompilation) =>
+        // todo reply with expr failed
+        (!hasWriteLock, None)
+      case Right(evaluatedExpression) =>
+        (false, executeVisualization(evaluatedExpression))
+    }
+  }
+
+  private def executeVisualization(
+    evaluatedVisualization: EvaluationResult
+  )(implicit ctx: RuntimeContext): Option[Executable] = {
+    val EvaluationResult(module, callable, arguments) = evaluatedVisualization
+    UpsertVisualizationJob.logger.trace(
+      "Executing visalization {} for expression {}",
+      visualizationId,
+      expressionId
+    )
+
+    val visualization =
+      UpsertVisualizationJob.updateAttachedVisualization(
+        visualizationId,
+        expressionId,
+        module,
+        config,
+        callable,
+        arguments
+      )
+    val stack =
+      ctx.contextManager.getStack(config.executionContextId)
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
+    val cachedValue = runtimeCache
+      .flatMap(c => Option(c.get(expressionId)))
+    UpsertVisualizationJob.requireVisualizationSynchronization(
+      stack,
+      expressionId
+    )
+    cachedValue match {
+      case Some(value) =>
+        ProgramExecutionSupport.executeAndSendVisualizationUpdate(
+          config.executionContextId,
+          runtimeCache.getOrElse(new RuntimeCache),
+          stack.headOption.get.syncState,
+          visualization,
+          expressionId,
+          value
+        )
+        None
+      case None =>
+        Some(Executable(config.executionContextId, stack))
+    }
   }
 
   private def replyWithExpressionFailedError(
@@ -190,6 +254,11 @@ object UpsertVisualizationJob {
     */
   case class ModuleNotFound(moduleName: String) extends EvaluationFailure
 
+  /** Signals that in order to evaluate a visualization expression,
+    * involved modules need to be loaded/compiled first and necessary write compilation lock was missing
+    */
+  case object RequiresCompilation extends EvaluationFailure
+
   /** Signals that an evaluation of an expression failed.
     *
     * @param message the textual reason of a failure
@@ -227,7 +296,8 @@ object UpsertVisualizationJob {
     val maybeCallable =
       evaluateVisualizationExpression(
         visualizationConfig.visualizationModule,
-        visualizationConfig.expression
+        visualizationConfig.expression,
+        hasWriteCompilationLock = true
       )
 
     maybeCallable.foreach { result =>
@@ -241,24 +311,42 @@ object UpsertVisualizationJob {
       )
       val stack =
         ctx.contextManager.getStack(visualizationConfig.executionContextId)
-      requireVisualizationSynchronization(stack, expressionId)
+      requireVisualizationSynchronization(stack, visualizationId)
     }
   }
 
   /** Find module by name.
     *
     * @param moduleName the module name
+    * @param hasWriteCompilationLock true if write compilation lock has been acquired, false otherwise
     * @return either the requested module or an error
     */
   private def findModule(
-    moduleName: String
+    moduleName: String,
+    hasWriteCompilationLock: Boolean
   )(implicit ctx: RuntimeContext): Either[EvaluationFailure, Module] = {
     val context = ctx.executionService.getContext
-    context.ensureModuleIsLoaded(moduleName)
+    if (!context.moduleIsLoaded(moduleName)) {
+      if (hasWriteCompilationLock) {
+        context.ensureModuleIsLoaded(moduleName)
+      } else {
+        return Left(RequiresCompilation)
+      }
+    }
     val maybeModule = context.findModule(moduleName)
-
-    if (maybeModule.isPresent) Right(maybeModule.get())
-    else Left(ModuleNotFound(moduleName))
+    if (maybeModule.isPresent) {
+      val module = maybeModule.get()
+      if (module.needsCompilation()) {
+        if (hasWriteCompilationLock) {
+          module.compileScope(context)
+          Right(module)
+        } else {
+          Left(RequiresCompilation)
+        }
+      } else {
+        Right(maybeModule.get())
+      }
+    } else Left(ModuleNotFound(moduleName))
   }
 
   /** Evaluate the visualization arguments in a given module.
@@ -298,9 +386,11 @@ object UpsertVisualizationJob {
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] = {
-    Try(
-      ctx.executionService.evaluateExpression(module, argumentExpression)
-    ).toEither.left.flatMap {
+    Try {
+      val pending =
+        ctx.executionService.evaluateExpression(module, argumentExpression)
+      pending.toCompletableFuture.get()
+    }.toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>
         evaluateArgumentExpression(
@@ -320,7 +410,7 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             s"Evaluation of visualization argument was interrupted [$retryCount] times.",
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
 
@@ -336,7 +426,7 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
 
@@ -359,7 +449,7 @@ object UpsertVisualizationJob {
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] =
     Try {
-      expression match {
+      val pending = expression match {
         case Api.VisualizationExpression.Text(_, expression, _) =>
           ctx.executionService.evaluateExpression(
             expressionModule,
@@ -369,12 +459,15 @@ object UpsertVisualizationJob {
               Api.MethodPointer(_, definedOnType, name),
               _
             ) =>
-          ctx.executionService.prepareFunctionCall(
-            expressionModule,
-            QualifiedName.fromString(definedOnType).item,
-            name
-          )
+          ctx.executionService
+            .prepareFunctionCall(
+              expressionModule,
+              QualifiedName.fromString(definedOnType).item,
+              name
+            )
+            .thenApply(f => f.asInstanceOf[AnyRef])
       }
+      pending.toCompletableFuture.get()
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>
@@ -395,10 +488,25 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             s"Evaluation of visualization was interrupted [$retryCount] times.",
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
-
+      case execError: ExecutionException if execError.getCause != null =>
+        val error = execError.getCause
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization [{}] failed in module [{}] with [{}]: {}",
+          expression,
+          expressionModule,
+          error.getClass,
+          error.getMessage,
+          error
+        )
+        Left(
+          EvaluationFailed(
+            Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
+          )
+        )
       case error =>
         UpsertVisualizationJob.logger.error(
           "Evaluation of visualization [{}] failed in module [{}] with [{}]: {}",
@@ -411,7 +519,7 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
     }
@@ -450,18 +558,20 @@ object UpsertVisualizationJob {
     *
     * @param module module to evaluate the expression arguments at
     * @param expression the visualization expression to evaluate
+    * @param hasWriteCompilationLock true if write compilation lock has been acquired, false otherwise
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation error
     */
   private def evaluateVisualizationExpression(
     module: String,
-    expression: Api.VisualizationExpression
+    expression: Api.VisualizationExpression,
+    hasWriteCompilationLock: Boolean
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, EvaluationResult] = {
     for {
-      module           <- findModule(module)
-      expressionModule <- findModule(expression.module)
+      module           <- findModule(module, hasWriteCompilationLock)
+      expressionModule <- findModule(expression.module, hasWriteCompilationLock)
       evaluationResult <- evaluateModuleExpression(
         module,
         expression,
@@ -481,7 +591,7 @@ object UpsertVisualizationJob {
     * @param ctx the runtime context
     * @return the re-evaluated visualization
     */
-  private def updateAttachedVisualization(
+  def updateAttachedVisualization(
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
     module: Module,
@@ -656,12 +766,12 @@ object UpsertVisualizationJob {
   /** Require to send the visualization update.
     *
     * @param stack the execution stack
-    * @param expressionId the expression id to which the visualization is applied
+    * @param visualizationId the visualization id associated with the expression
     */
   private def requireVisualizationSynchronization(
     stack: Iterable[InstrumentFrame],
-    expressionId: Api.ExpressionId
+    visualizationId: Api.VisualizationId
   ): Unit =
-    stack.foreach(_.syncState.setVisualizationUnsync(expressionId))
+    stack.foreach(_.syncState.setVisualizationUnsync(visualizationId))
 
 }

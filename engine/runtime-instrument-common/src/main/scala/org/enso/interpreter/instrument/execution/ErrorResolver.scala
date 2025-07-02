@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument.execution
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceNode
+import org.enso.interpreter.service.ExecutionService
 
 import java.io.File
 import scala.jdk.OptionConverters.RichOptional
@@ -18,7 +19,9 @@ object ErrorResolver {
     */
   def getStackTrace(
     throwable: Throwable
-  )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] = {
+  )(implicit
+    executionService: ExecutionService
+  ): Vector[Api.StackTraceElement] = {
     val iop = InteropLibrary.getUncached
     val arr = GetStackTraceNode.stackTraceToArray(iop, throwable)
     val len = iop.getArraySize(arr)
@@ -40,7 +43,9 @@ object ErrorResolver {
   private def toStackElement(
     iop: InteropLibrary,
     element: Any
-  )(implicit ctx: RuntimeContext): Option[Api.StackTraceElement] = {
+  )(implicit
+    executionService: ExecutionService
+  ): Option[Api.StackTraceElement] = {
     if (!iop.hasExecutableName(element)) {
       None
     } else {
@@ -73,9 +78,9 @@ object ErrorResolver {
     */
   private def findFileByModuleName(
     module: String
-  )(implicit ctx: RuntimeContext): Option[File] =
+  )(implicit executionService: ExecutionService): Option[File] =
     for {
-      module <- ctx.executionService.getContext.findModule(module).toScala
+      module <- executionService.getContext.findModule(module).toScala
       path   <- Option(module.getPath)
     } yield new File(path)
 

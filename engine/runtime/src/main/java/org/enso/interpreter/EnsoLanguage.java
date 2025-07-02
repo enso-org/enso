@@ -173,8 +173,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     env.registerService(timer);
 
     EnsoContext context =
-        new EnsoContext(
-            this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
+        new EnsoContext(this, env, notificationHandler, lockManager, distributionManager);
 
     env.registerService(context.getThreadManager());
     return context;

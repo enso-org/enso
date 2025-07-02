@@ -50,7 +50,7 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
+    from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column | Any ! Invalid_Value_Type =
         In_Memory_Column.from_vector name items value_type
 
     ## PRIVATE
@@ -61,7 +61,7 @@ type Column
        - name: The name of the column to create.
        - item: The element to repeat in the column.
        - repeats: The number of times to repeat the element.
-    from_repeated_item name:Text item:Any repeats:Integer -> Column =
+    from_repeated_item name:Text item:Any repeats:Integer -> Column | Any =
         In_Memory_Column.from_repeated_item name item repeats
 
     ## PRIVATE
@@ -155,7 +155,7 @@ type Column
        Returns a column with results of comparing this column's elements against
        `other`.
     @locale Locale.default_widget
-    equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column =
+    equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column | Any =
         self.implementation.equals_ignore_case self other locale
 
     ## ALIAS not equals
@@ -323,7 +323,7 @@ type Column
 
        Returns a column with boolean values indicating whether values of this
        column fit between the lower and upper bounds (both ends inclusive).
-    between self (lower : Column | Any) (upper : Column | Any) -> Column =
+    between self (lower : Column | Any) (upper : Column | Any) -> Column | Any =
         self.implementation.between self lower upper
 
     ## ALIAS add, concatenate, plus
@@ -629,7 +629,7 @@ type Column
              import Standard.Examples
 
              example_not = Examples.bool_column_1.not
-    not self -> Column =
+    not self -> Column | Any =
         self.implementation.not self
 
     ## ALIAS if
@@ -649,7 +649,7 @@ type Column
              import Standard.Examples
 
              example_if = Examples.bool_column_1.iif 1 0
-    iif self (when_true : Column | Any) (when_false : Column | Any) -> Column =
+    iif self (when_true : Column | Any) (when_false : Column | Any) -> Column | Any =
         self.implementation.iif self when_true when_false
 
     ## PRIVATE
@@ -667,7 +667,7 @@ type Column
          Create a column of the value 42
 
          column.const 42
-    const self value:Any -> Column =
+    const self value:Any -> Column | Any =
         self.to_table.make_constant_column value
 
     ## GROUP Standard.Base.Math
@@ -731,7 +731,7 @@ type Column
          Round a column of `Float` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type =
+    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column | Any ! Illegal_Argument | Invalid_Value_Type =
         self.implementation.round self decimal_places rounding_mode
 
     ## ALIAS int
@@ -757,7 +757,7 @@ type Column
             date_times = Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
             dates = Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
             col.truncate == dates
-    truncate self -> Column ! Invalid_Value_Type =
+    truncate self -> Column | Any ! Invalid_Value_Type =
         self.implementation.truncate self
 
     ## GROUP Standard.Base.Rounding
@@ -775,7 +775,7 @@ type Column
          Take the ceiling of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
-    ceil self -> Column ! Invalid_Value_Type =
+    ceil self -> Column | Any ! Invalid_Value_Type =
         self.implementation.ceil self
 
     ## GROUP Standard.Base.Rounding
@@ -793,7 +793,7 @@ type Column
          Take the floor of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
-    floor self -> Column ! Invalid_Value_Type =
+    floor self -> Column | Any ! Invalid_Value_Type =
         self.implementation.floor self
 
     ## GROUP Standard.Base.Logical
@@ -810,7 +810,7 @@ type Column
              import Standard.Examples
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
-    coalesce self (values : Any | Vector Any) -> Column =
+    coalesce self (values : Any | Vector Any) -> Column | Any =
         self.implementation.coalesce self values
 
     ## GROUP Standard.Base.Math
@@ -831,7 +831,7 @@ type Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
-    min self (values : Any | Vector Any) -> Column =
+    min self (values : Any | Vector Any) -> Column | Any =
         self.implementation.min self values
 
     ## GROUP Standard.Base.Math
@@ -852,7 +852,7 @@ type Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
-    max self (values : Any | Vector Any) -> Column =
+    max self (values : Any | Vector Any) -> Column | Any =
         self.implementation.max self values
 
     ## GROUP Standard.Base.Logical
@@ -866,14 +866,14 @@ type Column
              import Standard.Examples
 
              example_is_nothing = Examples.decimal_column.is_nothing
-    is_nothing self -> Column =
+    is_nothing self -> Column | Any =
         self.implementation.is_nothing_implementation self
 
     ## GROUP Standard.Base.Math
        ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
-    is_nan self -> Column =
+    is_nan self -> Column | Any =
         self.implementation.is_nan self
 
     ## GROUP Standard.Base.Math
@@ -881,7 +881,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
-    is_infinite self -> Column =
+    is_infinite self -> Column | Any =
         self.implementation.is_infinite self
 
     ## GROUP Standard.Base.Math
@@ -889,13 +889,13 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a non-infinite, non-NaN floating point value. This
        is only applicable to double columns.
-    is_finite self -> Column =
+    is_finite self -> Column | Any =
         self.implementation.is_finite self
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
-    is_empty self -> Column =
+    is_empty self -> Column | Any =
         self.implementation.is_empty self
 
     ## GROUP Standard.Base.Logical
@@ -909,7 +909,7 @@ type Column
              import Standard.Examples
 
              example_is_present = Examples.decimal_column.is_present
-    is_present self -> Column =
+    is_present self -> Column | Any =
         self.implementation.is_present self
 
     ## PRIVATE
@@ -922,7 +922,7 @@ type Column
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    is_blank self treat_nans_as_blank:Boolean=False -> Column =
+    is_blank self treat_nans_as_blank:Boolean=False -> Column | Any =
         self.implementation.is_blank self treat_nans_as_blank
 
     ## ALIAS fill missing, if_nothing
@@ -947,7 +947,7 @@ type Column
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
-    fill_nothing self (default : Column | Previous_Value | Any) -> Column =
+    fill_nothing self (default : Column | Previous_Value | Any) -> Column | Any =
         self.implementation.fill_nothing self default
 
     ## ALIAS fill empty, if_empty
@@ -971,7 +971,7 @@ type Column
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
-    fill_empty self (default : Column | Previous_Value | Any) -> Column =
+    fill_empty self (default : Column | Previous_Value | Any) -> Column | Any =
         self.implementation.fill_empty self default
 
     ## GROUP Standard.Base.Text
@@ -1007,7 +1007,7 @@ type Column
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
-    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
         self.implementation.starts_with self other case_sensitivity
 
     ## GROUP Standard.Base.Text
@@ -1036,7 +1036,7 @@ type Column
              import Standard.Examples
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
-    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
         self.implementation.ends_with self other case_sensitivity
 
     ## GROUP Standard.Base.Text
@@ -1053,7 +1053,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_length
-    text_length self -> Column =
+    text_length self -> Column | Any =
         self.implementation.text_length self
 
     ## GROUP Standard.Base.Text
@@ -1070,7 +1070,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_left 5
-    text_left self (n : Column | Integer) -> Column =
+    text_left self (n : Column | Integer) -> Column | Any =
         self.implementation.text_left self n
 
     ## GROUP Standard.Base.Text
@@ -1087,7 +1087,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_right 5
-    text_right self (n : Column | Integer) -> Column =
+    text_right self (n : Column | Integer) -> Column | Any =
         self.implementation.text_right self n
 
     ## GROUP Standard.Base.Logical
@@ -1116,7 +1116,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.contains "hell"
-    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
         self.implementation.contains self other case_sensitivity
 
     ## GROUP Standard.Base.Logical
@@ -1136,7 +1136,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like self (pattern : Column | Text | Any) -> Column =
+    like self (pattern : Column | Text | Any) -> Column | Any =
         self.implementation.like self pattern
 
     ## GROUP Standard.Base.Logical
@@ -1154,7 +1154,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
-    regex_match self (pattern : Column | Text | Regex) -> Column =
+    regex_match self (pattern : Column | Text | Regex) -> Column | Any =
         self.implementation.regex_match self pattern
 
     ## GROUP Standard.Base.Text
@@ -1167,7 +1167,7 @@ type Column
          function trims both ends of the input.
        - what: A `Text` (or text `Column`) containing characters that should be
          removed. By default, all whitespace is removed.
-    trim self where:Location=..Both (what : Text | Column = '') -> Column =
+    trim self where:Location=..Both (what : Text | Column = '') -> Column | Any =
         self.implementation.trim self where what
 
     ## ALIAS regex, substitute
@@ -1245,7 +1245,7 @@ type Column
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
     @new_text (Text_Input display=..Always)
-    text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
+    text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column | Any =
         self.implementation.text_replace self term new_text case_sensitivity only_first
 
     ## GROUP Standard.Base.Text
@@ -1275,7 +1275,7 @@ type Column
 
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (remove : Vector Named_Pattern) -> Column =
+    text_cleanse self (remove : Vector Named_Pattern) -> Column | Any =
         self.implementation.text_cleanse self remove
 
     ## GROUP Standard.Base.DateTime
@@ -1284,7 +1284,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    year self -> Column ! Invalid_Value_Type =
+    year self -> Column | Any ! Invalid_Value_Type =
         self.implementation.year self
 
     ## GROUP Standard.Base.DateTime
@@ -1293,7 +1293,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    month self -> Column ! Invalid_Value_Type =
+    month self -> Column | Any ! Invalid_Value_Type =
         self.implementation.month self
 
     ## GROUP Standard.Base.DateTime
@@ -1303,7 +1303,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day self -> Column ! Invalid_Value_Type =
+    day self -> Column | Any ! Invalid_Value_Type =
         self.implementation.day self
 
     ## GROUP Standard.Base.DateTime
@@ -1313,7 +1313,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_year self -> Column ! Invalid_Value_Type =
+    day_of_year self -> Column | Any ! Invalid_Value_Type =
         self.implementation.day_of_year self
 
     ## ALIAS weekday
@@ -1324,7 +1324,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_week self -> Column ! Invalid_Value_Type =
+    day_of_week self -> Column | Any ! Invalid_Value_Type =
         self.implementation.day_of_week self
 
     ## GROUP Standard.Base.DateTime
@@ -1333,7 +1333,7 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    hour self -> Column ! Invalid_Value_Type =
+    hour self -> Column | Any ! Invalid_Value_Type =
         self.implementation.hour self
 
     ## GROUP Standard.Base.DateTime
@@ -1342,7 +1342,7 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    minute self -> Column ! Invalid_Value_Type =
+    minute self -> Column | Any ! Invalid_Value_Type =
         self.implementation.minute self
 
     ## GROUP Standard.Base.DateTime
@@ -1351,7 +1351,7 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    second self -> Column ! Invalid_Value_Type =
+    second self -> Column | Any ! Invalid_Value_Type =
         self.implementation.second self
 
     ## GROUP Standard.Base.DateTime
@@ -1360,7 +1360,7 @@ type Column
 
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_part self (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
+    date_part self (period : Date_Period | Time_Period = ..Day) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_part self period
 
     ## GROUP Standard.Base.DateTime
@@ -1388,7 +1388,7 @@ type Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
+    date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_diff self end period
 
     ## GROUP Standard.Base.DateTime
@@ -1411,7 +1411,7 @@ type Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column ! Invalid_Value_Type | Illegal_Argument =
+    date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_add self amount period
 
     ## GROUP Standard.Base.Logical
@@ -1430,7 +1430,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
-    is_in self (vector : Vector | Column | Array) -> Column =
+    is_in self (vector : Vector | Column | Array) -> Column | Any =
         self.implementation.is_in self vector
 
     ## GROUP Standard.Base.Conversions
@@ -1516,7 +1516,7 @@ type Column
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
-    parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column =
+    parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column | Any =
         self.implementation.parse self type format on_problems
 
     ## GROUP Standard.Base.Conversions
@@ -1599,7 +1599,7 @@ type Column
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
-    format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument =
+    format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column | Any ! Illegal_Argument =
         self.implementation.format self format locale
 
     ## GROUP Standard.Base.Conversions
@@ -1650,7 +1650,7 @@ type Column
          The `parse` method should be used to convert text values into other
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
-    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
+    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column | Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         self.implementation.cast self value_type on_problems
 
     ## ALIAS auto_value_type
@@ -1684,7 +1684,7 @@ type Column
              elements are no longer than 255 characters, the column will get a
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
-    auto_cast self shrink_types:Boolean=False -> Column =
+    auto_cast self shrink_types:Boolean=False -> Column | Any =
         self.implementation.auto_cast self shrink_types
 
     ## PRIVATE
@@ -1721,7 +1721,7 @@ type Column
              elements are no longer than 255 characters, the column will get a
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
-    auto_value_type self shrink_types:Boolean=False -> Column =
+    auto_value_type self shrink_types:Boolean=False -> Column | Any =
         Warning.attach (Deprecated.Warning "Standard.Table.Column.Column" "auto_value_type" "Deprecated: `auto_value_type` has been replaced by `auto_cast`.") <|
             self.auto_cast shrink_types
 
@@ -1754,7 +1754,7 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
+    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column | Any ! Invalid_Value_Type =
         self.implementation.map self function skip_nothing expected_value_type
 
     ## ALIAS join by row position
@@ -1820,7 +1820,7 @@ type Column
              import Standard.Examples
 
              example_rename = Examples.integer_column.rename "My Numbers"
-    rename self name:Text -> Column ! Illegal_Argument =
+    rename self name:Text -> Column | Any ! Illegal_Argument =
         self.implementation.rename self name
 
     ## GROUP Standard.Base.Metadata
@@ -1926,7 +1926,7 @@ type Column
          By default, it will return all rows for in-memory columns, but in
          Database it will read up to 1000 rows and warn if there are more.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = default_row_limit_for_read self) -> Column =
+    read self (max_rows : Rows_To_Read = default_row_limit_for_read self) -> Column | Any =
         self.implementation.read self max_rows
 
     ## GROUP Standard.Base.Conversions
@@ -2041,7 +2041,7 @@ type Column
              example_sort =
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
-    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column =
+    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column | Any =
         self.implementation.sort self order missing_last by
 
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
@@ -2075,7 +2075,7 @@ type Column
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
     @range (self-> Index_Sub_Range.default_widget self.length)
-    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
+    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column | Any =
         self.implementation.take self range
 
     ## ALIAS remove, skip
@@ -2087,7 +2087,7 @@ type Column
        Arguments:
        - range: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
-    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
+    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column | Any =
         self.implementation.drop self range
 
     ## PRIVATE
@@ -2139,7 +2139,7 @@ type Column
              import Standard.Examples
 
              example_reverse = Examples.integer_column.reverse
-    reverse self -> Column =
+    reverse self -> Column | Any =
         self.implementation.reverse self
 
     ## GROUP Standard.Base.Metadata
@@ -2153,7 +2153,7 @@ type Column
              import Standard.Examples
 
              example_duplicate_count = Examples.integer_column.duplicate_count
-    duplicate_count self -> Column =
+    duplicate_count self -> Column | Any =
         self.implementation.duplicate_count self
 
     ## PRIVATE
@@ -2192,7 +2192,7 @@ type Column
        Arguments:
        - statistic: Statistic to calculate.
        - name: Name of the new column.
-    running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column =
+    running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column | Any =
         self.implementation.running self statistic name
 
     ## ALIAS displace, lag, lead, shift, slide
@@ -2209,7 +2209,7 @@ type Column
        - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
        - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
-    offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
+    offset self n:Integer=-1 fill_with:Fill_With=..Nothing -> Column | Any =
         self.implementation.offset self n fill_with
 
 ## PRIVATE

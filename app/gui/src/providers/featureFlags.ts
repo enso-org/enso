@@ -13,6 +13,7 @@ import { persist } from 'zustand/middleware'
 
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
 export const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
+export const DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE = 5
 
 /** Feature flags for internal testing. */
 export function featureFlagsForInternalTesting() {
@@ -29,7 +30,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableLocalBackend: z.boolean(),
   enableMultitabs: z.boolean(),
   enableAssetsTableBackgroundRefresh: z.boolean(),
-  assetsTableBackgroundRefreshInterval: z.number().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
+  assetsTableBackgroundRefreshInterval: z.number().int().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
   enableCloudExecution: z.boolean(),
   enableScheduledExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
@@ -37,6 +38,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   showDeveloperIds: z.boolean(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
+  fileChunkUploadPoolSize: z.number().int().min(1),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA })
@@ -70,6 +72,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         showDeveloperIds: false,
         overrideProfilePicture: false,
         multiplyUserList: false,
+        fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))
