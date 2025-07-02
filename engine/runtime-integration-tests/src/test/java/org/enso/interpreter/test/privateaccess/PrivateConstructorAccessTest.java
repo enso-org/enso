@@ -160,7 +160,7 @@ public class PrivateConstructorAccessTest {
   }
 
   @Test
-  public void cannotCallPrivateConstructor_ViaCallback() throws Exception {
+  public void canCallPrivateConstructor_ViaCallback() throws Exception {
     var libDir = tempFolder.newFolder("Lib").toPath();
     ProjectUtils.createProject(
         "Lib",
@@ -193,14 +193,59 @@ public class PrivateConstructorAccessTest {
             cons "Name"
 
         main =
-            call_method callback . to_text
+            call_method callback . name
         """,
         projDir);
 
-    ProjectUtils.testProjectRunFailure(
+    ProjectUtils.testProjectRun(
         projDir,
-        ex -> {
-          assertThat(ex.getMessage(), containsString("Private_Access"));
+        res -> {
+          assertThat(res.asString(), is("Name"));
+        });
+  }
+
+  @Test
+  public void canCallPrivateConstructor_ViaLambda() throws Exception {
+    var libDir = tempFolder.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("My_Type"),
+                """
+                private
+
+                type My_Type
+                    Cons name
+                """),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                import project.My_Type.My_Type
+
+                call_method ~callback =
+                    callback \\it -> My_Type.Cons it
+                """)),
+        libDir);
+
+    var projDir = tempFolder.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        from local.Lib import call_method
+
+        callback cons =
+            cons "Name"
+
+        main =
+            call_method callback . name
+        """,
+        projDir);
+
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.asString(), is("Name"));
         });
   }
 }

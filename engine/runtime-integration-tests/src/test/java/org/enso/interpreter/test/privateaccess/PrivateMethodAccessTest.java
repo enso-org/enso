@@ -57,7 +57,7 @@ public class PrivateMethodAccessTest {
   }
 
   @Test
-  public void cannotCallPrivateMethod_AsCallback() throws IOException {
+  public void canCallPrivateMethod_AsCallback() throws IOException {
     var libDir = tempFolder.newFolder("Lib").toPath();
     ProjectUtils.createProject(
         "Lib",
@@ -93,10 +93,10 @@ public class PrivateMethodAccessTest {
         """,
         projDir);
 
-    ProjectUtils.testProjectRunFailure(
+    ProjectUtils.testProjectRun(
         projDir,
-        ex -> {
-          assertThat(ex.getMessage(), containsString("Private_Access"));
+        res -> {
+          assertThat(res.asInt(), is(42));
         });
   }
 
