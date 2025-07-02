@@ -618,6 +618,7 @@
   "passwordPlaceholder": "Enter your password",
   "signUpOrLoginWithGoogle": "Sign up or login with Google",
   "signUpOrLoginWithGitHub": "Sign up or login with GitHub",
+  "signUpOrLoginWithMicrosoft": "Sign up or login with Microsoft",
   "orLoginWithEmail": "or login with email",
   "dontHaveAnAccount": "Don't have an account?",
   "createANewAccount": "Create a new account",

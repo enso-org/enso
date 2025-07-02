@@ -160,6 +160,15 @@ export function createSessionStore(
     )
   }
 
+  const signInWithMicrosoft = () => {
+    gtag.event('cloud_sign_in', { provider: 'Microsoft' })
+
+    return authService.signInWithMicrosoft().then(
+      () => true,
+      () => false,
+    )
+  }
+
   const confirmSignIn = (user: cognito.CognitoUser, otp: string) =>
     authService.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
 
@@ -300,6 +309,7 @@ export function createSessionStore(
     signInWithPassword,
     signInWithGitHub,
     signInWithGoogle,
+    signInWithMicrosoft,
     confirmSignIn,
     forgotPassword,
     resetPassword,

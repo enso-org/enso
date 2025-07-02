@@ -205,6 +205,7 @@ export interface ISessionProvider {
   ) => Promise<results.Err<ConfirmSignUpError> | results.Ok<unknown>>
   readonly signInWithGoogle: () => Promise<void>
   readonly signInWithGitHub: () => Promise<void>
+  readonly signInWithMicrosoft: () => Promise<void>
   readonly signInWithPassword: (
     username: string,
     password: string,
@@ -351,6 +352,19 @@ export class Cognito implements ISessionProvider {
   async signInWithGitHub() {
     await amplify.Auth.federatedSignIn({
       customProvider: GITHUB_PROVIDER,
+    })
+  }
+
+  /**
+   * Sign in via the GitHub federated identity provider.
+   *
+   * This function will open the GitHub authentication page in the user's browser. The user will
+   * be asked to log in to their GitHub account, and then to grant access to the application.
+   * After the user has granted access, the browser will be redirected to the application.
+   */
+  async signInWithMicrosoft() {
+    await amplify.Auth.federatedSignIn({
+      customProvider: 'Microsoft',
     })
   }
 
