@@ -219,10 +219,10 @@ function useInvalidation(mutation: MutationHooks, query: QueryHooks) {
       // `onError` callback. In this case, we still use the values of the invalidation keys as
       // of the time the mutation was first initiated, which is when any necessary state was
       // captured in its `variables`.
-    } else {
-      const keys = evaluateInvalidationKeys(mutation)
-      if (keys) invalidationKeys.set(mutationKey(mutation), keys)
+      return
     }
+    const keys = evaluateInvalidationKeys(mutation)
+    if (keys) invalidationKeys.set(mutationKey(mutation), keys)
   })
   mutation.onSuccess((_data, _variables, _context, mutation) => {
     const keys = invalidationKeys.get(mutationKey(mutation))
