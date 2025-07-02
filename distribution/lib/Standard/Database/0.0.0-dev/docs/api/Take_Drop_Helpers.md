@@ -3,8 +3,6 @@
 - type Take_Drop
     - Drop
     - Take
-- _filter_on_predicate_column this_table:(Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table) predicate_column:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- _with_temporary_column this_table:(Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table) new_column:Standard.Table.Column.Column f:Standard.Base.Any.Any -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table)
 - check_supported selector:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer) ~cont:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - cleanup_ranges ranges:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Range.Range) -> Standard.Base.Any.Any
 - collect_ranges take_drop:Standard.Base.Any.Any length:Standard.Base.Any.Any selector:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer) -> Standard.Base.Any.Any
