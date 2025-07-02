@@ -10,6 +10,8 @@ export const DASHBOARD_PATH = '/'
 export const LOGIN_PATH = '/login'
 /** Path to the registration page. */
 export const REGISTRATION_PATH = '/registration'
+/** Path to the payments success page. */
+export const PAYMENTS_SUCCESS_PATH = '/payments/success'
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = '/confirmation'
 

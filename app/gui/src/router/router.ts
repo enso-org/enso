@@ -4,6 +4,7 @@ import {
   DASHBOARD_PATH,
   FORGOT_PASSWORD_PATH,
   LOGIN_PATH,
+  PAYMENTS_SUCCESS_PATH,
   RESET_PASSWORD_PATH,
   RESTORE_USER_PATH,
   SETUP_PATH,
@@ -107,6 +108,11 @@ const routes = [
     path: RESET_PASSWORD_PATH,
     component: () =>
       import('#/pages/authentication/ResetPassword').then((mod) => reactComponent(mod.default)),
+  },
+  {
+    path: PAYMENTS_SUCCESS_PATH,
+    component: () =>
+      import('#/pages/PaymentsSuccess').then((mod) => reactComponent(mod.PaymentsSuccess)),
   },
   {
     path: '/:anyPath(.*)*',

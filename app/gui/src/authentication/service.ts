@@ -263,6 +263,10 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
         navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
         break
       }
+      case '//payments/success': {
+        navigate(`${appUtils.PAYMENTS_SUCCESS_PATH}${url.search}`)
+        break
+      }
       // If the user is being redirected from a password reset email, navigate to the password
       // reset page, with the verification code and email prefilled.
       case appUtils.RESET_PASSWORD_PATH: {

@@ -126,13 +126,12 @@ const BASE_STEPS: Step[] = [
     hideNext: true,
     hidePrevious: true,
     /** Setup step for setting organization name. */
-    component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
+    component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = useText()
       const { remoteBackend } = useBackends()
-      const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
-        queryKey: ['organization', userId],
+        queryKey: [remoteBackend, 'getOrganization'],
         queryFn: () => remoteBackend.getOrganization(),
         select: (data) => data?.name ?? '',
       })
