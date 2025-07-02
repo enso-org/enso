@@ -110,6 +110,128 @@ type MutationKey = RawValue<queryCore.Mutation<unknown, unknown>>
 
 const mutationKey = toRaw as (mutation: queryCore.Mutation<unknown, unknown>) => MutationKey
 
+// Internal tanstack type; we can use it type-safely though we lack API stability guarantees.
+type MutationCacheConfig = ConstructorParameters<typeof queryCore.MutationCache>[0] & object
+type OnMutate = MutationCacheConfig['onMutate']
+// This is the same as the corresponding hook in `QueryCacheConfig`; if that changes, and we need
+// separate types, the typechecker will catch it.
+type OnSettled = MutationCacheConfig['onSettled']
+type OnSuccess = MutationCacheConfig['onSuccess']
+type OnError = MutationCacheConfig['onError']
+
+function callbackRegistry<Args extends unknown[]>() {
+  const callbacks: ((...args: Args) => void)[] = []
+  return {
+    run: (...args: Args) => callbacks.forEach((callback) => callback(...args)),
+    register: (callback: (...args: Args) => void) => void callbacks.push(callback),
+  }
+}
+
+interface QueryHooks {
+  onMutate: (callback: OnMutate) => void
+  onSuccess: (callback: OnSuccess) => void
+  onSettled: (callback: OnSettled) => void
+  onError: (callback: OnError) => void
+}
+function useQueryCache(): {
+  queryCache: queryCore.QueryCache
+  queryHooks: QueryHooks
+} {
+  const onSettled = callbackRegistry()
+  const onSuccess = callbackRegistry()
+  const onError = callbackRegistry()
+  const config = {
+    onSettled: onSettled.run,
+    onSuccess: onSuccess.run,
+    onError: onError.run,
+  }
+  return {
+    queryCache: new queryCore.QueryCache(config),
+    queryHooks: {
+      onSettled: onSettled.register,
+      onSuccess: onSuccess.register,
+      onError: onError.register,
+    },
+  }
+}
+
+interface MutationHooks {
+  onMutate: (callback: OnMutate) => void
+  onSuccess: (callback: OnSuccess) => void
+  onSettled: (callback: OnSettled) => void
+  onError: (callback: OnError) => void
+}
+function useMutationCache(): {
+  mutationCache: queryCore.MutationCache
+  mutationHooks: MutationHooks
+} {
+  const onMutate = callbackRegistry()
+  const onSettled = callbackRegistry()
+  const onSuccess = callbackRegistry()
+  const onError = callbackRegistry()
+  const config = {
+    onMutate: onMutate.run,
+    onSettled: onSettled.run,
+    onSuccess: onSuccess.run,
+    onError: onError.run,
+  }
+  return {
+    mutationCache: new queryCore.MutationCache(config),
+    mutationHooks: {
+      onMutate: onMutate.register,
+      onSettled: onSettled.register,
+      onSuccess: onSuccess.register,
+      onError: onError.register,
+    },
+  }
+}
+
+function useConcurrencyControl({ onMutate, onSettled }: MutationHooks) {
+  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: ConditionVariable }>> = {}
+
+  onMutate(async (_variables, mutation) => {
+    const poolMeta = mutation.meta?.pool
+    if (!poolMeta) {
+      return
+    }
+    const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new ConditionVariable() })
+    if (poolInfo.usedLanes >= poolMeta.parallelism) {
+      await poolInfo.queue.wait()
+    }
+    poolInfo.usedLanes += 1
+  })
+  onSettled(async (_data, _error, _variables, _context, mutation) => {
+    const poolMeta = mutation.meta?.pool
+    if (poolMeta) {
+      const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new ConditionVariable() })
+      poolInfo.usedLanes -= 1
+      while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.notifyOne()));
+    }
+  })
+}
+
+function useInvalidation(mutation: MutationHooks, query: QueryHooks) {
+  const invalidationKeys = new WeakMap<MutationKey, InvalidationKeys>()
+
+  mutation.onMutate(async (_variables, mutation) => {
+    if (invalidationKeys.has(mutationKey(mutation))) {
+      // A `Mutation` may begin execution again, for example, if it is re-attempted from an
+      // `onError` callback. In this case, we still use the values of the invalidation keys as
+      // of the time the mutation was first initiated, which is when any necessary state was
+      // captured in its `variables`.
+    } else {
+      const keys = evaluateInvalidationKeys(mutation)
+      if (keys) invalidationKeys.set(mutationKey(mutation), keys)
+    }
+  })
+  mutation.onSuccess((_data, _variables, _context, mutation) => {
+    const keys = invalidationKeys.get(mutationKey(mutation))
+    if (keys) return performInvalidations(queryClient, keys)
+  })
+  // In dev mode, run {@link cloneDeepUnref} to trigger its dev-mode checks for a query's queryKey.
+  DEV: query.onSettled((_data, _error, { queryKey }) => void cloneDeepUnref(queryKey))
+}
+
 /** Create a new Tanstack Query client. */
 export function createQueryClient<TStorageValue = string>(
   options: QueryClientOptions<TStorageValue> = {},
@@ -135,52 +257,12 @@ export function createQueryClient<TStorageValue = string>(
     })
   }
 
-  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: ConditionVariable }>> = {}
-
-  const invalidationKeys = new WeakMap<MutationKey, InvalidationKeys>()
+  const { queryCache, queryHooks } = useQueryCache()
+  const { mutationCache, mutationHooks } = useMutationCache()
 
   const queryClient: QueryClient = new vueQuery.QueryClient({
-    queryCache: new queryCore.QueryCache({
-      onSettled: (_data, _error, query) => {
-        // Run the function to trigger its dev-mode checks
-        DEV: void cloneDeepUnref(query.queryKey)
-      },
-    }),
-    mutationCache: new queryCore.MutationCache({
-      onMutate: async (_variables, mutation) => {
-        if (invalidationKeys.has(mutationKey(mutation))) {
-          // A `Mutation` may begin execution again, for example, if it is re-attempted from an
-          // `onError` callback. In this case, we still use the values of the invalidation keys as
-          // of the time the mutation was first initiated, which is when any necessary state was
-          // captured in its `variables`.
-        } else {
-          const keys = evaluateInvalidationKeys(mutation)
-          if (keys) invalidationKeys.set(mutationKey(mutation), keys)
-        }
-
-        const poolMeta = mutation.meta?.pool
-        if (!poolMeta) {
-          return
-        }
-        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new ConditionVariable() })
-        if (poolInfo.usedLanes >= poolMeta.parallelism) {
-          await poolInfo.queue.wait()
-        }
-        poolInfo.usedLanes += 1
-      },
-      onSettled: async (_data, _error, _variables, _context, mutation) => {
-        const poolMeta = mutation.meta?.pool
-        if (poolMeta) {
-          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new ConditionVariable() })
-          poolInfo.usedLanes -= 1
-          while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.notifyOne()));
-        }
-      },
-      onSuccess: (_data, _variables, _context, mutation) => {
-        const keys = invalidationKeys.get(mutationKey(mutation))
-        if (keys) return performInvalidations(queryClient, keys)
-      },
-    }),
+    queryCache,
+    mutationCache,
     defaultOptions: {
       queries: {
         ...(persister != null ? { persister } : {}),
@@ -221,6 +303,8 @@ export function createQueryClient<TStorageValue = string>(
       },
     },
   })
+  useConcurrencyControl(mutationHooks)
+  useInvalidation(mutationHooks, queryHooks)
 
   Object.defineProperty(queryClient, 'nukePersister', {
     value: () => persisterStorage?.clear(),
