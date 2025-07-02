@@ -88,7 +88,6 @@ initializeActions()
 
 /* Base style for visualizations. */
 :host {
-  --color-text: rgb(118 118 118);
   --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
     BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
     'Droid Sans', 'Helvetica Neue', Arial, sans-serif;

@@ -8,7 +8,7 @@
 
 :root {
   --color-primary-rgb: 0 0 0;
-  --color-primary-opacity: 60%;
+  --color-primary-opacity: 90%;
   --color-primary: rgb(var(--color-primary-rgb) / var(--color-primary-opacity));
   --color-accent-rgb: 73 159 75;
   --color-accent-opacity: 100%;

@@ -439,7 +439,6 @@ const listsHandler = listBindings.handler({
   --background-color: #fff;
   --doc-panel-bottom-clip: 4px;
   width: min-content;
-  color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
   display: flex;
   flex-direction: column;
