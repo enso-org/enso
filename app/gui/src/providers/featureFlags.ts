@@ -77,11 +77,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
           [K in keyof FeatureFlags]?: FeatureFlags[K] | undefined
         }) {
           const newFeatureFlags = { ...newState.featureFlags }
-          for (const kv of unsafeEntries(flags)) {
-            if (!kv) {
-              continue
-            }
-            const [k, v] = kv
+          for (const [k, v] of unsafeEntries(flags)) {
             if (v !== undefined) {
               unsafeWriteValue(newFeatureFlags, k, v)
             }

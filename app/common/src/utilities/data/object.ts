@@ -75,7 +75,7 @@ export function unsafeValues<const T extends object>(object: T): T[keyof T][] {
  */
 export function unsafeEntries<T extends object>(
   object: T,
-): readonly { [K in keyof T]: [K, T[K]] }[keyof T][] {
+): readonly NonNullable<{ [K in keyof T]: [K, T[K]] }[keyof T]>[] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
 }
