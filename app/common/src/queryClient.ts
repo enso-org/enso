@@ -98,26 +98,20 @@ export interface QueryClientOptions<TStorageValue = string> {
   }
 }
 
-declare const brandRaw: unique symbol
-/**
- * A value that is known not to be a reactive proxy; this marker type can be used to ensure
- * comparisons are free of identity hazards.
- */
-type RawValue<T> = T & { [brandRaw]: never }
-
-/** Uniquely identifies a `Mutation`. */
-type MutationKey = RawValue<queryCore.Mutation<unknown, unknown>>
-
-const mutationKey = toRaw as (mutation: queryCore.Mutation<unknown, unknown>) => MutationKey
+// Internal tanstack type; we can use it type-safely though we lack API stability guarantees.
+type QueryCacheConfig = Required<Required<ConstructorParameters<typeof queryCore.QueryCache>>[0]>
+type OnQuerySettled = QueryCacheConfig['onSettled']
+type OnQuerySuccess = QueryCacheConfig['onSuccess']
+type OnQueryError = QueryCacheConfig['onError']
 
 // Internal tanstack type; we can use it type-safely though we lack API stability guarantees.
-type MutationCacheConfig = ConstructorParameters<typeof queryCore.MutationCache>[0] & object
+type MutationCacheConfig = Required<
+  Required<ConstructorParameters<typeof queryCore.MutationCache>>[0]
+>
 type OnMutate = MutationCacheConfig['onMutate']
-// This is the same as the corresponding hook in `QueryCacheConfig`; if that changes, and we need
-// separate types, the typechecker will catch it.
-type OnSettled = MutationCacheConfig['onSettled']
-type OnSuccess = MutationCacheConfig['onSuccess']
-type OnError = MutationCacheConfig['onError']
+type OnMutationSettled = MutationCacheConfig['onSettled']
+type OnMutationSuccess = MutationCacheConfig['onSuccess']
+type OnMutationError = MutationCacheConfig['onError']
 
 function callbackRegistry<Args extends unknown[]>() {
   const callbacks: ((...args: Args) => void)[] = []
@@ -128,18 +122,17 @@ function callbackRegistry<Args extends unknown[]>() {
 }
 
 interface QueryHooks {
-  onMutate: (callback: OnMutate) => void
-  onSuccess: (callback: OnSuccess) => void
-  onSettled: (callback: OnSettled) => void
-  onError: (callback: OnError) => void
+  onSuccess: (callback: OnQuerySuccess) => void
+  onSettled: (callback: OnQuerySettled) => void
+  onError: (callback: OnQueryError) => void
 }
 function useQueryCache(): {
   queryCache: queryCore.QueryCache
   queryHooks: QueryHooks
 } {
-  const onSettled = callbackRegistry()
-  const onSuccess = callbackRegistry()
-  const onError = callbackRegistry()
+  const onSettled = callbackRegistry<Parameters<OnQuerySettled>>()
+  const onSuccess = callbackRegistry<Parameters<OnQuerySuccess>>()
+  const onError = callbackRegistry<Parameters<OnQueryError>>()
   const config = {
     onSettled: onSettled.run,
     onSuccess: onSuccess.run,
@@ -157,18 +150,18 @@ function useQueryCache(): {
 
 interface MutationHooks {
   onMutate: (callback: OnMutate) => void
-  onSuccess: (callback: OnSuccess) => void
-  onSettled: (callback: OnSettled) => void
-  onError: (callback: OnError) => void
+  onSuccess: (callback: OnMutationSuccess) => void
+  onSettled: (callback: OnMutationSettled) => void
+  onError: (callback: OnMutationError) => void
 }
 function useMutationCache(): {
   mutationCache: queryCore.MutationCache
   mutationHooks: MutationHooks
 } {
-  const onMutate = callbackRegistry()
-  const onSettled = callbackRegistry()
-  const onSuccess = callbackRegistry()
-  const onError = callbackRegistry()
+  const onMutate = callbackRegistry<Parameters<OnMutate>>()
+  const onSettled = callbackRegistry<Parameters<OnMutationSettled>>()
+  const onSuccess = callbackRegistry<Parameters<OnMutationSuccess>>()
+  const onError = callbackRegistry<Parameters<OnMutationError>>()
   const config = {
     onMutate: onMutate.run,
     onSettled: onSettled.run,
@@ -210,10 +203,30 @@ function useConcurrencyControl({ onMutate, onSettled }: MutationHooks) {
   })
 }
 
-function useInvalidation(mutation: MutationHooks, query: QueryHooks) {
+declare const brandRaw: unique symbol
+/**
+ * A value that is known not to be a reactive proxy; this marker type can be used to ensure
+ * comparisons are free of identity hazards.
+ */
+type RawValue<T> = T & { [brandRaw]: never }
+
+/** Uniquely identifies a `Mutation`. */
+type MutationKey = RawValue<queryCore.Mutation<unknown, unknown>>
+
+function useInvalidation({
+  mutationHooks,
+  queryHooks,
+  queryClient,
+}: {
+  mutationHooks: MutationHooks
+  queryHooks: QueryHooks
+  queryClient: QueryClient
+}) {
+  const mutationKey = toRaw as (mutation: queryCore.Mutation<unknown, unknown>) => MutationKey
+
   const invalidationKeys = new WeakMap<MutationKey, InvalidationKeys>()
 
-  mutation.onMutate(async (_variables, mutation) => {
+  mutationHooks.onMutate(async (_variables, mutation) => {
     if (invalidationKeys.has(mutationKey(mutation))) {
       // A `Mutation` may begin execution again, for example, if it is re-attempted from an
       // `onError` callback. In this case, we still use the values of the invalidation keys as
@@ -224,12 +237,12 @@ function useInvalidation(mutation: MutationHooks, query: QueryHooks) {
     const keys = evaluateInvalidationKeys(mutation)
     if (keys) invalidationKeys.set(mutationKey(mutation), keys)
   })
-  mutation.onSuccess((_data, _variables, _context, mutation) => {
+  mutationHooks.onSuccess((_data, _variables, _context, mutation) => {
     const keys = invalidationKeys.get(mutationKey(mutation))
     if (keys) return performInvalidations(queryClient, keys)
   })
   // In dev mode, run {@link cloneDeepUnref} to trigger its dev-mode checks for a query's queryKey.
-  DEV: query.onSettled((_data, _error, { queryKey }) => void cloneDeepUnref(queryKey))
+  DEV: queryHooks.onSettled((_data, _error, { queryKey }) => void cloneDeepUnref(queryKey))
 }
 
 /** Create a new Tanstack Query client. */
@@ -304,7 +317,7 @@ export function createQueryClient<TStorageValue = string>(
     },
   })
   useConcurrencyControl(mutationHooks)
-  useInvalidation(mutationHooks, queryHooks)
+  useInvalidation({ mutationHooks, queryHooks, queryClient })
 
   Object.defineProperty(queryClient, 'nukePersister', {
     value: () => persisterStorage?.clear(),
