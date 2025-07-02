@@ -88,8 +88,6 @@ export function EnsoDevStatus() {
     enableAssetsTableBackgroundRefresh,
     assetsTableBackgroundRefreshInterval,
     enableCloudExecution,
-    enableScheduledExecution,
-    enableHybridExecution,
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
@@ -123,8 +121,6 @@ export function EnsoDevStatus() {
     !enableAssetsTableBackgroundRefresh ||
     assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
     !enableCloudExecution ||
-    !enableScheduledExecution ||
-    !enableHybridExecution ||
     showDeveloperIds ||
     overrideProfilePicture ||
     multiplyUserList ||
@@ -205,24 +201,6 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('cloudExecutionDisabled')}
-            </DeveloperOverrideEntry>
-          )}
-          {!enableScheduledExecution && (
-            <DeveloperOverrideEntry
-              reset={() => {
-                setFeatureFlag('enableScheduledExecution', true)
-              }}
-            >
-              {getText('scheduledExecutionDisabled')}
-            </DeveloperOverrideEntry>
-          )}
-          {!enableHybridExecution && (
-            <DeveloperOverrideEntry
-              reset={() => {
-                setFeatureFlag('enableHybridExecution', false)
-              }}
-            >
-              {getText('hybridExecutionDisabled')}
             </DeveloperOverrideEntry>
           )}
           {showDeveloperIds && (
@@ -537,29 +515,11 @@ export function EnsoDevtools() {
                   />
                   <Switch
                     form={form}
-                    name="enableScheduledExecution"
-                    label="Enable Async Execution"
-                    description="Enable Async Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableScheduledExecution', value)
-                    }}
-                  />
-                  <Switch
-                    form={form}
                     name="enableAdvancedProjectExecutionOptions"
                     label="Enable Advanced Project Excecution Options"
                     description="Enable Advanced Project Excecution Options"
                     onChange={(value) => {
                       setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
-                    }}
-                  />
-                  <Switch
-                    form={form}
-                    name="enableHybridExecution"
-                    label="Enable Hybrid Execution"
-                    description="Enable Hybrid Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableHybridExecution', value)
                     }}
                   />
                   <Input

@@ -17,7 +17,7 @@ import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import type { ResponseWithTypedJson } from '#/utilities/HttpClient'
-import * as object from '#/utilities/object'
+import * as objects from '#/utilities/object'
 import type { GetText } from '$/providers/text'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
@@ -200,7 +200,7 @@ export default class RemoteBackend extends Backend {
   static readonly type = backend.BackendType.remote
 
   readonly type = RemoteBackend.type
-  private user: object.Mutable<backend.User> | null = null
+  private user: objects.Mutable<backend.User> | null = null
 
   /**
    * Create a new instance of the {@link RemoteBackend} API client.
@@ -592,7 +592,7 @@ export default class RemoteBackend extends Backend {
     } else {
       const ret = (await response.json()).assets
         .map((asset) =>
-          object.merge(asset, {
+          objects.merge(asset, {
             type: backend.getAssetTypeFromId(asset.id),
             // `Users` and `Teams` folders are virtual, so their children incorrectly have
             // the organization root id as their parent id.
@@ -600,7 +600,7 @@ export default class RemoteBackend extends Backend {
           }),
         )
         .map((asset) =>
-          object.merge(asset, {
+          objects.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
             ...(asset.ensoPath != null ?
               { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
@@ -1042,7 +1042,7 @@ export default class RemoteBackend extends Backend {
     bodyRaw: backend.OpenProjectRequestBody,
     title: string,
   ): Promise<void> {
-    const body = object.omit(bodyRaw, 'parentId')
+    const body = objects.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.openProjectPath(projectId)
     if (body.cognitoCredentials == null) {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)

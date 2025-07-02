@@ -1155,8 +1155,6 @@
   "assetsTableBackgroundRefreshDisabled": "Data Catalog refresh disabled",
   "assetsTableBackgroundRefreshIntervalOverriddenToXMs": "Data Catalog refreshing every $0ms",
   "cloudExecutionDisabled": "Cloud Execution disabled",
-  "scheduledExecutionDisabled": "Scheduled Execution disabled",
-  "hybridExecutionDisabled": "Hybrid Execution disabled",
   "showingDeveloperIds": "Showing developer ids",
   "overridingProfilePicture": "Overriding profile picture",
   "multiplyingUserList": "Multiplying user list",
