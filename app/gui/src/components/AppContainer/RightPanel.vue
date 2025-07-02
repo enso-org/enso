@@ -45,7 +45,7 @@ const component = computed(() => {
   }
 })
 
-const visibleTabs = computed(() => data.allTabs.entries())
+const visibleTabs = computed(() => [...data.allTabs.entries()])
 
 function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)
