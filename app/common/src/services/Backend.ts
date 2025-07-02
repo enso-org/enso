@@ -1828,8 +1828,19 @@ export default abstract class Backend {
     body: UpdateProjectRequestBody,
     title: string,
   ): Promise<UpdatedProject>
+
   /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
+  async getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId) {
+    return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
+  }
+  /** Resolve the data of a project asset relative to the project root directory. */
+  abstract resolveProjectAssetData(
+    projectId: ProjectId,
+    relativePath: string,
+    versionId?: S3ObjectVersionId,
+    abort?: AbortSignal,
+  ): Promise<Response>
+
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     params: UploadFileRequestParams,

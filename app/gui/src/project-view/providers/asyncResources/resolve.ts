@@ -100,16 +100,22 @@ export function initAsyncResourceResolver(
             // unopened local project
             const localBackend = backends.localBackend
             if (!localBackend) return Err('Cannot query local resource without local backend')
-            const data = await localBackend.resolveProjectAssetData(projectId, relativePath)
+            const response = await localBackend.resolveProjectAssetData(projectId, relativePath)
             if (abort.aborted) return Err(abort)
-            return Ok(data)
+            return Ok(await response.blob())
           } else {
             // unopened remote project
             const cloudBackend = backends.remoteBackend
             if (cloudBackend == null)
               return Err('Cannot query cloud resource without cloud backend')
             try {
-              return Ok(await cloudBackend.resolveProjectAssetData(projectId, relativePath, abort))
+              const response = await cloudBackend.resolveProjectAssetData(
+                projectId,
+                relativePath,
+                undefined,
+                abort,
+              )
+              return Ok(await response.blob())
             } catch (e) {
               return Err(e)
             }

@@ -8,7 +8,6 @@ import { nextTick, proxyRefs } from 'vue'
 import { EditedCell, useTableEditHandler } from '../editHandler'
 import { NEW_COLUMN_ID, ROW_INDEX_COLUMN_ID } from '../tableInputArgument'
 
-
 const colDefs = [
   { colId: ROW_INDEX_COLUMN_ID },
   { colId: 'col1' },

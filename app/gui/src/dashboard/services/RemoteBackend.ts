@@ -666,25 +666,6 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Fetch the content of the `Main.enso` file of a project. */
-  override async getMainFileContent(
-    projectId: backend.ProjectId,
-    versionId?: backend.S3ObjectVersionId,
-  ): Promise<string> {
-    const path = remoteBackendPaths.getProjectAssetPath(projectId, 'src/Main.enso')
-    const searchParams = new URLSearchParams()
-    if (versionId !== undefined) {
-      searchParams.set('versionId', versionId)
-    }
-
-    const response = await this.get<string>(path, searchParams)
-    if (!response.ok) {
-      return this.throw(response, 'getFileContentsBackendError')
-    } else {
-      return await response.text()
-    }
-  }
-
   /**
    * Change the parent directory or description of an asset.
    * @throws An error if a non-successful status code (not 200-299) was received.
@@ -1022,14 +1003,10 @@ export default class RemoteBackend extends Backend {
    */
   override async getProjectSessionLogs(
     projectSessionId: backend.ProjectSessionId,
-    params: backend.GetProjectSessionLogsRequestParams,
     title: string,
-  ): Promise<backend.ProjectSessionLogs> {
-    const queryString = new URLSearchParams({
-      ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
-    }).toString()
-    const path = `${remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)}?${queryString}`
-    const response = await this.get<backend.ProjectSessionLogs>(path)
+  ): Promise<string[]> {
+    const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
+    const response = await this.get<string[]>(path)
     if (!response.ok) {
       return await this.throw(response, 'getProjectLogsBackendError', title)
     } else {
@@ -1624,19 +1601,24 @@ export default class RemoteBackend extends Backend {
   /**
    * Resolve the data of a project asset relative to the project root directory.
    */
-  async resolveProjectAssetData(
+  override async resolveProjectAssetData(
     projectId: backend.ProjectId,
     relativePath: string,
+    versionId?: backend.S3ObjectVersionId,
     abort?: AbortSignal,
-  ): Promise<Blob> {
+  ): Promise<Response> {
+    const searchParams = new URLSearchParams()
+    if (versionId != null) {
+      searchParams.set('versionId', versionId)
+    }
+
     const response = await this.get(
       remoteBackendPaths.getProjectAssetPath(projectId, relativePath),
-      undefined,
+      searchParams,
       abort,
     )
-
-    if (!response.ok) return this.throw(response, 'resolveProjectAssetPathBackendError')
-    return response.blob()
+    if (!response.ok) return this.throw(response, 'getFileContentsBackendError')
+    return response
   }
 
   /** Set state of the project running in Hybrid mode as open in progress. */

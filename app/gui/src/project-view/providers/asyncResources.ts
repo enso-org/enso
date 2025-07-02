@@ -115,7 +115,6 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
         const capturedContext = captureResourceContext(context)
         // Start all uploads immediately, but yield them in original order.
         const normalizedSources = [...normalizeUploadSources(source)]
-        console.log('normalizedSources', normalizedSources)
         return normalizedSources.map((s) =>
           uploadSingleResource(s, capturedContext).then((upload) =>
             mapOk(upload, (resourceUrl) => ({

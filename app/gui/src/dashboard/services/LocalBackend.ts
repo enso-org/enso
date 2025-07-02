@@ -22,7 +22,7 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 }
 
 export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
-export const LOCAL_PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
+export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
 export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
@@ -32,7 +32,7 @@ export function newDirectoryId(path: projectManager.Path) {
 
 /** Create a {@link backend.ProjectId} from a UUID. */
 export function newProjectId(uuid: projectManager.UUID, path: projectManager.Path) {
-  return backend.ProjectId(`${LOCAL_PROJECT_ID_PREFIX}${uuid}-${path}`)
+  return backend.ProjectId(`${PROJECT_ID_PREFIX}${uuid}-${path}`)
 }
 
 /** Check if given {@link backend.ProjectId} represents a local project. */
@@ -40,14 +40,9 @@ export function isLocalProjectId(projectId: backend.ProjectId): boolean {
   // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
   const uuidLength = 36
   return (
-    projectId.startsWith(LOCAL_PROJECT_ID_PREFIX) &&
-    projectId[LOCAL_PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
-    isUuid(
-      projectId.substring(
-        LOCAL_PROJECT_ID_PREFIX.length,
-        LOCAL_PROJECT_ID_PREFIX.length + uuidLength,
-      ),
-    )
+    projectId.startsWith(PROJECT_ID_PREFIX) &&
+    projectId[PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
+    isUuid(projectId.substring(PROJECT_ID_PREFIX.length, PROJECT_ID_PREFIX.length + uuidLength))
   )
 }
 
@@ -89,7 +84,7 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
  * @throws {Error} if the id has an unknown type.
  */
 export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
-  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(?:loc-)?(.+)/) ?? []
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
   const { directoryPath } = getDirectoryAndName(projectManager.Path(idRaw))
 
   switch (typeRaw) {
@@ -834,12 +829,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Resolve the data of a project asset relative to the project root directory. */
-  async resolveProjectAssetData(projectId: backend.ProjectId, relativePath: string): Promise<Blob> {
-    const response = await this.projectManager.getFileContent(
-      extractTypeAndId(projectId).id,
-      relativePath,
-    )
-    return response.blob()
+  override async resolveProjectAssetData(
+    projectId: backend.ProjectId,
+    relativePath: string,
+  ): Promise<Response> {
+    return await this.projectManager.getFileContent(extractTypeAndId(projectId).id, relativePath)
   }
 
   /** Download an asset. */
@@ -920,19 +914,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override syncProjectExecution() {
     return this.invalidOperation()
-  }
-
-  /**
-   * Get the content of a file.
-   *
-   * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
-   */
-  override async getMainFileContent(projectId: backend.ProjectId) {
-    const response = await this.projectManager.getFileContent(
-      extractTypeAndId(projectId).id,
-      `src/Main.enso`,
-    )
-    return response.text()
   }
 
   /** Invalid operation. */

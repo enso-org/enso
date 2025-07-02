@@ -65,7 +65,6 @@ const uploadErrorToast = useToast.error()
 function handleUpload(source: AnyUploadSource): boolean {
   if (!res) return false
   const uploads = res.uploadResources(source, uploadContext)
-  console.log('uploads', uploads)
   if (uploads.length == 0) return false
 
   const coords = source instanceof DragEvent ? new Vec2(source.clientX, source.clientY) : undefined
