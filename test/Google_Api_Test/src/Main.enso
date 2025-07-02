@@ -1,7 +1,8 @@
 from Standard.Base import all
 from Standard.Google_Api import all
 
-from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet
+from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet, Not_All_Rows_Downloaded
+from Standard.Google_Api.Google_Sheets_Workbook import Google_Api_Error
 
 from Standard.Test import all
 from Standard.Table import Table
@@ -45,8 +46,13 @@ add_specs suite_builder =
             r6 = wb.read 6
             r6.should_fail_with Invalid_Location
             r6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
-        ## group_builder.specify "Missing sheet name should error" pending='X' <|
-           x = 1
+        group_builder.specify "Missing sheet name should error" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            r0 = wb.read "BadName"
+            r0.should_fail_with Google_Api_Error
+            r0.catch.to_display_text . should_equal 'Unable to parse range: BadName'
 
     suite_builder.group "Google Sheets - Headers" group_builder->
         group_builder.specify "should be able to read with no headers" <|
@@ -104,3 +110,65 @@ add_specs suite_builder =
             ws = wb.read 'Row1HasNumeric' ..Detect_Headers
             ws.column_names . should_equal (['A', 'B', 'C'])
             ws . should_equal (Table.new [['A', ['U', 'X']],['B', ['V', 'Y']],['C', [3, 'Z']]])
+
+    suite_builder.group "Google Sheets - Limit" group_builder->
+        group_builder.specify "should be able to limit rows returned with headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers (..First 1) . should_equal (Table.new [['X', ['Y']]])
+        group_builder.specify "should be able to limit rows returned with headers (zero limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers (..First 0) . should_equal (Table.new [['X', []]])
+        group_builder.specify "should be able to limit rows returned with headers (negative limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers (..First -1) . should_equal (Table.new [['X', []]])
+        group_builder.specify "should be able to limit rows and warn" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            ws = wb.read 'Sheet1' ..Has_Headers (..First_With_Warning 1) . should_equal (Table.new [['X', ['Y']]])
+            Problems.get_attached_warnings ws . should_equal [Not_All_Rows_Downloaded.Warning 1]
+        group_builder.specify "should be able to limit rows returned with no headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..No_Headers (..First 1) . should_equal (Table.new [['A', ['X']]])
+        group_builder.specify "should be able to limit rows returned with no headers (zero limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..No_Headers (..First 0) . should_equal (Table.new [['A', []]])
+        group_builder.specify "should be able to limit rows returned with no headers (negative limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..No_Headers (..First -1) . should_equal (Table.new [['A', []]])
+        group_builder.specify "should be able to limit rows with no headers and warn" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            ws = wb.read 'Sheet1' ..No_Headers (..First_With_Warning 1) . should_equal (Table.new [['A', ['X']]])
+            Problems.get_attached_warnings ws . should_equal [Not_All_Rows_Downloaded.Warning 1]
+
+    suite_builder.group "Google Sheets - Skip Rows" group_builder->
+        group_builder.specify "should be able to skip rows with no headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.read 'Sheet1' ..No_Headers skip_rows=1 . should_equal (Table.new [['A', ['Y', 'Z']]])
+        group_builder.specify "should be able to skip rows with headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.read 'Sheet1' ..Has_Headers skip_rows=1 . should_equal (Table.new [['Y', ['Z']]])
+        group_builder.specify "should be able to skip rows with detect headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.read 'Sheet1' ..Detect_Headers skip_rows=1 . should_equal (Table.new [['A', ['Y', 'Z']]])
+        group_builder.specify "should be able to skip rows with negative does nothing" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.read 'Sheet1' ..Detect_Headers skip_rows=-1 . should_equal (Table.new [['A', ['X', 'Y', 'Z']]])

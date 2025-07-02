@@ -8,6 +8,28 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
+import { ConditionVariable } from './utilities/ConditionVariable'
+
+/** An enumeration of all mutation pool ids. */
+export interface MutationPools {
+  // Required otherwise in this module there are no keys, and `pools[poolMeta.id]` below becomes
+  // `never`.
+  readonly [DUMMY_MUTATION_POOL_SYMBOL]: true
+}
+declare const DUMMY_MUTATION_POOL_SYMBOL: unique symbol
+
+/**
+ * Declaration merge into `MutationPools` to add a new mutation pool id:
+ *
+ * ```ts
+ * declare module 'enso-common/src/queryClient' {
+ *   interface MutationPools {
+ *     myNewPoolId: true
+ *   }
+ * }
+ * ```
+ */
+export type MutationPoolId = keyof MutationPools
 
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
@@ -40,6 +62,10 @@ declare module '@tanstack/query-core' {
        */
       readonly awaitInvalidates?: queryCore.QueryKey[] | boolean
       readonly refetchType?: queryCore.InvalidateQueryFilters['refetchType']
+      readonly pool?: {
+        id: MutationPoolId
+        parallelism: number
+      }
     }
 
     readonly queryMeta: {
@@ -86,7 +112,7 @@ export function createQueryClient<TStorageValue = string>(
       // fallback to the local cache only if the user is offline
       maxAge: DEFAULT_QUERY_PERSIST_TIME_MS,
       buster: DEFAULT_BUSTER,
-      filters: { predicate: (query) => query.meta?.persist !== false },
+      filters: { predicate: (query) => query.meta?.persist ?? true },
       prefix: 'enso:query-persist:',
       ...(persisterStorage.serialize != null ? { serialize: persisterStorage.serialize } : {}),
       ...(persisterStorage.deserialize != null ?
@@ -95,8 +121,29 @@ export function createQueryClient<TStorageValue = string>(
     })
   }
 
+  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: ConditionVariable }>> = {}
+
   const queryClient: QueryClient = new vueQuery.QueryClient({
     mutationCache: new queryCore.MutationCache({
+      onMutate: async (_variables, mutation) => {
+        const poolMeta = mutation.meta?.pool
+        if (!poolMeta) {
+          return
+        }
+        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new ConditionVariable() })
+        if (poolInfo.usedLanes >= poolMeta.parallelism) {
+          await poolInfo.queue.wait()
+        }
+        poolInfo.usedLanes += 1
+      },
+      onSettled: async (_data, _error, _variables, _context, mutation) => {
+        const poolMeta = mutation.meta?.pool
+        if (poolMeta) {
+          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new ConditionVariable() })
+          poolInfo.usedLanes -= 1
+          while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.notifyOne()));
+        }
+      },
       onSuccess: (_data, _variables, _context, mutation) => {
         const shouldAwaitInvalidates = mutation.meta?.awaitInvalidates ?? false
         const refetchType = mutation.meta?.refetchType ?? 'active'
