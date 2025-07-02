@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.InvalidatedExpressions
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -484,7 +485,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          None,
+          Some(InvalidatedExpressions.Expressions(Vector(idOut))),
           None,
           Seq(
             Api.ExpressionConfig(idIn, Some(Api.ExecutionEnvironment.Live()))
@@ -493,9 +494,26 @@ class RuntimeRecomputeTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        fromCache   = false,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        )
+      ),
       TestMessages.update(
         contextId,
         idIn,
@@ -515,7 +533,7 @@ class RuntimeRecomputeTest
       ),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("True", "True")
+    context.consumeOut shouldEqual List("False", "True")
   }
 
   it should "recompute recursive method call with expression configs" in {
