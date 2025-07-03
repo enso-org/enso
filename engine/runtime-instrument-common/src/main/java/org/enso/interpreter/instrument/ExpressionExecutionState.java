@@ -13,10 +13,6 @@ public final class ExpressionExecutionState {
     this.expressionConfigs = new HashMap<>();
   }
 
-  public ExpressionExecutionState(Map<UUID, ExecutionEnvironment> expressionConfigs) {
-    this.expressionConfigs = expressionConfigs;
-  }
-
   public void setExpressionConfigs(Map<UUID, ExecutionEnvironment> expressionConfigs) {
     this.expressionConfigs.putAll(expressionConfigs);
   }
@@ -26,6 +22,6 @@ public final class ExpressionExecutionState {
   }
 
   public ExecutionEnvironment getExecutionEnvironment(UUID expressionId) {
-    return expressionConfigs.remove(expressionId);
+    return expressionConfigs.get(expressionId);
   }
 }
