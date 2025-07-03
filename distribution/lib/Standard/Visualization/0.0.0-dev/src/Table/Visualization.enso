@@ -20,7 +20,7 @@ import project.Helpers
    - y: The table to prepare for visualization.
    - max_rows: The maximum number of rows to display.
 
-   In case of Database backed data, it materializes a fragment of the data.
+   In case of Database backed data, it materializes a sample of the data.
 prepare_visualization : Any -> Integer -> Text
 prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error y.catch).to_text else
     x = Warning.set y []
