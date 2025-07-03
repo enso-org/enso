@@ -60,6 +60,7 @@
 - [Support `skip_rows` and `on_empty_field` for fixed-width files.][13240]
 - [Add Google_Sheets.read][13307]
 - [Align the Generic JDBC Connection with the main Connection type][13365]
+- [Add `execute_query` to the `Connection` types.][13415]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -69,6 +70,7 @@
 [13240]: https://github.com/enso-org/enso/pull/13240
 [13307]: https://github.com/enso-org/enso/pull/13307
 [13365]: https://github.com/enso-org/enso/pull/13365
+[13415]: https://github.com/enso-org/enso/pull/13415
 
 #### Enso Language & Runtime
 

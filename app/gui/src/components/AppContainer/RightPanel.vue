@@ -19,7 +19,6 @@ import { Rect } from '@/util/data/rect'
 import type { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
-import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()
@@ -46,9 +45,7 @@ const component = computed(() => {
   }
 })
 
-const visibleTabs = computed(() => [
-  ...filter(data.allTabs.entries(), ([, info]) => info.hidden?.value !== true),
-])
+const visibleTabs = computed(() => [...data.allTabs.entries()])
 
 function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)

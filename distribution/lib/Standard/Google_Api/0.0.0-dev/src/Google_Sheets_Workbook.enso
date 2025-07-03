@@ -10,10 +10,11 @@ from Standard.Table.Errors import Invalid_Location, Empty_Sheet
 import project.Internal.Telemetry
 import Standard.Table.Internal.Java_Problems
 from Standard.Table.In_Memory_Table import from_java_table
+import Standard.Table.Rows_To_Read.Rows_To_Read
 
 from Standard.Table import Table, Headers
 
-polyglot java import java.io.IOException
+polyglot java import com.google.api.client.googleapis.json.GoogleJsonResponseException
 polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.GoogleSheetsHeaders
 polyglot java import org.enso.google.WrappedGoogleCredentials
@@ -60,17 +61,19 @@ type Google_Sheets_Workbook
          `Detect_Headers`).
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
+       - skip_rows: the number of rows to skip before starting to read data. (Headers are taken after skipping).
     @query self-> _query_widget self
-    read self query:(Text|Integer) headers:Headers=..Detect_Headers on_problems:Problem_Behavior=..Report_Warning -> Table =
+    read self query:(Text|Integer) headers:Headers=..Detect_Headers limit:Rows_To_Read=..All_Rows skip_rows:Integer=0 on_problems:Problem_Behavior=..Report_Warning -> Table =
         java_headers = _make_java_headers headers
+        java_limit = limit.rows_to_read
         java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator-> _handle_exceptions <|
             case query of
-                _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_problem_aggregator
+                _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_limit skip_rows java_problem_aggregator
                 _ : Integer ->
                     names = self.sheet_names
                     if (query < 1 || query > names.length) then Error.throw (Invalid_Location.Error "Sheet "+query.to_text+" is out of range (1 to "+names.length.to_text+" inclusive).") else
-                        self.java_service.getSheetRange self.workbook_id (names.at (query - 1)) java_headers java_problem_aggregator
-        result = (from_java_table java_table)
+                        self.java_service.getSheetRange self.workbook_id (names.at (query - 1)) java_headers java_limit skip_rows java_problem_aggregator
+        result = limit.attach_warning (from_java_table java_table)
         result.if_not_error <|
             Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
         result
@@ -82,11 +85,14 @@ Table_Viz_Data.from (that:Google_Sheets_Workbook) =
 ## Error occurred when calling the Google Sheets API
 type Google_Api_Error
     ## PRIVATE
-    Error message cause
+    Error details
+
+    to_display_text self =
+        self.details.at 'message'
 
 private _handle_exceptions ~action = Empty_Sheet.handle_java_exception <|
-    Panic.catch IOException action caught_panic->
-        Error.throw (Google_Api_Error.Error caught_panic.payload.to_text caught_panic.payload)
+    Panic.catch GoogleJsonResponseException action caught_panic->
+        Error.throw (Google_Api_Error.Error caught_panic.payload.getContent.parse_json)
 
 private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
     case credential of

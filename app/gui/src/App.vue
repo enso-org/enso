@@ -99,7 +99,7 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 if (projectViewOnly) {
   provideOpenedProjects()
   provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId, () => false, true, useText())
+  provideRightPanelData(projectViewOnly.options.projectId, () => false, useText())
   provideFullscreenRoot(fullscreenRoot)
 }
 </script>

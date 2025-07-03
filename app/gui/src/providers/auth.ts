@@ -3,11 +3,7 @@ import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
-import {
-  featureFlagsForInternalTesting,
-  setFeatureFlags,
-  useFeatureFlag,
-} from '$/providers/featureFlags'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { useZustandStoreRef } from '$/utils/zustand'
 import { Opt } from '@/util/data/opt'
 import { ToValue } from '@/util/reactivity'
@@ -250,12 +246,6 @@ function createAuthStore(
 
   gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
   gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
-
-  watchEffect(() => {
-    if (userData.value?.type === UserSessionType.full && userData.value.user.isEnsoTeamMember) {
-      setFeatureFlags(featureFlagsForInternalTesting())
-    }
-  })
 
   const effectiveUserData = computed(() => {
     const intermediate =

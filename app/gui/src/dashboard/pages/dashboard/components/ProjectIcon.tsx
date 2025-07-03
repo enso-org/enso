@@ -4,8 +4,8 @@ import StopIcon from '#/assets/stop.svg'
 import { Button } from '#/components/Button'
 import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
+import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCanOpenProjects } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import { projectsStore } from '#/providers/ProjectsProvider/hooks'
@@ -78,7 +78,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     openProject,
   } = props
 
-  const isUnconditionallyDisabled = !useCanOpenProjects()
+  const isUnconditionallyDisabled = !useCanRunProjects().locally[backend.type]
 
   const { user } = useFullUserSession()
   const { getText } = useText()

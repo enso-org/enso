@@ -25,20 +25,6 @@ import invariant from 'tiny-invariant'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const MOCK_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 100 100">
-  <defs>
-    <pattern id="checkerboard" width="20" height="20" patternUnits="userSpaceOnUse">
-      <rect width="10" height="10" fill="white"/>
-      <rect x="10" y="0" width="10" height="10" fill="black"/>
-      <rect x="0" y="10" width="10" height="10" fill="black"/>
-      <rect x="10" y="10" width="10" height="10" fill="white"/>
-    </pattern>
-  </defs>
-  <rect width="100" height="100" fill="url(#checkerboard)"/>
-</svg>
-`
-
 /** The HTTP status code representing a response with an empty body. */
 const HTTP_STATUS_NO_CONTENT = 204
 /** The HTTP status code representing a bad request. */
@@ -88,18 +74,21 @@ const INITIAL_CALLS_OBJECT = {
   listTags: array<object>(),
   listUsers: array<object>(),
   listUserGroups: array<object>(),
-  getProjectDetails: array<{ projectId: backend.ProjectId }>(),
+  getProjectDetails: array<{ projectId: backend.ProjectId; presigned: boolean }>(),
   copyAsset: array<{ assetId: backend.AssetId; parentId: backend.DirectoryId }>(),
   listInvitations: array<object>(),
   inviteUser: array<object>(),
   createPermission: array<object>(),
   closeProject: array<{ projectId: backend.ProjectId }>(),
   openProject: array<{ projectId: backend.ProjectId }>(),
+  hybridSetOpenInProgress: array<{ projectId: backend.ProjectId }>(),
+  hybridSetOpened: array<{ projectId: backend.ProjectId }>(),
   deleteTag: array<{ tagId: backend.TagId }>(),
   postLogEvent: array<object>(),
   uploadUserPicture: array<{ content: string }>(),
   uploadOrganizationPicture: array<{ content: string }>(),
   s3Put: array<object>(),
+  s3Get: array<object>(),
   uploadFileStart: array<{ uploadId: backend.FileId }>(),
   uploadFileEnd: array<backend.UploadFileEndRequestBody>(),
   createSecret: array<backend.CreateSecretRequestBody>(),
@@ -203,7 +192,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   let featureFlags: Partial<FeatureFlags> = {
     enableLocalBackend: true,
     enableCloudExecution: true,
-    enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: true,
     enableAssetsTableBackgroundRefresh: false,
   }
@@ -734,8 +722,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await get(remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID), (_route, request) => {
       const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
       if (!maybeId) return
+      const presigned = new URL(request.url()).searchParams.get('presigned') === 'true'
       const projectId = backend.ProjectId(maybeId)
-      called('getProjectDetails', { projectId })
+      called('getProjectDetails', { projectId, presigned })
       const project = assetMap.get(projectId)
 
       if (!project) {
@@ -754,13 +743,18 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         Tried to get: \n ${JSON.stringify(project, null, 2)}`)
       }
 
+      const name = 'example project name'
       return {
         organizationId: defaultOrganizationId,
         projectId: projectId,
-        name: 'example project name',
+        name,
         state: project.projectState,
         packageName: 'Project_root',
         address: backend.Address('ws://localhost/'),
+        ensoPath: backend.EnsoPath(`enso://Users/${defaultUser.name}/${name}`),
+        ...(presigned ?
+          { url: backend.HttpsUrl(`${MOCK_S3_BUCKET_URL}${uniqueString.uniqueString()}`) }
+        : {}),
       } satisfies backend.ProjectRaw
     })
 
@@ -911,6 +905,49 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
       route.fulfill()
     })
+    await post(
+      remoteBackendPaths.getHybridSetOpenInProgress(GLOB_PROJECT_ID),
+      async (route, request) => {
+        const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
+        if (!maybeId) return
+        const projectId = backend.ProjectId(maybeId)
+        called('hybridSetOpenInProgress', { projectId })
+
+        const project = assetMap.get(projectId)
+
+        if (!project) {
+          throw new Error(
+            `Tried to open a project that does not exist. Project ID: ${projectId} \n Please make sure that you've created the project before opening it.`,
+          )
+        }
+
+        if (project?.projectState) {
+          object.unsafeMutable(project.projectState).type = backend.ProjectState.openInProgress
+        }
+
+        route.fulfill()
+      },
+    )
+    await post(remoteBackendPaths.getHybridSetOpened(GLOB_PROJECT_ID), async (route, request) => {
+      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
+      if (!maybeId) return
+      const projectId = backend.ProjectId(maybeId)
+      called('hybridSetOpened', { projectId })
+
+      const project = assetMap.get(projectId)
+
+      if (!project) {
+        throw new Error(
+          `Tried to open a project that does not exist. Project ID: ${projectId} \n Please make sure that you've created the project before opening it.`,
+        )
+      }
+
+      if (project?.projectState) {
+        object.unsafeMutable(project.projectState).type = backend.ProjectState.opened
+      }
+
+      route.fulfill()
+    })
     await delete_(remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async (route, request) => {
       const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
       if (!maybeId) return
@@ -948,16 +985,25 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
     await page.route(MOCK_S3_BUCKET_URL + '**', async (route, request) => {
-      if (request.method() !== 'PUT') {
+      if (request.method() === 'PUT') {
         called('s3Put', {})
-        await route.fallback()
-      } else {
         await route.fulfill({
           headers: {
             'Access-Control-Expose-Headers': 'ETag',
             ETag: uniqueString.uniqueString(),
           },
         })
+      } else if (request.method() === 'GET') {
+        called('s3Get', {})
+        const body = ''
+        await route.fulfill({
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          body,
+        })
+      } else {
+        await route.fallback()
       }
     })
     await post(remoteBackendPaths.UPLOAD_FILE_START_PATH + '*', () => {
@@ -975,13 +1021,17 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const body: backend.UploadFileEndRequestBody = request.postDataJSON()
       called('uploadFileEnd', body)
 
-      const file = addFile({
-        id: backend.FileId(body.uploadId),
-        title: body.fileName,
-        ...(body.parentDirectoryId != null ? { parentId: body.parentDirectoryId } : {}),
-      })
+      let id = body.assetId as backend.FileId
+      if (!id) {
+        const file = addFile({
+          id: backend.FileId(body.uploadId),
+          title: body.fileName,
+          ...(body.parentDirectoryId != null ? { parentId: body.parentDirectoryId } : {}),
+        })
+        id = file.id
+      }
 
-      return { id: file.id, project: null } satisfies backend.UploadedLargeAsset
+      return { id, project: null } satisfies backend.UploadedLargeAsset
     })
 
     await post(remoteBackendPaths.CREATE_SECRET_PATH + '*', async (_route, request) => {
@@ -1276,14 +1326,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       })
 
       return {
-        title: project.title,
-        id: project.id,
-        parentId: project.parentId,
+        name: project.title,
+        projectId: project.id,
         state: project.projectState,
         organizationId: defaultOrganizationId,
         packageName: 'Project_root',
-        projectId: id,
-      }
+        ensoPath: backend.EnsoPath(`enso://Users/${defaultUser.name}/${project.title}`),
+      } satisfies backend.CreatedProject
     })
 
     await post(remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', (_route, request) => {
@@ -1337,14 +1386,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         })
       },
     )
-
-    await page.route('mock/svg.svg', (route) => {
-      return route.fulfill({ body: MOCK_SVG, contentType: 'image/svg+xml' })
-    })
-
-    await page.route('**/assets/*.svg', (route) => {
-      return route.fulfill({ body: MOCK_SVG, contentType: 'image/svg+xml' })
-    })
 
     await page.route('*', async (route) => {
       if (!isOnline) {
