@@ -21,13 +21,15 @@ import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
 import { usePaywall } from '#/hooks/billing'
+import { useMount } from '#/hooks/mountHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
 import AppContainerVue from '$/components/AppContainer.vue'
-import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
+import { useAuth, UserSessionType } from '$/providers/auth'
+import { useBackends, useConfig, useFullUserSession, useUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
@@ -37,6 +39,19 @@ const AppContainer = vueComponent(AppContainerVue).default
 
 /** The component that contains the entire UI. */
 export default function Dashboard() {
+  const { setUsername } = useAuth()
+  const session = useUserSession()
+
+  useMount(() => {
+    if (session?.type === UserSessionType.partial) {
+      void setUsername(session.email)
+    }
+  })
+
+  if (session?.type === UserSessionType.partial) {
+    return null
+  }
+
   return (
     /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */

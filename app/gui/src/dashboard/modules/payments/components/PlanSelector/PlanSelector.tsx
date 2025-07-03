@@ -12,8 +12,6 @@ export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STY
   readonly showFreePlan: boolean
   readonly isOrganizationAdmin: boolean
   readonly plan?: Plan | null | undefined
-  readonly onSubscribeSuccess?: (plan: Plan) => void
-  readonly onSubscribeError?: (error: Error) => void
 }
 
 const PLAN_SELECTOR_STYLES = tv({
@@ -35,8 +33,6 @@ const PLAN_SELECTOR_STYLES = tv({
  */
 export function PlanSelector(props: PlanSelectorProps) {
   const {
-    onSubscribeSuccess,
-    onSubscribeError,
     plan,
     userPlan,
     showFreePlan,
@@ -78,8 +74,6 @@ export function PlanSelector(props: PlanSelectorProps) {
               paywallLevel={getPaywallLevel(newPlan)}
               userPaywallLevel={getPaywallLevel(userPlan)}
               className={classes.card()}
-              onSubscribeSuccess={onSubscribeSuccess}
-              onSubscribeError={onSubscribeError}
             />
           )
         })}

@@ -139,8 +139,6 @@ export interface CardProps {
   readonly paywallLevel: PaywallLevel
   readonly userPaywallLevel: PaywallLevel
   readonly className?: string | undefined
-  readonly onSubscribeSuccess?: ((plan: Plan) => void) | undefined
-  readonly onSubscribeError?: ((error: Error) => void) | undefined
 }
 
 /** Card component */
@@ -155,8 +153,6 @@ export function Card(props: CardProps) {
     paywallLevel,
     userPaywallLevel,
     className,
-    onSubscribeSuccess,
-    onSubscribeError,
   } = props
 
   const { getText } = useText()
@@ -178,7 +174,6 @@ export function Card(props: CardProps) {
       })
       window.open(url, '_blank')?.focus()
     },
-    onError: (error) => onSubscribeError?.(error),
   })
 
   const titleTextBase = getText(title)
@@ -203,10 +198,7 @@ export function Card(props: CardProps) {
 
       <div className="my-4">
         <propsForPlan.submitButton
-          onSubmit={async (seats) => {
-            await onSubmit({ plan, seats, period })
-            onSubscribeSuccess?.(plan)
-          }}
+          onSubmit={(seats) => onSubmit({ plan, seats, period })}
           plan={plan}
           period={period}
           userHasSubscription={userHasSubscription}

@@ -9,7 +9,6 @@ import {
   RESTORE_USER_PATH,
   SETUP_PATH,
   SUBSCRIBE_PATH,
-  SUBSCRIBE_SUCCESS_PATH,
 } from '$/appUtils'
 import { UserSessionType } from '$/providers/auth'
 import { flagsStore } from '$/providers/featureFlags'
@@ -54,14 +53,6 @@ const routes = [
               import('#/pages/subscribe/Subscribe').then((mod) => reactComponent(mod.Subscribe)),
           },
         ],
-      },
-      {
-        path: SUBSCRIBE_SUCCESS_PATH,
-        meta: { access: UserSessionType.full },
-        component: () =>
-          import('#/pages/subscribe/SubscribeSuccess').then((mod) =>
-            reactComponent(mod.SubscribeSuccess),
-          ),
       },
       {
         path: RESTORE_USER_PATH,

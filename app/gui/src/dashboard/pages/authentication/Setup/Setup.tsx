@@ -6,15 +6,12 @@ import Page from '#/components/Page'
 import { Separator } from '#/components/Separator'
 import * as stepper from '#/components/Stepper'
 import { Text } from '#/components/Text'
-import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useIsFirstRender } from '#/hooks/mountHooks'
-import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
-import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import { LOGIN_PATH } from '$/appUtils'
 import { UserSessionType } from '$/providers/auth'
-import { useAuth, useBackends, useRouter, useText, useUserSession } from '$/providers/react'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useAuth, useRouter, useText, useUserSession } from '$/providers/react'
 import type * as text from 'enso-common/src/text'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -98,223 +95,11 @@ const BASE_STEPS: Step[] = [
     canSkip: ({ plan }) => plan === Plan.free,
     hideNext: ({ plan }) => plan === Plan.free,
     /** Setup step for choosing plan. */
-    component: function ChoosePlanStep({ goToNextStep, plan, session }) {
+    component: function ChoosePlanStep({ plan, session }) {
       const isOrganizationAdmin =
         session && 'user' in session ? session.user.isOrganizationAdmin : false
 
-      return (
-        <PlanSelector
-          showFreePlan
-          userPlan={plan}
-          isOrganizationAdmin={isOrganizationAdmin}
-          onSubscribeSuccess={goToNextStep}
-        />
-      )
-    },
-  },
-  {
-    title: 'setOrgNameTitle',
-    text: 'setOrgNameDescription',
-    ignore: (context) => {
-      const isOrganizationAdmin =
-        context.session && 'user' in context.session ?
-          context.session.user.isOrganizationAdmin
-        : false
-
-      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
-    },
-    hideNext: true,
-    hidePrevious: true,
-    /** Setup step for setting organization name. */
-    component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = useText()
-      const { remoteBackend } = useBackends()
-
-      const { data: defaultOrgName } = useSuspenseQuery({
-        queryKey: [remoteBackend, 'getOrganization'],
-        queryFn: () => remoteBackend.getOrganization(),
-        select: (data) => data?.name ?? '',
-      })
-
-      const updateOrganizationMutation = useMutation(
-        backendMutationOptions(remoteBackend, 'updateOrganization', {
-          onSuccess: () => {
-            goToNextStep()
-          },
-        }),
-      )
-
-      return (
-        <Form
-          schema={(z) =>
-            z.object({ organizationName: z.string().min(1).max(ORGANIZATION_NAME_MAX_LENGTH) })
-          }
-          defaultValues={{ organizationName: defaultOrgName }}
-          className="max-w-96"
-          onSubmit={({ organizationName }) => {
-            if (organizationName !== defaultOrgName) {
-              return updateOrganizationMutation.mutateAsync([{ name: organizationName }])
-            }
-          }}
-        >
-          <Input
-            name="organizationName"
-            autoComplete="off"
-            label={getText('organizationNameSettingsInput')}
-            description={getText(
-              'organizationNameSettingsInputDescription',
-              ORGANIZATION_NAME_MAX_LENGTH,
-            )}
-          />
-
-          <Button.Group align="start">
-            <Button variant="outline" onPress={goToPreviousStep}>
-              {getText('back')}
-            </Button>
-
-            <Form.Submit variant="primary">{getText('next')}</Form.Submit>
-          </Button.Group>
-
-          <Form.FormError />
-        </Form>
-      )
-    },
-  },
-  {
-    title: 'inviteUsers',
-    text: 'inviteUsersDescription',
-    ignore: (context) => {
-      const isOrganizationAdmin =
-        context.session && 'user' in context.session ?
-          context.session.user.isOrganizationAdmin
-        : false
-
-      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
-    },
-    hideNext: true,
-    hidePrevious: true,
-    /** Setup step for inviting users to the organization. */
-    component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = useText()
-
-      return (
-        <div className="max-w-96">
-          <InviteUsersForm onSubmitted={goToNextStep} />
-
-          <Button.Group align="start" className="mt-4">
-            <Button variant="outline" onPress={goToPreviousStep}>
-              {getText('back')}
-            </Button>
-
-            <Button variant="ghost-fading" onPress={goToNextStep}>
-              {getText('skip')}
-            </Button>
-          </Button.Group>
-        </div>
-      )
-    },
-  },
-  {
-    title: 'setDefaultUserGroup',
-    text: 'setDefaultUserGroupDescription',
-    ignore: (context) => {
-      const isOrganizationAdmin =
-        context.session && 'user' in context.session ?
-          context.session.user.isOrganizationAdmin
-        : false
-
-      return context.plan === Plan.free || context.plan === Plan.solo || !isOrganizationAdmin
-    },
-    hideNext: true,
-    hidePrevious: true,
-    /** Setup step for creating the first user group. */
-    component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = useText()
-      const { remoteBackend } = useBackends()
-
-      const defaultUserGroupMaxLength = 64
-
-      const listUsersQuery = useSuspenseQuery({
-        queryKey: ['users'],
-        queryFn: () => remoteBackend.listUsers(),
-      })
-
-      const changeUserGroupMutation = useMutation(
-        backendMutationOptions(remoteBackend, 'changeUserGroup'),
-      )
-
-      const createUserGroupMutation = useMutation(
-        backendMutationOptions(remoteBackend, 'createUserGroup', {
-          onSuccess: async (result) => {
-            await Promise.all([
-              listUsersQuery.data.map((user) =>
-                changeUserGroupMutation.mutateAsync([
-                  user.userId,
-                  { userGroups: [result.id] },
-                  user.name,
-                ]),
-              ),
-            ])
-
-            goToNextStep()
-          },
-        }),
-      )
-
-      return (
-        <Form
-          schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
-          className="max-w-96"
-          onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
-        >
-          <Input
-            name="groupName"
-            autoComplete="off"
-            label={getText('groupNameSettingsInput')}
-            description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
-          />
-
-          <Button.Group align="start">
-            <Button variant="outline" onPress={goToPreviousStep}>
-              {getText('back')}
-            </Button>
-
-            <Form.Submit variant="primary">{getText('next')}</Form.Submit>
-          </Button.Group>
-
-          <Form.FormError />
-        </Form>
-      )
-    },
-  },
-  {
-    title: 'allSet',
-    text: 'allSetDescription',
-    hideNext: true,
-    hidePrevious: true,
-    /** Final setup step. */
-    component: function AllSetStep({ goToPreviousStep }) {
-      const { getText } = useText()
-      const { router } = useRouter()
-      const queryClient = useQueryClient()
-
-      return (
-        <Button.Group align="start">
-          <Button variant="outline" onPress={goToPreviousStep}>
-            {getText('back')}
-          </Button>
-
-          <Button
-            variant="primary"
-            size="medium"
-            icon="arrow_right"
-            iconPosition="end"
-            onPress={() => queryClient.invalidateQueries().then(() => router.push(DASHBOARD_PATH))}
-          >
-            {getText('goToDashboard')}
-          </Button>
-        </Button.Group>
-      )
+      return <PlanSelector showFreePlan userPlan={plan} isOrganizationAdmin={isOrganizationAdmin} />
     },
   },
 ]
@@ -332,10 +117,6 @@ export function Setup() {
   const isDebug = route.query['__qd-debg__'] === 'true'
 
   const { stepperState, nextStep, previousStep, currentStep } = stepper.useStepperState({
-    defaultStep:
-      userPlan === Plan.team || userPlan === Plan.enterprise ? 2
-      : userPlan === Plan.solo ? 5
-      : 0,
     steps: steps.length,
     onStepChange: (step, direction) => {
       const screen = steps[step]

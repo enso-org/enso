@@ -14,7 +14,7 @@ export const REGISTRATION_PATH = '/registration'
 export const PAYMENTS_SUCCESS_PATH = '/payments/success'
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = '/confirmation'
-
+/** Path to the setup page. */
 export const SETUP_PATH = '/setup'
 /**
  * Path to the page in which a user can restore their account after it has been
@@ -25,16 +25,13 @@ export const RESTORE_USER_PATH = '/restore-user'
 export const FORGOT_PASSWORD_PATH = '/forgot-password'
 /** Path to the reset password page. */
 export const RESET_PASSWORD_PATH = '/password-reset'
-/** Path to the set username page. */
-/** Path to the offline mode entrypoint. */
 /** Path to page in which the currently active payment plan can be managed. */
 export const SUBSCRIBE_PATH = '/subscribe'
-export const SUBSCRIBE_SUCCESS_PATH = '/subscribe/success'
 /** A {@link RegExp} matching all paths. */
 export const ALL_PATHS_REGEX = new RegExp(
   `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
     `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${RESTORE_USER_PATH}|` +
-    `${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH}|${SETUP_PATH})$`,
+    `${SUBSCRIBE_PATH}|${SETUP_PATH})$`,
 )
 
 // === Constants related to URLs ===

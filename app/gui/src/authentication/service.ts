@@ -219,7 +219,7 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
         } else {
           // Otherwise, we need to navigate to the setup page, because user is already confirmed.
           // but the redirect link navigates to the confirmation page, for some reason.
-          redirectUrl = `${appUtils.SETUP_PATH}${url.search}`
+          redirectUrl = `${appUtils.DASHBOARD_PATH}${url.search}`
         }
         navigate(redirectUrl)
 

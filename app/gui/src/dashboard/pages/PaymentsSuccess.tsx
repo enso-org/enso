@@ -4,8 +4,8 @@ import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
 import { BackendType, Plan } from '#/services/Backend'
-import { DASHBOARD_PATH, SETUP_PATH } from '$/appUtils'
-import { useAuth, UserSessionType } from '$/providers/auth'
+import { DASHBOARD_PATH } from '$/appUtils'
+import { useAuth } from '$/providers/auth'
 import { useRouter, useText, useUserSession } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
@@ -38,11 +38,7 @@ export function PaymentsSuccess() {
             queryKey: [BackendType.remote, 'usersMe'],
           })
 
-          if (oldSession?.type === UserSessionType.full) {
-            await router.push(DASHBOARD_PATH)
-          } else {
-            await router.push(SETUP_PATH)
-          }
+          await router.push(DASHBOARD_PATH)
           break
         } else {
           const timePassedMs = Number(new Date()) - startEpochMs
