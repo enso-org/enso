@@ -191,7 +191,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
-  const totalSeats = 1
+  let totalSeats = 1
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let subscriptionDuration = 0
 
   let isOnline = true
   let currentUser: backend.User | null = defaultUser
@@ -1017,6 +1019,11 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await post(remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH + '*', async (_route, request) => {
       const body: backend.CreateCheckoutSessionRequestBody = await request.postDataJSON()
       called('createCheckoutSession', body)
+      if (currentUser) {
+        object.unsafeMutable(currentUser).plan = body.price
+      }
+      totalSeats = body.quantity
+      subscriptionDuration = body.interval
       return createCheckoutSession(body)
     })
 
