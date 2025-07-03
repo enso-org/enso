@@ -36,39 +36,49 @@ type Google_Analytics_Property
     time_zone : Time_Zone
     time_zone self = self.java_record.timeZone
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self = "Google Analytics Property: " + self.name + " (" + self.id + ")"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = self.to_text
 
-    ## GROUP Standard.Base.Metadata
-       ICON data_input
+    ## ---
+       group: Standard.Base.Metadata
+       icon: data_input
+       ---
        List of all metrics of the property.
 
-       Arguments:
-       - credentials: The Google credentials to use. Default is the default
-         credentials.
+       ## Arguments
+        - `credentials`: The Google credentials to use. Default is the default
+          credentials.
     @credentials (Google_Credential.default_widget)
     metrics : Google_Credential -> Vector
     metrics self credentials:Google_Credential=..Default =
         Google_Analytics.list_metrics credentials self
 
-    ## GROUP Standard.Base.Metadata
-       ICON data_input
+    ## ---
+       group: Standard.Base.Metadata
+       icon: data_input
+       ---
        List of all dimensions of the property.
 
-       Arguments:
-       - credentials: The Google credentials to use. Default is the default
-         credentials.
+       ## Arguments
+        - `credentials`: The Google credentials to use. Default is the default
+          credentials.
     @credentials (Google_Credential.default_widget)
     dimensions : Google_Credential -> Vector
     dimensions self credentials:Google_Credential=..Default =
         Google_Analytics.list_dimensions credentials self
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     default_widget self_arg cache display:Display=..Always -> Widget =
         _ = self_arg
 
@@ -80,14 +90,18 @@ type Google_Analytics_Property
             options = properties . map p->(Option (p.name + " (" + p.id + ")") p.id.pretty)
             make_single_choice options display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Google_Analytics_Property.from (that:Text) =
     id = if that.starts_with "properties/" then that else "properties/" + that
     display = id.replace (regex "^properties/") ""
     java_value = AnalyticsProperty.new id display False Date_Time.now "XXX" "XXX" Nothing
     Google_Analytics_Property.Value java_value
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Google_Analytics_Property.from (that:Vector) =
     if that.length != 1 then Error.throw (Illegal_Argument.Error "Expected exactly one property ID.") else
         first = that.first
