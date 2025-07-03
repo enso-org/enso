@@ -193,14 +193,14 @@ public class PrivateConstructorAccessTest {
             cons "Name"
 
         main =
-            call_method callback . name
+            call_method callback . to_text
         """,
         projDir);
 
     ProjectUtils.testProjectRun(
         projDir,
         res -> {
-          assertThat(res.asString(), is("Name"));
+          assertThat(res.asString(), containsString("My_Type.Cons 'Name'"));
         });
   }
 
