@@ -3,10 +3,10 @@
 import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
-import { BackendType } from '#/services/Backend'
-import { SETUP_PATH } from '$/appUtils'
-import { useAuth } from '$/providers/auth'
-import { useFullUserSession, useRouter, useText } from '$/providers/react'
+import { BackendType, Plan } from '#/services/Backend'
+import { DASHBOARD_PATH, SETUP_PATH } from '$/appUtils'
+import { useAuth, UserSessionType } from '$/providers/auth'
+import { useRouter, useText, useUserSession } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 
@@ -19,7 +19,7 @@ export function PaymentsSuccess() {
   const queryClient = useQueryClient()
   const { getText } = useText()
   const { refetchSession } = useAuth()
-  const { user } = useFullUserSession()
+  const oldSession = useUserSession()
 
   useMount(() => {
     const promise = (async () => {
@@ -27,13 +27,22 @@ export function PaymentsSuccess() {
 
       while (true) {
         const { data: session } = await refetchSession()
-        if (session && 'user' in session && session.user.plan === user.plan) {
+        if (
+          session &&
+          'user' in session &&
+          session.user.plan !==
+            (oldSession && 'user' in oldSession ? oldSession.user.plan : Plan.free)
+        ) {
           // Invalidate "users me" query as the user has changed the plan.
           await queryClient.invalidateQueries({
             queryKey: [BackendType.remote, 'usersMe'],
           })
 
-          await router.push(SETUP_PATH)
+          if (oldSession?.type === UserSessionType.full) {
+            await router.push(DASHBOARD_PATH)
+          } else {
+            await router.push(SETUP_PATH)
+          }
           break
         } else {
           const timePassedMs = Number(new Date()) - startEpochMs
