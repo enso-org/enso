@@ -36,6 +36,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
   } = props
 
   const canTrial = !userHasSubscription && !(plan === Plan.team || plan === Plan.enterprise)
+  const isSolo = plan === Plan.solo
 
   const { getText } = useText()
 
@@ -82,7 +83,21 @@ export function SubscribeButton(props: SubscribeButtonProps) {
         </Text>
       )}
 
-      {!isDowngrade && (
+      {!isDowngrade && isSolo && (
+        <Button
+          fullWidth
+          isDisabled={disabled}
+          variant={variant}
+          size="medium"
+          rounded="full"
+          aria-label={getText(PLAN_TO_UPGRADE_LABEL_ID[plan])}
+          onPress={() => onSubmit(1)}
+        >
+          {buttonText}
+        </Button>
+      )}
+
+      {!isDowngrade && !isSolo && (
         <Dialog.Trigger
           {...(disabled ? { defaultOpen: false }
           : defaultOpen == null ? {}
