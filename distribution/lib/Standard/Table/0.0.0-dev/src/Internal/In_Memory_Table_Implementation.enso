@@ -490,6 +490,7 @@ type In_Memory_Table_Implementation
 
     merge (this_table : Table & In_Memory_Table) (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         if lookup_table.is_error then lookup_table
+        _check_table_in_memory lookup_table
         if key_columns == [] then
             Error.throw (Missing_Argument.throw "key_columns")
 
