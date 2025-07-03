@@ -181,10 +181,16 @@ export function Card(props: CardProps) {
     onError: (error) => onSubscribeError?.(error),
   })
 
+  const titleTextBase = getText(title)
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  const shouldShowAnnualVariant = plan === Plan.solo && period === 12
+  const titleText =
+    shouldShowAnnualVariant ? getText('annualPlanVariant', titleTextBase) : titleTextBase
+
   return (
     <div className={styles.base({ className })}>
       <Text.Heading level={2} disableLineHeightCompensation>
-        {getText(title)}
+        {titleText}
       </Text.Heading>
 
       <Text elementType="p" variant="subtitle" weight="medium" disableLineHeightCompensation>
