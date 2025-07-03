@@ -50,46 +50,65 @@ import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 polyglot java import java.sql.Types as Java_Types
 polyglot java import org.enso.database.JDBCUtils
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The dialect of SQL Server databases.
 sqlserver : SQLServer_Dialect
 sqlserver =
     SQLServer_Dialect.Value make_dialect_operations
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The dialect of SQL Server databases.
 type SQLServer_Dialect
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The dialect of SQL Server databases.
     private Value internal_dialect_operations
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     dialect_operations self = self.internal_dialect_operations
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Name of the dialect.
     name : Text
     name self = sqlserver_dialect_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self = "SQL_Server_Dialect"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generates SQL to truncate a table.
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
         Base_Generator.truncate_table_truncate_table_style self table_name
 
-    ## PRIVATE
-       Generates SQL modifier for limiting the number of rows and its position in the query
+    ## ---
+       private: true
+       ---
+       Generates SQL modifier for limiting the number of rows and its position in
+       the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
         case limit of
@@ -98,14 +117,19 @@ type SQLServer_Dialect
                 "TOP 100 PERCENT "
             _ : Integer -> SQL_Builder.code (" TOP " + limit.to_text + " ")
 
-    ## PRIVATE
-       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
+    ## ---
+       private: true
+       ---
+       Returns an ordering of `SQL_Part`'s that determine what order each part
+       gets written in for the final SQL output If you add extensions using
+       `SQL_IR_Source_Extension` you have to provide an order for them here.
     get_part_order self part:SQL_Part -> Integer =
         [SQL_Part.Select, SQL_Part.Extension "sqlserver_distinct", SQL_Part.Limit, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order] . index_of part
 
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
@@ -113,29 +137,34 @@ type SQLServer_Dialect
     wrap_identifier self identifier =
         Base_Generator.wrap_in_quotes identifier
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
     make_table_literal self vecs column_names as_name =
         Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares an ordering descriptor.
-
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
 
-       Arguments:
-       - internal_column: the column to order by.
-       - sort_direction: the direction of the ordering.
-       - text_ordering: If provided, specifies that the column should be treated
-         as text values according to the provided ordering. For non-text types,
-         it should be set to `Nothing`.
+       ## Arguments
+        - `internal_column`: the column to order by.
+        - `sort_direction`: the direction of the ordering.
+        - `text_ordering`: If provided, specifies that the column should be
+          treated as text values according to the provided ordering. For non-text
+          types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         make_order_descriptor internal_column sort_direction text_ordering
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
@@ -153,13 +182,17 @@ type SQLServer_Dialect
         new_context = SQL_IR_Source.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self = SQLServer_Type_Mapping
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_statement_setter : Statement_Setter
     get_statement_setter self =
         custom_fill_hole stmt i type_hint value = case value of
@@ -179,7 +212,9 @@ type SQLServer_Dialect
             _ -> fill_hole_default stmt i type_hint value
         Statement_Setter.Value custom_fill_hole
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
@@ -195,7 +230,9 @@ type SQLServer_Dialect
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
     needs_execute_query_for_type_inference self statement =
         query_text = case statement of
@@ -206,26 +243,30 @@ type SQLServer_Dialect
         needs_execute = query_text.contains "dateadd" case_sensitivity=..Insensitive
         needs_execute
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self = Temp_Table_Style.Hash_Prefix
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
         column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Add an extra cast to adjust the output type of certain operations with
        certain arguments.
-
        It is used when the normal type inference provided by the database engine
        needs to be adjusted.
-
-       In most cases this method will just return the expression unchanged, it
-       is used only to override the type in cases where the default one that the
+       In most cases this method will just return the expression unchanged, it is
+       used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
         is_int ic =
@@ -244,21 +285,29 @@ type SQLServer_Dialect
         if cast_to.is_nothing then expression else
             SQL_IR_Expression.Operation "CAST" [expression, SQL_IR_Expression.Literal cast_to]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
         SQL_IR_Expression.Operation op_kind (columns.map c->(self.cast_op_type op_kind columns (Internals_Access.column_expression c)))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name quote_char=""
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_aggregate_support self aggregate:Aggregate_Column -> Boolean ! Unsupported_Database_Operation =
         unsupported name =
             Error.throw (Unsupported_Database_Operation.Error name) 
@@ -286,12 +335,16 @@ type SQLServer_Dialect
             Average _ _ -> True
             Median _ _ -> unsupported "Median"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
         self.dialect_operations.is_operation_supported operation
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
@@ -305,7 +358,9 @@ type SQLServer_Dialect
             Feature.Add_Group_Number -> True
             _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks a dialect flag
     flagged self flag:Dialect_Flag -> Boolean =
         case flag of
@@ -342,39 +397,50 @@ type SQLServer_Dialect
             Dialect_Flag.Supports_Date_Time_Without_Timezone -> False
             Dialect_Flag.Supports_Regex_Match -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW"]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_error_mapper : Error_Mapper
     get_error_mapper self = SQLServer_Error_Mapper
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The dialect-dependent strategy to get the Primary Key for a given table.
-
        Returns `Nothing` if the key is not defined.
     fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
         Dialect.default_fetch_primary_key connection table_name
 
-    ## PRIVATE
-       Prepares metadata for an operation taking a date/time period and checks
-       if the given period is supported.
+    ## ---
+       private: true
+       ---
+       Prepares metadata for an operation taking a date/time period and checks if
+       the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
         if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported sqlserver_dialect_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = case column of
         # Return the type as-is for database columns.
@@ -390,13 +456,17 @@ type SQLServer_Dialect
                         Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                 _ -> base_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     needs_literal_table_cast : Value_Type -> Boolean
     needs_literal_table_cast self value_type =
         _ = value_type
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         ## The jdbc driver doesn't work for asking about holes for SQLServer temp tables
@@ -404,23 +474,26 @@ type SQLServer_Dialect
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         if for_select then _generate_expression self base_gen expr Expression_Kind.Value materialize_null_check=True . first else
             _generate_expression self base_gen expr Expression_Kind.Boolean_Condition . first
 
-## Returns a pair of a SQL_Builder for the given expression and a vector of columns
-   that have been used in the expression and need to be checked for nulls.
-   SQL Server needs special handling commpared to ther databases as it does not have a
-   boolean data type.
-   This means that you can write
-       SELECT * FROM MyTable WHERE [Column1] > [Column2]
-   but you cannot write
-       SELECT [Column1] > [Column2] FROM MyTable
-   to write the second query you need to write
-       SELECT CASE WHEN [Column1] IS NULL OR [Column2] IS NULL WHEN [Column1] > [Column2] THEN 1 ELSE 0 END FROM MyTable
-   The below function collects all of the fields which are needed to be checked for nulls returning them in a vector
-   as the second element of the pair.
+## Returns a pair of a SQL_Builder for the given expression and a vector of
+   columns that have been used in the expression and need to be checked for
+   nulls.
+   SQL Server needs special handling compared to their databases as it does not
+   have a boolean data type.
+   This means that you can write:
+       `SELECT * FROM MyTable WHERE [Column1] > [Column2]`
+   but you cannot write:
+       `SELECT [Column1] > [Column2] FROM MyTable`
+   to write the second query you need to write:
+       `SELECT CASE WHEN [Column1] IS NULL OR [Column2] IS NULL WHEN [Column1] > [Column2] THEN 1 ELSE 0 END FROM MyTable`
+   The below function collects all of the fields which are needed to be checked
+   for nulls returning them in a vector as the second element of the pair.
    The first element of the pair is the SQL_Builder for the expression.
 private _generate_expression dialect base_gen expr expression_kind:Expression_Kind materialize_null_check:Boolean=False = case expr of
     SQL_IR_Expression.Column _ _ ->
@@ -469,7 +542,9 @@ private _generate_expression dialect base_gen expr expression_kind:Expression_Ki
     query : SQL_IR_Statement -> pair (base_gen.generate_sub_query dialect query) []
     descriptor : Order_Descriptor -> pair (base_gen.generate_order dialect descriptor) []
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Expression_Kind
     Boolean_Condition
     Value
@@ -506,7 +581,9 @@ private _op_return_kind op -> Expression_Kind =
 private _op_needs_to_materialize_null_checks op -> Boolean =
     ["FILL_NULL", "COALESCE", "COUNT_IS_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT", "SUM", "AVG", "LONGEST", "SHORTEST", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "STDDEV_POP", "STDDEV_SAMP", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MIN", "MAX"].contains op
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, like, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
@@ -535,34 +612,48 @@ private _make_iif arguments:Vector -> SQL_Builder =
         _ ->
             Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
     SQL_Builder.code "COALESCE(SUM(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 ELSE 0 END), 0)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
     SQL_Builder.code "COALESCE(SUM(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 ELSE 0 END), 0)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
     SQL_Builder.code "COALESCE(SUM(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 ELSE 0 END), 0)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
      SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LEN(" ++ arg ++ "))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LEN(" ++ arg ++ ") DESC)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 concat_ops =
     make_raw_concat_expr expr separator =
         SQL_Builder.code "string_agg(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr append_char="+"
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 trim_ops =
     whitespace = "' ' || CHR(9) || CHR(10) || CHR(13)"
     make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
@@ -577,7 +668,9 @@ trim_ops =
                         SQL_Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " = '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
     case args.length == 1 of
         True ->
@@ -585,7 +678,9 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
             SQL_Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
         False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLServer.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_distinct_include_null args = case args.length == 1 of
     True ->
         arg = args.first
@@ -594,59 +689,83 @@ agg_count_distinct_include_null args = case args.length == 1 of
         count ++ " + " ++ all_nulls_case
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLServer.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_empty = Base_Generator.lift_unary_op "IS_EMPTY" arg->
     is_null = (arg ++ " IS NULL").paren
     is_empty = (SQL_Builder.code 'DATALENGTH(' ++ arg ++ ') = 0').paren
     (is_null ++ " OR " ++ is_empty).paren
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
 starts_with = Base_Generator.lift_binary_op "STARTS_WITH" str-> sub->
     res = str ++ " LIKE (" ++ sub ++ "+'%')"
     res.paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 like = Base_Generator.lift_binary_op "LIKE" str-> sub->
     res = str ++ " LIKE (REPLACE(REPLACE(" ++ sub ++ ",'[','¬['), ']', '¬]')) ESCAPE '¬'"
     res.paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res = str ++ " LIKE ('%'+" ++ sub ++ ")"
     res.paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_contains_expr expr substring =
     SQL_Builder.code "CHARINDEX(" ++ substring ++ ", " ++ expr ++ ") > 0"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ') COLLATE Latin1_General_BIN2)'
 
-## PRIVATE
+## ---
+   private: true
+   ---
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
     SQL_Builder.code "left(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 _build_partition_sql grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
     group_part = if grouping.is_empty then "" else
         SQL_Builder.code "PARTITION BY " ++ grouping
     SQL_Builder.code "OVER(" ++ group_part ++ " ORDER BY " ++ ordering ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 _build_lead_lag_sql lead_lag:Text n:SQL_Builder colName:SQL_Builder grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
     partition_sql = _build_partition_sql grouping ordering
     SQL_Builder.code "(" ++ lead_lag ++ "(" ++ colName ++ ", " ++ n ++ ", NULL) " ++ partition_sql ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 _make_lead_lag lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
     n = arguments.at 0
     colName = arguments.at 1
@@ -654,7 +773,9 @@ _make_lead_lag lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.leng
     ordering = arguments.at 3
     _build_lead_lag_sql lead_lag n colName grouping ordering
 
-## PRIVATE
+## ---
+   private: true
+   ---
 _make_lead_lag_closest_value lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 5 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
     n = arguments.at 0
     colName = arguments.at 1
@@ -667,7 +788,9 @@ _make_lead_lag_closest_value lead_lag:Text arguments:Vector -> SQL_Builder = if 
     fill_sql = SQL_Builder.code "FIRST_VALUE(" ++ colName ++ ") " ++ partition_sql_for_row_number
     SQL_Builder.code "CASE WHEN ROW_NUMBER() " ++ partition_sql_for_row_number ++ " <= " ++ n ++ " THEN " ++ fill_sql ++ " ELSE " ++ lead_lag_sql ++ " END"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_order_descriptor internal_column sort_direction text_ordering =
     nulls = Nothing
     case text_ordering of
@@ -687,31 +810,45 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         True ->
                             Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="Latin1_General_CI_AS"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     SQL_Builder.code "bool_or(" ++ arg ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 bool_not = Base_Generator.lift_unary_op "NOT" arg->
     SQL_Builder.code "(" ++ arg ++ ")=0"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
 
-## PRIVATE
+## ---
+   private: true
+   ---
 decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
-## PRIVATE
+## ---
+   private: true
+   ---
 supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
@@ -721,7 +858,9 @@ supported_replace_params =
     e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
-## PRIVATE
+## ---
+   private: true
+   ---
 replace : Vector SQL_Builder -> Any -> SQL_Builder
 replace args metadata =
     input = args.at 0
@@ -797,7 +936,9 @@ private _get_sqlserver_interval interval:Date_Period|Time_Period -> Text =
         Time_Period.Microsecond -> "microsecond"
         Time_Period.Nanosecond -> "nanosecond"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_date_add arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.") else
         expr = arguments.at 0
@@ -805,7 +946,9 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
         interval = _get_sqlserver_interval metadata.period
         SQL_Builder.code "DATEADD(" ++  interval ++ ", " ++ amount ++ ", " ++  expr ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_date_diff arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_diff expects exactly 2 sub expressions. This is a bug in Database library.") else
         start = arguments.at 0
@@ -826,22 +969,24 @@ private _make_month_datediff start end -> SQL_Builder =
     adjustment_amount = SQL_Builder.code "IIF(SIGN(" ++ sqlserver_month_diff ++ ")!=SIGN(" ++ day_of_month_diff ++ "), 0, SIGN(" ++ day_of_month_diff ++ "))"
     SQL_Builder.code "IIF(" ++ sqlserver_month_diff ++ "=0, 0," ++ sqlserver_month_diff ++ " - " ++ adjustment_amount ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_date_trunc_to_day arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0
         SQL_Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
 
-## PRIVATE
-   The RUNTIME_ERROR operation should allow the query to compile fine and it
-   will not prevent it from running if the branch including this operation is
-   not taken. But if the branch is computed, it should ensure the query fails.
-
+## ---
+   private: true
+   ---
+   The RUNTIME_ERROR operation should allow the query to compile fine and it will
+   not prevent it from running if the branch including this operation is not
+   taken. But if the branch is computed, it should ensure the query fails.
    This query never returns a value, so its type should be polymorphic. However,
    that is not possible - so currently it just 'pretends' that it would return a
    Boolean - because that is the type we expect in the use-case. This can be
    altered if needed.
-
    It takes a variable as the second argument. It can be any value that is not
    statically known - this ensure that the optimizer will not be able to
    pre-compute the expression too early (which could make the query fail
@@ -855,11 +1000,15 @@ make_runtime_error_op arguments =
 
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_distinct_extension expressions =
     run_generator sql_expressions =
         SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
     SQL_IR_Source_Extension.Value part_name=(SQL_Part.Extension "sqlserver_distinct") expressions=expressions run_generator=run_generator
 
-## PRIVATE
+## ---
+   private: true
+   ---
 sqlserver_dialect_name = "SQL Server"
