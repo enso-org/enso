@@ -184,6 +184,7 @@ type Array
 
     ## GROUP Calculations
        ICON row_add
+       SUGGESTED 8
        Inserts the given item into the array at the given index.
 
        Arguments:
