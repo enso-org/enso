@@ -20,7 +20,9 @@ import {
 import { unsafeMutable } from '#/utilities/object'
 import { getDirectoryAndName } from '#/utilities/path'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { uuidv4 } from 'lib0/random.js'
+import { join } from 'node:path'
 import type { Page } from 'playwright'
 import test from 'playwright/test'
 
@@ -35,6 +37,7 @@ const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
   getDownloadDirectory: array<object>(),
+  downloadCloudProject: array<object>(),
   downloadProject: array<{ uuid: UUID; projectsDirectory: Path }>(),
   getFileContent: array<{ path: string }>(),
   createProject: array<CreateProjectParams>(),
@@ -368,6 +371,36 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       return route.fulfill({
         contentType: 'text/plain',
         body: DOWNLOAD_PATH,
+      })
+    })
+
+    await page.route('/api/cloud/download-project?*', async (route, request) => {
+      called('downloadCloudProject', {})
+      if (request.method() !== 'GET') {
+        return route.fulfill({ status: 400 })
+      }
+      const projectId = uniqueString()
+      const parentDirectory = join(ROOT_PATH, `cloud-${projectId}`)
+      const targetDirectory = join(parentDirectory, 'project_root')
+      addDirectory({ path: Path(parentDirectory) })
+      addProject({
+        path: Path(targetDirectory),
+        metadata: {
+          name: '',
+          namespace: '',
+          created: toRfc3339(new Date()),
+          id: UUID(uuidv4()),
+        },
+      })
+
+      await route.fulfill({
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetDirectory,
+          parentDirectory,
+        }),
       })
     })
 

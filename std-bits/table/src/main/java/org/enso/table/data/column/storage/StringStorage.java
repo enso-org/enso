@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.storage.type.TextType;
 
 /** A column storing strings. */
-public final class StringStorage extends SpecializedStorage<String> {
+public final class StringStorage extends TypedStorage<String> {
   /**
    * @param data the underlying data
    * @param type the type of the column
@@ -16,15 +16,5 @@ public final class StringStorage extends SpecializedStorage<String> {
   public TextType getType() {
     // As the type is fixed, we can safely cast it.
     return (TextType) super.getType();
-  }
-
-  @Override
-  protected SpecializedStorage<String> newInstance(String[] data) {
-    return new StringStorage(data, getType());
-  }
-
-  @Override
-  protected String[] newUnderlyingArray(int size) {
-    return new String[size];
   }
 }

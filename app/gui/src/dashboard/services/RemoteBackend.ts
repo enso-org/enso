@@ -18,7 +18,7 @@ import {
 } from '#/services/RemoteBackend/types'
 import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
-import * as object from '#/utilities/object'
+import * as objects from '#/utilities/object'
 import { getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
@@ -86,7 +86,7 @@ export default class RemoteBackend extends Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
   override readonly baseUrl = new URL($config.API_URL ?? '', location.href)
-  private user: object.Mutable<backend.User> | null = null
+  private user: objects.Mutable<backend.User> | null = null
 
   /** The path to the root directory of this {@link Backend}. */
   override rootPath(user: backend.User) {
@@ -420,7 +420,7 @@ export default class RemoteBackend extends Backend {
     } else {
       const ret = (await response.json()).assets
         .map((asset) =>
-          object.merge(asset, {
+          objects.merge(asset, {
             type: backend.getAssetTypeFromId(asset.id),
             // `Users` and `Teams` folders are virtual, so their children incorrectly have
             // the organization root id as their parent id.
@@ -428,7 +428,7 @@ export default class RemoteBackend extends Backend {
           }),
         )
         .map((asset) =>
-          object.merge(asset, {
+          objects.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
             ...(asset.ensoPath != null ?
               { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
@@ -846,10 +846,14 @@ export default class RemoteBackend extends Backend {
    */
   override async getProjectSessionLogs(
     projectSessionId: backend.ProjectSessionId,
+    params: backend.GetProjectSessionLogsRequestParams,
     title: string,
-  ): Promise<string[]> {
-    const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
-    const response = await this.get<string[]>(path)
+  ): Promise<backend.ProjectSessionLogs> {
+    const queryString = new URLSearchParams({
+      ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
+    }).toString()
+    const path = `${remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)}?${queryString}`
+    const response = await this.get<backend.ProjectSessionLogs>(path)
     if (!response.ok) {
       return await this.throw(response, 'getProjectLogsBackendError', title)
     } else {

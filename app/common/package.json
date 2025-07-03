@@ -33,6 +33,10 @@
     "@types/node": "^20.11.21",
     "is-network-error": "^1.1.0",
     "lib0": "^0.2.99",
-    "vitest": "3.0.5"
+    "vitest": "3.0.5",
+    "vue": "*"
+  },
+  "devDependencies": {
+    "@fast-check/vitest": "^0.2.1"
   }
 }

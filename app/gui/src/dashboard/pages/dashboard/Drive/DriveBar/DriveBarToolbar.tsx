@@ -159,7 +159,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   })
 
   const uploadFilesCallback = useEventCallback(async () => {
-    const files = await readUserSelectedFile()
+    const files = await readUserSelectedFile({ multiple: true })
     await uploadFiles(Array.from(files))
   })
 

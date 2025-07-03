@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -228,6 +228,26 @@ type SQLServer_Connection
     create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
     create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
+
+    ## ADVANCED
+       ICON data_input
+
+       Executes a raw query returning a Table object, which can be used to get the
+       results of the query. This is meant for advanced users who need to call direct
+       SQL queries that are not supported by the `query` method.
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+       - write_operation: if set to `True`, the query is expected to be a
+         write operation and will only run if the output context is enabled.
+         If set to `False`, the query is expected to be a read operation and
+         will run regardless of the output context. Defaults to `True`.
+    @query Text_Input display=..Always
+    @limit Rows_To_Read.default_widget
+    execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
+    execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
+        self.connection.execute_query query limit write_operation
 
     ## ADVANCED
        GROUP Standard.Base.Output

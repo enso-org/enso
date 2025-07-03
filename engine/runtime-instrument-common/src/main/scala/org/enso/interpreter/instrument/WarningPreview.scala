@@ -1,10 +1,10 @@
 package org.enso.interpreter.instrument
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-
 import org.enso.interpreter.instrument.job.VisualizationResult
 
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.CompletionStage
 
 object WarningPreview {
 
@@ -16,19 +16,27 @@ object WarningPreview {
     * @param ctx the runtime context
     * @return the string representation of the warning
     */
-  def execute(value: AnyRef)(implicit ctx: RuntimeContext): String = {
-    val visualizationExpression =
+  def execute(
+    value: AnyRef
+  )(implicit ctx: RuntimeContext): CompletionStage[String] = {
+    val visualizationExpressionFuture: CompletionStage[AnyRef] =
       ctx.executionService.evaluateExpression(
         ctx.executionService.getContext.getBuiltins.getModule,
         METHOD
       )
-    val visualizationResult = ctx.executionService.callFunction(
-      visualizationExpression,
-      value
-    )
-    val bytes =
-      VisualizationResult.visualizationResultToBytes(visualizationResult)
-    new String(bytes, StandardCharsets.UTF_8)
+    val visualizationResultFuture =
+      visualizationExpressionFuture.thenCompose(visualizationExpression =>
+        ctx.executionService.callFunction(
+          visualizationExpression,
+          value
+        )
+      )
+
+    visualizationResultFuture.thenApply(visualizationResult => {
+      val bytes =
+        VisualizationResult.visualizationResultToBytes(visualizationResult)
+      new String(bytes, StandardCharsets.UTF_8)
+    })
   }
 
 }

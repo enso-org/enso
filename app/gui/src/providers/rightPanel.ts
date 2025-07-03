@@ -18,7 +18,7 @@ export interface DisplayedHelp {
 }
 
 /** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
+export type AssetPropertiesSpotlight = 'datalink' | 'secret'
 
 /**
  * Context of right-side panels. See {@link useRightPanel}.
@@ -54,7 +54,6 @@ function useRightPanelTabs(
   currentTab: ToValue<TabId>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
-  enableScheduledExecution: ToValue<boolean>,
   { textRef, getText }: TextStore,
 ) {
   const isDriveView = computed(() => toValue(currentTab) === 'drive')
@@ -70,6 +69,14 @@ function useRightPanelTabs(
     : Err('Exclusive to Cloud category in Drive'),
   )
   return new Map([
+    [
+      'description',
+      {
+        icon: 'text',
+        enabled: enabledInCloudOnly,
+        title: 'Description',
+      },
+    ],
     [
       'settings',
       {
@@ -104,7 +111,6 @@ function useRightPanelTabs(
             return Err(getText('assetProjectExecutionsCalendar.teamPlanOnly'))
           return Ok()
         }),
-        hidden: computed(() => !toValue(enableScheduledExecution)),
         title: textRef('executionsCalendar'),
       },
     ],
@@ -138,18 +144,11 @@ export type RightPanelData = ReturnType<typeof useRightPanel>
 function useRightPanel(
   containerTab: ToValue<TabId>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
-  enableScheduledExecution: ToValue<boolean>,
   textStore: TextStore = useText(),
 ) {
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
-  const allTabs = useRightPanelTabs(
-    containerTab,
-    context,
-    isFeatureUnderPaywall,
-    enableScheduledExecution,
-    textStore,
-  )
+  const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
 

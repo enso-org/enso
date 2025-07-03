@@ -283,11 +283,11 @@ type Keybinds<T extends Record<K, string[]>, K extends keyof T = keyof T> =
   : T
 
 declare const brandKey: unique symbol
-type Key_ = string & { [brandKey]: true }
+type Key_ = string & { [brandKey]: never }
 declare const brandModifierFlags: unique symbol
-type ModifierFlags = number & { [brandModifierFlags]: true }
+type ModifierFlags = number & { [brandModifierFlags]: never }
 declare const brandPointerButtonFlags: unique symbol
-type PointerButtonFlags = number & { [brandPointerButtonFlags]: true }
+type PointerButtonFlags = number & { [brandPointerButtonFlags]: never }
 
 const definedNamespaces = new Set<string>()
 

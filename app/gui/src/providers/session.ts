@@ -22,9 +22,6 @@ export function createSessionQuery(authService: cognito.ISessionProvider) {
   return vueQuery.queryOptions({
     queryKey: ['userSession'],
     queryFn: async () => authService.userSession().catch(() => null),
-    meta: {
-      persist: false,
-    },
   })
 }
 
@@ -61,13 +58,16 @@ export function createSessionStore(
       if (data) {
         httpClient.setSessionToken(data.accessToken)
       }
-      return queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     },
     onError: (error) => {
       // Something went wrong with the refresh token, so we need to sign the user out.
       errorToast.reportError(Err(error).error, getText('sessionExpiredError'))
       queryClient.setQueryData(sessionQueryOptions.queryKey, null)
       return logoutMutation.mutate()
+    },
+    meta: {
+      invalidates: [sessionQueryOptions.queryKey],
+      awaitInvalidates: true,
     },
   })
 
@@ -297,7 +297,7 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    waitForSession: () => queryClient.ensureQueryData(sessionQueryOptions),
+    waitForSession: session.suspense,
     isLoggingOut,
     confirmSignUp,
     signInWithPassword,

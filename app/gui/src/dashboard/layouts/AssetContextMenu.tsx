@@ -27,7 +27,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useNewProject } from '#/hooks/backendHooks'
+import { useCanRunProjects, useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { usePasteData } from '#/providers/DriveProvider'
@@ -87,7 +87,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { localCategories } = useCategories()
 
   const getAsset = useGetAsset()
-  const canOpenProjects = projectHooks.useCanOpenProjects()
+  const canRunProjects = useCanRunProjects()
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
@@ -104,7 +104,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
-  const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
+  const disabledTooltip =
+    !canRunProjects.locally[backend.type] ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
   const newProject = useNewProject(backend, category)
@@ -161,8 +162,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
-
-  const enableHybridExecution = featureFlagsProvider.useFeatureFlag('enableHybridExecution')
 
   const pasteMenuEntry = hasPasteData && canPaste && (
     <ContextMenuEntry
@@ -254,17 +253,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               bindingFocusScope={rootRef}
               hidden={hidden}
               action="open"
-              isDisabled={!canOpenProjects}
+              isDisabled={!canRunProjects.locally[backend.type]}
               tooltip={disabledTooltip}
               doAction={() => openProjectLocally(asset, backend.type)}
             />
           )}
-        {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
+        {asset.type === backendModule.AssetType.project && isCloud && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
             hidden={hidden || localBackend == null}
             action="run"
-            isDisabled={!canOpenProjects}
+            isDisabled={!canRunProjects.natively[backend.type]}
             tooltip={disabledTooltip}
             doAction={() => openProjectNatively(asset, backend.type)}
           />

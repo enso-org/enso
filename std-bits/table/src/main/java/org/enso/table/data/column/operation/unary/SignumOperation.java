@@ -89,7 +89,7 @@ public final class SignumOperation implements UnaryOperation {
           default -> {
             builder.appendNulls(1);
             problemAggregator.reportIllegalArgumentError(
-                "Unsupported type for signum operation: " + item, Math.toIntExact(i));
+                "Unsupported type for signum operation: " + item, i);
           }
         }
       }

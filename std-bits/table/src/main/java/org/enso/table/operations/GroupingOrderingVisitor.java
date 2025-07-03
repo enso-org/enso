@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueIndex;
@@ -80,7 +80,7 @@ class NoGroupingNoOrderingRunning extends GroupingOrderingVisitor {
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     var it = runningStatistic.getNewRowVisitor();
-    for (int i = 0; i < numRows; i++) {
+    for (long i = 0; i < numRows; i++) {
       it.visit(i);
     }
     it.finalise();
@@ -107,7 +107,7 @@ class GroupingNoOrderingRunning extends GroupingOrderingVisitor {
 
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
-    for (int i = 0; i < numRows; i++) {
+    for (long i = 0; i < numRows; i++) {
       var key = new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
           groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
@@ -124,12 +124,12 @@ class NoGroupingOrderingRunning extends GroupingOrderingVisitor {
   private final List<OrderedMultiValueKey> keys;
 
   public NoGroupingOrderingRunning(Column[] orderingColumns, int[] directions) {
-    int n = orderingColumns[0].getSize();
+    long n = orderingColumns[0].getSize();
     orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     keys =
         new ArrayList<>(
-            IntStream.range(0, n)
+            LongStream.range(0, n)
                 .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
                 .toList());
     keys.sort(null);
@@ -149,7 +149,6 @@ class NoGroupingOrderingRunning extends GroupingOrderingVisitor {
 class GroupingOrderingRunning extends GroupingOrderingVisitor {
 
   private final Column[] groupingColumns;
-  private final Column[] orderingColumns;
   private final int[] directions;
   private final ColumnStorage<?>[] groupingStorages;
   private final ColumnStorage<?>[] orderingStorages;
@@ -161,7 +160,6 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
       int[] directions,
       ProblemAggregator problemAggregator) {
     this.groupingColumns = groupingColumns;
-    this.orderingColumns = orderingColumns;
     this.directions = directions;
     groupingStorages =
         Arrays.stream(groupingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
@@ -175,12 +173,9 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     var groupIndex =
         MultiValueIndex.makeUnorderedIndex(
-            groupingColumns,
-            (int) numRows,
-            TextFoldingStrategy.unicodeNormalizedFold,
-            problemAggregator);
+            groupingColumns, numRows, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
     for (var entry : groupIndex.mapping().entrySet()) {
-      List<Integer> indices = entry.getValue();
+      List<Long> indices = entry.getValue();
       List<OrderedMultiValueKey> orderingKeys =
           new ArrayList<>(
               indices.stream()

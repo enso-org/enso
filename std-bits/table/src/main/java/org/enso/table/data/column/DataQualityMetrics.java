@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
@@ -28,9 +30,21 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
 public abstract class DataQualityMetrics {
+  // A thread pool for executing data quality metrics computations asynchronously.
+  private static ExecutorService _threadFactory;
+
+  private static ExecutorService threadFactory() {
+    if (_threadFactory == null) {
+      _threadFactory =
+          Executors.newFixedThreadPool(Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
+    }
+    return _threadFactory;
+  }
+
   public static final String IS_INCOMPLETE = "_Is Incomplete";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
@@ -58,6 +72,29 @@ public abstract class DataQualityMetrics {
       _cachedMetrics = new LeastRecentlyUsedCache<>(1000);
     }
     return _cachedMetrics;
+  }
+
+  /**
+   * Triggers the computation of data quality metrics for the given table. This method is a no-op if
+   * the metrics have already been computed.
+   *
+   * @param table the table to trigger metrics for
+   */
+  public static void triggerTable(Table table) {
+    for (var column : table.getColumns()) {
+      DataQualityMetrics.triggerColumn(column);
+    }
+  }
+
+  /**
+   * Triggers the computation of data quality metrics for the given column. This method is a no-op
+   * if the metrics have already been computed.
+   *
+   * @param column the column to trigger metrics for
+   */
+  public static void triggerColumn(Column column) {
+    var storage = column.getStorage();
+    get(storage);
   }
 
   /**
@@ -184,7 +221,8 @@ public abstract class DataQualityMetrics {
                   Accumulator accumulator = new Accumulator();
                   DataQualityMetrics.loopOverAll(storage, accumulator::process);
                   return accumulator.getResult();
-                });
+                },
+                threadFactory());
       }
     }
 
@@ -259,7 +297,8 @@ public abstract class DataQualityMetrics {
                 Accumulator<T> accumulator = new Accumulator<>(comparator);
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              });
+              },
+              threadFactory());
     }
 
     @Override
@@ -335,7 +374,8 @@ public abstract class DataQualityMetrics {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
                 return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
-              });
+              },
+              threadFactory());
     }
 
     @Override
@@ -508,7 +548,8 @@ public abstract class DataQualityMetrics {
                 Accumulator accumulator = new Accumulator();
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              });
+              },
+              threadFactory());
     }
 
     @Override
@@ -556,7 +597,7 @@ public abstract class DataQualityMetrics {
 
     for (long i = 0; i < DEFAULT_SAMPLE_SIZE; i++) {
       // Generate a random index to sample from the storage.
-      long idx = rng.nextInt(Math.toIntExact(size));
+      long idx = rng.nextLong(size);
       consumer.accept(storage.getItemBoxed(idx));
     }
   }

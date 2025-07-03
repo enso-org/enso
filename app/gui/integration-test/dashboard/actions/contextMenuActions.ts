@@ -5,7 +5,7 @@ import type { PageCallback } from './BaseActions'
 import EditorPageActions from './EditorPageActions'
 
 /** Actions for the context menu. */
-interface ContextMenuActions<T extends BaseActions<Context>, Context> {
+export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly open: () => T
   readonly rename: () => T
   readonly snapshot: () => T

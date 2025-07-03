@@ -40,7 +40,6 @@ const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('edi
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
-  content: model.value,
   placeholder: () => props.placeholder ?? ' ',
   extensions: [syncExt],
   readonly: false,
@@ -56,7 +55,7 @@ watchEffect(() =>
 )
 
 const { getText, setText, onTextEdited, onUserAction } = connectSync(editorView)
-watch(model, (text) => setText(text))
+watch(model, (text) => setText(text), { immediate: true })
 onTextEdited((text) => {
   editing.value.edit(props.transformUserInput?.(text) ?? text)
   emit('textEdited', text)

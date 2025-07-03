@@ -6,7 +6,8 @@ export type FileExtension = `.${string}`
 export type MimeType = `${string}/${string}`
 
 export interface InputFilesOptions {
-  accept?: (FileExtension | MimeType)[] | []
+  readonly accept?: (FileExtension | MimeType)[] | []
+  readonly multiple?: boolean
 }
 
 /**
@@ -16,6 +17,7 @@ export function readUserSelectedFile(options: InputFilesOptions = {}) {
   return new Promise<FileList>((resolve, reject) => {
     const input = document.createElement('input')
     input.type = 'file'
+    input.multiple = options.multiple ?? false
     input.style.display = 'none'
     if (options.accept) input.accept = options.accept.join(',')
     document.body.appendChild(input)

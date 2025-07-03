@@ -101,7 +101,6 @@ public final class EnsoContext {
   private final boolean isIrCachingDisabled;
   private final boolean shouldWaitForPendingSerializationJobs;
   private final Builtins builtins;
-  private final String home;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
@@ -121,7 +120,6 @@ public final class EnsoContext {
    * Creates a new Enso context.
    *
    * @param language the language identifier
-   * @param home language home
    * @param environment the execution environment of the {@link TruffleLanguage}
    * @param notificationHandler a handler for notifications
    * @param lockManager the lock manager instance
@@ -129,7 +127,6 @@ public final class EnsoContext {
    */
   public EnsoContext(
       EnsoLanguage language,
-      String home,
       Env environment,
       NotificationHandler notificationHandler,
       LockManager lockManager,
@@ -183,7 +180,6 @@ public final class EnsoContext {
             .isLintingDisabled(getOption(RuntimeOptions.DISABLE_LINTING_KEY))
             .removeUnusedImports(shouldRemoveUnusedImports)
             .build();
-    this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
     this.lockManager = lockManager;
@@ -478,12 +474,23 @@ public final class EnsoContext {
   }
 
   /**
-   * Ensures that a module is preloaded if it can be loaded at all.
+   * Ensures that a module is preloaded if it can be loaded at all. If a module needs to be loaded,
+   * an appropriate write compilation lock needs to be acquired before calling this method.
    *
    * @param moduleName name of the module to preload
    */
   public void ensureModuleIsLoaded(String moduleName) {
     LibraryName.fromModuleName(moduleName).foreach(packageRepository::ensurePackageIsLoaded);
+  }
+
+  /**
+   * Signals if a module needs to be loaded.
+   *
+   * @param moduleName module to be checked
+   * @return true if module needs to be loaded first, false otherwise
+   */
+  public boolean moduleIsLoaded(String moduleName) {
+    return LibraryName.fromModuleName(moduleName).forall(packageRepository::isPackageLoaded);
   }
 
   /**

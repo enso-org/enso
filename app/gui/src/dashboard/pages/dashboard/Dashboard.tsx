@@ -27,7 +27,6 @@ import { vueComponent } from '#/utilities/vue'
 import AppContainerVue from '$/components/AppContainer.vue'
 import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { usePrefetchQuery } from '@tanstack/react-query'
 import { baseName } from 'enso-common/src/utilities/file'
 
@@ -177,7 +176,6 @@ function DashboardInner() {
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const { user } = useFullUserSession()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
-  const enableScheduledExecution = useFeatureFlag('enableScheduledExecution')
 
   return (
     <Page hideInfoBar>
@@ -194,7 +192,6 @@ function DashboardInner() {
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
           isFeatureUnderPaywall={isFeatureUnderPaywall}
-          enableScheduledExecution={enableScheduledExecution}
         />
       </div>
     </Page>

@@ -11,6 +11,7 @@
     - dialect self -> Standard.Base.Any.Any
     - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - execute_query self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - execute_update self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - jdbc_connection self -> Standard.Base.Any.Any
     - query self query:Standard.Database.SQL_Query.SQL_Query alias:Standard.Base.Any.Any= -> Standard.Base.Any.Any

@@ -1,4 +1,8 @@
-import { performCollapseImpl, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import {
+  COLLAPSED_FUNCTION_NAME,
+  performCollapseImpl,
+  prepareCollapsedInfo,
+} from '@/components/GraphEditor/collapsing'
 import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -191,14 +195,14 @@ test.each(testCases)('Collapsing nodes, $description', (testCase) => {
 
 test('Collapsing nodes in collapsed function', () => {
   const initialCode = `
-collapsed1 input =
+user_defined_component1 input =
     four = 4
     sum = input + four
     sum
 
 main =
     input = 14
-    sum = Main.collapsed1 input`
+    sum = Main.user_defined_component1 input`
 
   const graphDb = GraphDb.Mock()
   setupGraphDb(initialCode, graphDb)
@@ -257,7 +261,7 @@ test('Perform collapse', () => {
   expect(root.code()).toBe(
     [
       '## ICON group',
-      'collapsed keep1 =',
+      `${COLLAPSED_FUNCTION_NAME} keep1 =`,
       '    extract1 = keep1',
       '    extract2 = extract1 + 1',
       '    target = extract2',
@@ -266,7 +270,7 @@ test('Perform collapse', () => {
       'main =',
       '    keep1 = 1',
       '    keep2 = 2',
-      '    target = Main.collapsed keep1',
+      `    target = Main.${COLLAPSED_FUNCTION_NAME} keep1`,
     ].join('\n'),
   )
   const after = findExpressions(root, {
@@ -276,7 +280,7 @@ test('Perform collapse', () => {
     target: Ast.ExpressionStatement,
     'keep1 = 1': Ast.Assignment,
     'keep2 = 2': Ast.Assignment,
-    'target = Main.collapsed keep1': Ast.Assignment,
+    [`target = Main.${COLLAPSED_FUNCTION_NAME} keep1`]: Ast.Assignment,
   })
   expect(collapsedNodeIds).toStrictEqual(
     [after['target = extract2'], after['extract2 = extract1 + 1'], after['extract1 = keep1']].map(
@@ -284,5 +288,7 @@ test('Perform collapse', () => {
     ),
   )
   expect(outputAstId).toBe(after['target'].expression.id)
-  expect(collapsedCallRoot).toBe(after['target = Main.collapsed keep1'].expression.id)
+  expect(collapsedCallRoot).toBe(
+    after[`target = Main.${COLLAPSED_FUNCTION_NAME} keep1`]!.expression.id,
+  )
 })

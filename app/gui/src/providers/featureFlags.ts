@@ -4,6 +4,7 @@
  * Feature flags provider.
  * Feature flags are used to enable or disable certain features in the application.
  */
+import { unsafeEntries } from '#/utilities/object'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useZustandStoreRef } from '$/utils/zustand'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
@@ -13,34 +14,24 @@ import { persist } from 'zustand/middleware'
 
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
 export const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
-
-/** Feature flags for internal testing. */
-export function featureFlagsForInternalTesting() {
-  return {
-    enableCloudExecution: true,
-    enableScheduledExecution: true,
-    enableAdvancedProjectExecutionOptions: false,
-    enableHybridExecution: true,
-  }
-}
+export const DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE = 5
 
 export const FEATURE_FLAGS_SCHEMA = z.object({
   enableDeepLinks: z.boolean(),
   enableLocalBackend: z.boolean(),
   enableMultitabs: z.boolean(),
   enableAssetsTableBackgroundRefresh: z.boolean(),
-  assetsTableBackgroundRefreshInterval: z.number().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
+  assetsTableBackgroundRefreshInterval: z.number().int().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
   enableCloudExecution: z.boolean(),
-  enableScheduledExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
-  enableHybridExecution: z.boolean(),
   showDeveloperIds: z.boolean(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
+  fileChunkUploadPoolSize: z.number().int().min(1),
   unsafeDarkTheme: z.boolean(),
 })
 
-const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA })
+const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
 
 /** Feature flags. */
 export type FeatureFlags = z.infer<typeof FEATURE_FLAGS_SCHEMA>
@@ -65,12 +56,11 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         enableAssetsTableBackgroundRefresh: true,
         assetsTableBackgroundRefreshInterval: DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
-        enableScheduledExecution: true,
         enableAdvancedProjectExecutionOptions: false,
-        enableHybridExecution: IS_DEV_MODE,
         showDeveloperIds: false,
         overrideProfilePicture: false,
         multiplyUserList: false,
+        fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
         unsafeDarkTheme: false,
       },
       setFeatureFlag: (key, value) => {
@@ -84,14 +74,17 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
       name: 'enso-feature-flags',
       version: 1,
       merge: (persistedState, newState) => {
-        /**
-         * Mutates the state with provided feature flags
-         */
-        function unsafeMutateFeatureFlags(flags: Partial<FeatureFlags>) {
-          unsafeWriteValue(newState, 'featureFlags', {
-            ...newState.featureFlags,
-            ...flags,
-          })
+        /** Mutates the state with provided feature flags. */
+        function unsafeMutateFeatureFlags(flags: {
+          [K in keyof FeatureFlags]?: FeatureFlags[K] | undefined
+        }) {
+          const newFeatureFlags = { ...newState.featureFlags }
+          for (const [k, v] of unsafeEntries(flags)) {
+            if (v !== undefined) {
+              unsafeWriteValue(newFeatureFlags, k, v)
+            }
+          }
+          unsafeWriteValue(newState, 'featureFlags', newFeatureFlags)
         }
 
         const parsedPersistedState = FEATURE_FLAGS_STATE_SCHEMA.safeParse(persistedState)
