@@ -1,15 +1,11 @@
 /** @file Dialog that shows the plan details, price, and the payment form. */
-import { Button } from '#/components/Button'
-import { Checkbox } from '#/components/Checkbox'
 import { Dialog } from '#/components/Dialog'
 import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
-import { Selector } from '#/components/Inputs/Selector'
-import { Separator } from '#/components/Separator'
 import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
-import { Plan } from '#/services/Backend'
+import type { Plan, PlanBillingPeriod } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
@@ -36,10 +32,11 @@ const PLAN_TO_SEATS_DESCRIPTION_ID = {
 /** Props for {@link PlanSelectorDialog}. */
 export interface PlanSelectorDialogProps {
   readonly plan: Plan
+  readonly period: PlanBillingPeriod
   readonly planName: string
   readonly features: string[]
   readonly title: string
-  readonly onSubmit?: ((seats: number, interval: number) => Promise<void> | void) | undefined
+  readonly onSubmit?: ((seats: number) => Promise<void> | void) | undefined
   /** Whether the user clicked on the trial button. */
   readonly isTrialing?: boolean
 }
@@ -62,7 +59,7 @@ function billingPeriodToString(getText: GetText, item: number) {
 
 /** Dialog that shows the plan details, price, and the payment form. */
 export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
-  const { title, planName, features, plan, isTrialing = false, onSubmit } = props
+  const { title, planName, period, features, plan, isTrialing = false, onSubmit } = props
   const { getText, locale } = useText()
 
   const price = PRICE_BY_PLAN[plan]
@@ -78,19 +75,17 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           .positive()
           .min(1)
           .max(maxSeats, { message: getText('wantMoreSeats') }),
-        period: z.number(),
         agree: z
           .array(z.string())
           .min(1, { message: getText('licenseAgreementCheckboxError') })
           .max(1, { message: getText('licenseAgreementCheckboxError') }),
       }),
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    defaultValues: { seats: 1, period: 12, agree: [] },
-    onSubmit: ({ seats, period }) => onSubmit?.(seats, period),
+
+    defaultValues: { seats: 1, agree: [] },
+    onSubmit: ({ seats }) => onSubmit?.(seats),
   })
 
   const seats = Form.useWatch({ name: 'seats', control: form.control })
-  const period = Form.useWatch({ name: 'period', control: form.control })
 
   const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY })
 
@@ -105,74 +100,23 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           getText('priceTemplate', formatter.format(price), getText('billedAnnually'))}
       </Text>
 
-      <div>
-        <Text.Heading level="3" variant="body" weight="semibold" className="mb-1">
-          {getText('upgradeCTA', planName)}
-        </Text.Heading>
-
-        <PlanFeatures features={features} />
-      </div>
-
-      {plan !== Plan.solo && <Separator orientation="horizontal" className="my-4" />}
-
-      <ErrorBoundary>
-        <Suspense>
-          <Form form={form} className="mt-1">
-            <div className="grid grid-cols-[1fr]">
-              <div className="flex flex-col gap-4">
-                <div>
-                  {plan !== Plan.solo && (
-                    <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
-                  )}
-
-                  <div className="mt-1">
-                    {plan === Plan.solo && (
-                      <Selector
-                        form={form}
-                        name="period"
-                        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                        items={[1, 12]}
-                        label={getText('billingPeriod')}
-                      >
-                        {(item) => billingPeriodToString(getText, item)}
-                      </Selector>
-                    )}
-
-                    <Input
-                      isRequired
-                      readOnly={maxSeats === 1}
-                      form={form}
-                      name="seats"
-                      type="number"
-                      inputMode="decimal"
-                      size="small"
-                      min="1"
-                      label={getText('seats')}
-                      description={getText(PLAN_TO_SEATS_DESCRIPTION_ID[plan], maxSeats)}
-                    />
-
-                    <Checkbox.Group
-                      form={form}
-                      name="agree"
-                      description={
-                        <>
-                          {getText('slsaLicenseAgreementDescription1')}{' '}
-                          <Button
-                            variant="link"
-                            href="https://www.ensoanalytics.com/SLSA"
-                            target="_blank"
-                          >
-                            {getText('SLSA')}
-                          </Button>
-                          {getText('slsaLicenseAgreementDescription2')}
-                        </>
-                      }
-                    >
-                      <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
-                    </Checkbox.Group>
-                  </div>
-                </div>
-              </div>
+      <div className="flex items-center justify-between gap-4">
+        <ErrorBoundary>
+          <Suspense>
+            <Form form={form} className="mt-1">
+              <Input
+                isRequired
+                readOnly={maxSeats === 1}
+                form={form}
+                name="seats"
+                type="number"
+                inputMode="decimal"
+                size="small"
+                min="1"
+                className="mt-1"
+                label={getText('seats')}
+                description={getText(PLAN_TO_SEATS_DESCRIPTION_ID[plan], maxSeats)}
+              />
 
               <Summary
                 plan={plan}
@@ -181,14 +125,22 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                 formatter={formatter}
                 isInvalid={form.formState.errors.seats != null}
               />
-            </div>
 
-            <Form.Submit>
-              {isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
-            </Form.Submit>
-          </Form>
-        </Suspense>
-      </ErrorBoundary>
+              <Form.Submit>
+                {isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
+              </Form.Submit>
+            </Form>
+          </Suspense>
+        </ErrorBoundary>
+
+        <div>
+          <Text.Heading level="3" variant="body" weight="semibold" className="mb-1">
+            {getText('upgradeCTA', planName)}
+          </Text.Heading>
+
+          <PlanFeatures features={features} />
+        </div>
+      </div>
     </Dialog>
   )
 }

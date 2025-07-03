@@ -11,7 +11,6 @@ import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelector
 /** Props for a {@link SubscribeButton}. */
 export interface SubscribeButtonProps
   extends Omit<PlanSelectorDialogProps, 'isTrialing' | 'title'> {
-  readonly period: number
   readonly isOrganizationAdmin: boolean
   readonly userHasSubscription: boolean
   readonly isCurrent: boolean
@@ -23,10 +22,11 @@ export interface SubscribeButtonProps
 /** A button to subscribe to a plan. */
 export function SubscribeButton(props: SubscribeButtonProps) {
   const {
+    plan,
+    period,
     userHasSubscription,
     isCurrent,
     isDowngrade,
-    plan,
     onSubmit,
     planName,
     features,
@@ -101,6 +101,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
           <PlanSelectorDialog
             plan={plan}
+            period={period}
             planName={planName}
             features={features}
             onSubmit={onSubmit}
