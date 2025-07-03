@@ -369,9 +369,7 @@ const config = [
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            { name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE },
-          ],
+          paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }],
         },
       ],
       'no-restricted-properties': [
