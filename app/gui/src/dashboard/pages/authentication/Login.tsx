@@ -126,7 +126,7 @@ export default function Login() {
               <Button
                 size="large"
                 variant="outline"
-                icon="github_color"
+                icon="microsoft_color"
                 onPress={handleMicrosoftPress}
               >
                 {getText('signUpOrLoginWithMicrosoft')}

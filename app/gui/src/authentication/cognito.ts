@@ -51,6 +51,12 @@ import * as service from '$/authentication/service'
  * constant defined in the AWS Amplify library.
  */
 const GITHUB_PROVIDER = 'Github'
+/**
+ * String used to identify the Microsoft federated identity provider in AWS Amplify.
+ *
+ * This provider alone requires a string because it is not a standard provider, and thus has no
+ * constant defined in the AWS Amplify library.
+ */
 const MICROSOFT_PROVIDER = 'Microsoft'
 /** One second, in milliseconds. */
 const SEC_MS = 1_000
@@ -357,7 +363,7 @@ export class Cognito implements ISessionProvider {
   }
 
   /**
-   * Sign in via the GitHub federated identity provider.
+   * Sign in via the Microsoft federated identity provider.
    *
    * This function will open the GitHub authentication page in the user's browser. The user will
    * be asked to log in to their GitHub account, and then to grant access to the application.
