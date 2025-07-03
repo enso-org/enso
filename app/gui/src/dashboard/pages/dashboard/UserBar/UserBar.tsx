@@ -179,12 +179,12 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
           if ('menu' in item) {
             return (
               <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
-                <Button href={item.url} {...getSafetyProps(item.url)} className="hover-bg">
+                <Button href={item.url} {...getSafetyProps(item.url)}>
                   {getText(item.name)}
                 </Button>
 
                 <Menu.Trigger>
-                  <Button icon={ArrowDownIcon} aria-label={getText('more')} className="hover-bg" />
+                  <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
                   <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
@@ -203,7 +203,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
           }
 
         return (
-          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)} className="hover-bg">
+          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
             {getText(item.name)}
           </Button>
         )

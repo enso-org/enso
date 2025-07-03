@@ -33,10 +33,9 @@ const emit = defineEmits<{ activate: [] }>()
 .SvgButton {
   margin: -4px;
   gap: 4px;
-  transition: opacity 0.2s;
 
   &.disabled {
-    opacity: 0.3;
+    opacity: 0.2;
   }
 }
 </style>

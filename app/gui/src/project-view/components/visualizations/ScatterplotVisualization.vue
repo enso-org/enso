@@ -12,7 +12,7 @@ import { ToolbarItem } from './toolbar'
 export const name = 'Scatter Plot'
 export const icon = 'points'
 export const inputType = 'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector'
-const DEFAULT_LIMIT = 1024
+const DEFAULT_LIMIT = 100000000
 export const defaultPreprocessor = [
   'Standard.Visualization.Scatter_Plot',
   'process_to_json_text',
