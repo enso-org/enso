@@ -3,9 +3,10 @@
 import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
+import { BackendType } from '#/services/Backend'
 import { SETUP_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
-import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
+import { useFullUserSession, useRouter, useText } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 
@@ -19,7 +20,6 @@ export function PaymentsSuccess() {
   const { getText } = useText()
   const { refetchSession } = useAuth()
   const { user } = useFullUserSession()
-  const { remoteBackend } = useBackends()
 
   useMount(() => {
     const promise = (async () => {
@@ -30,7 +30,7 @@ export function PaymentsSuccess() {
         if (session && 'user' in session && session.user.plan === user.plan) {
           // Invalidate "users me" query as the user has changed the plan.
           await queryClient.invalidateQueries({
-            queryKey: [remoteBackend.type, 'usersMe'],
+            queryKey: [BackendType.remote, 'usersMe'],
           })
 
           await router.push(SETUP_PATH)
