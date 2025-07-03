@@ -1,10 +1,10 @@
 /** @file A page for when a subscription payment succeeds. */
 
+import { useMount } from '#/hooks/mountHooks'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
 import { toast } from 'react-toastify'
 
 const USER_REFETCH_DELAY_MS = 3_000
@@ -19,7 +19,7 @@ export function PaymentsSuccess() {
   const { user } = useFullUserSession()
   const { remoteBackend } = useBackends()
 
-  useEffect(() => {
+  useMount(() => {
     const promise = (async () => {
       const startEpochMs = Number(new Date())
 
@@ -45,14 +45,13 @@ export function PaymentsSuccess() {
         }
       }
     })()
+
     void toast.promise(promise, {
       pending: getText('paymentsSuccessPending'),
       success: getText('paymentsSuccessSuccess'),
       error: getText('paymentsSuccessError'),
     })
-  }, [getText, queryClient, refetchSession, remoteBackend.type, user.plan])
 
-  useEffect(() => {
     void router.push(DASHBOARD_PATH)
-  }, [router])
+  })
 }
