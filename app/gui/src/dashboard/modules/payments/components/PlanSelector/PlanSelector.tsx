@@ -68,7 +68,7 @@ export function PlanSelector(props: PlanSelectorProps) {
 
           return (
             <Card
-              key={newPlan}
+              key={`${newPlan}/${period}`}
               plan={newPlan}
               period={period}
               modalOpen={newPlan === plan}
