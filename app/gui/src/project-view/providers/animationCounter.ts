@@ -1,4 +1,5 @@
-import { computed, onScopeDispose, proxyRefs, ref } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed, onScopeDispose, ref } from 'vue'
 import { createContextStore } from '.'
 
 /**

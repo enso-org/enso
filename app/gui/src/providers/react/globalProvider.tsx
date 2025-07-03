@@ -18,9 +18,9 @@ import { RouterContext, RouterForReact } from '$/providers/react/router'
 import { SessionStore, useSession } from '$/providers/session'
 import { TextStore, useText } from '$/providers/text'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
+import { proxyRefs } from '@/util/reactivity'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
-import { proxyRefs } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 interface ContextsForReactProviderProps {
