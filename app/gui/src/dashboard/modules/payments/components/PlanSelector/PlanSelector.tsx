@@ -21,17 +21,10 @@ const PLAN_SELECTOR_STYLES = tv({
     className: 'w-full snap-x overflow-auto rounded-4xl scroll-hidden',
   }),
   variants: {
-    showFreePlan: {
-      true: {
-        grid: 'grid-cols-1fr md:grid-cols-2 xl:grid-cols-4',
-      },
-      false: {
-        grid: 'grid-cols-1fr md:grid-cols-3 justify-center',
-      },
-    },
+    showFreePlan: { true: { grid: '2xl:grid-cols-5' } },
   },
   slots: {
-    grid: 'inline-grid min-w-full gap-6 p-6',
+    grid: 'inline-grid min-w-full gap-6 p-6 grid-cols-1fr justify-center md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
     card: 'min-w-64 snap-center',
   },
 })
