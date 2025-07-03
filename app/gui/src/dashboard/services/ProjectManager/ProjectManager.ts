@@ -132,6 +132,11 @@ export class ProjectManager {
   }
 
   /** Get the state of a project given its path. */
+  getProjectId(projectPath: Path) {
+    return this.projectIds.get(projectPath)
+  }
+
+  /** Get the state of a project given its path. */
   async getProject(projectPath: Path) {
     await this.listDirectory(Path(getFolderPath(projectPath)))
     const projectId = this.projectIds.get(projectPath)

@@ -461,8 +461,9 @@ export function useUploadFileToCloudMutation() {
                   // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
                   const parentDirectoryPath = extractTypeAndPath(asset.parentId).path
 
+                  const id = localBackend.getProjectId(extractTypeAndPath(asset.id).path)
                   const projectResponse = await httpClient.get(
-                    `/api/project-manager/projects/${extractTypeAndPath(asset.id).path}/enso-project?projectsDirectory=${parentDirectoryPath}`,
+                    `/api/project-manager/projects/${id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
                   )
 
                   if (!projectResponse.ok) {

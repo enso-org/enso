@@ -480,7 +480,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
           return succeed({ exists: fileSystem.has(path) })
         }
         case 'filesystem-list': {
-          const folderPath = cliArguments[0]
+          const folderPath = cliArguments[0]?.replace(/[/]$/, '')
           const folder = folderPath != null ? fileSystem.get(folderPath) : null
           if (folder?.type !== 'DirectoryEntry') {
             return fail(`Could not find folder at '${folderPath}'`)

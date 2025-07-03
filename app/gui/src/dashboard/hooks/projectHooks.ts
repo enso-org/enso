@@ -484,6 +484,8 @@ function useOpenHybridProject() {
 
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
+      let launchedProject: LaunchedProject | undefined
+
       try {
         invariant(localBackend != null, 'Local Backend is null')
         addOpeningProject(asset.id)
@@ -495,7 +497,7 @@ function useOpenHybridProject() {
         let project
         for (const parentId of [localProject.targetId, localProject.parentId]) {
           const assets = await localBackend.listDirectory({
-            parentId: parentId,
+            parentId,
             filterBy: null,
             labels: null,
             recentProjects: false,
@@ -507,8 +509,8 @@ function useOpenHybridProject() {
         }
 
         removeOpeningProject(asset.id)
-        invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-        await openProject({
+        invariant(project, 'Downloaded cloud project does not exist in Local Backend.')
+        launchedProject = {
           id: project.id,
           title: asset.title,
           parentId: project.parentId,
@@ -519,11 +521,15 @@ function useOpenHybridProject() {
             parentId: localProject.parentId,
             cloudProjectDirectoryPath,
           },
-        })
+        }
+        await openProject(launchedProject)
       } catch (error) {
         removeOpeningProject(asset.id)
         toastAndLog('openProjectError', error, asset.title)
-        await closeProject({ ...asset, type: backendModule.BackendType.local })
+        await Promise.allSettled([
+          closeProject({ ...asset, type: backendModule.BackendType.remote }),
+          ...(launchedProject ? [closeProject(launchedProject)] : []),
+        ])
       }
     },
   )
