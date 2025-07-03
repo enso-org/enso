@@ -84,8 +84,6 @@ public class PrivateMethodAccessTest {
         from local.Lib import call_method
 
         callback priv_method =
-            # Here, we attempt to call `local.Lib.Mod.priv_method`
-            # Which should fail with private access error.
             priv_method 42
 
         main =
