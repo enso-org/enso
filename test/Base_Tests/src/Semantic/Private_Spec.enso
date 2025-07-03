@@ -20,17 +20,14 @@ add_specs spec_builder =
         group_builder.specify "can get on hold of private constructor" <|
             Public_Type.cons . is_nothing . should_be_false
 
-        group_builder.specify "cannot directly call private constructor" <|
-            Test.expect_panic Private_Access <| Public_Type.cons 42
+        group_builder.specify "can call private constructor via public getter" <|
+            obj = Public_Type.cons 42
+            obj.data . should_equal 42
 
-        # Optimally, we want `Priv_Type.Cons` expression to result in a compilation error.
-        # All the references to private methods/constructors are theoretically resolvable
-        # at compilation time. However, the current state of the static compiler does not
-        # allow us to do that easily.
-        # For more info, see https://github.com/enso-org/enso/issues/6729
-        group_builder.specify "can get reference to private constructor, but cannot call it" <|
+        group_builder.specify "can get reference to private constructor, and call it from different project" <|
             cons_fn data = Public_Type.cons data
-            Test.expect_panic Private_Access <| cons_fn 42
+            obj = cons_fn 42
+            obj.data . should_equal 42
 
         group_builder.specify "can call private constructor via public factory method" <|
             obj = Public_Type.create 42
@@ -62,10 +59,10 @@ add_specs spec_builder =
             cons_fn data = Public_Type.cons data
             Test.expect_panic Private_Access <| CallbackHelper.runCallbackInt cons_fn 42
 
-        group_builder.specify "cannot call private constructor from a lambda method" <|
-            Test.expect_panic Private_Access <|
-                Public_Type.in_ctx <|
-                    Public_Type.cons 42
+        group_builder.specify "can call private constructor from a lambda method" <|
+            obj = Public_Type.in_ctx <|
+                Public_Type.cons 42
+            obj.data . should_equal 42
 
         # Note that pattern matching on project-private constructor from a different project
         # is a compilation error. So we can only test it for the same project.
@@ -100,6 +97,11 @@ add_specs spec_builder =
         group_builder.specify "extension methods can be specified as private" <|
             obj = My_Priv_Type.Cons 42
             obj.ext_method . should_equal 42
+
+        group_builder.specify "can call private method obtained by public getter" <|
+            priv_func_ref = Public_Type.get_priv_func
+            res = priv_func_ref 42
+            res . should_equal 42
 
 
 
