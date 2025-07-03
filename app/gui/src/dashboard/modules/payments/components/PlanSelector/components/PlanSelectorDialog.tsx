@@ -36,7 +36,7 @@ export interface PlanSelectorDialogProps {
   readonly planName: string
   readonly features: string[]
   readonly title: string
-  readonly onSubmit?: ((seats: number) => Promise<void> | void) | undefined
+  readonly onSubmit: (seats: number) => Promise<void> | void
   /** Whether the user clicked on the trial button. */
   readonly isTrialing?: boolean
 }
@@ -75,14 +75,9 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           .positive()
           .min(1)
           .max(maxSeats, { message: getText('wantMoreSeats') }),
-        agree: z
-          .array(z.string())
-          .min(1, { message: getText('licenseAgreementCheckboxError') })
-          .max(1, { message: getText('licenseAgreementCheckboxError') }),
       }),
-
-    defaultValues: { seats: 1, agree: [] },
-    onSubmit: ({ seats }) => onSubmit?.(seats),
+    defaultValues: { seats: 1 },
+    onSubmit: ({ seats }) => onSubmit(seats),
   })
 
   const seats = Form.useWatch({ name: 'seats', control: form.control })
@@ -129,6 +124,8 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
               <Form.Submit>
                 {isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
               </Form.Submit>
+
+              <Form.FormError />
             </Form>
           </Suspense>
         </ErrorBoundary>

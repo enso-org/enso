@@ -169,7 +169,7 @@ export function Card(props: CardProps) {
 
   const styles = CARD_STYLES({ elevated })
 
-  const onCompleteMutation = useMutationCallback({
+  const onSubmit = useMutationCallback({
     mutationFn: async (mutationData: CreateCheckoutSessionMutationParams) => {
       const { url } = await remoteBackend.createCheckoutSession({
         price: mutationData.plan,
@@ -204,11 +204,7 @@ export function Card(props: CardProps) {
       <div className="my-4">
         <propsForPlan.submitButton
           onSubmit={async (seats) => {
-            await onCompleteMutation({
-              plan,
-              seats,
-              period,
-            })
+            await onSubmit({ plan, seats, period })
             onSubscribeSuccess?.(plan)
           }}
           plan={plan}
