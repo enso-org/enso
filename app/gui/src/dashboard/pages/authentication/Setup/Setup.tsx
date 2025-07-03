@@ -332,6 +332,10 @@ export function Setup() {
   const isDebug = route.query['__qd-debg__'] === 'true'
 
   const { stepperState, nextStep, previousStep, currentStep } = stepper.useStepperState({
+    defaultStep:
+      userPlan === Plan.team || userPlan === Plan.enterprise ? 2
+      : userPlan === Plan.solo ? 5
+      : 0,
     steps: steps.length,
     onStepChange: (step, direction) => {
       const screen = steps[step]

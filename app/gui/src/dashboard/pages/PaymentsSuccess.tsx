@@ -1,7 +1,9 @@
 /** @file A page for when a subscription payment succeeds. */
 
+import { Loader } from '#/components/Loader'
+import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
-import { DASHBOARD_PATH } from '$/appUtils'
+import { SETUP_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -30,6 +32,8 @@ export function PaymentsSuccess() {
           await queryClient.invalidateQueries({
             queryKey: [remoteBackend.type, 'usersMe'],
           })
+
+          await router.push(SETUP_PATH)
           break
         } else {
           const timePassedMs = Number(new Date()) - startEpochMs
@@ -51,7 +55,11 @@ export function PaymentsSuccess() {
       success: getText('paymentsSuccessSuccess'),
       error: getText('paymentsSuccessError'),
     })
-
-    void router.push(DASHBOARD_PATH)
   })
+
+  return (
+    <Page>
+      <Loader className="h-full w-full" />
+    </Page>
+  )
 }

@@ -639,6 +639,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Mock Cognito endpoints ===
 
+    await page.route('https://stripe.com/*', async (route) => {
+      await route.fulfill()
+    })
+
     await page.route('https://mock-cognito.com/change-password', async (route, request) => {
       if (request.method() !== 'POST') {
         await route.fallback()

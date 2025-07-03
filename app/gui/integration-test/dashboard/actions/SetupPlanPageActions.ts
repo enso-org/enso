@@ -30,7 +30,7 @@ export default class SetupPlanPageActions<Context> extends BaseActions<Context> 
         .getByText(TEXT.licenseAgreementCheckbox)
         .click()
       await page.getByLabel(TEXT.seats).getByRole('spinbutton').fill(String(seats))
-      await page.getByText(TEXT.subscribeSubmit).click()
+      await page.getByTestId('form-submit-button').click()
       await page.goto('/payments/success')
     }).into(SetupOrganizationPageActions<Context>)
   }
