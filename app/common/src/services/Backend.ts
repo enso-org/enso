@@ -1359,11 +1359,14 @@ export interface CreateUserGroupRequestBody {
   readonly name: string
 }
 
+/** Valid plan intervals. */
+export type PlanBillingPeriod = 1 | 12
+
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
   readonly price: Plan
   readonly quantity: number
-  readonly interval: number
+  readonly interval: PlanBillingPeriod
 }
 
 /** URL query string parameters for the "get log events" endpoint. */

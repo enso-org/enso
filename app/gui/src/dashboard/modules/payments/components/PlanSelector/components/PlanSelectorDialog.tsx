@@ -101,10 +101,8 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
       </Text.Heading>
 
       <Text variant="h1" weight="medium" disableLineHeightCompensation className="mb-2 block">
-        {isTrialing ?
-          getText('tryFree', TRIAL_DURATION_DAYS) +
-          getText('priceTemplate', formatter.format(price), getText('billedAnnually'))
-        : getText('priceTemplate', formatter.format(price), getText('billedAnnually'))}
+        {(isTrialing ? getText('tryFree', TRIAL_DURATION_DAYS) : '') +
+          getText('priceTemplate', formatter.format(price), getText('billedAnnually'))}
       </Text>
 
       <div>

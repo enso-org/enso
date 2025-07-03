@@ -11,11 +11,11 @@ import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelector
 /** Props for a {@link SubscribeButton}. */
 export interface SubscribeButtonProps
   extends Omit<PlanSelectorDialogProps, 'isTrialing' | 'title'> {
+  readonly period: number
   readonly isOrganizationAdmin: boolean
   readonly userHasSubscription: boolean
   readonly isCurrent: boolean
   readonly isDowngrade: boolean
-  readonly canTrial: boolean
   readonly isDisabled?: boolean
   readonly defaultOpen?: boolean
 }
@@ -26,7 +26,6 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     userHasSubscription,
     isCurrent,
     isDowngrade,
-    canTrial: canTrialRaw,
     plan,
     onSubmit,
     planName,
@@ -36,7 +35,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     defaultOpen,
   } = props
 
-  const canTrial = canTrialRaw && !(plan === Plan.team || plan === Plan.enterprise)
+  const canTrial = !userHasSubscription && !(plan === Plan.team || plan === Plan.enterprise)
 
   const { getText } = useText()
 
