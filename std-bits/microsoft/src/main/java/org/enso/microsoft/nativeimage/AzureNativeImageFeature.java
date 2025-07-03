@@ -1,5 +1,6 @@
 package org.enso.microsoft.nativeimage;
 
+import com.azure.core.implementation.ReflectionSerializable;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.file.Path;
@@ -11,11 +12,8 @@ import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
 
 /**
- * Explicitly registers all the classes that implement {@link com.azure.xml.XmlSerializable}
- * interface for reflection. This is needed for {@code azure-core} that (de)serializes objects into
- * XML via reflection.
- *
- * <p>Traverses all the {@code azure-*.jar} files on classpath.
+ * Manually registers some classes and methods for reflection from {@code azure-*.jar} files on
+ * classpath that are not registered by default in {@code reflection-config.json} files.
  *
  * <p>Note that there are various {@code reflection-config.json} files in azure modules, but they do
  * not list any classes that implement {@code XmlSerializable} interface.
@@ -24,8 +22,17 @@ public class AzureNativeImageFeature implements Feature {
 
   private static final String XML_SERIALIZABLE_CLASS_NAME = "com.azure.xml.XmlSerializable";
 
+  private int registeredClasses;
+  private int registeredMethods;
+  private int registeredFields;
+  private int registeredConstructors;
+
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
+    registeredClasses = 0;
+    registeredMethods = 0;
+    registeredFields = 0;
+    registeredConstructors = 0;
     System.out.println("[AzureNativeImageFeature] Registering classes for reflection...");
     var xmlSerializableClass = access.findClassByName(XML_SERIALIZABLE_CLASS_NAME);
     if (xmlSerializableClass == null) {
@@ -39,41 +46,83 @@ public class AzureNativeImageFeature implements Feature {
           "HttpResponseException class not found: com.azure.core.exception.HttpResponseException");
     }
 
-    var classesForReflection = new ArrayList<Class<?>>();
     for (var path : access.getApplicationClassPath()) {
       var fileName = path.getFileName().toString();
       if (fileName.startsWith("azure") && fileName.endsWith(".jar")) {
         var xmlClasses = findImplementationClasses(access, path, xmlSerializableClass);
-        System.out.println(
-            "[AzureNativeImageFeature] Found "
-                + xmlClasses.size()
-                + " classes implementing XmlSerializable in "
-                + fileName);
+        if (!xmlClasses.isEmpty()) {
+          System.out.println(
+              "[AzureNativeImageFeature] Found "
+                  + xmlClasses.size()
+                  + " classes implementing "
+                  + xmlSerializableClass.getName()
+                  + " in "
+                  + fileName);
+          for (var xmlClass : xmlClasses) {
+            registerXmlClassForReflection(xmlClass);
+          }
+        }
+
         var respExClasses = findImplementationClasses(access, path, httpExceptionClass);
-        System.out.println(
-            "[AzureNativeImageFeature] Found "
-                + respExClasses.size()
-                + " classes implementing HttpResponseException in "
-                + fileName);
-        classesForReflection.addAll(xmlClasses);
-        classesForReflection.addAll(respExClasses);
+        if (!respExClasses.isEmpty()) {
+          System.out.println(
+              "[AzureNativeImageFeature] Found "
+                  + respExClasses.size()
+                  + " classes implementing "
+                  + httpExceptionClass.getName()
+                  + " in "
+                  + fileName);
+          for (var respExClass : respExClasses) {
+            registerForReflection(respExClass);
+          }
+        }
       }
     }
-    System.out.println(
-        "Registering " + classesForReflection.size() + " classes for runtime reflection.");
     registerForReflection(xmlSerializableClass);
     registerForReflection(httpExceptionClass);
-    for (var klazz : classesForReflection) {
-      // TODO: Register only `toXml` and `fromXml` methods.
-      registerForReflection(klazz);
+    System.out.printf(
+        "[AzureNativeImageFeature] Registered %d classes, %d methods, %d fields, and %d"
+            + " constructors for reflection.%n",
+        registeredClasses, registeredMethods, registeredFields, registeredConstructors);
+  }
+
+  private void registerXmlClassForReflection(Class<?> clazz) {
+    RuntimeReflection.register(clazz);
+    registeredClasses++;
+    registerXmlMethodsForReflection(clazz);
+  }
+
+  /**
+   * Checks for the {@code toXml} and {@code fromXml} methods are inspired by {@link
+   * ReflectionSerializable#supportsXmlSerializable(Class)}.
+   */
+  private void registerXmlMethodsForReflection(Class<?> clazz) {
+    for (var method : clazz.getDeclaredMethods()) {
+      if (method.getName().equals("fromXml")) {
+        RuntimeReflection.register(method);
+        registeredMethods++;
+      } else if (method.getName().equals("toXml")) {
+        RuntimeReflection.register(method);
+        registeredMethods++;
+      }
     }
   }
 
-  private static void registerForReflection(Class<?> clazz) {
+  private void registerForReflection(Class<?> clazz) {
     RuntimeReflection.register(clazz);
-    RuntimeReflection.register(clazz.getConstructors());
-    RuntimeReflection.register(clazz.getMethods());
-    RuntimeReflection.register(clazz.getFields());
+    registeredClasses++;
+    var ctors = clazz.getConstructors();
+    RuntimeReflection.register(ctors);
+    registeredConstructors += ctors.length;
+
+    var methods = clazz.getMethods();
+    RuntimeReflection.register(methods);
+    registeredMethods += methods.length;
+
+    var fields = clazz.getFields();
+    RuntimeReflection.register(fields);
+    registeredFields += fields.length;
+
     RuntimeReflection.registerAllConstructors(clazz);
     RuntimeReflection.registerAllMethods(clazz);
     RuntimeReflection.registerAllFields(clazz);
