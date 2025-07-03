@@ -51,6 +51,7 @@ import * as service from '$/authentication/service'
  * constant defined in the AWS Amplify library.
  */
 const GITHUB_PROVIDER = 'Github'
+const MICROSOFT_PROVIDER = 'Microsoft'
 /** One second, in milliseconds. */
 const SEC_MS = 1_000
 
@@ -364,7 +365,7 @@ export class Cognito implements ISessionProvider {
    */
   async signInWithMicrosoft() {
     await amplify.Auth.federatedSignIn({
-      customProvider: 'Microsoft',
+      customProvider: MICROSOFT_PROVIDER,
     })
   }
 
@@ -431,12 +432,20 @@ export class Cognito implements ISessionProvider {
     // any other errors that might occur during sign out, that we really shouldn't be catching. This
     // also has the unintended consequence of delaying the sign out process by a few seconds (until
     // the timeout occurs).
-    try {
-      await amplify.Auth.signOut()
-    } catch (error) {
-      this.logger.error('Sign out failed', error)
-    } finally {
-      await amplify.Auth.signOut()
+
+    // When using Microsoft we need to first invalidate auth0 and windows live sessions before calling cognito.
+    const session = await amplify.Auth.currentSession()
+    const providerName = session.getIdToken().decodePayload()['identities'][0]['providerName']
+    if (providerName === MICROSOFT_PROVIDER) {
+      window.open($config.MICROSOFT_SIGN_OUT_URL, '_blank')
+    } else {
+      try {
+        await amplify.Auth.signOut()
+      } catch (error) {
+        this.logger.error('Sign out failed', error)
+      } finally {
+        await amplify.Auth.signOut()
+      }
     }
   }
 

@@ -225,6 +225,18 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
 
         break
       }
+      case '//auth/federated': {
+        void (async () => {
+          try {
+            await amplify.Auth.signOut()
+          } catch (error) {
+            logger.error('Sign out failed', error)
+          } finally {
+            await amplify.Auth.signOut()
+          }
+        })()
+        break
+      }
       case '//auth': {
         if (url.search === '') {
           // Signing out.

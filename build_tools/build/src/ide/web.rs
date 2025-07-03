@@ -94,6 +94,9 @@ pub mod env {
         /// The client ID for the Google OAuth integration used for Google Credentials.
         ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID, String;
 
+        /// Url for signing out when used Microsoft as IdP.
+        ENSO_IDE_MICROSOFT_SIGN_OUT_URL, String;
+
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
     }

@@ -24,7 +24,13 @@ import { useState } from 'react'
 /** A form for users to log in. */
 export default function Login() {
   const { router } = useRouter()
-  const { signInWithMicrosoft, signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
+  const {
+    signInWithMicrosoft,
+    signInWithGoogle,
+    signInWithGitHub,
+    signInWithPassword,
+    confirmSignIn,
+  } = useSession()
   const { getText } = useText()
 
   const [initialEmail] = useQueryParam('email')
