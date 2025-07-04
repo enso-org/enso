@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import ActionButton from '@/components/ActionButton.vue'
+import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
 import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
@@ -13,31 +13,22 @@ import {
   isToggleButton,
 } from '@/components/visualizations/toolbar'
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import type { ProjectPath } from '@/util/projectPath'
+import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
-import { computed, toRef, toValue } from 'vue'
+import { toRef, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
 
-const { names: projectNames } = useCurrentProject().storesRefs
+const UNKNOWN_TYPE = 'Unknown'
 
 const props = defineProps<{
   showControls: boolean
   allVisualizations: ReadonlyArray<VisualizationIdentifier>
   visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
+  typename: ProjectPath | undefined
   typeinfo: TypeInfo | undefined
 }>()
-
-const UNKNOWN_TYPE = 'Unknown'
-const nodeShortType = computed(() =>
-  props.typeinfo?.primaryType != null ? qnLastSegment(props.typeinfo.primaryType) : UNKNOWN_TYPE,
-)
-const fullType = computed(() =>
-  props.typeinfo != null && projectNames.value != null ?
-    projectNames.value.printProjectPath(props.typeinfo.primaryType as ProjectPath)
-  : UNKNOWN_TYPE,
-)
 
 const visualizationSelector = useVisualizationSelector({
   selectedType: currentVis,
@@ -92,10 +83,10 @@ const visualizationSelector = useVisualizationSelector({
     </template>
     <div
       class="after-toolbars node-type"
-      :title="fullType"
-      data-testid="visualisationNodeType"
-      v-text="nodeShortType"
-    />
+      data-testid="visualisationNodeType">
+      <ComponentEditorLabel :unknownLabel="UNKNOWN_TYPE" :typeInfo="props.typeinfo" v-if="props.typeinfo"/>
+      <span v-else class="node-type">{{ props.typename?.path ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE }}</span>
+    </div>
   </div>
 </template>
 
