@@ -7,7 +7,8 @@ import {
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
-import { computed, getCurrentInstance, proxyRefs, shallowRef, watchEffect, withCtx } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed, getCurrentInstance, shallowRef, watchEffect, withCtx } from 'vue'
 import { bail } from 'ydoc-shared/util/assert'
 
 const props = defineProps<{
