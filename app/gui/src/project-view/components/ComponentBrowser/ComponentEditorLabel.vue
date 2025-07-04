@@ -36,7 +36,7 @@ const label = computed(() => {
         <span
           class="additionalTypesPlaceholder"
           v-bind="triggerProps"
-          v-text="`${label} & ${additionalTypes.length - 1} more`"
+          v-text="`${label} & + ${additionalTypes.length - 1}`"
         />
       </template>
       <template #tooltip>
