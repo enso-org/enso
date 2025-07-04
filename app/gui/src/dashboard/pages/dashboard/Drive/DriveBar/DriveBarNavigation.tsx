@@ -17,6 +17,7 @@ import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
 import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
+import { NetworkError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -58,7 +59,7 @@ export function DriveBarNavigation() {
     queryFn: () => associatedBackend.getAssetDetails(currentDirectoryId),
     meta: { persist: false },
     retry: (count, error) => {
-      if (error instanceof AssetDoesNotExistError) {
+      if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
         setDriveLocation(null, null)
         return false
       }
