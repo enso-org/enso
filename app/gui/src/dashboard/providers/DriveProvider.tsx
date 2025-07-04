@@ -4,7 +4,6 @@ import * as React from 'react'
 import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
 import invariant from 'tiny-invariant'
 
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import type { Category, CategoryId } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
@@ -26,13 +25,20 @@ interface CurrentDirectoryIdStoreState {
   readonly directoryId: DirectoryId | null
 }
 
-const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
+// eslint-disable-next-line react-refresh/only-export-components
+export const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
   persist((): CurrentDirectoryIdStoreState => ({ categoryId: null, directoryId: null }), {
     name: 'enso-drive-location',
     version: 1,
   }),
 )
 resetStoreOnLogout(driveLocationStore)
+
+/** Return the full drive location. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useCategoryId() {
+  return useStore(driveLocationStore, (store) => store.categoryId, { unsafeEnableTransition: true })
+}
 
 /** Return the full drive location. */
 // eslint-disable-next-line react-refresh/only-export-components
@@ -104,20 +110,12 @@ const DriveContext = React.createContext<ProjectsContextType | null>(null)
 /** The current directory ID. */
 interface CurrentDirectoryIdContextType {
   readonly currentDirectoryId: DirectoryId | null
-  readonly setCurrentDirectoryId: (nextValue: DirectoryId | null) => void
 }
 
 const CurrentDirectoryIdContext = React.createContext<CurrentDirectoryIdContextType | null>(null)
 
 /** Props for a {@link DriveProvider}. */
-export interface ProjectsProviderProps {
-  readonly children:
-    | React.ReactNode
-    | ((context: {
-        readonly store: ProjectsContextType
-        readonly resetAssetTableState: () => void
-      }) => React.ReactNode)
-}
+export interface ProjectsProviderProps extends React.PropsWithChildren {}
 
 /** A React provider for Drive-specific metadata. */
 export default function DriveProvider(props: ProjectsProviderProps) {
@@ -182,26 +180,23 @@ export default function DriveProvider(props: ProjectsProviderProps) {
     })),
   )
 
-  const resetAssetTableState = useEventCallback(() => {
-    store.getState().removeSelection()
-    privateSetCurrentDirectoryId(null)
-    setDriveLocation(null)
-  })
-
-  const setCurrentDirectoryId = useEventCallback((directoryId: DirectoryId | null) => {
-    if (directoryId === driveLocationStore.getState().directoryId) {
-      return
-    }
-    privateSetCurrentDirectoryId(directoryId)
-    setDriveLocation(directoryId)
-    store.getState().removeSelection()
-  })
+  React.useEffect(
+    () =>
+      driveLocationStore.subscribe(({ directoryId, categoryId }, oldState) => {
+        if (directoryId !== oldState.directoryId) {
+          privateSetCurrentDirectoryId(directoryId)
+          store.getState().removeSelection()
+        }
+        if (categoryId !== oldState.categoryId) {
+          store.getState().removeSelection()
+        }
+      }),
+    [privateSetCurrentDirectoryId, store],
+  )
 
   return (
-    <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId, setCurrentDirectoryId }}>
-      <DriveContext.Provider value={store}>
-        {typeof children === 'function' ? children({ store, resetAssetTableState }) : children}
-      </DriveContext.Provider>
+    <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId }}>
+      <DriveContext.Provider value={store}>{children}</DriveContext.Provider>
     </CurrentDirectoryIdContext.Provider>
   )
 }
@@ -323,19 +318,5 @@ export function useSetDragTargetAssetId() {
 /** The current directory ID. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useCurrentDirectoryId() {
-  const context = React.useContext(CurrentDirectoryIdContext)
-
-  invariant(context, 'Current directory ID can only be used inside an `DriveProvider`.')
-
-  return context.currentDirectoryId
-}
-
-/** A function to set the current directory ID. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetCurrentDirectoryId() {
-  const context = React.useContext(CurrentDirectoryIdContext)
-
-  invariant(context, 'Current directory ID can only be used inside an `DriveProvider`.')
-
-  return context.setCurrentDirectoryId
+  return useStore(driveLocationStore, (store) => store.directoryId)
 }

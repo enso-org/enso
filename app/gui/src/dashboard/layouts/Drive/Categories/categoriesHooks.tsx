@@ -272,8 +272,6 @@ export interface CategoriesContextValue {
   readonly cloudCategories: CloudCategoryResult
   readonly localCategories: LocalCategoryResult
   readonly category: Category
-  readonly setCategory: (category: CategoryId) => void
-  readonly resetCategory: () => void
   readonly associatedBackend: Backend
 }
 

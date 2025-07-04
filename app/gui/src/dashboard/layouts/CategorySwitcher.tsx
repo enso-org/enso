@@ -5,7 +5,6 @@ import { Badge } from '#/components/Badge'
 import { Button, BUTTON_STYLES } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Text } from '#/components/Text'
-import type { SvgUseIcon } from '#/components/types'
 import * as mimeTypes from '#/data/mimeTypes'
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -20,7 +19,7 @@ import {
 } from '#/layouts/Drive/Categories'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { setDriveLocation } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
@@ -33,8 +32,6 @@ import { twJoin } from 'tailwind-merge'
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: SvgUseIcon | (string & {})
-  readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
   readonly className?: string
@@ -43,10 +40,9 @@ interface CategoryMetadata {
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
-  readonly currentCategory: Category
-  readonly setCategoryId: (categoryId: Category['id']) => void
   readonly badgeContent?: React.ReactNode
   readonly isDisabled: boolean
+  readonly onPress?: (() => void) | undefined
 }
 
 const CATEGORY_SWITCHER_VARIANTS = tv({
@@ -60,8 +56,16 @@ const CATEGORY_SWITCHER_VARIANTS = tv({
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { currentCategory, setCategoryId, badgeContent, isDisabled: isDisabledRaw } = props
-  const { isNested = false, category, icon, label, buttonLabel, dropZoneLabel } = props
+  const {
+    badgeContent,
+    isDisabled: isDisabledRaw,
+    isNested = false,
+    category,
+    buttonLabel,
+    dropZoneLabel,
+  } = props
+  const { icon, label } = category
+  const { category: currentCategory } = useCategoriesAPI()
 
   const [isTransitioning, startTransition] = React.useTransition()
 
@@ -69,7 +73,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { getText } = useText()
   const { localBackend } = useBackends()
   const { isOffline } = offlineHooks.useOffline()
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   const isCurrent = areCategoriesEqual(currentCategory, category)
 
@@ -115,8 +118,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
-        setCurrentDirectoryId(null)
-        setCategoryId(category.id)
+        props.onPress?.()
+        setDriveLocation(null, category.id)
       })
     }
   })
@@ -242,21 +245,19 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
-  readonly category: Category
-  readonly setCategoryId: (categoryId: Category['id']) => void
+  readonly onChange?: (() => void) | undefined
 }
 
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategoryId } = props
+  const { onChange } = props
+
   const { router } = useRouter()
   const { getText } = useText()
 
   const { isOffline } = offlineHooks.useOffline()
 
   const { cloudCategories, localCategories } = useCategoriesAPI()
-
-  const itemProps = { currentCategory: category, setCategoryId }
 
   const { cloudCategory, recentCategory, trashCategory, teamCategories } = cloudCategories
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
@@ -269,65 +270,48 @@ function CategorySwitcher(props: CategorySwitcherProps) {
         className="flex flex-col items-start text-primary"
       >
         <CategorySwitcherItem
-          {...itemProps}
-          key={cloudCategory.id}
           category={cloudCategory}
-          icon={cloudCategory.icon}
-          label={cloudCategory.label}
           isDisabled={isOffline}
           buttonLabel={getText('cloudCategoryButtonLabel')}
           dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
           badgeContent={getText('cloudCategoryBadgeContent')}
+          onPress={onChange}
         />
-
         {teamCategories.map((teamCategory) => (
           <CategorySwitcherItem
             key={teamCategory.id}
-            {...itemProps}
             isNested
             category={teamCategory}
-            icon={teamCategory.icon}
-            label={teamCategory.label}
             isDisabled={isOffline}
             buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
             dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
+            onPress={onChange}
           />
         ))}
-
         <CategorySwitcherItem
-          {...itemProps}
-          key={recentCategory.id}
           isNested
           category={recentCategory}
-          icon={recentCategory.icon}
-          label={recentCategory.label}
           isDisabled={isOffline}
           buttonLabel={getText('recentCategoryButtonLabel')}
           dropZoneLabel={getText('recentCategoryDropZoneLabel')}
+          onPress={onChange}
         />
-
         <CategorySwitcherItem
-          {...itemProps}
-          key={trashCategory.id}
           isNested
           category={trashCategory}
-          icon={trashCategory.icon}
-          label={trashCategory.label}
           isDisabled={isOffline}
           buttonLabel={getText('trashCategoryButtonLabel')}
           dropZoneLabel={getText('trashCategoryDropZoneLabel')}
+          onPress={onChange}
         />
-
         {localCategory != null && (
           <div className="group flex items-center gap-2 self-stretch drop-target-after">
             <CategorySwitcherItem
-              {...itemProps}
               category={localCategory}
-              icon={localCategory.icon}
-              label={localCategory.label}
               isDisabled={false}
               buttonLabel={getText('localCategoryButtonLabel')}
               dropZoneLabel={getText('localCategoryDropZoneLabel')}
+              onPress={onChange}
             />
 
             <Button
@@ -352,14 +336,12 @@ function CategorySwitcher(props: CategorySwitcherProps) {
           directories.map((directory) => (
             <div key={directory.id} className="group flex items-center gap-2 self-stretch">
               <CategorySwitcherItem
-                {...itemProps}
                 isNested
                 category={directory}
-                icon={directory.icon}
-                label={directory.label}
                 isDisabled={false}
                 buttonLabel={getText('localCategoryButtonLabel')}
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}
+                onPress={onChange}
               />
 
               <Dialog.Trigger>
@@ -402,7 +384,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                   )
 
                   const newCategory = addedDirectory ?? addDirectory(newDirectory)
-                  setCategoryId(newCategory.id)
+                  setDriveLocation(null, newCategory.id)
                 }
               }}
             >
