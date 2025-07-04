@@ -5,16 +5,17 @@ import Standard.Table.Errors.Invalid_JSON_Format
 
 import project.Helpers
 import project.Helpers.Object_Type
-
 from project.Table_Extensions import Distance_Units, _to_radians
 
 type Geo
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Converts a GeoJSON object to a Table.
 
-       Arguments:
-       - geo_json: The GeoJSON object to convert.
-       - fields: The set of fields to extract from the GeoJSON object.
+       ## Arguments
+        - `geo_json`: The GeoJSON object to convert.
+        - `fields`: The set of fields to extract from the GeoJSON object.
     geo_json_to_table : (Vector | JS_Object) -> Vector Text -> Table
     geo_json_to_table geo_json fields=Nothing = case geo_json of
         _ : Vector ->
@@ -35,41 +36,47 @@ type Geo
                         Table.from_objects feature_rows fields
                     _ -> Error.throw (Invalid_JSON_Format.Error geo_json "not having the 'features' key.")
 
-    ## UNSTABLE
-       ICON location
+    ## ---
+       unstable: true
+       icon: location
+       ---
+       Create a `Table` representing a geographic point with the specified
+       latitude, longitude, and elevation.
 
-       Create a `Table` representing a geographic point with the specified latitude,
-       longitude, and elevation.
+       ## Arguments
+        - `latitude`: The latitude of the geographic point, specified in decimal
+          form using the
+          [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) coordinate
+          system.
+        - `longitude`: The longitude of the geographic point, specified in
+          decimal form using the
+          [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) coordinate
+          system.
+        - `elevation`: The elevation of the point from sea level, in metres.
 
-       Arguments:
-       - latitude: The latitude of the geographic point, specified in decimal form
-         using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
-         coordinate system.
-       - longitude: The longitude of the geographic point, specified in decimal form
-         using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
-         coordinate system.
-       - elevation: The elevation of the point from sea level, in metres.
+       ## Examples
+       ### Create a point representing the centre of London.
 
-       > Example
-         Create a point representing the centre of London.
-
+       ```
              import Standard.Geo
 
              example_point = Geo.point 51.509865 -0.118092
+       ```
     point latitude:Float longitude:Float elevation:Float=0 -> Table =
         Table.new [["latitude", [latitude]], ["longitude", [longitude]], ["elevation", [elevation]]]
 
-    ## UNSTABLE
-       ICON geo_map_distance
-
+    ## ---
+       unstable: true
+       icon: geo_map_distance
+       ---
        Computes the distance between two latitude/longitude points
 
-       Arguments:
-       - lat1: The latitude of the first point.
-       - long1: The longitude of the first point.
-       - lat2: The latitude of the second point.
-       - long2: The longitude of the second point.
-       - units: The unit to return the result in.
+       ## Arguments
+        - `lat1`: The latitude of the first point.
+        - `long1`: The longitude of the first point.
+        - `lat2`: The latitude of the second point.
+        - `long2`: The longitude of the second point.
+        - `units`: The unit to return the result in.
     distance self lat1:Float=(Missing_Argument.throw "lat1") long1:Float=(Missing_Argument.throw "long1") lat2:Float=(Missing_Argument.throw "lat2") long2:Float=(Missing_Argument.throw "long2") units:Distance_Units=..Meters -> Float =
         rLat1 = _to_radians lat1
         rLat2 = _to_radians lat2

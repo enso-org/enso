@@ -8,7 +8,9 @@ import Standard.Database.Connection.Credentials.Credentials
 
 import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 
-## PRIVATE
+## ---
+   private: true
+   ---
 password_or_keypair_widget display:Display=..When_Modified -> Widget =
     basic_fqn = Credentials.to Meta.Type . qualified_name
     key_pair_fqn = Key_Pair_Credentials.to Meta.Type . qualified_name

@@ -52,59 +52,83 @@ import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 polyglot java import org.enso.database.JDBCUtils
 polyglot java import org.enso.snowflake.SnowflakeJDBCUtils
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The dialect of Snowflake databases.
 snowflake : Snowflake_Dialect
 snowflake =
     Snowflake_Dialect.Value make_dialect_operations
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The dialect of Snowflake databases.
 type Snowflake_Dialect
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The dialect of Snowflake databases.
     private Value internal_dialect_operations
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     dialect_operations self = self.internal_dialect_operations
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Name of the dialect.
     name : Text
     name self = snowflake_dialect_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self = "Snowflake_Dialect"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generates SQL to truncate a table.
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
         Base_Generator.truncate_table_truncate_table_style self table_name
 
-    ## PRIVATE
-       Generates SQL modifier for limiting the number of rows and its position in the query
+    ## ---
+       private: true
+       ---
+       Generates SQL modifier for limiting the number of rows and its position in
+       the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
         case limit of
             Nothing -> ""
             _ : Integer -> SQL_Builder.code (" LIMIT " + limit.to_text)
 
-    ## PRIVATE
-       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
+    ## ---
+       private: true
+       ---
+       Returns an ordering of `SQL_Part`'s that determine what order each part
+       gets written in for the final SQL output If you add extensions using
+       `SQL_IR_Source_Extension` you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         [SQL_Part.Select, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Extension "snowflake_distinct", SQL_Part.Order, SQL_Part.Limit] . index_of part
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Wraps and possibly escapes the identifier so that it can be used in a
        generated query regardless of what characters it contains.
        The quotes used will depend on the dialect.
@@ -112,29 +136,34 @@ type Snowflake_Dialect
     wrap_identifier self identifier =
         Base_Generator.wrap_in_quotes identifier
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
     make_table_literal self vecs column_names as_name =
         Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares an ordering descriptor.
-
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
 
-       Arguments:
-       - internal_column: the column to order by.
-       - sort_direction: the direction of the ordering.
-       - text_ordering: If provided, specifies that the column should be treated
-         as text values according to the provided ordering. For non-text types,
-         it should be set to `Nothing`.
+       ## Arguments
+        - `internal_column`: the column to order by.
+        - `sort_direction`: the direction of the ordering.
+        - `text_ordering`: If provided, specifies that the column should be
+          treated as text values according to the provided ordering. For non-text
+          types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         make_order_descriptor internal_column sort_direction text_ordering
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
@@ -154,13 +183,17 @@ type Snowflake_Dialect
             . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self = Snowflake_Type_Mapping
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_statement_setter : Statement_Setter
     get_statement_setter self =
         custom_fill_hole stmt i type_hint value = case value of
@@ -175,7 +208,9 @@ type Snowflake_Dialect
             _ -> fill_hole_default stmt i type_hint value
         Statement_Setter.Value custom_fill_hole
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
@@ -190,7 +225,9 @@ type Snowflake_Dialect
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
     needs_execute_query_for_type_inference self statement =
         query_text = case statement of
@@ -201,58 +238,74 @@ type Snowflake_Dialect
         needs_execute = query_text.find regex . is_nothing . not
         needs_execute
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self = Temp_Table_Style.Temporary_Table
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
         column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Add an extra cast to adjust the output type of certain operations with
        certain arguments.
-
        It is used when the normal type inference provided by the database engine
        needs to be adjusted.
-
-       In most cases this method will just return the expression unchanged, it
-       is used only to override the type in cases where the default one that the
+       In most cases this method will just return the expression unchanged, it is
+       used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
         _ = [op_kind, args]
         expression
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
         self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map Internals_Access.column_expression))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name quote_char="'"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
         # All aggregates are currently supported.
         _ = aggregate
         True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
         self.dialect_operations.is_operation_supported operation
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
@@ -260,7 +313,9 @@ type Snowflake_Dialect
             Feature.Add_Group_Number -> False
             _ -> True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks a dialect flag
     flagged self flag:Dialect_Flag -> Boolean =
         case flag of
@@ -297,38 +352,49 @@ type Snowflake_Dialect
             Dialect_Flag.Supports_Date_Time_Without_Timezone -> True
             Dialect_Flag.Supports_Regex_Match -> True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW"]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_error_mapper : Error_Mapper
     get_error_mapper self = Snowflake_Error_Mapper
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The dialect-dependent strategy to get the Primary Key for a given table.
-
        Returns `Nothing` if the key is not defined.
     fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
         Dialect.default_fetch_primary_key connection table_name
 
-    ## PRIVATE
-       Prepares metadata for an operation taking a date/time period and checks
-       if the given period is supported.
+    ## ---
+       private: true
+       ---
+       Prepares metadata for an operation taking a date/time period and checks if
+       the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         Date_Period_Metadata.Value period operation_input_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
         if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported snowflake_dialect_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = case column of
         # Return the type as-is for database columns.
@@ -344,24 +410,32 @@ type Snowflake_Dialect
                         Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                 _ -> base_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     needs_literal_table_cast : Value_Type -> Boolean
     needs_literal_table_cast self value_type = case value_type of
         Value_Type.Time        -> True
         Value_Type.Date_Time _ -> True
         _                      -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
         base_gen.generate_expression self expr
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         jdbc.ensure_query_has_no_holes raw_sql
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        In Snowflake we need to create tables outside of transactions.
        However, currently we decide to opt-out of the integrity check for
        performance reasons - there is too much overhead to each query. The check
@@ -370,14 +444,15 @@ type Snowflake_Dialect
     should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        We need custom handling for First and Last aggregations, because in
        Snowflake the `FIRST_VALUE` and `LAST_VALUE` functions in Snowflake are
        purely window functions - they cannot be directly used in aggregate
        queries.
-
        If tried to be used inside of a group by, it yields an error:
-           Window function [FIRST_VALUE(T.A) OVER (PARTITION BY T.B ORDER BY T.C ASC NULLS LAST)] may not appear inside an aggregate function.
+           `Window function [FIRST_VALUE(T.A) OVER (PARTITION BY T.B ORDER BY T.C ASC NULLS LAST)] may not appear inside an aggregate function.`
     custom_build_aggregate self =
         create_row_number_for orderings key_columns =
             order_descriptors = orderings.map o-> self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
@@ -411,7 +486,9 @@ type Snowflake_Dialect
         setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
         setup.build self
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_dialect_operations =
     arith = [round_bankers]
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
@@ -434,44 +511,60 @@ make_dialect_operations =
     my_mappings = arith + text + counts + stats + arith_extensions + bool + date_ops + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
     replace_with_zero_if_null <|
         SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
     replace_with_zero_if_null <|
         SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NULL OR " ++ arg.paren ++ " = '')"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
     replace_with_zero_if_null <|
         SQL_Builder.code "COUNT_IF(" ++ arg.paren ++ " IS NOT NULL AND " ++ arg.paren ++ " != '')"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper needed because Snowflake's aggregators return NULL if there were no
    rows. But for aggregators like COUNT we prefer to return 0 in such cases.
 replace_with_zero_if_null expr =
     SQL_Builder.code "COALESCE(" ++ expr ++ ", 0)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
     median = SQL_Builder.code "MEDIAN(" ++ arg ++ ")"
     has_nan = SQL_Builder.code "BOOLOR_AGG(" ++ arg ++ " = 'NaN'::Double)"
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN'::Double ELSE " ++ median ++ " END"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_mode = Base_Generator.lift_unary_op "MODE" arg->
     SQL_Builder.code "MODE(" ++ arg ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     percentile = SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
     has_nan = SQL_Builder.code "BOOLOR_AGG(" ++ expr ++ " = 'NaN'::Double)"
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 first_last_aggregators =
     first = make_first_aggregator reverse=False ignore_null=False
     first_not_null = make_first_aggregator reverse=False ignore_null=True
@@ -479,7 +572,9 @@ first_last_aggregators =
     last_not_null = make_first_aggregator reverse=True ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_first_aggregator reverse ignore_null args =
     if args.length != 2 then Panic.throw (Illegal_State.Error "Expected exactly 2 arguments.") else
         result_expr = args.first
@@ -492,22 +587,30 @@ make_first_aggregator reverse ignore_null args =
             True -> SQL_Builder.code "CASE WHEN " ++ result_expr ++ " IS NULL THEN NULL ELSE " ++ row_number ++ " END"
         SQL_Builder.code (method_name + "(") ++ result_expr ++ ", " ++ order_expression ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
      SQL_Builder.code "MIN_BY(" ++ arg ++ ", LENGTH(" ++ arg ++ "))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      SQL_Builder.code "MAX_BY(" ++ arg ++ ", LENGTH(" ++ arg ++ "))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 concat_ops =
     make_raw_concat_expr expr separator =
         SQL_Builder.code "LISTAGG(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 trim_ops =
     whitespace = "' ' || CHR(9) || CHR(10) || CHR(13)"
     make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
@@ -522,7 +625,9 @@ trim_ops =
                         SQL_Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " = '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
     case args.length == 1 of
         True ->
@@ -536,30 +641,43 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
             all_null_indicator = SQL_Builder.code "CASE WHEN " ++ are_all_nulls ++ " THEN NULL ELSE 1 END"
             SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " (coalesced_args + [all_null_indicator]) ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 agg_count_distinct_include_null args =
     # As with `agg_count_distinct`, we do want to handle columns that contain NULLs, so we need to apply the ugly coalesce.
     coalesced_args = args.map replace_null_with_marker
     SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " coalesced_args ++ ")"
 
-## PRIVATE
-   A helper function that coalesces a NULL column replacing it with a marker value that is expected to not be present in real world data.
-   It is sometimes needed when we want to count distinct values in a column that contains NULLs and still include the rows containing NULLs.
-   The columns are converted to VARIANT type because of that, which may incur some overhead.
-   But there seems to be no other reliable way to handle this for columns like numeric where no non-NULL value exists that can be guaranteed to be unused.
+## ---
+   private: true
+   ---
+   A helper function that coalesces a NULL column replacing it with a marker
+   value that is expected to not be present in real world data.
+   It is sometimes needed when we want to count distinct values in a column that
+   contains NULLs and still include the rows containing NULLs.
+   The columns are converted to VARIANT type because of that, which may incur
+   some overhead.
+   But there seems to be no other reliable way to handle this for columns like
+   numeric where no non-NULL value exists that can be guaranteed to be unused.
 replace_null_with_marker expr =
     SQL_Builder.code "COALESCE(" ++ expr ++ "::variant, {'enso-null-replacement-marker':'" ++ Random.uuid ++ "'}::variant)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper for `lookup_and_replace`, and perhaps other operation.
    It creates an expression that returns a row number within a group.
-   This is a specialization for Snowflake that adds a dummy ORDER BY clause to satisfy its compiler.
+   This is a specialization for Snowflake that adds a dummy ORDER BY clause to
+   satisfy its compiler.
 make_row_number_in_group arguments =
     if arguments.length == 0 then
         Panic.throw <| Illegal_State.Error "The operation ROW_NUMBER_IN_GROUP requires at least one argument."
     SQL_Builder.code "ROW_NUMBER() OVER (PARTITION BY " ++ (SQL_Builder.join ", " arguments) ++ " ORDER BY 1)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
 make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
     offset = arguments.at 0
@@ -577,35 +695,53 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
     base_value = SQL_Builder.code "FLOOR(" ++ base_value_f.paren ++ ")"
     SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 ends_with = Base_Generator.lift_binary_sql_function "ENDS_WITH" "ENDSWITH"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 regex_match = Base_Generator.lift_binary_op "REGEX_MATCH" str-> pattern->
     (str ++ " REGEXP " ++ pattern).paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 contains = Base_Generator.lift_binary_sql_function "CONTAINS" "CONTAINS"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_contains_expr expr substring = contains.second [expr, substring]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ") COLLATE 'ucs_basic')"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
     SQL_Builder.code "left(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_order_descriptor internal_column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
@@ -627,7 +763,9 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         True ->
                             Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="en-ci"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
     two = SQL_Builder.code "2"
     ten = SQL_Builder.code "10"
@@ -658,39 +796,57 @@ round_bankers = Base_Generator.lift_binary_op "ROUND_BANKERS" x-> dp->
     # Undo the scaling factor.
     (bankers_rounded ++ " / " ++ scale).paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
     (arg ++ " in ('NaN'::float)").paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
     (arg ++ " in ('Infinity'::float, '-Infinity'::float)").paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_finite = Base_Generator.lift_unary_op "IS_FINITE" arg->
     (arg ++ " not in ('NaN'::float, 'Infinity'::float, '-Infinity'::float)").paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     SQL_Builder.code "bool_or(" ++ arg ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS float) / CAST(" ++ y ++ " AS float)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " % " ++ y
 
-## PRIVATE
+## ---
+   private: true
+   ---
 decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
     x ++ " / " ++ y
 
-## PRIVATE
+## ---
+   private: true
+   ---
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " % " ++ y
 
-## PRIVATE
+## ---
+   private: true
+   ---
 supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
@@ -700,11 +856,15 @@ supported_replace_params =
     e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
-## PRIVATE
+## ---
+   private: true
+   ---
 empty_string : SQL_Builder
 empty_string = SQL_Builder.interpolation ""
 
-## PRIVATE
+## ---
+   private: true
+   ---
 replace : Vector SQL_Builder -> Any -> SQL_Builder
 replace args metadata =
     input = args.at 0
@@ -772,7 +932,9 @@ extract_just_milliseconds = Base_Generator.lift_unary_op "millisecond" arg->
     # No modulo is needed, as the milliseconds are the last part of the nanoseconds.
     SQL_Builder.code "TRUNC(EXTRACT(NANOSECOND FROM " ++ arg ++ ") / 1000000)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 date_period_to_part_with_multiplier period =
     case period of
         Date_Period.Year    -> ["year", 1]
@@ -787,7 +949,9 @@ date_period_to_part_with_multiplier period =
         Time_Period.Microsecond -> ["microsecond", 1]
         Time_Period.Nanosecond  -> ["nanosecond", 1]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_date_add arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.") else
         expr = arguments.at 0
@@ -800,7 +964,9 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
         sql_typ = sql_type_string_for_date_time metadata.input_value_type
         SQL_Builder.code "DATEADD('"+date_part+"', (" ++ scaled_amount ++ ")::NUMBER, (" ++ expr ++ ")::" ++ sql_typ ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_date_diff arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_diff expects exactly 2 sub expressions. This is a bug in Database library.") else
         start = arguments.at 0
@@ -825,29 +991,33 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
                     # We want to return integer, so we truncate any fractional part that did not constitute a full unit.
                     SQL_Builder.code "TRUNC(" ++ diff ++ " / " ++ multiplier.to_text ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_date_trunc_to_day arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0
         SQL_Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 sql_type_string_for_date_time value_type = case value_type of
     Value_Type.Date -> "DATE"
     Value_Type.Date_Time with_tz -> if with_tz then "TIMESTAMP_TZ" else "TIMESTAMP_NTZ"
     Value_Type.Time -> "TIME"
     _ -> Panic.throw (Illegal_State.Error "Expects a date or time type. This is a bug in Database library.")
 
-## PRIVATE
-   The RUNTIME_ERROR operation should allow the query to compile fine and it
-   will not prevent it from running if the branch including this operation is
-   not taken. But if the branch is computed, it should ensure the query fails.
-
+## ---
+   private: true
+   ---
+   The RUNTIME_ERROR operation should allow the query to compile fine and it will
+   not prevent it from running if the branch including this operation is not
+   taken. But if the branch is computed, it should ensure the query fails.
    This query never returns a value, so its type should be polymorphic. However,
    that is not possible - so currently it just 'pretends' that it would return a
    Boolean - because that is the type we expect in the use-case. This can be
    altered if needed.
-
    It takes a variable as the second argument. It can be any value that is not
    statically known - this ensure that the optimizer will not be able to
    pre-compute the expression too early (which could make the query fail
@@ -861,7 +1031,9 @@ make_runtime_error_op arguments =
 
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_iif : Vector SQL_Builder -> SQL_Builder
 make_iif arguments = case arguments.length of
     3 ->
@@ -874,7 +1046,9 @@ make_iif arguments = case arguments.length of
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_distinct_extension distinct_expressions =
     run_generator sql_expressions =
         joined = SQL_Builder.join ", " sql_expressions
@@ -885,7 +1059,9 @@ make_distinct_extension distinct_expressions =
         SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
     SQL_IR_Source_Extension.Value part_name=(SQL_Part.Extension "snowflake_distinct") expressions=distinct_expressions run_generator=run_generator
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns a custom cast expression if it is needed for a specific pair of types,
    or Nothing if the default cast is sufficient.
 make_custom_cast (column : Internal_Column) (source_value_type : Value_Type) (target_value_type : Value_Type) -> SQL_IR_Expression | Nothing =
@@ -909,5 +1085,7 @@ make_custom_cast (column : Internal_Column) (source_value_type : Value_Type) (ta
 
     result.get
 
-## PRIVATE
+## ---
+   private: true
+   ---
 snowflake_dialect_name = "Snowflake"

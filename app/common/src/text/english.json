@@ -550,8 +550,6 @@
   "latestIndicator": "Latest",
   "noDateSelected": "No date selected",
   "assetsDropzoneDescription": "Drag and drop files here, or click to upload.",
-  "assetsDropFileDescription": "Drop here to upload 1 file",
-  "assetsDropFilesDescription": "Drop here to upload $0 files",
   "hidePassword": "Hide password",
   "showPassword": "Show password",
   "copiedToClipboard": "Copied to clipboard",

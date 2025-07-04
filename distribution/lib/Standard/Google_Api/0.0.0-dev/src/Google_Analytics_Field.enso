@@ -22,13 +22,17 @@ type Google_Analytics_Field
     description : Text
     description self = self.java_record.description
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self = case self of
         Google_Analytics_Field.Dimension _ -> self.api_name + " (Dimension)"
         Google_Analytics_Field.Metric _ -> self.api_name + " (Metric)"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = case self of
         Google_Analytics_Field.Dimension _ -> "GA Dimension { " + self.api_name + " (" + self.category + ")}"

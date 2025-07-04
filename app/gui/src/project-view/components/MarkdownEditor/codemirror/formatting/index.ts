@@ -14,10 +14,11 @@ import {
 } from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import { type SupportedBlockType as BlockType } from '@/components/MarkdownEditor/markdown/types'
 import { assert } from '@/util/assert'
+import { proxyRefs } from '@/util/reactivity'
 import { type EditorState, type Extension, Facet, type TransactionSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { computed, proxyRefs, readonly, type Ref, ref } from 'vue'
+import { computed, readonly, type Ref, ref } from 'vue'
 export { type BlockType }
 
 interface ReactiveFormatting {
