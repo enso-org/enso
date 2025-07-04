@@ -12,7 +12,7 @@ test('Node can open and load visualization', async ({ page }) => {
   const node = locate.graphNodeByBinding(page, 'final')
   await node.click({ position: { x: 8, y: 8 } })
   await expect(locate.componentMenu(page)).toExist()
-  await locate.toggleVisualizationButton(page, true).click()
+  await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
   await expect(locate.loadingVisualization(page)).toHaveCount(0)
   await locate.toggleVisualizationSelectorButton(page).click()

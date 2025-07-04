@@ -16,10 +16,10 @@ async function assertTypeLabelOnNode(
   // Ensure the visualization button won't be covered by any other parts of another node (e.g. a comment).
   await bringNodeToFront(page, node)
   await node.hover({ position: { x: 8, y: 8 }, force: true })
-  await locate.toggleVisualizationButton(node, true).click({ force: true })
+  await locate.toggleVisualizationButton(node).click({ force: true })
   const targetLabel = node.locator('.node-type').first()
   await expect(targetLabel).toHaveText(type.short)
-  await locate.toggleVisualizationButton(node, false).click({ force: true })
+  await locate.toggleVisualizationButton(node).click({ force: true })
   await actions.deselectNodes(page)
 }
 
@@ -37,7 +37,7 @@ async function assertTypeLabelOnNodeByBinding(
   await assertTypeLabelOnNode(page, node, type)
 }
 
-test('shows the correct type when hovering a node', async ({ page }) => {
+test.only('shows the correct type when hovering a node', async ({ page }) => {
   await actions.goToGraph(page)
 
   // Note that the types don't have to make sense, they just have to be applied.

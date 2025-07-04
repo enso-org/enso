@@ -416,7 +416,7 @@ const actionHandlers = registerHandlers(
     'component.toggleVisualization': {
       ...toggledAction(isVisualizationEnabled),
       description: computed(() =>
-        isVisualizationEnabled.value ? 'Hide Visualization' : 'Show Visualization',
+        isVisualizationEnabled.value ? 'Hide visualization' : 'Show visualization',
       ),
     },
     'component.pickColor': toggledAction(colorPickerOpened),
