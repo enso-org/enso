@@ -8,6 +8,7 @@ import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent, ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
+import { LOGOUT_EVENT } from '$/providers/session/constants'
 import { Err } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -17,7 +18,6 @@ import { createGlobalState } from '@vueuse/core'
 import { computed, onScopeDispose, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
-import { LOGOUT_EVENT } from '$/providers/session/constants'
 
 /** Create a query for the user session. */
 export function createSessionQuery(authService: cognito.ISessionProvider) {
