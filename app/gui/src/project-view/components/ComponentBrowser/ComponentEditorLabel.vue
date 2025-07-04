@@ -30,7 +30,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div v-if="label" data-testid="component-editor-label" class="no-wrap">
+  <div v-if="label" class="no-wrap">
     <TooltipTrigger v-if="additionalTypes.length > 0">
       <template #default="triggerProps">
         <span
