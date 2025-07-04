@@ -1,22 +1,20 @@
 <script setup lang="ts">
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { TypeInfo } from '@/stores/project/computedValueRegistry';
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
-const props = defineProps<{ typeInfo?: TypeInfo | undefined, unknownLabel?: string }>()
+const props = defineProps<{ typeInfo?: TypeInfo | undefined; unknownLabel?: string }>()
 
-type DisplayedAdditionalTypes =
-  | null
-  | { kind: 'multiple'; types: string[] }
+type DisplayedAdditionalTypes = null | { kind: 'multiple'; types: string[] }
 
 const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
   if (props.typeInfo != null) {
     const typeInfo = props.typeInfo
-    const combinedTypes = [...typeInfo?.visibleTypes ?? [], ...typeInfo?.hiddenTypes ?? []]
-    const additionalTypes = combinedTypes.slice(1).flatMap((type) =>
-      type.path ? qnLastSegment(type.path) : [],
-    )
+    const combinedTypes = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+    const additionalTypes = combinedTypes
+      .slice(1)
+      .flatMap((type) => (type.path ? qnLastSegment(type.path) : []))
     if (additionalTypes.length === 0) return null
     return { kind: 'multiple', types: additionalTypes }
   }

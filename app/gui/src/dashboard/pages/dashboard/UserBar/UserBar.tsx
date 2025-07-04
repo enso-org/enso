@@ -202,13 +202,13 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
             )
           }
 
-        return (
-          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
-            {getText(item.name)}
-          </Button>
-        )
-      }
-  })}
+          return (
+            <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
+              {getText(item.name)}
+            </Button>
+          )
+        }
+      })}
     </Button.Group>
   )
 }

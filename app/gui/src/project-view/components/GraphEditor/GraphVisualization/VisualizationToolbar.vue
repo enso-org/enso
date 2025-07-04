@@ -81,11 +81,15 @@ const visualizationSelector = useVisualizationSelector({
         </template>
       </div>
     </template>
-    <div
-      class="after-toolbars node-type"
-      data-testid="visualisationNodeType">
-      <ComponentEditorLabel v-if="props.typeinfo" :unknownLabel="UNKNOWN_TYPE" :typeInfo="props.typeinfo" />
-      <span v-else class="node-type">{{ props.typename?.path ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE }}</span>
+    <div class="after-toolbars node-type" data-testid="visualisationNodeType">
+      <ComponentEditorLabel
+        v-if="props.typeinfo"
+        :unknownLabel="UNKNOWN_TYPE"
+        :typeInfo="props.typeinfo"
+      />
+      <span v-else class="node-type">{{
+        props.typename?.path ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE
+      }}</span>
     </div>
   </div>
 </template>

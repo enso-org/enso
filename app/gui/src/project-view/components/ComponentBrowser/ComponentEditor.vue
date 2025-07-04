@@ -78,7 +78,13 @@ const rootStyle = computed(() => {
     </div>
     <template v-if="props.mode.mode === 'componentBrowsing'">
       <div class="componentEditorLabel">
-        <ComponentEditorLabel :typeInfo="props.mode.filter.selfArg?.type === 'known' ? props.mode.filter.selfArg.typeInfo : undefined" />
+        <ComponentEditorLabel
+          :typeInfo="
+            props.mode.filter.selfArg?.type === 'known' ?
+              props.mode.filter.selfArg.typeInfo
+            : undefined
+          "
+        />
       </div>
     </template>
     <CodeMirrorRoot ref="editorRoot" />
@@ -116,7 +122,7 @@ const rootStyle = computed(() => {
 }
 
 .componentEditorLabel {
-  position:absolute;
+  position: absolute;
   top: -20px;
   width: 100%;
   padding-right: 20px;

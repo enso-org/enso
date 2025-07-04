@@ -157,7 +157,6 @@ const VARIANTS = {
     &:active {
       background-color: var(--tab-highlight);
     }
-
   }
 }
 
