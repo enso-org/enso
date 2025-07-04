@@ -52,7 +52,7 @@ const VARIANTS = {
           role="tab"
           :aria-label="tooltip ?? label ?? ''"
           class="tabContent"
-          :class="{ enabled }"
+          :class="{ enabled, disabled: !enabled }"
           :disabled="!enabled"
           v-bind="triggerProps"
         >
@@ -148,7 +148,11 @@ const VARIANTS = {
   align-items: center;
   gap: 12px;
   transition: background-color 0.3s;
-  opacity: 0.2;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.2;
+  }
 
   &.enabled {
     opacity: 1;

@@ -13,9 +13,8 @@ const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
     const typeInfo = props.typeInfo
     const combinedTypes = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
     const additionalTypes = combinedTypes
-      .slice(1)
       .flatMap((type) => (type.path ? qnLastSegment(type.path) : []))
-    if (additionalTypes.length === 0) return null
+    if (additionalTypes.length === 1) return null
     return { kind: 'multiple', types: additionalTypes }
   }
   return null
@@ -39,7 +38,7 @@ const label = computed(() => {
           <span
             class="additionalTypesPlaceholder"
             v-bind="triggerProps"
-            v-text="`${label} & ${additionalTypes.types.length} more`"
+            v-text="`${label} & ${additionalTypes.types.length - 1} more`"
           />
         </template>
         <template #tooltip>
