@@ -17,7 +17,6 @@ import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
-import { UserSessionType } from '$/providers/auth'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
   DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
@@ -333,7 +332,7 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
-          {session?.type === UserSessionType.full && (
+          {session != null && (
             <>
               <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
 

@@ -260,9 +260,8 @@ export default function Registration(props: RegistrationProps) {
                       const email = signupForm.getValues('email')
                       const password = signupForm.getValues('password')
 
-                      return confirmSignUp(email, verificationCode).then(() =>
-                        signInWithPassword(email, password),
-                      )
+                      await confirmSignUp(email, verificationCode)
+                      await signInWithPassword(email, password)
                     }}
                   >
                     <Input

@@ -7,14 +7,12 @@ import {
   PAYMENTS_SUCCESS_PATH,
   RESET_PASSWORD_PATH,
   RESTORE_USER_PATH,
-  SETUP_PATH,
   SUBSCRIBE_PATH,
 } from '$/appUtils'
-import { UserSessionType } from '$/providers/auth'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
 import { reactComponent } from '@/util/react'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
@@ -30,15 +28,15 @@ const routes = [
     path: UNAVAILABLE_PATH,
     component: withDataLoader(() => import('$/components/ProtectedLayout.vue')),
     children: [
-      { path: LOGIN_PATH, component: reactComponent(Login), meta: { access: 'guest' as const } },
+      { path: LOGIN_PATH, component: reactComponent(Login), meta: { access: 'guest' } },
       {
         path: '/registration',
         component: withDataLoader(() => import('$/components/RegistrationPage.vue')),
-        meta: { access: 'guest' as const },
+        meta: { access: 'guest' },
       },
       {
         path: UNAVAILABLE_PATH,
-        meta: { access: UserSessionType.full },
+        meta: { access: 'anyLoggedIn' },
         component: withDataLoader(() => import('$/components/AppContainerLayout.vue')),
         beforeEnter: requireCloudBrowserEnabled,
         children: [
@@ -56,23 +54,16 @@ const routes = [
       },
       {
         path: RESTORE_USER_PATH,
-        meta: { access: 'deleted' as const },
+        meta: { access: 'deleted' },
         component: () =>
           import('#/pages/authentication/RestoreAccount').then((mod) =>
             reactComponent(mod.default),
           ),
       },
       {
-        path: SETUP_PATH,
-        meta: { access: UserSessionType.partial as const },
-        beforeEnter: requireCloudBrowserEnabled,
-        component: () =>
-          import('#/pages/authentication/Setup').then((mod) => reactComponent(mod.Setup)),
-      },
-      {
         path: '/',
         name: 'cloudDisabled',
-        meta: { access: 'anyLoggedIn' as const },
+        meta: { access: 'anyLoggedIn' },
         component: () =>
           import('#/layouts/CloudBrowserDisabled').then((mod) =>
             reactComponent(mod.CloudBrowserDisabledPage),
@@ -109,7 +100,7 @@ const routes = [
     path: '/:anyPath(.*)*',
     redirect: '/',
   },
-]
+] satisfies readonly RouteRecordRaw[]
 
 const router = createRouter({
   history: createWebHistory(),
