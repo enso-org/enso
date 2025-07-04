@@ -14,7 +14,7 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { Action, registerHandlers } from '@/providers/action'
+import { Action, registerHandlers, toggledAction } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -342,8 +342,8 @@ const actions = registerHandlers({
     action: input.switchToCodeEditMode,
   },
   'component.toggleVisualization': {
+    ...toggledAction(isVisualizationVisible),
     available: () => input.mode.mode === 'codeEditing' && !isVisualizationVisible.value,
-    action: () => (isVisualizationVisible.value = !isVisualizationVisible.value),
   },
   'componentBrowser.acceptInput': {
     action: acceptInput,
