@@ -12,7 +12,6 @@ import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Connection.Widgets
 import project.Snowflake_Connection.Snowflake_Connection
-from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 
