@@ -18,6 +18,7 @@ import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
+import { resetStoreOnLogout } from '#/utilities/zustand'
 import { useBackends, useText } from '$/providers/react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -64,15 +65,12 @@ export const categoryIdStore = createStore<CategoryIdStoreState>()(
     { name: 'enso-category-id', version: 1 },
   ),
 )
+resetStoreOnLogout(categoryIdStore)
 
-/**
- * Result of the useCloudCategoryList hook.
- */
+/** Result of the useCloudCategoryList hook. */
 export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 
-/**
- * List of categories in the Cloud.
- */
+/** List of categories in the Cloud. */
 function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()

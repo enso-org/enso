@@ -1,7 +1,7 @@
 /** @file The React provider (and associated hooks) for Data Catalog state. */
 import * as React from 'react'
 
-import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
+import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
 import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -31,6 +31,7 @@ const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
     version: 2,
   }),
 )
+resetStoreOnLogout(currentDirectoryIdStore)
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {

@@ -1,9 +1,9 @@
 import { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import {
+  Path,
+  PROJECT_MANAGER_LOADING_FAILED_EVENT,
   ProjectManager,
-  ProjectManagerEvents,
-  Path as ProjectManagerPath,
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 import HttpClient from '#/utilities/HttpClient'
@@ -26,7 +26,7 @@ function initializeBackends(
   const createProjectManager = (rootPath: string | undefined, projectManagerUrl: string | null) => {
     if (!rootPath) return
     if (projectManagerUrl == null) return
-    const rootDirectory = ProjectManagerPath(rootPath)
+    const rootDirectory = Path(rootPath)
     return new ProjectManager(projectManagerUrl, rootDirectory)
   }
   const projectManager = ref<ProjectManager>()
@@ -55,7 +55,7 @@ function initializeBackends(
   }
 
   const didLoadingProjectManagerFail = ref(false)
-  useEvent(document, ProjectManagerEvents.loadingFailed, () => {
+  useEvent(document, PROJECT_MANAGER_LOADING_FAILED_EVENT, () => {
     didLoadingProjectManagerFail.value = true
   })
 

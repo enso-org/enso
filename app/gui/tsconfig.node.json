@@ -9,6 +9,7 @@
     "eslint.config.js",
     "tailwind.config.ts",
     "integration-test/**/*",
+    "src/providers/session/constants.ts",
     "src/dashboard/modules/payments/constants.ts",
     "src/dashboard/providers/FeatureFlagsProvider.tsx",
     "src/dashboard/utilities/equalities.ts",

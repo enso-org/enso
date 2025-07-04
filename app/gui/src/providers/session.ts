@@ -16,6 +16,7 @@ import { createGlobalState } from '@vueuse/core'
 import { computed, onScopeDispose, proxyRefs, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
+import { LOGOUT_EVENT } from '$/providers/session/constants'
 
 /** Create a query for the user session. */
 export function createSessionQuery(authService: cognito.ISessionProvider) {
@@ -75,6 +76,7 @@ export function createSessionStore(
     mutationKey: computed(() => ['session', 'logout', session.data.value?.clientId] as const),
     mutationFn: async () => {
       isLoggingOut.value = true
+      document.dispatchEvent(new Event(LOGOUT_EVENT))
       await authService.signOut()
 
       gtag.event('cloud_sign_out')
