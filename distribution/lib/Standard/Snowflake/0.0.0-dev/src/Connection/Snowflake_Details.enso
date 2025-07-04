@@ -12,6 +12,7 @@ import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Connection.Widgets
 import project.Snowflake_Connection.Snowflake_Connection
+from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 
@@ -28,7 +29,7 @@ type Snowflake_Details
        - warehouse: The name of the warehouse to use.
     @account (Text_Input display=..Always)
     @credentials Widgets.password_or_keypair_widget
-    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
+    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="*" warehouse:Text=""
 
     ## PRIVATE
        Attempt to resolve the constructor.

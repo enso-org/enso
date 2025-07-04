@@ -1,10 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
-import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference, as_hideable_value
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -132,6 +132,33 @@ type Snowflake_Connection
        Returns the name of the current schema.
     schema : Text
     schema self = self.connection.schema
+
+    ## ALIAS import, load, open, query
+       GROUP Standard.Base.Input
+       ICON data_input
+    simple_test self x:Text="adam" = x
+
+    ## ALIAS import, load, open, read
+       GROUP Standard.Base.Input
+       ICON data_input
+       Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
+
+       Arguments:
+       - query: name of the table or sql statement to query.
+         If supplied as `Text` it is treated as a table name.
+       - alias: optionally specify a friendly alias for the query.
+
+       ! Error Conditions
+
+         - If provided with a `Raw_SQL` query or `Text` that looks like a query, if
+           any SQL error occurs when executing the query, a `SQL_Error` error is
+           raised.
+         - If provided with a `Table_Name` or a text short-hand and the table is
+           not found, a `Table_Not_Found` error is raised.
+    @query make_table_name_selector
+    query2 : SQL_Query -> Text -> DB_Table ! Table_Not_Found
+    query2 self query:SQL_Query alias="" = self.connection.query query alias
 
     ## ICON data_input
        Returns a new Connection with the specified schema set as default.
@@ -391,4 +418,13 @@ private auth_jdbc_properties credentials = case credentials of
 
 ## PRIVATE
 Table_Viz_Data.from (that:Snowflake_Connection) = 
-    Connections_Helpers.get_table_viz_data (that.connection.tables.at "Name" . to_vector)
+    tables = that.tables . read
+    names = tables.at "Name" . to_vector
+    types = tables.at "Type" . to_vector
+    descriptions  = tables.at "Description" . to_vector
+    case that.schema of
+      "*" ->
+        schemas = tables.at "Schema" . to_vector
+        (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Schema" "Schema" "set_schema {{@Schema}}", Table_Viz_Header.Link "Name" "Name" "read {{@Name}}", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [schemas, names, types, descriptions])
+      _ -> (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Name" "Name" "read {{@Name}}", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [names, types, descriptions])
+
