@@ -413,7 +413,12 @@ const actionHandlers = registerHandlers(
     'component.toggleDocPanel': {
       action: () => emit('toggleDocPanel'),
     },
-    'component.toggleVisualization': toggledAction(isVisualizationEnabled),
+    'component.toggleVisualization': {
+      ...toggledAction(isVisualizationEnabled),
+      description: computed(() =>
+        isVisualizationEnabled.value ? 'Hide Visualization' : 'Show Visualization',
+      ),
+    },
     'component.pickColor': toggledAction(colorPickerOpened),
     'component.recompute': {
       enabled: computed(() => !isBeingRecomputed.value),
