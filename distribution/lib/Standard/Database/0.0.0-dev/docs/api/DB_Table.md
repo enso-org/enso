@@ -9,6 +9,7 @@
     - limit self max_rows:Standard.Base.Data.Numbers.Integer= -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table)
     - make_column self internal:Standard.Database.Internal.IR.Internal_Column.Internal_Column -> Standard.Table.Column.Column
     - name self -> Standard.Base.Data.Text.Text
+    - save_as_data_link self destination:Standard.Base.Any.Any on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
     - to_select_query self -> Standard.Base.Any.Any
     - to_sql self -> Standard.Database.SQL_Statement.SQL_Statement
     - updated_columns self internal_columns:Standard.Base.Any.Any -> Standard.Base.Any.Any
