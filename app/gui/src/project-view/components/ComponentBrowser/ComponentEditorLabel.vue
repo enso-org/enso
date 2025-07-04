@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { SelfArg } from '@/components/ComponentBrowser/filtering'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
+import { TypeInfo } from '@/stores/project/computedValueRegistry';
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
-const props = defineProps<{ selfArg?: SelfArg | undefined }>()
+const props = defineProps<{ typeInfo?: TypeInfo | undefined, unknownLabel?: string }>()
 
 type DisplayedAdditionalTypes =
   | null
   | { kind: 'multiple'; types: string[] }
 
 const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
-  if (props.selfArg?.type === 'known') {
-    const typeInfo = props.selfArg.typeInfo
+  if (props.typeInfo != null) {
+    const typeInfo = props.typeInfo
     const combinedTypes = [...typeInfo?.visibleTypes ?? [], ...typeInfo?.hiddenTypes ?? []]
     const additionalTypes = combinedTypes.slice(1).flatMap((type) =>
       type.path ? qnLastSegment(type.path) : [],
@@ -24,9 +24,9 @@ const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
 })
 
 const label = computed(() => {
-  if (props.selfArg == null) return 'Input'
-  if (props.selfArg.type === 'known' && props.selfArg.typeInfo?.primaryType.path) {
-    return qnLastSegment(props.selfArg.typeInfo.primaryType.path)
+  if (props.typeInfo == null) return props.unknownLabel ?? 'Input'
+  if (props.typeInfo != null && props.typeInfo?.primaryType.path) {
+    return qnLastSegment(props.typeInfo.primaryType.path)
   }
 
   return undefined
