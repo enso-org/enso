@@ -13,9 +13,10 @@ const additionalTypes = computed<string[]>(() => {
 
   const typeInfo = props.typeInfo
   const combinedTypes = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
-  const additionalTypes = combinedTypes
-    .flatMap((type) => (type.path ? qnLastSegment(type.path) : []))
-  return (additionalTypes.length === 1 ? [] : additionalTypes)
+  const additionalTypes = combinedTypes.flatMap((type) =>
+    type.path ? qnLastSegment(type.path) : [],
+  )
+  return additionalTypes.length === 1 ? [] : additionalTypes
 })
 
 const label = computed(() => {
