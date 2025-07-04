@@ -31,7 +31,7 @@ const isDropdownOpened = ref(false)
     @pointerleave="emit('update:hovered', false)"
   >
     <template v-if="!colorPickerOpened">
-      <ActionButton action="component.toggleVisualization" class="slotS" />
+      <ActionButton action="component.toggleVisualization" class="slotS" :showToggledOn="true" />
       <ActionButton action="component.toggleDocPanel" class="slotSW" />
       <DropdownMenu
         v-model:open="isDropdownOpened"

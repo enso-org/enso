@@ -39,7 +39,9 @@ const visualizationSelector = useVisualizationSelector({
 <template>
   <div class="VisualizationToolbar">
     <template v-if="showControls">
-      <div class="toolbarSection"><ActionButton action="visualization.hide" /></div>
+      <div class="toolbarSection">
+        <ActionButton action="visualization.hide" :showToggledOn="true" />
+      </div>
       <div class="toolbarSection">
         <ActionButton action="panel.fullscreen" />
         <SelectionDropdown v-bind="visualizationSelector" />
