@@ -77,7 +77,9 @@ const rootStyle = computed(() => {
       <SvgIcon :name="icon" />
     </div>
     <template v-if="props.mode.mode === 'componentBrowsing'">
-      <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
+      <div class="componentEditorLabel">
+        <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
+      </div>
     </template>
     <CodeMirrorRoot ref="editorRoot" />
   </div>
@@ -111,5 +113,13 @@ const rootStyle = computed(() => {
     background-color: var(--color-edge-from-node);
     color: white;
   }
+}
+
+.componentEditorLabel {
+  position:absolute;
+  top: -20px;
+  width: 100%;
+  padding-right: 20px;
+  text-align: right;
 }
 </style>

@@ -8,7 +8,6 @@ const props = defineProps<{ selfArg?: SelfArg | undefined }>()
 
 type DisplayedAdditionalTypes =
   | null
-  | { kind: 'single'; type: string }
   | { kind: 'multiple'; types: string[] }
 
 const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
@@ -19,11 +18,7 @@ const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
       type.path ? qnLastSegment(type.path) : [],
     )
     if (additionalTypes.length === 0) return null
-    if (additionalTypes.length === 1 && additionalTypes[0]) {
-      return { kind: 'single', type: additionalTypes[0] }
-    } else {
-      return { kind: 'multiple', types: additionalTypes }
-    }
+    return { kind: 'multiple', types: additionalTypes }
   }
   return null
 })
@@ -40,8 +35,7 @@ const label = computed(() => {
 
 <template>
   <div v-if="label" data-testid="component-editor-label" class="no-wrap">
-    <span v-if="additionalTypes?.kind === 'single'" v-text="`${label} & ${additionalTypes.type}`" />
-    <template v-else-if="additionalTypes?.kind === 'multiple'">
+    <template v-if="additionalTypes?.kind === 'multiple'">
       <TooltipTrigger>
         <template #default="triggerProps">
           <span
@@ -58,23 +52,18 @@ const label = computed(() => {
       </TooltipTrigger>
     </template>
     <span v-else v-text="label" />
-    <span> Components</span>
   </div>
 </template>
 
 <style scoped>
 .additionalTypesPlaceholder {
   background-color: rgba(0, 0, 0, 0.1);
-  padding: 1px 2px;
+  padding: 1px 3px;
   border-radius: 2px;
 }
 
 .no-wrap {
   white-space: nowrap;
-  position:absolute;
-  top: -20px;
-  left: 40px;
-  opacity: 0.6;
-  font-style: italic;
+  opacity: 0.7;
 }
 </style>
