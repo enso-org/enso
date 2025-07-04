@@ -1602,7 +1602,7 @@ export default class RemoteBackend extends Backend {
   override async createCustomerPortalSession() {
     const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
       remoteBackendPaths.getCustomerPortalSessionPath(),
-      {},
+      null,
     )
 
     if (!response.ok) {
@@ -1705,7 +1705,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
+  private post<T = void>(path: string, payload: object | null, options?: RemoteBackendPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.post<T>(`${$config.API_URL}/${path}`, payload, options),
     )
