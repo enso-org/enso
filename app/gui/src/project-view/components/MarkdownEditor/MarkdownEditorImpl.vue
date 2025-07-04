@@ -18,7 +18,7 @@ import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
-import { useAmbientContext } from '../../providers/asyncResources/context'
+import { useCurrentProjectResourceContext } from '../../providers/asyncResources/context'
 import {
   insertPlaceholder,
   replaceablePlaceholders,
@@ -51,8 +51,7 @@ const {
 }>()
 defineOptions({ inheritAttrs: false })
 
-const uploadContext = useAmbientContext()
-
+const resourceContext = useCurrentProjectResourceContext()
 const res = useAsyncResources(true)
 
 async function selectAndUpload() {
@@ -64,7 +63,7 @@ const uploadErrorToast = useToast.error()
 
 function handleUpload(source: AnyUploadSource): boolean {
   if (!res) return false
-  const uploads = res.uploadResources(source, uploadContext)
+  const uploads = res.uploadResources(source, resourceContext)
   if (uploads.length == 0) return false
 
   const coords = source instanceof DragEvent ? new Vec2(source.clientX, source.clientY) : undefined

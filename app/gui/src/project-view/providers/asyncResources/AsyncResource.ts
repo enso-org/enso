@@ -3,6 +3,7 @@ import { Err, Ok, Result } from '@/util/data/result'
 import {
   EffectScope,
   effectScope,
+  getCurrentScope,
   nextTick,
   onScopeDispose,
   ref,
@@ -66,7 +67,7 @@ export class AsyncResource {
         // Refetch logic depends on this ref being depended on here, because
         // increments to this counter are what causes the fetch to retrigger.
         const forceRefetchCount = this.refetchCount.value
-    
+
         // Attempt to use the uploaded data, unless a refetch was explicitly requested.
         const fetchPromise =
           forceRefetchCount === 0 && fetcher.uploading != null ?
@@ -97,11 +98,11 @@ export class AsyncResource {
           if (result.ok) {
             this._status.value = 'ready'
           } else {
-          // Be careful to not modify the status if the previous fetch has been aborted.
-          // That means either a refetch is in progress, or this resource was disposed.
-          if (result.error.payload instanceof AbortSignal) return
-          this.lastErrorMessage = result.error.message('')
-          this._status.value = 'error'
+            // Be careful to not modify the status if the previous fetch has been aborted.
+            // That means either a refetch is in progress, or this resource was disposed.
+            if (result.error.payload instanceof AbortSignal) return
+            this.lastErrorMessage = result.error.message('')
+            this._status.value = 'error'
           }
         })
       })
@@ -145,10 +146,8 @@ export class AsyncResource {
    * If the resource is paused, it will be scheduled for refetch next time it is unpaused.
    */
   public refresh() {
-    if (this.status === 'uploading') {
-      // We cannot refetch while uploading is still ongoing, since the place where we fetch from might not have the resource yet.
-      return
-    }
+    // We cannot refetch while uploading is still ongoing, since the place where we fetch from might not have the resource yet.
+    if (!this.scope.active || this.status === 'uploading') return
     this._status.value = 'loading'
     this.refetchCount.value = this.refetchCount.value + 1
   }
@@ -175,7 +174,6 @@ export class AsyncResource {
    * Stop refetching logic and clean up all memory used by this resource.
    */
   dispose() {
-    if (!this.scope.active) return
     this.scope.stop()
   }
 }
@@ -191,12 +189,13 @@ const MAX_CACHED_UNUSED_RESOURCES = 64
  * Part of 'asyncResources' store.
  * @internal
  */
-export function initResourceCache() {
+export function useResourceCache() {
   const usedResources = new Map<ResourceKey, { refcount: number; res: AsyncResource }>()
   const parkedResources = new LRUCache<ResourceKey, AsyncResource>(
     MAX_CACHED_UNUSED_RESOURCES,
     (r) => r.dispose(),
   )
+  onScopeDispose(() => parkedResources.clear())
 
   function unparkResource(key: ResourceKey, res: AsyncResource): AsyncResource {
     res.setPaused(false)
@@ -214,18 +213,19 @@ export function initResourceCache() {
     return unparkResource(fetcher.cacheKey, parkedResource)
   }
 
+  const scope = getCurrentScope()
+
   function releaseResource(key: ResourceKey) {
     const used = usedResources.get(key)
-    if (!used) return
-    used.refcount -= 0
-    if (used.refcount <= 0) {
+    if (used != null && --used.refcount <= 0) {
       usedResources.delete(key)
-      used.res.setPaused(true)
-      parkedResources.set(key, used.res)
+      // Parked cache only functions as long as the containing scope is not disposed.
+      if (scope?.active) {
+        used.res.setPaused(true)
+        parkedResources.set(key, used.res)
+      } else used.res.dispose()
     }
   }
-
-  onScopeDispose(() => parkedResources.clear())
 
   return {
     retainResource,

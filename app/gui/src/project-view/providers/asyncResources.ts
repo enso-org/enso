@@ -6,43 +6,41 @@ import { ToValue } from '@/util/reactivity'
 import { computed, ComputedRef, onScopeDispose, toValue } from 'vue'
 import {
   AsyncResource,
-  initResourceCache,
   ResourceDefinition,
   ResourceKey,
+  useResourceCache,
 } from './asyncResources/AsyncResource'
 import {
-  capturedContextAsLazy,
-  CapturedResourceContext,
   captureResourceContext,
   ResourceContext,
-  useAmbientContext,
+  ResourceContextSnapshot,
+  useCurrentProjectResourceContext,
 } from './asyncResources/context'
-import { initAsyncResourceResolver } from './asyncResources/resolve'
+import { useAsyncResourceResolver } from './asyncResources/resolve'
 import {
   AnyUploadSource,
-  initResourceUpload,
   normalizeUploadSources,
   uploadAsFetchProgress,
   UploadDefinition,
   UploadProgress,
+  useResourceUpload,
 } from './asyncResources/upload'
+
+export type AsyncResourceStore = ReturnType<typeof useAsyncResources>
 
 export const [provideAsyncResources, useAsyncResources] = createContextStore(
   'asyncResourceStore',
   (openedProjects: OpenedProjectsStore) => {
     const backends = useBackends()
-    const { retainResource, releaseResource } = initResourceCache()
-    const resolveResourceInContext = initAsyncResourceResolver(backends, openedProjects)
-    const uploadResource = initResourceUpload(openedProjects)
+    const { retainResource, releaseResource } = useResourceCache()
+    const resolveResourceInContext = useAsyncResourceResolver(backends, openedProjects)
+    const uploadResource = useResourceUpload(openedProjects)
 
     function finishResourceUpload(
       progress: UploadProgress,
-      context: CapturedResourceContext,
+      context: ResourceContextSnapshot,
     ): Result<string> {
-      const resolvedDefinition = resolveResourceInContext(
-        progress.unparsedResourceUrl,
-        capturedContextAsLazy(context),
-      )
+      const resolvedDefinition = resolveResourceInContext(progress.unparsedResourceUrl, context)
       if (!resolvedDefinition.ok) return resolvedDefinition
 
       const uploadDefinition: ResourceDefinition = {
@@ -60,7 +58,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
 
     async function uploadSingleResource(
       definition: UploadDefinition,
-      context: CapturedResourceContext,
+      context: ResourceContextSnapshot,
     ) {
       const progress = await uploadResource(definition, context)
       return andThen(progress, (p) => finishResourceUpload(p, context))
@@ -79,7 +77,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
        */
       useResourceFromUrl(
         unparsedResourceUrl: ToValue<string>,
-        context: ResourceContext = useAmbientContext(),
+        context: ResourceContext = useCurrentProjectResourceContext(),
       ): ComputedRef<Result<AsyncResource>> {
         const resolved = computed(() =>
           resolveResourceInContext(toValue(unparsedResourceUrl), context),

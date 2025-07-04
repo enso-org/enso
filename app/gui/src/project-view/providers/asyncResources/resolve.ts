@@ -1,15 +1,14 @@
 import { AssetType, EnsoPath, extractTypeFromId, NetworkError, ProjectId } from '#/services/Backend'
 import LocalBackend, { isLocalProjectId } from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
-import { injectOpenedProjects } from '$/providers/openedProjects'
+import { OpenedProjectsStore } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, Ok, rejectionToResult, Result } from '@/util/data/result'
 import { toValue } from 'vue'
+import { Opt } from 'ydoc-shared/util/data/opt'
 import { ResourceDefinition } from './AsyncResource'
 import { ResourceContext } from './context'
 import { parseResourceUrl } from './parse'
-
-export type AsyncResourceResolver = ReturnType<typeof initAsyncResourceResolver>
 
 /**
  * Create a resource resolver function that will use provided backends for accessing resource data.
@@ -17,18 +16,18 @@ export type AsyncResourceResolver = ReturnType<typeof initAsyncResourceResolver>
  * Part of 'asyncResources' store.
  * @internal
  */
-export function initAsyncResourceResolver(
+export function useAsyncResourceResolver(
   backends: {
-    localBackend: LocalBackend | undefined | null
-    remoteBackend: RemoteBackend | undefined | null
+    localBackend: Opt<LocalBackend>
+    remoteBackend: Opt<RemoteBackend>
   },
-  openedProjects: ReturnType<typeof injectOpenedProjects>,
+  openedProjects: OpenedProjectsStore,
 ) {
   function resolveResourceInContext(
-    unparsedAssetUrl: string,
+    url: string,
     context: ResourceContext,
   ): Result<ResourceDefinition> {
-    const parsedUrl = parseResourceUrl(unparsedAssetUrl, context.basePathSegments)
+    const parsedUrl = parseResourceUrl(url, context.basePathSegments)
     if (!parsedUrl.ok) return parsedUrl
     switch (parsedUrl.value.kind) {
       case 'ensoPath': {

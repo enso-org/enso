@@ -4,7 +4,7 @@ import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, mapOk, Ok, Result } from '@/util/data/result'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import { FetchPartialProgress } from './AsyncResource'
-import { CapturedResourceContext } from './context'
+import { ResourceContextSnapshot } from './context'
 
 export type AnyUploadSource =
   | UploadDefinition
@@ -87,7 +87,7 @@ const supportedResourceTypes = {
  * Part of 'asyncResources' store.
  * @internal
  */
-export function initResourceUpload(openedProjects: OpenedProjectsStore) {
+export function useResourceUpload(openedProjects: OpenedProjectsStore) {
   async function uploadResourceToProject(
     project: OpenedProject,
     upload: UploadDefinition,
@@ -118,7 +118,7 @@ export function initResourceUpload(openedProjects: OpenedProjectsStore) {
 
   async function uploadResource(
     data: UploadDefinition,
-    context: CapturedResourceContext,
+    context: ResourceContextSnapshot,
   ): Promise<Result<UploadProgress>> {
     const openedProject = context.project && openedProjects.get(context.project)
     if (openedProject) {

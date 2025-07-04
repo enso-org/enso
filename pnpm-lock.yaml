@@ -4,6 +4,18 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    typescript:
+      specifier: ^5.7.2
+      version: 5.7.2
+    vite:
+      specifier: ^6.2.4
+      version: 6.2.5
+    vitest:
+      specifier: ^3.0.5
+      version: 3.0.5
+
 overrides:
   tslib: ^2.8.1
   jsdom: ^26.0.0
@@ -26,8 +38,11 @@ importers:
         specifier: ^2.8.1
         version: 2.8.1
       typescript:
-        specifier: ^5.7.2
+        specifier: 'catalog:'
         version: 5.7.2
+      vitest:
+        specifier: 'catalog:'
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
     devDependencies:
       '@bazel/ibazel':
         specifier: ^0.25.0
@@ -83,9 +98,6 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: ^0.5.14
         version: 0.5.14(@ianvs/prettier-plugin-sort-imports@4.3.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.2))(prettier-plugin-organize-imports@4.1.0(prettier@3.4.2)(typescript@5.7.2)(vue-tsc@2.2.0(typescript@5.7.2)))(prettier@3.4.2)
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
 
   app/common:
     dependencies:
@@ -108,7 +120,7 @@ importers:
         specifier: ^0.2.99
         version: 0.2.99
       vitest:
-        specifier: 3.0.5
+        specifier: 'catalog:'
         version: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
       zod:
         specifier: ^3.23.0
@@ -538,10 +550,10 @@ importers:
         specifier: ^6.2.1
         version: 6.2.1
       typescript:
-        specifier: ^5.7.2
+        specifier: 'catalog:'
         version: 5.7.2
       vite:
-        specifier: ^6.2.4
+        specifier: 'catalog:'
         version: 6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
       vite-plugin-vue-devtools:
         specifier: 7.7.7
@@ -550,7 +562,7 @@ importers:
         specifier: ^3.4.1
         version: 3.4.1(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       vitest:
-        specifier: 3.0.5
+        specifier: 'catalog:'
         version: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
       vue-tsc:
         specifier: ^2.2.0
@@ -671,7 +683,7 @@ importers:
         specifier: ^1.0.32
         version: 1.0.32
       vite:
-        specifier: ^6.2.4
+        specifier: 'catalog:'
         version: 6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
       vite-node:
         specifier: 3.0.0-beta.3
@@ -757,7 +769,7 @@ importers:
         specifier: ^1.0.0
         version: 1.7.2
       vitest:
-        specifier: 3.0.5
+        specifier: 'catalog:'
         version: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
 
   app/ydoc-server:
@@ -800,13 +812,13 @@ importers:
         specifier: 8.5.13
         version: 8.5.13
       typescript:
-        specifier: ^5.7.2
+        specifier: 'catalog:'
         version: 5.7.2
       vite-plugin-wasm:
         specifier: ^3.4.1
         version: 3.4.1(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       vitest:
-        specifier: 3.0.5
+        specifier: 'catalog:'
         version: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
 
   app/ydoc-server-nodejs:
@@ -828,7 +840,7 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       typescript:
-        specifier: ^5.7.2
+        specifier: 'catalog:'
         version: 5.7.2
 
   app/ydoc-server-polyglot:
@@ -850,7 +862,7 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       typescript:
-        specifier: ^5.7.2
+        specifier: 'catalog:'
         version: 5.7.2
 
   app/ydoc-shared:
@@ -920,7 +932,7 @@ importers:
         specifier: ^8.5.13
         version: 8.5.13
       typescript:
-        specifier: ^5.7.2
+        specifier: 'catalog:'
         version: 5.7.2
       vite-node:
         specifier: 3.0.3
@@ -929,7 +941,7 @@ importers:
         specifier: ^3.4.1
         version: 3.4.1(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       vitest:
-        specifier: 3.0.5
+        specifier: 'catalog:'
         version: 3.0.5(@types/debug@4.1.12)(@types/node@22.10.4)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
 
   lib/js/runner:
@@ -942,7 +954,7 @@ importers:
         specifier: ^22.10.4
         version: 22.10.4
       typescript:
-        specifier: ^5.7.2
+        specifier: 'catalog:'
         version: 5.7.2
 
 packages:

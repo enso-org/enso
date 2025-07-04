@@ -8,15 +8,20 @@ export type ParsedAssetUrl =
   | { kind: 'ensoPath'; ensoPath: EnsoPath }
   | { kind: 'webUrl'; url: URL } // only allowed web protocols
 
+// A canary "root directory" name, used during parsing to detect if the path escaped the project.
+// The value does not need actual randomness,
+const CANARY_ROOT = `__CANARY__`
+
 /**
  * Transform given raw URL (e.g. from a markdown image tags) into a validated representation
  * that explciitly represents all variations of different paths we want to support.
  */
 export function parseResourceUrl(
-  unparsedAssetUrl: string,
-  basePathSegments: ToValue<string[] | undefined>,
+  urlString: string,
+  basePathSegments?: ToValue<string[] | undefined>,
 ): Result<ParsedAssetUrl> {
-  const asUrl = URL.parse(unparsedAssetUrl)
+  if (!urlString) return Err('Expected non-empty resource URL')
+  const asUrl = URL.parse(urlString)
   if (asUrl != null) {
     switch (asUrl.protocol) {
       case 'http:':
@@ -27,19 +32,34 @@ export function parseResourceUrl(
     }
     return Err('Unsupported URL protocol: ' + asUrl.protocol)
   }
-  // We already know that `unparsedAssetUrl` is not a valid URL by itself.
+  // We already know that `urlString` is not a valid URL by itself.
   // Attempt interpreting it as a relative path with a project base.
+  if (!/[:\\<>|]/.test(urlString)) {
+    // relative URLs starting with '/' are always treated as project-relative.
+    // Avoid creating a dependency on `basePathSegments`.
+    urlString = urlString.replace(/\/\/+/, '/')
+    const isAbsolute = urlString.startsWith('/')
+    const segments = isAbsolute ? [] : toValue(basePathSegments)
+    if (segments) {
+      const rootRelativePath =
+        isAbsolute ?
+          CANARY_ROOT + urlString
+        : [CANARY_ROOT, ...segments.slice(0, -1), urlString].join('/')
+      const asProjectUrl = URL.parse(rootRelativePath, 'project:///')
+      if (asProjectUrl?.protocol === 'project:') {
+        const relativePath = decodeURI(asProjectUrl.pathname)
+        console.log('rootRelativePath', rootRelativePath)
+        console.log('relativePath', relativePath)
+        if (!relativePath.startsWith('/' + CANARY_ROOT + '/'))
+          return Err('Resource path outside of project directory')
 
-  // relative URLs starting with '/' are always treated as project-relative.
-  // Avoid creating a dependency on `basePathSegments`.
-  const segments = unparsedAssetUrl.startsWith('/') ? [] : toValue(basePathSegments)
-  if (segments) {
-    const asProjectUrl = URL.parse(unparsedAssetUrl, 'project:///' + segments.join('/'))
-    if (asProjectUrl?.protocol === 'project:') {
-      const relativePath = decodeURI(asProjectUrl.pathname).substring(1) // drop leading '/'
-      return Ok({ kind: 'projectRelative', relativePath })
+        return Ok({
+          kind: 'projectRelative',
+          relativePath: relativePath.substring(CANARY_ROOT.length + 2), // drop canary root and slashes
+        })
+      }
     }
   }
 
-  return Err('Unsupported resource URL: ' + unparsedAssetUrl)
+  return Err('Unsupported resource URL: ' + urlString)
 }

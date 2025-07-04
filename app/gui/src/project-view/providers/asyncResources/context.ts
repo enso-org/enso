@@ -3,33 +3,37 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { ToValue } from '@/util/reactivity'
 import { toValue } from 'vue'
 
-export interface CapturedResourceContext {
+/**
+ * Data reprsenting contextual information that can influence the resolution process of a resource URL.
+ * Not every type of a resource URL requires any particular context information to be fully resolved,
+ * but we can only know that during or after the resolution. The resolution process will access any
+ * context values at the latest possible time in order to avoid capturing any unnecessary dependencies.
+ */
+export type ResourceContext = {
+  [K in keyof ResourceContextSnapshot]: ToValue<ResourceContextSnapshot[K]>
+}
+
+/**
+ * A non-reactive snapshot of {@link ResourceContext} with all context values fully resolved. Snapshotting
+ * is used when we want to ensure that an asynchronous task gets to use the same context between await points.
+ */
+export interface ResourceContextSnapshot {
   project: ProjectId | undefined
   basePathSegments: string[] | undefined
 }
 
-export type ResourceContext = {
-  [K in keyof CapturedResourceContext]: ToValue<CapturedResourceContext[K]>
-}
-
-/** Capture all context closures at current point.  */
-export function captureResourceContext(context: ResourceContext): CapturedResourceContext {
+/** Capture a snapshot of all context values at current point. */
+export function captureResourceContext(context: ResourceContext): ResourceContextSnapshot {
   return {
     project: toValue(context.project),
     basePathSegments: toValue(context.basePathSegments),
   }
 }
 
-/** Wrap captured context into a lazy context, so that it can be used in APIs expecting lazy variant. */
-export function capturedContextAsLazy(context: CapturedResourceContext): ResourceContext {
-  return {
-    project: () => context.project,
-    basePathSegments: () => context.basePathSegments,
-  }
-}
-
-/** Assemble resource context from current Vue's context. */
-export function useAmbientContext(): ResourceContext {
+/**
+ * Assemble resource context based on `currentProject` structure present in Vue's context.
+ */
+export function useCurrentProjectResourceContext(): ResourceContext {
   const currentProject = useCurrentProject(true)
   return {
     project: () => currentProject?.id.value ?? undefined,
