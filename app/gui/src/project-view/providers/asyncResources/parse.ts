@@ -9,7 +9,6 @@ export type ParsedAssetUrl =
   | { kind: 'webUrl'; url: URL } // only allowed web protocols
 
 // A canary "root directory" name, used during parsing to detect if the path escaped the project.
-// The value does not need actual randomness,
 const CANARY_ROOT = `__CANARY__`
 
 /**
@@ -48,8 +47,6 @@ export function parseResourceUrl(
       const asProjectUrl = URL.parse(rootRelativePath, 'project:///')
       if (asProjectUrl?.protocol === 'project:') {
         const relativePath = decodeURI(asProjectUrl.pathname)
-        console.log('rootRelativePath', rootRelativePath)
-        console.log('relativePath', relativePath)
         if (!relativePath.startsWith('/' + CANARY_ROOT + '/'))
           return Err('Resource path outside of project directory')
 
