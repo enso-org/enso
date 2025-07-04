@@ -10,7 +10,7 @@ import {
   type AgreementsModalProps,
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
-import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
+import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH, SETUP_PATH } from '$/appUtils'
 import { useUserAgreements } from '$/composables/userAgreements'
 import { AuthStore, useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
@@ -32,7 +32,7 @@ declare module 'vue-router' {
 const AgreementsModal = reactComponent(AgreementsModalReact)
 
 function routeAllowed(route: RouteLocation, auth: AuthStore) {
-  switch (route.meta.access) {
+switch (route.meta.access) {
     case null:
       console.error(
         'A route ',
@@ -54,7 +54,9 @@ function routeAllowed(route: RouteLocation, auth: AuthStore) {
 function redirect(auth: AuthStore, localStorage: LocalStorage) {
   if (auth.session == null || auth.isUserDeleted()) return { path: LOGIN_PATH }
   if (auth.isUserSoftDeleted()) return { path: RESTORE_USER_PATH }
-  return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
+  if (auth.session.type === UserSessionType.partial) return { path: SETUP_PATH }
+  if (auth.session.type === UserSessionType.full)
+    return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
 }
 
 function requireUserAgreements(route: RouteLocation) {

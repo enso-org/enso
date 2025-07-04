@@ -143,8 +143,6 @@ function createAuthStore(
   const refetchSession = usersMeQuery.refetch
 
   const setUsername = async (username: string) => {
-    gtagEvent('cloud_user_created')
-
     if (userData.value?.type === UserSessionType.full) {
       await updateUserMutation.mutateAsync({ username })
     } else {
@@ -158,6 +156,7 @@ function createAuthStore(
         userEmail: backendModule.EmailAddress(email),
         organizationId: orgId != null ? orgId : null,
       })
+      gtagEvent('cloud_user_created')
     }
     // Wait until the backend returns a value from `users/me`,
     // otherwise the rest of the steps are skipped.

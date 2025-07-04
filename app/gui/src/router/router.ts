@@ -64,7 +64,7 @@ const routes = [
       },
       {
         path: SETUP_PATH,
-        meta: { access: 'anyLoggedIn' as const },
+        meta: { access: UserSessionType.partial as const },
         beforeEnter: requireCloudBrowserEnabled,
         component: () =>
           import('#/pages/authentication/Setup').then((mod) => reactComponent(mod.Setup)),
