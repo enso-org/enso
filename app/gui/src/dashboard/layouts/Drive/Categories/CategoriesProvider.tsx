@@ -1,33 +1,20 @@
-/**
- * @file
- *
- * Provider for the categories.
- */
-
+/** @file Provider for categories. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
+import { getDriveLocation, setDriveLocation } from '#/providers/DriveProvider'
 import { useBackends, useFullUserSession } from '$/providers/react'
 import type { ReactNode } from 'react'
 import { isCloudCategory, type Category, type CategoryId } from './Category'
-import {
-  CategoriesContext,
-  categoryIdStore,
-  useCategories,
-  type CategoriesContextValue,
-} from './categoriesHooks'
+import { CategoriesContext, useCategories, type CategoriesContextValue } from './categoriesHooks'
 
-/**
- * Props for the {@link CategoriesProvider}.
- */
+/** Props for the {@link CategoriesProvider}. */
 export interface CategoriesProviderProps {
   readonly children: ReactNode | ((contextValue: CategoriesContextValue) => ReactNode)
   readonly onCategoryChange?: (previousCategory: Category | null, newCategory: Category) => void
 }
 
-/**
- * Provider for the categories.
- */
+/** Provider for categories. */
 export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.Element {
   const { children, onCategoryChange = () => {} } = props
 
@@ -41,7 +28,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
       'driveCategory',
       () => {
         const readSavedCategory = () => {
-          const id = categoryIdStore.getState().categoryId
+          const id = getDriveLocation().categoryId
           if (id == null) return null
           const category = findCategoryById(id)
           if (category == null) return null
@@ -52,7 +39,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
         return readSavedCategory() ?? (localBackend != null ? 'local' : 'cloud')
       },
-      // This is safe, because we enshure the type inside the function
+      // This is safe, because we confirm the type inside the function.
       // eslint-disable-next-line no-restricted-syntax
       (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
     )
@@ -65,9 +52,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
     }
 
     privateSetCategoryId(nextCategoryId)
-    categoryIdStore.setState({
-      categoryId: nextCategoryId,
-    })
+    setDriveLocation(null, nextCategoryId)
 
     // This is safe, because we know that the result will have the correct type.
     // eslint-disable-next-line no-restricted-syntax
@@ -76,9 +61,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const resetCategoryId = useEventCallback((replace?: boolean) => {
     privateResetCategoryId(replace)
-    categoryIdStore.setState({
-      categoryId: null,
-    })
+    setDriveLocation(null, null)
   })
 
   const category = findCategoryById(categoryId)

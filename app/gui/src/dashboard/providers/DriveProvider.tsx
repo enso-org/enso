@@ -6,7 +6,7 @@ import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import type { Category, CategoryId } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import {
@@ -20,18 +20,34 @@ import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import { persist } from 'zustand/middleware'
 import type { TransferrableAsset } from '../layouts/Drive/Categories'
 
-/** State for {@link categoryIdStore}. */
+/** State for {@link driveLocationStore}. */
 interface CurrentDirectoryIdStoreState {
-  readonly current: CurrentDirectoryIdContextType['currentDirectoryId']
+  readonly categoryId: CategoryId | null
+  readonly directoryId: DirectoryId | null
 }
 
-const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
-  persist((): CurrentDirectoryIdStoreState => ({ current: null }), {
-    name: 'enso-current-directory-id',
-    version: 2,
+const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
+  persist((): CurrentDirectoryIdStoreState => ({ categoryId: null, directoryId: null }), {
+    name: 'enso-drive-location',
+    version: 1,
   }),
 )
-resetStoreOnLogout(currentDirectoryIdStore)
+resetStoreOnLogout(driveLocationStore)
+
+/** Return the full drive location. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function getDriveLocation() {
+  return driveLocationStore.getState()
+}
+
+/** Safely update the drive location. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function setDriveLocation(directoryId: DirectoryId | null, categoryId?: CategoryId | null) {
+  driveLocationStore.setState({
+    ...(categoryId != null ? { categoryId } : {}),
+    directoryId,
+  })
+}
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {
@@ -71,9 +87,7 @@ interface DriveStore {
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
   readonly selectedIds: ReadonlySet<AssetId>
   readonly setSelectedIds: (selectedIds: ReadonlySet<AssetId>) => void
-  /**
-   * @deprecated Use `selectedIds` instead.
-   */
+  /** @deprecated Use `selectedIds` instead. */
   readonly selectedAssets: readonly SelectedAssetInfo[]
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
@@ -111,7 +125,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', () => currentDirectoryIdStore.getState().current)
+  >('currentDirectoryId', () => driveLocationStore.getState().directoryId)
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -171,16 +185,15 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const resetAssetTableState = useEventCallback(() => {
     store.getState().removeSelection()
     privateSetCurrentDirectoryId(null)
-    currentDirectoryIdStore.setState({ current: null })
+    setDriveLocation(null)
   })
 
-  const setCurrentDirectoryId = useEventCallback((current: DirectoryId | null) => {
-    if (current === currentDirectoryIdStore.getState().current) {
+  const setCurrentDirectoryId = useEventCallback((directoryId: DirectoryId | null) => {
+    if (directoryId === driveLocationStore.getState().directoryId) {
       return
     }
-
-    privateSetCurrentDirectoryId(current)
-    currentDirectoryIdStore.setState({ current })
+    privateSetCurrentDirectoryId(directoryId)
+    setDriveLocation(directoryId)
     store.getState().removeSelection()
   })
 
