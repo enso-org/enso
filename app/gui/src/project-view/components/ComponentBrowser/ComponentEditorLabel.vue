@@ -7,14 +7,15 @@ import { computed } from 'vue'
 const props = defineProps<{ typeInfo?: TypeInfo | undefined; unknownLabel?: string }>()
 
 const additionalTypes = computed<string[]>(() => {
-  if (props.typeInfo != null) {
-    const typeInfo = props.typeInfo
-    const combinedTypes = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
-    const additionalTypes = combinedTypes
-      .flatMap((type) => (type.path ? qnLastSegment(type.path) : []))
-    return (additionalTypes.length === 1 ? [] : additionalTypes);
+  if (props.typeInfo == null) {
+    return []
   }
-  return null
+
+  const typeInfo = props.typeInfo
+  const combinedTypes = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+  const additionalTypes = combinedTypes
+    .flatMap((type) => (type.path ? qnLastSegment(type.path) : []))
+  return (additionalTypes.length === 1 ? [] : additionalTypes)
 })
 
 const label = computed(() => {
