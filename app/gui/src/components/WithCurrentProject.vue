@@ -21,7 +21,7 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
   (projectId: ToValue<Opt<ProjectId>>) => {
     const openedProjects = injectOpenedProjects()
 
-    const effectiveOpenedProjectId = computed(() => {
+    const hybridResolvedProjectId = computed(() => {
       const id = toValue(projectId)
       // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
       if (id && openedProjects.get(id) == null && !isLocalProjectId(id)) {
@@ -33,12 +33,12 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
     })
 
     const ref = computed(() => {
-      const id = effectiveOpenedProjectId.value
+      const id = hybridResolvedProjectId.value
       return id != null ? openedProjects.get(id) : undefined
     })
 
     return {
-      id: effectiveOpenedProjectId,
+      id: hybridResolvedProjectId,
       /* Current project as a single ref  */
       ref,
       /* Current project's stores decomposed to separate refs. */

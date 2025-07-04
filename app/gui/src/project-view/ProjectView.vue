@@ -57,7 +57,7 @@ provideSettings()
 const visible = ref(false)
 provideVisibility(visible)
 openedProjects.registerProject(props)
-onScopeDispose(() => openedProjects.closeProject(props.projectId))
+onScopeDispose(() => openedProjects.unregisterProject(props.projectId))
 
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))

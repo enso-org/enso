@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useAsyncResources } from '@/providers/asyncResources'
 import { computed, toRef } from 'vue'
-import LoadingSpinner from '../shared/LoadingSpinner.vue'
 
 const DEFAULT_ALT_TEXT = 'Image'
 
@@ -17,12 +17,12 @@ const data = res.useResourceFromUrl(toRef(props, 'src'))
 
 const errorMessage = computed(() => {
   const result = data.value
-  return result.ok ? result.value.error : result.error.message('')
+  return result.ok ? (result.value.error ?? '') : result.error.message('')
 })
 </script>
 
 <template>
-  <div v-if="!data.ok || data.value.status === 'error'" class="error" :title="errorMessage || ''">
+  <div v-if="!data.ok || data.value.status === 'error'" class="error" :title="errorMessage">
     <SvgIcon name="error" /> {{ alt }}
   </div>
   <template v-else>

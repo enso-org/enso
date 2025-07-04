@@ -132,9 +132,9 @@ export function initResourceUpload(openedProjects: OpenedProjectsStore) {
 }
 
 /**
- * Create
+ * Translate an upload progress to partial fetch progress representation.
  */
-export function generateUploadingDefinition(
+export function uploadAsFetchProgress(
   progress: UploadProgress,
 ): Promise<Result<FetchPartialProgress>> {
   return progress.uploadData.then((data) => {

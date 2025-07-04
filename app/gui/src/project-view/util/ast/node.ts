@@ -1,10 +1,12 @@
 import type { NodeDataFromAst } from '@/stores/graph'
-import { emptyPrimaryApplication, PrimaryApplication } from '@/stores/graph/graphDatabase'
+import { emptyPrimaryApplication, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
 import { computed } from 'vue'
 import * as Y from 'yjs'
 
+// Computed used here intentionally to delay initialization until first use. Otherwise we get issues
+// related to module load order or calling wasm parser too early.
 export const prefixes = computed(() =>
   Prefixes.FromLines({
     enableRecording:

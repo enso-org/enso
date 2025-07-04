@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 import { useBackends } from '$/providers/backends'
 import { OpenedProjectsStore } from '$/providers/openedProjects'
 import { createContextStore } from '@/providers'
@@ -22,9 +20,9 @@ import {
 import { initAsyncResourceResolver } from './asyncResources/resolve'
 import {
   AnyUploadSource,
-  generateUploadingDefinition,
   initResourceUpload,
   normalizeUploadSources,
+  uploadAsFetchProgress,
   UploadDefinition,
   UploadProgress,
 } from './asyncResources/upload'
@@ -49,7 +47,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
 
       const uploadDefinition: ResourceDefinition = {
         ...resolvedDefinition.value,
-        uploading: generateUploadingDefinition(progress),
+        uploading: uploadAsFetchProgress(progress),
       }
 
       // Put the resource into cache, but ensure that it is not being flagged as actively used.
@@ -99,13 +97,13 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
           const resourceDef = resolved.value
           const retained = mapOk(resourceDef, retainResource)
           releasePrevious()
+          if (resourceDef.ok) previousKey = resourceDef.value.cacheKey
           return retained
         })
       },
 
       /**
        * Try uploading files and create resource objects from them.
-       *
        * @returns resource URLs to pass into `useResourceFromUrl` to resolve uploaded assets.
        */
       uploadResources(

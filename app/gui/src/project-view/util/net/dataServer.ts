@@ -207,7 +207,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
     const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
-    return await this.send(builder, InboundPayload.READ_FILE_CMD, command, undefined)
+    return await this.send(builder, InboundPayload.READ_FILE_CMD, command)
   }
 
   /** TODO: Add docs */

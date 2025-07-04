@@ -69,7 +69,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
       })
     }
 
-    function closeProject(id: ProjectId) {
+    function unregisterProject(id: ProjectId) {
       projects.get(id)?.storesScope.stop()
       projects.delete(id)
     }
@@ -84,7 +84,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
 
     return {
       registerProject,
-      closeProject,
+      unregisterProject,
       get,
       listIds,
     }

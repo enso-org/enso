@@ -1,17 +1,15 @@
 import { LRUCache } from '#/utilities/LruCache'
 import { Err, Ok, Result } from '@/util/data/result'
 import {
-  computed,
   EffectScope,
   effectScope,
-  getCurrentScope,
   nextTick,
   onScopeDispose,
   ref,
   Ref,
   watchEffect,
+  WatchHandle,
 } from 'vue'
-import { assertDefined } from 'ydoc-shared/util/assert'
 
 export type ResourceKey = string
 
@@ -29,11 +27,6 @@ export interface ResourceDefinition {
   fetch(abort: AbortSignal): Promise<FetchResult>
 }
 
-type FetchInProgress = {
-  promise: Promise<FetchResult>
-  controller: AbortController
-}
-
 /**
  * A resource with data that can be fetched from various sources.
  *
@@ -46,10 +39,10 @@ export class AsyncResource {
   private scope: EffectScope
   private urlRef: Ref<string | undefined>
   private createdObjectUrl: string | undefined
-  private forceRefetchCounter: Ref<number>
-  private paused: Ref<boolean>
+  private refetchCount: Ref<number>
   private _status: Ref<'loading' | 'uploading' | 'error' | 'ready'>
   private lastErrorMessage: string | undefined
+  private fetchEffectHandle: WatchHandle | undefined
 
   /**
    * Create a new `AsyncResource` instance that will use specific fetcher as a strategy to retreive its data.
@@ -57,79 +50,74 @@ export class AsyncResource {
    *
    * Note: Every constructed resource must eventually be manually `dispose`d.
    */
-  static Create(fetcher: ResourceDefinition): AsyncResource {
-    const scope = effectScope(true)
-    return scope.run(() => new AsyncResource(fetcher))!
-  }
-
-  private constructor(private fetcher: ResourceDefinition) {
-    const currentScope = getCurrentScope()
-    assertDefined(currentScope)
-    this.scope = currentScope
+  constructor(private fetcher: ResourceDefinition) {
+    this.scope = effectScope(true)
     this.urlRef = ref<string>()
-    this.forceRefetchCounter = ref(0)
-    this.paused = ref(false)
+    this.refetchCount = ref(0)
     this._status = ref(fetcher.uploading ? 'uploading' : 'loading')
 
-    const fetchInProgress = computed<FetchInProgress>((previous) => {
-      previous?.controller.abort('refetch')
-      const controller = new AbortController()
+    // Run the actual fetch logic *reactively* inside a dedicated scope. The fetch will be automatically
+    // aborted and restarted if the fetch function dependencies were modified.
+    this.scope.run(() => {
+      this.fetchEffectHandle = watchEffect((onInvalidate) => {
+        const controller = new AbortController()
+        onInvalidate(() => controller.abort('invalidate'))
 
-      // Refetch logic depends on this ref being depended on here, because
-      // increments to this counter are what causes the fetch to retrigger.
-      const forceRefetchCount = this.forceRefetchCounter.value
+        // Refetch logic depends on this ref being depended on here, because
+        // increments to this counter are what causes the fetch to retrigger.
+        const forceRefetchCount = this.refetchCount.value
+    
+        // Attempt to use the uploaded data, unless a refetch was explicitly requested.
+        const fetchPromise =
+          forceRefetchCount === 0 && fetcher.uploading != null ?
+            fetcher.uploading
+          : this.fetcher.fetch(controller.signal)
 
-      let promise
-      if (forceRefetchCount === 0 && fetcher.uploading != null) {
-        promise = fetcher.uploading
-      } else {
-        promise = this.fetcher.fetch(controller.signal)
-      }
+        // NOTE: things happening asynchronously inside `then` call are *not* depended on for the purposes of the
+        // watcher. This is intentional, we only want to refetch if the origianl `fetch` dependencies change.
 
-      return { promise, controller }
-    })
-
-    const exposePromise = computed(() => {
-      const { promise, controller } = fetchInProgress.value
-      const exposeResult = promise.then(async (result) => {
-        while (true) {
-          if (controller.signal.aborted) return Err(controller.signal)
-          if (!result.ok) return result
-          const data = 'dataUpdate' in result.value ? result.value.dataUpdate : result.value
-          if (data instanceof URL) this.exposeNewUrl(data)
-          else this.exposeNewObject(data)
-          if ('continue' in result.value) {
-            result = await result.value.continue
-          } else {
-            return Ok()
+        // Handle partial results in series, return data only once the final result is received.
+        const progressPromise = fetchPromise.then(async (result) => {
+          while (true) {
+            if (controller.signal.aborted) return Err(controller.signal)
+            if (!result.ok) return result
+            const data = 'dataUpdate' in result.value ? result.value.dataUpdate : result.value
+            if (data instanceof URL) this.exposeNewUrl(data)
+            else this.exposeNewObject(data)
+            if ('continue' in result.value) {
+              result = await result.value.continue
+            } else {
+              return Ok()
+            }
           }
-        }
-      })
-      return exposeResult.then((result) => {
-        if (result.ok) {
-          this._status.value = 'ready'
-          return
-        }
-        if (result.error.payload instanceof AbortSignal) return
-        this.lastErrorMessage = result.error.message('')
-        this._status.value = 'error'
-      })
-    })
+        })
 
-    watchEffect(() => {
-      if (this.paused.value) return
-      // When resource is not paused, make sure the fetch chain is running by depending on the `exposePromise` computed value.
-      const _ = exposePromise.value
+        // Once the fetch has concluded, update the resource status accordingly.
+        progressPromise.then((result) => {
+          if (result.ok) {
+            this._status.value = 'ready'
+          } else {
+          // Be careful to not modify the status if the previous fetch has been aborted.
+          // That means either a refetch is in progress, or this resource was disposed.
+          if (result.error.payload instanceof AbortSignal) return
+          this.lastErrorMessage = result.error.message('')
+          this._status.value = 'error'
+          }
+        })
+      })
+      onScopeDispose(() => this.revokeCurrentObject())
     })
-
-    onScopeDispose(() => this.revokeCurrentObject())
   }
 
   /**
    * Pause or unpause this resource. Paused resources will not be automatically refetched when their fetcher is invalidated.
    */
   setPaused(paused: boolean) {
-    this.paused.value = paused
+    if (paused) {
+      this.fetchEffectHandle?.pause()
+    } else {
+      this.fetchEffectHandle?.resume()
+    }
   }
 
   private revokeCurrentObject() {
@@ -154,6 +142,7 @@ export class AsyncResource {
 
   /**
    * Cause this resource to be refetched from network. Does nothing if the resource is still being uploaded.
+   * If the resource is paused, it will be scheduled for refetch next time it is unpaused.
    */
   public refresh() {
     if (this.status === 'uploading') {
@@ -161,7 +150,7 @@ export class AsyncResource {
       return
     }
     this._status.value = 'loading'
-    this.forceRefetchCounter.value = this.forceRefetchCounter.value + 1
+    this.refetchCount.value = this.refetchCount.value + 1
   }
 
   /**
@@ -183,7 +172,7 @@ export class AsyncResource {
   }
 
   /**
-   *
+   * Stop refetching logic and clean up all memory used by this resource.
    */
   dispose() {
     if (!this.scope.active) return
@@ -221,7 +210,7 @@ export function initResourceCache() {
       used.refcount += 1
       return used.res
     }
-    const parkedResource = parkedResources.take(fetcher.cacheKey) ?? AsyncResource.Create(fetcher)
+    const parkedResource = parkedResources.take(fetcher.cacheKey) ?? new AsyncResource(fetcher)
     return unparkResource(fetcher.cacheKey, parkedResource)
   }
 
