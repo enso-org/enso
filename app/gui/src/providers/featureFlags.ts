@@ -27,6 +27,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   showDeveloperIds: z.boolean(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
+  disableAnimations: z.boolean(),
   fileChunkUploadPoolSize: z.number().int().min(1),
 })
 
@@ -59,6 +60,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         showDeveloperIds: false,
         overrideProfilePicture: false,
         multiplyUserList: false,
+        disableAnimations: false,
         fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
       },
       setFeatureFlag: (key, value) => {

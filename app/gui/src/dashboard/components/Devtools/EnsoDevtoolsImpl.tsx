@@ -26,7 +26,7 @@ import {
 } from '$/providers/featureFlags'
 import { useLocalStorage, usePlanOverride, useText } from '$/providers/react'
 import { useSetPlanOverride, useUserSession } from '$/providers/react/auth'
-import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
+import { useFeatureFlag, useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { motion } from 'framer-motion'
@@ -36,7 +36,6 @@ import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
 import {
-  useAnimationsDisabled,
   useEnableVersionChecker,
   usePaywallDevtools,
   useSetAnimationsDisabled,
@@ -78,7 +77,6 @@ export function EnsoDevStatus() {
   const showEnsoDevtools = useShowEnsoDevtools()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
-  const animationsDisabled = useAnimationsDisabled()
   const setAnimationsDisabled = useSetAnimationsDisabled()
   const versionCheckerEnabled = useEnableVersionChecker() ?? false
   const setVersionCheckerEnabled = useSetEnableVersionChecker()
@@ -91,6 +89,7 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
+    disableAnimations,
     fileChunkUploadPoolSize,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
@@ -116,7 +115,6 @@ export function EnsoDevStatus() {
   })()
   const isOverridden =
     planName != null ||
-    animationsDisabled ||
     versionCheckerEnabled ||
     !enableAssetsTableBackgroundRefresh ||
     assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
@@ -124,6 +122,7 @@ export function EnsoDevStatus() {
     showDeveloperIds ||
     overrideProfilePicture ||
     multiplyUserList ||
+    disableAnimations ||
     enableMultitabs ||
     enableAdvancedProjectExecutionOptions ||
     fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
@@ -152,7 +151,7 @@ export function EnsoDevStatus() {
               {getText('planOverriddenToX', planName)}
             </DeveloperOverrideEntry>
           )}
-          {animationsDisabled && (
+          {disableAnimations && (
             <DeveloperOverrideEntry
               reset={() => {
                 setAnimationsDisabled(false)
@@ -277,7 +276,7 @@ export function EnsoDevtools() {
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
 
-  const animationsDisabled = useAnimationsDisabled()
+  const animationsDisabled = useFeatureFlag('disableAnimations')
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
   const localStorage = useLocalStorage()
