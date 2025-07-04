@@ -19,7 +19,7 @@ object Editions {
     "Standard.Examples",
     "Standard.Searcher",
     "Standard.Generic_JDBC",
-    "Standard.Google_Api",
+    "Standard.Google",
     "Standard.Snowflake",
     "Standard.Microsoft",
     "Standard.Tableau"
