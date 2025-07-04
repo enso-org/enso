@@ -234,7 +234,7 @@ object StdBits {
   }
 
   /** Extracts native libraries from `std-microsoft`.
-    * In particular from JNA.
+    * In particular from JNA and netty-tcnative-boringssl.
     *
     * The list of the native libraries is listed in
     * <a href="https://github.com/enso-org/enso/blob/7e0c6373b55bdf976562bce899f2fe6af7c258c0/test/Base_Tests/data/native_libs.json#L2-L25">
@@ -247,6 +247,9 @@ object StdBits {
     microsoftPolyglotRoot: File,
     microsoftNativeLibs: File,
     jnaJar: File,
+    tcNativeJars: Seq[File],
+    updateReport: UpdateReport,
+    scalaBinaryVersion: String,
     logger: ManagedLogger,
     moduleName: String,
     cacheStoreFactory: CacheStoreFactory,
@@ -295,7 +298,7 @@ object StdBits {
     val outputJna =
       (microsoftPolyglotRoot / s"jna-wrapper-thin.jar").toPath
 
-    val extractedLibs = JARUtils.extractFilesFromJar(
+    val extractedJnaLibs = JARUtils.extractFilesFromJar(
       jnaJar.toPath,
       None,
       Some(outputJna),
@@ -305,11 +308,144 @@ object StdBits {
       cacheStoreFactory,
       previousRun.flatMap(_.forJar(jnaJar))
     )
+    val extractedJnaAnalysis = AnalysisOfExtractedNativeLibs(
+      jnaJar,
+      extractedJnaLibs.getOrElse(Nil),
+      Some(outputJna.toFile)
+    )
+    logger.debug("extractedJnaAnalysis: " + extractedJnaAnalysis)
+
+    // tcNativeJar has name like:
+    // "netty-tcnative-boringssl-static-2.0.70.Final-linux-x86_64.jar"
+    // It contains just a single native library
+    val tcNativeJar = tcNativeJars.filter { jar =>
+      jar.getName.contains(arch()) &&
+      jar.getName.contains(osName())
+    }
+    if (tcNativeJar.size != 1) {
+      throw new IllegalStateException(
+        s"Expected exactly one tc native jar for ${osName()}-${arch()}, but found: ${tcNativeJar.mkString(", ")}"
+      )
+    }
+    logger.debug(
+      s"Found tc native jar: ${tcNativeJar.head}"
+    )
+    val tcNativeJarOut =
+      microsoftPolyglotRoot / tcNativeJar.head.getName
+        .replace(".jar", "-thin.jar")
+    val extractedTcNativeLibs = JARUtils.extractFilesFromJar(
+      inputJarPath      = tcNativeJar.head.toPath,
+      extractPrefix     = None,
+      outputJarPath     = Some(tcNativeJarOut.toPath),
+      extractedFilesDir = microsoftNativeLibs.toPath,
+      renameFunc = (entryName: String) => {
+        if (entryName.endsWith(tcNativeBoringSslLibName())) {
+          Some(tcNativeBoringSslLibName())
+        } else {
+          None
+        }
+      },
+      logger            = logger,
+      cacheStoreFactory = cacheStoreFactory,
+      previousRun       = previousRun.flatMap(_.forJar(tcNativeJar.head))
+    )
+
+    val extractedTcNativeAnalysis = AnalysisOfExtractedNativeLibs(
+      tcNativeJar.head,
+      extractedTcNativeLibs.getOrElse(Nil),
+      Some(tcNativeJarOut)
+    )
+    logger.debug("extractedTcNativeAnalysis: " + extractedTcNativeAnalysis)
+
+    if (Platform.isLinux) {
+      val extractedEpollAnalysis = extractNativeEpoll(
+        updateReport,
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        cacheStoreFactory,
+        microsoftPolyglotRoot,
+        microsoftNativeLibs,
+        previousRun
+      )
+      logger.debug("extractedEpollAnalysis: " + extractedEpollAnalysis)
+      extractedJnaAnalysis
+        .appended(extractedTcNativeAnalysis)
+        .appended(extractedEpollAnalysis)
+    } else {
+      extractedJnaAnalysis
+        .appended(extractedTcNativeAnalysis)
+    }
+  }
+
+  private def tcNativeBoringSslLibName(): String = {
+    if (Platform.isWindows) {
+      "netty_tcnative_windows_x86_64.dll"
+    } else if (Platform.isLinux) {
+      "libnetty_tcnative_linux_x86_64.so"
+    } else if (Platform.isMacOS && Platform.isAmd64) {
+      "libnetty_tcnative_osx_x86_64.jnilib"
+    } else if (Platform.isMacOS && Platform.isArm64) {
+      "libnetty_tcnative_osx_aarch_64.jnilib"
+    } else {
+      throw new IllegalStateException(
+        s"Unsupported OS: " + osName() + "-" + arch()
+      )
+    }
+  }
+
+  /** native-epoll jar is present only on Linux.
+    */
+  private def extractNativeEpoll(
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    microsoftPolyglotRoot: File,
+    microsoftNativeLibs: File,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    val epollJars = JPMSUtils.filterModulesFromUpdate(
+      updateReport = updateReport,
+      modules = Seq(
+        "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final"
+      ),
+      log                = logger,
+      projName           = moduleName,
+      scalaBinaryVersion = scalaBinaryVersion,
+      shouldContainAll   = true
+    )
+    if (epollJars.size != 1) {
+      throw new IllegalStateException(
+        s"Expected exactly one netty-transport-native-epoll jar, but found: ${epollJars.mkString(", ")}"
+      )
+    }
+    val epollJar     = epollJars.head
+    val epollLibName = "libnetty_transport_native_epoll_x86_64.so"
+    val epollOutJar =
+      microsoftPolyglotRoot / epollJar.getName.replace(".jar", "-thin.jar")
+    val extractedEpollLib = JARUtils.extractFilesFromJar(
+      inputJarPath      = epollJar.toPath,
+      extractPrefix     = None,
+      outputJarPath     = Some(epollOutJar.toPath),
+      extractedFilesDir = microsoftNativeLibs.toPath,
+      renameFunc = (entryName: String) => {
+        if (entryName.endsWith(epollLibName)) {
+          Some(epollLibName)
+        } else {
+          None
+        }
+      },
+      logger            = logger,
+      cacheStoreFactory = cacheStoreFactory,
+      previousRun       = previousRun.flatMap(_.forJar(epollJar))
+    )
 
     AnalysisOfExtractedNativeLibs(
-      jnaJar,
-      extractedLibs.getOrElse(Nil),
-      Some(outputJna.toFile)
+      epollJar,
+      extractedEpollLib.getOrElse(Nil),
+      Some(epollOutJar)
     )
   }
 
