@@ -12,6 +12,7 @@ import {
   isTextSelectionMenu,
   isToggleButton,
 } from '@/components/visualizations/toolbar'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, toRef, toValue } from 'vue'
@@ -25,16 +26,16 @@ const props = defineProps<{
   showControls: boolean
   allVisualizations: ReadonlyArray<VisualizationIdentifier>
   visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
-  typename: ProjectPath | undefined
+  typeinfo: TypeInfo | undefined
 }>()
 
 const UNKNOWN_TYPE = 'Unknown'
 const nodeShortType = computed(() =>
-  props.typename?.path != null ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE,
+  props.typeinfo?.primaryType != null ? qnLastSegment(props.typeinfo.primaryType) : UNKNOWN_TYPE,
 )
 const fullType = computed(() =>
-  props.typename != null && projectNames.value != null ?
-    projectNames.value.printProjectPath(props.typename)
+  props.typeinfo != null && projectNames.value != null ?
+    projectNames.value.printProjectPath(props.typeinfo.primaryType as ProjectPath)
   : UNKNOWN_TYPE,
 )
 

@@ -38,7 +38,7 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
-  typename?: ProjectPath | undefined
+  typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
@@ -201,7 +201,7 @@ const visParams = proxyRefs({
   visualization: effectiveVisualization,
   data: effectiveVisualizationData,
   size: contentElementSize,
-  nodeType: toRef(props, 'typename'),
+  nodeType: toRef(props, 'typeinfo'),
   executeExpression,
 })
 
@@ -211,6 +211,7 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 <script lang="ts">
 import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
 import { defineCustomElement } from 'vue'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 
 // ==========================
 // === Visualization Host ===
@@ -252,7 +253,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
           :showControls="!isPreview"
           :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
-          :typename="typename"
+          :typeinfo="typeinfo"
           :class="{ overlay: toolbarOverlay }"
           @update:currentVis="emit('update:id', $event)"
         />
