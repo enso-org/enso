@@ -37,7 +37,7 @@ async function assertTypeLabelOnNodeByBinding(
   await assertTypeLabelOnNode(page, node, type)
 }
 
-test.only('shows the correct type when hovering a node', async ({ page }) => {
+test('shows the correct type when hovering a node', async ({ page }) => {
   await actions.goToGraph(page)
 
   // Note that the types don't have to make sense, they just have to be applied.
