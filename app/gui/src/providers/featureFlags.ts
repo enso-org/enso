@@ -4,6 +4,7 @@
  * Feature flags provider.
  * Feature flags are used to enable or disable certain features in the application.
  */
+import { Plan } from '#/services/Backend'
 import { unsafeEntries } from '#/utilities/object'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useZustandStoreRef } from '$/utils/zustand'
@@ -25,6 +26,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableCloudExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
   showDeveloperIds: z.boolean(),
+  developerPlanOverride: z.nativeEnum(Plan).or(z.undefined()),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
   disableAnimations: z.boolean(),
@@ -58,6 +60,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
         enableAdvancedProjectExecutionOptions: false,
         showDeveloperIds: false,
+        developerPlanOverride: undefined,
         overrideProfilePicture: false,
         multiplyUserList: false,
         disableAnimations: false,
