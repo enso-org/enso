@@ -96,8 +96,18 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     @Override
     public ExecutionEventNode create(EventContext context) {
       var node = context.getInstrumentedNode();
-      var prevEnv = currentNodeEnvironments.remove(node);
+      var prevEnv = getAndRemoveEnvironmentForNode(node);
       return new IdExecutionEventNode(context, prevEnv);
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private ExecutionEnvironment getAndRemoveEnvironmentForNode(Node node) {
+      return currentNodeEnvironments.remove(node);
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private void setEnvironmentForNode(Node node, ExecutionEnvironment env) {
+      currentNodeEnvironments.put(node, env);
     }
 
     /** Implementation of {@link Info} for the instrumented {@link Node}. */
@@ -341,14 +351,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           EnsoContext context = EnsoContext.get(this);
           originalExecutionEnvironment = context.getGlobalExecutionEnvironment();
           context.setExecutionEnvironment(nodeEnvironment);
-          currentNodeEnvironments.put(
-              this.context.getInstrumentedNode(), originalExecutionEnvironment);
+          setEnvironmentForNode(this.context.getInstrumentedNode(), originalExecutionEnvironment);
         }
       }
 
       private void resetExecutionEnvironment() {
         if (originalExecutionEnvironment != null) {
-          currentNodeEnvironments.remove(this.context.getInstrumentedNode());
+          // Ignore result, no longer need to inherit when creating new wrappers
+          getAndRemoveEnvironmentForNode(this.context.getInstrumentedNode());
           EnsoContext.get(this).setExecutionEnvironment(originalExecutionEnvironment);
           originalExecutionEnvironment = null;
         }
