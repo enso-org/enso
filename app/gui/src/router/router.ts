@@ -5,6 +5,7 @@ import {
   FORGOT_PASSWORD_PATH,
   LOGIN_PATH,
   PAYMENTS_SUCCESS_PATH,
+  REGISTRATION_PATH,
   RESET_PASSWORD_PATH,
   RESTORE_USER_PATH,
   SUBSCRIBE_PATH,
@@ -28,11 +29,15 @@ const routes = [
     path: UNAVAILABLE_PATH,
     component: withDataLoader(() => import('$/components/ProtectedLayout.vue')),
     children: [
-      { path: LOGIN_PATH, component: reactComponent(Login), meta: { access: 'guest' } },
       {
-        path: '/registration',
-        component: withDataLoader(() => import('$/components/RegistrationPage.vue')),
+        path: LOGIN_PATH,
         meta: { access: 'guest' },
+        component: reactComponent(Login),
+      },
+      {
+        path: REGISTRATION_PATH,
+        meta: { access: 'guest' },
+        component: withDataLoader(() => import('$/components/RegistrationPage.vue')),
       },
       {
         path: UNAVAILABLE_PATH,
@@ -72,6 +77,12 @@ const routes = [
       },
     ],
   },
+  {
+    path: PAYMENTS_SUCCESS_PATH,
+    meta: { access: 'anyLoggedIn' },
+    component: () =>
+      import('#/pages/PaymentsSuccess').then((mod) => reactComponent(mod.PaymentsSuccess)),
+  },
 
   /* Other pages are visible to unauthenticated and authenticated users. */
   {
@@ -90,11 +101,6 @@ const routes = [
     path: RESET_PASSWORD_PATH,
     component: () =>
       import('#/pages/authentication/ResetPassword').then((mod) => reactComponent(mod.default)),
-  },
-  {
-    path: PAYMENTS_SUCCESS_PATH,
-    component: () =>
-      import('#/pages/PaymentsSuccess').then((mod) => reactComponent(mod.PaymentsSuccess)),
   },
   {
     path: '/:anyPath(.*)*',

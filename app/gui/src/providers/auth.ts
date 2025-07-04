@@ -46,10 +46,10 @@ export function createUsersMeQuery(
       if (!sessionVal) {
         return null
       }
-      let user = await remoteBackend.usersMe()
-      while (user == null) {
-        await setUsername(sessionVal.email)
-        user = await remoteBackend.usersMe()
+      const user = await remoteBackend.usersMe()
+      if (user == null) {
+        void setUsername(sessionVal.email)
+        return null
       }
       return { user, ...sessionVal }
     },
