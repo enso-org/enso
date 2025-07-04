@@ -21,7 +21,9 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.Map;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -66,6 +68,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final CallTarget entryCallTarget;
     private final Callbacks callbacks;
     private final Timer timer;
+    private final Map<Node, ExecutionEnvironment> currentNodeEnvironments;
 
     private final EvalNode evalNode = EvalNode.build();
 
@@ -80,11 +83,21 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       this.entryCallTarget = entryCallTarget;
       this.callbacks = callbacks;
       this.timer = timer;
+      this.currentNodeEnvironments = new WeakHashMap<>();
     }
 
+    /**
+     * Creates a new even node. If the event node replaces an invalidated one, it inherits its state
+     * (execution environment).
+     *
+     * @param context the current context where this event node should get created.
+     * @return a new event node wrapping a regular node
+     */
     @Override
     public ExecutionEventNode create(EventContext context) {
-      return new IdExecutionEventNode(context);
+      var node = context.getInstrumentedNode();
+      var prevEnv = currentNodeEnvironments.remove(node);
+      return new IdExecutionEventNode(context, prevEnv);
     }
 
     /** Implementation of {@link Info} for the instrumented {@link Node}. */
@@ -180,15 +193,18 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private final EventContext context;
       private long nanoTimeElapsed = 0;
-      private ExecutionEnvironment originalExecutionEnvironment = null;
+      private ExecutionEnvironment originalExecutionEnvironment;
 
       /**
-       * Creates a new event node.
+       * Creates a new event node for instrumentation.
        *
        * @param context location where the node is being inserted
+       * @param inheritedEnvironment if non-{@code null} then value carries over environment
+       *     information from the previously invalidated event node for the same underlying node
        */
-      IdExecutionEventNode(EventContext context) {
+      IdExecutionEventNode(EventContext context, ExecutionEnvironment inheritedEnvironment) {
         this.context = context;
+        this.originalExecutionEnvironment = inheritedEnvironment;
       }
 
       @Override
@@ -325,11 +341,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           EnsoContext context = EnsoContext.get(this);
           originalExecutionEnvironment = context.getGlobalExecutionEnvironment();
           context.setExecutionEnvironment(nodeEnvironment);
+          currentNodeEnvironments.put(
+              this.context.getInstrumentedNode(), originalExecutionEnvironment);
         }
       }
 
       private void resetExecutionEnvironment() {
         if (originalExecutionEnvironment != null) {
+          currentNodeEnvironments.remove(this.context.getInstrumentedNode());
           EnsoContext.get(this).setExecutionEnvironment(originalExecutionEnvironment);
           originalExecutionEnvironment = null;
         }
