@@ -11,7 +11,13 @@ import { unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 export function pathToSegments(path: string) {
   const withProtocol = path.split('/')
   if (withProtocol[0] !== 'enso:') return Err(`"${path}" is not an enso path`)
-  return Ok(withProtocol.slice(1).filter((segment) => segment))
+  const endsWithSlash = withProtocol[withProtocol.length - 1] === ''
+  return Ok(
+    withProtocol
+      .slice(1)
+      .filter((segment) => segment)
+      .concat(endsWithSlash ? [''] : []),
+  )
 }
 
 export interface EnsoPath {
