@@ -151,7 +151,7 @@ export const BUTTON_STYLES = tv({
       'delete-outline':
         'border-danger/40 hover:border-danger hover:bg-danger/10 text-danger focus-visible:outline-danger focus-visible:border-danger',
       icon: {
-        base: 'text-primary opacity-90 hover:opacity-100 focus-visible:opacity-100',
+        base: 'text-primary opacity-90 hover:bg-white/100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
