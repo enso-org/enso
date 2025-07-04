@@ -341,9 +341,9 @@ const actions = registerHandlers({
     enabled: insideComponentBrowsing,
     action: input.switchToCodeEditMode,
   },
-  'visualization.show': {
+  'component.toggleVisualization': {
     available: () => input.mode.mode === 'codeEditing' && !isVisualizationVisible.value,
-    action: () => (isVisualizationVisible.value = true),
+    action: () => (isVisualizationVisible.value = !isVisualizationVisible.value),
   },
   'componentBrowser.acceptInput': {
     action: acceptInput,
@@ -420,7 +420,7 @@ const listsHandler = listBindings.handler({
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     />
     <div class="show-visualization">
-      <ActionButton action="visualization.show" />
+      <ActionButton action="component.toggleVisualization" />
     </div>
     <ComponentList
       v-if="input.mode.mode === 'componentBrowsing'"

@@ -264,18 +264,6 @@ const displayableActions = {
     description: 'Insert image',
   },
 
-  // === Visualizations ===
-
-  'visualization.hide': {
-    icon: 'eye',
-    description: 'Hide visualization',
-    toggled: ref(true),
-  },
-  'visualization.show': {
-    icon: 'eye',
-    description: 'Show visualization',
-  },
-
   // === Fullscreen ===
 
   'panel.fullscreen': {
