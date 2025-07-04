@@ -9,6 +9,7 @@ import { useLocalStorageState } from '#/hooks/localStoreState'
 import * as backendModule from '#/services/Backend'
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
+import { reactive } from 'vue'
 
 const TAB_TYPES = ['drive', 'settings'] as const
 
@@ -99,7 +100,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 
   const [launchedProjects, setLaunchedProjects] = useLocalStorageState(
     'launchedProjects',
-    array.EMPTY_ARRAY,
+    reactive(array.EMPTY_ARRAY),
     {
       sanitize: (savedLaunchedProjects) =>
         savedLaunchedProjects.map((project) => {

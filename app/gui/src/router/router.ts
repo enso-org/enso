@@ -14,6 +14,7 @@ import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
 import { reactComponent } from '@/util/react'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { maybeRedirectToInitialProject } from './initialProject'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
@@ -46,6 +47,7 @@ const routes = [
           {
             name: 'dashboard',
             path: '/:path(.*)*',
+            beforeEnter: maybeRedirectToInitialProject,
             component: withDataLoader(() =>
               import('#/pages/dashboard/Dashboard').then((mod) => ({
                 default: reactComponent(mod.default),

@@ -4,8 +4,10 @@ import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+/** Tab identifier, equal to the path of the view's URL. */
 export type TabId = 'drive' | 'settings' | `local/${string}` | `cloud/${string}`
 
+/** Convert path of given project (value of project's asset's `ensoPath`) to {@link TabId} */
 export function ensoPathToTabId(path: string): TabId {
   if (path.startsWith('enso://')) {
     return `cloud/${path.slice('enso://'.length)}`

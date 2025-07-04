@@ -1815,6 +1815,7 @@ export default abstract class Backend {
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
+    params: GetProjectSessionLogsRequestParams,
     title: string,
   ): Promise<ProjectSessionLogs>
   /** Set a project to an open state. */

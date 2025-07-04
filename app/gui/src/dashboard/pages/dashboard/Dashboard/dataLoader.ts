@@ -14,23 +14,20 @@ export const dataLoader: DataLoader<DashboardProps> = {
     const { localBackend, remoteBackend } = useBackends()
     const queryClient = useQueryClient()
 
-    const [type, path] =
+    const [type, urlPath] =
       to.params.path instanceof Array ?
         [to.params.path[0], to.params.path.slice(1).join('/')]
       : [to.params.path, '']
 
     const ensoPath: EnsoPath | null =
-      type === 'cloud' ? EnsoPath(`enso://${path}`)
-      : type === 'local' ? EnsoPath(path)
+      type === 'cloud' ? EnsoPath(`enso://${urlPath}`)
+      : type === 'local' ? EnsoPath(urlPath)
       : null
     if (ensoPath == null) return Ok({})
-    console.debug('ensoPath', ensoPath)
     const backend = type === 'cloud' ? remoteBackend : localBackend
     if (backend == null) return Ok({})
-    console.debug('backend', backend)
     const resolvedPath = await backend.resolveEnsoPath(ensoPath).catch(() => null)
     if (resolvedPath == null) return Ok({})
-    console.debug('resolvedPath', resolvedPath)
     const asset = await queryClient.fetchQuery(
       backendQueryOptions(
         'getAssetDetails',
@@ -39,7 +36,6 @@ export const dataLoader: DataLoader<DashboardProps> = {
         backend,
       ),
     )
-    console.debug('asset', asset)
     if (asset?.type === AssetType.project) {
       return Ok({ projectToOpen: { asset: { ...asset, ensoPath }, backend: backend.type } })
     } else {

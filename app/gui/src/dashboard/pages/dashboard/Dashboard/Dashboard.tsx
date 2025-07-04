@@ -72,7 +72,6 @@ function DashboardInner(props: DashboardProps) {
     React.useCallback(() => config.params.startup.project, [config]),
   )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
-  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
   const openProjectLocally = projectHooks.useOpenProjectLocally()
   const lauchedProjects = useLaunchedProjects()
   const initialAlreadyLaunchedProject = lauchedProjects.find(
@@ -88,8 +87,6 @@ function DashboardInner(props: DashboardProps) {
     ...STATIC_QUERY_OPTIONS,
     queryFn: async () => {
       if (props.projectToOpen) {
-        console.debug('About to open project', props.projectToOpen)
-        console.debug('Launched projects are now', launchedProjects)
         if (
           // If project is already on launched list, then the Editor.tsx will handle opening it.
           !initialAlreadyLaunchedProject &&
@@ -110,7 +107,7 @@ function DashboardInner(props: DashboardProps) {
             id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
             title: projectName,
             parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
-            ensoPath: projectRoot,
+            ensoPath: backendModule.EnsoPath(projectRoot),
           },
           backendModule.BackendType.local,
         )
@@ -133,6 +130,7 @@ function DashboardInner(props: DashboardProps) {
           id: projectId,
           title: project.name,
           parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+          ensoPath: backendModule.EnsoPath(project.projectRoot),
         },
         backendModule.BackendType.local,
       )
