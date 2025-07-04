@@ -92,7 +92,7 @@ const actionHandlers = registerHandlers({
   'visualization.exitFullscreen': {
     action: () => (isFullscreen.value = false),
   },
-  'visualization.hide': {
+  'component.toggleVisualization': {
     available: () => !isFullscreen.value,
     action: () => emit('update:enabled', false),
   },
