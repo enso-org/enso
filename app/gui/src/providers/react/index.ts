@@ -10,7 +10,6 @@ export {
   useAuth,
   useFullUserSession,
   usePartialUserSession,
-  usePlanOverride,
   useUser,
   useUserSession,
 } from '$/providers/react/auth'
