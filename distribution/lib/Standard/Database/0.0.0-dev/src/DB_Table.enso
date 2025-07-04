@@ -253,6 +253,13 @@ type DB_Table
                         if trivial_counterpart.is_error then False else check_context_and_columns
             _ -> False
 
+    ## GROUP Standard.Base.Output
+       ICON data_output
+       Creates a Data Link that will act as a view into the query represented by
+       this table.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination on_existing_file:Existing_File_Behavior=..Error =
+        DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
 
 ## PRIVATE
 

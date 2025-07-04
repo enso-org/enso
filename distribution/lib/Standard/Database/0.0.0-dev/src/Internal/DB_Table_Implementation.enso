@@ -723,10 +723,6 @@ type DB_Table_Implementation
         if materialized.row_count <= row_limit then materialized.write path format on_existing_file match_columns on_problems else
             Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 
-
-    save_as_data_link (this_table : Table & DB_Table) destination on_existing_file:Existing_File_Behavior=..Error =
-        DB_Data_Link_Helpers.save_table_as_data_link this_table destination on_existing_file
-
     fill_nothing (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : DB_Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table & DB_Table =
         resolved_default = (this_table:Table_Ref).resolve default
         transformer col = col.fill_nothing resolved_default
