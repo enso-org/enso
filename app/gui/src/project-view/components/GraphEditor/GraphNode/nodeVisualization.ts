@@ -83,6 +83,7 @@ export function useNodeVisualization({
       nodePosition,
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
+      typename: toValue(typeinfo)?.primaryType ?? undefined,
       typeinfo: toValue(typeinfo) ?? undefined,
       height: visualizationHeight.value,
       isFocused: toValue(isFocused),
