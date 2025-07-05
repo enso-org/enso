@@ -4,7 +4,7 @@ import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
-const props = defineProps<{ typeInfo?: TypeInfo | undefined; unknownLabel?: string }>()
+const props = defineProps<{ typeInfo?: TypeInfo | undefined; unknownLabel?: string; testId : string }>()
 
 const additionalTypes = computed<string[]>(() => {
   if (props.typeInfo == null) {
@@ -30,7 +30,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div v-if="label" class="no-wrap">
+  <div v-if="label" class="no-wrap" data-testid="{{ props.testId }}">
     <TooltipTrigger v-if="additionalTypes.length > 0">
       <template #default="triggerProps">
         <span

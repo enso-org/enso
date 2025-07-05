@@ -78,10 +78,10 @@ const rootStyle = computed(() => {
     </div>
     <div
       v-if="props.mode.mode === 'componentBrowsing'"
-      data-testid="component-editor-label"
       class="componentEditorLabel"
     >
       <ComponentEditorLabel
+        testId="component-editor-label"
         :typeInfo="
           props.mode.filter.selfArg?.type === 'known' ?
             props.mode.filter.selfArg.typeInfo

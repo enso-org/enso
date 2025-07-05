@@ -88,6 +88,7 @@ const visualizationSelector = useVisualizationSelector({
         v-if="props.typeinfo"
         :unknownLabel="UNKNOWN_TYPE"
         :typeInfo="props.typeinfo"
+        testId="visualizationNodeTypeLabel"
       />
       <span v-else>{{
         props.typename?.path ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE
