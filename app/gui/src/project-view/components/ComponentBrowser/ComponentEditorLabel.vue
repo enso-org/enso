@@ -30,7 +30,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div v-if="label" class="no-wrap" data-testid="{{ props.testId }}">
+  <div v-if="label" :data-testid="props.testId" class="no-wrap">
     <TooltipTrigger v-if="additionalTypes.length > 0">
       <template #default="triggerProps">
         <span
