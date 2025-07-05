@@ -4,7 +4,11 @@ import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
-const props = defineProps<{ typeInfo?: TypeInfo | undefined; unknownLabel?: string; testId : string }>()
+const props = defineProps<{
+  typeInfo?: TypeInfo | undefined
+  unknownLabel?: string
+  testId: string
+}>()
 
 const additionalTypes = computed<string[]>(() => {
   if (props.typeInfo == null) {

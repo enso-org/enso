@@ -76,10 +76,7 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <div
-      v-if="props.mode.mode === 'componentBrowsing'"
-      class="componentEditorLabel"
-    >
+    <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
       <ComponentEditorLabel
         testId="component-editor-label"
         :typeInfo="
