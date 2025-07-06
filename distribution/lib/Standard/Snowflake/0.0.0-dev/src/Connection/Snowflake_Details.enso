@@ -18,29 +18,33 @@ polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 type Snowflake_Details
     ## Connect to a Snowflake database.
 
-       Arguments:
-       - account: The name of the account to connect to.
-       - credentials: The credentials to use for the connection.
-         This can either be username/password pair, a `Key_Pair_Credentials` 
-         for private key authentication or a credential created in the dashboard.
-       - database: The name of the database to connect to.
-       - schema: The name of the schema to connect to.
-       - warehouse: The name of the warehouse to use.
+       ## Arguments
+        - `account`: The name of the account to connect to.
+        - `credentials`: The credentials to use for the connection. This can
+          either be username/password pair, a `Key_Pair_Credentials` for private
+          key authentication or a credential created in the dashboard.
+        - `database`: The name of the database to connect to.
+        - `schema`: The name of the schema to connect to.
+        - `warehouse`: The name of the warehouse to use.
     @account (Text_Input display=..Always)
     @credentials Widgets.password_or_keypair_widget
     Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Attempt to resolve the constructor.
     resolve : Function -> Snowflake_Details | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:Snowflake_Details) _->Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Build the Connection resource.
 
-       Arguments:
-       - options: Overrides for the connection properties.
+       ## Arguments
+        - `options`: Overrides for the connection properties.
     connect : Connection_Options -> Boolean -> Snowflake_Connection
     connect self options (allow_data_links : Boolean = True) =
         data_link_setup = if allow_data_links then Data_Link_Setup.Available (create_data_link_structure self) else
@@ -54,14 +58,19 @@ type Snowflake_Details
         _enhance_connection_errors self <|
             Snowflake_Connection.create self.jdbc_url properties self.credentials make_new data_link_setup
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
         'jdbc:snowflake://' + self.account + ".snowflakecomputing.com"
 
-    ## PRIVATE
-       Provides common properties for the connection, excluding the ones related to credentials.
+    ## ---
+       private: true
+       ---
+       Provides common properties for the connection, excluding the ones related
+       to credentials.
     private common_jdbc_properties self -> Vector (Pair Text Text) =
         ## If Arrow dependency is to be avoided (https://community.snowflake.com/s/article/SAP-BW-Java-lang-NoClassDefFoundError-for-Apache-arrow)
         ## [Pair.new 'jdbc_query_result_format' 'json']
@@ -76,7 +85,9 @@ type Snowflake_Details
         formats = [Pair.new "TIME_OUTPUT_FORMAT" "HH24:MI:SS.FF9", Pair.new "TIMESTAMP_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9 TZHTZM", Pair.new "TIMESTAMP_NTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9", Pair.new "TIMESTAMP_LTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9"]
         account + database + schema + warehouse + formats
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private create_data_link_structure details:Snowflake_Details data_link_location:Enso_File -> JS_Object =
     credentials_json = Data_Link_Setup.save_credentials_for_data_link data_link_location details.credentials
     JS_Object.from_pairs <|

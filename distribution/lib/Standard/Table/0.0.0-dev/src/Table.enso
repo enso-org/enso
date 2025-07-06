@@ -254,6 +254,11 @@ type Table
                 Union.make_union all_tables columns_to_keep match_columns on_problems
 
     ## PRIVATE
+       ! Warning
+         The `underlying` value is a 'raw' table implementation like
+         `In_Memory_Table` or `DB_Table`, without the `Table` type refinement.
+         As such, it should never be 'leaked' to users directly. We want users
+         to only see the already refined `Table & DB_Table` type.
     private Value underlying implementation
 
     ## PRIVATE
@@ -2939,7 +2944,7 @@ type Table
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = ..All_Rows) -> Table =
+    read self (max_rows : Rows_To_Read = self.implementation.default_max_rows) -> Table =
         self.implementation.read self.underlying max_rows
 
     ## ALIAS column types, field info, metadata
@@ -3495,6 +3500,7 @@ type Table
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self =
+        # TODO move to not be part of the public API
         self.implementation.column_naming_helper self.underlying
 
     ## PRIVATE
@@ -3592,5 +3598,6 @@ make_fill_nothing_default_widget table cache=Nothing =
     Widget_Helpers.make_fill_default_value_selector table value_types=types
 
 ## PRIVATE
-Many_Files_List.from (that : Table) =
-    Read_Many_Helpers.find_files_list_in_table that
+Many_Files_List.from (that : Table) = case that of
+    _ : In_Memory_Table -> Read_Many_Helpers.find_files_list_in_table that
+    _ -> Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")

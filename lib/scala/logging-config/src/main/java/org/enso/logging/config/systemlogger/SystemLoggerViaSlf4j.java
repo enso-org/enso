@@ -41,11 +41,17 @@ public final class SystemLoggerViaSlf4j extends System.LoggerFinder {
     }
 
     @Override
-    public void log(Level level, ResourceBundle bundle, String format, Object... params) {
+    public void log(Level level, ResourceBundle bundle, String formatOrMessage, Object... params) {
       if (isLoggable(level)) {
-        var m = readMsg(bundle, format);
-        var formatted = MessageFormat.format(m, params);
-        delegate.atLevel(at(level)).log(formatted);
+        var msg = readMsg(bundle, formatOrMessage);
+        if (params != null && params.length > 0) {
+          try {
+            msg = MessageFormat.format(msg, params);
+          } catch (IllegalArgumentException ex) {
+            delegate.warn(msg, ex);
+          }
+        }
+        delegate.atLevel(at(level)).log(msg);
       }
     }
 

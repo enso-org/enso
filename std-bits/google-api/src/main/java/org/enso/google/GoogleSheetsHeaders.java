@@ -11,15 +11,16 @@ public class GoogleSheetsHeaders {
 
   public GoogleSheetsHeaders(
       HeaderBehavior headerBehavior,
-      List<List<Object>> rawData,
+      List<Object> firstRow,
+      List<Object> secondRow,
       ProblemAggregator problemAggregator) {
     deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     names =
         switch (headerBehavior) {
           case DEFAULT_COLUMN_NAMES -> null;
-          case USE_FIRST_ROW_AS_HEADERS -> readFirstRowAsHeaders(rawData, deduplicator);
-          case INFER -> inferHeaders(rawData, deduplicator);
+          case USE_FIRST_ROW_AS_HEADERS -> readFirstRowAsHeaders(firstRow, deduplicator);
+          case INFER -> inferHeaders(firstRow, secondRow, deduplicator);
         };
   }
 
@@ -40,32 +41,29 @@ public class GoogleSheetsHeaders {
   }
 
   private static String[] readFirstRowAsHeaders(
-      List<List<Object>> rawData, NameDeduplicator deduplicator) {
-    return rawData.stream()
-        .map(
-            column -> {
-              Object cell = column.stream().findFirst().orElse(null);
-              String name = cell == null ? "" : cell.toString();
-              return deduplicator.makeUnique(name);
-            })
+      List<Object> firstRow, NameDeduplicator deduplicator) {
+    return firstRow.stream()
+        .map(cell -> cell == null ? "" : cell.toString())
+        .map(deduplicator::makeUnique)
         .toArray(String[]::new);
   }
 
-  private static String[] inferHeaders(List<List<Object>> rawData, NameDeduplicator deduplicator) {
+  private static String[] inferHeaders(
+      List<Object> firstRow, List<Object> secondRow, NameDeduplicator deduplicator) {
     // No data or 1 row of data => No Headers
-    if (rawData == null || rawData.isEmpty() || rawData.get(0).size() == 1) {
+    if (firstRow == null || firstRow.isEmpty() || secondRow == null) {
       return null;
     }
 
-    boolean row1AllStrings = rawData.stream().allMatch(col -> col.get(0) instanceof String);
-    boolean row2AllStrings = rawData.stream().allMatch(col -> col.get(1) instanceof String);
+    boolean row1AllStrings = firstRow.stream().allMatch(cell -> cell instanceof String);
+    boolean row2AllStrings = secondRow.stream().allMatch(cell -> cell instanceof String);
 
     if (!row1AllStrings) { // Row 1 has non string => no headers
       return null;
     } else if (row2AllStrings) { // Row 1 and Rows 2 all strings => no headers
       return null;
     } else { // Row 1 all strings and Rows 2 not all strings => headers
-      return readFirstRowAsHeaders(rawData, deduplicator);
+      return readFirstRowAsHeaders(firstRow, deduplicator);
     }
   }
 

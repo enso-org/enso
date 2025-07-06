@@ -220,6 +220,12 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
           await getRow(page, row).click({ position: ASSET_ROW_SAFE_POSITION })
         })
       },
+      /** Click the background to deselect all rows. */
+      clickAway() {
+        return self.step('Click drive table background', async (page) => {
+          await page.getByTestId('assets-table-assets-unselector').first().click()
+        })
+      },
       /**
        * Right click a specific row to bring up its context menu, or the context menu for multiple
        * assets when right clicking on a selected asset when multiple assets are selected.
@@ -435,10 +441,17 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     })
   }
 
+  /** Show the properties tab of the Asset Panel. */
+  togglePropertiesAssetPanel() {
+    return this.step('Toggle properties asset panel', async (page) => {
+      await page.getByRole('tab', { name: 'Properties' }).click()
+    })
+  }
+
   /** Show the description tab of the Asset Panel. */
   toggleDescriptionAssetPanel() {
     return this.step('Toggle description asset panel', async (page) => {
-      await page.getByRole('tab', { name: 'Properties' }).click()
+      await page.getByRole('tab', { name: 'Description' }).click()
     })
   }
 

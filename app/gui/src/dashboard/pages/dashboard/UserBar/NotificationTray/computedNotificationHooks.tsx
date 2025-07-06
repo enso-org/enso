@@ -1,5 +1,5 @@
 /** @file Hooks for computing temporary notifications. */
-import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
+import { uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '$/providers/react'
 import { useIsMutating, useQuery, type MutationKey } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import { toast } from 'react-toastify'
 import { NotificationItem } from './NotificationItem'
 import type { NotificationInfo } from './types'
 
+const MB_BYTES = 1_000_000
 const COMPUTED_NOTIFICATION_STORAGE_TIME_MS = 60_000
 
 /** Return the number of ongoing mutations of the given type across both backends. */

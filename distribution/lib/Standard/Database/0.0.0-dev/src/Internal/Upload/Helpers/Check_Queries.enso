@@ -2,7 +2,7 @@ private
 
 from Standard.Base import all
 
-from Standard.Table import Aggregate_Column, Join_Kind
+from Standard.Table import Aggregate_Column, Join_Kind, Table
 from Standard.Table.Errors import Null_Values_In_Key_Columns
 
 from project.Errors import Multiple_Target_Rows_Matched_For_Update
@@ -15,7 +15,7 @@ check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_
 
 ## PRIVATE
    Checks if any rows identified by `key_columns` have more than one match between two tables.
-check_multiple_rows_match left_table right_table key_columns ~continuation =
+check_multiple_rows_match left_table:Table right_table:Table key_columns ~continuation =
     joined = left_table.join right_table on=key_columns join_kind=Join_Kind.Inner
     counted = joined.aggregate key_columns [Aggregate_Column.Count]
     duplicates = counted.filter -1 (Filter_Condition.Greater than=1)

@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Errors.Common import Floating_Point_Equality
 
 import Standard.Table.Internal.Join_Helpers
-from Standard.Table import Join_Kind
+from Standard.Table import Join_Kind, Table
 
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
@@ -73,7 +73,7 @@ type Join_Subquery_Setup
             self.old_columns.zip self.new_columns old->new->[old.name, new]
 
 ## PRIVATE
-prepare_subqueries : Connection -> DB_Table -> DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
+prepare_subqueries : Connection -> Table & DB_Table -> Table & DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
     table_naming_helper = connection.base_connection.table_naming_helper
     column_naming_helper = connection.base_connection.column_naming_helper

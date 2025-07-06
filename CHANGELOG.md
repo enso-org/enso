@@ -22,8 +22,10 @@
   Browser.][13266]
 - [Allow marking grouped component arguments as required or providing a default
   value.][13254]
+- [New Right Panel Tab with Markdown Description Editor][13347]
 - [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
   resulting in an Error page without option of returning back to Local.][13366]
+- ["Grouped Components" are renamed to "User Defined Components"][13389]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -41,7 +43,9 @@
 [13161]: https://github.com/enso-org/enso/pull/13161
 [13266]: https://github.com/enso-org/enso/pull/13266
 [13254]: https://github.com/enso-org/enso/pull/13254
+[13347]: https://github.com/enso-org/enso/pull/13347
 [13366]: https://github.com/enso-org/enso/pull/13366
+[13389]: https://github.com/enso-org/enso/pull/13389
 
 #### Enso Standard Library
 
@@ -56,6 +60,7 @@
 - [Support `skip_rows` and `on_empty_field` for fixed-width files.][13240]
 - [Add Google_Sheets.read][13307]
 - [Align the Generic JDBC Connection with the main Connection type][13365]
+- [Add `execute_query` to the `Connection` types.][13415]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -65,6 +70,7 @@
 [13240]: https://github.com/enso-org/enso/pull/13240
 [13307]: https://github.com/enso-org/enso/pull/13307
 [13365]: https://github.com/enso-org/enso/pull/13365
+[13415]: https://github.com/enso-org/enso/pull/13415
 
 #### Enso Language & Runtime
 

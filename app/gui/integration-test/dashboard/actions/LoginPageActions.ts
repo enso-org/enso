@@ -21,7 +21,7 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
       forgotPassword: (): ForgotPasswordPageActions<Context> =>
         this.step("Go to 'forgot password' page", async (page) => {
           await page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click()
-          await expect(page.getByText(TEXT.forgotYourPassword)).toBeVisible()
+          await expect(page.getByRole('button', { name: TEXT.sendLink })).toBeVisible()
         }).into(ForgotPasswordPageActions<Context>),
     }
   }

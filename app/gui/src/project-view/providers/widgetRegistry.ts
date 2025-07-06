@@ -19,7 +19,7 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
 declare const brandWidgetId: unique symbol
 /** Uniquely identifies a widget type. */
-export type WidgetTypeId = string & { [brandWidgetId]: true }
+export type WidgetTypeId = string & { [brandWidgetId]: never }
 
 export namespace WidgetInput {
   /** Returns widget-input data for the given AST tree or token. */

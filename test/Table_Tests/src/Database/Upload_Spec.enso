@@ -13,6 +13,7 @@ from Standard.Table.Errors import all
 import Standard.Table.Internal.Java_Exports
 
 from Standard.Database import all
+from Standard.Database.DB_Table import DB_Table
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import default_key_columns
 import Standard.Database.Column_Constraint.Column_Constraint
@@ -521,7 +522,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             db_table_3 = db_table_1.aggregate ["X"] [Aggregate_Column.Sum (expr "[Y]*[Y]") "C3"] . set (expr "[X] + 1") "X"
 
             db_table_4 = db_table_2.join db_table_3 join_kind=Join_Kind.Left_Outer
-            db_table_4.is_trivial_query . should_be_false
+            (db_table_4:DB_Table).is_trivial_query . should_be_false
 
             copied_table = db_table_4.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
             copied_table.column_names . should_equal ["X", "Y", "C1", "C2", "Right X", "C3"]
@@ -843,8 +844,8 @@ test_table_append setup group_builder (data : Data) source_table_builder target_
         result = dest.update_rows src key_columns=["X"]
         result.column_names . should_equal ["X", "Y"]
 
-        result.is_trivial_query . should_be_true
-        (result == dest) . should_be_true
+        (result:DB_Table).is_trivial_query . should_be_true    
+        (result == dest:Table) . should_be_true
 
         expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
         rows1 = result.rows.to_vector.map .to_vector
@@ -1431,10 +1432,10 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
             Problems.expect_only_warning Dry_Run_Operation r1
             r1.column_names . should_equal ["X"]
             # The target table is returned, as usually.
-            r1.name . should_equal dest.name
+            (r1:DB_Table).name . should_equal dest.name
             # But the data is not appended due to the dry-run - the table is unmodified.
             r1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
-            r1.is_trivial_query . should_be_true
+            (r1:DB_Table).is_trivial_query . should_be_true
 
     group_builder.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged"+suffix <|
         v = [1, 2, 3, 4, 4, 4, 1]

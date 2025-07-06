@@ -34,23 +34,30 @@ type Google_Analytics_Account
     is_deleted : Boolean
     is_deleted self = self.java_record.deleted
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self = "Google_Analytics_Account " + self.name + " (" + self.id + ")"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = "GA Account {" + self.name + " (" + self.id + ")}"
 
-    ## GROUP Standard.Base.Metadata
-       ICON data_input
+    ## ---
+       group: Standard.Base.Metadata
+       icon: data_input
+       ---
        List of all properties of the account.
 
-       Arguments:
-       - credentials: The Google credentials to use. Default is the default
-         credentials.
-       - limit: The maximum number of accounts to read. Default is 1000.
-       - include_deleted: Whether to include deleted accounts. Default is false.
+       ## Arguments
+        - `credentials`: The Google credentials to use. Default is the default
+          credentials.
+        - `limit`: The maximum number of accounts to read. Default is 1000.
+        - `include_deleted`: Whether to include deleted accounts. Default is
+          false.
     @credentials Google_Credential.default_widget
     @limit Rows_To_Read.default_widget
     properties : Google_Credential -> Rows_To_Read -> Boolean -> Vector
@@ -70,7 +77,9 @@ type Google_Analytics_Account_Filter
     @accounts (Vector_Editor item_editor=Text_Input item_default="''")
     Accounts accounts:Vector
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     default_widget self_arg cache display:Display=..Always -> Widget =
         _ = self_arg
 
@@ -84,7 +93,9 @@ type Google_Analytics_Account_Filter
             options = accounts . map p->(Option (p.name + " (" + p.id + ")") "..Account "+p.id.pretty)
             make_single_choice default+options display=display
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private as_java self -> Array | Nothing = case self of
         Google_Analytics_Account_Filter.All_Accounts -> Nothing
         Google_Analytics_Account_Filter.Account acc -> case acc of
@@ -96,7 +107,9 @@ type Google_Analytics_Account_Filter
                 _ : Text -> _create_analytics_account_from_text acc
             vec.to_array
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Creates a Google Analytics account from a text ID.
    Most values are defaulted.
 private _create_analytics_account_from_text account:Text -> AnalyticsAccount =
@@ -104,12 +117,18 @@ private _create_analytics_account_from_text account:Text -> AnalyticsAccount =
     display = id.replace (regex "^accounts/") ""
     AnalyticsAccount.new id display False Date_Time.now Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Google_Analytics_Account_Filter.from (that:Google_Analytics_Account) = Google_Analytics_Account_Filter.Account that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Google_Analytics_Account_Filter.from (that:Text) = Google_Analytics_Account_Filter.Account that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Google_Analytics_Account_Filter.from (that:Vector) = Google_Analytics_Account_Filter.Accounts that
 

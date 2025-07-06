@@ -1,7 +1,8 @@
 import { createContextStore } from '@/providers'
 import type { ToValue } from '@/util/reactivity'
+import { proxyRefs } from '@/util/reactivity'
 import type Backend from 'enso-common/src/services/Backend'
-import { proxyRefs, toRef } from 'vue'
+import { toRef } from 'vue'
 
 export const [provideProjectBackend, injectProjectBackend] = createContextStore(
   'backend',

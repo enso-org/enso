@@ -37,7 +37,7 @@ onUserAction(
       selection: Range.unsafeFromBounds(selection.from, selection.to),
     }),
 )
-watch(content, ({ text, selection }) => setText(text, selection))
+watch(content, ({ text, selection }) => setText(text, selection), { immediate: true })
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'
