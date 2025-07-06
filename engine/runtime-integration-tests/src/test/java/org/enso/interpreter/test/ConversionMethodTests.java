@@ -177,6 +177,48 @@ public class ConversionMethodTests {
     assertTypes("Only Foo is visible", f, false, "Foo");
   }
 
+  @Test
+  public void testNoConversionWhenMultiValueMatchesTwoOfThee() {
+    String src =
+        """
+       from Standard.Base import Any, Integer, Meta, Runtime
+
+       type Foo
+          F n
+       type Bar
+          B n
+       type Car
+          C n
+
+       Foo.from (that:Integer) = Foo.F 100*that
+       Bar.from (that:Integer) = Bar.B 1000*that
+       Car.from (that:Integer) = Car.C 10000*that
+
+       main =
+          a = 42 : (Foo&Bar&Car)
+          Runtime.assert <| Meta.is_a a Foo
+          Runtime.assert <| Meta.is_a a Bar
+          Runtime.assert <| Meta.is_a a Car
+          cb = a : (Car&Bar)
+          fc = a : (Foo&Car)
+          [a, cb, fc]
+
+       """;
+    var arr = ctx.evalModule(src);
+    assertTrue("It is array", arr.hasArrayElements());
+    assertEquals("Three elements", 3, arr.getArraySize());
+    var a = arr.getArrayElement(0);
+    var cb = arr.getArrayElement(1);
+    var fc = arr.getArrayElement(2);
+
+    assertTypes("Three types for a", a, true, "Foo", "Bar", "Car");
+    assertTypes("All types are visible", a, false, "Foo", "Bar", "Car");
+    assertTypes("Three types for cb", cb, true, "Car", "Bar", "Foo");
+    assertTypes("Only Car and Bar are visible", cb, false, "Car", "Bar");
+    assertTypes("Three types for fc", fc, true, "Foo", "Car", "Bar");
+    assertTypes("Only Foo and Car are visible", fc, false, "Foo", "Car");
+  }
+
   private static void assertTypes(
       String msg, Value value, boolean includeExtraTypes, String... expectedTypes) {
     var v = ctx.unwrapValue(value);
