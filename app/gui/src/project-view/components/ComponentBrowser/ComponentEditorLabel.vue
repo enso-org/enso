@@ -34,7 +34,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div v-if="label" :data-testid="props.testId" class="no-wrap">
+  <div v-if="label" :data-testid="props.testId" class="componentEditorLabel">
     <TooltipTrigger v-if="additionalTypes.length > 0">
       <template #default="triggerProps">
         <span
@@ -60,7 +60,7 @@ const label = computed(() => {
   border-radius: 2px;
 }
 
-.no-wrap {
+.componentEditorLabel {
   white-space: nowrap;
   opacity: 0.7;
 }

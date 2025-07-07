@@ -38,6 +38,7 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
+  /** @deprecated use typeinfo instead */
   typename?: ProjectPath | undefined
   typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined

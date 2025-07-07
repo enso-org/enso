@@ -94,6 +94,7 @@ initializeActions()
   --font-mono: 'DejaVu Sans Mono', /* System monospace font stack */ ui-monospace, Menlo, Monaco,
     'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
     'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  --color-text: rgba(0, 0, 0, 0.9);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-weight: 500;
