@@ -39,8 +39,11 @@ export function useCurrentProjectResourceContext(): ResourceContext {
     project: () => currentProject?.id.value ?? undefined,
     basePathSegments: () => {
       if (!currentProject) return
+      const openedProjectStore = currentProject.storesRefs.store.value
+      // When project is not opened, we assume that all image access is relative to main module.
+      if (!openedProjectStore) return ['src', 'Main.enso']
 
-      const fileName = currentProject.storesRefs.store.value?.observedFileName
+      const fileName = openedProjectStore.observedFileName
       if (fileName) return ['src', ...fileName.split('/')]
     },
   }
