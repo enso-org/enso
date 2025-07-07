@@ -61,6 +61,7 @@
 - [Add Google_Sheets.read][13307]
 - [Align the Generic JDBC Connection with the main Connection type][13365]
 - [Add `execute_query` to the `Connection` types.][13415]
+- [Remane Google_Api library to Google][13436]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -71,6 +72,7 @@
 [13307]: https://github.com/enso-org/enso/pull/13307
 [13365]: https://github.com/enso-org/enso/pull/13365
 [13415]: https://github.com/enso-org/enso/pull/13415
+[13436]: https://github.com/enso-org/enso/pull/13436
 
 #### Enso Language & Runtime
 
