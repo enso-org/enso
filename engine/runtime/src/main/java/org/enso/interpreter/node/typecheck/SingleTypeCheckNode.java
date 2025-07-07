@@ -3,7 +3,6 @@ package org.enso.interpreter.node.typecheck;
 
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
@@ -39,11 +38,10 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     this.expectedType = expectedType;
   }
 
-  abstract Object executeConversion(
-      VirtualFrame frame, Object value, ExpressionNode valueSource);
+  abstract Object executeConversion(VirtualFrame frame, Object value);
 
   @Specialization
-  Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel, ExpressionNode ignore) {
+  Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
     throw panicSentinel;
   }
 
@@ -51,7 +49,6 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
   Object doUnresolvedConstructor(
       VirtualFrame frame,
       UnresolvedConstructor unresolved,
-      ExpressionNode ignore,
       @Cached UnresolvedConstructor.ConstructNode construct) {
     var state = EnsoContext.get(this).currentState();
     return construct.execute(frame, state, expectedType, unresolved);
@@ -63,10 +60,9 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
   Object doWithConversionCached(
       VirtualFrame frame,
       Object v,
-      ExpressionNode valueSource,
       @Cached.Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Cached(value = "findType(typeOfNode, v)", dimensions = 1) Type[] cachedType,
-      @Cached("findConversionNode(valueSource, cachedType)") TypeToConvertNode node) {
+      @Cached("findConversionNode(cachedType)") TypeToConvertNode node) {
     return handleWithConversion(frame, v, node);
   }
 
@@ -74,11 +70,10 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
   Object doWithConversionUncached(
       VirtualFrame frame,
       Object v,
-      ExpressionNode expr,
       @Cached.Shared("typeOfNode") @Cached TypeOfNode typeOfNode) {
     var type = findType(typeOfNode, v);
     return doWithConversionUncachedBoundary(
-        frame == null ? null : frame.materialize(), v, expr, type);
+        frame == null ? null : frame.materialize(), v, type);
   }
 
   @Override
@@ -149,7 +144,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     }
   }
 
-  final TypeToConvertNode findConversionNode(ExpressionNode valueNode, Type[] allTypes) {
+  final TypeToConvertNode findConversionNode(Type[] allTypes) {
     if (allTypes == null) {
       allTypes = new Type[] {null};
     }
@@ -200,8 +195,8 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
 
   @CompilerDirectives.TruffleBoundary
   private Object doWithConversionUncachedBoundary(
-      MaterializedFrame frame, Object v, ExpressionNode expr, Type[] type) {
-    var c = findConversionNode(expr, type);
+      MaterializedFrame frame, Object v, Type[] type) {
+    var c = findConversionNode(type);
     return handleWithConversion(frame, v, c);
   }
 
