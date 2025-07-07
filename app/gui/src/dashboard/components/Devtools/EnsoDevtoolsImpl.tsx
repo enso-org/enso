@@ -17,10 +17,9 @@ import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
-import { SETUP_PATH } from '$/appUtils'
-import { UserSessionType } from '$/providers/auth'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+  DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
 import { useLocalStorage, usePlanOverride, useText } from '$/providers/react'
@@ -28,8 +27,10 @@ import { useSetPlanOverride, useUserSession } from '$/providers/react/auth'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { motion } from 'framer-motion'
 import * as React from 'react'
 import { toast } from 'react-toastify'
+import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
 import {
@@ -38,6 +39,7 @@ import {
   usePaywallDevtools,
   useSetAnimationsDisabled,
   useSetEnableVersionChecker,
+  useShowEnsoDevtools,
   useToggleEnsoDevtools,
 } from './EnsoDevtoolsProvider'
 
@@ -71,6 +73,7 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 export function EnsoDevStatus() {
   const queryClient = useQueryClient()
   const { getText } = useText()
+  const showEnsoDevtools = useShowEnsoDevtools()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
   const animationsDisabled = useAnimationsDisabled()
@@ -83,11 +86,10 @@ export function EnsoDevStatus() {
     enableAssetsTableBackgroundRefresh,
     assetsTableBackgroundRefreshInterval,
     enableCloudExecution,
-    enableScheduledExecution,
-    enableHybridExecution,
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
+    fileChunkUploadPoolSize,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
@@ -110,7 +112,19 @@ export function EnsoDevStatus() {
       }
     }
   })()
-  const isOverridden = planName != null || showDeveloperIds
+  const isOverridden =
+    planName != null ||
+    animationsDisabled ||
+    versionCheckerEnabled ||
+    !enableAssetsTableBackgroundRefresh ||
+    assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
+    !enableCloudExecution ||
+    showDeveloperIds ||
+    overrideProfilePicture ||
+    multiplyUserList ||
+    enableMultitabs ||
+    enableAdvancedProjectExecutionOptions ||
+    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -120,9 +134,10 @@ export function EnsoDevStatus() {
 
   return (
     <Portal>
-      <div
+      <motion.div
+        layout
         className={styles.base({
-          className: 'absolute bottom-[4.25rem] left-3',
+          className: twJoin('absolute left-3', showEnsoDevtools ? 'bottom-[4.25rem]' : 'bottom-3'),
         })}
       >
         <div className={styles.dialog()}>
@@ -172,7 +187,7 @@ export function EnsoDevStatus() {
               }}
             >
               {getText(
-                'assetsTableBackgroundRefreshIntervalOverridenToXMs',
+                'assetsTableBackgroundRefreshIntervalOverriddenToXMs',
                 assetsTableBackgroundRefreshInterval,
               )}
             </DeveloperOverrideEntry>
@@ -184,24 +199,6 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('cloudExecutionDisabled')}
-            </DeveloperOverrideEntry>
-          )}
-          {!enableScheduledExecution && (
-            <DeveloperOverrideEntry
-              reset={() => {
-                setFeatureFlag('enableScheduledExecution', true)
-              }}
-            >
-              {getText('scheduledExecutionDisabled')}
-            </DeveloperOverrideEntry>
-          )}
-          {!enableHybridExecution && (
-            <DeveloperOverrideEntry
-              reset={() => {
-                setFeatureFlag('enableHybridExecution', false)
-              }}
-            >
-              {getText('hybridExecutionDisabled')}
             </DeveloperOverrideEntry>
           )}
           {showDeveloperIds && (
@@ -250,8 +247,17 @@ export function EnsoDevStatus() {
               {getText('advancedProjectExecutionOptionsEnabled')}
             </DeveloperOverrideEntry>
           )}
+          {fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('fileChunkUploadPoolSize', DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE)
+              }}
+            >
+              {getText('willUploadUpToXFileChunksAtOnce', fileChunkUploadPoolSize)}
+            </DeveloperOverrideEntry>
+          )}
         </div>
-      </div>
+      </motion.div>
     </Portal>
   )
 }
@@ -326,7 +332,7 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
-          {session?.type === UserSessionType.full && (
+          {session != null && (
             <>
               <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
 
@@ -358,12 +364,6 @@ export function EnsoDevtools() {
                   {getText('reset')}
                 </Button>
               </Form>
-
-              <Separator orientation="horizontal" className="my-3" />
-
-              <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
-                Open setup page
-              </Button>
 
               <Separator orientation="horizontal" className="my-3" />
             </>
@@ -507,15 +507,6 @@ export function EnsoDevtools() {
                   />
                   <Switch
                     form={form}
-                    name="enableScheduledExecution"
-                    label="Enable Async Execution"
-                    description="Enable Async Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableScheduledExecution', value)
-                    }}
-                  />
-                  <Switch
-                    form={form}
                     name="enableAdvancedProjectExecutionOptions"
                     label="Enable Advanced Project Excecution Options"
                     description="Enable Advanced Project Excecution Options"
@@ -523,13 +514,17 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
                     }}
                   />
-                  <Switch
+                  <Input
                     form={form}
-                    name="enableHybridExecution"
-                    label="Enable Hybrid Execution"
-                    description="Enable Hybrid Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableHybridExecution', value)
+                    type="number"
+                    inputMode="numeric"
+                    name="fileChunkUploadPoolSize"
+                    label={getText('ensoDevtoolsFeatureFlags.fileChunkUploadPoolSize')}
+                    description={getText(
+                      'ensoDevtoolsFeatureFlags.fileChunkUploadPoolSizeDescription',
+                    )}
+                    onChange={(event) => {
+                      setFeatureFlag('fileChunkUploadPoolSize', event.target.valueAsNumber)
                     }}
                   />
                 </>

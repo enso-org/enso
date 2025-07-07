@@ -3,6 +3,7 @@ import PlainTextEditor from '@/components/PlainTextEditor.vue'
 import { useFocusDelayed } from '@/composables/focus'
 import { type Node } from '@/stores/graph'
 import { nodeMutableDocumentation } from '@/util/ast/node'
+import { useYTextSync } from '@/util/codemirror'
 import { syncRef } from '@vueuse/core'
 import { computed, ref, type ComponentInstance } from 'vue'
 
@@ -14,6 +15,8 @@ const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const documentation = computed(() => nodeMutableDocumentation(props.node))
 
+const { syncExt, connectSync } = useYTextSync(documentation)
+
 syncRef(editing, useFocusDelayed(textEditorContent).focused)
 </script>
 <template>
@@ -24,8 +27,9 @@ syncRef(editing, useFocusDelayed(textEditorContent).focused)
   >
     <PlainTextEditor
       ref="textEditor"
-      :content="documentation"
+      :extensions="syncExt"
       contentTestId="graph-node-comment-content"
+      @editorReady="connectSync"
     />
   </div>
 </template>

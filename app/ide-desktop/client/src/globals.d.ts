@@ -170,7 +170,6 @@ declare global {
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken: () => string
-    toggleDevtools: () => void
   }
 
   namespace NodeJS {

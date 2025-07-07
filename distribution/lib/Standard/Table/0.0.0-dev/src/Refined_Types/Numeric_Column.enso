@@ -6,7 +6,7 @@ import project.Column.Column
 type Numeric_Column
     private Value column operations_implementation
 
-    ## GROUP Standard.Base.Operators
+    ## GROUP Standard.Base.Math
        ICON operators
        Computes the absolute value of each element in the column.
 
@@ -19,7 +19,7 @@ type Numeric_Column
     abs self -> Column & Numeric_Column =
         self.operations_implementation.abs self.column
 
-    ## GROUP Standard.Base.Operators
+    ## GROUP Standard.Base.Math
        ICON operators
        Computes the sign of each element in the column.
 

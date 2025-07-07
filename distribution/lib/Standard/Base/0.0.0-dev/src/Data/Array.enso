@@ -31,6 +31,7 @@ from project.Metadata import Display, Widget
 type Array
     ## GROUP Selections
        ICON parse3
+       SUGGESTED 4
        Gets an element from the array at a specified index (0-based).
 
        Arguments:
@@ -53,6 +54,7 @@ type Array
 
     ## GROUP Metadata
        ICON metadata
+       SUGGESTED 3
        Returns the number of elements stored in this array.
 
        > Example
@@ -72,6 +74,7 @@ type Array
     ## ALIAS order_by
        GROUP Calculations
        ICON order
+       SUGGESTED 11
        Sort the array.
 
        Arguments:
@@ -150,6 +153,7 @@ type Array
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON parse3
+       SUGGESTED 6
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -180,6 +184,7 @@ type Array
 
     ## GROUP Calculations
        ICON row_add
+       SUGGESTED 8
        Inserts the given item into the array at the given index.
 
        Arguments:
@@ -201,6 +206,7 @@ type Array
 
     ## GROUP Selections
        ICON table_clean
+       SUGGESTED 9
        Removes the item at the given index from the array.
 
        Arguments:
@@ -317,6 +323,7 @@ type Array
     ## ALIAS deduplicate, unique
        GROUP Selections
        ICON preparation
+       SUGGESTED 7
        Keeps only unique elements within the array, removing any duplicates.
 
        Arguments:
@@ -549,6 +556,7 @@ type Array
 
     ## GROUP Calculations
        ICON union
+       SUGGESTED 10
        Extend `self` array to the length of `n` appending elements `elem` to
        the end.
 
@@ -740,6 +748,7 @@ type Array
         Array_Like_Helpers.find self condition start if_missing
 
     ## ICON parse3
+       SUGGESTED 5
        Gets an element from the array at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
@@ -892,6 +901,7 @@ type Array
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
        ICON join2-1
+       SUGGESTED 13
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -962,6 +972,7 @@ type Array
 
     ## GROUP Selections
        ICON order
+       SUGGESTED 12
        Reverses the array, returning a `Vector` with the same elements, but in
        the opposite order.
 

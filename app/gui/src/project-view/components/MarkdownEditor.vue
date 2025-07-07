@@ -1,16 +1,19 @@
 <script setup lang="ts">
+import { Extension } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
 import { defineAsyncComponent } from 'vue'
-import * as Y from 'yjs'
 
-const {
-  content,
-  toolbar = true,
-  contentTestId,
-} = defineProps<{
-  content: Y.Text | string
+// Toolbar is singled out, because missing booleans coerce to false instead of undefined
+// and toolbar has default `true` in inner component
+const { toolbar = true, ...props } = defineProps<{
   toolbar?: boolean
-  contentTestId?: string | undefined
+  readonly?: boolean
+  extensions?: Extension
+  contentTestId?: string
+  scrollerTestId?: string | undefined
+  onEditorReady: (view: EditorView) => void
 }>()
+
 defineOptions({
   inheritAttrs: false,
 })
@@ -22,13 +25,7 @@ const LazyMarkdownEditor = defineAsyncComponent(
 
 <template>
   <Suspense>
-    <LazyMarkdownEditor
-      v-bind="$attrs"
-      class="flex-1"
-      :content="content"
-      :toolbar="toolbar"
-      :contentTestId="contentTestId"
-    >
+    <LazyMarkdownEditor v-bind="{ ...$attrs, ...props }" :toolbar="toolbar" class="flex-1">
       <template #belowToolbar>
         <slot name="belowToolbar" />
       </template>

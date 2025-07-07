@@ -31,8 +31,17 @@ class ExecutionContextManager {
     */
   def destroy(id: ContextId): Unit =
     synchronized {
+      if (contexts.contains(id)) {
+        contexts.get(id).foreach(_.close())
+      }
       contexts -= id
     }
+
+  def close(): Unit = {
+    synchronized {
+      contexts.foreach(_._2.close());
+    }
+  }
 
   /** Gets a stack for a given context id.
     *
@@ -167,7 +176,7 @@ class ExecutionContextManager {
     * @param expressionId the unique identifier of the expression
     * @return a list of matching visualization
     */
-  def findVisualizationForExpression(
+  def findVisualizationsForExpression(
     contextId: ContextId,
     expressionId: ExpressionId
   ): List[Visualization] =
@@ -188,13 +197,15 @@ class ExecutionContextManager {
     module: QualifiedName,
     invalidatedExpressions: Set[ExpressionId]
   ): Iterable[Visualization] = {
-    for {
-      state         <- contexts.values
-      visualization <- state.visualizations.findByModule(module)
-      if visualization.visualizationExpressionId.exists(
-        invalidatedExpressions.contains
-      )
-    } yield visualization
+    synchronized {
+      for {
+        state         <- contexts.values
+        visualization <- state.visualizations.findByModule(module)
+        if visualization.visualizationExpressionId.exists(
+          invalidatedExpressions.contains
+        )
+      } yield visualization
+    }
   }
 
   /** Removes a visualization from the holder.

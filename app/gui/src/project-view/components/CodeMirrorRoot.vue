@@ -12,8 +12,20 @@ defineExpose({ highlightClasses })
 </template>
 
 <style scoped>
+.CodeMirrorRoot {
+  width: 100%;
+  height: 100%;
+}
+
 .CodeMirrorRoot :deep(.cm-content) {
   cursor: text;
+}
+
+/* CodeMirror shifts the cursor a bit to be more between letter. But it expects every line having 
+  some padding - otherwise the cursor is clipped off when at the line beginning. We want to set 
+  0 padding in some circumstances, so we remove the offset. */
+.CodeMirrorRoot :deep(.cm-cursor) {
+  margin: 0;
 }
 
 /*

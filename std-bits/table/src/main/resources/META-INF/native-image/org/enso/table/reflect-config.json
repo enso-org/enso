@@ -487,17 +487,6 @@
         "name": "org.enso.table.operations.AddRunning"
     },
     {
-        "name": "org.enso.table.operations.OrderBuilder",
-        "methods": [
-            {
-                "name": "buildOrderMask",
-                "parameterTypes": [
-                    "java.util.List"
-                ]
-            }
-        ]
-    },
-    {
         "name": "org.enso.table.operations.OrderBuilder.OrderRule"
     },
     {

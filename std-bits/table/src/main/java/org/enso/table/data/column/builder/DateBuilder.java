@@ -3,14 +3,14 @@ package org.enso.table.data.column.builder;
 import java.time.LocalDate;
 import java.util.Objects;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.datetime.DateStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalDate columns. */
-public final class DateBuilder extends TypedBuilder<LocalDate> {
+final class DateBuilder extends TypedBuilder<LocalDate> {
   private final boolean allowDateToDateTimeConversion;
 
   DateBuilder(int size, boolean allowDateToDateTimeConversion) {
@@ -19,7 +19,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  public void append(Object o) {
+  public DateBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -30,6 +30,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
         throw new ValueTypeMismatchException(getType(), o);
       }
     }
+    return this;
   }
 
   @Override
@@ -39,7 +40,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
 
   @Override
   protected ColumnStorage<LocalDate> doSeal() {
-    return new DateStorage(data);
+    return new TypedStorage<>(DateType.INSTANCE, data);
   }
 
   @Override

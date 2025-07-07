@@ -1,8 +1,7 @@
 package org.enso.table.data.column.operation;
 
-import java.util.function.LongFunction;
-import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -10,7 +9,6 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Value;
 
 public final class IfOperation {
   /**
@@ -36,8 +34,8 @@ public final class IfOperation {
   public static <T> Column apply(
       Column condition,
       String new_name,
-      Value when_true,
-      Value when_false,
+      Object when_true,
+      Object when_false,
       StorageType<T> resultStorageType,
       ProblemAggregator problemAggregator) {
     // Check if the condition is valid
@@ -64,8 +62,8 @@ public final class IfOperation {
 
   private static <T> ColumnStorage<T> computeColumnStorage(
       Column condition,
-      Value when_true,
-      Value when_false,
+      Object whenTrue,
+      Object whenFalse,
       StorageType<T> resultStorageType,
       ProblemAggregator problemAggregator,
       ColumnStorage<?> conditionStorage) {
@@ -79,22 +77,43 @@ public final class IfOperation {
           .seal();
     }
 
-    var on_true = makeRowProvider(when_true);
-    var on_false = makeRowProvider(when_false);
+    // Make step
+    StorageIterators.BooleanBuildOperation<BuilderForType<T>> stepAction;
+    if (whenTrue instanceof Column whenTrueColumn) {
+      if (whenFalse instanceof Column whenFalseColumn) {
+        // If both are columns, we can use the same index for both
+        stepAction =
+            (builder, index, value, isNothing) -> {
+              builder.append(
+                  value ? whenTrueColumn.getItem(index) : whenFalseColumn.getItem(index));
+            };
+      } else {
+        // If only one is a column, we use it for true values and convert false to constant
+        T whenFalseAsT = resultStorageType.valueAsType(whenFalse);
+        stepAction =
+            (builder, index, value, isNothing) -> {
+              builder.append(value ? whenTrueColumn.getItem(index) : whenFalse);
+            };
+      }
+    } else {
+      T whenTrueAsT = resultStorageType.valueAsType(whenTrue);
+      if (whenFalse instanceof Column whenFalseColumn) {
+        // Just False is a column
+        stepAction =
+            (builder, index, value, isNothing) ->
+                builder.append(value ? whenTrueAsT : whenFalseColumn.getItem(index));
+      } else {
+        // Otherwise, we convert the values to a constant row provider
+        T whenFalseAsT = resultStorageType.valueAsType(whenFalse);
+        stepAction =
+            (builder, index, value, isNothing) ->
+                builder.append(value ? whenTrueAsT : whenFalseAsT);
+      }
+    }
+
     return StorageIterators.buildOverBooleanStorage(
         BooleanType.INSTANCE.asTypedStorage(conditionStorage),
         resultStorageType.makeBuilder(condition.getSize(), problemAggregator),
-        (builder, index, value, isNothing) -> {
-          builder.append(value ? on_true.apply(index) : on_false.apply(index));
-        });
-  }
-
-  private static LongFunction<Object> makeRowProvider(Value value) {
-    if (value.isHostObject() && value.asHostObject() instanceof Column column) {
-      var storage = column.getStorage();
-      return i -> (Object) storage.getItemBoxed(i);
-    }
-    var converted = Polyglot_Utils.convertPolyglotValue(value);
-    return i -> converted;
+        stepAction);
   }
 }

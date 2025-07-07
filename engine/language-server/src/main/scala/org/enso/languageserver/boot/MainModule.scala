@@ -7,6 +7,7 @@ import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
 }
+import org.enso.logger.Converter
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
@@ -329,7 +330,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
-    .logLevel(logLevel)
+    .logLevel(Converter.toJavaLevel(logLevel))
     .strictErrors(false)
     .enableIrCaches(true)
     .out(stdOut)
@@ -544,9 +545,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .getAttribute(osBean.getObjectName, "TotalPhysicalMemorySize")
       .asInstanceOf[Long]
     val totalMemMB = totalMem / 1024 / 1024
-    ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
     telemetryLog.trace(
-      "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}, os_name={}, os_arch={}, os_version={}, available_cpus={}, total_memory_MB={}, available_memory_MB={}",
+      "Initializing main module of the Language Server: project_id={}, edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}, os_name={}, os_arch={}, os_version={}, available_cpus={}, total_memory_MB={}, available_memory_MB={}",
+      serverConfig.projectId,
       BuildVersion.currentEdition(),
       BuildVersion.graalVersion(),
       BuildVersion.ensoVersion(),

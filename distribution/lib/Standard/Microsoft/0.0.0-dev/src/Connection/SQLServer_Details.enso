@@ -11,26 +11,30 @@ import project.SQLServer_Connection.SQLServer_Connection
 type SQLServer_Details
     ## Connect to a SQLServer database.
 
-       Arguments:
-       - host: The name of the server to connect to.
-       - credentials: The credentials to use for the connection.
-       - port: The port to connect to (defaults to 1433).
-       - database: The name of the database to connect to.
+       ## Arguments
+        - `host`: The name of the server to connect to.
+        - `credentials`: The credentials to use for the connection.
+        - `port`: The port to connect to (defaults to 1433).
+        - `database`: The name of the database to connect to.
     @host (Text_Input display=..Always)
     @credentials Credentials.default_widget
     SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Attempt to resolve the constructor.
     resolve : Function -> SQLServer_Details | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:SQLServer_Details) _->Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Build the Connection resource.
 
-       Arguments:
-       - options: Overrides for the connection properties.
+       ## Arguments
+        - `options`: Overrides for the connection properties.
     connect : Connection_Options -> Boolean -> SQLServer_Connection
     connect self options (allow_data_links : Boolean = True) =
         data_link_setup = if allow_data_links then Data_Link_Setup.Available (create_data_link_structure self) else
@@ -41,13 +45,17 @@ type SQLServer_Details
 
         SQLServer_Connection.create self.jdbc_url properties make_new data_link_setup
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
         'jdbc:sqlserver://' + self.host + ':' + self.port.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the properties for the connection.
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
@@ -57,7 +65,9 @@ type SQLServer_Details
         send_time_as_datetime = [Pair.new 'sendTimeAsDatetime' 'false']
         account + database + credentials + send_time_as_datetime
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private create_data_link_structure details:SQLServer_Details data_link_location:Enso_File -> JS_Object =
     credentials_json = Data_Link_Setup.save_credentials_for_data_link data_link_location details.credentials
     JS_Object.from_pairs <|

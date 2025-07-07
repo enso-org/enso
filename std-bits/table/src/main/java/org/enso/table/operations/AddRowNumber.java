@@ -1,7 +1,7 @@
 package org.enso.table.operations;
 
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -64,8 +64,8 @@ public class AddRowNumber {
       }
 
       @Override
-      public void visit(int row) {
-        numbers[row] = next();
+      public void visit(long row) {
+        numbers[Math.toIntExact(row)] = next();
       }
 
       public Long next() throws ArithmeticException {

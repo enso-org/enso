@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import all
+import Standard.Table.In_Memory_Table.In_Memory_Table
 
 from Standard.Test import all
 
@@ -57,7 +58,7 @@ add_specs suite_builder =
     suite_builder.group 'Writing' group_builder->
         group_builder.specify 'should properly serialize simple tables' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
-            res = varied_column.to_delimited ","
+            res = (varied_column:In_Memory_Table).to_delimited ","
             exp = normalize_lines <| '''
                 Column 1,Column 2,Column 3,Column 4,Column 5,Column 6
                 2005-02-25,2005-02-25,1,1,1.0,1

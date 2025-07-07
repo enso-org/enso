@@ -15,13 +15,12 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { cachedGetter } from '@/util/reactivity'
+import { cachedGetter, proxyRefs } from '@/util/reactivity'
 import {
   computed,
   nextTick,
   onMounted,
   onUpdated,
-  proxyRefs,
   shallowRef,
   toRef,
   watch,

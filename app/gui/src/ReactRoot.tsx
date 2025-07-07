@@ -35,7 +35,10 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
   const setFeatureFlag = useSetFeatureFlag()
   const { localBackend } = useBackends()
   useMount(() => {
-    if (typeof window !== 'undefined' && window.overrideFeatureFlags === undefined) {
+    if (
+      typeof window !== 'undefined' &&
+      window.overrideFeatureFlags?.enableLocalBackend === undefined
+    ) {
       setFeatureFlag('enableLocalBackend', localBackend != null)
     }
   })

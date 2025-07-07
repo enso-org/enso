@@ -19,7 +19,6 @@ import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Table, Value_Type
-from Standard.Table.Column import default_date_period
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 from Standard.Table.Internal.Column_Type_Helpers import get_underlying_from_column
@@ -40,65 +39,61 @@ import project.SQL_Type.SQL_Type
 from project.Errors import Implicit_DB_Table_Read, Integrity_Error, Unsupported_Database_Operation
 
 type DB_Column_Implementation
-    name (this_column : Column & DB_Column) -> Text = this_column.internal_name
+    name (this_column : Column & DB_Column) = this_column.internal_name
 
-    dialect_name (this_column : Column & DB_Column) -> Text = this_column.connection.dialect.name
+    dialect_name (this_column : Column & DB_Column) = this_column.connection.dialect.name
 
-    display (this_column : Column & DB_Column) show_rows=10 format_terminal=False =
+    display (this_column : Column & DB_Column) show_rows:Integer format_terminal:Boolean =
         this_column.to_table.display show_rows format_terminal
-
-    print (this_column : Column & DB_Column) show_rows=10 =
-        IO.println (this_column.display show_rows format_terminal=True)
-        IO.println ''
 
     to_js_object_implementation (this_column : Column & DB_Column) = this_column.to_sql.to_js_object
 
-    to_table (this_column : Column & DB_Column) -> DB_Table =
+    to_table (this_column : Column & DB_Column) =
         DB_Table.new this_column.name this_column.connection [Internal_Column.from this_column] this_column.context
 
-    info (this_column : Column & DB_Column) -> Table = this_column.to_table.column_info
+    info (this_column : Column & DB_Column) = this_column.to_table.column_info
 
-    read (this_column : Column & DB_Column) (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Column =
+    read (this_column : Column & DB_Column) (max_rows : Rows_To_Read) =
         this_column.to_table.read max_rows . at 0
 
-    to_vector (this_column : Column & DB_Column) -> Vector Any =
+    to_vector (this_column : Column & DB_Column) =
         Warning.attach (Implicit_DB_Table_Read.Warning "DB_Column.to_vector") <|
             this_column.read DB_Column_Implementation.default_row_limit_for_read . to_vector
 
-    at (this_column : Column & DB_Column) index:Integer=0 -> (Any | Nothing) ! Index_Out_Of_Bounds =
+    at (this_column : Column & DB_Column) index:Integer =
         this_column.get index (Error.throw (Index_Out_Of_Bounds.Error index this_column.length))
 
-    get (this_column : Column & DB_Column) index:Integer=0 ~default:Any=Nothing -> Any | Nothing =
+    get (this_column : Column & DB_Column) index:Integer ~default:Any =
         if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end") else
             this_column.read (..First index+1) . get index default
 
-    first (this_column : Column & DB_Column) -> Any ! Index_Out_Of_Bounds = this_column.at 0
+    first (this_column : Column & DB_Column) = this_column.at 0
 
-    value_type (this_column : Column & DB_Column) -> Value_Type =
+    value_type (this_column : Column & DB_Column) =
         mapping = this_column.connection.dialect.get_type_mapping
         mapping.sql_type_to_value_type this_column.sql_type_reference.get
 
     inferred_precise_value_type (this_column : Column & DB_Column) =
         this_column.value_type
 
-    should_be_selected_by_type (this_column : Column & DB_Column) (value_type : Value_Type) -> Boolean =
+    should_be_selected_by_type (this_column : Column & DB_Column) (value_type : Value_Type) =
         type_mapping = this_column.connection.dialect.get_type_mapping
         type_mapping.is_same_type this_column.value_type value_type
 
-    to_sql (this_column : Column & DB_Column) -> SQL_Statement = this_column.to_table.to_sql
+    to_sql (this_column : Column & DB_Column) = this_column.to_table.to_sql
 
-    length (this_column : Column & DB_Column) -> Integer = this_column.to_table.row_count
+    length (this_column : Column & DB_Column) = this_column.to_table.row_count
 
-    count_nothing (this_column : Column & DB_Column) -> Integer =
+    count_nothing (this_column : Column & DB_Column) =
         this_column.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
-    count (this_column : Column & DB_Column) -> Integer =
+    count (this_column : Column & DB_Column) =
         this_column.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
     equals (this_column : Column & DB_Column) (other : Column | Any) =
         make_equality_check_with_floating_point_handling this_column other "=="
 
-    equals_ignore_case (this_column : Column & DB_Column) (other : Column | Any) locale:Locale=Locale.default =
+    equals_ignore_case (this_column : Column & DB_Column) (other : Column | Any) locale:Locale =
         Value_Type.expect_text this_column <|
             Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
@@ -196,7 +191,7 @@ type DB_Column_Implementation
 
     const (this_column : Column & DB_Column) value = this_column.to_table.make_constant_column value
 
-    round (this_column : Column & DB_Column) decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) =
+    round (this_column : Column & DB_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric this_column <|
             if should_use_builtin_round this_column decimal_places rounding_mode then round_builtin this_column decimal_places rounding_mode else
                 short_circuit_special_floating_point this_column <|
@@ -280,7 +275,7 @@ type DB_Column_Implementation
         new_name = (naming_helper this_column).function_name "is_present" [this_column]
         this_column.is_nothing.not . rename new_name
 
-    is_blank (this_column : Column & DB_Column) treat_nans_as_blank=False =
+    is_blank (this_column : Column & DB_Column) treat_nans_as_blank:Boolean =
         new_name = (naming_helper this_column).function_name "is_blank" [this_column]
         self_type = this_column.value_type
         is_blank = case self_type.is_text of
@@ -304,29 +299,29 @@ type DB_Column_Implementation
                 result = this_column.is_empty.iif default this_column
                 result.rename this_column.name
 
-    offset (this_column : Column & DB_Column) n=-1:Integer fill_with:Fill_With=..Nothing =
+    offset (this_column : Column & DB_Column) n:Integer fill_with:Fill_With =
         _ = [this_column, n, fill_with]
         Error.throw (Unsupported_Database_Operation.Error "offset")
 
     rename (this_column : Column & DB_Column) name:Text = (naming_helper this_column).ensure_name_is_valid name <|
         DB_Column.new name this_column.connection this_column.sql_type_reference this_column.expression this_column.context
 
-    sort (this_column : Column & DB_Column) order:Sort_Direction missing_last:Boolean=True by=Nothing =
+    sort (this_column : Column & DB_Column) order:Sort_Direction missing_last:Boolean by =
         if Nothing != by then
             Error.throw (Unsupported_Database_Operation.Error "Using `by` argument in `sort`")
         if missing_last != True then
             Error.throw (Unsupported_Database_Operation.Error "Using `missing_last` argument in `sort`")
         this_column.to_table.sort [..Index 0 order] . at 0
 
-    take (this_column : Column & DB_Column) (range : Index_Sub_Range | Range | Integer = ..First) = this_column.to_table.take range . at 0
+    take (this_column : Column & DB_Column) (range : Index_Sub_Range | Range | Integer) = this_column.to_table.take range . at 0
 
-    drop (this_column : Column & DB_Column) (range : Index_Sub_Range | Range | Integer = ..First) = this_column.to_table.drop range . at 0
+    drop (this_column : Column & DB_Column) (range : Index_Sub_Range | Range | Integer) = this_column.to_table.drop range . at 0
 
-    starts_with (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
+    starts_with (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         new_name = (naming_helper this_column).function_name "starts_with" [this_column, other]
         make_text_case_op this_column "STARTS_WITH" other case_sensitivity new_name
 
-    ends_with (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
+    ends_with (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         new_name = (naming_helper this_column).function_name "ends_with" [this_column, other]
         make_text_case_op this_column "ENDS_WITH" other case_sensitivity new_name
 
@@ -347,7 +342,7 @@ type DB_Column_Implementation
             new_name = (naming_helper this_column).function_name "text_right" [this_column, n]
             make_binary_op this_column "RIGHT" n2 new_name
 
-    contains (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
+    contains (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         new_name = (naming_helper this_column).function_name "contains" [this_column, other]
         make_text_case_op this_column "CONTAINS" other case_sensitivity new_name
 
@@ -369,7 +364,7 @@ type DB_Column_Implementation
                 Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
-    trim (this_column : Column & DB_Column) where:Location=..Both (what : Column | Text = '') =
+    trim (this_column : Column & DB_Column) where:Location=..Both (what : Column | Text) =
         Value_Type.expect_text this_column <| Value_Type.expect_text what <|
             new_name = (naming_helper this_column).function_name "trim" [this_column]
             operator = case where of
@@ -380,7 +375,7 @@ type DB_Column_Implementation
                 Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
 
     @new_text (Text_Input display=..Always)
-    text_replace (this_column : Column & DB_Column) (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False =
+    text_replace (this_column : Column & DB_Column) (term : Text | Regex | Column) (new_text : Text | Column) case_sensitivity:Case_Sensitivity only_first:Boolean =
         Value_Type.expect_text this_column <| case_sensitivity.disallow_non_default_locale <|
             input_type = if term.is_error then term else Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
@@ -421,7 +416,7 @@ type DB_Column_Implementation
     date_part (this_column : Column & DB_Column) (period : Date_Period | Time_Period) =
         Date_Time_Helpers.make_date_part_function this_column period (column->op_name-> make_unary_op column op_name) (naming_helper this_column)
 
-    date_diff (this_column : Column & DB_Column) (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = Date_Period.Day) =
+    date_diff (this_column : Column & DB_Column) (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period) =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
@@ -431,7 +426,7 @@ type DB_Column_Implementation
                     metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
                     make_op this_column "date_diff" [end] new_name metadata
 
-    date_add (this_column : Column & DB_Column) (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period this_column) =
+    date_add (this_column : Column & DB_Column) (amount : Column | Integer) (period : Date_Period | Time_Period) =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
             Helpers.expect_dialect_specific_integer_type this_column amount <|
@@ -469,7 +464,7 @@ type DB_Column_Implementation
                 DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
     @format (make_format_chooser include_number=False)
-    parse (this_column : Column & DB_Column) (type : Value_Type | Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning =
+    parse (this_column : Column & DB_Column) (type : Value_Type | Auto) (format : Text | Data_Formatter) on_problems:Problem_Behavior =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting") else
                 if this_column.value_type.is_same_type type then this_column else
@@ -481,23 +476,23 @@ type DB_Column_Implementation
 
 
     @format (this_column-> Widget_Helpers.make_format_chooser_for_type this_column.value_type)
-    format (this_column : Column & DB_Column) (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default =
+    format (this_column : Column & DB_Column) (format : Text | Date_Time_Formatter | Column) locale:Locale =
         _ = [this_column, format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "format"
 
-    cast (this_column : Column & DB_Column) value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning =
+    cast (this_column : Column & DB_Column) value_type:Value_Type on_problems:Problem_Behavior =
         check_cast_compatibility this_column.value_type value_type <|
             internal_do_cast this_column value_type on_problems
 
-    auto_cast (this_column : Column & DB_Column) shrink_types:Boolean=False =
+    auto_cast (this_column : Column & DB_Column) shrink_types:Boolean =
         _ = [this_column, shrink_types]
         Error.throw <| Unsupported_Database_Operation.Error "auto_cast"
 
-    map (this_column : Column & DB_Column) (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) =
+    map (this_column : Column & DB_Column) (function : Any -> Any) skip_nothing:Boolean (expected_value_type : Value_Type | Auto) =
         _ = [this_column, function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "map"
 
-    zip (this_column : Column & DB_Column) (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
+    zip (this_column : Column & DB_Column) (right : Column | Table) (keep_unmatched : Boolean | Report_Unmatched) (right_prefix : Text) on_problems:Problem_Behavior =
         _ = [this_column, right, keep_unmatched, right_prefix, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "zip"
 

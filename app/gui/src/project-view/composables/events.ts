@@ -6,11 +6,11 @@ import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
+import { proxyRefs } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
 import {
   computed,
   onScopeDispose,
-  proxyRefs,
   ref,
   shallowRef,
   toValue,

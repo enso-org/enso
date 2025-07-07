@@ -8,7 +8,6 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -37,8 +36,8 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
       return convertDoubleStorage(doubleStorage, problemAggregator);
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemAggregator);
-    } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
-      return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
+    } else if (storage.getType() instanceof BigDecimalType bigDecimalType) {
+      return convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
     } else if (canApply(storage.getType())) {
       return castFromObject(storage, problemAggregator);
     } else {

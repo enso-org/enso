@@ -43,8 +43,6 @@
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
-    "ci:chromatic:react": "corepack pnpm run -r --filter enso-gui chromatic:react",
-    "ci:chromatic:vue": "corepack pnpm run -r --filter enso-gui chromatic:vue",
     "postinstall": "bazel run //:write_all --verbose_failures"
   },
   "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
@@ -155,12 +153,6 @@
           "@vue/server-renderer": "*"
         }
       },
-      "@storybook/core": {
-        "dependencies": {
-          "@storybook/react-vite": "*",
-          "@storybook/vue3-vite": "*"
-        }
-      },
       "modern-isomorphic-ws": {
         "peerDependencies": {
           "@types/ws": "*"
@@ -171,9 +163,6 @@
           "vue": "*"
         }
       }
-    },
-    "patchedDependencies": {
-      "@chromatic-com/playwright": "patches/@chromatic-com__playwright.patch"
     }
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"
