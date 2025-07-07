@@ -225,7 +225,7 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
 
         break
       }
-      // If the users is being redirected back from signing out from microsoft entra then we need to 
+      // If the users is being redirected back from signing out from microsoft entra then we need to
       // proceed with standard flow invalidating the session in cognito.
       case '//auth/federated': {
         void (async () => {
