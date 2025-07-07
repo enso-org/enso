@@ -62,7 +62,8 @@ export const commonContextMenuActions = {
 /**
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
- */ import { gridBindings } from '@/bindings'
+ */
+import { gridBindings } from '@/bindings'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
 import {
   type VueComponentHandle,
