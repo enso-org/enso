@@ -135,7 +135,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   // (the panel is opened in previous steps)
   await page.locator('.DocumentationEditor').click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
-  const docImageElement = page.locator('.DocumentationEditor').getByAltText('Image')
+  const docImageElement = page.locator('.DocumentationEditor').getByTestId('doc-img')
   await expect(docImageElement).toBeVisible()
   await expect(docImageElement).toHaveJSProperty('width', 3)
 

@@ -32,6 +32,7 @@ const errorMessage = computed(() => {
       :alt="alt"
       :title="alt !== DEFAULT_ALT_TEXT ? alt : ''"
       :class="{ uploading: data.value.status === 'uploading' }"
+      data-testid="doc-img"
     />
     <LoadingSpinner v-if="data.value.status == 'loading'" phase="initial" :size="20" />
   </template>

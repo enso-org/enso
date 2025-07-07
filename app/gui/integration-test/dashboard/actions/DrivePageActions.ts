@@ -91,39 +91,43 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     return {
       /** Switch to the "cloud" category. */
       cloud() {
-        return self.step('Go to "Cloud" category', (page) =>
-          page
+        return self.step('Go to "Cloud" category', async (page) => {
+          await page
             .getByLabel(TEXT.categorySwitcherMenuLabel)
             .getByRole('button', { name: TEXT.cloudCategory, exact: true })
             .getByText(TEXT.cloudCategory)
-            .click(),
-        )
+            .click()
+          await self.expectCategory(TEXT.cloudCategory)
+        })
       },
       /** Switch to the "local" category. */
       local() {
-        return self.step('Go to "Local" category', (page) =>
-          page
+        return self.step('Go to "Local" category', async (page) => {
+          await page
             .getByLabel(TEXT.categorySwitcherMenuLabel)
             .getByRole('button', { name: TEXT.localCategory, exact: true })
             .getByText(TEXT.localCategory)
-            .click(),
-        )
+            .click()
+          await self.expectCategory(TEXT.localCategory)
+        })
       },
       /** Switch to the "recent" category. */
       recent() {
-        return self.step('Go to "Recent" category', (page) =>
-          page
+        return self.step('Go to "Recent" category', async (page) => {
+          await page
             .getByLabel(TEXT.categorySwitcherMenuLabel)
             .getByRole('button', { name: TEXT.recentCategory, exact: true })
             .getByText(TEXT.recentCategory)
-            .click(),
-        )
+            .click()
+          await self.expectCategory(TEXT.recentCategory)
+        })
       },
       /** Switch to the "trash" category. */
       trash() {
-        return self.step('Go to "Trash" category', (page) =>
-          page.getByRole('button', { name: TEXT.trashCategory, exact: true }).click(),
-        )
+        return self.step('Go to "Trash" category', async (page) => {
+          await page.getByRole('button', { name: TEXT.trashCategory, exact: true }).click()
+          await self.expectCategory(TEXT.trashCategory)
+        })
       },
     }
   }
