@@ -784,6 +784,9 @@ export default class LocalBackend extends Backend {
     if (params.filePath != null) {
       // Assume it is Electron, copy files through Electron server directly
       const response = await this.post<backend.ExportedArchive>(path, {})
+      if (!response.ok) {
+        return this.throw(response, 'exportArchiveBackendError')
+      }
       return await response.json()
     } else {
       // Download files as HTTP stream

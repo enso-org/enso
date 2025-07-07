@@ -178,6 +178,7 @@
   "getDefaultVersionBackendError": "No default $0 version found",
   "duplicateUserGroupError": "This user group already exists",
   "getCustomerPortalUrlBackendError": "Could not get customer portal URL",
+  "exportArchiveBackendError": "Could not export archive",
   "duplicateLabelError": "This label already exists.",
   "emptyStringError": "This value must not be empty.",
   "resolveProjectAssetPathBackendError": "Could not get asset",
