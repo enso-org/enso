@@ -84,6 +84,7 @@ const rootStyle = computed(() => {
             props.mode.filter.selfArg.typeInfo
           : undefined
         "
+        :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
       />
     </div>
     <CodeMirrorRoot ref="editorRoot" />
