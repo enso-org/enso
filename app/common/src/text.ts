@@ -107,7 +107,6 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupBackendError: [userGroupName: string]
   readonly listVersionsBackendError: [versionType: string]
   readonly createCheckoutSessionBackendError: [plan: string]
-  readonly getCheckoutSessionBackendError: [checkoutSessionId: string]
   readonly getDefaultVersionBackendError: [versionType: string]
   readonly logEventBackendError: [eventType: string]
 
@@ -177,6 +176,12 @@ interface PlaceholderOverrides {
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
+
+  readonly annualPlanVariant: [originalPlanName: string]
+  readonly freePlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly soloPlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly teamPlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly enterprisePlanPricing: [pricePerMonth: number, billingInterval: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

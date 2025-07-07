@@ -9,7 +9,6 @@ import { useInReactFunction } from './common'
 export {
   useAuth,
   useFullUserSession,
-  usePartialUserSession,
   usePlanOverride,
   useUser,
   useUserSession,

@@ -3,8 +3,8 @@ import { Button } from '#/components/Button'
 import { Text } from '#/components/Text'
 import { PlanSelector } from '#/modules/payments'
 import { isPlan } from '#/services/Backend'
-import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '$/appUtils'
-import { useFullUserSession, useRouter, useText } from '$/providers/react'
+import { DASHBOARD_PATH } from '$/appUtils'
+import { useFullUserSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 
 /**
@@ -23,7 +23,6 @@ import { useQueryParam } from '$/providers/react/queryParams'
  */
 export function Subscribe() {
   const { getText } = useText()
-  const { router } = useRouter()
   const { user } = useFullUserSession()
 
   const [maybePlan] = useQueryParam('plan')
@@ -54,12 +53,6 @@ export function Subscribe() {
           showFreePlan={false}
           userPlan={user.plan}
           isOrganizationAdmin={user.isOrganizationAdmin}
-          onSubscribeSuccess={(plan) => {
-            void router.push({
-              path: SUBSCRIBE_SUCCESS_PATH,
-              query: { plan },
-            })
-          }}
         />
       </div>
     </div>

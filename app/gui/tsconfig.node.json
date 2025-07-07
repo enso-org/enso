@@ -10,7 +10,6 @@
     "tailwind.config.ts",
     "integration-test/**/*",
     "src/dashboard/modules/payments/constants.ts",
-    "src/dashboard/providers/FeatureFlagsProvider.tsx",
     "src/dashboard/services/RemoteBackend.ts",
     "src/dashboard/services/RemoteBackend/types.ts",
     "src/dashboard/utilities/async.ts",
@@ -21,6 +20,8 @@
     "src/dashboard/utilities/write.ts",
     "src/dashboard/utilities/zustand.ts",
     "src/dashboard/hooks/storeHooks.ts",
+    "src/providers/featureFlags.ts",
+    "src/utils/zustand.ts",
     "node.env.d.ts"
   ],
   "compilerOptions": {
