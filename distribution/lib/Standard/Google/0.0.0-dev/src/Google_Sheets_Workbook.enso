@@ -95,7 +95,7 @@ Table_Viz_Data.from (that:Google_Sheets_Workbook) =
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "worksheets" "worksheet" "read"] [that.sheet_names.to_vector]
 
 ## Error occurred when calling the Google Sheets API
-type Google_API_Error
+type Google_Api_Error
     ## ---
        private: true
        ---
@@ -106,7 +106,7 @@ type Google_API_Error
 
 private _handle_exceptions ~action = Empty_Sheet.handle_java_exception <|
     Panic.catch GoogleJsonResponseException action caught_panic->
-        Error.throw (Google_API_Error.Error caught_panic.payload.getContent.parse_json)
+        Error.throw (Google_Api_Error.Error caught_panic.payload.getContent.parse_json)
 
 private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
     case credential of
