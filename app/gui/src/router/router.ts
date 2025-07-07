@@ -42,7 +42,7 @@ const routes = [
       {
         path: UNAVAILABLE_PATH,
         meta: { access: 'anyLoggedIn' },
-        component: withDataLoader(() => import('$/components/AppContainerLayout.vue')),
+        component: import('$/components/AppContainerLayout.vue'),
         beforeEnter: requireCloudBrowserEnabled,
         children: [
           {
