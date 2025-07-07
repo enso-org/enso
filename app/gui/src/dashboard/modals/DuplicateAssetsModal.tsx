@@ -24,7 +24,8 @@ import invariant from 'tiny-invariant'
 
 /** Get a unique name based on sibling names. */
 function getUniqueName(title: string, siblingTitles: readonly string[]) {
-  const regex = new RegExp(`^${regexEscape(title)}(?: \\((?:copy )?(?:(\\d+))?\\))?$`)
+  title = title.match(/^.*(?= \((?:copy)? ?\d*\)$)/)?.[0] ?? title
+  const regex = new RegExp(`^${regexEscape(title)}(?: \\((?:copy)? ?(\\d+)?\\))?$`)
   let maximum: number | null = null
   for (const siblingTitle of siblingTitles) {
     const [match, number] = siblingTitle.match(regex) ?? []

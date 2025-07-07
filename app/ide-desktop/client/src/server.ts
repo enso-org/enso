@@ -673,9 +673,10 @@ export class Server {
         await getDirectoryPath(parentPathInArchiveRaw)
         parentPathInArchive = pathMapping[parentPathInArchiveRaw] ?? ''
       }
-      const { basename, extension: extensionRaw } = basenameAndExtension(
+      const { basename: basenameRaw, extension: extensionRaw } = basenameAndExtension(
         getFileName(entryPathInArchive),
       )
+      const basename = basenameRaw.match(/^.*(?= \((?:copy)? ?\d*\)$)/)?.[0] ?? basenameRaw
       const extension = (() => {
         switch (extensionRaw) {
           case 'enso-project':
