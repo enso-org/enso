@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, True, False
 
 ## A function is any type that represents a not-yet evaluated computation.
 
@@ -62,7 +63,6 @@ type Function
              (+1 >> *2) 2
     >> : (Any -> Any) -> (Any -> Any)
     >> self ~that = x -> that (self x)
-
 
 ## ICON braces
    An identity function which returns the provided argument.

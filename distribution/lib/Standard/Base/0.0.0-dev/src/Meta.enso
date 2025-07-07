@@ -6,10 +6,10 @@ import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Private_Access
-import project.Function.Function
+import project.Function.Function as Real_Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean
+from project.Data.Boolean import Boolean, False
 
 type Type
     private Value value
@@ -111,14 +111,14 @@ type Atom
         Meta.Constructor.Value c...
 
 type Constructor
-    private Value impl:Function
+    private Value impl:Real_Function
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Obtains the qualified accessor function of the constructor
-    value self -> Function = self.impl...
+    value self -> Real_Function = self.impl...
 
     ## ADVANCED
        GROUP Metadata
@@ -163,8 +163,21 @@ type Primitive
        Returns the (primitive) value wrapped by this type
     value self = self.impl
 
+
+type Function
+    private Value impl kind:Integer
+
+    is_resolved self -> Boolean =
+        self.kind != 4 && self.kind != 8
+
 type Unresolved_Symbol
     private Value impl
+
+    ## PRIVATE
+       ADVANCED
+
+       Not yet resolved
+    is_resolved self -> Boolean = False
 
     ## PRIVATE
        ADVANCED
@@ -279,7 +292,7 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type ! Private_Access =
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type | Function ! Private_Access =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     kind = if ac.is_nothing.not then 1 else
         Meta_Helpers.get_kind_builtin value
@@ -293,6 +306,8 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | E
         6 -> Type.Value value
         7 -> Base_Error.throw <|
             Private_Access.Error Nothing Nothing "meta" "No Meta.meta for private objects"
+        8 -> Function.Value value... kind
+        9 -> Function.Value value... kind
         _ -> Primitive.Value value
 
 ## PRIVATE

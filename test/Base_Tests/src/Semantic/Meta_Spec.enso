@@ -686,6 +686,34 @@ add_specs suite_builder =
             meta_type = Meta.meta Standard.Base.Network
             meta_type.catch . should_equal (Private_Access.Error Nothing Nothing 'meta' 'No Meta.meta for private objects')
 
+        group_builder.specify "function with argument" <|
+            plus x = x+1
+
+            case Meta.meta plus of
+                fn : Meta.Function ->
+                    fn.is_resolved . should_be_true
+                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
+        group_builder.specify "function without an argument" <|
+            means = 42
+
+            case Meta.meta means... of
+                fn : Meta.Function ->
+                    fn.is_resolved . should_be_true
+                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
+        group_builder.specify "unresolved symbol" <|
+            case Meta.meta .nic of
+                s : Meta.Unresolved_Symbol ->
+                    s.is_resolved . should_be_false
+                unknown -> Test.fail "Expecting Meta.Unresolved_Symbol, but was: "+unknown.to_text
+
+        group_builder.specify "unresolved constructor" <|
+            case Meta.meta ..Maybe of
+                fn : Meta.Function ->
+                    fn.is_resolved . should_be_false
+                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
