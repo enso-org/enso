@@ -5,44 +5,31 @@ import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
-import { backendMutationOptions } from '#/hooks/backendHooks'
-import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
+import { ORGANIZATION_NAME_MAX_LENGTH, USER_GROUP_NAME_MAX_LENGTH } from '$/appUtils'
 import { useBackends, useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import * as React from 'react'
 
-/**
- * Props for the SetupOrganizationAfterSubscribeInternal component.
- * @param props - The props for the component.
- * @returns The component.
- */
-export interface SetupOrganizationAfterSubscribeProps {
-  readonly userId: string
-  // Null is used to indicate that the user is not an admin of an organization,
-  // Or organization info has not yet been created, This means that the dialog
-  // should not be shown.
-  readonly organizationName: string | null
-  readonly userGroupsCount: number
-}
-
-/**
- * Internal implementation of the SetupOrganizationAfterSubscribe modal.
- * @param props - The props for the component.
- * @returns The component.
- */
-export function SetupOrganizationAfterSubscribe(props: SetupOrganizationAfterSubscribeProps) {
-  const { organizationName, userGroupsCount } = props
+/** A modal to set organization metadata. */
+export function SetupOrganizationAfterSubscribe() {
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
+  const { data: organization } = useSuspenseQuery(
+    backendQueryOptions(backend, 'getOrganization', []),
+  )
+  const { data: fetchedUserGroups } = useSuspenseQuery(
+    backendQueryOptions(backend, 'listUserGroups', []),
+  )
 
   const [hideModal, setHideModal] = React.useState(false)
 
   const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
   const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
 
-  const shouldSetOrgName = organizationName == null || organizationName === ''
-  const shouldSetDefaultUserGroup = userGroupsCount === 0
+  const shouldSetOrgName = organization?.name == null || organization.name === ''
+  const shouldSetDefaultUserGroup = fetchedUserGroups.length === 0
 
   const steps = [
     {
@@ -177,11 +164,9 @@ export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
   const { onSubmit } = props
   const { getText } = useText()
 
-  const defaultUserGroupMaxLength = 64
-
   return (
     <Form
-      schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
+      schema={(z) => z.object({ groupName: z.string().min(1).max(USER_GROUP_NAME_MAX_LENGTH) })}
       gap="medium"
       className="max-w-96"
       defaultValues={{ groupName: '' }}
@@ -191,7 +176,7 @@ export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
         name="groupName"
         autoComplete="off"
         label={getText('groupNameSettingsInput')}
-        description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
+        description={getText('groupNameSettingsInputDescription', USER_GROUP_NAME_MAX_LENGTH)}
       />
 
       <Form.Submit />
