@@ -10,15 +10,13 @@ import scala.collection.immutable.ListSet
 /** A search suggestion. */
 sealed trait Suggestion extends ToLogString {
 
-  def externalId:    Option[Suggestion.ExternalID]
-  def module:        String
-  def name:          String
-  def returnType:    String
+  def externalId: Option[Suggestion.ExternalID]
+  def module:     String
+  def name:       String
+  //def returnType:    String
   def documentation: Option[String]
 
   def withReexports(reexports: Set[String]): Suggestion
-
-  def withReturnType(returnType: String): Suggestion
 
   /** Creates a copy of this suggestion with the optional fields changed, if applicable.
     *
@@ -220,14 +218,10 @@ object Suggestion {
     override def externalId: Option[ExternalID] =
       None
 
-    override def returnType: String =
-      module
+    // override def returnType: String = module
 
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
-
-    override def withReturnType(returnType: String): Suggestion =
-      copy(module = returnType)
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
@@ -274,9 +268,6 @@ object Suggestion {
 
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
-
-    override def withReturnType(returnType: String): Suggestion =
-      copy(returnType = returnType)
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
@@ -336,9 +327,6 @@ object Suggestion {
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
 
-    override def withReturnType(returnType: String): Suggestion =
-      copy(returnType = returnType)
-
     override def update(
       optExternalId: Option[Option[ExternalID]],
       optReturnType: Option[String],
@@ -376,6 +364,7 @@ object Suggestion {
     def isStatic:    Boolean
     def annotations: Seq[String]
     def reexports:   Set[String]
+    def returnType:  String
   }
 
   /** A method generated to access constructor field.
@@ -409,9 +398,6 @@ object Suggestion {
 
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
-
-    override def withReturnType(returnType: String): Suggestion =
-      copy(returnType = returnType)
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
@@ -473,9 +459,6 @@ object Suggestion {
 
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
-
-    override def withReturnType(returnType: String): Suggestion =
-      copy(returnType = returnType)
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
@@ -542,9 +525,6 @@ object Suggestion {
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
 
-    override def withReturnType(returnType: String): Suggestion =
-      copy(returnType = returnType)
-
     override def update(
       optExternalId: Option[Option[ExternalID]],
       optReturnType: Option[String],
@@ -599,9 +579,6 @@ object Suggestion {
     override def withReexports(reexports: Set[String]): Suggestion =
       this
 
-    override def withReturnType(returnType: String): Suggestion =
-      copy(returnType = returnType)
-
     override def update(
       optExternalId: Option[Option[ExternalID]],
       optReturnType: Option[String],
@@ -654,9 +631,6 @@ object Suggestion {
 
     override def withReexports(reexports: Set[String]): Suggestion =
       this
-
-    override def withReturnType(returnType: String): Suggestion =
-      copy(returnType = returnType)
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
