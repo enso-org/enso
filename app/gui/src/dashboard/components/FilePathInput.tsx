@@ -54,7 +54,7 @@ export default function FilePathInput(props: FilePathInputProps) {
   return (
     <div
       ref={rootRef}
-      className="flex flex-col"
+      className={twMerge('flex flex-col', isFileBrowserOpened && 'mb-4')}
       style={fileBrowserStyles}
       tabIndex={-1}
       onBlur={() => {

@@ -167,7 +167,6 @@ export function useFileExtensions({
       topLevel: true,
       color: 'var(--selection-submenu-color, white)',
       backgroundColor: 'var(--file-browser-background-color, var(--color-panel-accent))',
-      style: { zIndex: -5 },
       onClickedEntry: extensionSelected,
       floatReference: toValue(fileExtensionInputRoot),
     }),

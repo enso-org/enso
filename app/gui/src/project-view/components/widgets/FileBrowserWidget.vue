@@ -29,6 +29,7 @@ import {
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { registerHandlers } from '@/providers/action'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
@@ -195,6 +196,7 @@ function chooseEntry(asset: AnyAsset, close: boolean) {
 }
 
 const root = useTemplateRef<HTMLDivElement>('root')
+providePopoverRoot(root)
 
 registerHandlers({
   'fileBrowser.newDirectory': {
