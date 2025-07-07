@@ -6,14 +6,18 @@ import { Input } from '#/components/Inputs/Input'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
+import { Plan } from '#/services/Backend'
 import { ORGANIZATION_NAME_MAX_LENGTH, USER_GROUP_NAME_MAX_LENGTH } from '$/appUtils'
-import { useBackends, useText } from '$/providers/react'
+import { useAuth, useBackends, useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import * as React from 'react'
 
+const PLANS_TO_SPECIFY_ORG_NAME = [Plan.team, Plan.enterprise]
+
 /** A modal to set organization metadata. */
 export function SetupOrganizationAfterSubscribe() {
+  const { session } = useAuth()
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
   const { data: organization } = useSuspenseQuery(
@@ -28,6 +32,9 @@ export function SetupOrganizationAfterSubscribe() {
   const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
   const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
 
+  const needsToSetupOrganization =
+    session?.user.isOrganizationAdmin === true &&
+    PLANS_TO_SPECIFY_ORG_NAME.includes(session.user.plan)
   const shouldSetOrgName = organization?.name == null || organization.name === ''
   const shouldSetDefaultUserGroup = fetchedUserGroups.length === 0
 
@@ -76,7 +83,7 @@ export function SetupOrganizationAfterSubscribe() {
     })
   }
 
-  const shouldShowModal = steps.length > 1 && !hideModal
+  const shouldShowModal = needsToSetupOrganization && steps.length > 1 && !hideModal
 
   const { stepperState } = Stepper.useStepperState({
     steps: steps.length,
