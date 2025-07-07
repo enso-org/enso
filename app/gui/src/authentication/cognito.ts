@@ -441,7 +441,8 @@ export class Cognito implements ISessionProvider {
 
     // When using Microsoft we need to first invalidate auth0 and windows live sessions before calling cognito.
     const session = await amplify.Auth.currentSession()
-    const providerName = session.getIdToken().decodePayload()['identities'][0]['providerName']
+    const identities = session.getIdToken().decodePayload()['identities']
+    const providerName = identities?.length ? identities[0]['providerName'] : undefined
     if (providerName === MICROSOFT_PROVIDER) {
       window.open($config.MICROSOFT_SIGN_OUT_URL, '_blank')
     } else {

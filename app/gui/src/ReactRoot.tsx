@@ -41,6 +41,13 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
     ) {
       setFeatureFlag('enableLocalBackend', localBackend != null)
     }
+
+    if (
+      typeof window !== 'undefined' &&
+      window.overrideFeatureFlags?.enableSignInWithMicrosoft === undefined
+    ) {
+      setFeatureFlag('enableSignInWithMicrosoft', $config.ENVIRONMENT != 'production')
+    }
   })
 
   return (
