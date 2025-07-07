@@ -75,6 +75,10 @@ function onActivate() {
   justify-content: center;
   align-items: center;
 
+  &.toggledOn {
+    background-color: var(--color-menu-entry-selected-bg);
+  }
+
   &:hover,
   &:focus,
   &:active {
