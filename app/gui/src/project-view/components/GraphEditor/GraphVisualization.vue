@@ -14,7 +14,8 @@ import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { ProjectPath } from '@/util/projectPath'
-import { computed, nextTick, onUnmounted, proxyRefs, ref, toRef, watch, watchEffect } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /**

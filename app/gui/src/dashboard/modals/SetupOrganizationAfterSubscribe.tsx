@@ -41,7 +41,7 @@ export function SetupOrganizationAfterSubscribe(props: SetupOrganizationAfterSub
   const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
   const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
 
-  const shouldSetOrgName = organizationName === ''
+  const shouldSetOrgName = organizationName == null || organizationName === ''
   const shouldSetDefaultUserGroup = userGroupsCount === 0
 
   const steps = [

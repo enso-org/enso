@@ -13,6 +13,7 @@ import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
 import { type IdentifierOrOperatorIdentifier, type QualifiedName } from '@/util/qualifiedName'
+import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
@@ -22,7 +23,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, ComputedRef, proxyRefs, ref, watch } from 'vue'
+import { ComponentInstance, computed, ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import ResizableWidget from '../ResizableWidget.vue'

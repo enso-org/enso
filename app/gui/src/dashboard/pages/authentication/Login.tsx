@@ -44,17 +44,19 @@ export default function Login() {
 
       switch (res.challenge) {
         case 'SMS_MFA':
-        case 'SOFTWARE_TOKEN_MFA':
+        case 'SOFTWARE_TOKEN_MFA': {
           setUser(res.user)
           nextStep()
           break
+        }
         case 'NO_CHALLENGE':
         case 'CUSTOM_CHALLENGE':
         case 'MFA_SETUP':
         case 'NEW_PASSWORD_REQUIRED':
         case 'SELECT_MFA_TYPE':
-        default:
+        default: {
           await router.push(DASHBOARD_PATH)
+        }
       }
     },
   })

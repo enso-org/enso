@@ -14,8 +14,9 @@ import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { LOGIN_PATH } from '$/appUtils'
-import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
+import { DASHBOARD_PATH, LOGIN_PATH } from '$/appUtils'
+import { useAuth } from '$/providers/auth'
+import { useBackends, useLocalStorage, useRouter, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { useEffect, useState } from 'react'
 
@@ -23,7 +24,7 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
 /** Properties of {@link Registration} component. */
 export interface RegistrationProps {
-  /** A callback called when user agreed on current Terms of Service and Privacy Policy */
+  /** Called when the user agrees to the current Terms of Service and Privacy Policy. */
   readonly userAgreed: () => void
 }
 
@@ -32,9 +33,11 @@ export default function Registration(props: RegistrationProps) {
   const { userAgreed } = props
   const { signUp, confirmSignUp, signInWithPassword } = useSession()
 
+  const { router } = useRouter()
   const localStorage = useLocalStorage()
   const { getText } = useText()
   const { localBackend } = useBackends()
+  const { refetchSession } = useAuth()
   const supportsOffline = localBackend != null
 
   const [initialEmail] = useQueryParam('email')
@@ -260,9 +263,19 @@ export default function Registration(props: RegistrationProps) {
                       const email = signupForm.getValues('email')
                       const password = signupForm.getValues('password')
 
-                      return confirmSignUp(email, verificationCode).then(() =>
-                        signInWithPassword(email, password),
-                      )
+                      await confirmSignUp(email, verificationCode)
+                      await signInWithPassword(email, password)
+                      while (true) {
+                        if ((await refetchSession()).data) {
+                          await router.push(DASHBOARD_PATH)
+                          break
+                        } else {
+                          await new Promise((resolve) => {
+                            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                            window.setTimeout(resolve, 3_000)
+                          })
+                        }
+                      }
                     }}
                   >
                     <Input

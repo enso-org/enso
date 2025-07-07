@@ -461,7 +461,8 @@ type In_Memory_Table_Implementation
         if (this_table : Table & In_Memory_Table).row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
             Row.Value this_table (this_table.row_count-1)
 
-    join (this_table : Table & In_Memory_Table) (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals this_table.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "join" <|
+    join (this_table : Table & In_Memory_Table) (right = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals this_table.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "join" <|
+        _check_table_in_memory right
         columns_to_keep = case join_kind of
             Join_Kind.Left_Exclusive  -> [True, False]
             Join_Kind.Right_Exclusive -> [False, True]
@@ -475,7 +476,8 @@ type In_Memory_Table_Implementation
             (this_table:In_Memory_Table).java_table.join (right:In_Memory_Table).java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         from_java_table new_java_table
 
-    cross_join (this_table : Table & In_Memory_Table) (right : Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "cross_join" <|
+    cross_join (this_table : Table & In_Memory_Table) (right = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "cross_join" <|
+        _check_table_in_memory right
         row_limit = case right_row_limit of
             Row_Limit.No_Limit -> Nothing
             Row_Limit.Limit limit -> limit
@@ -488,6 +490,7 @@ type In_Memory_Table_Implementation
 
     merge (this_table : Table & In_Memory_Table) (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         if lookup_table.is_error then lookup_table
+        _check_table_in_memory lookup_table
         if key_columns == [] then
             Error.throw (Missing_Argument.throw "key_columns")
 
@@ -526,7 +529,8 @@ type In_Memory_Table_Implementation
     replace (this_table : Table & In_Memory_Table) (lookup_table : Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Text | Integer | Regex | By_Type | Vector (Text | Integer | Regex | By_Type) = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         Replace_Helpers.replace this_table lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
-    zip (this_table : Table & In_Memory_Table) (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
+    zip (this_table : Table & In_Memory_Table) (right = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
+        _check_table_in_memory right
         keep_unmatched_bool = case keep_unmatched of
             Report_Unmatched -> True
             b : Boolean -> b
@@ -551,7 +555,9 @@ type In_Memory_Table_Implementation
 
     row_count (this_table : Table & In_Memory_Table) -> Integer = this_table.java_table.rowCount
 
-    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read = ..All_Rows) -> Table = case max_rows of
+    default_max_rows = Rows_To_Read.All_Rows
+
+    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read) -> Table = case max_rows of
         Rows_To_Read.All_Rows -> this_table
         Rows_To_Read.First n -> this_table.take (..First n)
         Rows_To_Read.First_With_Warning n ->
@@ -752,3 +758,7 @@ make_join_helpers left_table right_table =
     make_between _ left right_lower right_upper =
         Java_Join_Between.new (left:In_Memory_Column).java_column (right_lower:In_Memory_Column).java_column (right_upper:In_Memory_Column).java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+
+private _check_table_in_memory t = case t of
+    _ : In_Memory_Table -> Nothing
+    _ -> Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")

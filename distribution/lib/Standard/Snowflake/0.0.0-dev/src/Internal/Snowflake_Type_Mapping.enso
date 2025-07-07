@@ -19,9 +19,13 @@ from Standard.Database.Errors import Unsupported_Database_Type
 polyglot java import java.sql.Types
 polyglot java import org.enso.snowflake.SnowflakeIntegerColumnMaterializer
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Snowflake_Type_Mapping
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems:Problem_Behavior =
         result = case value_type of
@@ -75,7 +79,9 @@ type Snowflake_Type_Mapping
                 [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
         simple_type = simple_types_map.get sql_type.typeid Nothing
@@ -87,7 +93,9 @@ type Snowflake_Type_Mapping
                 Nothing -> on_unknown_type sql_type
                 builder -> builder sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type =
         variable_length_types = [Types.VARCHAR, Types.BINARY]
@@ -99,7 +107,9 @@ type Snowflake_Type_Mapping
             True -> sql_type.name
             False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The Snowflake_Type_Mapping always relies on the return type determined by
        the database backend.
     infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
@@ -107,16 +117,20 @@ type Snowflake_Type_Mapping
         _ = [op_name, arguments]
         infer_from_database_callback expression
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        We want to respect any overriding references, but references that rely on
-       computing the type by the database are resolved to Nothing to just rely
-       on the `ResultSet` metadata and decrease overhead.
+       computing the type by the database are resolved to Nothing to just rely on
+       the `ResultSet` metadata and decrease overhead.
     prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
     prepare_type_overrides column_type_suggestions = case column_type_suggestions of
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .to_type_override
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a `Column_Fetcher` used to fetch data from a result set and build
        an in-memory column from it, based on the given column type.
     make_column_fetcher : SQL_Type -> Column_Fetcher
@@ -130,7 +144,9 @@ type Snowflake_Type_Mapping
             # Other Decimal columns get the default behaviour - fetched as BigInteger or BigDecimal.
             _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
         # Currently only implicit conversion is Integer -> Decimal
         case source_type of
@@ -138,7 +154,9 @@ type Snowflake_Type_Mapping
                  target_type == integer_value_type
             _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
         is_decimal_to_integer = db_type.is_decimal && db_type.scale == 0 && in_memory_type.is_integer
         # We don't warn about the expected conversion of small integer column to Integer in-memory.
@@ -146,24 +164,32 @@ type Snowflake_Type_Mapping
             # For other types, we delegate to the default behavior.
             SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_integer_type (value_type : Value_Type) -> Boolean = case value_type of
         Value_Type.Integer _ -> True
         Value_Type.Decimal _ scale -> scale == 0
         _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         # Types are considered the same by original semantics, or additionally if both of them are an integer-like type as denoted by `is_integer_type`.
         (value_type1.is_same_type value_type2) || (Snowflake_Type_Mapping.is_integer_type value_type1 && Snowflake_Type_Mapping.is_integer_type value_type2)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 simple_types_map = Dictionary.from_vector <|
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64]]
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BOOLEAN, Value_Type.Boolean], [Types.NULL, Value_Type.Null]]
     floats + other
 
-## PRIVATE
+## ---
+   private: true
+   ---
 complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
@@ -196,16 +222,22 @@ complex_types_map = Dictionary.from_vector <|
     others = [[Types.TIMESTAMP, handle_timestamp], [Types.TIMESTAMP_WITH_TIMEZONE, handle_timestamp]]
     numerics + strings + binaries + others
 
-## PRIVATE
+## ---
+   private: true
+   ---
 on_unknown_type sql_type =
     Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This is the maximum size that JDBC driver reports for 'unbounded' types in
    Snowflake.
 max_length = 16777216
 
-## PRIVATE
+## ---
+   private: true
+   ---
 time_fetcher =
     fetch_value rs i =
         ## Read the time as a string to get the nanosecond precision.
@@ -216,7 +248,9 @@ time_fetcher =
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
-## PRIVATE
+## ---
+   private: true
+   ---
 date_time_fetcher =
     fetch_value rs i =
         ## Read the time as a string to get the nanosecond precision.
@@ -232,11 +266,12 @@ date_time_fetcher =
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A fetcher for Snowflake Decimal integer columns.
-   Integer columns in Snowflake are represented as `NUMBER(38, 0)`, meaning
-   there is no separate Integer type.
-
+   Integer columns in Snowflake are represented as `NUMBER(38, 0)`, meaning there
+   is no separate Integer type.
    In Enso, using `Decimal` values incurs a significant overhead. Thus, when
    fetching such an integer column from Snowflake, we try to first fetch it as
    lightweight `Integer` and only fall back to `Decimal` if needed.
@@ -246,12 +281,18 @@ smart_integer_fetcher =
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value Column_Fetcher_Module.fetch_big_integer make_builder
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The actual SQL type that Snowflake uses for all integer types.
 integer_type = SQL_Type.Value Types.DECIMAL "NUMERIC" 38 0
 
-## PRIVATE
+## ---
+   private: true
+   ---
 integer_value_type = Value_Type.Decimal 38 0
 
-## PRIVATE
+## ---
+   private: true
+   ---
 float_value_type = Value_Type.Float Bits.Bits_64
