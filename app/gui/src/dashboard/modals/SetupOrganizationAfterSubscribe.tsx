@@ -5,6 +5,7 @@ import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
+import { Suspense } from '#/components/Suspense'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { Plan } from '#/services/Backend'
 import { ORGANIZATION_NAME_MAX_LENGTH, USER_GROUP_NAME_MAX_LENGTH } from '$/appUtils'
@@ -17,6 +18,15 @@ const PLANS_TO_SPECIFY_ORG_NAME = [Plan.team, Plan.enterprise]
 
 /** A modal to set organization metadata. */
 export function SetupOrganizationAfterSubscribe() {
+  return (
+    <Suspense>
+      <SetupOrganizationAfterSubscribeInternal />
+    </Suspense>
+  )
+}
+
+/** A modal to set organization metadata. */
+function SetupOrganizationAfterSubscribeInternal() {
   const { session } = useAuth()
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()

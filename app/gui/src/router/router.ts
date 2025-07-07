@@ -19,9 +19,9 @@ const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
 function requireCloudBrowserEnabled() {
   const isCloudExecutionEnabled = flagsStore.getState().featureFlags.enableCloudExecution
-  if (!isCloudExecutionEnabled) {
+  if (!isCloudExecutionEnabled) 
     return { name: 'cloudDisabled' }
-  }
+  
 }
 
 const routes = [
