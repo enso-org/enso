@@ -9,6 +9,7 @@ from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
 from Standard.Database import all
+from Standard.Database.DB_Table import DB_Table
 import Standard.Database.Internal.Internals_Access
 from Standard.Database.Errors import Implicit_DB_Table_Read, Integrity_Error
 import Standard.Database.Feature.Feature
@@ -368,24 +369,25 @@ add_core_specs suite_builder setup =
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
-            connection = Internals_Access.get_connection data.t_big
-            connection.query data.t_big.name . row_count . should_equal 1500
+            connection = Internals_Access.get_connection (data.t_big:DB_Table)
+            table_name = (data.t_big:DB_Table).name
+            connection.query table_name . row_count . should_equal 1500
 
-            t1 = connection.read data.t_big.name
+            t1 = connection.read table_name
             t1.row_count . should_equal 1000
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 1000
 
-            t2 = connection.read data.t_big.name (..First_With_Warning 42)
+            t2 = connection.read table_name (..First_With_Warning 42)
             t2.row_count . should_equal 42
             w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
             w2.max_rows . should_equal 42
 
-            t3 = connection.read data.t_big.name (..All_Rows)
+            t3 = connection.read table_name (..All_Rows)
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
-            t4 = connection.read data.t_big.name (..First 1000)
+            t4 = connection.read table_name (..First 1000)
             t4.row_count . should_equal 1000
             Problems.assume_no_problems t4
 

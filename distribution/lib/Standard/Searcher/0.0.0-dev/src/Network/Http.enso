@@ -1,36 +1,37 @@
 ## HTTP is the heart of Enso's networking toolkit, with a huge variety of data
-   available over simple endpoints. 
+   available over simple endpoints.  It provides the tools for you to fetch data
+   from remote services, query API endpoints and so much more. It is flexible and
+   highly configurable, but also provides simple and easy to use defaults.
 
-   It provides the tools for you to fetch data from remote services, query API
-   endpoints and so much more. It is flexible and highly configurable, but also
-   provides simple and easy to use defaults.
-
-   > Example
-     Download a file.
+   ## Examples
+   ### Download a file.
      Note: This example will make a network request.
 
+   ```
          import Standard.Base.Network.HTTP.HTTP
          import Standard.Examples
 
          example_fetch =
              out_file = Examples.scratch_file
              res = HTTP.fetch "http://httpbin.org/bytes/1024" . body . write out_file
+   ```
 
-   > Example
-     Send authenticated Get request (note the use of TLS).
+   ### Send authenticated Get request (note the use of TLS).
      Note: This example will make a network request.
 
+   ```
          import Standard.Base.Network.HTTP.HTTP
          import Standard.Base.Network.HTTP.Header
 
          example_get =
             headers = [Header.authorization_basic "user" "pass"]
             HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers=headers
+   ```
 
-   > Example
-     Send a Post request with binary data.
+   ### Send a Post request with binary data.
      Note: This example will make a network request.
 
+   ```
          import Standard.Base.Network.HTTP.HTTP
          import Standard.Base.Network.HTTP.Header.Header
          import Standard.Base.Network.HTTP.Request_Body.Request_Body
@@ -39,11 +40,12 @@
              body = Request_Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
              HTTP.new.post "http://httpbin.org/post" body headers=[header_binary]
+   ```
 
-   > Example
-     Parse URI text.
+   ### Parse URI text.
 
+   ```
          import Standard.Base.Network.URI.URI
 
          example_parse = URI.parse "http://example.com"
-
+   ```

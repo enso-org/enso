@@ -5,10 +5,10 @@ import { injectVisibility } from '@/providers/visibility'
 import { Ok, Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { encodeMethodPointer, MethodPointer } from '@/util/methodPointer'
-import { type ToValue } from '@/util/reactivity'
+import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding } from 'lib0'
-import { computed, proxyRefs, toValue } from 'vue'
+import { computed, toValue } from 'vue'
 import { GraphStore } from './graph'
 
 export type PersistedStore = ReturnType<typeof usePersisted>

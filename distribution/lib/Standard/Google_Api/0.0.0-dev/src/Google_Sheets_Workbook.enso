@@ -1,18 +1,18 @@
 from Standard.Base import all
-
-from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
-from Standard.Table.Errors import Invalid_Location, Empty_Sheet
-import project.Internal.Telemetry
-import Standard.Table.Internal.Java_Problems
-from Standard.Table.In_Memory_Table import from_java_table
-import Standard.Table.Rows_To_Read.Rows_To_Read
 
+import Standard.Table.Internal.Java_Problems
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Headers
+from Standard.Table.Errors import Invalid_Location, Empty_Sheet
+from Standard.Table.In_Memory_Table import from_java_table
+
+import project.Internal.Telemetry
 
 polyglot java import com.google.api.client.googleapis.json.GoogleJsonResponseException
 polyglot java import org.enso.google.GoogleSheetsForEnso
@@ -22,46 +22,56 @@ polyglot java import org.enso.google.WrappedGoogleCredentials
 type Google_Sheets_Workbook
     Value workbook_id:Text java_service
 
-    ## ICON cloud
+    ## ---
+       icon: cloud
+       ---
        Initializes the Google Sheets instance using the given credentials file.
 
-       Arguments:
-       - credentials: a Cloud secret or a file containing Google Service Account credentials to use to
-         access Google services. The credentials file can be downloaded from the
-         Google Admin Console when generating a key.
+       ## Arguments
+        - `credentials`: a Cloud secret or a file containing Google Service
+          Account credentials to use to access Google services. The credentials
+          file can be downloaded from the Google Admin Console when generating a
+          key.
     new workbook_id:Text credentials:Enso_Secret =
         service = GoogleSheetsForEnso.create (_wrap_credentials credentials)
         Google_Sheets_Workbook.Value workbook_id service
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-       SUGGESTED 2
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       suggested: true
+       ---
        Gets the names of all the sheets.
     sheet_names : Vector Text
     sheet_names self = _handle_exceptions <|
         self.java_service.getSheetNames self.workbook_id
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-       SUGGESTED 3
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       suggested: true
+       ---
        Gets the number of sheets.
     sheet_count : Integer
     sheet_count self = _handle_exceptions <|
         self.java_service.getNumberOfSheets self.workbook_id
 
-    ## ALIAS get, import, load, open, range, sheet, worksheet
-       GROUP Standard.Base.Input
-       ICON data_input
-       SUGGESTED 1
+    ## ---
+       aliases: [get, import, load, open, range, sheet, worksheet]
+       group: Standard.Base.Input
+       icon: data_input
+       suggested: true
+       ---
        Read a range into a Table.
 
-       Arguments:
-       - query: sheet name, range name or address to read from the workbook.
-       - headers: whether to use the first row as headers (default is
-         `Detect_Headers`).
-       - limit: the maximum number of rows to read.
-         If set to `Nothing`, all rows will be returned.
-       - skip_rows: the number of rows to skip before starting to read data. (Headers are taken after skipping).
+       ## Arguments
+        - `query`: sheet name, range name or address to read from the workbook.
+        - `headers`: whether to use the first row as headers (default is
+          `Detect_Headers`).
+        - `limit`: the maximum number of rows to read. If set to `Nothing`, all
+          rows will be returned.
+        - `skip_rows`: the number of rows to skip before starting to read data.
+          (Headers are taken after skipping).
     @query self-> _query_widget self
     read self query:(Text|Integer) headers:Headers=..Detect_Headers limit:Rows_To_Read=..All_Rows skip_rows:Integer=0 on_problems:Problem_Behavior=..Report_Warning -> Table =
         java_headers = _make_java_headers headers
@@ -78,13 +88,17 @@ type Google_Sheets_Workbook
             Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
         result
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Table_Viz_Data.from (that:Google_Sheets_Workbook) = 
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "worksheets" "worksheet" "read"] [that.sheet_names.to_vector]
 
 ## Error occurred when calling the Google Sheets API
 type Google_Api_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error details
 
     to_display_text self =

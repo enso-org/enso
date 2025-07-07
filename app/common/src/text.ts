@@ -112,7 +112,6 @@ interface PlaceholderOverrides {
   readonly logEventBackendError: [eventType: string]
 
   readonly subscribeSuccessSubtitle: [plan: string]
-  readonly assetsDropFilesDescription: [count: number]
 
   readonly paywallAvailabilityLevel: [plan: string]
   readonly paywallScreenDescription: [plan: string]

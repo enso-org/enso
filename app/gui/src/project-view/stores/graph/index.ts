@@ -26,7 +26,7 @@ import { Rect } from '@/util/data/rect'
 import { andThen, Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { type MethodPointer } from '@/util/methodPointer'
-import { useWatchContext } from '@/util/reactivity'
+import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { map, set } from 'lib0'
@@ -34,7 +34,6 @@ import {
   computed,
   markRaw,
   nextTick,
-  proxyRefs,
   reactive,
   ref,
   shallowReactive,

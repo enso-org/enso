@@ -19,9 +19,9 @@ major operating systems.
 
 Visit [GraalVM's IGV page](https://www.graalvm.org/22.1/tools/igv/) to read and
 download _IGV_. Or follow
-[this link](https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/idealgraphvisualizer-1.20-ea624c6066a.zip)
+[this link](https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/idealgraphvisualizer-1.22-6cb0d3acbb1.zip)
 to get ZIP with the most up to date version of _Ideal Graph Visualizer_ (as of
-June 2024). Then:
+June 2025, known to work with GraalVM 24.0.1). Then:
 
 ```bash
 $ unzip idealgraphvisualizer-*.zip
@@ -135,6 +135,12 @@ nodes_ refer to what lines in the our _Enso_ program. Click _Navigate to Source_
 icon in the _Stack View_ to get from graph node to source. Select a drop down
 widget in the editor toolbar to show you what compiler nodes as associated with
 currently selected line.
+
+## Syntax Coloring
+
+To enable syntax coloring you may need to download and install text mate
+module into IGV. Download [its NBM file](https://repo1.maven.org/maven2/org/netbeans/api/org-netbeans-modules-textmate-lexer/RELEASE260/org-netbeans-modules-textmate-lexer-RELEASE260.nbm)
+and install in _Plugins_ dialog.
 
 ## Building
 

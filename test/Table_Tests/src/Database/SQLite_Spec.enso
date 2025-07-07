@@ -8,6 +8,7 @@ import Standard.Base.Runtime.Context
 from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
 
+import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Feature.Feature
 from Standard.Database import all
@@ -226,7 +227,8 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             t = data.connection.query (SQL_Query.Table_Name data.tinfo)
             code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM (SELECT "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."reals" AS "reals" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner" GROUP BY "{Tinfo}_inner"."strs") AS "{Tinfo}"'
             expected_code = code_template.replace "{Tinfo}" data.tinfo
-            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
+            r = t.distinct ["strs"]
+            (r:DB_Table).to_sql . prepare . should_equal [expected_code, []]
 
     suite_builder.group prefix+"math functions" group_builder->
         data = Test_Data.setup create_connection_func

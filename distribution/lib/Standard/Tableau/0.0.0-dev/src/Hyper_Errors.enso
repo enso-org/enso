@@ -1,31 +1,42 @@
 from Standard.Base import all
+
 from Standard.Table.Errors import Unmatched_Columns, Column_Type_Mismatch
 
 polyglot java import org.enso.tableau.HyperQueryError
 polyglot java import org.enso.tableau.HyperTableNotFound
-polyglot java import org.enso.tableau.HyperUnsupportedTypeError
-polyglot java import org.enso.tableau.HyperUnmatchedColumns
 polyglot java import org.enso.tableau.HyperTypeMismatch
+polyglot java import org.enso.tableau.HyperUnmatchedColumns
+polyglot java import org.enso.tableau.HyperUnsupportedTypeError
 
 ## Error when a Table is not found in a Hyper File.
 type Hyper_Table_Not_Found
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error schema:Text name:Text
 
 ## Error when a query fails.
 type Query_Failed
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error message:Text query:Text
 
 type Hyper_Unsupported_Type
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error type_name:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = "Tableau Hyper files do not support columns of type " + self.type_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private handle_java_exceptions ~action =
     Panic.catch HyperTableNotFound handler=(c-> Error.throw (Hyper_Table_Not_Found.Error c.payload.getSchema c.payload.getName)) <|
         Panic.catch HyperQueryError handler=(c-> Error.throw (Query_Failed.Error c.payload.getMessage c.payload.getQuery)) <|
