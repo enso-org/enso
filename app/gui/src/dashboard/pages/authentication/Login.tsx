@@ -24,7 +24,8 @@ import { useState } from 'react'
 /** A form for users to log in. */
 export default function Login() {
   const { router } = useRouter()
-  const { signInWithApple, signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
+  const { signInWithApple, signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } =
+    useSession()
   const { getText } = useText()
 
   const [initialEmail] = useQueryParam('email')
@@ -117,12 +118,7 @@ export default function Login() {
               >
                 {getText('signUpOrLoginWithGitHub')}
               </Button>
-              <Button
-                size="large"
-                variant="outline"
-                icon="apple_color"
-                onPress={handleApplePress}
-              >
+              <Button size="large" variant="outline" icon="apple_color" onPress={handleApplePress}>
                 {getText('signUpOrLoginWithApple')}
               </Button>
 
