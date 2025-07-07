@@ -21,9 +21,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.WeakHashMap;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -68,8 +67,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final CallTarget entryCallTarget;
     private final Callbacks callbacks;
     private final Timer timer;
-    private final Map<Node, ExecutionEnvironment> currentNodeEnvironments;
-
     private final EvalNode evalNode = EvalNode.build();
 
     /**
@@ -83,7 +80,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       this.entryCallTarget = entryCallTarget;
       this.callbacks = callbacks;
       this.timer = timer;
-      this.currentNodeEnvironments = new WeakHashMap<>();
     }
 
     /**
@@ -95,19 +91,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      */
     @Override
     public ExecutionEventNode create(EventContext context) {
-      var node = context.getInstrumentedNode();
-      var prevEnv = getAndRemoveEnvironmentForNode(node);
-      return new IdExecutionEventNode(context, prevEnv);
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    private ExecutionEnvironment getAndRemoveEnvironmentForNode(Node node) {
-      return currentNodeEnvironments.remove(node);
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    private void setEnvironmentForNode(Node node, ExecutionEnvironment env) {
-      currentNodeEnvironments.put(node, env);
+      return new IdExecutionEventNode(context);
     }
 
     /** Implementation of {@link Info} for the instrumented {@link Node}. */
@@ -203,18 +187,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private final EventContext context;
       private long nanoTimeElapsed = 0;
-      private ExecutionEnvironment originalExecutionEnvironment;
 
       /**
        * Creates a new event node for instrumentation.
        *
        * @param context location where the node is being inserted
-       * @param inheritedEnvironment if non-{@code null} then value carries over environment
-       *     information from the previously invalidated event node for the same underlying node
        */
-      IdExecutionEventNode(EventContext context, ExecutionEnvironment inheritedEnvironment) {
+      IdExecutionEventNode(EventContext context) {
         this.context = context;
-        this.originalExecutionEnvironment = inheritedEnvironment;
       }
 
       @Override
@@ -235,7 +215,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           throw context.createUnwind(result);
         }
         setExecutionEnvironment(info);
-
         nanoTimeElapsed = timer.getTime();
       }
 
@@ -277,13 +256,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           callbacks.updateCachedResult(info);
-          resetExecutionEnvironment();
+          resetExecutionEnvironment(info.getId());
 
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
-        } else if (node instanceof ExpressionNode) {
-          resetExecutionEnvironment();
+        } else if (node instanceof ExpressionNode expressionNode) {
+          resetExecutionEnvironment(expressionNode.getId());
         }
       }
 
@@ -347,21 +326,28 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       private void setExecutionEnvironment(IdExecutionService.Info info) {
         ExecutionEnvironment nodeEnvironment =
             (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
-        if (nodeEnvironment != null && originalExecutionEnvironment == null) {
-          EnsoContext context = EnsoContext.get(this);
-          originalExecutionEnvironment = context.getGlobalExecutionEnvironment();
-          context.setExecutionEnvironment(nodeEnvironment);
-          setEnvironmentForNode(this.context.getInstrumentedNode(), originalExecutionEnvironment);
+        if (nodeEnvironment != null) {
+          callbacks.updateLocalExecutionEnvironment(
+              info.getId(),
+              Objects::isNull,
+              (savedEnvironment) -> {
+                EnsoContext context = EnsoContext.get(this);
+                var old = context.getExecutionEnvironment();
+                context.setExecutionEnvironment(nodeEnvironment);
+                return old;
+              });
         }
       }
 
-      private void resetExecutionEnvironment() {
-        if (originalExecutionEnvironment != null) {
-          // Ignore result, no longer need to inherit when creating new wrappers
-          getAndRemoveEnvironmentForNode(this.context.getInstrumentedNode());
-          EnsoContext.get(this).setExecutionEnvironment(originalExecutionEnvironment);
-          originalExecutionEnvironment = null;
-        }
+      private void resetExecutionEnvironment(UUID uuid) {
+        callbacks.updateLocalExecutionEnvironment(
+            uuid,
+            Objects::nonNull,
+            (originalExecutionEnvironment) -> {
+              EnsoContext context = EnsoContext.get(this);
+              context.setExecutionEnvironment((ExecutionEnvironment) originalExecutionEnvironment);
+              return null;
+            });
       }
     }
   }
