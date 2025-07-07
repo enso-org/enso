@@ -698,9 +698,9 @@ add_specs suite_builder =
             means = 42
 
             case Meta.meta means... of
-                fn : Meta.Function ->
-                    fn.is_resolved . should_be_true
-                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+                p : Meta.Primitive ->
+                    p.value . should_equal 42
+                unknown -> Test.fail "Expecting Meta.Primitive, but was: "+unknown.to_text
 
         group_builder.specify "unresolved symbol" <|
             case Meta.meta .nic of
