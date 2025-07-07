@@ -6,7 +6,6 @@ import { computed, toValue } from 'vue'
 const { action: actionName, label } = defineProps<{
   action: DisplayableActionName
   label?: string
-  showToggledOn?: boolean
 }>()
 const action = computed(() => resolveAction(actionName))
 
@@ -26,15 +25,6 @@ const descriptionWithShortcut = computed(() =>
     :title="descriptionWithShortcut"
     :label="label"
     :data-testid="`action:${actionName}`"
-    :class="showToggledOn ? 'showToggledOn' : ''"
     @activate="action.action"
   />
 </template>
-
-<style scoped>
-.showToggledOn {
-  &.toggledOn {
-    background-color: var(--color-menu-entry-selected-bg);
-  }
-}
-</style>

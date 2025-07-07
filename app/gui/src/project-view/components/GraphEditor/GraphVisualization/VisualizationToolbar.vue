@@ -40,7 +40,7 @@ const visualizationSelector = useVisualizationSelector({
   <div class="VisualizationToolbar">
     <template v-if="showControls">
       <div class="toolbarSection">
-        <ActionButton action="component.toggleVisualization" :showToggledOn="true" />
+        <ActionButton action="component.toggleVisualization" />
       </div>
       <div class="toolbarSection">
         <ActionButton action="panel.fullscreen" />
