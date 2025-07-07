@@ -25,7 +25,7 @@ const {
   backgroundColor?: string | undefined
 }>()
 const floatReference = toRef(props, 'floatReference')
-const rootElement = usePopoverRoot()
+const rootElement = usePopoverRoot(true)
 
 const emit = defineEmits<{
   clickedEntry: [T, boolean]
