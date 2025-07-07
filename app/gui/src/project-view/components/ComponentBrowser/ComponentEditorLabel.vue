@@ -24,7 +24,7 @@ const additionalTypes = computed<string[]>(() => {
 })
 
 const label = computed(() => {
-  if (props.typeInfo === null) return props.unknownLabel
+  if (props.typeInfo == null) return props.unknownLabel
   if (props.typeInfo != null && props.typeInfo?.primaryType.path) {
     return qnLastSegment(props.typeInfo.primaryType.path)
   }
