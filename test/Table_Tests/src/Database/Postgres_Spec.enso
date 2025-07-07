@@ -291,7 +291,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t = data.connection.query (SQL_Query.Table_Name data.tinfo)
             code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM (SELECT DISTINCT ON ("{Tinfo}_inner"."strs") "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."doubles" AS "doubles" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner") AS "{Tinfo}"'
             expected_code = code_template.replace "{Tinfo}" data.tinfo
-            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
+            (t.distinct ["strs"] : DB_Table) . to_sql . prepare . should_equal [expected_code, []]
 
     suite_builder.group "[PostgreSQL] Table.aggregate should correctly infer result types, and the resulting values should be of the correct type" group_builder->
         data = Postgres_Aggregate_Data.setup create_connection_fn

@@ -393,7 +393,7 @@ watchEffect(() => {
 })
 
 function toggleRightDockHelpPanel() {
-  rightPanel.tab = 'help'
+  rightPanel.setTab('help')
 }
 
 // === Component Browser ===

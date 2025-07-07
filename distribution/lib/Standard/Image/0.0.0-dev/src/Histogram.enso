@@ -1,27 +1,35 @@
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Histogram
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The histogram of a single image channel.
 
-       Arguments:
-       - channel: The channel in the image for which this is a histogram.
-       - data: The histogram data.
+       ## Arguments
+        - `channel`: The channel in the image for which this is a histogram.
+        - `data`: The histogram data.
     Value channel data
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert histogram data to a JS_Object.
 
-       > Example
-         Convert a histogram to a JavaScript object.
+       ## Examples
+       ### Convert a histogram to a JavaScript object.
 
+       ```
              import Standard.Examples
 
              example_to_js_object =
                  histo = Examples.image.histogram 0
                  histo.to_js_object
+       ```
     to_js_object : JS_Object
     to_js_object self =
         bins = JS_Object.from_pairs [["bins", self.data]]

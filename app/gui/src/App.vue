@@ -101,7 +101,7 @@ if (projectViewOnly) {
   const openedProjects = provideOpenedProjects()
   provideAsyncResources(openedProjects)
   provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId, () => false, true, useText())
+  provideRightPanelData(projectViewOnly.options.projectId, () => false, useText())
   provideFullscreenRoot(fullscreenRoot)
 }
 </script>

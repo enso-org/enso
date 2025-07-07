@@ -1,0 +1,850 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Vector.Builder
+import Standard.Base.Errors.Common.Additional_Warnings
+import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Deprecated.Deprecated
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+
+import Standard.Table.Column_Operation.Column_Operation
+import Standard.Table.Columns_To_Add.Columns_To_Add
+import Standard.Table.Columns_To_Keep.Columns_To_Keep
+import Standard.Table.Expression.Expression
+import Standard.Table.Expression.Expression_Error
+import Standard.Table.Grouping_Method.Grouping_Method
+import Standard.Table.Internal.Add_Row_Number
+import Standard.Table.Internal.Column_Type_Helpers
+import Standard.Table.Internal.Constant_Column.Constant_Column
+import Standard.Table.Internal.Display_Helpers
+import Standard.Table.Internal.Join_Kind_Cross.Join_Kind_Cross
+import Standard.Table.Internal.Match_Columns_Helpers
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Replace_Helpers
+import Standard.Table.Internal.Table_Helpers
+import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
+import Standard.Table.Internal.Table_Helpers.Union_Result_Type
+import Standard.Table.Internal.Table_Ref.Table_Ref
+import Standard.Table.Internal.Value_Type_Helpers
+import Standard.Table.Internal.Widget_Helpers
+import Standard.Table.Prefix_Name.Prefix_Name
+import Standard.Table.Row.Row
+import Standard.Table.Row_Limit.Row_Limit
+import Standard.Table.Rows_To_Read.Rows_To_Read
+import Standard.Table.Value_Type.By_Type
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table.Errors import all
+from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
+
+import project.DB_Column.DB_Column
+from project.DB_Table import DB_Table, MAX_LITERAL_ELEMENT_COUNT, make_literal_table
+import project.Feature.Feature
+import project.Internal.Aggregate_Helper
+import project.Internal.Base_Generator
+import project.Internal.Common.Database_Join_Helper
+import project.Internal.Common.Group_Number_Helpers
+import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.Common.Offset_Helpers
+import project.Internal.Common.Ordering_Helpers
+import project.Internal.Common.Row_Number_Helpers
+import project.Internal.DB_Data_Link_Helpers
+import project.Internal.Helpers
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Telemetry
+import project.Internal.Type_Refinements.DB_Table_Refinements
+
+import project.SQL_Type.SQL_Type
+import project.Take_Drop_Helpers
+from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
+from project.Take_Drop_Helpers import Take_Drop
+
+## This conversion allows us to convert the 'unsafe' raw DB_Table instance
+   (lacking `& Table`, that we get from `Table.underlying`) back to a well-behaved `Table & DB_Table`.
+from project.Internal.Type_Refinements.DB_Table_Conversions import all
+
+polyglot java import java.sql.JDBCType
+polyglot java import java.util.UUID
+
+type DB_Table_Implementation
+    name (this_table : Table & DB_Table) -> Text = this_table.internal_name
+
+    display (this_table : Table & DB_Table) show_rows:Integer=10 format_terminal:Boolean=False =
+        data_fragment_with_warning = this_table.read (..First_With_Warning show_rows)
+        has_more_rows = data_fragment_with_warning.has_warnings warning_type=Not_All_Rows_Downloaded
+        data_fragment_cleared = data_fragment_with_warning.remove_warnings Not_All_Rows_Downloaded
+        # `row_count` means another Database query is performed, so we only do it if we need to.
+        all_rows_count = if has_more_rows then this_table.row_count else data_fragment_cleared.row_count
+        Display_Helpers.display_table table=data_fragment_cleared add_row_index=False max_rows_to_show=show_rows all_rows_count=all_rows_count format_terminal=format_terminal
+
+    print (this_table : Table & DB_Table) show_rows=10 =
+        IO.println (this_table.display show_rows format_terminal=True)
+        IO.println ''
+
+    to_js_object_implementation (this_table : Table & DB_Table) = case this_table.internal_columns.is_empty of
+        True -> JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
+        False -> this_table.to_sql.to_js_object
+
+    at (this_table : Table & DB_Table) (selector : Integer | Text = 0) -> Column ! No_Such_Column | Index_Out_Of_Bounds =
+        case selector of
+            _ : Integer -> this_table.make_column (this_table.internal_columns.at selector)
+            _ -> this_table.get selector (Error.throw (No_Such_Column.Error selector))
+
+    get (this_table : Table & DB_Table) (selector : Integer | Text = 0) ~if_missing:Any=Nothing -> Column | Any =
+        internal_column = case selector of
+            _ : Integer -> this_table.internal_columns.get selector if_missing=Nothing
+            _ : Text -> this_table.internal_columns.find (p -> p.name == selector) if_missing=Nothing
+        if internal_column.is_nothing then if_missing else this_table.make_column internal_column
+
+    get_value (this_table : Table & DB_Table) (selector : Text | Integer = 0) index:Integer=0 ~if_missing:Any=Nothing -> Any =
+        Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "get_value" <|
+            col = this_table.get selector if_missing=Nothing
+            if Nothing == col then if_missing else col.get index if_missing
+
+    get_row (this_table : Table & DB_Table) index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
+        Feature.Sample.if_supported_else_throw this_table.connection.dialect "get_row" <|
+            if index == -1 then this_table.last_row else
+                real_row = (if index < 0 then index + this_table.row_count else index)
+                if real_row < 0 then if_missing else
+                    this_table.rows real_row+1 . get real_row if_missing
+
+    first_value (this_table : Table & DB_Table) -> Any ! Index_Out_Of_Bounds =
+        Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "first_value" <|
+            this_table.at 0 . at 0
+
+    last_value (this_table : Table & DB_Table) -> Any ! Index_Out_Of_Bounds =
+        Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "last_value" <|
+            this_table.last_row . at -1
+
+    first_column (this_table : Table & DB_Table) -> Column ! Index_Out_Of_Bounds =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "first_column" <|
+            this_table.at 0
+
+    last_column (this_table : Table & DB_Table) -> Column ! Index_Out_Of_Bounds =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "last_column" <|
+            this_table.at -1
+
+    column_count (this_table : Table & DB_Table) -> Integer = this_table.internal_columns.length
+
+    select_columns (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) reorder:Boolean=False case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Missing_Input_Columns =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "select_columns" <|
+            new_columns = this_table.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
+            this_table.updated_columns (new_columns.map (Internal_Column.from _))
+
+    select_columns_by_type (this_table : Table & DB_Table) (types:Vector Value_Type) strict:Boolean=False =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "select_columns_by_type" <|
+            new_columns = this_table.columns_helper.select_by_type types strict
+            result = this_table.updated_columns (new_columns.map (Internal_Column.from _))
+            Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
+
+    remove_columns (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Missing_Input_Columns =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "remove_columns" <|
+            new_columns = this_table.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+            this_table.updated_columns (new_columns.map (Internal_Column.from _))
+
+    remove_columns_by_type (this_table : Table & DB_Table) (types:Vector Value_Type) strict:Boolean=False =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "remove_columns_by_type" <|
+            new_columns = this_table.columns_helper.remove_by_type types strict
+            result = this_table.updated_columns (new_columns.map (Internal_Column.from _))
+            Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
+
+    select_blank_columns (this_table : Table & DB_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table & DB_Table =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "select_blank_columns" <|
+            new_columns = this_table.columns_helper.select_blank_columns_helper when treat_nans_as_blank
+            this_table.updated_columns new_columns
+
+    remove_blank_columns (this_table : Table & DB_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table & DB_Table =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "remove_blank_columns" <|
+            new_columns = this_table.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
+            this_table.updated_columns new_columns
+
+    reorder_columns (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) position:Position=..Before_Other_Columns case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "reorder_columns" <|
+            new_columns = this_table.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
+            this_table.updated_columns (new_columns.map (Internal_Column.from _))
+
+    sort_columns (this_table : Table & DB_Table) order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default -> Table & DB_Table =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "sort_columns" <|
+            new_columns = Table_Helpers.sort_columns internal_columns=this_table.internal_columns order text_ordering
+            this_table.updated_columns new_columns
+
+    rename_columns (this_table : Table & DB_Table) (column_map : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector = Missing_Argument.throw "column_map") case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "rename_columns" <|
+            case column_map of
+                _ : Table ->
+                    resolved = Table_Helpers.read_name_mapping_from_table column_map
+                    this_table.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
+                _ ->
+                    new_names = Table_Helpers.rename_columns this_table.column_naming_helper this_table.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+                    Warning.with_suspended new_names names->
+                        this_table.updated_columns (this_table.internal_columns.map c-> c.rename (names.at c.name))
+
+    use_first_row_as_names (this_table : Table & DB_Table) on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        _ = [this_table, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "use_first_row_as_names")
+
+    resolve (this_table : Table & DB_Table) column =
+        Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "resolve" <|
+            case column of
+                _ : Text -> Panic.rethrow (this_table.at column)
+                _ ->
+                    if Helpers.check_integrity this_table column then column else
+                        Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
+
+    filter (this_table : Table & DB_Table) (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
+        Feature.Filter.if_supported_else_throw this_table.connection.dialect "filter" <|
+            case column of
+                _ : Column ->
+                    mask filter_column = case Helpers.check_integrity this_table (filter_column:DB_Column) of
+                        False ->
+                            Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
+                        True ->
+                            new_filters = this_table.context.where_filters + [(filter_column:DB_Column).expression]
+                            new_ctx = this_table.context.set_where_filters new_filters
+                            this_table.updated_context new_ctx
+
+                    filter_condition = Filter_Condition.resolve_auto_scoped filter
+                    case filter_condition of
+                        _ : Filter_Condition ->
+                            resolved = (this_table:Table_Ref).resolve_condition filter_condition
+                            mask (make_filter_column column resolved on_problems)
+                        _ : Function ->
+                            Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
+                _ : Expression -> this_table.filter (this_table.evaluate_expression column on_problems) filter on_problems
+                _ ->
+                    table_at = this_table.at column
+                    this_table.filter table_at filter on_problems
+
+    filter_by_expression (this_table : Table & DB_Table) expression:Text on_problems:Problem_Behavior=..Report_Warning =
+        Feature.Filter.if_supported_else_throw this_table.connection.dialect "filter_by_expression" <|
+            column = this_table.evaluate_expression (Expression.Value expression) on_problems
+            result = this_table.filter column Filter_Condition.Is_True
+            Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
+
+    take (this_table : Table & DB_Table) (range : Index_Sub_Range | Range | Integer = ..First) -> Table & DB_Table =
+        Feature.Sample.if_supported_else_throw this_table.connection.dialect "take" <|
+            Ordering_Helpers.require_ordering this_table "take" <|
+                Take_Drop_Helpers.take_drop_helper Take_Drop.Take this_table range
+
+    drop (this_table : Table & DB_Table) (range : Index_Sub_Range | Range | Integer = ..First) -> Table & DB_Table =
+        Feature.Sample.if_supported_else_throw this_table.connection.dialect "drop" <|
+            Ordering_Helpers.require_ordering this_table "drop" <|
+                Take_Drop_Helpers.take_drop_helper Take_Drop.Drop this_table range
+
+    remove_all_rows (this_table : Table & DB_Table) =
+        Feature.Filter.if_supported_else_throw this_table.connection.dialect "remove_all_rows" <|
+            this_table.filter (Expression.Value "0==1")
+
+    add_row_number (this_table : Table & DB_Table) name:Text="Row" from:Integer=0 step:Integer=1 (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        Feature.Add_Row_Number.if_supported_else_throw this_table.connection.dialect "add_row_number" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            grouping_columns = _resolve_grouping_columns this_table.columns_helper group_by problem_builder
+            ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
+            problem_builder.attach_problems_before on_problems <|
+                order_descriptors = _resolve_order_descriptors this_table ordering "add_row_number"
+                grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
+
+                new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
+
+                type_mapping = this_table.connection.dialect.get_type_mapping
+                infer_from_database_callback expression =
+                    SQL_Type_Reference.new this_table.connection this_table.context expression
+                new_type_ref = type_mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
+
+                new_column = Internal_Column.Value name new_type_ref new_expr
+
+                rebuild_table columns =
+                    this_table.updated_columns (columns.map (Internal_Column.from _))
+                renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
+                updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                updated_table.as_subquery
+
+    add_group_number (this_table : Table & DB_Table) grouping_method:Grouping_Method=..Unique name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        Feature.Add_Group_Number.if_supported_else_throw this_table.connection.dialect "add_group_number" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            case grouping_method of
+                Grouping_Method.Unique group_by ->
+                    if group_by.is_empty then
+                        Error.throw (Illegal_Argument.Error "..Unique requires a non-empty 'group_by'")
+                    grouping_columns = _resolve_grouping_columns this_table.columns_helper group_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
+
+                        new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
+
+                        type_mapping = this_table.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new this_table.connection this_table.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            this_table.updated_columns (columns.map (Internal_Column.from _))
+                        renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
+                Grouping_Method.Equal_Count group_count order_by ->
+                    if group_count < 1 then
+                        Error.throw (Illegal_Argument.Error "group_count must be at least 1")
+                    ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        order_descriptors = _resolve_order_descriptors this_table ordering "add_group_number"
+
+                        new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
+
+                        type_mapping = this_table.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new this_table.connection this_table.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            this_table.updated_columns (columns.map (Internal_Column.from _))
+                        renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
+
+    set (this_table : Table & DB_Table) (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+        problem_builder = Problem_Builder.new
+        unique = this_table.column_naming_helper.create_unique_name_strategy
+        unique.mark_used this_table.column_names
+
+        resolved = case value of
+            _ : Text -> this_table.make_constant_column value
+            _ : Expression -> this_table.evaluate_expression value on_problems
+            _ : Column ->
+                if Helpers.check_integrity this_table value then value else
+                    Error.throw (Integrity_Error.Error "Column "+value.name)
+            _ : Constant_Column -> this_table.make_constant_column value
+            _ : Simple_Expression -> value.evaluate this_table (set_mode==Set_Mode.Update && as=="") on_problems
+            _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "`Vector` for `set`")
+            _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
+            _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
+            _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
+            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
+
+        ## If `as` was specified, use that. Otherwise, if `value` is a
+          `DB_Column`, use its name. In these two cases, do not make it unique.
+          Otherwise, make it unique. If set_mode is Update, however, do not
+          make it unique.
+        new_column_name = if as != "" then as else
+            if value.is_a DB_Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
+        renamed = resolved.rename new_column_name
+        renamed.if_not_error <| this_table.column_naming_helper.check_ambiguity this_table.column_names renamed.name <|
+            index = this_table.internal_columns.index_of (c -> c.name == renamed.name)
+            check_add = case set_mode of
+                Set_Mode.Add_Or_Update -> True
+                Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
+                Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
+            new_table = check_add.if_not_error <|
+                new_col = Internal_Column.from renamed
+                new_cols = if index.is_nothing then this_table.internal_columns + [new_col] else
+                    Vector.new this_table.column_count i-> if i == index then new_col else this_table.internal_columns.at i
+                this_table.updated_columns new_cols
+
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_after on_problems new_table
+
+    evaluate_expression (this_table : Table & DB_Table) expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
+        if expression.is_a Text then this_table.evaluate_expression (Expression.Value expression) on_problems else
+            get_column name = this_table.at name
+            make_constant_column value = case value of
+                _ : Column -> value
+                _ -> this_table.make_constant_column value
+            is_column value = value.is_a Column
+            new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column_Type_Helpers.var_args_functions
+            problems = Warning.get_all new_column . map .value
+            result = new_column.rename (this_table.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
+            on_problems.attach_problems_before problems <|
+                Warning.set result []
+
+    make_table_from_dictionary (this_table : Table & DB_Table) dict key_column_name value_column_name =
+        Feature.Make_Table_From.if_supported_else_throw this_table.connection.dialect "make_table_from_dictionary" <|
+            total_size = dict.size * 2
+
+            if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
+                if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Dictionary is too large ("+dict.size.to_text+" entries): materialize a table into the database instead") else
+                    keys_and_values = dict.to_vector
+                    this_table.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+
+    make_table_from_vectors (this_table : Table & DB_Table) column_vectors column_names =
+        Feature.Make_Table_From.if_supported_else_throw this_table.connection.dialect "make_table_from_vectors" <|
+            literal_table_name = this_table.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
+            make_literal_table this_table.connection column_vectors column_names literal_table_name
+
+    make_constant_column (this_table : Table & DB_Table) value =
+        if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
+            type_mapping = this_table.connection.dialect.get_type_mapping
+            argument_value_type = Value_Type_Helpers.find_argument_type value
+            sql_type = case argument_value_type of
+                Nothing -> SQL_Type.null
+                _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
+            expr = SQL_IR_Expression.Constant value
+            new_type_ref = SQL_Type_Reference.from_constant sql_type
+            base_column = Internal_Column.Value value.pretty new_type_ref expr
+            needs_cast = argument_value_type.is_nothing.not && this_table.connection.dialect.needs_literal_table_cast argument_value_type
+            result_internal_column = if needs_cast.not then base_column else
+                infer_type_from_database new_expression =
+                    SQL_Type_Reference.new this_table.connection this_table.context new_expression
+                this_table.connection.dialect.make_cast base_column sql_type infer_type_from_database
+            this_table.make_column result_internal_column
+
+    make_temp_column_name (this_table : Table & DB_Table) = this_table.column_naming_helper.make_temp_column_name this_table.column_names
+
+    columns (this_table : Table & DB_Table) -> Vector DB_Column =
+        Vector.from_polyglot_array <|
+            Array_Proxy.new this_table.internal_columns.length i->
+                this_table.make_column (this_table.internal_columns.at i)
+
+    column_names (this_table : Table & DB_Table) -> Vector Text = Vector.from_polyglot_array <|
+        Array_Proxy.new this_table.internal_columns.length i->
+            this_table.internal_columns.at i . name
+
+    rows (this_table : Table & DB_Table) (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Vector Row =
+        this_table.read max_rows . rows
+
+    first_row (this_table : Table & DB_Table) -> Row ! Index_Out_Of_Bounds =
+        this_table.read (..First 1) . rows . first
+
+    last_row (this_table : Table & DB_Table) -> Row ! Index_Out_Of_Bounds =
+        if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
+            sql = this_table.to_sql
+            column_types = this_table.internal_columns.map .sql_type_reference
+            table = this_table.connection.read_statement sql column_types last_row_only=True
+            table.rows.first
+
+    sort (this_table : Table & DB_Table) (columns : Vector Sort_Column | Sort_Column = Missing_Argument.throw "columns") text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
+        Feature.Sort.if_supported_else_throw this_table.connection.dialect "sort" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
+            columns_for_ordering = Table_Helpers.prepare_order_by this_table.columns columns problem_builder
+            problem_builder.attach_problems_before on_problems <|
+                new_order_descriptors = columns_for_ordering.map selected_column->
+                    column = selected_column.column
+                    associated_selector = selected_column.associated_selector
+                    effective_text_ordering = if column.value_type.is_text then text_ordering else Nothing
+                    this_table.connection.dialect.prepare_order_descriptor column:Internal_Column associated_selector.direction effective_text_ordering
+                new_ctx = this_table.context.add_orders new_order_descriptors
+                this_table.updated_context new_ctx
+
+    order_by (this_table : Table & DB_Table) (columns = ([(Sort_Column.Name (this_table.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+        result = this_table.sort columns text_ordering error_on_missing_columns on_problems
+        Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "order_by" "Deprecated: use `sort` instead.") result
+
+    distinct (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = this_table.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
+        Feature.Distinct.if_supported_else_throw this_table.connection.dialect "distinct" <|
+            key_columns = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
+                Error.throw No_Input_Columns_Selected
+            key_columns.if_not_error <|
+                problem_builder = Problem_Builder.new
+                new_table = this_table.connection.dialect.prepare_distinct this_table key_columns case_sensitivity problem_builder
+                problem_builder.attach_problems_before on_problems new_table
+
+    duplicates (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = this_table.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
+        _ = [columns, case_sensitivity, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "duplicates")
+
+    join (this_table : Table & DB_Table) (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Join_Condition | Text | Vector (Join_Condition | Text)) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        Feature.Join.if_supported_else_throw this_table.connection.dialect "join" <|
+            _join_or_cross_join this_table (right : Table & DB_Table) join_kind on right_prefix on_problems
+
+    cross_join (this_table : Table & DB_Table) (right : Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        Feature.Cross_Join.if_supported_else_throw this_table.connection.dialect "cross_join" <|
+            row_limit = case right_row_limit of
+                Row_Limit.No_Limit -> Nothing
+                Row_Limit.Limit limit -> limit
+            limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
+                [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
+            on_problems.attach_problems_before limit_problems <|
+                _join_or_cross_join this_table (right : Table & DB_Table) join_kind=Join_Kind_Cross on=[] right_prefix on_problems
+
+    merge (this_table : Table & DB_Table) (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+        Feature.Merge.if_supported_else_throw this_table.connection.dialect "merge" <|
+            if lookup_table.is_error then lookup_table
+            if key_columns == [] then
+                Error.throw (Missing_Argument.throw "key_columns")
+
+            Helpers.ensure_same_connection "table" [this_table, lookup_table] <|
+                Lookup_Query_Helper.build_lookup_query this_table lookup_table:(Table & DB_Table) key_columns add_new_columns allow_unmatched_rows on_problems
+
+    replace (this_table : Table & DB_Table) (lookup_table : Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+        Feature.Replace.if_supported_else_throw this_table.connection.dialect "replace" <|
+            Replace_Helpers.replace this_table lookup_table columns from_column to_column allow_unmatched_rows on_problems
+
+    zip (this_table : Table & DB_Table) (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        _ = [this_table, right, keep_unmatched, right_prefix, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "zip")
+
+    union (this_table : Table & DB_Table) (tables : Table | Vector Table = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        Feature.Union.if_supported_else_throw this_table.connection.dialect "union" <|
+            all_tables = case tables of
+                v : Vector -> [this_table] + (v.map t-> (t : Table & DB_Table))
+                single_table -> [this_table, (single_table : Table & DB_Table)]
+            Helpers.ensure_same_connection "table" all_tables <|
+                ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
+                  we only want to add a cause coming from unification; matching reports problems that would not fit this error.
+                problem_builder_for_matching = Problem_Builder.new
+                problem_builder_for_unification = Problem_Builder.new
+                matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
+                dialect = this_table.connection.dialect
+                type_mapping = dialect.get_type_mapping
+                merged_columns = matched_column_sets.map column_set->
+                    sql_type_from_value_type value_type =
+                        type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
+                            Panic.throw <|
+                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                    case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
+                        Union_Result_Type.Common_Type common_type ->
+                            [column_set, sql_type_from_value_type common_type, common_type]
+                        Union_Result_Type.Fallback_To_Text ->
+                            [column_set, sql_type_from_value_type Value_Type.Char, Value_Type.Char]
+                        Union_Result_Type.No_Types_To_Unify ->
+                            ## If the column is all nulls, we still need to give it some type.
+                              For DB `Mixed` is not available, so a portable type to use is `Char`.
+                            [column_set, SQL_Type.null, Value_Type.Char]
+
+                problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
+                    if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        queries = all_tables.map_with_index i-> t->
+                            columns_to_select = merged_columns.map description->
+                                column_set  = description.at 0
+                                sql_type    = description.at 1
+                                result_type = description.at 2
+                                column_name = column_set.name
+                                ## We assume that the type for this expression will never be queried - it is
+                                  just used internally to build the Union operation and never exposed externally.
+                                infer_return_type _ = SQL_Type_Reference.null
+                                case column_set.column_indices.at i of
+                                    corresponding_column_index : Integer ->
+                                        column = t.at corresponding_column_index
+                                        internal_named_column = Internal_Column.from column . rename column_name
+                                        ## We cast if the result type is different.
+                                          This is a bit on the safe side. In some cases the cast is not needed
+                                          (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
+                                          However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
+                                          This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
+                                        needs_cast = column.value_type != result_type
+                                        if needs_cast.not then internal_named_column else
+                                            dialect.make_cast internal_named_column sql_type infer_return_type
+                                    Nothing ->
+                                        typ = SQL_Type_Reference.from_constant SQL_Type.null
+                                        expr = SQL_IR_Expression.Literal "NULL"
+                                        null_column = Internal_Column.Value column_name typ expr
+                                        if sql_type == SQL_Type.null then null_column else
+                                            dialect.make_cast null_column sql_type infer_return_type
+                            pairs = columns_to_select.map c->
+                                [c.name, c.expression]
+                            SQL_IR_Statement.Select pairs t.context
+
+                        table_name_deduplicator = this_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+                        table_name_deduplicator.mark_used (all_tables.map .name)
+                        union_alias = table_name_deduplicator.make_unique <|
+                            all_tables.map .name . join "_"
+                        new_from = SQL_IR_From_Part.Union queries union_alias
+                        new_ctx = SQL_IR_Source.for_subquery new_from
+                        ## TODO [RW] The result type is currently fetched
+                          independently for each column, instead we should fetch it
+                          for all columns at once.
+                          See #6118.
+                        infer_return_type expression =
+                            SQL_Type_Reference.new this_table.connection new_ctx expression
+                        new_columns = merged_columns.map description->
+                            column_set = description.first
+                            result_type = description.at 2
+                            name = column_set.name
+                            expression = SQL_IR_Expression.Column union_alias name
+                            input_column = Internal_Column.Value name (infer_return_type expression) expression
+                            dialect.adapt_unified_column input_column result_type infer_return_type
+
+                        DB_Table.new union_alias this_table.connection new_columns new_ctx
+
+    aggregate (this_table : Table & DB_Table) (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (columns : Vector Aggregate_Column = []) error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings =
+        Feature.Aggregate.if_supported_else_throw this_table.connection.dialect "aggregate" <|
+            Aggregate_Helper.aggregate this_table group_by columns error_on_missing_columns on_problems
+
+    transpose (this_table : Table & DB_Table) (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
+        ## Avoid unused arguments warning. We cannot rename arguments to `_`,
+           because we need to keep the API consistent with the in-memory table.
+        _ = [this_table, key_columns, attribute_column_name, value_column_name, error_on_missing_columns, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "transpose")
+
+    cross_tab (this_table : Table & DB_Table) (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
+        ## Avoid unused arguments warning. We cannot rename arguments to `_`,
+           because we need to keep the API consistent with the in-memory table.
+        _ = [this_table, group_by, names, values, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "cross_tab")
+
+    parse (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex) | Text | Integer | Regex = this_table.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        selected = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map this_table.make_column
+        selected.fold this_table table-> column_to_parse->
+            column_value_type = column_to_parse.value_type
+            already_parsed = Auto != type && column_value_type.is_same_type type
+            if already_parsed then table else
+                new_column = column_to_parse.parse type format on_problems
+                table.set new_column as=column_to_parse.name set_mode=Set_Mode.Update
+
+    format (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | DB_Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument =
+        _ = [this_table, columns, format, locale, error_on_missing_columns, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "format")
+
+    split_to_columns (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        _ = [this_table, column, delimiter, column_count.columns_to_split, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "split_to_columns")
+
+    split_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> Table & DB_Table =
+        _ = [this_table, column, delimiter]
+        Error.throw (Unsupported_Database_Operation.Error "split_to_rows")
+
+    tokenize_to_columns (this_table : Table & DB_Table) (column : Text | Integer) pattern:Text="." case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        _ = [this_table, column, pattern, case_sensitivity, column_count, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "tokenize_to_columns")
+
+    tokenize_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> Table & DB_Table =
+        _ = [this_table, column, pattern, case_sensitivity, at_least_one_row]
+        Error.throw (Unsupported_Database_Operation.Error "tokenize_to_rows")
+
+    parse_to_columns (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> Table & DB_Table =
+        _ = [this_table, column, pattern, case_sensitivity, parse_values, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "parse_to_columns")
+
+    expand_column (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> Table & DB_Table ! Type_Error =
+            _ = [this_table, column, fields, prefix]
+            Error.throw (Unsupported_Database_Operation.Error "expand_column")
+
+    expand_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> Table & DB_Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+        _ = [this_table, column, at_least_one_row]
+        Error.throw (Unsupported_Database_Operation.Error "expand_to_rows")
+
+    cast (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure = columns.if_not_error <|
+        selected = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map this_table.make_column
+        selected.fold this_table table-> column_to_cast->
+            new_column = column_to_cast.cast value_type on_problems
+            table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
+
+    auto_cast (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = this_table.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        _ = [this_table, columns, shrink_types, error_on_missing_columns, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "auto_cast")
+
+    filter_blank_rows (this_table : Table & DB_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table & DB_Table =
+        Table_Helpers.filter_blank_rows this_table when treat_nans_as_blank
+
+    row_count (this_table : Table & DB_Table) -> Integer = if this_table.internal_columns.is_empty then 0 else
+        expr = SQL_IR_Expression.Operation "COUNT_ROWS" []
+        column_name = "row_count"
+        ## We need to keep some column in the subquery which will determine if
+           the query is performing regular selection or aggregation. To avoid
+           computing too much we do not pass all the columns but only the first
+           one.
+        setup = this_table.context.as_subquery this_table.name [[this_table.internal_columns.first]]
+        new_ctx = SQL_IR_Source.for_subquery setup.subquery
+        query = SQL_IR_Statement.Select [[column_name, expr]] new_ctx
+        sql = this_table.connection.dialect.generate_sql query
+        table = this_table.connection.read_statement sql
+        table.at column_name . at 0
+
+    default_max_rows = Rows_To_Read.First_With_Warning 1000
+
+    read (this_table : Table & DB_Table) (max_rows : Rows_To_Read) -> Table =
+        if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
+            preprocessed = case max_rows of
+                Rows_To_Read.All_Rows -> this_table
+                Rows_To_Read.First n -> this_table.limit n
+                Rows_To_Read.First_With_Warning n -> this_table.limit n+1
+
+            sql = preprocessed.to_sql
+            column_types = preprocessed.internal_columns.map .sql_type_reference
+            materialized_table = this_table.connection.read_statement sql column_types . catch SQL_Error sql_error->
+                Error.throw (this_table.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
+
+            warnings_builder = Builder.new
+            expected_types = this_table.columns.map .value_type
+            actual_types = materialized_table.columns.map .value_type
+            expected_types.zip actual_types expected_type-> actual_type->
+                if expected_type == actual_type then Nothing else
+                    if this_table.connection.dialect.get_type_mapping.should_warn_on_materialize expected_type actual_type then
+                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+
+            result = max_rows.attach_warning materialized_table
+            with_problems = Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+            with_problems.if_not_error <|
+                Telemetry.log "DB_Table.read" "Materialize Table: connection_type={}, output={}, row_count={}, column_count={}" [this_table.connection.to Meta.Type . name, "Table", result.row_count, result.column_count]
+                with_problems
+
+    column_info (this_table : Table & DB_Table) -> Table =
+        cols = this_table.internal_columns
+        count_query =
+            ## Performing a subquery is the most robust way to handle both
+               regular columns and aggregates.
+               Naively wrapping each column in a `COUNT(...)` will not
+               always work as aggregates cannot be nested.
+            setup = this_table.context.as_subquery this_table.name [this_table.internal_columns]
+            new_ctx = SQL_IR_Source.for_subquery setup.subquery
+            new_columns = setup.new_columns.first.map column->
+                [column.name, SQL_IR_Expression.Operation "COUNT" [column.expression]]
+            query = SQL_IR_Statement.Select new_columns new_ctx
+            this_table.connection.dialect.generate_sql query
+        count_table = this_table.connection.read_statement count_query
+        counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
+        type_mapping = this_table.connection.dialect.get_type_mapping
+        types = cols.map col->
+            type_mapping.sql_type_to_value_type col.sql_type_reference.get
+        Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
+
+    ## PRIVATE
+    columns_helper (this_table : Table & DB_Table) =
+        Table_Helpers.Table_Column_Helper.Value this_table.columns this_table.internal_columns this_table.make_column this_table .read
+
+    ## PRIVATE
+    column_naming_helper (this_table : Table & DB_Table) = this_table.connection.base_connection.column_naming_helper
+
+    to_text (this_table : Table & DB_Table) = "(Database Table "+this_table.name.to_text+")"
+
+    write (this_table : Table & DB_Table) (path : Writable_File = Missing_Argument.throw "path") format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> File | Any ! Column_Count_Mismatch | Illegal_Argument | File_Error = path.if_not_error <|
+        row_limit = 100000
+
+        ## Read one extra row to check if the table is too large.
+        materialized = this_table.read (..First row_limit+1)
+        if materialized.row_count <= row_limit then materialized.write path format on_existing_file match_columns on_problems else
+            Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
+
+    fill_nothing (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : DB_Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table & DB_Table =
+        resolved_default = (this_table:Table_Ref).resolve default
+        transformer col = col.fill_nothing resolved_default
+        Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    fill_empty (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : DB_Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table & DB_Table =
+        resolved_default = (this_table:Table_Ref).resolve default
+        transformer col = col.fill_empty resolved_default
+        Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    text_replace (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
+        table_ref = Table_Ref.from this_table
+        resolved_term = table_ref.resolve term
+        resolved_new_text = table_ref.resolve new_text
+        transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
+        Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    text_cleanse (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") (remove : Vector Named_Pattern = []) -> Table & DB_Table =
+        Feature.Text_Cleanse.if_supported_else_throw this_table.connection.dialect "text_cleanse" <|
+            transformer col = col.text_cleanse remove
+            Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    running (this_table : Table & DB_Table) statistic:Statistic=..Count (of : Text | Integer = 0) as:Text='' set_mode:Set_Mode=..Add (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table =
+        _ = [this_table, statistic, of, as, set_mode, group_by, order_by, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "running")
+
+    offset (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+        Feature.Offset.if_supported_else_throw this_table.connection.dialect "offset" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            grouping_columns = _resolve_grouping_columns this_table.columns_helper group_by problem_builder
+            ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
+            resolved_columns = this_table.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
+            problem_builder.attach_problems_before on_problems <| if columns.is_empty then this_table else
+                order_descriptors = _resolve_order_descriptors this_table ordering "offset"
+                grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
+                
+                offset_expr c -> SQL_IR_Expression =
+                    Offset_Helpers.make_offset n (Internal_Column.from c) order_descriptors grouping_expressions fill_with
+                new_column_name c:Column -> Text =
+                    if set_mode==Set_Mode.Add then this_table.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
+                
+                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) (c:DB_Column).sql_type_reference (offset_expr c))
+
+                updated_table = new_columns.fold this_table t-> col->
+                    t.set (this_table.make_column col)
+                (updated_table:DB_Table).as_subquery
+
+    generate_rows (this_table : Table & DB_Table) over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
+        _ = [this_table, over, as, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "generate_rows")
+
+
+## PRIVATE
+private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =
+    grouping_columns = columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
+    grouping_columns.each column->
+        if column.value_type.is_floating_point then
+            problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+    grouping_columns
+
+## PRIVATE
+private _resolve_order_descriptors table ordering operation_name:Text =
+    Ordering_Helpers.require_ordering table operation_name ordering=ordering <|
+        dialect = table.connection.dialect
+        default_ordering = table.default_ordering
+        case ordering.is_empty of
+            False -> ordering.map element->
+                column = element.column
+                associated_selector = element.associated_selector
+                dialect.prepare_order_descriptor column:Internal_Column associated_selector.direction text_ordering=Nothing
+            True -> default_ordering
+
+_join_or_cross_join (this_table : Table & DB_Table) (right : Table & DB_Table) join_kind on right_prefix on_problems =
+    can_proceed = Helpers.ensure_same_connection "table" [this_table, right] <|
+        join_conditions_ok = join_kind != Join_Kind_Cross || on == []
+        if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
+            True
+    can_proceed.if_not_error <|
+        left = this_table
+        table_name_deduplicator = this_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator.mark_used [left.name, right.name]
+        new_table_name = table_name_deduplicator.make_unique <|
+            left.name + "_" + right.name
+
+        needed_indicators = case join_kind of
+            Join_Kind.Left_Exclusive  -> Pair.new False True
+            Join_Kind.Right_Exclusive -> Pair.new True False
+            _ -> Pair.new False False
+        subquery_setups = Database_Join_Helper.prepare_subqueries this_table.connection left right needed_indicators.first needed_indicators.second
+        left_setup = subquery_setups.first
+        right_setup = subquery_setups.second
+
+        problem_builder = Problem_Builder.new
+        join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
+        right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
+
+        column_naming_helper = this_table.connection.base_connection.column_naming_helper
+        result_columns = Database_Join_Helper.select_columns_for_join column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
+
+        ## TODO proper equality of nulls in join conditions, see:
+            https://www.pivotaltracker.com/story/show/184109759
+        on_expressions = join_resolution.conditions
+
+        where_expressions = case join_kind of
+            Join_Kind.Left_Exclusive  ->
+                is_right_missing = SQL_IR_Expression.Operation "IS_NULL" [right_setup.indicator_column.expression]
+                [is_right_missing]
+            Join_Kind.Right_Exclusive ->
+                is_left_missing = SQL_IR_Expression.Operation "IS_NULL" [left_setup.indicator_column.expression]
+                [is_left_missing]
+            _ -> []
+
+        sql_join_kind = case join_kind of
+            Join_Kind.Inner           -> SQL_Join_Kind.Inner
+            Join_Kind.Left_Outer      -> SQL_Join_Kind.Left
+            Join_Kind.Right_Outer     -> SQL_Join_Kind.Right
+            Join_Kind.Full            -> SQL_Join_Kind.Full
+            Join_Kind.Left_Exclusive  -> SQL_Join_Kind.Left
+            Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
+            Join_Kind_Cross           -> SQL_Join_Kind.Cross
+
+        problem_builder.attach_problems_before on_problems <|
+            new_from = SQL_IR_From_Part.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
+            new_ctx = SQL_IR_Source.for_subquery new_from . set_where_filters where_expressions
+            DB_Table.new new_table_name this_table.connection result_columns new_ctx

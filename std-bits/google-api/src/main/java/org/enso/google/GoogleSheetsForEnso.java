@@ -40,6 +40,8 @@ public class GoogleSheetsForEnso {
       String sheetId,
       String range,
       GoogleSheetsHeaders.HeaderBehavior headerBehavior,
+      Integer row_limit,
+      int skip_rows,
       ProblemAggregator problemAggregator)
       throws IOException {
     var rawData =
@@ -56,15 +58,23 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
-    GoogleSheetsHeaders columnNames =
-        new GoogleSheetsHeaders(headerBehavior, rawData, problemAggregator);
+    final int firstRowIndex = Math.max(0, skip_rows);
+    List<Object> firstRow = getDataRow(rawData, firstRowIndex);
+    List<Object> secondRow = getDataRow(rawData, firstRowIndex + 1);
+    GoogleSheetsHeaders headerBuilder =
+        new GoogleSheetsHeaders(headerBehavior, firstRow, secondRow, problemAggregator);
 
     Column[] columns = new Column[rawData.size()];
+    var resolved_row_limit = row_limit == null ? Long.MAX_VALUE : (row_limit < 0 ? 0 : row_limit);
     for (int i = 0; i < rawData.size(); i++) {
       var column = rawData.get(i);
       var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
-      column.stream().skip(columnNames.getRowsUsed()).forEach(builder::append);
-      columns[i] = new Column(columnNames.get(i), builder.seal());
+      column.stream()
+          .skip(firstRowIndex)
+          .skip(headerBuilder.getRowsUsed())
+          .limit(resolved_row_limit)
+          .forEach(builder::append);
+      columns[i] = new Column(headerBuilder.get(i), builder.seal());
     }
     return new Table(columns);
   }
@@ -89,5 +99,12 @@ public class GoogleSheetsForEnso {
         .execute()
         .getSheets()
         .size();
+  }
+
+  private static List<Object> getDataRow(List<List<Object>> rawData, int rowIndex) {
+    if (rawData.stream().anyMatch(col -> col.size() > rowIndex)) {
+      return rawData.stream().map(col -> col.size() > rowIndex ? col.get(rowIndex) : null).toList();
+    }
+    return null;
   }
 }

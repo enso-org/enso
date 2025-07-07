@@ -3,10 +3,12 @@ from Standard.Base import all
 import project.Google_Sheets_Workbook.Google_Sheets_Workbook
 
 type Google_Sheets
-    ## ALIAS load, open
-       GROUP Standard.Base.Web
-       ICON cloud_from
-       SUGGESTED 10
+    ## ---
+       aliases: [load, open]
+       group: Standard.Base.Web
+       icon: cloud_from
+       suggested: true
+       ---
        Reads a Google Sheet into Enso.
     read workbook_id:Text credential:Enso_Secret -> Google_Sheets_Workbook =
         Google_Sheets_Workbook.new workbook_id credential

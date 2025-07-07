@@ -15,6 +15,7 @@ import project.Table.Table
 
 ## GROUP Standard.Base.Conversions
    ICON convert
+   SUGGESTED 1
    Converts this `Vector` into a `Table`.
 
    Arguments:

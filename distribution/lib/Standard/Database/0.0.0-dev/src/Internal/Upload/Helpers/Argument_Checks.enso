@@ -5,6 +5,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
 from Standard.Table import Table
 from Standard.Table.Errors import Column_Type_Mismatch, Inexact_Type_Coercion, Missing_Input_Columns, Unmatched_Columns
 
@@ -12,21 +13,28 @@ import project.DB_Table.DB_Table
 import project.Update_Action.Update_Action
 
 ## PRIVATE
-check_delete_rows_arguments target_table key_values_to_delete key_columns ~continuation =
+check_delete_rows_arguments target_table:Table key_values_to_delete key_columns ~continuation =
     check_target_table_for_update target_table <|
-        if key_columns.is_empty then Error.throw (Illegal_Argument.Error "One or more key columns must be provided to correlate the rows to be deleted.") else
-            key_set = Hashset.from_vector key_columns
-            missing_target_key_columns = key_set . difference (Hashset.from_vector target_table.column_names)
-            if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
-                missing_source_key_columns = key_set . difference (Hashset.from_vector key_values_to_delete.column_names)
-                if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the key values to delete table") else
-                    continuation
+        if key_columns.is_empty then
+            Error.throw (Illegal_Argument.Error "One or more key columns must be provided to correlate the rows to be deleted.")
+
+        key_set = Hashset.from_vector key_columns
+        missing_target_key_columns = key_set . difference (Hashset.from_vector target_table.column_names)
+        if missing_target_key_columns.not_empty then
+            Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table")
+
+        missing_source_key_columns = key_set . difference (Hashset.from_vector key_values_to_delete.column_names)
+        if missing_source_key_columns.not_empty then
+            Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the key values to delete table")
+
+        continuation
 
 ## PRIVATE
 check_target_table_for_update target_table ~action = case target_table of
-    _ : Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
-    _ : DB_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
+    _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
+    db_table : DB_Table -> if db_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
         action
+    _ -> Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.Multi_Type.get target_table . to_text)
 
 ## PRIVATE
    Ensures that provided primary key columns are present in the table and that
@@ -50,7 +58,7 @@ resolve_primary_key structure primary_key = case primary_key of
    - all columns in `source_table` have a corresponding column in `target_table`
      (with the same name),
    - all `key_columns` are present in both source and target tables.
-check_update_arguments_structure_match source_table target_table key_columns update_action error_on_missing_columns on_problems:Problem_Behavior ~action =
+check_update_arguments_structure_match source_table:Table (target_table : Table & DB_Table) key_columns update_action error_on_missing_columns on_problems:Problem_Behavior ~action =
     check_source_column source_column =
         # The column must exist because it was verified earlier.
         target_column = target_table.get source_column.name
@@ -64,16 +72,26 @@ check_update_arguments_structure_match source_table target_table key_columns upd
     source_columns = Hashset.from_vector source_table.column_names
     target_columns = Hashset.from_vector target_table.column_names
     extra_columns = source_columns.difference target_columns
-    if extra_columns.not_empty then Error.throw (Unmatched_Columns.Error extra_columns.to_vector) else
-        missing_columns = target_columns.difference source_columns
-        if missing_columns.not_empty && error_on_missing_columns then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector "the source table") else
-            key_set = Hashset.from_vector key_columns
-            missing_source_key_columns = key_set.difference source_columns
-            missing_target_key_columns = key_set.difference target_columns
-            if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the source table") else
-                if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
-                    if (update_action != Update_Action.Insert) && key_columns.is_empty then Error.throw (Illegal_Argument.Error "For the `update_action = "+update_action.to_text+"`, the `key_columns` must be specified to define how to match the records.") else
-                        # Verify type matching
-                        problems = source_table.columns.flat_map on_problems=No_Wrap.Value check_source_column
-                        problems.if_not_error <|
-                            on_problems.attach_problems_before problems action
+    if extra_columns.not_empty then
+        Error.throw (Unmatched_Columns.Error extra_columns.to_vector)
+
+    missing_columns = target_columns.difference source_columns
+    if missing_columns.not_empty && error_on_missing_columns then
+        Error.throw (Missing_Input_Columns.Error missing_columns.to_vector "the source table")
+
+    key_set = Hashset.from_vector key_columns
+    missing_source_key_columns = key_set.difference source_columns
+    missing_target_key_columns = key_set.difference target_columns
+    if missing_source_key_columns.not_empty then
+        Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the source table")
+
+    if missing_target_key_columns.not_empty then
+        Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table")
+
+    if (update_action != Update_Action.Insert) && key_columns.is_empty then
+        Error.throw (Illegal_Argument.Error "For the `update_action = "+update_action.to_text+"`, the `key_columns` must be specified to define how to match the records.")
+
+    # Verify type matching
+    problems = source_table.columns.flat_map on_problems=No_Wrap.Value check_source_column
+    problems.if_not_error <|
+        on_problems.attach_problems_before problems action

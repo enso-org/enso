@@ -75,7 +75,7 @@ export function unsafeValues<const T extends object>(object: T): T[keyof T][] {
  */
 export function unsafeEntries<T extends object>(
   object: T,
-): readonly { [K in keyof T]: [K, T[K]] }[keyof T][] {
+): readonly NonNullable<{ [K in keyof T]: [K, T[K]] }[keyof T]>[] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
 }
@@ -112,7 +112,7 @@ export function unsafeRemoveUndefined<T extends object>(
  * extra keys.
  */
 export function mapEntries<K extends PropertyKey, V, W>(
-  object: Record<K, V>,
+  object: Readonly<Record<K, V>>,
   map: (key: K, value: V) => W,
 ): Record<K, W> {
   // @ts-expect-error It is known that the set of keys is the same for the input and the output,

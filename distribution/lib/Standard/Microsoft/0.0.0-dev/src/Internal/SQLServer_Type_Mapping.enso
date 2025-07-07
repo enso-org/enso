@@ -18,9 +18,13 @@ from Standard.Database.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQLServer_Type_Mapping
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems =
         result = case value_type of
@@ -71,7 +75,9 @@ type SQLServer_Type_Mapping
         problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
         case sql_type.typeid of
@@ -107,11 +113,15 @@ type SQLServer_Type_Mapping
                 "datetimeoffset" -> Value_Type.Date_Time with_timezone=True
                 _ -> on_unknown_type sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The SQLServer_Type_Mapping always relies on the return type determined by
        the database backend except for boolean types.
     infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
@@ -123,16 +133,20 @@ type SQLServer_Type_Mapping
                 sql_type = handler arguments
                 SQL_Type_Reference.from_constant sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        We want to respect any overriding references, but references that rely on
-       computing the type by the database are resolved to Nothing to just rely
-       on the `ResultSet` metadata and decrease overhead.
+       computing the type by the database are resolved to Nothing to just rely on
+       the `ResultSet` metadata and decrease overhead.
     prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
     prepare_type_overrides column_type_suggestions = case column_type_suggestions of
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .to_type_override
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a `Column_Fetcher` used to fetch data from a result set and build
        an in-memory column from it, based on the given column type.
     make_column_fetcher : SQL_Type -> Column_Fetcher
@@ -140,33 +154,47 @@ type SQLServer_Type_Mapping
         value_type = self.sql_type_to_value_type sql_type
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
         # Currently, we do not have any implicit conversions.
         _ = [source_type, target_type]
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
         SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
 
-## PRIVATE
+## ---
+   private: true
+   ---
 on_unknown_type sql_type =
     Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Maps operation names to functions that infer its result type.
 operations_dict : Dictionary Text (Vector -> SQL_Type)
 operations_dict = Dictionary.from_vector [["IS_NULL", const (SQL_Type.Value Types.BIT "BIT")],["==", const (SQL_Type.Value Types.BIT "BIT")],["NOT", const (SQL_Type.Value Types.BIT "BIT")],["BETWEEN", const (SQL_Type.Value Types.BIT "BIT")]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This is the maximum size that JDBC driver reports for 'unbounded' types in
    SQLServer.
 max_length = 1073741823

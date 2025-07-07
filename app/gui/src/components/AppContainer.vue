@@ -26,7 +26,6 @@ const props = defineProps<{
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
   isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
-  enableScheduledExecution: boolean
 }>()
 
 // NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
@@ -36,7 +35,7 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 const openedProjectsStore = provideOpenedProjects()
 provideAsyncResources(openedProjectsStore)
 const { tab, openedProjects } = toRefs(provideContainerData(toRef(props, 'launchedProjects')))
-provideRightPanelData(tab, props.isFeatureUnderPaywall, toRef(props, 'enableScheduledExecution'))
+provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
 const readyProjects = reactive(new Set<ProjectId>())

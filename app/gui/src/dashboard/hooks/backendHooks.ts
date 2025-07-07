@@ -39,7 +39,7 @@ import {
 } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
-import { useFullUserSession } from '$/providers/react'
+import { useBackends, useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { z } from 'zod'
 
@@ -336,6 +336,32 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
   })
 }
 
+/** Whether the user can run projects. */
+export function useCanRunProjects() {
+  const { user } = useFullUserSession()
+  const { localBackend } = useBackends()
+  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
+
+  return {
+    // All projects can be run locally.
+    // Local projects: Open normally
+    // Cloud projects: Open in Hybrid
+    locally: {
+      [BackendType.local]: localBackend != null,
+      [BackendType.remote]: localBackend != null,
+    },
+    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
+    // Local projects: Open normally
+    // Cloud projects: Open in Cloud VM
+    natively: {
+      [BackendType.local]: localBackend != null,
+      [BackendType.remote]:
+        enableCloudExecution &&
+        (user.plan === backendModule.Plan.team || user.plan === backendModule.Plan.enterprise),
+    },
+  }
+}
+
 /** The type of directory listings in the React Query cache. */
 type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
 
@@ -449,6 +475,7 @@ export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const openProjectLocally = useOpenProjectLocally()
   const openProjectNatively = useOpenProjectNatively()
+  const canRunProjects = useCanRunProjects()
   const deleteAsset = useDeleteAsset(backend, category)
 
   const createProjectMutation = useMutationCallback(
@@ -502,10 +529,14 @@ export function useNewProject(backend: Backend, category: Category) {
             ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
           } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
-            // Open in background.
-            void openProjectLocally(openProjectParams, backend.type)
+            if (canRunProjects.locally[backend.type]) {
+              // Open in background.
+              void openProjectLocally(openProjectParams, backend.type)
+            }
           } else {
-            void openProjectNatively(openProjectParams, backend.type)
+            if (canRunProjects.natively[backend.type]) {
+              void openProjectNatively(openProjectParams, backend.type)
+            }
           }
 
           return createdProject

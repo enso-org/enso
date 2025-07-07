@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import all
 from Standard.Test import all
+import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
 import Standard.Visualization.Table.Visualization
 
 ## These tests pair with the Playwright tests found at app/gui/integration-test/project-view/tableVisualisation.spec.ts
@@ -35,16 +36,20 @@ add_specs suite_builder =
         data = TestData.setup
 
         group_builder.specify "single column of datetimes" <|
-            vis = Visualization.prepare_visualization (Table.new [["Value", [Date_Time.new 2025 1 2 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET'), Date_Time.new 2025 1 1 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET'), Date_Time.new 2025 1 3 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET')]]])
+            vis = _get_vis_data (Table.new [["Value", [Date_Time.new 2025 1 2 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET'), Date_Time.new 2025 1 1 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET'), Date_Time.new 2025 1 3 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET')]]])
             data.check_equal vis 'singleColumnDatetimes'
         
         group_builder.specify "single column of dates" <|
-            vis = Visualization.prepare_visualization (Table.new [["Value", [Date.new 2025 1 2, Date.new 2025 1 1, Date.new 2025 1 3]]])
+            vis = _get_vis_data (Table.new [["Value", [Date.new 2025 1 2, Date.new 2025 1 1, Date.new 2025 1 3]]])
             data.check_equal vis 'singleColumnDates'
         
         group_builder.specify "single column of times" <|
-            vis = Visualization.prepare_visualization (Table.new [["Value", [Time_Of_Day.new 12 14 14 123 4 5, Time_Of_Day.new 12 13 14 123 4 5, Time_Of_Day.new 12 15 14 123 4 5]]])
+            vis = _get_vis_data (Table.new [["Value", [Time_Of_Day.new 12 14 14 123 4 5, Time_Of_Day.new 12 13 14 123 4 5, Time_Of_Day.new 12 15 14 123 4 5]]])
             data.check_equal vis 'singleColumnTimes'
+
+_get_vis_data table =
+    table.columns.each c-> (c:Visualization_Helpers).await_metrics
+    Visualization.prepare_visualization table
 
 main filter=Nothing =
     suite = Test.build suite_builder->

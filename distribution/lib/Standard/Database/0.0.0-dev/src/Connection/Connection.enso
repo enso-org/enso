@@ -210,7 +210,7 @@ type Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : SQL_Query -> Text -> DB_Table ! Table_Not_Found | SQL_Error
+    query : SQL_Query -> Text -> Table & DB_Table ! Table_Not_Found | SQL_Error
     query self query:SQL_Query alias="" = case query of
         SQL_Query.Table_Name name ->
             table_naming_helper = self.base_connection.table_naming_helper
@@ -294,8 +294,8 @@ type Connection
          (like missing columns) and if successful, return a temporary table with
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
-    create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
+    create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
 
     ## PRIVATE
@@ -477,7 +477,7 @@ type Connection
 
        Once all references to the table with this name are destroyed, the table
        will be marked for removal and dropped at the next maintenance.
-    internal_allocate_dry_run_table : Text -> DB_Table
+    internal_allocate_dry_run_table : Text -> Table & DB_Table
     internal_allocate_dry_run_table self table_name =
         ref = self.hidden_table_registry.make_reference table_name
         _make_table_for_name self table_name table_name ref
@@ -494,7 +494,7 @@ type Connection
        the Database interprets the provided values and may not reflect the types
        of the source table. If you need more sophisticated type mapping
        mechanism, use `create_table` instead.
-    create_literal_table self (source : Table) (alias : Text) -> DB_Table =
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table =
         DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
     ## ICON data_output
@@ -540,7 +540,7 @@ make_structure_creator =
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
 
 ## PRIVATE
-private make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
+private make_table_from_query connection query:Text|SQL_Statement alias:Text -> Table & DB_Table =
     expect_interpolations = case query of
         # If the statement is given as a Text, then it should not contain `?` holes.
         _ : Text -> False

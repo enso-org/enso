@@ -29,7 +29,8 @@ import {
 import { partitionPoint } from '@/util/data/array'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
-import { computed, proxyRefs } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps(widgetProps(widgetDefinition))

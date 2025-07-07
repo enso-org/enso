@@ -1,5 +1,5 @@
 import { defaultEquality } from '@/util/equals'
-import { type DeepReadonly, onScopeDispose, readonly, type Ref, shallowRef } from 'vue'
+import { onScopeDispose, readonly, shallowRef, type DeepReadonly, type Ref } from 'vue'
 import type { StoreApi } from 'zustand'
 
 /**

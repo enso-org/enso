@@ -9,11 +9,12 @@ import * as cognito from '$/authentication/cognito'
 import { AuthEvent, ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
 import { Err } from '@/util/data/result'
+import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import { computed, onScopeDispose, proxyRefs, ref, toRaw, watchEffect } from 'vue'
+import { computed, onScopeDispose, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
 
@@ -58,13 +59,16 @@ export function createSessionStore(
       if (data) {
         httpClient.setSessionToken(data.accessToken)
       }
-      return queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     },
     onError: (error) => {
       // Something went wrong with the refresh token, so we need to sign the user out.
       errorToast.reportError(Err(error).error, getText('sessionExpiredError'))
       queryClient.setQueryData(sessionQueryOptions.queryKey, null)
       return logoutMutation.mutate()
+    },
+    meta: {
+      invalidates: [sessionQueryOptions.queryKey],
+      awaitInvalidates: true,
     },
   })
 

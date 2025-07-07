@@ -11,6 +11,7 @@
     "integration-test/**/*",
     "src/dashboard/hooks/storeHooks.ts",
     "src/dashboard/modules/payments/constants.ts",
+    "src/dashboard/services/RemoteBackend.ts",
     "src/dashboard/utilities/equalities.ts",
     "src/dashboard/utilities/permissions.ts",
     "src/dashboard/utilities/write.ts",

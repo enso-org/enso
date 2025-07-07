@@ -7,9 +7,11 @@ import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import { useBackends, useFullUserSession, useSession, useText } from '$/providers/react'
+import { SUBSCRIBE_PATH } from '$/appUtils'
+import { useBackends, useFullUserSession, useRouter, useSession, useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 /** Props for a {@link UserMenu}. */
@@ -24,6 +26,7 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
 
+  const { router } = useRouter()
   const { localBackend } = useBackends()
   const { signOut } = useSession()
   const { user } = useFullUserSession()
@@ -60,6 +63,16 @@ export default function UserMenu(props: UserMenuProps) {
           action="ensoDevtools"
           doAction={() => {
             toggleEnsoDevtools()
+          }}
+        />
+      )}
+
+      {(user.plan === Plan.free || user.plan === Plan.solo) && (
+        <MenuEntry
+          action="upgradePlan"
+          doAction={() => {
+            onSignOut()
+            void router.push(SUBSCRIBE_PATH)
           }}
         />
       )}

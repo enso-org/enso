@@ -18,12 +18,12 @@ import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/n
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
 import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import {
   computed,
   markRaw,
   onScopeDispose,
-  proxyRefs,
   ref,
   shallowRef,
   watch,
