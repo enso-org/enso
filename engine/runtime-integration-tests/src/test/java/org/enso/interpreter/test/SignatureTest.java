@@ -1503,7 +1503,7 @@ public class SignatureTest {
     ctxRule.resetOut();
     var res = ctxRule.evalModule(code);
     assertEquals(res.getMetaObject().getMetaSimpleName(), "A");
-    assertEquals("One call", "extension_method called\n", ctxRule.getOut());
+    assertEquals("One call", "extension_method called", ctxRule.getOut().trim());
   }
 
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
