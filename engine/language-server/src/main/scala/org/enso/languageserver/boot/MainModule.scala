@@ -7,6 +7,7 @@ import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
 }
+import org.enso.logger.Converter
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
@@ -329,7 +330,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
-    .logLevel(logLevel)
+    .logLevel(Converter.toJavaLevel(logLevel))
     .strictErrors(false)
     .enableIrCaches(true)
     .out(stdOut)

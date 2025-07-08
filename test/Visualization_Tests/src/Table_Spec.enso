@@ -30,8 +30,10 @@ type Data
         t3_with_nulls = Table.new [["A", [1, Nothing, 3]], ["B", [4, Nothing, Nothing]], ["C", [7, Nothing, Nothing]]]
         t4_with_space = Table.new [["A", ['hello', '   leading space', 'trailing space    ']], ["B", ['a', 'b', 'c']], ["C", [7, 8, 9]]]
         t5_with_non_trivial_ws = Table.new [["A", ['hello', 'extra \r space', 'world']], ["B", ['a', 'b', 'c']], ["C", [7, 8, 9]]]
-        [t, t2, t3_with_nulls, t4_with_space, t5_with_non_trivial_ws]
 
+        result = [t, t2, t3_with_nulls, t4_with_space, t5_with_non_trivial_ws]
+        result.map .column_info
+        result
 
 type Foo
     Value x
@@ -192,6 +194,8 @@ add_specs suite_builder =
         
         group_builder.specify "should set required numeric formatting to true if one or more entry is greater than/ less than +/999999" <|
             num_table = Table.new [["A", [1, 2, 3]], ["B", [12345678, 5,6]], ["C", [-12345678, -5,6]]]
+            ## Read the column_info as that will force materialization of the metrics
+            num_table.column_info
             vis = Visualization.prepare_visualization num_table 1000
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
             json = make_json header=["A", "B", "C"] data=[[1, 2, 3], [12345678, 5,6], [-12345678, -5,6]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True is_ssrm=False get_child_node="get_row" range=["1 - 3","5 - 12345678","-12345678 - 6"] number_of_distinct=[3,3,3] number_of_nothing=[0,0,0] requires_number_format=[False, True, True] is_using_multi_filter=[True, True, True] use_bottom_status_bar=True enable_create_node=True

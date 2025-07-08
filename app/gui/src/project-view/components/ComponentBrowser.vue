@@ -14,7 +14,7 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { Action, registerHandlers } from '@/providers/action'
+import { Action, registerHandlers, toggledAction } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -341,9 +341,9 @@ const actions = registerHandlers({
     enabled: insideComponentBrowsing,
     action: input.switchToCodeEditMode,
   },
-  'visualization.show': {
+  'component.toggleVisualization': {
+    ...toggledAction(isVisualizationVisible),
     available: () => input.mode.mode === 'codeEditing' && !isVisualizationVisible.value,
-    action: () => (isVisualizationVisible.value = true),
   },
   'componentBrowser.acceptInput': {
     action: acceptInput,
@@ -420,7 +420,7 @@ const listsHandler = listBindings.handler({
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     />
     <div class="show-visualization">
-      <ActionButton action="visualization.show" />
+      <ActionButton action="component.toggleVisualization" />
     </div>
     <ComponentList
       v-if="input.mode.mode === 'componentBrowsing'"
@@ -439,7 +439,6 @@ const listsHandler = listBindings.handler({
   --background-color: #fff;
   --doc-panel-bottom-clip: 4px;
   width: min-content;
-  color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
   display: flex;
   flex-direction: column;

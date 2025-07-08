@@ -13,6 +13,9 @@ import org.enso.pkg.QualifiedName;
  *   <li>An eigentype of an atom type - this will hold the type's static methods
  *   <li>An associated type of a module
  * </ul>
+ *
+ * The constructors of each type are not stored in `TypeScopeReference` but in the sibling
+ * `AtomTypeDefinition`.
  */
 public final class TypeScopeReference {
   private final QualifiedName name;

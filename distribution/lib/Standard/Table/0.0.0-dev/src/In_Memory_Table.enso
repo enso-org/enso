@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Column.Column
@@ -16,11 +17,11 @@ import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.In_Memory_Table_Implementation.In_Memory_Table_Implementation
 from project.Internal.Table_Type_Helpers import table_from_implementation
 
+polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.table.Table as Java_Table
 
 # A table whose data is stored in memory.
 type In_Memory_Table
-
     ## PRIVATE
        Internal constructor that should not be used directly.
        Please use `from_java_table` if needed.
@@ -78,6 +79,9 @@ type In_Memory_Table
 ## PRIVATE
    Helper method for internal use to make a Table from a Java Table.
 from_java_table java_table -> Table & In_Memory_Table =
+    ## Trigger data quality metrics computation (conditionally on Output context).
+    if Context.Output.is_enabled.not then DataQualityMetrics.triggerTable java_table
+
     Table_Refinements.refine_table <|
         In_Memory_Table.Value java_table
 

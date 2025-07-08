@@ -18,10 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.jdk.javaapi.CollectionConverters;
 
-/**
- * A helper class for resolving expressions in type position into a {@link TypeRepresentation}, and
- * building complex types from parts - e.g. function type.
- */
+/** A helper class for resolving expressions in type position into a {@link TypeRepresentation}. */
 public class TypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(TypeResolver.class);
 

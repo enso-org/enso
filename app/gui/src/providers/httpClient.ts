@@ -17,6 +17,11 @@ function createHttpClient() {
   return new HttpClient({
     'x-enso-ide-version': $config.VERSION ?? '',
     'x-enso-session-id': sessionID,
+    /**
+     * For compatibility with backend versioned endpoints. The new project logs endpoint
+     * checks for date strings that are at least `2025-01-16`.
+     */
+    'x-enso-version': '2025-01-16',
   })
 }
 

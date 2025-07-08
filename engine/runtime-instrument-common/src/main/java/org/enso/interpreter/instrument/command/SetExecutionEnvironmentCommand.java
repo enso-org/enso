@@ -42,7 +42,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     ctx.locking()
-        .withContextLock(
+        .withWriteContextLock(
             ctx.locking().getOrCreateContextLock(contextId),
             this.getClass(),
             () -> {

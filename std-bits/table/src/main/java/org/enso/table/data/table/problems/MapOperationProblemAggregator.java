@@ -21,15 +21,15 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     this.location = location;
   }
 
-  public void reportFloatingPointEquality(int row) {
+  public void reportFloatingPointEquality(long row) {
     reportColumnAggregatedProblem(new FloatingPointGrouping(location, row));
   }
 
-  public void reportArithmeticError(String message, Integer row) {
+  public void reportArithmeticError(String message, long row) {
     reportColumnAggregatedProblem(new ArithmeticError(location, message, row));
   }
 
-  public void reportIllegalArgumentError(String message, Integer row) {
+  public void reportIllegalArgumentError(String message, long row) {
     reportColumnAggregatedProblem(new IllegalArgumentError(location, message, row));
   }
 
@@ -41,15 +41,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     }
   }
 
-  public void reportOverflow(StorageType<?> targetType, String op) {
-    overflowCount++;
-    if (overflowTargetType == null) {
-      overflowTargetType = targetType;
-      overflowExample = new Object[] {op};
-    }
-  }
-
-  public void reportDivisionByZero(Integer row) {
+  public void reportDivisionByZero(long row) {
     reportArithmeticError("Division by zero", row);
   }
 

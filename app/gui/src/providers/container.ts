@@ -1,8 +1,8 @@
 import { LaunchedProject } from '#/providers/ProjectsProvider'
 import { ProjectId } from '#/services/Backend'
 import { createContextStore } from '@/providers'
-import { type ToValue } from '@/util/reactivity'
-import { computed, proxyRefs, toRef } from 'vue'
+import { proxyRefs, type ToValue } from '@/util/reactivity'
+import { computed, toRef } from 'vue'
 import { LocationQueryValue, useRoute, useRouter } from 'vue-router'
 
 export type TabId = 'drive' | 'settings' | ProjectId

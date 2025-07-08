@@ -1,8 +1,8 @@
 import * as text from 'enso-common/src/text'
 
-import { MaybeRefOrGetterArray } from '@/util/reactivity'
+import { MaybeRefOrGetterArray, proxyRefs } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
-import { computed, proxyRefs, ref, toValue } from 'vue'
+import { computed, ref, toValue } from 'vue'
 
 export type TextStore = ReturnType<typeof createTextStore>
 /**

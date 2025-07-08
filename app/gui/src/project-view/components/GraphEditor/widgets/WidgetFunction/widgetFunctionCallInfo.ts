@@ -43,6 +43,7 @@ export function useWidgetFunctionCallInfo(
   },
   project: {
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
+    moduleProjectPath: Result<ProjectPath> | undefined
   },
   projectNames: ProjectNameStore,
 ) {
@@ -111,11 +112,17 @@ export function useWidgetFunctionCallInfo(
       Ast.TextLiteral.new(JSON.stringify(args)).code(),
     ]
 
+    let modulePath: ProjectPath = WIDGETS_ENSO_PATH
+    if (project.moduleProjectPath?.ok) {
+      modulePath = project.moduleProjectPath.value
+    }
+    const moduleFqn = projectNames.serializeProjectPathForBackend(modulePath)
+
     const expressionId = widgetQuerySubjectExpressionId.value
     if (expressionId != null) {
       return {
         expressionId,
-        visualizationModule: WIDGETS_ENSO_MODULE,
+        visualizationModule: moduleFqn,
         expression: {
           module: WIDGETS_ENSO_PATH,
           definedOnType: WIDGETS_ENSO_PATH,
@@ -128,7 +135,7 @@ export function useWidgetFunctionCallInfo(
       // we assume that this is a static function call and create the subject by using resolved type name.
       return {
         expressionId: toValue(input).value.externalId,
-        visualizationModule: WIDGETS_ENSO_MODULE,
+        visualizationModule: moduleFqn,
         expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${projectNames.printProjectPath(info.suggestion.memberOf)}`,
         positionalArgumentsExpressions,
       }

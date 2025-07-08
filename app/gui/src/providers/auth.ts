@@ -3,77 +3,55 @@ import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
-import {
-  featureFlagsForInternalTesting,
-  setFeatureFlags,
-  useFeatureFlag,
-} from '$/providers/featureFlags'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { useZustandStoreRef } from '$/utils/zustand'
 import { Opt } from '@/util/data/opt'
-import { ToValue } from '@/util/reactivity'
+import { proxyRefs, ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
-import { computed, inject, proxyRefs, toRef, toValue, watchEffect } from 'vue'
+import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useBackends } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
 
-/** Possible types of {@link BaseUserSession}. */
-export enum UserSessionType {
-  partial = 'partial',
-  full = 'full',
-}
-
-/** Properties common to all {@link UserSession}s. */
-interface BaseUserSession extends cognitoModule.UserSession {
-  /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
-  readonly type: UserSessionType
-}
-
-/**
- * Object containing the currently signed-in user's session data, if the user has not yet set their
- * username.
- *
- * If a user has not yet set their username, they do not yet have an organization associated with
- * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
- * used by the `SetUsername` component.
- */
-export interface PartialUserSession extends BaseUserSession {
-  readonly type: UserSessionType.partial
-}
-
 /** Object containing the currently signed-in user's session data. */
-export interface FullUserSession extends BaseUserSession {
-  /** User's organization information. */
-  readonly type: UserSessionType.full
+export interface UserSession extends cognitoModule.UserSession {
   readonly user: backendModule.User
+}
+
+/** Query to fetch the user's session data from the backend. */
+export function createUsersMeQueryKey(
+  session: ToValue<Opt<cognitoModule.UserSession>>,
+  remoteBackend: RemoteBackend,
+) {
+  return [remoteBackend.type, 'usersMe', () => toValue(session)?.clientId ?? null] as const
 }
 
 /** Query to fetch the user's session data from the backend. */
 export function createUsersMeQuery(
   session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
+  setUsername: (username: string) => Promise<boolean>,
 ) {
   return vueQuery.queryOptions({
-    queryKey: [remoteBackend.type, 'usersMe', () => toValue(session)?.clientId ?? null] as const,
+    queryKey: createUsersMeQueryKey(session, remoteBackend),
     queryFn: async () => {
       const sessionVal = toValue(session)
-
-      if (sessionVal == null) {
+      if (!sessionVal) {
         return null
       }
-
-      return remoteBackend.usersMe().then((user) => {
-        return user == null ?
-            ({ type: UserSessionType.partial, ...sessionVal } satisfies PartialUserSession)
-          : ({ type: UserSessionType.full, user, ...sessionVal } satisfies FullUserSession)
-      })
+      const user = await remoteBackend.usersMe()
+      if (user == null) {
+        void setUsername(sessionVal.email)
+        return null
+      }
+      return { user, ...sessionVal }
     },
   })
 }
@@ -113,43 +91,33 @@ function createAuthStore(
   // defined by this component.
   const gtagEvent = gtagHooks.event
 
-  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend)
-
-  const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
-  const userData = usersMeQuery.data
-  const user = computed(() =>
-    userData.value && 'user' in userData.value ? userData.value.user : null,
-  )
+  const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
   const planOverride = useZustandStoreRef(authOverridesStore, (state) => state.planOverride)
   const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
-    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryKey], awaitInvalidates: true },
   })
 
   const deleteUserMutation = vueQuery.useMutation({
     mutationFn: () => remoteBackend.deleteUser(),
-    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryKey], awaitInvalidates: true },
   })
 
   const restoreUserMutation = vueQuery.useMutation({
     mutationFn: () => remoteBackend.restoreUser(),
-    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryKey], awaitInvalidates: true },
   })
 
   const updateUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.UpdateUserRequestBody) => remoteBackend.updateUser(user),
-    meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
+    meta: { invalidates: [usersMeQueryKey], awaitInvalidates: true },
   })
 
-  const refetchSession = usersMeQuery.refetch
-
   const setUsername = async (username: string) => {
-    gtagEvent('cloud_user_created')
-
-    if (userData.value?.type === UserSessionType.full) {
+    if (userData.value != null) {
       await updateUserMutation.mutateAsync({ username })
     } else {
       const orgId = await organizationId()
@@ -162,6 +130,7 @@ function createAuthStore(
         userEmail: backendModule.EmailAddress(email),
         organizationId: orgId != null ? orgId : null,
       })
+      gtagEvent('cloud_user_created')
     }
     // Wait until the backend returns a value from `users/me`,
     // otherwise the rest of the steps are skipped.
@@ -172,6 +141,16 @@ function createAuthStore(
 
     return true
   }
+
+  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, setUsername)
+
+  const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
+  const userData = usersMeQuery.data
+  const user = computed(() =>
+    userData.value && 'user' in userData.value ? userData.value.user : null,
+  )
+
+  const refetchSession = usersMeQuery.refetch
 
   const deleteUser = async () => {
     await deleteUserMutation.mutateAsync()
@@ -198,7 +177,7 @@ function createAuthStore(
   const setUser = (user: Partial<backendModule.User>) => {
     const currentUser = queryClient.getQueryData(usersMeQueryOptions.queryKey)
 
-    if (currentUser != null && currentUser.type === UserSessionType.full) {
+    if (currentUser != null) {
       const currentUserData = currentUser.user
       const nextUserData: backendModule.User = Object.assign(currentUserData, user)
 
@@ -234,7 +213,7 @@ function createAuthStore(
   }
 
   watchEffect(() => {
-    if (userData.value?.type === UserSessionType.full) {
+    if (userData.value) {
       sentry.setUser({
         id: userData.value.user.userId,
         email: userData.value.email,
@@ -243,26 +222,18 @@ function createAuthStore(
         ip_address: '{{auto}}',
       })
       onAuthenticated?.(userData.value.accessToken)
-    } else if (userData.value?.type === UserSessionType.partial) {
-      sentry.setUser({ email: userData.value.email })
     }
   })
 
   gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
   gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
 
-  watchEffect(() => {
-    if (userData.value?.type === UserSessionType.full && userData.value.user.isEnsoTeamMember) {
-      setFeatureFlags(featureFlagsForInternalTesting())
-    }
-  })
-
   const effectiveUserData = computed(() => {
     const intermediate =
-      userData.value?.type === UserSessionType.full && planOverride.value != null ?
+      userData.value && planOverride.value != null ?
         { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
       : userData.value
-    return intermediate?.type === UserSessionType.full && overrideProfilePicture.value ?
+    return intermediate && overrideProfilePicture.value ?
         {
           ...intermediate,
           user: { ...intermediate.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },
@@ -273,8 +244,7 @@ function createAuthStore(
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    waitForSession: () =>
-      sessionData.waitForSession().then(() => queryClient.ensureQueryData(usersMeQueryOptions)),
+    waitForSession: () => sessionData.waitForSession().then(() => usersMeQuery.suspense()),
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

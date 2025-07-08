@@ -5,6 +5,7 @@ import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
 import Standard.Table.Row.Row
 from Standard.Table import Column, Sort_Column, Table
+import Standard.Table.In_Memory_Table.In_Memory_Table
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -19,7 +20,7 @@ import project.Helpers
    - y: The table to prepare for visualization.
    - max_rows: The maximum number of rows to display.
 
-   In case of Database backed data, it materializes a fragment of the data.
+   In case of Database backed data, it materializes a sample of the data.
 prepare_visualization : Any -> Integer -> Text
 prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error y.catch).to_text else
     x = Warning.set y []
@@ -30,14 +31,14 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         v : Dictionary -> make_json_for_dictionary v max_rows
         v : JS_Object -> make_json_for_js_object v max_rows
         v : Row -> make_json_for_row v
-        t : Table ->
-            all_rows_count = t.row_count
-            make_json_for_table t max_rows all_rows_count False False
+        _ : In_Memory_Table ->
+            all_rows_count = x.row_count
+            make_json_for_table x max_rows all_rows_count False False
         c : Column ->
             case DB_Column.is_database_column c of
                 False -> make_json_for_table c.to_table max_rows c.length False True
                 True -> _make_json_for_db_table c.to_table max_rows is_column=True
-        t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
+        _ : DB_Table -> _make_json_for_db_table x max_rows is_column=False
         f : Function ->
             pairs = [['_display_text_', '[Function '+f.to_text+']']]
             value = JS_Object.from_pairs pairs

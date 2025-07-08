@@ -69,40 +69,30 @@ add_specs suite_builder =
                 conn.execute "create table foo (a int, b text)"
                 conn.execute "create table bar (c float, d timestamp)"
 
-                r = conn.get_table_info schema_pattern="PUBLIC"
+                r = conn.tables schema="PUBLIC"
                 r.row_count . should_equal 2
-                r.at "TABLE_CAT" . to_vector . should_equal ['TEST', 'TEST']
-                r.at "TABLE_SCHEM" . to_vector . should_equal ['PUBLIC', 'PUBLIC']
-                r.at "TABLE_NAME" . to_vector . sort . should_equal ['BAR', 'FOO']
+                r.at "Database" . to_vector . should_equal ['TEST', 'TEST']
+                r.at "Schema" . to_vector . should_equal ['PUBLIC', 'PUBLIC']
+                r.at "Name" . to_vector . sort . should_equal ['BAR', 'FOO']
 
         group_builder.specify "should be able to get catalogs" <|
             with_connection conn->
-                conn.get_catalogs . should_equal ['TEST']
+                conn.databases . should_equal ['TEST']
 
         group_builder.specify "should be able to get schemas" <|
             with_connection conn-> cleanup_schemas conn ["other"]
-                conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'PUBLIC']
+                conn.schemas . sort . should_equal ['INFORMATION_SCHEMA', 'PUBLIC']
                 conn.execute "create schema other"
-                conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'OTHER', 'PUBLIC']
+                conn.schemas . sort . should_equal ['INFORMATION_SCHEMA', 'OTHER', 'PUBLIC']
 
-        group_builder.specify "should be able to get schemas by pattern" <|
+        group_builder.specify "should be able to get schemas" <|
             with_connection conn-> cleanup_schemas conn ["abc", "abd", "aed"]
                 conn.execute "create schema abc"
                 conn.execute "create schema abd"
                 conn.execute "create schema aed"
-                conn.get_schemas schema_pattern=Nothing . should_contain 'ABC'
-                conn.get_schemas schema_pattern=Nothing . should_contain 'ABD'
-                conn.get_schemas schema_pattern=Nothing . should_contain 'AED'
-                conn.get_schemas schema_pattern="%A%" . should_contain 'ABC'
-                conn.get_schemas schema_pattern="%A%" . should_contain 'ABD'
-                conn.get_schemas schema_pattern="%A%" . should_contain 'AED'
-                conn.get_schemas schema_pattern="%AB%" . should_contain 'ABC'
-                conn.get_schemas schema_pattern="%AB%" . should_contain 'ABD'
-                conn.get_schemas schema_pattern="%AB%" . should_not_contain 'AED'
-                conn.get_schemas schema_pattern="%ABD%" . should_not_contain 'ABC'
-                conn.get_schemas schema_pattern="%ABD%" . should_contain 'ABD'
-                conn.get_schemas schema_pattern="%ABD%" . should_not_contain 'AED'
-                conn.get_schemas schema_pattern="" . should_equal []
+                conn.schemas . should_contain 'ABC'
+                conn.schemas . should_contain 'ABD'
+                conn.schemas . should_contain 'AED'
 
         group_builder.specify "should be able to get tables by pattern" <|
             with_connection conn-> cleanup_tables conn ["abc", "abd", "aed"] <|
@@ -110,33 +100,31 @@ add_specs suite_builder =
                 conn.execute "create table abd (a int)"
                 conn.execute "create table aed (a int)"
 
-                conn.get_tables table_name_pattern=Nothing . should_contain 'ABC'
-                conn.get_tables table_name_pattern=Nothing . should_contain 'ABD'
-                conn.get_tables table_name_pattern=Nothing . should_contain 'AED'
-                conn.get_tables table_name_pattern="%A%" . should_contain 'ABC'
-                conn.get_tables table_name_pattern="%A%" . should_contain 'ABD'
-                conn.get_tables table_name_pattern="%A%" . should_contain 'AED'
-                conn.get_tables table_name_pattern="%AB%" . should_contain 'ABC'
-                conn.get_tables table_name_pattern="%AB%" . should_contain 'ABD'
-                conn.get_tables table_name_pattern="%AB%" . should_not_contain 'AED'
-                conn.get_tables table_name_pattern="%ABD%" . should_not_contain 'ABC'
-                conn.get_tables table_name_pattern="%ABD%" . should_contain 'ABD'
-                conn.get_tables table_name_pattern="%ABD%" . should_not_contain 'AED'
-                conn.get_tables table_name_pattern="" . should_equal []
+                conn.tables name_like="" . at "Name" . to_vector . should_contain 'ABC'
+                conn.tables name_like="" . at "Name" . to_vector . should_contain 'ABD'
+                conn.tables name_like="" . at "Name" . to_vector . should_contain 'AED'
+                conn.tables name_like="%A%" . at "Name" . to_vector . should_contain 'ABC'
+                conn.tables name_like="%A%" . at "Name" . to_vector . should_contain 'ABD'
+                conn.tables name_like="%A%" . at "Name" . to_vector . should_contain 'AED'
+                conn.tables name_like="%AB%" . at "Name" . to_vector . should_contain 'ABC'
+                conn.tables name_like="%AB%" . at "Name" . to_vector . should_contain 'ABD'
+                conn.tables name_like="%AB%" . at "Name" . to_vector . should_not_contain 'AED'
+                conn.tables name_like="%ABD%" . at "Name" . to_vector . should_not_contain 'ABC'
+                conn.tables name_like="%ABD%" . at "Name" . to_vector . should_contain 'ABD'
+                conn.tables name_like="%ABD%" . at "Name" . to_vector . should_not_contain 'AED'
 
         group_builder.specify "should be able to get tables by type" <|
             with_connection conn-> cleanup_tables conn ["abc"] <| cleanup_views conn ["view_abc"] <|
                 conn.execute "create table abc (a int)"
                 conn.execute "create view view_abc as (select * from abc)"
-                conn.get_tables . should_contain 'ABC'
-                conn.get_tables . should_contain 'VIEW_ABC'
-                conn.get_tables table_types=['BASE TABLE', 'VIEW'] . map lower . should_contain 'abc'
-                conn.get_tables table_types=['BASE TABLE', 'VIEW'] . map lower . should_contain 'view_abc'
-                conn.get_tables table_types=['BASE TABLE'] . map lower . should_contain 'abc'
-                conn.get_tables table_types=['BASE TABLE'] . map lower . should_not_contain 'view_abc'
-                conn.get_tables table_types=['VIEW'] . map lower . should_not_contain 'abc'
-                conn.get_tables table_types=['VIEW'] . map lower . should_contain 'view_abc'
-                conn.get_tables table_types=[] . should_equal []
+                conn.tables . at "Name" . to_vector . should_contain 'ABC'
+                conn.tables . at "Name" . to_vector . should_contain 'VIEW_ABC'
+                conn.tables table_types=['BASE TABLE', 'VIEW'] . at "Name" . to_vector . map lower . should_contain 'abc'
+                conn.tables table_types=['BASE TABLE', 'VIEW'] . at "Name" . to_vector . map lower . should_contain 'view_abc'
+                conn.tables table_types=['BASE TABLE'] . at "Name" . to_vector . map lower . should_contain 'abc'
+                conn.tables table_types=['BASE TABLE'] . at "Name" . to_vector . map lower . should_not_contain 'view_abc'
+                conn.tables table_types=['VIEW'] . at "Name" . to_vector . map lower . should_not_contain 'abc'
+                conn.tables table_types=['VIEW'] . at "Name" . to_vector . map lower . should_contain 'view_abc'
 
         group_builder.specify "should be able to get tables by schema pattern" <|
             with_connection conn-> cleanup_schemas conn ["abc", "abd", "aed"]
@@ -149,19 +137,18 @@ add_specs suite_builder =
                 conn.execute "create table foo_abd (a int)"
                 conn.execute "set schema aed"
                 conn.execute "create table foo_aed (a int)"
-                conn.get_tables schema_pattern=Nothing . should_contain 'FOO_ABC'
-                conn.get_tables schema_pattern=Nothing . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern=Nothing . should_contain 'FOO_AED'
-                conn.get_tables schema_pattern="%A%" . should_contain 'FOO_ABC'
-                conn.get_tables schema_pattern="%A%" . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern="%A%" . should_contain 'FOO_AED'
-                conn.get_tables schema_pattern="%AB%" . should_contain 'FOO_ABC'
-                conn.get_tables schema_pattern="%AB%" . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern="%AB%" . should_not_contain 'FOO_AED'
-                conn.get_tables schema_pattern="%ABD%" . should_not_contain 'FOO_ABC'
-                conn.get_tables schema_pattern="%ABD%" . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern="%ABD%" . should_not_contain 'FOO_AED'
-                conn.get_tables schema_pattern="" . should_equal []
+                conn.tables schema="" . at "Name" . to_vector . should_contain 'FOO_ABC'
+                conn.tables schema="" . at "Name" . to_vector . should_contain 'FOO_ABD'
+                conn.tables schema="" . at "Name" . to_vector . should_contain 'FOO_AED'
+                conn.tables schema="%A%" . at "Name" . to_vector . should_contain 'FOO_ABC'
+                conn.tables schema="%A%" . at "Name" . to_vector . should_contain 'FOO_ABD'
+                conn.tables schema="%A%" . at "Name" . to_vector . should_contain 'FOO_AED'
+                conn.tables schema="%AB%" . at "Name" . to_vector . should_contain 'FOO_ABC'
+                conn.tables schema="%AB%" . at "Name" . to_vector . should_contain 'FOO_ABD'
+                conn.tables schema="%AB%" . at "Name" . to_vector . should_not_contain 'FOO_AED'
+                conn.tables schema="%ABD%" . at "Name" . to_vector . should_not_contain 'FOO_ABC'
+                conn.tables schema="%ABD%" . at "Name" . to_vector . should_contain 'FOO_ABD'
+                conn.tables schema="%ABD%" . at "Name" . to_vector . should_not_contain 'FOO_AED'
 
         group_builder.specify "should be able to read a table by name" <|
             with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
@@ -179,6 +166,9 @@ add_specs suite_builder =
                 r2 = conn.read (SQL_Query.Table_Name "BAR")
                 r2.at "C" . to_vector . should_equal [20, 30]
                 r2.at "D" . to_vector . should_equal ['qqqq', 'zzzz']
+
+                r3 = conn.read (SQL_Query.Table_Name "BAR") limit=(..First 1)
+                r3.at "C" . to_vector . should_equal [20]
 
         group_builder.specify "should be able to insert and query data using raw SQL (dates and times)" <|
             config.with_connection conn-> cleanup_tables conn ["foo"] <|

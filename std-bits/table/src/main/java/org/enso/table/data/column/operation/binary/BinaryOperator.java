@@ -148,7 +148,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         Double doDouble(
             double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b == 0.0) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
           }
           return a % b;
         }
@@ -156,7 +156,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         @Override
         Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b == 0) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 
@@ -167,7 +167,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigInteger doBigInteger(
             BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b.equals(BigInteger.ZERO)) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 
@@ -178,7 +178,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigDecimal doBigDecimal(
             BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b.equals(BigDecimal.ZERO)) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 
@@ -192,7 +192,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         Double doDouble(
             double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b == 0.0) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
           }
           return a / b;
         }
@@ -213,7 +213,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigDecimal doBigDecimal(
             BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
           if (b.equals(BigDecimal.ZERO)) {
-            problemAggregator.reportDivisionByZero((int) ix);
+            problemAggregator.reportDivisionByZero(ix);
             return null;
           }
 

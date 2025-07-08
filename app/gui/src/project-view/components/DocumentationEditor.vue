@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
@@ -7,6 +7,7 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
+import { useYTextSync } from '@/util/codemirror'
 import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
@@ -14,7 +15,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 
 const rightPanel = useRightPanelData()
-const openedProject = injectCurrentProject().ref
+const openedProject = useCurrentProject().ref
 const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
@@ -69,11 +70,11 @@ const displaySignatureEditor = computed(
 )
 
 const editorMarkdown = computed(() =>
-  mapOk(currentMethodAst.value, ({ ast, readOnly }) => {
-    const docs = ast.mutableDocumentationMarkdown()
-    return readOnly ? docs.toString() : docs
-  }),
+  mapOk(currentMethodAst.value, ({ ast }) => ast.mutableDocumentationMarkdown()),
 )
+const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
+
+const { syncExt, connectSync } = useYTextSync(editorContent)
 
 provideDocumentationImages({
   openedProject,
@@ -85,10 +86,12 @@ provideDocumentationImages({
 <template>
   <div class="DocumentationEditor">
     <MarkdownEditor
-      v-if="editorMarkdown.ok"
-      :content="editorMarkdown.value"
+      v-if="currentMethodAst.ok"
+      :extensions="syncExt"
+      :readonly="currentMethodAst.value.readOnly"
       contentTestId="documentation-editor-content"
       scrollerTestId="documentation-editor-scroller"
+      @editorReady="connectSync"
     >
       <template #belowToolbar>
         <FunctionSignatureEditor
@@ -104,7 +107,7 @@ provideDocumentationImages({
     <ResultComponent
       v-else
       status="info"
-      :title="editorMarkdown.error.message('')"
+      :title="currentMethodAst.error.message('')"
       :centered="true"
     />
   </div>

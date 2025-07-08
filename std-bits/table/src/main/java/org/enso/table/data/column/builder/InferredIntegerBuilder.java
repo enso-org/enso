@@ -78,7 +78,7 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return bigIntegerBuilder != null
         ? bigIntegerBuilder.getCurrentSize()
         : longBuilder.getCurrentSize();

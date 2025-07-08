@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
@@ -16,7 +16,8 @@ import { unwrapGroups } from '@/util/ast/abstract'
 import { endOnClick, targetIsOutside } from '@/util/autoBlur'
 import { mapOrUndefined, Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
-import { computed, proxyRefs, useTemplateRef } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed, useTemplateRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 import { EnsoExpression } from '../WidgetEnsoExpression.vue'
@@ -40,7 +41,7 @@ const emit = defineEmits<{
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
 type WidgetProps = ComponentProps<typeof NodeWidget>
-const openedProject = injectCurrentProject().ref
+const openedProject = useCurrentProject().ref
 
 function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
   return { input: WidgetInput.FromAst(ast) }

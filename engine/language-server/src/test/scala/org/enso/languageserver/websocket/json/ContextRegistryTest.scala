@@ -231,7 +231,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  Api.StackItem.LocalCall(`expressionId`),
+                  _
                 )
               ) =>
             requestId
@@ -271,7 +272,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  Api.StackItem.LocalCall(`expressionId`),
+                  _
                 )
               ) =>
             requestId
@@ -367,7 +369,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  Api.StackItem.LocalCall(`expressionId`),
+                  _
                 )
               ) =>
             requestId
@@ -416,7 +419,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  Api.StackItem.LocalCall(`expressionId`),
+                  _
                 )
               ) =>
             requestId
@@ -491,7 +495,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  Api.StackItem.LocalCall(`expressionId`),
+                  _
                 )
               ) =>
             requestId
@@ -570,7 +575,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  Api.StackItem.LocalCall(`expressionId`),
+                  _
                 )
               ) =>
             requestId
@@ -654,7 +660,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  Api.StackItem.LocalCall(`expressionId`),
+                  _
                 )
               ) =>
             requestId

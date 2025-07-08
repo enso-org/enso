@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Table
+import Standard.Table.In_Memory_Table.In_Memory_Table
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
@@ -53,12 +54,12 @@ resolve_temp_table_name connection temporary:Boolean table_name:Text -> Text =
    1. creating the table structure, by passing the description to `DDL_Transaction.run_transaction_with_tables`,
    2. uploading the data inside of the `run_transaction_with_tables` transactional block.
 type Table_Upload_Operation
-    Value table_description:Transactional_Table_Description (internal_upload_callback : Nothing -> DB_Table)
+    Value table_description:Transactional_Table_Description (internal_upload_callback : Nothing -> Table & DB_Table)
 
     ## Performs the actual data upload.
        This method should be called inside of `run_transaction_with_tables`
        block which had the `table_description` passed to it.
-    perform_upload self -> DB_Table = self.internal_upload_callback Nothing
+    perform_upload self -> Table & DB_Table = self.internal_upload_callback Nothing
 
 ## A helper to prepare an upload operation for a table.
 
@@ -72,16 +73,16 @@ type Table_Upload_Operation
    - temporary: if `True`, the table will be created as temporary.
    - structure_hint: If set, it can be used to hint what types should be used for the columns of the table. Useful if the types slightly differ from the in-memory source types.
    - row_limit: if set, only the first `row_limit` rows will be uploaded.
-create_table_upload_operation : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Boolean -> Nothing | Vector Column_Description ->  Problem_Behavior -> Integer | Nothing -> Table_Upload_Operation
+create_table_upload_operation : Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Boolean -> Nothing | Vector Column_Description ->  Problem_Behavior -> Integer | Nothing -> Table_Upload_Operation
 create_table_upload_operation source_table connection (table_name : Text) (primary_key : Nothing | Vector Text) (temporary : Boolean) (remove_after_transaction : Boolean = False) structure_hint=Nothing (on_problems:Problem_Behavior=..Report_Error) (row_limit : Integer | Nothing = Nothing) -> Table_Upload_Operation =
     resolved_table_name = resolve_temp_table_name connection temporary table_name
     case source_table of
-        _ : Table ->
-            _create_in_memory_table_upload_op source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+        _ : In_Memory_Table ->
+            _create_in_memory_table_upload_op source_table:(Table & In_Memory_Table) connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ : DB_Table ->
-            _create_database_table_upload_op source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+            _create_database_table_upload_op source_table:(Table & DB_Table) connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ ->
-            Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + source_table.to Meta.Type . qualified_name)
+            Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.Multi_Type.get source_table . to_text)
 
 private _create_in_memory_table_upload_op (source_table : Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
     _check_outside_transaction
@@ -105,11 +106,11 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
 
     Table_Upload_Operation.Value table_description callback
 
-private _create_database_table_upload_op (source_table : DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
+private _create_database_table_upload_op (source_table : Table & DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
     _check_outside_transaction
     connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
         Error.throw Different_Connections.Error
-    verify_structure_hint structure_hint source_table.column_names
+    verify_structure_hint structure_hint (source_table:Table).column_names
     connection_check.if_not_error <| table_name.if_not_error <|
         structure = structure_hint.if_nothing source_table
         aligned_structure = align_structure connection structure
@@ -123,7 +124,7 @@ private _create_database_table_upload_op (source_table : DB_Table) connection ta
            table. But we create both from the same source table, so
            that is guaranteed.
         copy_into_statement = connection.dialect.generate_sql <|
-            SQL_IR_Statement.Insert_From_Select table_name effective_source_table.column_names effective_source_table.to_select_query
+            SQL_IR_Statement.Insert_From_Select table_name (effective_source_table:Table).column_names effective_source_table.to_select_query
 
         callback _ = In_Transaction.ensure_in_transaction <|
             upload_status =

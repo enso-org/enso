@@ -4,7 +4,7 @@ import {
   SetupOrganizationAfterSubscribe as SetupOrganizationAfterSubscribeReact,
 } from '#/modals/SetupOrganizationAfterSubscribe'
 import * as backendModule from '#/services/Backend'
-import { useAuth, UserSessionType } from '$/providers/auth'
+import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import type { DataLoader } from '$/router'
 import { backendQueryOptions } from '@/composables/backend'
@@ -30,7 +30,7 @@ export const dataLoader: DataLoader<{
     const queryClient = useQueryClient()
     const auth = useAuth()
     const { remoteBackend: backend } = useBackends()
-    if (auth.session?.type !== UserSessionType.full) return Ok({})
+    if (!auth.session) return Ok({})
     const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = auth.session.user
     if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return Ok({})
     const [organization, fetchedUserGroups] = await Promise.all([

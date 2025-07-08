@@ -1,7 +1,8 @@
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
+import { proxyRefs } from '@/util/reactivity'
 import { urlParams } from '@/util/urlParams'
 import { createGlobalState } from '@vueuse/core'
-import { computed, proxyRefs } from 'vue'
+import { computed } from 'vue'
 
 function resolveEnvUrl(url: string | undefined) {
   return url?.replace('__HOSTNAME__', window.location.hostname)
