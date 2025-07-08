@@ -22,7 +22,7 @@ add_specs suite_builder = case get_configured_connection_details of
         default_connection = Lazy_Ref.Value (connection_builder Nothing)
 
         file = (Project_Description.new enso_dev.Table_Tests).data / "data.csv"
-        file_url = 'file://' + (file.path.replace "\\" "/")
+        file_url = 'file://' + (file.path.replace "\" "/")
 
         suite_builder.group "[Snowflake] Bulk load tests" group_builder->
             group_builder.specify "can list the stage" <|
