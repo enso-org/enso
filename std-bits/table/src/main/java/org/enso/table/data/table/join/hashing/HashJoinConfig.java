@@ -42,11 +42,11 @@ public class HashJoinConfig {
     return rightEquals;
   }
 
-  public int getLeftNumRows() {
+  public long getLeftNumRows() {
     return leftEquals[0].getSize();
   }
 
-  public int getRightNumRows() {
+  public long getRightNumRows() {
     return rightEquals[0].getSize();
   }
 

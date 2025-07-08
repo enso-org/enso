@@ -1,7 +1,6 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
-import { expect, takeSnapshot } from '@chromatic-com/playwright'
-import { Page, TestInfo } from '@playwright/test'
+import { type Page, expect } from '@playwright/test'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
@@ -12,13 +11,7 @@ async function _doScreenshot(page: Page): Promise<void> {
   page.screenshot({ path: `test-traces/screenshots/${startTimestamp}/${screenshotIndex++}.png` })
 }
 
-async function doSnapshot(page: Page, testInfo: TestInfo): Promise<void> {
-  // Enable for local testing only:
-  // await _doScreenshot(page)
-  await takeSnapshot(page, testInfo)
-}
-
-test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
+test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
 
@@ -32,11 +25,9 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   const PROJECT_PATH = pathModule.join(projectsDir, projectName.replaceAll(' ', ''))
 
   // We see the node type and visualization, so the engine is running the program
-  await expect(page.locator('.node-type')).toHaveText('Table', { timeout: 30000 })
+  await expect(page.locator('.node-type')).toHaveText('Table & + 2', { timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
-
-  await doSnapshot(page, testInfo)
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
@@ -55,24 +46,29 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(addedNode.locator('.TableVisualization')).toBeVisible()
   await expect(addedNode.locator('.TableVisualization')).toContainText('1')
 
-  // Select and collapse nodes
+  // Select nodes and create User Defined Component nodes
   await page.keyboard.press(`${CONTROL_KEY}+A`)
-  await page.getByRole('button', { name: 'Group Selected Components' }).click()
+  await page
+    .getByRole('button', { name: 'Create User Defined Component from Selected Components' })
+    .click()
   await expect(page.locator('.GraphNode')).toHaveCount(1)
-  await expect(page.locator('.GraphNode')).toHaveText(/Main.collapsed/)
+  await expect(page.locator('.GraphNode')).toHaveText(/Main.user_defined_component/)
   await page.locator('.GraphNode').click()
   await page.getByRole('button', { name: 'Visualization' }).click()
   await expect(page.locator('.TableVisualization')).toBeVisible()
   await expect(page.locator('.TableVisualization')).toContainText('1')
 
-  // Enter collapsed function
+  // Enter User Defined Component
   // First wait until node is computed. Visualization may be cached, so we look at icon.
   await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
   await page.locator('.GraphNode').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(3)
-  await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
+  await expect(page.locator('.NavBreadcrumb')).toHaveText([
+    'New Project 1',
+    'user_defined_component',
+  ])
 
-  // Rename collapsed function
+  // Rename User Defined component
   await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
@@ -95,8 +91,6 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await input.fill(`'${TEXT_TO_WRITE}'`)
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
-
-  await doSnapshot(page, testInfo)
 
   // Create write node
   await page.keyboard.press('Enter')
@@ -152,13 +146,6 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   expect(projectFiles).toContain('images')
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
-
-  // Ensure that the graph is stable before doing the snapshot. Some nodes might still
-  // be pending at the time the image upload finishes, which can cause the snapshot to
-  // be unstable.
-  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
-
-  await doSnapshot(page, testInfo)
 })
 
 async function readFile(projectDir: string, fileName: string): Promise<string> {

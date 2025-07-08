@@ -1,34 +1,37 @@
-## Along with numbers and text, dates and times are probably the most common
-   type of data encountered whilst doing data analysis.
+## Along with numbers and text, dates and times are probably the most common type
+   of data encountered whilst doing data analysis.
+   Enso provides a robust and capable suite of date and time operations, allowing
+   you to work with your data with ease.
 
-   Enso provides a robust and capable suite of date and time operations,
-   allowing you to work with your data with ease.
+   ## Examples
+   ### Get the current time
 
-   > Example
-     Get the current time
-
+   ```
          from Standard.Base import Date_Time
 
          example_now = Date_Time.now
+   ```
 
-   > Example
-     Parse UTC time.
+   ### Parse UTC time.
 
+   ```
          from Standard.Base import Date_Time
 
          example_parse = Date_Time.parse "2020-10-01T04:11:12Z"
+   ```
 
-   > Example
-     Convert time instance to -04:00 timezone.
+   ### Convert time instance to -04:00 timezone.
 
+   ```
          from Standard.Base import Date_Time, Time_Zone
 
-         exaomple_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
+         example_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
+   ```
 
-   > Example
-     Convert the current time to a date.
+   ### Convert the current time to a date.
 
+   ```
          from Standard.Base import Date_Time
 
          example_date = Date_Time.now.date
-
+   ```

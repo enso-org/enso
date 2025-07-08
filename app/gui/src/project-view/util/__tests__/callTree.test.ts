@@ -1,6 +1,10 @@
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import {
+  ComputedValueRegistry,
+  TypeInfo,
+  type ExpressionInfo,
+} from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
@@ -216,12 +220,10 @@ test.each<TestCase>([
     const subApplication = nthSubapplication(ast, subapplicationIndex)
     assert(subApplication)
     setExpressionInfo(subApplication.id, {
-      typename: undefined,
-      rawTypename: undefined,
+      typeInfo: TypeInfo.fromParsedTypes([], [])!,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' },
       profilingInfo: [],
-      hiddenTypes: [],
       evaluationId: 0,
     })
 
@@ -358,12 +360,10 @@ test.each<ArgsTestCase>([
     assert(subApplication)
     db.updateExternalIds(ast)
     setExpressionInfo(subApplication.id, {
-      typename: undefined,
-      rawTypename: undefined,
+      typeInfo: TypeInfo.fromParsedTypes([], [])!,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' } as ExpressionUpdatePayload,
       profilingInfo: [],
-      hiddenTypes: [],
       evaluationId: 0,
     })
 

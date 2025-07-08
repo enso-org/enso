@@ -1,10 +1,12 @@
 from Standard.Base import all
 
+import project.Column.Column
+
 ## A column that contains numeric values.
 type Numeric_Column
     private Value column operations_implementation
 
-    ## GROUP Standard.Base.Operators
+    ## GROUP Standard.Base.Math
        ICON operators
        Computes the absolute value of each element in the column.
 
@@ -14,10 +16,10 @@ type Numeric_Column
              import Standard.Examples
 
              example_abs = Examples.decimal_column.abs
-    abs self -> Any =
+    abs self -> Column & Numeric_Column =
         self.operations_implementation.abs self.column
 
-    ## GROUP Standard.Base.Operators
+    ## GROUP Standard.Base.Math
        ICON operators
        Computes the sign of each element in the column.
 
@@ -29,5 +31,5 @@ type Numeric_Column
              import Standard.Examples
 
              example_signum = Examples.decimal_column.signum
-    signum self -> Any =
+    signum self -> Column & Numeric_Column =
         self.operations_implementation.signum self.column

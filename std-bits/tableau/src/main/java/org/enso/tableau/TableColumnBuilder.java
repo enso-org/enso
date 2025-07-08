@@ -7,7 +7,7 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -198,7 +198,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
     appendMethod.accept(result);
   }
 
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     return builder.seal();
   }
 }

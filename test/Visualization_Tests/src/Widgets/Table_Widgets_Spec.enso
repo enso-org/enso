@@ -5,6 +5,7 @@ import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.Display
 
 from Standard.Table import Table
+from Standard.Geo import all
 
 import Standard.Visualization.Widgets
 
@@ -58,6 +59,11 @@ add_specs suite_builder =
                 e.label
 
             labels . should_equal ['Equals', 'Equals (Ignore Case)', 'Between']
+
+        group_builder.specify "works for `geo_distance`" <|
+            choices = [Choice.Option "<Number Value>" "0", Choice.Option "<Expression>" "(expr '[A]')"]
+            expect = [["lat1", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            Widgets.get_widget_json mock_table .geo_distance ["lat1"] . should_equal expect
 
 main filter=Nothing =
     suite = Test.build suite_builder->

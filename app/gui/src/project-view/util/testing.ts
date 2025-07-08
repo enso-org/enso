@@ -1,3 +1,4 @@
+import { VueQueryPlugin } from '@tanstack/vue-query'
 import { type App, createApp } from 'vue'
 
 /**
@@ -14,6 +15,7 @@ export function withSetup<T>(composable: () => T): [T | undefined, App] {
       return () => {}
     },
   })
+  app.use(VueQueryPlugin)
   app.mount(document.createElement('div'))
   // return the result and the app instance
   // for testing provide/unmount

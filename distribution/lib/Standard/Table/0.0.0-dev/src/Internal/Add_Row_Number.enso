@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
@@ -13,7 +12,7 @@ import project.Table.Table
 from project.Errors import Duplicate_Output_Column_Names
 
 polyglot java import java.lang.ArithmeticException
-polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
+polyglot java import org.enso.table.data.column.storage.LongRangeStorage
 polyglot java import org.enso.table.operations.AddRowNumber
 
 ## PRIVATE

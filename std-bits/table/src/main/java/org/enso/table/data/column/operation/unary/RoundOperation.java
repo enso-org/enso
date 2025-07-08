@@ -6,10 +6,10 @@ import java.util.function.Function;
 import org.enso.base.numeric.Decimal_Utils;
 import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.BuilderForType;
-import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.UnaryOperationNumeric;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -43,7 +43,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
     return (index, value, problemAggregator) -> {
       if (value < ROUND_MIN_LONG || value > ROUND_MAX_LONG) {
         String message = ROUND_LONG_ERROR + value;
-        problemAggregator.reportIllegalArgumentError(message, (int) index);
+        problemAggregator.reportIllegalArgumentError(message, index);
         return null;
       }
 
@@ -61,7 +61,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
       boolean special = Double.isNaN(value) || Double.isInfinite(value);
       if (special) {
         String message = "Value is " + value;
-        problemAggregator.reportArithmeticError(message, (int) index);
+        problemAggregator.reportArithmeticError(message, index);
         return null;
       }
 
@@ -75,7 +75,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
       boolean special = Double.isNaN(value) || Double.isInfinite(value);
       if (special) {
         String message = "Value is " + value;
-        problemAggregator.reportArithmeticError(message, (int) index);
+        problemAggregator.reportArithmeticError(message, index);
         return null;
       }
 
@@ -101,7 +101,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
 
   public static UnaryOperation create(Column left, long decimalPlacesLong, boolean useBankers) {
     int decimalPlaces = Math.toIntExact(decimalPlacesLong);
-    var storage = BinaryOperation.getInferredStorage(left);
+    var storage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (storage.getType()) {
       case NullType nt -> decimalPlaces <= 0
           ? new RoundOperation<>(

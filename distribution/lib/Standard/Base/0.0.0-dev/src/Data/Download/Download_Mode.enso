@@ -1,8 +1,7 @@
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
-import project.Nothing.Nothing
 import project.System.File.Generic.Writable_File.Writable_File
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, True
 
 type Download_Mode
     ## Download the file if it does not already exist on disk.

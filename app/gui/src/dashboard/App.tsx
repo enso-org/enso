@@ -2,38 +2,12 @@
  * @file File containing the {@link App} React component, which is the entrypoint into our React
  * application.
  *
- * # Providers
- *
  * The {@link App} component is responsible for defining the global context used by child
  * components. For example, it defines a {@link toastify.ToastContainer}, which is used to display temporary
  * notifications to the user. These global components are defined at the top of the {@link App} so
  * that they are available to all of the child components.
  *
- * The {@link App} also defines various providers (e.g., {@link authProvider.AuthProvider}).
- * Providers are a React-specific concept that allows components to access global state without
- * having to pass it down through the component tree. For example, the
- * {@link authProvider.AuthProvider} wraps the entire application, and provides the context
- * necessary for child components to use the {@link authProvider.useAuth} hook. The
- * {@link authProvider.useAuth} hook lets child components access the user's authentication session
- * (i.e., email, username, etc.) and it also provides methods for signing the user in, etc.
- *
- * Providers consist of a provider component that wraps the application, a context object defined
- * by the provider component, and a hook that can be used by child components to access the context.
- * All of the providers are initialized here, at the {@link App} component to ensure that they are
- * available to all of the child components.
- *
- * # Routes and Authentication
- *
- * The {@link AppRouter} component defines the layout of the application, in terms of navigation. It
- * consists of a list of {@link router.Route}s, as well as the HTTP pathnames that the
- * {@link router.Route}s can be accessed by.
- *
- * The {@link router.Route}s are grouped by authorization level. Some routes are
- * accessed by unauthenticated (i.e., not signed in) users. Some routes are accessed by partially
- * authenticated users (c.f. {@link authProvider.PartialUserSession}). That is, users who have
- * signed up but who have not completed email verification or set a username. The remaining
- * {@link router.Route}s require fully authenticated users (c.f.
- * {@link authProvider.FullUserSession}).
+ * The {@link App} also defines various providers.
  */
 import * as React from 'react'
 
@@ -43,13 +17,8 @@ import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
-
-import * as authProvider from '#/providers/AuthProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import ModalProvider, { setModal } from '#/providers/ModalProvider'
-import * as sessionProvider from '#/providers/SessionProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
 import { RouterProvider } from 'react-aria-components'
@@ -62,7 +31,7 @@ import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import { Path } from '#/utilities/path'
 
-import { useInitAuthService } from '#/authentication/service'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
@@ -77,27 +46,15 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly localRootDirectory: string
     readonly preferredTimeZone: string
+    readonly loginRedirect: string
   }
 }
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
-
-/** Returns the URL to the main page. This is the current URL, with the current route removed. */
-function getMainPageUrl() {
-  const mainPageUrl = new URL(window.location.href)
-  mainPageUrl.pathname = mainPageUrl.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
-  return mainPageUrl
-}
-
-/** Global configuration for the `App` component. */
-export interface AppProps {
-  /**
-   * Whether the application supports deep links. This is only true when using
-   * the installed app on macOS and Windows.
-   */
-  readonly supportsDeepLinks: boolean
-  readonly onAuthenticated: (accessToken: string | null) => void
-}
+LocalStorage.registerKey('loginRedirect', {
+  isUserSpecific: true,
+  schema: z.string(),
+})
 
 /**
  * Component called by the parent module, returning the root React component for this
@@ -106,7 +63,7 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
-export default function App(props: React.PropsWithChildren<AppProps>) {
+export default function App(props: React.PropsWithChildren) {
   const { isOffline } = useOffline()
   const { getText } = useText()
   const queryClient = reactQuery.useQueryClient()
@@ -143,11 +100,9 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
         transition={toastify.Slide}
         limit={3}
       />
-      <LocalStorageProvider>
-        <ModalProvider>
-          <AppRouter {...props} />
-        </ModalProvider>
-      </LocalStorageProvider>
+      <ModalProvider>
+        <AppRouter {...props} />
+      </ModalProvider>
     </>
   )
 }
@@ -159,23 +114,15 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider.
  */
-function AppRouter(props: React.PropsWithChildren<AppProps>) {
-  const { onAuthenticated, children } = props
+function AppRouter(props: React.PropsWithChildren) {
+  const { children } = props
   const { router } = useRouter()
   const navigate = router.push.bind(router)
-
-  const { localStorage } = localStorageProvider.useLocalStorage()
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     unsafeWriteValue(window, 'navigate', navigate)
   }
-
-  const mainPageUrl = getMainPageUrl()
-
-  const authService = useInitAuthService(props)
-
-  const registerAuthEventListener = authService.registerAuthEventListener
 
   React.useEffect(() => {
     let isClick = false
@@ -219,29 +166,18 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
 
   return (
     <RouterProvider navigate={navigate}>
-      <sessionProvider.SessionProvider
-        onLogout={() => {
-          localStorage.clearUserSpecificEntries()
-        }}
-        authService={authService.cognito}
-        mainPageUrl={mainPageUrl}
-        registerAuthEventListener={registerAuthEventListener}
-      >
-        <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
-          <InputBindingsProvider>
-            <LocalBackendPathSynchronizer />
-            <VersionChecker />
-            {children}
-          </InputBindingsProvider>
-        </authProvider.AuthProvider>
-      </sessionProvider.SessionProvider>
+      <InputBindingsProvider>
+        <LocalBackendPathSynchronizer />
+        <VersionChecker />
+        {children}
+      </InputBindingsProvider>
     </RouterProvider>
   )
 }
 
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
-  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const { localBackend } = useBackends()
 
   if (localRootDirectory != null) {

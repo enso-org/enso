@@ -32,6 +32,10 @@ export const SCROLLER_STYLES = tv({
         shadowStart: 'from-background/80',
         shadowEnd: 'from-background/80',
       },
+      white: {
+        shadowStart: 'from-white',
+        shadowEnd: 'from-white',
+      },
     },
     orientation: {
       horizontal: {

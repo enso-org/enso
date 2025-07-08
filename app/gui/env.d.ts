@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
+import type { FeatureFlags } from '$/providers/featureFlags'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
@@ -145,7 +146,6 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken?: () => string
-    toggleDevtools: () => void
     /**
      * If set to `true`, animations will be disabled.
      * Used by playwright tests to speed up execution.
@@ -159,7 +159,7 @@ declare global {
      * Feature flags that override the default or stored feature flags.
      * This is used by integration tests to set feature flags.
      */
-    readonly overrideFeatureFlags: Partial<FeatureFlags>
+    readonly overrideFeatureFlags?: Partial<FeatureFlags>
   }
 
   interface Document {

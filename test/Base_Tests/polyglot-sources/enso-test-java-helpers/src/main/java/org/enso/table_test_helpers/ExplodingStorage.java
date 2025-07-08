@@ -1,19 +1,22 @@
 package org.enso.table_test_helpers;
 
-import java.util.BitSet;
-import java.util.List;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicLong;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
 
 /**
  * A helper class used in the Upload_Spec test to purposefully interrupt a table upload in the
  * middle of it by throwing an exception. It is used to test the transactionality of the upload.
  */
-public class ExplodingStorage extends Storage<Long> {
+public class ExplodingStorage implements ColumnLongStorage {
+  private static final AtomicLong atomicCounter = new AtomicLong(100000000);
+
+  private final long uniqueKey = atomicCounter.incrementAndGet();
   private final long[] array;
   private final long explodingIndex;
 
@@ -29,12 +32,23 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
+  public long uniqueKey() {
+    return uniqueKey;
+  }
+
+  @Override
   public long getSize() {
     return array.length;
   }
 
   @Override
-  public StorageType<Long> getType() {
+  public long getItemAsLong(long index) throws ValueIsNothingException {
+    checkIndex(index);
+    return array[Math.toIntExact(index)];
+  }
+
+  @Override
+  public IntegerType getType() {
     return IntegerType.INT_64;
   }
 
@@ -46,32 +60,31 @@ public class ExplodingStorage extends Storage<Long> {
 
   @Override
   public Long getItemBoxed(long idx) {
-    checkIndex(idx);
-    return array[Math.toIntExact(idx)];
+    return getItemAsLong(idx);
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    return null;
+  public Iterator<Long> iterator() {
+    return new Iterator<>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public Long next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
   }
 
   @Override
-  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
-    return null;
-  }
-
-  @Override
-  public Storage<Long> applyMask(OrderMask mask) {
-    return null;
-  }
-
-  @Override
-  public Storage<Long> slice(int offset, int limit) {
-    return null;
-  }
-
-  @Override
-  public Storage<Long> slice(List<SliceRange> ranges) {
-    return null;
+  public ColumnLongStorageIterator iteratorWithIndex() {
+    return new LongStorageIterator(this);
   }
 }

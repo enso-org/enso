@@ -1,5 +1,4 @@
 /** @file A dropdown menu of user actions and settings. */
-import { LOGIN_PATH } from '#/appUtils'
 import { useToggleEnsoDevtools } from '#/components/Devtools'
 import { Popover } from '#/components/Dialog'
 import MenuEntry from '#/components/MenuEntry'
@@ -7,12 +6,12 @@ import { ProfilePicture } from '#/components/ProfilePicture'
 import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
+import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { SUBSCRIBE_PATH } from '$/appUtils'
+import { useBackends, useFullUserSession, useRouter, useSession, useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 /** Props for a {@link UserMenu}. */
@@ -29,7 +28,7 @@ export default function UserMenu(props: UserMenuProps) {
 
   const { router } = useRouter()
   const { localBackend } = useBackends()
-  const { signOut } = useSessionAPI()
+  const { signOut } = useSession()
   const { user } = useFullUserSession()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
@@ -68,11 +67,21 @@ export default function UserMenu(props: UserMenuProps) {
         />
       )}
 
+      {(user.plan === Plan.free || user.plan === Plan.solo) && (
+        <MenuEntry
+          action="upgradePlan"
+          doAction={() => {
+            onSignOut()
+            void router.push(SUBSCRIBE_PATH)
+          }}
+        />
+      )}
+
       <MenuEntry
         action="signOut"
         doAction={() => {
           onSignOut()
-          void signOut().then(() => router.push(LOGIN_PATH))
+          void signOut()
         }}
       />
     </>

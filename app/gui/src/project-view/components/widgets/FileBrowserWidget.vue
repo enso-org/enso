@@ -84,7 +84,7 @@ async function assetExists(name: string): Promise<AssetExists> {
   const currentDir = currentDirectory.value
   if (currentDir == null) return { exists: false }
   const content = await listDirectory(currentDir)
-  const asset = content.find((asset) => asset.title === name)
+  const asset = content?.find((asset) => asset.title === name)
   if (!asset) return { exists: false }
   return { exists: true, type: asset.type }
 }
@@ -268,7 +268,7 @@ registerHandlers({
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
-  background-color: var(--background-color);
+  background-color: var(--color-panel-accent);
   padding: var(--border-width);
   border-radius: 0 0 var(--radius-default) var(--radius-default);
   min-width: 400px;

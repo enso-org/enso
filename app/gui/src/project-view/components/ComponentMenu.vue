@@ -43,6 +43,7 @@ const isDropdownOpened = ref(false)
         <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
         <template #menu>
           <ActionMenu
+            data-testid="component-menu-more-entries"
             :actions="[
               'component.toggleDocPanel',
               'component.toggleVisualization',

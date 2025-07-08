@@ -20,6 +20,14 @@
 - [Allow selecting expected types for arguments of grouped components.][13161]
 - [Component documentation now uses Markdown instead of a custom Markdown-like
   format][13148][13203]
+- [Methods for ‘intersection’ types are now visible in Component
+  Browser.][13266]
+- [Allow marking grouped component arguments as required or providing a default
+  value.][13254]
+- [New Right Panel Tab with Markdown Description Editor][13347]
+- [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
+  resulting in an Error page without option of returning back to Local.][13366]
+- ["Grouped Components" are renamed to "User Defined Components"][13389]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -37,6 +45,11 @@
 [13161]: https://github.com/enso-org/enso/pull/13161
 [13148]: https://github.com/enso-org/enso/pull/13148
 [13203]: https://github.com/enso-org/enso/pull/13203
+[13266]: https://github.com/enso-org/enso/pull/13266
+[13254]: https://github.com/enso-org/enso/pull/13254
+[13347]: https://github.com/enso-org/enso/pull/13347
+[13366]: https://github.com/enso-org/enso/pull/13366
+[13389]: https://github.com/enso-org/enso/pull/13389
 
 #### Enso Standard Library
 
@@ -45,12 +58,23 @@
 - [Add Tableau Hyper write support][12900]
 - [Support character encodings when reading fixed-width files.][13138]
 - [Initial Microsoft Azure support][13144]
+- [Column inference for fixed-width files.][13240]
+- [Specify fixed-width file layout with a `Vector` or `Column` of
+  widths.][13240]
+- [Support `skip_rows` and `on_empty_field` for fixed-width files.][13240]
+- [Add Google_Sheets.read][13307]
+- [Align the Generic JDBC Connection with the main Connection type][13365]
+- [Add `execute_query` to the `Connection` types.][13415]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
 [12900]: https://github.com/enso-org/enso/pull/12900
 [13138]: https://github.com/enso-org/enso/pull/13138
 [13144]: https://github.com/enso-org/enso/pull/13144
+[13240]: https://github.com/enso-org/enso/pull/13240
+[13307]: https://github.com/enso-org/enso/pull/13307
+[13365]: https://github.com/enso-org/enso/pull/13365
+[13415]: https://github.com/enso-org/enso/pull/13415
 
 #### Enso Language & Runtime
 
@@ -61,12 +85,14 @@
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
 - [Upgrade GraalVM from JDK 21 to JDK 24][12855]
+- [Use JAVA_TOOL_OPTIONS env variable to alter JVM arguments][13256]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
 [12976]: https://github.com/enso-org/enso/pull/12976
 [12855]: https://github.com/enso-org/enso/pull/12855
 [12905]: https://github.com/enso-org/enso/pull/12905
 [13225]: https://github.com/enso-org/enso/pull/13225
+[13256]: https://github.com/enso-org/enso/pull/13256
 
 # Enso 2025.1
 

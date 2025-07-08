@@ -12,20 +12,22 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import org.enso.common.MethodNames;
+import org.enso.runtime.utils.ThreadUtils;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ForeignMethodInvokeTest {
   @ClassRule
-  public static final ContextUtils ctxRule = ContextUtils.newBuilder("enso", "js").build();
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder("enso", "js").alwaysExecuteInContext(false).build();
 
   @Test
   public void testForeignFunctionParseFailure() throws Exception {
@@ -96,9 +98,32 @@ public class ForeignMethodInvokeTest {
     assertEquals(12, res2.getArrayElement(2).asInt());
   }
 
-  @Ignore
-  @Test
+  private static final long TIMEOUT = 30000;
+
+  @Test(timeout = TIMEOUT)
   public void testParallelInteropWithJavaScript() throws Exception {
+    var orig = Thread.currentThread();
+    var pool = Executors.newSingleThreadExecutor();
+    var watchDog =
+        pool.submit(
+            () -> {
+              Thread.sleep(TIMEOUT / 3 * 2);
+              var dump =
+                  ThreadUtils.dumpAllStacktraces(
+                      "[paralleljs] ", "Time out in a testParallelInteropWithJavaScript");
+              System.err.println(dump);
+              orig.interrupt();
+              return dump;
+            });
+    try {
+      handleParallelInteropWithJavaScript();
+    } finally {
+      watchDog.cancel(false);
+      pool.shutdown();
+    }
+  }
+
+  private void handleParallelInteropWithJavaScript() throws Exception {
     var source =
         """
         from Standard.Base import all
@@ -115,23 +140,38 @@ public class ForeignMethodInvokeTest {
     var module = ctxRule.eval("enso", source);
     var third = module.invokeMember("eval_expression", new AsString("third"));
 
-    var future =
-        Executors.newSingleThreadExecutor()
-            .submit(
-                () -> {
-                  return third.execute(12);
-                });
-    var res = third.execute(13);
-    assertTrue("It is an array", res.hasArrayElements());
-    assertEquals(3, res.getArraySize());
-    assertEquals(1, res.getArrayElement(0).asInt());
-    assertEquals(2, res.getArrayElement(1).asInt());
-    assertEquals(13, res.getArrayElement(2).asInt());
+    var pool =
+        Executors.newSingleThreadExecutor(
+            (r) -> {
+              return new Thread(r, "testParallelInteropWithJavaScript 2nd");
+            });
 
-    var res2 = future.get();
+    // action12 and action13 will be invoke in parallel...
+    Callable<Value> action12 =
+        () -> {
+          return third.execute(12);
+        };
+    Callable<Value> action13 =
+        () -> {
+          return third.execute(13);
+        };
+    try {
+      var futureResult12 = pool.submit(action12);
+      var result13 = action13.call();
 
-    assertTrue("It is an array2", res2.hasArrayElements());
-    assertEquals(12, res2.getArrayElement(2).asInt());
+      assertTrue("It is an array", result13.hasArrayElements());
+      assertEquals(3, result13.getArraySize());
+      assertEquals(1, result13.getArrayElement(0).asInt());
+      assertEquals(2, result13.getArrayElement(1).asInt());
+      assertEquals(13, result13.getArrayElement(2).asInt());
+
+      var result12 = futureResult12.get();
+
+      assertTrue("It is an array2", result12.hasArrayElements());
+      assertEquals(12, result12.getArrayElement(2).asInt());
+    } finally {
+      pool.shutdownNow();
+    }
   }
 
   @Test

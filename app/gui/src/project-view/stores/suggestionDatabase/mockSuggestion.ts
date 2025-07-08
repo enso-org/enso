@@ -1,4 +1,4 @@
-import { frontmatter } from '@/components/DocumentationPanel/metadata'
+import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import {
   type MethodSuggestionEntry,

@@ -76,7 +76,7 @@ add_specs suite_builder prefix connection_details pending =
                A temporary table could not be seen by other connection on some backends.
             table = (Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]).select_into_database_table raw_connection table_name temporary=False
             Panic.with_finalizer (raw_connection.drop_table table.name) <|
-                table_data_link = table.save_as_data_link (test_root.get / "table.datalink")
+                table_data_link = (table:DB_Table).save_as_data_link (test_root.get / "table.datalink")
                 table_data_link.should_be_a Enso_File
                 Problems.assume_no_problems table_data_link
 
@@ -88,7 +88,7 @@ add_specs suite_builder prefix connection_details pending =
                 ## This data link should create a simple SQL query, without full interpolation serialization.
                    Though we cannot guarantee that. Still we keep this test to ensure all paths are tested.
                 selected_table = table.select_columns ["X"]
-                selected_table_data_link = selected_table.save_as_data_link (test_root.get / "table-selected.datalink")
+                selected_table_data_link = (selected_table:DB_Table).save_as_data_link (test_root.get / "table-selected.datalink")
                 selected_table_data_link.should_be_a Enso_File
                 Problems.assume_no_problems selected_table_data_link
                 r2 = selected_table_data_link.read
@@ -104,7 +104,7 @@ add_specs suite_builder prefix connection_details pending =
                         queried_table = table
                             . set (table.at "X" * 10000 + 45) "Z"
                             . set (table.at "Y" + '...') "W"
-                        queried_table_data_link = queried_table.save_as_data_link (test_root.get / "complex-query.datalink")
+                        queried_table_data_link = (queried_table:DB_Table).save_as_data_link (test_root.get / "complex-query.datalink")
                         queried_table_data_link.should_be_a Enso_File
                         Problems.assume_no_problems queried_table_data_link
 
@@ -123,7 +123,7 @@ add_specs suite_builder prefix connection_details pending =
                         IO.println "Skipping cross-join data link tests, because the dialect does not support cross-join."
                     True ->
                         cross_joined_table = table.cross_join table
-                        cross_joined_table_data_link = cross_joined_table.save_as_data_link (test_root.get / "cross-join.datalink")
+                        cross_joined_table_data_link = (cross_joined_table:DB_Table).save_as_data_link (test_root.get / "cross-join.datalink")
                         cross_joined_table_data_link.should_be_a Enso_File
                         Problems.assume_no_problems cross_joined_table_data_link
 
@@ -131,7 +131,7 @@ add_specs suite_builder prefix connection_details pending =
             raw_connection = Database.connect connection_details
             table_name = test_root.get.name
             table = (Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]).select_into_database_table raw_connection table_name temporary=True
-            table_data_link = table.save_as_data_link (test_root.get / "table-temporary.datalink")
+            table_data_link = (table:DB_Table).save_as_data_link (test_root.get / "table-temporary.datalink")
             table_data_link.should_be_a Enso_File
             w1 = Problems.expect_only_warning Illegal_State table_data_link
             w1.to_display_text . should_contain "saved query seems to refer to tables"
@@ -145,7 +145,7 @@ add_specs suite_builder prefix connection_details pending =
                     queried_table = table
                         . set (table.at "X" * 10000 + 45) "Z"
                         . set (table.at "Y" + '...') "W"
-                    queried_table_data_link = queried_table.save_as_data_link (test_root.get / "complex-query-temporary.datalink")
+                    queried_table_data_link = (queried_table:DB_Table).save_as_data_link (test_root.get / "complex-query-temporary.datalink")
                     queried_table_data_link.should_be_a Enso_File
                     w2 = Problems.expect_only_warning Illegal_State queried_table_data_link
                     w2.to_display_text . should_contain "saved query seems to refer to tables"

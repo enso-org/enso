@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
@@ -57,9 +56,10 @@ type AWS
        icon: data_upload
        ---
        Writes the provided data to the provided AWS URI signing the request with
-       the necessary headers. Returns the response, parsing the body if the
-       content-type is recognised. Returns an error if the status code does not
-       represent a successful response.
+       the necessary headers.
+       Returns the response, parsing the body if the content-type is recognised.
+       Returns an error if the status code does not represent a successful
+       response.
 
        ## Arguments
         - `uri`: The URI to fetch.

@@ -1,16 +1,15 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.StorageListView;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.unary.NotOperation;
+
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -44,7 +43,7 @@ public final class IsInOperation {
    * @return true if the operation can be applied, false otherwise
    */
   public static boolean isSupported(Column column) {
-    var storage = BinaryOperation.getInferredStorage(column);
+    var storage = ColumnStorageWithInferredStorage.resolveStorage(column);
     var storageType = storage.getType();
     return !(storageType instanceof AnyObjectType);
   }
@@ -64,9 +63,7 @@ public final class IsInOperation {
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof Column argColumn) {
-      var argStorage = BinaryOperation.getInferredStorage(argColumn);
-      var argAsList = new StorageListView(argStorage);
-      return apply(left, new_name, argAsList, problemAggregator);
+      return apply(left, new_name, argColumn.asList(), problemAggregator);
     }
 
     if (!(arg instanceof List<?> list)) {
@@ -74,12 +71,12 @@ public final class IsInOperation {
     }
 
     if (list.isEmpty()) {
-      return new Column(new_name, (Storage<?>) BoolBuilder.makeConstant(left.getSize(), false));
+      return new Column(new_name, Builder.fromRepeatedItem(false, left.getSize()));
     }
 
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     var result = switch (leftStorage.getType()) {
-      case NullType nt -> BoolBuilder.makeEmpty(leftStorage.getSize());
+      case NullType nt -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
       case BooleanType bt -> applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
       case DateType dt -> applySpecialized(dt.asTypedStorage(leftStorage), list, dt::valueAsType, problemAggregator);
       case DateTimeType dtt -> applySpecialized(dtt.asTypedStorage(leftStorage), list, dtt::valueAsType, problemAggregator);
@@ -94,7 +91,7 @@ public final class IsInOperation {
               "Unsupported StorageType for `is_in`: " + leftStorage.getType());
     };
 
-    return new Column(new_name, (Storage<?>) result);
+    return new Column(new_name, result);
   }
 
   private static BigDecimal tryConvertingToBigDecimal(Object o, MapOperationProblemAggregator problemAggregator) {
@@ -172,8 +169,8 @@ public final class IsInOperation {
     // If the set is empty, return a constant storage
     if (result.uniqueValues.isEmpty()) {
       return result.hadNull()
-          ? BoolBuilder.makeEmpty(storage.getSize())
-          : BoolBuilder.makeConstant(storage.getSize(), false);
+          ? Builder.makeEmpty(BooleanType.INSTANCE, storage.getSize())
+          : Builder.fromRepeatedItem(false, storage.getSize());
     }
 
     // Scan the storage and build the result
@@ -183,7 +180,7 @@ public final class IsInOperation {
         Builder.getForBoolean(storage.getSize()),
         (builder, index, value) -> {
           if (value instanceof Double || value instanceof Float) {
-            problemAggregator.reportFloatingPointEquality((int)index);
+            problemAggregator.reportFloatingPointEquality(index);
           }
 
           if (contains.test(result.uniqueValues, value)) {
@@ -229,8 +226,8 @@ public final class IsInOperation {
     // If neither true nor false were found, we can return an empty or constant storage
     if (!flags.hadTrue && !flags.hadFalse) {
       return flags.hadNull
-          ? BoolBuilder.makeEmpty(boolStorage.getSize())
-          : BoolBuilder.makeConstant(boolStorage.getSize(), false);
+          ? Builder.makeEmpty(BooleanType.INSTANCE, boolStorage.getSize())
+          : Builder.fromRepeatedItem(false, boolStorage.getSize());
     }
 
     // Convert Size

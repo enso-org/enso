@@ -1,8 +1,6 @@
 private
 
 import project.Meta
-import project.Meta.Polyglot
-import project.Panic.Panic
 import project.IO
 import project.Any.Any
 import project.Data.Text.Encoding.Encoding

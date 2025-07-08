@@ -11,6 +11,7 @@ import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
 import { useBackends, useConfig, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -213,6 +214,7 @@ function EditorInternal(props: EditorInternalProps) {
   const { getText } = useText()
   const gtagEvent = gtagHooks.useGtagEvent()
   const config = useConfig()
+  const ydocUrl = useVueValue(React.useCallback(() => config.ydocUrl, [config]))
 
   const { localBackend, remoteBackend } = useBackends()
 
@@ -228,7 +230,7 @@ function EditorInternal(props: EditorInternalProps) {
 
   const jsonAddress = openedProject.jsonAddress
   const binaryAddress = openedProject.binaryAddress
-  const ydocAddress = openedProject.ydocAddress ?? config.ydocUrl ?? ''
+  const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
   const projectBackend =
     backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 

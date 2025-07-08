@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation;
 
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.binary.FillMissingOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -20,8 +20,9 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
         @Override
         protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
           return rightValue
-              ? left.fillMissingBoolean(true)
-              : BoolBuilder.makeConstant(left.getSize(), false);
+              ? FillMissingOperation.BooleanFillMissingOperation.fillMissingBoolStorage(left, true)
+              : BooleanType.INSTANCE.asTypedStorage(
+                  Builder.fromRepeatedItem(false, left.getSize()));
         }
       };
 
@@ -35,8 +36,9 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
         @Override
         protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
           return rightValue
-              ? BoolBuilder.makeConstant(left.getSize(), true)
-              : left.fillMissingBoolean(false);
+              ? BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()))
+              : FillMissingOperation.BooleanFillMissingOperation.fillMissingBoolStorage(
+                  left, false);
         }
       };
 

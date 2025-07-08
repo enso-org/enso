@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
+import * as authProvider from '$/providers/react'
 import { useText } from '$/providers/react'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -27,16 +27,16 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useNewProject } from '#/hooks/backendHooks'
+import { useCanRunProjects, useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
-import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
+import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'
 import {
   isUploadableAsset,
@@ -83,7 +83,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { localCategories } = useCategories()
 
   const getAsset = useGetAsset()
-  const canOpenProjects = projectHooks.useCanOpenProjects()
+  const canRunProjects = useCanRunProjects()
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
@@ -99,7 +99,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
-  const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
+  const disabledTooltip =
+    !canRunProjects.locally[backend.type] ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
   const newProject = useNewProject(backend, category)
@@ -156,8 +157,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
-
-  const enableHybridExecution = featureFlagsProvider.useFeatureFlag('enableHybridExecution')
 
   const pasteMenuEntry = hasPasteData && canPaste && (
     <ContextMenuEntry
@@ -249,17 +248,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               bindingFocusScope={rootRef}
               hidden={hidden}
               action="open"
-              isDisabled={!canOpenProjects}
+              isDisabled={!canRunProjects.locally[backend.type]}
               tooltip={disabledTooltip}
               doAction={() => openProjectLocally(asset, backend.type)}
             />
           )}
-        {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
+        {asset.type === backendModule.AssetType.project && isCloud && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
             hidden={hidden || localBackend == null}
             action="run"
-            isDisabled={!canOpenProjects}
+            isDisabled={!canRunProjects.natively[backend.type]}
             tooltip={disabledTooltip}
             doAction={() => openProjectNatively(asset, backend.type)}
           />

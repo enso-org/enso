@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Aggregate_Column, Value_Type
+from Standard.Table import Aggregate_Column, Value_Type, Table
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
@@ -22,10 +22,8 @@ import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
-import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
@@ -37,7 +35,7 @@ import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
-from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Errors import Unsupported_Database_Operation
 from project.Feature import Feature
 from project.Internal.JDBC_Connection import JDBC_Connection
 
@@ -140,7 +138,7 @@ type SQLite_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
@@ -226,7 +224,7 @@ type SQLite_Dialect
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->c.expression))
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->(c:Internal_Column).expression))
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
@@ -386,7 +384,7 @@ type SQLite_Dialect
        number column in a subquery and compute the result based on that.
     custom_build_aggregate self =
         create_row_number_for orderings key_columns =
-            order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
+            order_descriptors = orderings.map o-> self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
             key_expressions_for_orderings = key_columns.map .expression
             expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
             Pair.new "row-number" expression

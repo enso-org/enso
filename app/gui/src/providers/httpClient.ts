@@ -1,5 +1,5 @@
 import HttpClient from '#/utilities/HttpClient'
-import { createContextStore } from '@/providers'
+import { createGlobalState } from '@vueuse/core'
 
 function generateSessionID() {
   const sessionID = sessionStorage.getItem('sessionID')
@@ -12,11 +12,17 @@ function generateSessionID() {
   return newSessionID
 }
 
-export const [provideHttpClient, useHttpClient] = createContextStore('http-client', () => {
+function createHttpClient() {
   const sessionID = generateSessionID()
-  const httpClient = new HttpClient({
+  return new HttpClient({
     'x-enso-ide-version': $config.VERSION ?? '',
     'x-enso-session-id': sessionID,
+    /**
+     * For compatibility with backend versioned endpoints. The new project logs endpoint
+     * checks for date strings that are at least `2025-01-16`.
+     */
+    'x-enso-version': '2025-01-16',
   })
-  return httpClient
-})
+}
+
+export const useHttpClient = createGlobalState(createHttpClient)

@@ -123,7 +123,7 @@ public class UpdatesSynchronizationState {
   /**
    * Marks the given visualization update as unsynchronized.
    *
-   * @param key the expression id.
+   * @param key the visualization id.
    */
   @CompilerDirectives.TruffleBoundary
   public void setVisualizationUnsync(UUID key) {
@@ -135,11 +135,14 @@ public class UpdatesSynchronizationState {
   /**
    * Marks the given visualization update as synchronized.
    *
-   * @param key the expression id.
+   * @param key the visualization id.
    */
-  public void setVisualizationSync(UUID key) {
+  public void runAndSetVisualizationSync(UUID key, Runnable runnable) {
     synchronized (visualizationsState) {
-      visualizationsState.add(key);
+      runnable.run();
+      if (!visualizationsState.contains(key)) {
+        visualizationsState.add(key);
+      }
     }
   }
 

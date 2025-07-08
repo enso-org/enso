@@ -5,14 +5,12 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 
-from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
-from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
+from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits, expr
+from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
-import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Feature.Feature
 import Standard.Database.Dialect_Flag.Dialect_Flag
-import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
@@ -36,7 +34,6 @@ from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
 import enso_dev.Table_Tests
@@ -294,7 +291,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t = data.connection.query (SQL_Query.Table_Name data.tinfo)
             code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM (SELECT DISTINCT ON ("{Tinfo}_inner"."strs") "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."doubles" AS "doubles" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."doubles" AS "doubles" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner") AS "{Tinfo}"'
             expected_code = code_template.replace "{Tinfo}" data.tinfo
-            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
+            (t.distinct ["strs"] : DB_Table) . to_sql . prepare . should_equal [expected_code, []]
 
     suite_builder.group "[PostgreSQL] Table.aggregate should correctly infer result types, and the resulting values should be of the correct type" group_builder->
         data = Postgres_Aggregate_Data.setup create_connection_fn
@@ -756,7 +753,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =

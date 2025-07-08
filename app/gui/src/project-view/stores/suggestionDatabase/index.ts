@@ -16,8 +16,9 @@ import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
+import { proxyRefs } from '@/util/reactivity'
 import { filter } from 'enso-common/src/utilities/data/iter'
-import { computed, markRaw, proxyRefs, readonly, ref } from 'vue'
+import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
@@ -67,10 +68,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
   }
 
-  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+  selectableTypes = computed(() => {
     const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
-    const filteredTypes = filter(allTypeEntries, isUserSelectableType)
-    return Array.from(filteredTypes, (ty) => ExpressionTag.FromEntry(this, ty))
+    return [...filter(allTypeEntries, isUserSelectableType)]
+  })
+
+  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+    return Array.from(this.selectableTypes.value, (ty) => ExpressionTag.FromEntry(this, ty))
   })
 
   /** Look up an entry by its path within a project */

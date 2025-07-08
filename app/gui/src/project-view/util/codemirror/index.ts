@@ -11,8 +11,10 @@ import { CmEventExt, extendCmEvent, keyBindings } from '@/util/codemirror/keymap
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
+import type { Vec2 } from '@/util/data/vec2'
 import { elementHierarchy } from '@/util/dom'
 import { type ToValue } from '@/util/reactivity'
+import type { AnyHandlerEvent } from '@/util/shortcuts'
 import {
   Compartment,
   EditorState,
@@ -30,8 +32,8 @@ import { createDebouncer } from 'lib0/eventloop.js'
 import {
   type ComponentInstance,
   computed,
-  isRef,
   onUnmounted,
+  ref,
   toValue,
   watch,
   type WatchSource,
@@ -40,7 +42,6 @@ import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 import * as Y from 'yjs'
-import { AnyHandlerEvent } from '../shortcuts'
 
 function disableEditContextApi() {
   ;(EditorView as any).EDIT_CONTEXT = false
@@ -54,8 +55,6 @@ export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
 export type Getter<T> = () => T
 
 interface CodeMirrorOptions {
-  /** If a value is provided, the editor state will be synchronized with it. */
-  content?: ToValue<string | Y.Text>
   placeholder?: ToValue<string>
   /** CodeMirror {@link Extension}s to include in the editor's initial state. */
   extensions?: Extension
@@ -65,34 +64,38 @@ interface CodeMirrorOptions {
   vueHost?: WatchSource<VueHost | undefined>
   /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
   contentTestId?: string | undefined
-  readonly?: boolean
+  /** If provided, the element with class `cm-scroller` will also have the given `data-testid`. */
+  scrollerTestId?: string | undefined
+  readonly?: ToValue<boolean>
   lineMode: ToValue<LineMode>
 }
 
-/** Creates a CodeMirror editor instance, and sets its initial state. */
+/**
+ * Creates a CodeMirror editor instance.
+ *
+ * The editor will be empty. To set and synchronize its contents, use proper extension, like
+ * {@link useStringSync}, {@link yCollab} or {@link useYTextSync}. If they require {@link EditorView},
+ * they may be attached with `setExtraExtensions` method.
+ */
 export function useCodeMirror(
   editorRoot: ToValue<ComponentInstance<typeof CodeMirrorRoot> | null>,
   {
-    content,
     placeholder: placeholderText,
     extensions,
     vueHost,
     contentTestId,
-    readonly: isReadonly,
+    scrollerTestId,
+    readonly,
     lineMode,
   }: CodeMirrorOptions,
 ) {
   const dispatch = { dispatch: (...specs: TransactionSpec[]) => view.dispatch(...specs) }
-  const readonly = computed(
-    () => isReadonly ?? (!!content && !isRef(content) && typeof toValue(content) === 'string'),
-  )
   const readonlyExt = useCompartment(dispatch, () =>
     toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
   )
   const placeholderExt =
     placeholderText ? useCompartment(dispatch, () => placeholder(toValue(placeholderText))) : []
   const { bindingsExt } = useBindings()
-  const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
   const bindingsCompartment = useCompartment(dispatch, () => keyBindings(toValue(lineMode)))
   const singleLineState = computed(() => {
@@ -111,7 +114,6 @@ export function useCodeMirror(
         placeholderExt,
         bindingsCompartment,
         themeCompartment,
-        sync?.syncExt ?? [],
         extrasCompartment.of([]),
         extensions ?? [],
       ],
@@ -126,21 +128,10 @@ export function useCodeMirror(
   )
 
   if (contentTestId != null) view.contentDOM.dataset['testid'] = contentTestId
+  if (scrollerTestId != null) view.scrollDOM.dataset['testid'] = scrollerTestId
   onUnmounted(view.destroy.bind(view))
 
   if (vueHost) useStateEffect(view, setVueHost, vueHost)
-  sync?.connectSync(view)
-
-  /**
-   * Replace text in given document range with `text`, putting text cursor after inserted text.
-   */
-  function putTextAt(text: string, from: number, to: number) {
-    const insert = Text.of(text.split(LINE_BOUNDARIES))
-    view.dispatch({
-      changes: { from, to, insert },
-      selection: { anchor: from + insert.length },
-    })
-  }
 
   const extraExtsDebouncer = createDebouncer(0)
 
@@ -171,12 +162,6 @@ export function useCodeMirror(
         }),
       )
     },
-    /**
-     * When `useCodeMirror` is configured to set up synchronization by passing the `content`
-     * argument, this value tracks whether the content synchronized with the document is writable.
-     */
-    readonly,
-    putTextAt,
     /** The DOM element containing the editor's content. */
     contentElement: view.contentDOM,
   }
@@ -226,6 +211,7 @@ function useBindings() {
 export function useStringSync() {
   const textEditCallbacks: ((text: string) => void)[] = []
   const userActionCallbacks: ((text: string, selection: SelectionRange) => void)[] = []
+
   return {
     syncExt: EditorView.updateListener.of((update) => {
       const textEdit = update.transactions.some(
@@ -265,29 +251,24 @@ export function useStringSync() {
       function onUserAction(callback: (text: string, selection: SelectionRange) => void): void {
         userActionCallbacks.push(callback)
       }
-
-      return {
-        getText,
-        setText,
-        onTextEdited,
-        onUserAction,
-      }
+      return { getText, setText, onTextEdited, onUserAction }
     },
   }
 }
 
-function useYTextOrReadonlySync(content: ToValue<string | Y.Text>) {
+/** An extension synchronizing CM with a Y.Text node in the ref. */
+export function useYTextSync(content: ToValue<Y.Text | undefined>) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
   function sync() {
     const contentValue = toValue(content)
-    if (typeof contentValue === 'string') {
-      return { text: contentValue, extensions: [] }
-    } else {
+    if (contentValue != null) {
       assert(contentValue.doc !== null)
       const yTextWithDoc: Y.Text & { doc: Y.Doc } = contentValue as any
       return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness) }
+    } else {
+      return { text: '', extensions: [] }
     }
   }
 
@@ -307,7 +288,7 @@ function useYTextOrReadonlySync(content: ToValue<string | Y.Text>) {
 
   return {
     syncExt: syncCompartment.of([]),
-    connectSync: (view: EditorView) =>
+    connectSync: (view: EditorView) => {
       useDispatch(
         view,
         () => applySync(view.state, sync()),
@@ -317,7 +298,8 @@ function useYTextOrReadonlySync(content: ToValue<string | Y.Text>) {
           view.dispatch({
             effects: syncCompartment.reconfigure([]),
           }),
-      ),
+      )
+    },
   }
 }
 
@@ -381,3 +363,55 @@ export const selectOnMouseFocus = [
     return tr
   }),
 ]
+
+/**
+ * Replace text in given document range with `text`, putting text cursor after inserted text.
+ */
+export function putTextAt(view: EditorView, text: string, from: number, to: number) {
+  const insert = Text.of(text.split(LINE_BOUNDARIES))
+  view.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: from + insert.length },
+  })
+}
+
+/**
+ * Insert text at cursor or replacing any selection, putting text cursor after inserted text.
+ */
+export function putText(view: EditorView, text: string) {
+  const range = view.state.selection.main
+  putTextAt(view, text, range.from, range.to)
+}
+
+/** Insert text at the given position in the editor. */
+export function putTextAtCoords(view: EditorView, text: string, coords: Vec2) {
+  const pos = view.posAtCoords(coords, false)
+  putTextAt(view, text, pos, pos)
+}
+
+/**
+ * @returns the editor's reactive focused state, maintained by attaching the returned event handlers
+ * to the editor's root element.
+ * This implements a focus state that differs from the DOM focus of any particular element. It
+ * exhibits some hysteresis: When the scrollbar is clicked, the computed focus state doesn't change.
+ * Thus, this should be used in lieu of the element's focus when the rendering of the editor's
+ * content is focus-dependent in a way that may affect its size.
+ */
+export function useEditorFocus(view: EditorView) {
+  const focused = ref(false)
+  const focusHandlers = {
+    focusin: (event: FocusEvent) => {
+      // Enable rendering the line containing the current cursor in `editing` mode if focus enters
+      // the element *inside* the scroll area--if we handled the event for the editor root, clicking
+      // the scrollbar would cause editing mode to be activated.
+      if (event.target instanceof Node && view.contentDOM.contains(event.target))
+        focused.value = true
+    },
+    focusout: () => {
+      // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
+      // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
+      focused.value = false
+    },
+  }
+  return { focused, focusHandlers }
+}

@@ -3,7 +3,6 @@ package org.enso.table.data.column.operation.text;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.BinaryOperationBase;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -38,7 +37,7 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
   @Override
   protected ColumnStorage<String> applyNullMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    return StringBuilder.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
+    return Builder.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
   }
 
   @Override
@@ -51,7 +50,7 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
     }
 
     if (rightValue == null) {
-      return StringBuilder.makeEmpty(textType, left.getSize());
+      return Builder.makeEmpty(textType, left.getSize());
     }
 
     if (!NumericConverter.isCoercibleToLong(rightValue)) {
@@ -60,7 +59,7 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
     long right = NumericConverter.coerceToLong(rightValue);
 
     return StorageIterators.mapOverStorage(
-        textType.asTypedStorage(left),
+        left,
         Builder.getForText(textType, left.getSize()),
         (index, value) -> function.apply(value, right));
   }

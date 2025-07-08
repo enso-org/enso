@@ -1,5 +1,5 @@
 <script lang="ts">
-import { injectOpenedProjects, OpenedProject } from '$/providers/openedProjects'
+import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
 import { colorFromString } from '@/util/colors'
@@ -39,7 +39,7 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
   },
 )
 
-export { useCurrentProject as injectCurrentProject }
+export { useCurrentProject }
 
 function useStoreTemplate<K extends keyof OpenedProject>(
   storeKey: K,

@@ -263,3 +263,12 @@ type Invariant_Violation
     to_display_text : Text
     to_display_text self =
         "The database has been modified between the time the query was prepared and executed, leading to possibly incorrect results. Please re-run the workflow to retry."
+
+## Indicates that some operation is implicitly materializing a Database query
+   and reading its results.
+type Implicit_DB_Table_Read
+    private Warning operation_name
+
+    ## PRIVATE
+    to_display_text self -> Text =
+        "The "+self.operation_name+" operation has implicitly materialized a Database query. This may be a costly operation so it is recommened to `.read` the query into memory explicitly and performing such operations afterwards."

@@ -6,4 +6,5 @@ import org.graalvm.polyglot.Value;
 
 /** Indicates that a text value did not match the format expected of a datatype. */
 public record InvalidFormat(
-    String column, Value expectedEnsoValueType, int count, List<String> cells) implements Problem {}
+    String column, Value expectedEnsoValueType, long count, List<String> cells)
+    implements Problem {}

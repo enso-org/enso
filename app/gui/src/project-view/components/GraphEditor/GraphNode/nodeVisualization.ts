@@ -1,6 +1,7 @@
 import type GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { type RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { injectKeyboard } from '@/providers/keyboard'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
@@ -21,11 +22,10 @@ interface Emit {
 interface NodeVisualizationOptions {
   vis: ToValue<Opt<VisualizationMetadata>>
   nodeHovered: ToValue<boolean>
-  isComponentMenuVisible: ToValue<boolean>
   nodeRect: ToValue<Rect>
   scale: ToValue<number>
   isFocused: ToValue<boolean>
-  typename: ToValue<Opt<string>>
+  typeinfo: ToValue<Opt<TypeInfo>>
   dataSource: ToValue<Opt<VisualizationDataSource | RawDataSource>>
   emit: Emit
 }
@@ -34,11 +34,10 @@ interface NodeVisualizationOptions {
 export function useNodeVisualization({
   vis,
   nodeHovered,
-  isComponentMenuVisible,
   nodeRect,
   scale,
   isFocused,
-  typename,
+  typeinfo,
   dataSource,
   emit,
 }: NodeVisualizationOptions) {
@@ -82,10 +81,10 @@ export function useNodeVisualization({
       nodeSize,
       scale: toValue(scale),
       nodePosition,
-      isComponentMenuVisible: toValue(isComponentMenuVisible),
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
-      typename: toValue(typename) ?? undefined,
+      typename: toValue(typeinfo)?.primaryType ?? undefined,
+      typeinfo: toValue(typeinfo) ?? undefined,
       height: visualizationHeight.value,
       isFocused: toValue(isFocused),
       isPreview: isVisualizationPreviewed.value,
@@ -96,6 +95,7 @@ export function useNodeVisualization({
       'onUpdate:id': (event) => emit('update:visualizationId', event),
       'onUpdate:enabled': (event) => emit('update:visualizationEnabled', event),
       'onUpdate:height': (event) => emit('update:visualizationHeight', event),
+      'onUpdate:width': (event) => (visualizationWidth.value = event),
     }
   })
 

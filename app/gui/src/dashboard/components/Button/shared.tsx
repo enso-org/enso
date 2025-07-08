@@ -89,17 +89,13 @@ export function ResetButtonGroupContext(props: PropsWithChildren) {
   )
 }
 
-/**
- * Hook to use the button group context
- */
+/** Hook to use the button group context */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useButtonGroupContext() {
   return useContext(ButtonGroupContext)
 }
 
-/**
- * Hook to merge button styles with the button group context
- */
+/** Hook to merge button styles with the button group context */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useMergedButtonStyles<Props extends ButtonVariants>(props: Props) {
   const context = useButtonGroupContext()
@@ -112,9 +108,7 @@ const JoinedButtonPrivateContext = createContext<PrivateJoinedButtonProps>({
   position: undefined,
 })
 
-/**
- * A provider for the joined button private context
- */
+/** A provider for the joined button private context. */
 export function JoinedButtonPrivateContextProvider(
   props: PrivateJoinedButtonProps & PropsWithChildren,
 ) {
@@ -127,17 +121,13 @@ export function JoinedButtonPrivateContextProvider(
   )
 }
 
-/**
- * Hook to get the joined button private context
- */
+/** Hook to get the joined button private context. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useJoinedButtonPrivateContext() {
   return useContext(JoinedButtonPrivateContext)
 }
 
-/**
- * Hook to get the button context
- */
+/** Hook to get the button context. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useButtonContext() {
   return useContext(ButtonContext)

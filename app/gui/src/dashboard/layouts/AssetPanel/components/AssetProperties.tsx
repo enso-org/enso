@@ -1,9 +1,8 @@
 /** @file Display and modify the properties of an asset. */
-import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
 import { Button, CopyButton } from '#/components/Button'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
-import { ResizableContentEditableInput } from '#/components/Inputs'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Text } from '#/components/Text'
@@ -16,8 +15,6 @@ import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { SharedWithColumn } from '#/pages/dashboard/components/column'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import Label from '#/pages/dashboard/components/Label'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import {
   AssetType,
@@ -31,7 +28,13 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import { useFeatureFlags } from '$/providers/react/featureFlags'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
@@ -46,26 +49,29 @@ const ASSET_PROPERTIES_VARIANTS = tv({
 /** Display and modify the properties of an asset. */
 export function AssetProperties() {
   const { remoteBackend } = useBackends()
-  const rightPanel = useRightPanelData()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
   const { getText } = useText()
-  const isReadonly = rightPanel.context?.category?.type === 'trash'
+  const isReadonly = category?.type === 'trash'
 
-  if (rightPanel.context?.category?.backend !== BackendType.remote) {
+  if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (rightPanel.focusedAsset == null) {
+  if (focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
-    <AssetPropertiesInternal
-      key={rightPanel.focusedAsset.id}
-      backend={remoteBackend}
-      item={rightPanel.focusedAsset}
-      isReadonly={isReadonly}
-      category={rightPanel.context.category}
-    />
+    <ErrorBoundary>
+      <AssetPropertiesInternal
+        key={focusedAsset.id}
+        backend={remoteBackend}
+        item={focusedAsset}
+        isReadonly={isReadonly}
+        category={category}
+      />
+    </ErrorBoundary>
   )
 }
 
@@ -82,6 +88,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
   const rightPanel = useRightPanelData()
+  const spotlightOn = useVueValue(
+    React.useCallback(() => rightPanel.context?.spotlightOn, [rightPanel]),
+  )
 
   const closeSpotlight = useEventCallback(() => {
     rightPanel.updateContext('drive', (ctx) => {
@@ -92,22 +101,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
-  const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription =
-    isEditingDescriptionRaw || rightPanel.context?.spotlightOn === 'description'
-  const setIsEditingDescription = useEventCallback(
-    (valueOrUpdater: React.SetStateAction<boolean>) => {
-      setIsEditingDescriptionRaw((currentValue) => {
-        if (typeof valueOrUpdater === 'function') {
-          valueOrUpdater = valueOrUpdater(currentValue)
-        }
-        if (!valueOrUpdater) {
-          closeSpotlight()
-        }
-        return valueOrUpdater
-      })
-    },
-  )
   const featureFlags = useFeatureFlags()
   const datalinkQuery = useQuery(
     backendQueryOptions(
@@ -123,16 +116,12 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       },
     ),
   )
-  const descriptionSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'description',
-    close: closeSpotlight,
-  })
   const secretSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'secret',
+    enabled: spotlightOn === 'secret',
     close: closeSpotlight,
   })
   const datalinkSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'datalink',
+    enabled: spotlightOn === 'datalink',
     close: closeSpotlight,
   })
 
@@ -147,85 +136,15 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
-  const editDescriptionMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', { mutationKey: ['editDescription'] }),
-  )
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
-  const displayedDescription =
-    editDescriptionMutation.variables?.[0] === item.id ?
-      (editDescriptionMutation.variables[1].description ?? item.description)
-    : item.description
   const ownerPermission = permissions.tryGetOwnerPermission(item)
-
-  const editDescriptionForm = Form.useForm({
-    schema: (z) => z.object({ description: z.string() }),
-    defaultValues: { description: item.description ?? '' },
-    onSubmit: async ({ description }) => {
-      if (description !== item.description) {
-        await editDescriptionMutation.mutateAsync([
-          item.id,
-          { parentDirectoryId: null, description, title: null },
-          item.title,
-        ])
-      }
-      setIsEditingDescription(false)
-    },
-  })
-  const resetEditDescriptionForm = editDescriptionForm.reset
-
-  React.useEffect(() => {
-    setIsEditingDescription(false)
-  }, [item.id, setIsEditingDescription])
-
-  React.useEffect(() => {
-    resetEditDescriptionForm({ description: item.description ?? '' })
-  }, [item.description, resetEditDescriptionForm])
 
   return (
     <div className="flex w-full flex-col gap-8">
-      {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}
-      <div className={styles.section()} {...descriptionSpotlight.props}>
-        <Heading
-          level={2}
-          className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
-        >
-          {getText('description')}
-          {!isReadonly && ownsThisAsset && !isEditingDescription && (
-            <Button
-              size="medium"
-              variant="icon"
-              icon={PenIcon}
-              loading={editDescriptionMutation.isPending}
-              onPress={() => {
-                setIsEditingDescription(true)
-              }}
-            />
-          )}
-        </Heading>
-        <div
-          data-testid="asset-panel-description"
-          className="self-stretch py-side-panel-description-y"
-        >
-          {!isEditingDescription ?
-            <Text>{displayedDescription}</Text>
-          : <Form form={editDescriptionForm} className="flex flex-col gap-modal pr-4">
-              <ResizableContentEditableInput
-                autoFocus
-                form={editDescriptionForm}
-                name="description"
-                mode="onBlur"
-              />
-              <Button.Group>
-                <Form.Submit>{getText('update')}</Form.Submit>
-              </Button.Group>
-            </Form>
-          }
-        </div>
-      </div>
 
       {isCloud && (
         <div className={styles.section()}>

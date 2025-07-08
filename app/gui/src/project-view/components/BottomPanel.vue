@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
-import FullscreenButton from '@/components/FullscreenButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
@@ -52,9 +51,9 @@ const style = computed(() =>
       :style="style"
       data-testid="bottomDock"
     >
-      <WithFullscreenMode :fullscreen="fullscreen" @update:animating="fullscreenAnimating = $event">
-        <FullscreenButton
-          v-model="fullscreen"
+      <WithFullscreenMode v-model="fullscreen" @update:animating="fullscreenAnimating = $event">
+        <ActionButton
+          action="panel.fullscreen"
           class="gutterButton topOfGutter"
           :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
         />

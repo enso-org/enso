@@ -1,5 +1,4 @@
 /** @file A toolbar containing chat and the user menu. */
-import { SUBSCRIBE_PATH } from '#/appUtils'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
@@ -13,10 +12,10 @@ import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json'
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
-import { useText } from '$/providers/react'
+import { SUBSCRIBE_PATH } from '$/appUtils'
+import { useFullUserSession, useText } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
@@ -202,31 +201,13 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
               </Button.GroupJoin>
             )
           }
-        } else {
-          return (
-            <Menu.Trigger key={item.name}>
-              <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
-              <Menu placement="bottom right">
-                {item.menu.map((menuItem) => (
-                  <Menu.Item
-                    key={menuItem.name}
-                    href={menuItem.url}
-                    {...getSafetyProps(menuItem.url)}
-                  >
-                    {getText(menuItem.name)}
-                  </Menu.Item>
-                ))}
-              </Menu>
-            </Menu.Trigger>
+          return (
+            <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
+              {getText(item.name)}
+            </Button>
           )
         }
-
-        return (
-          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
-            {getText(item.name)}
-          </Button>
-        )
       })}
     </Button.Group>
   )

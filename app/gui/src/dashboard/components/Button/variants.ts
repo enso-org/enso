@@ -29,7 +29,7 @@ export const BUTTON_STYLES = tv({
   ],
   variants: {
     isDisabled: {
-      true: 'opacity-50 cursor-not-allowed',
+      true: 'opacity-20 cursor-not-allowed',
     },
     isFocused: {
       true: 'focus:outline-none focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-[-2px]',
@@ -37,7 +37,7 @@ export const BUTTON_STYLES = tv({
     isActive: {
       none: '',
       false:
-        'disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75',
+        'disabled:opacity-20 [&.disabled]:opacity-20 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-90 hover:opacity-75',
       true: 'opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default',
     },
     isPressed: {
@@ -151,7 +151,7 @@ export const BUTTON_STYLES = tv({
       'delete-outline':
         'border-danger/40 hover:border-danger hover:bg-danger/10 text-danger focus-visible:outline-danger focus-visible:border-danger',
       icon: {
-        base: 'text-primary opacity-80 hover:opacity-100 focus-visible:opacity-100',
+        base: 'text-primary opacity-90 hover:bg-white/100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',

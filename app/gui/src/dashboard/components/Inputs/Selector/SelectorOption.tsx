@@ -13,8 +13,7 @@ export interface SelectorOptionProps
   readonly label: string
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const SELECTOR_OPTION_STYLES = tv({
+const SELECTOR_OPTION_STYLES = tv({
   base: 'flex flex-1 w-full cursor-pointer',
   variants: {
     rounded: {

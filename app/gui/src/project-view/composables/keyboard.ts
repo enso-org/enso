@@ -1,5 +1,6 @@
 import { isMacLike, useEvent } from '@/composables/events'
-import { proxyRefs, ref } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { ref } from 'vue'
 
 /** {@link useKeyboard} composable object */
 export type KeyboardComposable = ReturnType<typeof useKeyboard>

@@ -3,17 +3,13 @@ from Standard.Base import all
 import project.Util
 from project.Util import all
 
-import Standard.Base.Errors.Common.Arithmetic_Error
-import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
 from Standard.Database.Errors import all
 import Standard.Database.Feature.Feature
 
-from Standard.Table import Column, Table, Value_Type, Auto, Bits
-from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
+from Standard.Table import Column, Table
+from Standard.Table.Errors import Invalid_Value_Type
 from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
 from Standard.Test import all

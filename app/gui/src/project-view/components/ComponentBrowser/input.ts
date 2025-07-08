@@ -19,8 +19,9 @@ import { Err, Ok, type Result } from '@/util/data/result'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import { type ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
+import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
-import { computed, proxyRefs, readonly, ref, shallowRef, type ComputedRef } from 'vue'
+import { computed, readonly, ref, shallowRef, type ComputedRef } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
 /** Information how the component browser is used, needed for proper input initializing. */
@@ -140,15 +141,9 @@ export function useComponentBrowserInput(
     const definition = graphDb.getIdentDefiningNode(sourceNodeIdentifier.value)
     if (definition == null) return null
     const info = graphDb.getExpressionInfo(definition)
-    if (info == null) return { type: 'unknown' }
-    const { typename, hiddenTypes } = info
-    const additionalTypes = [...hiddenTypes]
-    const ancestors = []
-    if (typename != null) {
-      const entry = suggestionDb.getEntryByProjectPath(typename)
-      if (entry) ancestors.push(...suggestionDb.ancestors(entry))
-    }
-    return typename ? { type: 'known', typename, additionalTypes, ancestors } : { type: 'unknown' }
+    if (info == null || info.typeInfo == null) return { type: 'unknown' }
+    const ancestors = [...info.typeInfo.ancestors(suggestionDb)]
+    return { type: 'known', typeInfo: info.typeInfo, ancestors }
   })
 
   /** Apply given suggested entry to the input. */
@@ -183,10 +178,10 @@ export function useComponentBrowserInput(
     requiredImport: ProjectPath | undefined
   } {
     if (sourceNodeIdentifier.value && sourceNodeType.value?.type === 'known') {
-      const sourceType = sourceNodeType.value.typename
+      const sourceTypes = sourceNodeType.value.typeInfo.visibleTypes
       if (
         entryHasOwner(entry) &&
-        !sourceType.equals(entry.memberOf) &&
+        !sourceTypes.find((type) => type.equals(entry.memberOf)) &&
         !sourceNodeType.value.ancestors.find((ancestor) => ancestor.equals(entry.memberOf)) &&
         !entry.memberOf.equals(ANY_TYPE)
       ) {

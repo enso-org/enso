@@ -1,13 +1,11 @@
 package org.enso.table.data.column.operation.unary;
 
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
@@ -32,10 +30,13 @@ public class NotOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    if (storage.getType() instanceof NullType) {
+      return applySpecializedNullStorage(storage);
+    }
+
     return switch (storage) {
       case BoolStorage boolStorage -> applySpecializedBoolStorage(boolStorage);
       case ColumnBooleanStorage columnBooleanStorage -> applyOverBooleans(columnBooleanStorage);
-      case NullStorage nullStorage -> applySpecializedNullStorage(nullStorage);
       default -> StorageIterators.buildOverStorage(
           storage,
           Builder.getForBoolean(storage.getSize()),
@@ -66,6 +67,7 @@ public class NotOperation implements UnaryOperation {
   }
 
   public static ColumnBooleanStorage applySpecializedNullStorage(ColumnStorage<?> storage) {
-    return BoolBuilder.makeEmpty(storage.getSize());
+    return BooleanType.INSTANCE.asTypedStorage(
+        Builder.makeEmpty(BooleanType.INSTANCE, storage.getSize()));
   }
 }

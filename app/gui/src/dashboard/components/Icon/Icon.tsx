@@ -18,15 +18,11 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { memo } from 'react'
 import SvgMask from '../SvgMask'
 
-/**
- * Props for {@link Icon}.
- */
+/** Props for {@link Icon}. */
 export type IconProps<Render = never> = BaseIconProps<Render> &
   (LegacyIconProps<string, Render> | SvgUseIconProps<Render>)
 
-/**
- * Base props for all icon types.
- */
+/** Base props for all icon types. */
 interface BaseIconProps<Render = never> extends VariantProps<typeof ICON_STYLES>, TestIdProps {
   readonly className?: string | undefined
   readonly renderProps?: Render

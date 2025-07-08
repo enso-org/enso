@@ -1,5 +1,4 @@
 /** @file The directory header bar and directory item listing. */
-import * as appUtils from '#/appUtils'
 import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
@@ -13,12 +12,13 @@ import CategorySwitcher from '#/layouts/CategorySwitcher'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import * as authProvider from '#/providers/AuthProvider'
 import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
+import * as appUtils from '$/appUtils'
+import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import * as React from 'react'
 import { useDeferredValue } from 'react'
@@ -64,8 +64,17 @@ function Drive(props: DriveProps) {
               {getText('upgrade')}
             </Button>
 
-            {!supportLocalBackend && (
+            {supportLocalBackend ?
               <Button
+                size="medium"
+                variant="primary"
+                onPress={() => {
+                  setCategory('local')
+                }}
+              >
+                {getText('switchToLocal')}
+              </Button>
+            : <Button
                 data-testid="download-free-edition"
                 size="medium"
                 variant="accent"
@@ -80,7 +89,7 @@ function Drive(props: DriveProps) {
               >
                 {getText('downloadFreeEdition')}
               </Button>
-            )}
+            }
           </Button.Group>
         </result.Result>
       )

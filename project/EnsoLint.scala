@@ -72,7 +72,17 @@ class EnsoLint(
         }
         s"import ${namespace}.${project.name}"
       }
-      val code     = imports.mkString("\n")
+      // The imports must be used, so that the unused imports pass will not generate warnings.
+      // We use it in a vector from a `foo` method.
+      val projNames = projects.map(_.name)
+      val code =
+        s"""
+           |${imports.mkString("\n")}
+           |
+           |foo =
+           |    vec = [${projNames.mkString(", ")}]
+           |    vec
+           |""".stripMargin
       val codeFile = aggregateProjectPath / "src" / "Main.enso"
       IO.write(codeFile, code)
       action(aggregateProjectPath)

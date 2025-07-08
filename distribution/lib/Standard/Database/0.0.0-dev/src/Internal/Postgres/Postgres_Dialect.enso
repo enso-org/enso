@@ -4,11 +4,10 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-import Standard.Table.Internal.Vector_Builder.Vector_Builder
-from Standard.Table import Aggregate_Column, Column, Value_Type
+import Standard.Table.In_Memory_Column.In_Memory_Column
+from Standard.Table import Aggregate_Column, Column, Value_Type, Table
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
-from Standard.Table.Internal.Storage import get_storage_for_column
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -23,11 +22,9 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
-import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.Internal.Replace_Params.Replace_Params
@@ -40,7 +37,7 @@ import project.SQL.SQL_Fragment
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
-from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Errors import Unsupported_Database_Operation
 from project.Feature import Feature
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from project.Internal.JDBC_Connection import JDBC_Connection
@@ -129,7 +126,7 @@ type Postgres_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
@@ -221,8 +218,8 @@ type Postgres_Dialect
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
-        is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
-        is_int ic =
+        is_int8 ic:Internal_Column = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic:Internal_Column =
             typeid = ic.sql_type_reference.get.typeid
             typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
 
@@ -244,7 +241,7 @@ type Postgres_Dialect
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->c.expression))
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->(c:Internal_Column).expression))
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
@@ -353,7 +350,7 @@ type Postgres_Dialect
                     # We cannot have a specified scale and no precision, so special handling is needed for this:
                     case precision.is_nothing && scale.is_nothing.not of
                         True ->
-                            needed_precision = (get_storage_for_column column).getMaxPrecisionStored
+                            needed_precision = (column:In_Memory_Column).max_precision
                             new_type = case needed_precision <= 1000 of
                                 # If the precision is small enough that our number will fit, we create a column with maximum supported precision.
                                 True -> Value_Type.Decimal 1000 scale
@@ -592,7 +589,7 @@ right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
 ## PRIVATE
-make_order_descriptor internal_column sort_direction text_ordering =
+make_order_descriptor internal_column:Internal_Column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
         Sort_Direction.Descending -> Nulls_Order.Last
@@ -654,7 +651,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
@@ -697,7 +694,7 @@ replace args metadata =
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
-        DB_Column ->
+        Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->

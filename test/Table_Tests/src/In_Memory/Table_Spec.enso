@@ -7,14 +7,14 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Debug
 
-from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Blank_Selector, Value_Type, Auto
-from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Invalid_Value_Type, Row_Count_Mismatch
+from Standard.Table import Table, Column, Aggregate_Column, Blank_Selector, Value_Type, Auto
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Such_Column, Row_Count_Mismatch
 
 import Standard.Visualization
 
-import Standard.Database.Extensions.Upload_Database_Table
-import Standard.Database.Extensions.Upload_In_Memory_Table
-from Standard.Database import Database, SQLite
+import Standard.Database.Extensions.Upload_Table
+import Standard.Database.Connection.Database
+import Standard.Database.Connection.SQLite.SQLite
 
 from Standard.Test import all
 
@@ -411,6 +411,12 @@ add_specs suite_builder =
             i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
+            i.at "# Nothing" . to_vector . should_equal [1, 2, 0]
+            i.at "# Distinct" . to_vector . should_equal [2, 2, 4]
+            i.at "Minimum" . to_vector . should_equal ["a", 1, Nothing]
+            i.at "Maximum" . to_vector . should_equal ["b", 2, Nothing]
+            i.at "# Empty" . to_vector . should_equal [0, Nothing, Nothing]
+            i.at "Types and Counts" . to_vector . should_equal [Nothing, Nothing, 'Char: 2\nInteger: 1\nOther: 1']
 
     suite_builder.group "Sorting Tables" group_builder->
         group_builder.specify 'should respect defined comparison operations for custom types' <|

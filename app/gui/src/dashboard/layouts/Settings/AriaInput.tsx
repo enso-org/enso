@@ -1,7 +1,7 @@
 /** @file A styled input for settings pages. */
 import { Form, type FieldPath, type TSchema } from '#/components/Form'
-import type { InputProps } from '#/components/Inputs'
-import { Input, Password } from '#/components/Inputs'
+import { Input, type InputProps } from '#/components/Inputs/Input'
+import { Password } from '#/components/Inputs/Password'
 import { TEXT_STYLE } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
 

@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.42-SNAPSHOT</version>
+    <version>1.43-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -103,6 +103,7 @@
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-textmate-lexer</artifactId>
             <version>${netbeans.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.netbeans.api</groupId>
