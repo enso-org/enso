@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import ActionButton from '@/components/ActionButton.vue'
+import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
 import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
@@ -12,31 +12,23 @@ import {
   isTextSelectionMenu,
   isToggleButton,
 } from '@/components/visualizations/toolbar'
-import type { ProjectPath } from '@/util/projectPath'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
-import { computed, toRef, toValue } from 'vue'
+import { toRef, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
 
-const { names: projectNames } = useCurrentProject().storesRefs
+const UNKNOWN_TYPE = 'Unknown'
 
 const props = defineProps<{
   showControls: boolean
   allVisualizations: ReadonlyArray<VisualizationIdentifier>
   visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
   typename: ProjectPath | undefined
+  typeinfo: TypeInfo | undefined
 }>()
-
-const UNKNOWN_TYPE = 'Unknown'
-const nodeShortType = computed(() =>
-  props.typename?.path != null ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE,
-)
-const fullType = computed(() =>
-  props.typename != null && projectNames.value != null ?
-    projectNames.value.printProjectPath(props.typename)
-  : UNKNOWN_TYPE,
-)
 
 const visualizationSelector = useVisualizationSelector({
   selectedType: currentVis,
@@ -47,7 +39,9 @@ const visualizationSelector = useVisualizationSelector({
 <template>
   <div class="VisualizationToolbar">
     <template v-if="showControls">
-      <div class="toolbarSection"><ActionButton action="visualization.hide" /></div>
+      <div class="toolbarSection">
+        <ActionButton action="component.toggleVisualization" />
+      </div>
       <div class="toolbarSection">
         <ActionButton action="panel.fullscreen" />
         <SelectionDropdown v-bind="visualizationSelector" />
@@ -89,12 +83,17 @@ const visualizationSelector = useVisualizationSelector({
         </template>
       </div>
     </template>
-    <div
-      class="after-toolbars node-type"
-      :title="fullType"
-      data-testid="visualisationNodeType"
-      v-text="nodeShortType"
-    />
+    <div class="after-toolbars node-type" data-testid="visualisationNodeType">
+      <ComponentEditorLabel
+        v-if="props.typeinfo"
+        :unknownLabel="UNKNOWN_TYPE"
+        :typeInfo="props.typeinfo"
+        testId="visualizationNodeTypeLabel"
+      />
+      <span v-else>{{
+        props.typename?.path ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE
+      }}</span>
+    </div>
   </div>
 </template>
 

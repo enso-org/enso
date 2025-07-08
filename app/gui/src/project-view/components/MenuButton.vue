@@ -86,7 +86,7 @@ function onActivate() {
   }
   &.disabled {
     cursor: default;
-    opacity: 0.4;
+    opacity: 0.2;
     &:hover {
       background-color: unset;
     }

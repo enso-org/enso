@@ -98,10 +98,6 @@ export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
 export type AssetId = IdType[keyof IdType]
 export const AssetId = newtype.newtypeConstructor<AssetId>()
 
-/** Unique identifier for a payment checkout session. */
-export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
-export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
-
 /** Unique identifier for a subscription. */
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
 export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
@@ -588,20 +584,9 @@ export const PLANS = Object.values(Plan)
 
 export const isPlan = array.includesPredicate(PLANS)
 
-/** Metadata uniquely describing a payment checkout session. */
+/** Metadata for a payment checkout session. */
 export interface CheckoutSession {
-  /** ID of the checkout session, suffixed with a secret value. */
-  readonly clientSecret: string
-  /** ID of the checkout session. */
-  readonly id: CheckoutSessionId
-}
-
-/** Metadata describing the status of a payment checkout session. */
-export interface CheckoutSessionStatus {
-  /** Status of the payment for the checkout session. */
-  readonly paymentStatus: string
-  /** Status of the checkout session. */
-  readonly status: 'active' | 'trialing' | (string & NonNullable<unknown>)
+  readonly url: HttpsUrl
 }
 
 /** Metadata for a subscription. */
@@ -1374,12 +1359,14 @@ export interface CreateUserGroupRequestBody {
   readonly name: string
 }
 
+/** Valid plan intervals. */
+export type PlanBillingPeriod = 1 | 12
+
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
-  readonly plan: Plan
-  readonly paymentMethodId: string
+  readonly price: Plan
   readonly quantity: number
-  readonly interval: number
+  readonly interval: PlanBillingPeriod
 }
 
 /** URL query string parameters for the "get log events" endpoint. */
@@ -1882,8 +1869,6 @@ export default abstract class Backend {
   abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
-  /** Get the status of a payment checkout session. */
-  abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
   abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */

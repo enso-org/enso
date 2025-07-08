@@ -998,11 +998,6 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override getCheckoutSession() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
   override listInvitations() {
     return this.invalidOperation()
   }
