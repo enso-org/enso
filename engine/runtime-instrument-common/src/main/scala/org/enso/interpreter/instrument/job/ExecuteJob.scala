@@ -144,7 +144,7 @@ class ExecuteJob(
                   )
               }
             } catch {
-              case e: InterruptedException | ExecutionException =>
+              case e: InterruptedException =>
                 ctx.endpoint.sendToClient(
                   Api.Response(
                     Api.ExecutionFailed(
@@ -153,6 +153,16 @@ class ExecuteJob(
                     )
                   )
                 )
+              case e: ExecutionException =>
+                ctx.endpoint.sendToClient(
+                  Api.Response(
+                    Api.ExecutionFailed(
+                      contextId,
+                      Api.ExecutionResult.Failure(e.getMessage, None)
+                    )
+                  )
+                )
+
             }
         )
     )
