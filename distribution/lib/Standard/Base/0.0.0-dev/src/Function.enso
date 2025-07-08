@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean, True, False
 
 ## A function is any type that represents a not-yet evaluated computation.
 
