@@ -2,30 +2,26 @@
  * @file A dialog is an overlay shown above other content in an application.
  * Can be used to display alerts, confirmations, or other content.
  */
-import * as React from 'react'
-
 import * as aria from '#/components/aria'
-import * as errorBoundary from '#/components/ErrorBoundary'
-import * as portal from '#/components/Portal'
-import * as suspense from '#/components/Suspense'
-
-import * as mergeRefs from '#/utilities/mergeRefs'
-
 import { CloseButton, ResetButtonGroupContext } from '#/components/Button'
-import { DialogDismiss } from '#/components/Dialog/DialogDismiss'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { usePortalContext } from '#/components/Portal'
+import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRootContext } from '../UIProviders'
+import * as React from 'react'
+import { useAppRoot } from '../UIProviders'
 import { Close } from './Close'
-import * as dialogProvider from './DialogProvider'
-import * as dialogStackProvider from './DialogStackProvider'
+import { DialogProvider } from './DialogProvider'
+import { DialogStackRegistrar, type DialogStackItem } from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
 import type * as types from './types'
-import * as utlities from './utilities'
+import { animateScale, useInteractOutside } from './utilities'
 import { DIALOG_MODAL_STYLES, DIALOG_OVERLAY_STYLES, DIALOG_STYLES } from './variants'
 
 // eslint-disable-next-line no-restricted-syntax
@@ -58,7 +54,7 @@ export function Dialog(props: DialogProps) {
     modalProps = {},
   } = props
 
-  const root = portal.useStrictPortalContext()
+  const root = usePortalContext()
 
   return (
     <aria.ModalOverlay
@@ -91,10 +87,7 @@ export function Dialog(props: DialogProps) {
   )
 }
 
-const TYPE_TO_DIALOG_TYPE: Record<
-  NonNullable<DialogProps['type']>,
-  dialogStackProvider.DialogStackItem['type']
-> = {
+const TYPE_TO_DIALOG_TYPE: Record<NonNullable<DialogProps['type']>, DialogStackItem['type']> = {
   modal: 'dialog',
   fullscreen: 'dialog-fullscreen',
 }
@@ -134,8 +127,7 @@ function DialogContent(props: DialogContentProps) {
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const scrollerRef = React.useRef<HTMLDivElement | null>(null)
   const dialogId = aria.useId()
-
-  const { appRoot } = useRootContext()
+  const appRoot = useAppRoot()
 
   const titleId = `${dialogId}-title`
   const padding = paddingRaw ?? (type === 'modal' ? 'medium' : 'xlarge')
@@ -168,7 +160,7 @@ function DialogContent(props: DialogContentProps) {
     modalState.close()
   })
 
-  utlities.useInteractOutside({
+  useInteractOutside({
     ref: dialogRef,
     id: dialogId,
     onInteractOutside: () => {
@@ -177,7 +169,7 @@ function DialogContent(props: DialogContentProps) {
       } else {
         if (dialogRef.current) {
           // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-          utlities.animateScale(dialogRef.current, 1.02)
+          animateScale(dialogRef.current, 1.02)
         }
       }
     },
@@ -252,7 +244,7 @@ function DialogContent(props: DialogContentProps) {
             }
           }}
           ref={(ref: HTMLDivElement | null) => {
-            mergeRefs.mergeRefs(dialogRef, (element) => {
+            mergeRefs(dialogRef, (element) => {
               if (element) {
                 // This is a workaround for the `data-testid` attribute not being
                 // supported by the 'react-aria-components' library.
@@ -309,7 +301,7 @@ function DialogContent(props: DialogContentProps) {
           </motion.div>
         </MotionDialog>
 
-        <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
+        <DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
       </LayoutGroup>
     </ResetButtonGroupContext>
   )
@@ -348,13 +340,13 @@ const DialogBody = React.memo(function DialogBody(props: DialogBodyProps) {
   return (
     <div className={measurerWrapperClassName}>
       <div ref={contentDimensionsRef} className={contentClassName}>
-        <errorBoundary.ErrorBoundary>
-          <suspense.Suspense loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}>
-            <dialogProvider.DialogProvider close={close} dialogId={dialogId}>
+        <ErrorBoundary>
+          <Suspense loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}>
+            <DialogProvider close={close} dialogId={dialogId}>
               {typeof children === 'function' ? children({ close }) : children}
-            </dialogProvider.DialogProvider>
-          </suspense.Suspense>
-        </errorBoundary.ErrorBoundary>
+            </DialogProvider>
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </div>
   )
@@ -455,6 +447,4 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
 })
 
 Dialog.Close = Close
-/** @deprecated Use {@link Dialog.Close} instead. */
-Dialog.Dismiss = DialogDismiss
 Dialog.Trigger = DialogTrigger

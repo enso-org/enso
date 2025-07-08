@@ -3,7 +3,7 @@ import { Heading } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
-import { useStrictPortalContext } from '#/components/Portal'
+import { usePortalContext } from '#/components/Portal'
 import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -44,7 +44,7 @@ export function Settings() {
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
-  const root = useStrictPortalContext()
+  const root = usePortalContext()
   const { data: organization = null } = useQuery(
     backendQueryOptions(backend, 'getOrganization', []),
   )
