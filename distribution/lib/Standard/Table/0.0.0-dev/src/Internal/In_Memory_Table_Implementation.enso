@@ -84,6 +84,7 @@ polyglot java import org.enso.table.data.table.join.conditions.Between as Java_J
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
+polyglot java import org.enso.table.data.table.Row as Java_Row
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
 polyglot java import org.enso.table.error.NonUniqueLookupKey
@@ -124,7 +125,8 @@ type In_Memory_Table_Implementation
 
     get_row (this_table : Table & In_Memory_Table) index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
         if index < -this_table.row_count || index >= this_table.row_count then if_missing else
-            Row.Value this_table (if index < 0 then index + this_table.row_count else index)
+            used_index = (if index < 0 then index + this_table.row_count else index)
+            Row.Value (Java_Row.new (this_table:In_Memory_Table).java_table used_index)
 
     first_value (this_table : Table & In_Memory_Table) -> Any ! Index_Out_Of_Bounds = this_table.at 0 . at 0
 
@@ -454,12 +456,10 @@ type In_Memory_Table_Implementation
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     first_row (this_table : Table & In_Memory_Table) -> Row ! Index_Out_Of_Bounds =
-        if (this_table : Table & In_Memory_Table).row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
-            Row.Value this_table 0
+        In_Memory_Table_Implementation.get_row this_table 0 if_missing=(Error.throw (Index_Out_Of_Bounds.Error 0 0))
 
     last_row (this_table : Table & In_Memory_Table) -> Row ! Index_Out_Of_Bounds =
-        if (this_table : Table & In_Memory_Table).row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
-            Row.Value this_table (this_table.row_count-1)
+        In_Memory_Table_Implementation.get_row this_table -1 if_missing=(Error.throw (Index_Out_Of_Bounds.Error 0 0))
 
     join (this_table : Table & In_Memory_Table) (right = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals this_table.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "join" <|
         _check_table_in_memory right

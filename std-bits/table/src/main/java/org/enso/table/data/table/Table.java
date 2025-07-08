@@ -1,12 +1,6 @@
 package org.enso.table.data.table;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.Text_Utils;
@@ -36,6 +30,7 @@ import org.graalvm.polyglot.Context;
 
 /** A representation of a table structure. */
 public class Table {
+  private final Map<String, Column> columnNameMap = new HashMap<>();
   private final Column[] columns;
   private String versionId;
 
@@ -119,12 +114,14 @@ public class Table {
    * @return a column with the given name
    */
   public Column getColumnByName(String name) {
-    for (Column column : columns) {
-      if (Text_Utils.equals(column.getName(), name)) {
-        return column;
+    return columnNameMap.computeIfAbsent(name, columnName -> {
+      for (Column column : columns) {
+        if (Text_Utils.equals(column.getName(), columnName)) {
+          return column;
+        }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   /**

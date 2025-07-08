@@ -1,25 +1,44 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Widget_Helpers
 import project.Table.Table
+from project.Internal.Storage import java_to_enso
 
 ## Represents a single row of some in-memory Table.
 type Row
     ## PRIVATE
-    Value (table:Table) (index:Integer)
+    private Value java_row
+
+    ## PRIVATE
+       Access the index
+    index : Integer
+    index self = self.java_row.index
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Gets the set of column column_names
     column_names : Vector Text
-    column_names self = self.table.column_names
+    column_names self = self.java_row.column_names
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Gets the number of columns in the table.
     length : Integer
-    length self = self.table.columns.length
+    length self = self.java_row.column_count
+
+    ## ICON parse3
+       Gets the value of the specified column.
+
+       Arguments:
+       - column: The name or index of the column being looked up.
+       - if_missing: The value to use if the column isn't present.
+    @column (self -> Widget_Helpers.make_column_name_selector self)
+    get : (Integer | Text) -> Any -> Any
+    get self (column:(Integer | Text)=0) ~if_missing=Nothing =
+        java_to_enso <| self.java_row.get_value column _->if_missing
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -29,21 +48,8 @@ type Row
        - column: The name or index of the column being looked up.
     @column (self -> Widget_Helpers.make_column_name_selector self.table)
     at : (Integer | Text) -> Any
-    at self (column:(Integer | Text)=0) = self.table.at column . at self.index
-
-    ## ICON parse3
-       Gets the value of the specified column.
-
-       Arguments:
-       - column: The name or index of the column being looked up.
-       - if_missing: The value to use if the column isn't present.
-    @column (self -> Widget_Helpers.make_column_name_selector self.table)
-    get : (Integer | Text) -> Any -> Any
-    get self (column:(Integer | Text)=0) ~if_missing=Nothing =
-        table_column = self.table.get column
-        case table_column of
-            Nothing -> if_missing
-            _ -> table_column.at self.index
+    at self (column:(Integer | Text)=0) =
+        self.get column if_missing=(Error.throw (Illegal_Argument.Error "Column not found"))
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -56,14 +62,14 @@ type Row
        Gets the row as a Dictionary.
     to_dictionary : Dictionary
     to_dictionary self =
-        pairs = self.table.column_names.map n-> [n, self.get n]
+        pairs = self.column_names.map n-> [n, self.get n]
         Dictionary.from_vector pairs
 
     ## PRIVATE
        Converts this row into a JS_Object.
     to_js_object : JS_Object
     to_js_object self =
-        pairs = self.table.column_names.map n-> [n, self.get n]
+        pairs = self.column_names.map n-> [n, self.get n]
         JS_Object.from_pairs pairs
 
 ## PRIVATE
