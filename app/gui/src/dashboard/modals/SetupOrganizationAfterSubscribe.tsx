@@ -26,6 +26,9 @@ export function SetOrganizationNameForm() {
   const updateOrganization = useMutationCallback(
     backendMutationOptions(remoteBackend, 'updateOrganization'),
   )
+  const createDefaultUserGroup = useMutationCallback(
+    backendMutationOptions(remoteBackend, 'createUserGroup'),
+  )
 
   return (
     <Form
@@ -37,7 +40,9 @@ export function SetOrganizationNameForm() {
           name: z.string().min(1).max(ORGANIZATION_NAME_MAX_LENGTH),
         })
       }
-      onSubmit={({ name }) => updateOrganization([{ name }])}
+      onSubmit={({ name }) =>
+        updateOrganization([{ name }]).then(() => createDefaultUserGroup([{ name: name }]))
+      }
     >
       <Text>{getText('setOrganizationNameDescription')}</Text>
       <Input
@@ -56,17 +61,6 @@ export function SetOrganizationNameForm() {
 
       <Form.FormError />
     </Form>
-  )
-}
-
-/** Modal for setting the organization name. */
-export function CreateUserGroupModal() {
-  const { getText } = useText()
-
-  return (
-    <Dialog title={getText('setupOrganization')} modalProps={{ defaultOpen: true }}>
-      <CreateUserGroupForm />
-    </Dialog>
   )
 }
 

@@ -1,8 +1,5 @@
 <script lang="ts">
-import {
-  CreateUserGroupModal as CreateUserGroupModalReact,
-  SetOrganizationNameModal as SetOrganizationNameModalReact,
-} from '#/modals/SetupOrganizationAfterSubscribe'
+import { SetOrganizationNameModal as SetOrganizationNameModalReact } from '#/modals/SetupOrganizationAfterSubscribe'
 import * as backendModule from '#/services/Backend'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
@@ -15,7 +12,6 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
 
 const SetOrganizationNameModal = reactComponent(SetOrganizationNameModalReact)
-const CreateUserGroupModal = reactComponent(CreateUserGroupModalReact)
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
 
@@ -27,7 +23,6 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  */
 export const dataLoader: DataLoader<{
   shouldSetOrganizationName?: boolean
-  shouldSetDefaultUserGroup?: boolean
 }> = {
   async beforeRouteEnter() {
     const auth = useAuth()
@@ -43,14 +38,13 @@ export const dataLoader: DataLoader<{
         () =>
           organizationQuery.data.value?.name == null || organizationQuery.data.value?.name === '',
       ),
-      shouldSetDefaultUserGroup: computed(() => (userGroupsQuery.data.value?.length ?? 0) === 0),
     })
   },
 }
 </script>
 
 <script setup lang="ts">
-defineProps<{ shouldSetOrganizationName?: boolean; shouldSetDefaultUserGroup?: boolean }>()
+defineProps<{ shouldSetOrganizationName?: boolean }>()
 
 const { remoteBackend } = useBackends()
 const logUserOpen = () => remoteBackend.logEvent('open_app')
@@ -62,6 +56,5 @@ useEvent(window, 'beforeunload', logUserClose)
 
 <template>
   <SetOrganizationNameModal v-if="shouldSetOrganizationName" />
-  <CreateUserGroupModal v-else-if="shouldSetDefaultUserGroup" />
   <RouterView />
 </template>
