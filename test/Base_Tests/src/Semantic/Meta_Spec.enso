@@ -691,7 +691,6 @@ add_specs suite_builder =
 
             case Meta.meta plus of
                 fn : Meta.Function ->
-                    fn.is_resolved . should_be_true
                     fn.arguments . should_equal ["x"]
                     fn.arguments defaulted=True . should_equal ["x", "by"]
                     fn.arguments defaulted=True pending=False . should_equal [ "by" ]
@@ -709,7 +708,6 @@ add_specs suite_builder =
 
             case Meta.meta by_one of
                 fn : Meta.Function ->
-                    fn.is_resolved . should_be_true
                     fn.arguments . should_equal ["mul"]
                     fn.arguments defaulted=True . should_equal ["mul"]
                     fn.arguments pending=False oversaturated=True . should_equal ["by"]
@@ -726,14 +724,14 @@ add_specs suite_builder =
         group_builder.specify "unresolved symbol" <|
             case Meta.meta .nic of
                 s : Meta.Unresolved_Symbol ->
-                    s.is_resolved . should_be_false
+                    s.is_constructor . should_be_false
                 unknown -> Test.fail "Expecting Meta.Unresolved_Symbol, but was: "+unknown.to_text
 
         group_builder.specify "unresolved constructor" <|
             case Meta.meta ..Maybe of
-                fn : Meta.Function ->
-                    fn.is_resolved . should_be_false
-                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+                s : Meta.Unresolved_Symbol ->
+                    s.is_constructor . should_be_true
+                unknown -> Test.fail "Expecting Meta.Unresolved_Symbol, but was: "+unknown.to_text
 
 glob_means_fn =
     42

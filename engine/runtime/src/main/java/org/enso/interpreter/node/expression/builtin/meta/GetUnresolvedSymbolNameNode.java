@@ -7,6 +7,7 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -34,6 +35,11 @@ public abstract class GetUnresolvedSymbolNameNode extends Node {
   @Specialization
   Text doConversion(UnresolvedConversion symbol) {
     return fromText;
+  }
+
+  @Specialization
+  Text doConversion(UnresolvedConstructor cons) {
+    return Text.create(cons.toString().substring(2));
   }
 
   @Fallback

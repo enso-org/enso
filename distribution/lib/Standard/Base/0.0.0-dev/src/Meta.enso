@@ -165,18 +165,7 @@ type Primitive
 
 
 type Function
-    private Value impl kind:Integer
-
-    ## PRIVATE
-       ADVANCED
-
-       Identifies whether a function is resolved or not. Certain constructs
-       are known to result in a function (like automatic constructors `..None`)
-       but aren't yet resolved to actual function. Such objects
-       return `False` from this method.
-
-    is_resolved self -> Boolean =
-        self.kind != 4 && self.kind != 8
+    private Value impl
 
     ## PRIVATE
        ADVANCED
@@ -209,13 +198,8 @@ type Function
 
 
 type Unresolved_Symbol
-    private Value impl
-
-    ## PRIVATE
-       ADVANCED
-
-       Not yet resolved.
-    is_resolved self -> Boolean = False
+    private Symbol impl
+    private Cons impl
 
     ## PRIVATE
        ADVANCED
@@ -233,7 +217,7 @@ type Unresolved_Symbol
        - new_name: The new name for the unresolved symbol.
     rename self new_name:Text -> Unresolved_Symbol =
         raw = Meta_Helpers.create_unresolved_symbol_builtin new_name self.impl
-        Unresolved_Symbol.Value raw
+        Unresolved_Symbol.Symbol raw
 
     ## ADVANCED
        GROUP Metadata
@@ -241,6 +225,28 @@ type Unresolved_Symbol
 
        Returns the name of an unresolved symbol.
     name self -> Text = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.impl
+
+
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
+
+       Does this symbol represents an autoscoped constructor?
+
+    is_constructor self -> Boolean = case self of
+        Unresolved_Symbol.Cons _ -> True
+        _ -> False
+
+
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
+
+       Textual representation of the symbol
+
+    to_text self -> Text = case self of
+        Unresolved_Symbol.Symbol _ -> "(Unresolved_Symbol "+self.name+")"
+        Unresolved_Symbol.Cons _ -> "(Auto_Constructor "+self.name+")"
 
 type Error
     private Value impl
@@ -339,13 +345,13 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | E
         1 -> Constructor.Value ac
         2 -> Atom.Value value
         3 -> Polyglot.Value value
-        4 -> Unresolved_Symbol.Value value
+        4 -> Unresolved_Symbol.Symbol value
         5 -> Error.Value value.catch
         6 -> Type.Value value
         7 -> Base_Error.throw <|
             Private_Access.Error Nothing Nothing "meta" "No Meta.meta for private objects"
-        8 -> Function.Value value... kind
-        9 -> Function.Value value... kind
+        8 -> Unresolved_Symbol.Cons value...
+        9 -> Function.Value value...
         _ -> Primitive.Value value
 
 ## PRIVATE
