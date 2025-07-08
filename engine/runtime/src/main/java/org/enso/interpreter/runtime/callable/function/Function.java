@@ -22,6 +22,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -497,21 +498,21 @@ public final class Function extends EnsoObject {
       sb.append("]");
     }
     if (includeArguments) {
+      Consumer<String> pending =
+          (name) -> {
+            sb.append(" ").append(name).append("=_");
+          };
       BiConsumer<String, Object> preapplied =
           (name, arg) -> {
             sb.append(" ").append(name).append("=");
-            if (arg == null) {
-              sb.append("_");
-            } else {
-              sb.append(iop.toDisplayString(arg, false));
-            }
+            sb.append(iop.toDisplayString(arg, false));
           };
       BiConsumer<String, Object> oversaturated =
           (name, arg) -> {
             sb.append(" +").append(name).append("=");
             sb.append(iop.toDisplayString(arg, false));
           };
-      iterateArguments(null, preapplied, oversaturated);
+      iterateArguments(pending, null, preapplied, oversaturated);
     }
     return sb.toString();
   }
@@ -521,19 +522,25 @@ public final class Function extends EnsoObject {
    * actual values or {@code null} if none are provided. Any of the arguments can be {@code null}
    * when info about such arguments isn't needed.
    *
-   * @param defaulted reports argument name with a default value which is about to be used when the
-   *     function is invoked - the callback always received {@code null} for value of the argument,
-   *     as the value isn't known at the time of invocation
+   * @param pending names of arguments that still need to be applied before the function is invoked
+   *     are provided to this constumer
+   * @param defaulted names of arguments with default values (without the value itself as it is not
+   *     computed yet) are provided to this consumer. These arguments may or may not be provided in
+   *     order to invoke the funcation
    * @param preapplied reports argument name with an associated value that has already been applied
    *     and will be used when the function is invoked
    * @param oversaturated reports over-saturated argument name with a value which will be applied to
    *     the result of the function invocations, when the function is invoked
    */
   @CompilerDirectives.TruffleBoundary
-  private final void iterateArguments(
-      BiConsumer<String, Object> defaulted,
+  public final void iterateArguments(
+      Consumer<String> pending,
+      Consumer<String> defaulted,
       BiConsumer<String, Object> preapplied,
       BiConsumer<String, Object> oversaturated) {
+    if (pending == null) {
+      pending = this::ignore;
+    }
     if (defaulted == null) {
       defaulted = this::ignore;
     }
@@ -550,9 +557,9 @@ public final class Function extends EnsoObject {
         preapplied.accept(name, preAppliedArguments[i]);
       } else {
         if (info.hasDefaultValue()) {
-          defaulted.accept(name, null);
+          defaulted.accept(name);
         } else {
-          preapplied.accept(name, null);
+          pending.accept(name);
         }
       }
     }
@@ -565,6 +572,8 @@ public final class Function extends EnsoObject {
       }
     }
   }
+
+  private void ignore(String ignore1) {}
 
   private void ignore(String ignore1, Object ignore2) {}
 }

@@ -9,7 +9,7 @@ import project.Errors.Common.Private_Access
 import project.Function.Function as Real_Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean, False
+from project.Data.Boolean import Boolean, False, True
 
 type Type
     private Value value
@@ -177,6 +177,36 @@ type Function
 
     is_resolved self -> Boolean =
         self.kind != 4 && self.kind != 8
+
+    ## PRIVATE
+       ADVANCED
+
+       The function associated with the Meta object.
+
+    value self = self.impl
+
+    ## PRIVATE
+       ADVANCED
+
+       Names of function arguments.
+
+       Arguments:
+       - pending: should pending arguments be listed? `True` by default.
+       - defaulted: should arguments with default values already provided be listed? `False` by default.
+       - preapplied: should arguments with already pre-applied values be listed? `False` by default.
+       - oversaturated: should over-saturated arguments be listed? `False` by default.
+
+       > Example
+         By default returns names of _pending arguments_ that still need to be supplied
+         in order to invoke the function.
+
+            fn = Meta.meta (\x -> x+1)
+            if fn . arguments . is_empty then fn.value else
+                Error.throw "Missing "+fn.arguments.length+" arguments"
+
+    arguments self pending=True defaulted=False preapplied=False oversaturated=False -> Vector Text =
+        Meta_Helpers.get_argument_names_builtin self.impl pending defaulted preapplied oversaturated
+
 
 type Unresolved_Symbol
     private Value impl

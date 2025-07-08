@@ -1,5 +1,7 @@
 private
 
+from project.Data.Boolean import True
+
 is_type value =
    k = get_kind_builtin value
    k == 6 || k == 7
@@ -18,7 +20,8 @@ get_type_methods_builtin typ = @Builtin_Method "Meta.get_type_methods"
 get_polyglot_language_builtin value = @Builtin_Method "Meta.get_polyglot_language"
 create_unresolved_symbol_builtin name symbol = @Builtin_Method "Meta.create_unresolved_symbol"
 get_unresolved_symbol_name_builtin symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
-get_constructor_fields_builtin atom_constructor = @Builtin_Method "Meta.get_constructor_fields"
+get_constructor_fields_builtin atom_constructor = @Tail_Call get_argument_names_builtin atom_constructor True True True True
+get_argument_names_builtin fn pending default preapplied oversaturated = @Builtin_Method "Meta.get_argument_names"
 get_constructor_name_builtin atom_constructor = @Builtin_Method "Meta.get_constructor_name"
 new_atom_builtin constructor fields = @Builtin_Method "Meta.new_atom"
 atom_with_hole_builtin factory = @Builtin_Method "Meta.atom_with_hole_builtin"
