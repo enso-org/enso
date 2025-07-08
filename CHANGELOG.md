@@ -61,7 +61,8 @@
 - [Add Google_Sheets.read][13307]
 - [Align the Generic JDBC Connection with the main Connection type][13365]
 - [Add `execute_query` to the `Connection` types.][13415]
-- [`Meta.meta` recognizes functions and unresolved constructors as `Meta.Function`][13443]
+- [`Meta.meta` recognizes functions and unresolved constructors as
+  `Meta.Function`][13443]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
