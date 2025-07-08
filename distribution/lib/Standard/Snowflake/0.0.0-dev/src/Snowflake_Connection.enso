@@ -1,10 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
-import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference, as_hideable_value
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -418,7 +418,7 @@ type Snowflake_Connection
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs <| [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
+        JS_Object.from_pairs <| [["type", "Snowflake_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
 
 private auth_jdbc_properties credentials = case credentials of
     Credentials.Username_And_Password username password ->
@@ -443,4 +443,13 @@ private auth_jdbc_properties credentials = case credentials of
    private: true
    ---
 Table_Viz_Data.from (that:Snowflake_Connection) = 
-    Connections_Helpers.get_table_viz_data (that.connection.tables.at "Name" . to_vector)
+    tables = that.tables . read
+    names = tables.at "Name" . to_vector
+    types = tables.at "Type" . to_vector
+    descriptions  = tables.at "Description" . to_vector
+    case that.schema of
+      "*" ->
+        schemas = tables.at "Schema" . to_vector
+        (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Schema" "Schema" "set_schema {{@Schema}}", Table_Viz_Header.Label "Name", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [schemas, names, types, descriptions])
+      _ -> (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Name" "Name" "read {{@Name}}", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [names, types, descriptions])
+

@@ -38,7 +38,9 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
+  /** @deprecated use typeinfo instead */
   typename?: ProjectPath | undefined
+  typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
@@ -91,7 +93,7 @@ const actionHandlers = registerHandlers({
   'visualization.exitFullscreen': {
     action: () => (isFullscreen.value = false),
   },
-  'visualization.hide': {
+  'component.toggleVisualization': {
     available: () => !isFullscreen.value,
     action: () => emit('update:enabled', false),
   },
@@ -210,6 +212,7 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 
 <script lang="ts">
 import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================
@@ -253,6 +256,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
           :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"
+          :typeinfo="typeinfo"
           :class="{ overlay: toolbarOverlay }"
           @update:currentVis="emit('update:id', $event)"
         />

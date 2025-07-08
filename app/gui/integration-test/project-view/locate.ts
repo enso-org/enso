@@ -13,7 +13,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 
 /** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Show/Hide visualization')
+  return page.getByLabel(/(Show|Hide|Show\/Hide) visualization.*/).first()
 }
 
 /** Visualization Selector button */

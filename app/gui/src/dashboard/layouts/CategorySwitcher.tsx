@@ -51,7 +51,7 @@ interface InternalCategorySwitcherItemProps extends CategoryMetadata {
 
 const CATEGORY_SWITCHER_VARIANTS = tv({
   extend: BUTTON_STYLES,
-  base: 'group opacity-50 transition-opacity group-hover:opacity-100 w-auto max-w-full',
+  base: 'group opacity-90 transition-opacity group-hover:bg-white/100 w-auto max-w-full',
   slots: {
     wrapper: 'w-full',
     text: 'flex-1 min-w-0 w-auto items-start justify-start',

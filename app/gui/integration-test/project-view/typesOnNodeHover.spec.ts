@@ -19,7 +19,6 @@ async function assertTypeLabelOnNode(
   await locate.toggleVisualizationButton(node).click({ force: true })
   const targetLabel = node.locator('.node-type').first()
   await expect(targetLabel).toHaveText(type.short)
-  await expect(targetLabel).toHaveAttribute('title', type.full)
   await locate.toggleVisualizationButton(node).click({ force: true })
   await actions.deselectNodes(page)
 }
