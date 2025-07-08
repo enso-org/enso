@@ -1,13 +1,11 @@
 /** @file The React provider (and associated hooks) for Data Catalog state. */
-import * as React from 'react'
-
-import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
-import invariant from 'tiny-invariant'
-
+import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import type { Category, CategoryId } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
+import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
+import { useFullUserSession } from '$/providers/react'
 import {
   type AnyAsset,
   type AssetId,
@@ -16,8 +14,14 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
+import * as React from 'react'
+import invariant from 'tiny-invariant'
 import { persist } from 'zustand/middleware'
-import type { TransferrableAsset } from '../layouts/Drive/Categories'
+import {
+  isCloudCategory,
+  useCategories,
+  type TransferrableAsset,
+} from '../layouts/Drive/Categories'
 
 /** State for {@link driveLocationStore}. */
 interface CurrentDirectoryIdStoreState {
@@ -102,28 +106,43 @@ interface DriveStore {
   readonly setDragTargetAssetId: (dragTargetAssetId: AssetId | null) => void
 }
 
-/** State contained in a `ProjectsContext`. */
-export type ProjectsContextType = StoreApi<DriveStore>
+/** State contained in a `DriveContext`. */
+export type DriveContextType = StoreApi<DriveStore>
 
-const DriveContext = React.createContext<ProjectsContextType | null>(null)
-
-/** The current directory ID. */
-interface CurrentDirectoryIdContextType {
-  readonly currentDirectoryId: DirectoryId | null
-}
-
-const CurrentDirectoryIdContext = React.createContext<CurrentDirectoryIdContextType | null>(null)
+const DriveContext = React.createContext<DriveContextType | null>(null)
 
 /** Props for a {@link DriveProvider}. */
-export interface ProjectsProviderProps extends React.PropsWithChildren {}
+export interface DriveProviderProps extends React.PropsWithChildren {}
 
 /** A React provider for Drive-specific metadata. */
-export default function DriveProvider(props: ProjectsProviderProps) {
+export default function DriveProvider(props: DriveProviderProps) {
   const { children } = props
 
-  const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
-    CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', () => driveLocationStore.getState().directoryId)
+  const { findCategoryById } = useCategories()
+  const { user } = useFullUserSession()
+  const { isOffline } = useOffline()
+
+  const [currentDirectoryId, privateSetDirectoryId] = useSearchParamsState<DirectoryId | null>(
+    'currentDirectoryId',
+    () => driveLocationStore.getState().directoryId,
+  )
+
+  const [currentCategoryId, privateSetCategoryId, privateResetCategoryId] =
+    useSearchParamsState<CategoryId | null>(
+      'driveCategory',
+      () => {
+        const id = getDriveLocation().categoryId
+        if (id == null) return null
+        const category = findCategoryById(id)
+        if (category == null) return null
+        const unavailable = (!user.isEnabled || isOffline) && isCloudCategory(category)
+        if (unavailable) return null
+        return id
+      },
+      // This is safe, because we confirm the type inside the function.
+      // eslint-disable-next-line no-restricted-syntax
+      (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
+    )
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -180,25 +199,30 @@ export default function DriveProvider(props: ProjectsProviderProps) {
     })),
   )
 
+  React.useEffect(() => {
+    setDriveLocation(currentDirectoryId, currentCategoryId)
+  }, [currentCategoryId, currentDirectoryId])
+
   React.useEffect(
     () =>
       driveLocationStore.subscribe(({ directoryId, categoryId }, oldState) => {
         if (directoryId !== oldState.directoryId) {
-          privateSetCurrentDirectoryId(directoryId)
+          privateSetDirectoryId(directoryId)
           store.getState().removeSelection()
         }
         if (categoryId !== oldState.categoryId) {
+          if (categoryId != null) {
+            privateSetCategoryId(categoryId)
+          } else {
+            privateResetCategoryId()
+          }
           store.getState().removeSelection()
         }
       }),
-    [privateSetCurrentDirectoryId, store],
+    [privateResetCategoryId, privateSetCategoryId, privateSetDirectoryId, store],
   )
 
-  return (
-    <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId }}>
-      <DriveContext.Provider value={store}>{children}</DriveContext.Provider>
-    </CurrentDirectoryIdContext.Provider>
-  )
+  return <DriveContext.Provider value={store}>{children}</DriveContext.Provider>
 }
 
 /** The drive store. */

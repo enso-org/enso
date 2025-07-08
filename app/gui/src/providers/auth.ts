@@ -3,8 +3,7 @@ import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
-import { flagsStore, useFeatureFlag } from '$/providers/featureFlags'
-import { useZustandStoreRef } from '$/utils/zustand'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { Opt } from '@/util/data/opt'
 import { proxyRefs, ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -97,10 +96,7 @@ function createAuthStore(
     userData.value && 'user' in userData.value ? userData.value.user : null,
   )
 
-  const planOverride = useZustandStoreRef(
-    flagsStore,
-    (state) => state.featureFlags.developerPlanOverride,
-  )
+  const planOverride = useFeatureFlag('developerPlanOverride')
   const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({
