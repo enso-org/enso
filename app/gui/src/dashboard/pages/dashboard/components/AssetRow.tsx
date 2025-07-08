@@ -1,4 +1,5 @@
 /** @file A table row for an arbitrary asset. */
+import type { ContextMenuApi } from '#/components/ContextMenu'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,
@@ -10,7 +11,7 @@ import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import AssetContextMenu from '#/layouts/AssetContextMenu'
+import { AssetContextMenu } from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -23,7 +24,7 @@ import {
   useSetDragTargetAssetId,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
-import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -159,6 +160,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
+  const contextMenuRef = React.useRef<ContextMenuApi>(null)
   const [isNavigating, startNavigation] = useTransition()
 
   const driveStore = useDriveStore()
@@ -383,22 +385,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 select(item)
               }
 
-              setModal(
-                <AssetContextMenu
-                  rootRef={tableRootRef}
-                  innerProps={innerProps}
-                  currentDirectoryId={currentDirectoryId}
-                  triggerRef={rootRef}
-                  event={event}
-                  eventTarget={
-                    event.target instanceof HTMLElement ? event.target : event.currentTarget
-                  }
-                  doCopy={doCopy}
-                  doCut={doCut}
-                  doPaste={doPaste}
-                  rightPanel={rightPanel}
-                />,
-              )
+              contextMenuRef.current?.open(event)
             }}
             onDragStart={(event) => {
               if (rowState.isEditingName) {
@@ -473,17 +460,12 @@ export function RealAssetRow(props: RealAssetRowProps) {
           </tr>
 
           {isSoleSelected && (
-            // This is a copy of the context menu, since the context menu registers keyboard
-            // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
-            // the entire context menu (once for the keyboard actions, once for the JSX).
             <AssetContextMenu
-              hidden
+              ref={contextMenuRef}
               rootRef={tableRootRef}
               innerProps={innerProps}
               currentDirectoryId={currentDirectoryId}
               triggerRef={rootRef}
-              event={{ pageX: 0, pageY: 0 }}
-              eventTarget={null}
               doCopy={doCopy}
               doCut={doCut}
               doPaste={doPaste}

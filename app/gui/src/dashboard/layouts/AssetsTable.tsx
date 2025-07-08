@@ -2,6 +2,7 @@
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button } from '#/components/Button'
+import type { ContextMenuApi } from '#/components/ContextMenu'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
@@ -23,7 +24,7 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
+import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -178,6 +179,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery, category } = props
   const { initialProjectName } = props
 
+  const contextMenuRef = useRef<ContextMenuApi>(null)
   const openedProjects = useLaunchedProjects()
   const openProjectLocally = useOpenProjectLocally()
   const setCanDownload = useSetCanDownload()
@@ -805,15 +807,14 @@ function AssetsTable(props: AssetsTableProps) {
     setPasteData(null)
   })
 
-  const hiddenContextMenu =
+  const contextMenu =
     isSingleSelectedDirectoryItem ? null : (
       <AssetsTableContextMenu
+        ref={contextMenuRef}
         rootRef={rootRef}
-        hidden
         backend={backend}
         category={category}
         currentDirectoryId={currentDirectoryId}
-        event={{ pageX: 0, pageY: 0 }}
         doCopy={doCopy}
         doCut={doCut}
         doPaste={doPaste}
@@ -1282,7 +1283,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div className="relative grow contain-strict">
-      {hiddenContextMenu}
+      {contextMenu}
 
       {hiddenColumns.length !== 0 && (
         <div
@@ -1333,18 +1334,7 @@ function AssetsTable(props: AssetsTableProps) {
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              setModal(
-                <AssetsTableContextMenu
-                  rootRef={rootRef}
-                  backend={backend}
-                  category={category}
-                  event={event}
-                  doCopy={doCopy}
-                  doCut={doCut}
-                  currentDirectoryId={currentDirectoryId}
-                  doPaste={doPaste}
-                />,
-              )
+              contextMenuRef.current?.open(event)
             }}
           >
             <div

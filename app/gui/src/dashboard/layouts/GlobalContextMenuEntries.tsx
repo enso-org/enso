@@ -1,7 +1,6 @@
-/** @file A context menu available everywhere in the directory. */
+/** @file Context menu entries available everywhere in the directory. */
 import { useStore } from '#/utilities/zustand'
 
-import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -17,42 +16,35 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
-/** Props for a {@link GlobalContextMenu}. */
-export interface GlobalContextMenuProps {
-  /** If true, returns a list of components rather than a {@link ContextMenu}. */
-  readonly noWrapper?: boolean
-  readonly hidden?: boolean
+/** Props for a {@link GlobalContextMenuEntries}. */
+export interface GlobalContextMenuEntriesProps {
   readonly backend: Backend
   readonly category: Category
   readonly currentDirectoryId: DirectoryId
   readonly directoryId: DirectoryId | null
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
-  readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
-/** A context menu available everywhere in the directory. */
-export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContextMenuProps) {
+/** Context menu entries available everywhere in the directory. */
+export const GlobalContextMenuEntries = function GlobalContextMenuEntries(
+  props: GlobalContextMenuEntriesProps,
+) {
   // For some reason, applying the ReactCompiler for this component breaks the copy-paste functionality
   // eslint-disable-next-line react-compiler/react-compiler
   'use no memo'
 
   const {
-    noWrapper = false,
-    hidden = false,
     backend,
     category,
     directoryId = null,
     currentDirectoryId,
-    event,
     doPaste,
     bindingFocusScope,
   } = props
 
-  const { getText } = useText()
   const isCloud = backend.type === BackendType.remote
 
   const driveStore = useDriveStore()
@@ -79,11 +71,10 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
   })
 
-  const entries = (
+  return (
     <>
       <ContextMenuEntry
         bindingFocusScope={bindingFocusScope}
-        hidden={hidden}
         action="uploadFiles"
         doAction={async () => {
           const files = await readUserSelectedFile()
@@ -92,7 +83,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       />
       <ContextMenuEntry
         bindingFocusScope={bindingFocusScope}
-        hidden={hidden}
         action="newProject"
         doAction={() => {
           unsetModal()
@@ -101,7 +91,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       />
       <ContextMenuEntry
         bindingFocusScope={bindingFocusScope}
-        hidden={hidden}
         action="newFolder"
         doAction={() => {
           unsetModal()
@@ -111,7 +100,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       {isCloud && (
         <ContextMenuEntry
           bindingFocusScope={bindingFocusScope}
-          hidden={hidden}
           action="newSecret"
           doAction={() => {
             setModal(
@@ -129,7 +117,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       {isCloud && (
         <ContextMenuEntry
           bindingFocusScope={bindingFocusScope}
-          hidden={hidden}
           action="newCredential"
           doAction={() => {
             setModal(
@@ -147,7 +134,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       {isCloud && (
         <ContextMenuEntry
           bindingFocusScope={bindingFocusScope}
-          hidden={hidden}
           action="newDatalink"
           doAction={() => {
             setModal(
@@ -170,7 +156,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       {hasPasteData && directoryId == null && (
         <ContextMenuEntry
           bindingFocusScope={bindingFocusScope}
-          hidden={hidden}
           action="paste"
           doAction={() => {
             unsetModal()
@@ -180,10 +165,4 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       )}
     </>
   )
-
-  return noWrapper ? entries : (
-      <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden} event={event}>
-        {entries}
-      </ContextMenu>
-    )
 }

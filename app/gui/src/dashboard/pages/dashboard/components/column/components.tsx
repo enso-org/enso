@@ -1,7 +1,7 @@
 /** @file Components for column cells. */
 import DotsIcon from '#/assets/dots.svg'
 import { Button } from '#/components/Button'
-import ContextMenu from '#/components/ContextMenu'
+import { ContextMenu } from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Text } from '#/components/Text'

@@ -82,7 +82,6 @@ export const ACTION_TO_TEXT_ID: Readonly<
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
   readonly icon?: string | undefined
-  readonly hidden?: boolean | undefined
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
   readonly label?: string | undefined
@@ -98,7 +97,6 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
   const {
-    hidden = false,
     action,
     label,
     isDisabled = false,
@@ -157,10 +155,6 @@ export default function MenuEntry(props: MenuEntryProps) {
     children: tooltipValue,
     overlayPositionProps: { placement: 'right' },
   })
-
-  if (hidden) {
-    return null
-  }
 
   return (
     <>

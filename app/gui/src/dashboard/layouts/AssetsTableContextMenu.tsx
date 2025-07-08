@@ -2,7 +2,8 @@
  * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-import ContextMenu from '#/components/ContextMenu'
+import type { ContextMenuApi } from '#/components/ContextMenu'
+import { ContextMenu } from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
 import { Separator } from '#/components/Separator'
@@ -19,6 +20,7 @@ import {
   isCloudCategory,
 } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { GlobalContextMenuEntries } from '#/layouts/GlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
@@ -30,15 +32,12 @@ import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
-import { GlobalContextMenu } from './GlobalContextMenu'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
-  readonly hidden?: boolean
   readonly backend: Backend
   readonly category: Category
   readonly currentDirectoryId: backendModule.DirectoryId
-  readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -52,20 +51,13 @@ export interface AssetsTableContextMenuProps {
  * A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
+export const AssetsTableContextMenu = React.forwardRef(function AssetsTableContextMenu(
+  props: AssetsTableContextMenuProps,
+  ref: React.ForwardedRef<ContextMenuApi>,
+) {
   // eslint-disable-next-line react-compiler/react-compiler
   'use no memo'
-  const {
-    hidden = false,
-    backend,
-    category,
-    currentDirectoryId,
-    event,
-    doCopy,
-    doCut,
-    doPaste,
-    rootRef,
-  } = props
+  const { backend, category, currentDirectoryId, doCopy, doCut, doPaste, rootRef } = props
 
   const { getText } = useText()
 
@@ -163,7 +155,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const copyIdsMenuEntry = showDeveloperIds && (
     <ContextMenuEntry
       bindingFocusScope={rootRef}
-      hidden={hidden}
       action="copyId"
       color="accent"
       label={getText('copyAllIdsShortcut')}
@@ -174,7 +165,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const pasteAllMenuEntry = hasPasteData && (
     <ContextMenuEntry
       bindingFocusScope={rootRef}
-      hidden={hidden}
       action="paste"
       label={getText('pasteAllShortcut')}
       doAction={() => {
@@ -191,15 +181,10 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   if (category.type === 'trash') {
     return (
       selectedAssets.length > 1 && (
-        <ContextMenu
-          aria-label={getText('assetsTableContextMenuLabel')}
-          hidden={hidden}
-          event={event}
-        >
+        <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')}>
           {copyIdsMenuEntry}
           <ContextMenuEntry
             bindingFocusScope={rootRef}
-            hidden={hidden}
             action="undelete"
             label={getText('restoreAllFromTrashShortcut')}
             doAction={() => {
@@ -212,7 +197,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           />
           <ContextMenuEntry
             bindingFocusScope={rootRef}
-            hidden={hidden}
             action="delete"
             label={getText('deleteAllForeverShortcut')}
             doAction={() => {
@@ -246,11 +230,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   if (category.type === 'recent') {
     return (
       showDeveloperIds && (
-        <ContextMenu
-          aria-label={getText('assetsTableContextMenuLabel')}
-          hidden={hidden}
-          event={event}
-        >
+        <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')}>
           {copyIdsMenuEntry}
         </ContextMenu>
       )
@@ -258,13 +238,12 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   }
 
   return (
-    <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden} event={event}>
+    <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')}>
       <>
         {copyIdsMenuEntry}
         {selectedAssets.length !== 0 && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
-            hidden={hidden}
             action="delete"
             label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
             doAction={doDeleteAll}
@@ -272,7 +251,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )}
         {selectedAssets.length !== 0 && canUploadAllProjectsToCloud && (
           <PaywallContextMenuEntry
-            hidden={hidden}
             bindingFocusScope={rootRef}
             isUnderPaywall={!canUploadToCloud}
             action="uploadToCloud"
@@ -284,7 +262,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {selectedAssets.length !== 0 && canDownloadAllProjectsToLocal && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
-            hidden={hidden}
             action="downloadToLocal"
             label={getText('downloadAllToLocalShortcut')}
             doAction={downloadFilesToLocalCallback}
@@ -293,7 +270,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {selectedAssets.length !== 0 && isCloud && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
-            hidden={hidden}
             action="copy"
             label={getText('copyAllShortcut')}
             doAction={doCopy}
@@ -302,7 +278,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {selectedAssets.length !== 0 && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
-            hidden={hidden}
             action="cut"
             label={getText('cutAllShortcut')}
             doAction={doCut}
@@ -311,19 +286,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {pasteAllMenuEntry}
       </>
 
-      {!hidden && <Separator className="my-2 first:hidden" />}
+      <Separator className="my-2 first:hidden" />
 
-      <GlobalContextMenu
-        noWrapper
-        hidden={hidden}
+      <GlobalContextMenuEntries
         backend={backend}
         category={category}
         currentDirectoryId={currentDirectoryId}
         directoryId={null}
         doPaste={doPaste}
-        event={event}
         bindingFocusScope={rootRef}
       />
     </ContextMenu>
   )
-}
+})
