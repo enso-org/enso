@@ -695,9 +695,7 @@ add_specs suite_builder =
                 unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
 
         group_builder.specify "function without an argument" <|
-            means = 42
-
-            case Meta.meta means... of
+            case Meta.meta glob_means_fn... of
                 p : Meta.Primitive ->
                     p.value . should_equal 42
                 unknown -> Test.fail "Expecting Meta.Primitive, but was: "+unknown.to_text
@@ -713,6 +711,9 @@ add_specs suite_builder =
                 fn : Meta.Function ->
                     fn.is_resolved . should_be_false
                 unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
+glob_means_fn =
+    42
 
 main filter=Nothing =
     suite = Test.build suite_builder->
