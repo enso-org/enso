@@ -53,8 +53,12 @@ const isHovered = ref(false)
 const activity = shallowRef<ToValue<VNode>>()
 const keepActivityAlive = ref(false)
 
-const enclosingTopLevelArgument = useTopLevelArgument(true)
-const floatReference = computed(() => enclosingTopLevelArgument?.value ?? widgetRoot.value)
+const topLevelArgument = useTopLevelArgument(true)
+const floatReference = computed(
+  () =>
+    topLevelArgument?.enclosingTopLevelArgument(widgetRoot.value, tree.rootElement) ??
+    widgetRoot.value,
+)
 
 const { floatingStyles: activityStyles } = activityDropdownStyles(
   floatReference,

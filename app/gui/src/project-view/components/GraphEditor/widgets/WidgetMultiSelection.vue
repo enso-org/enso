@@ -37,8 +37,12 @@ const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
 
-const enclosingTopLevelArgument = useTopLevelArgument(true)
-const floatReference = computed(() => enclosingTopLevelArgument?.value ?? widgetRoot.value)
+const topLevelArgument = useTopLevelArgument(true)
+const floatReference = computed(
+  () =>
+    topLevelArgument?.enclosingTopLevelArgument(widgetRoot.value, tree.rootElement) ??
+    widgetRoot.value,
+)
 
 const expressionTags = useExpressionTags({
   dynamicConfig: () => props.input.dynamicConfig,
