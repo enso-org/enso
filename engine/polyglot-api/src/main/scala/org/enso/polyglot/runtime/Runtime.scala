@@ -439,7 +439,7 @@ object Runtime {
       case class Modify(
         externalId: Option[Option[Suggestion.ExternalID]] = None,
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
-        returnType: Option[String]                        = None,
+        returnType: Option[Seq[String]]                   = None,
         documentation: Option[Option[String]]             = None,
         scope: Option[Suggestion.Scope]                   = None,
         reexport: Option[Option[String]]                  = None

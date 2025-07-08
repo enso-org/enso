@@ -158,7 +158,7 @@ object SuggestionDiff {
       op = op.copy(arguments = Some(diffArguments(e1.params, e2.params)))
     }
     if (e1.returnType != e2.returnType) {
-      op = op.copy(returnType = Some(e2.returnType))
+      op = op.copy(returnType = Some(Seq(e2.returnType)))
     }
     if (e1.documentation != e2.documentation) {
       op = op.copy(documentation = Some(e2.documentation))
@@ -178,7 +178,7 @@ object SuggestionDiff {
       op = op.copy(arguments = Some(diffArguments(e1.arguments, e2.arguments)))
     }
     if (e1.returnType != e2.returnType) {
-      op = op.copy(returnType = Some(e2.returnType))
+      op = op.copy(returnType = Some(Seq(e2.returnType)))
     }
     if (e1.documentation != e2.documentation) {
       op = op.copy(documentation = Some(e2.documentation))

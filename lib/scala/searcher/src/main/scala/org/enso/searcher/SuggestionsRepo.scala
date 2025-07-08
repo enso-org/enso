@@ -85,14 +85,15 @@ trait SuggestionsRepo[F[_]] {
     */
   def removeModules(modules: Seq[String]): F[(Long, Seq[Long])]
 
+  /*
   /** Update the suggestion.
-    *
-    * @param suggestion the key suggestion
-    * @param externalId the external id to update
-    * @param returnType the return type to update
-    * @param documentation the documentation string to update
-    * @param scope the scope to update
-    */
+   *
+   * @param suggestion the key suggestion
+   * @param externalId the external id to update
+   * @param returnType the return type to update
+   * @param documentation the documentation string to update
+   * @param scope the scope to update
+   */
   def update(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalID]],
@@ -100,6 +101,7 @@ trait SuggestionsRepo[F[_]] {
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope]
   ): F[(Long, Option[Long])]
+   */
 
   /** Cleans the repo resetting the version. */
   def clean: F[Unit]

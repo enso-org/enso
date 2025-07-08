@@ -28,7 +28,7 @@ sealed trait Suggestion extends ToLogString {
     */
   def update(
     optExternalId: Option[Option[Suggestion.ExternalID]],
-    optReturnType: Option[String],
+    optReturnType: Option[Seq[String]],
     optDocumentation: Option[Option[String]],
     optScope: Option[Suggestion.Scope]
   ): Suggestion
@@ -225,7 +225,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {
@@ -271,7 +271,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {
@@ -279,6 +279,7 @@ object Suggestion {
         .map(externalID => this.copy(externalId = externalID))
         .getOrElse(this)
       val v2 = optReturnType
+        .flatMap(_.headOption)
         .map(returnType => v1.copy(returnType = returnType))
         .getOrElse(v1)
       optDocumentation
@@ -329,7 +330,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {
@@ -337,6 +338,7 @@ object Suggestion {
         .map(externalID => this.copy(externalId = externalID))
         .getOrElse(this)
       val v2 = optReturnType
+        .flatMap(_.headOption)
         .map(returnType => v1.copy(returnType = returnType))
         .getOrElse(v1)
       optDocumentation
@@ -364,7 +366,7 @@ object Suggestion {
     def isStatic:    Boolean
     def annotations: Seq[String]
     def reexports:   Set[String]
-    def returnType:  String
+    def returnType:  Seq[String]
   }
 
   /** A method generated to access constructor field.
@@ -386,7 +388,7 @@ object Suggestion {
     name: String,
     arguments: Seq[Argument],
     selfType: String,
-    returnType: String,
+    returnType: Seq[String],
     documentation: Option[String],
     annotations: Seq[String],
     reexports: Set[String] = ListSet()
@@ -401,7 +403,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {
@@ -449,7 +451,7 @@ object Suggestion {
     name: String,
     arguments: Seq[Argument],
     selfType: String,
-    returnType: String,
+    returnType: Seq[String],
     isStatic: Boolean,
     documentation: Option[String],
     annotations: Seq[String],
@@ -462,7 +464,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {
@@ -507,7 +509,7 @@ object Suggestion {
     module: String,
     arguments: Seq[Argument],
     selfType: String,
-    returnType: String,
+    returnType: Seq[String],
     documentation: Option[String],
     reexports: Set[String] = ListSet()
   ) extends Method {
@@ -527,7 +529,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {
@@ -570,7 +572,7 @@ object Suggestion {
     module: String,
     name: String,
     arguments: Seq[Argument],
-    returnType: String,
+    returnType: Seq[String],
     scope: Scope,
     documentation: Option[String]
   ) extends Suggestion
@@ -581,7 +583,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {
@@ -624,7 +626,7 @@ object Suggestion {
     externalId: Option[ExternalID],
     module: String,
     name: String,
-    returnType: String,
+    returnType: Seq[String],
     scope: Scope,
     documentation: Option[String]
   ) extends Suggestion {
@@ -634,7 +636,7 @@ object Suggestion {
 
     override def update(
       optExternalId: Option[Option[ExternalID]],
-      optReturnType: Option[String],
+      optReturnType: Option[Seq[String]],
       optDocumentation: Option[Option[String]],
       optScope: Option[Scope]
     ): Suggestion = {

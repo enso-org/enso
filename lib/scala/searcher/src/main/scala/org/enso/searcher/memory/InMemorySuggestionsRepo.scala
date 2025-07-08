@@ -1,7 +1,6 @@
 package org.enso.searcher.memory
 
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.Suggestion.ExternalID
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{
   SuggestionAction,
@@ -37,9 +36,7 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
 
   /** Get current version of the repo. */
   override def currentVersion: Future[Long] = {
-    Future {
-      version
-    }
+    Future.successful(version)
   }
 
   /** Get all suggestions.
@@ -269,18 +266,19 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
       }
     }
 
+  /*
   /** Update the suggestion.
-    *
-    * @param suggestion    the key suggestion
-    * @param externalId    the external id to update
-    * @param returnType    the return type to update
-    * @param documentation the documentation string to update
-    * @param scope         the scope to update
-    */
+   *
+   * @param suggestion    the key suggestion
+   * @param externalId    the external id to update
+   * @param returnType    the return type to update
+   * @param documentation the documentation string to update
+   * @param scope         the scope to update
+   */
   override def update(
     suggestion: Suggestion,
     externalId: Option[Option[ExternalID]],
-    returnType: Option[String],
+    returnType: Option[Seq[String]],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope]
   ): Future[(Long, Option[Long])] = Future {
@@ -300,6 +298,7 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
       (version, suggestionEntry.map(_._1))
     }
   }
+   */
 
   private def versionIncrement(): Unit = {
     version += 1

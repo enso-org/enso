@@ -97,9 +97,9 @@ object NameColumn {
   /** Create the method name for conversion */
   def conversionMethodName(
     sourceType: String,
-    returnType: String
+    returnType: Seq[String]
   ): String =
-    s"${Suggestion.Kind.Conversion.From}_${sourceType}_${returnType}"
+    s"${Suggestion.Kind.Conversion.From}_${sourceType}_${returnType.mkString("_")}"
 
 }
 
