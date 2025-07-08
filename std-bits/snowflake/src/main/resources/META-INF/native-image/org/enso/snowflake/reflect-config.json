@@ -877,27 +877,6 @@
         ]
     },
     {
-        "name": "net.snowflake.client.jdbc.internal.snowflake.common.core.SubmittedAuthnDTO",
-        "queryAllDeclaredMethods": true
-    },
-    {
-        "name": "net.snowflake.client.log.JDK14JCLWrapper",
-        "methods": [
-            {
-                "name": "<init>",
-                "parameterTypes": [
-                    "java.lang.String"
-                ]
-            },
-            {
-                "name": "setLogFactory",
-                "parameterTypes": [
-                    "net.snowflake.client.jdbc.internal.apache.commons.logging.LogFactory"
-                ]
-            }
-        ]
-    },
-    {
         "name": "org.enso.snowflake_helpers.TestKeyGenerator",
         "allPublicMethods": true
     },
@@ -1229,5 +1208,13 @@
                 "parameterTypes": []
             }
         ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.SFBaseFileTransferAgent$UploadCommandEncryptionFacade",
+        "allDeclaredFields": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.SFBaseFileTransferAgent$UploadCommandFacade",
+        "allDeclaredFields": true
     }
 ]
