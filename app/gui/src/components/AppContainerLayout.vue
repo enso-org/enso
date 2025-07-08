@@ -1,7 +1,7 @@
 <script lang="ts">
 import {
+  CreateUserGroupModal as CreateUserGroupModalReact,
   SetOrganizationNameModal as SetOrganizationNameModalReact,
-  CreateUserGroupModal as CreateUserGroupModalReact
 } from '#/modals/SetupOrganizationAfterSubscribe'
 import * as backendModule from '#/services/Backend'
 import { useAuth } from '$/providers/auth'
