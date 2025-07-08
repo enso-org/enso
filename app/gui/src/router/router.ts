@@ -19,9 +19,7 @@ const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
 function requireCloudBrowserEnabled() {
   const isCloudExecutionEnabled = flagsStore.getState().featureFlags.enableCloudExecution
-  if (!isCloudExecutionEnabled) 
-    return { name: 'cloudDisabled' }
-  
+  if (!isCloudExecutionEnabled) return { name: 'cloudDisabled' }
 }
 
 const routes = [
@@ -42,7 +40,7 @@ const routes = [
       {
         path: UNAVAILABLE_PATH,
         meta: { access: 'anyLoggedIn' },
-        component: import('$/components/AppContainerLayout.vue'),
+        component: withDataLoader(() => import('$/components/AppContainerLayout.vue')),
         beforeEnter: requireCloudBrowserEnabled,
         children: [
           {

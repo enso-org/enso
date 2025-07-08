@@ -1,157 +1,45 @@
 /** @file Modal for setting the organization name. */
-import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
-import { Result } from '#/components/Result'
-import { Stepper } from '#/components/Stepper'
-import { Suspense } from '#/components/Suspense'
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import { Plan } from '#/services/Backend'
+import { Text } from '#/components/Text'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { ORGANIZATION_NAME_MAX_LENGTH, USER_GROUP_NAME_MAX_LENGTH } from '$/appUtils'
-import { useAuth, useBackends, useText } from '$/providers/react'
-import type { GetText } from '$/providers/text'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-import * as React from 'react'
+import { useBackends, useText } from '$/providers/react'
 
-const PLANS_TO_SPECIFY_ORG_NAME = [Plan.team, Plan.enterprise]
-
-/** A modal to set organization metadata. */
-export function SetupOrganizationAfterSubscribe() {
-  return (
-    <Suspense>
-      <SetupOrganizationAfterSubscribeInternal />
-    </Suspense>
-  )
-}
-
-/** A modal to set organization metadata. */
-function SetupOrganizationAfterSubscribeInternal() {
-  const { session } = useAuth()
-  const { remoteBackend: backend } = useBackends()
+/** Modal for setting the organization name. */
+export function SetOrganizationNameModal() {
   const { getText } = useText()
-  const { data: organization } = useSuspenseQuery(
-    backendQueryOptions(backend, 'getOrganization', []),
-  )
-  const { data: fetchedUserGroups } = useSuspenseQuery(
-    backendQueryOptions(backend, 'listUserGroups', []),
-  )
-
-  const [hideModal, setHideModal] = React.useState(false)
-
-  const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
-  const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
-
-  const needsToSetupOrganization =
-    session?.user.isOrganizationAdmin === true &&
-    PLANS_TO_SPECIFY_ORG_NAME.includes(session.user.plan)
-  const shouldSetOrgName = organization?.name == null || organization.name === ''
-  const shouldSetDefaultUserGroup = fetchedUserGroups.length === 0
-
-  const steps = [
-    {
-      title: getText('intro'),
-      component: ({ nextStep }: { readonly nextStep: () => void }) => (
-        <Result
-          status="info"
-          title={getText('setupOrganization')}
-          subtitle={getText('setupOrganizationDescription')}
-        >
-          <Button onPress={nextStep} className="mx-auto">
-            {getText('next')}
-          </Button>
-        </Result>
-      ),
-    } as const,
-  ]
-
-  if (shouldSetOrgName) {
-    steps.push({
-      title: getText('setOrgNameTitle'),
-      component: ({ nextStep }) => (
-        <SetOrganizationNameForm
-          onSubmit={async (name) => {
-            await updateOrganization.mutateAsync([{ name }])
-            nextStep()
-          }}
-        />
-      ),
-    })
-  }
-
-  if (shouldSetDefaultUserGroup) {
-    steps.push({
-      title: getText('setDefaultUserGroup'),
-      component: ({ nextStep }) => (
-        <CreateUserGroupForm
-          onSubmit={async (name) => {
-            await createDefaultUserGroup.mutateAsync([{ name }])
-            nextStep()
-          }}
-        />
-      ),
-    })
-  }
-
-  const shouldShowModal = needsToSetupOrganization && steps.length > 1 && !hideModal
-
-  const { stepperState } = Stepper.useStepperState({
-    steps: steps.length,
-    defaultStep: 0,
-    onCompleted: () => {
-      setHideModal(true)
-    },
-  })
 
   return (
-    <Dialog
-      title={getText('setupOrganization')}
-      isDismissable={false}
-      isKeyboardDismissDisabled
-      hideCloseButton
-      size="xxxlarge"
-      padding="xlarge"
-      modalProps={{ isOpen: shouldShowModal }}
-    >
-      <Stepper
-        state={stepperState}
-        renderStep={(stepProps) => (
-          <Stepper.Step {...stepProps} title={steps[stepProps.index]?.title ?? ''} />
-        )}
-      >
-        {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
-      </Stepper>
+    <Dialog title={getText('setupOrganization')} modalProps={{ defaultOpen: true }}>
+      <SetOrganizationNameForm />
     </Dialog>
   )
 }
 
-/** Props for the SetOrganizationNameForm component. */
-export interface SetOrganizationNameFormProps {
-  readonly onSubmit: (name: string) => Promise<void>
-}
-
-// eslint-disable-next-line no-restricted-syntax, react-refresh/only-export-components
-export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
-  Form.schema.object({
-    name: Form.schema
-      .string()
-      .min(1, getText('arbitraryFieldRequired'))
-      .max(ORGANIZATION_NAME_MAX_LENGTH, getText('arbitraryFieldTooLong')),
-  })
-
 /** Form for setting the organization name. */
-export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
-  const { onSubmit } = props
+export function SetOrganizationNameForm() {
   const { getText } = useText()
+  const { remoteBackend } = useBackends()
+  const updateOrganization = useMutationCallback(
+    backendMutationOptions(remoteBackend, 'updateOrganization'),
+  )
 
   return (
     <Form
       gap="medium"
       className="max-w-96"
       defaultValues={{ name: '' }}
-      schema={SET_ORGANIZATION_NAME_FORM_SCHEMA(getText)}
-      onSubmit={({ name }) => onSubmit(name)}
+      schema={(z) =>
+        z.object({
+          name: z.string().min(1).max(ORGANIZATION_NAME_MAX_LENGTH),
+        })
+      }
+      onSubmit={({ name }) => updateOrganization([{ name }])}
     >
+      <Text>{getText('setOrganizationNameDescription')}</Text>
       <Input
         name="name"
         autoFocus
@@ -171,15 +59,24 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
   )
 }
 
-/** Props for the CreateUserGroupForm component. */
-export interface CreateUserGroupFormProps {
-  readonly onSubmit: (name: string) => Promise<void>
+/** Modal for setting the organization name. */
+export function CreateUserGroupModal() {
+  const { getText } = useText()
+
+  return (
+    <Dialog title={getText('setupOrganization')} modalProps={{ defaultOpen: true }}>
+      <CreateUserGroupForm />
+    </Dialog>
+  )
 }
 
 /** Form for creating a user group. */
-export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
-  const { onSubmit } = props
+export function CreateUserGroupForm() {
   const { getText } = useText()
+  const { remoteBackend } = useBackends()
+  const createDefaultUserGroup = useMutationCallback(
+    backendMutationOptions(remoteBackend, 'createUserGroup'),
+  )
 
   return (
     <Form
@@ -187,8 +84,9 @@ export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
       gap="medium"
       className="max-w-96"
       defaultValues={{ groupName: '' }}
-      onSubmit={({ groupName }) => onSubmit(groupName)}
+      onSubmit={({ groupName }) => createDefaultUserGroup([{ name: groupName }])}
     >
+      <Text>{getText('setDefaultUserGroupDescription')}</Text>
       <Input
         name="groupName"
         autoComplete="off"
