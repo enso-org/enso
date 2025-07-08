@@ -1030,8 +1030,6 @@
   "membersSettingsSection": "Members",
   "userGroupsSettingsTab": "User groups",
   "userGroupsSettingsSection": "User Groups",
-  "groupNameSettingsInput": "User Group Name",
-  "groupNameSettingsInputDescription": "The name should not be longer than $0 characters",
   "lookAndFeelSettingsTabSection": "Look and feel",
   "keyboardShortcutsSettingsTab": "Keyboard shortcuts",
   "keyboardShortcutsSettingsSection": "Keyboard Shortcuts",

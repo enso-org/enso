@@ -5,22 +5,22 @@ import { Input } from '#/components/Inputs/Input'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { ORGANIZATION_NAME_MAX_LENGTH, USER_GROUP_NAME_MAX_LENGTH } from '$/appUtils'
+import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
 import { useBackends, useText } from '$/providers/react'
 
 /** Modal for setting the organization name. */
-export function SetOrganizationNameModal() {
+export function SetupOrganizationModal() {
   const { getText } = useText()
 
   return (
     <Dialog title={getText('setupOrganization')} modalProps={{ defaultOpen: true }}>
-      <SetOrganizationNameForm />
+      <SetupOrganizationForm />
     </Dialog>
   )
 }
 
 /** Form for setting the organization name. */
-export function SetOrganizationNameForm() {
+export function SetupOrganizationForm() {
   const { getText } = useText()
   const { remoteBackend } = useBackends()
   const updateOrganization = useMutationCallback(
@@ -41,7 +41,7 @@ export function SetOrganizationNameForm() {
         })
       }
       onSubmit={({ name }) =>
-        updateOrganization([{ name }]).then(() => createDefaultUserGroup([{ name: name }]))
+        updateOrganization([{ name }]).then(() => createDefaultUserGroup([{ name }]))
       }
     >
       <Text>{getText('setOrganizationNameDescription')}</Text>
@@ -55,37 +55,6 @@ export function SetOrganizationNameForm() {
           'organizationNameSettingsInputDescription',
           ORGANIZATION_NAME_MAX_LENGTH,
         )}
-      />
-
-      <Form.Submit />
-
-      <Form.FormError />
-    </Form>
-  )
-}
-
-/** Form for creating a user group. */
-export function CreateUserGroupForm() {
-  const { getText } = useText()
-  const { remoteBackend } = useBackends()
-  const createDefaultUserGroup = useMutationCallback(
-    backendMutationOptions(remoteBackend, 'createUserGroup'),
-  )
-
-  return (
-    <Form
-      schema={(z) => z.object({ groupName: z.string().min(1).max(USER_GROUP_NAME_MAX_LENGTH) })}
-      gap="medium"
-      className="max-w-96"
-      defaultValues={{ groupName: '' }}
-      onSubmit={({ groupName }) => createDefaultUserGroup([{ name: groupName }])}
-    >
-      <Text>{getText('setDefaultUserGroupDescription')}</Text>
-      <Input
-        name="groupName"
-        autoComplete="off"
-        label={getText('groupNameSettingsInput')}
-        description={getText('groupNameSettingsInputDescription', USER_GROUP_NAME_MAX_LENGTH)}
       />
 
       <Form.Submit />

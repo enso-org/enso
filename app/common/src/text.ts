@@ -136,7 +136,6 @@ interface PlaceholderOverrides {
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
-  readonly groupNameSettingsInputDescription: [howLong: number]
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]

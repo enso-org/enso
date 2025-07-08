@@ -1,5 +1,5 @@
 <script lang="ts">
-import { SetOrganizationNameModal as SetOrganizationNameModalReact } from '#/modals/SetupOrganizationAfterSubscribe'
+import { SetupOrganizationModal as SetupOrganizationModalReact } from '#/modals/SetupOrganizationForm'
 import * as backendModule from '#/services/Backend'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
 
-const SetOrganizationNameModal = reactComponent(SetOrganizationNameModalReact)
+const SetupOrganizationModal = reactComponent(SetupOrganizationModalReact)
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
 
@@ -22,7 +22,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * the "Dashboard" layer between them.
  */
 export const dataLoader: DataLoader<{
-  shouldSetOrganizationName?: boolean
+  shouldSetupOrganization?: boolean
 }> = {
   async beforeRouteEnter() {
     const auth = useAuth()
@@ -31,10 +31,9 @@ export const dataLoader: DataLoader<{
     const { isOrganizationAdmin, plan = backendModule.Plan.free } = auth.session.user
     if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return Ok({})
     const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
-    const userGroupsQuery = useQuery(backendQueryOptions('listUserGroups', [], backend))
-    await Promise.all([organizationQuery.suspense(), userGroupsQuery.suspense()])
+    await organizationQuery.suspense()
     return Ok({
-      shouldSetOrganizationName: computed(
+      shouldSetupOrganization: computed(
         () =>
           organizationQuery.data.value?.name == null || organizationQuery.data.value?.name === '',
       ),
@@ -44,7 +43,7 @@ export const dataLoader: DataLoader<{
 </script>
 
 <script setup lang="ts">
-defineProps<{ shouldSetOrganizationName?: boolean }>()
+defineProps<{ shouldSetupOrganization?: boolean }>()
 
 const { remoteBackend } = useBackends()
 const logUserOpen = () => remoteBackend.logEvent('open_app')
@@ -55,6 +54,6 @@ useEvent(window, 'beforeunload', logUserClose)
 </script>
 
 <template>
-  <SetOrganizationNameModal v-if="shouldSetOrganizationName" />
+  <SetupOrganizationModal v-if="shouldSetupOrganization" />
   <RouterView />
 </template>
