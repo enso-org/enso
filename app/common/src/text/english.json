@@ -971,6 +971,7 @@
   "contactSales": "Contact Sales",
   "setupOrganization": "Setup your organization",
   "setOrganizationNameDescription": "Enter the name of your organization. You can always change it later in the Settings.",
+  "organizationNameMinLengthError": "The name has to be at least 3 letter",
   "inviteUsers": "Invite Users",
   "inviteUsersDescription": "Invite users to join your organization by entering their email addresses below. You can always invite more users later.",
   "setDefaultUserGroupDescription": "Enter the name of the default user group. All new users will be added to this group. You can always change it later in the Settings.",

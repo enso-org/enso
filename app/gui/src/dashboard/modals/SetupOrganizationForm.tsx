@@ -5,7 +5,7 @@ import { Input } from '#/components/Inputs/Input'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import { ORGANIZATION_NAME_MAX_LENGTH, ORGANIZATION_NAME_MIN_LENGTH } from '$/appUtils'
 import { useBackends, useText } from '$/providers/react'
 
 /** Modal for setting the organization name. */
@@ -37,7 +37,10 @@ export function SetupOrganizationForm() {
       defaultValues={{ name: '' }}
       schema={(z) =>
         z.object({
-          name: z.string().min(1).max(ORGANIZATION_NAME_MAX_LENGTH),
+          name: z
+            .string()
+            .min(ORGANIZATION_NAME_MIN_LENGTH, getText('organizationNameMinLengthError'))
+            .max(ORGANIZATION_NAME_MAX_LENGTH),
         })
       }
       onSubmit={({ name }) =>
