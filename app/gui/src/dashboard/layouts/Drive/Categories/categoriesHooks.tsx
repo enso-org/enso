@@ -167,6 +167,8 @@ function useLocalCategoryList() {
     [],
   )
 
+  let categories: readonly AnyLocalCategory[] = []
+
   const addDirectory = useEventCallback((directory: string) => {
     setLocalRootDirectories([...localRootDirectories, directory])
 
@@ -185,9 +187,10 @@ function useLocalCategoryList() {
     (id: CategoryId) => categories.find((category) => category.id === id) ?? null,
   )
 
-  const getCategoryByDirectoryId = useEventCallback((id: DirectoryId): AnyLocalCategory | null => {
-    return categories.find((category) => category.homeDirectoryId === id) ?? null
-  })
+  const getCategoryByDirectoryId = useEventCallback(
+    (id: DirectoryId): AnyLocalCategory | null =>
+      categories.find((category) => category.homeDirectoryId === id) ?? null,
+  )
 
   const getCategoriesByType = useEventCallback(
     <T extends AnyLocalCategory['type']>(type: T) =>
@@ -224,14 +227,11 @@ function useLocalCategoryList() {
     backend: BackendType.local,
   }
 
-  const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
-
   const localDirectories = localRootDirectories.map<LocalDirectoryCategory>(
     createLocalDirectoryCategory,
   )
 
-  const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localDirectories] as const)
+  categories = localBackend == null ? [] : ([localCategory, ...localDirectories] as const)
 
   return {
     categories,
