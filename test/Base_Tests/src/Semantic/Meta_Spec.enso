@@ -723,15 +723,15 @@ add_specs suite_builder =
 
         group_builder.specify "unresolved symbol" <|
             case Meta.meta .nic of
-                s : Meta.Unresolved_Symbol ->
+                s : Meta.Unresolved ->
                     s.is_constructor . should_be_false
-                unknown -> Test.fail "Expecting Meta.Unresolved_Symbol, but was: "+unknown.to_text
+                unknown -> Test.fail "Expecting Meta.Unresolved, but was: "+unknown.to_text
 
         group_builder.specify "unresolved constructor" <|
             case Meta.meta ..Maybe of
-                s : Meta.Unresolved_Symbol ->
+                s : Meta.Unresolved ->
                     s.is_constructor . should_be_true
-                unknown -> Test.fail "Expecting Meta.Unresolved_Symbol, but was: "+unknown.to_text
+                unknown -> Test.fail "Expecting Meta.Unresolved, but was: "+unknown.to_text
 
 glob_means_fn =
     42

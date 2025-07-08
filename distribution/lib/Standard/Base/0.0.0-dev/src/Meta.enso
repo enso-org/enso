@@ -197,7 +197,7 @@ type Function
         Meta_Helpers.get_argument_names_builtin self.impl pending defaulted preapplied oversaturated
 
 
-type Unresolved_Symbol
+type Unresolved
     private Symbol impl
     private Cons impl
 
@@ -215,9 +215,9 @@ type Unresolved_Symbol
 
        Arguments:
        - new_name: The new name for the unresolved symbol.
-    rename self new_name:Text -> Unresolved_Symbol =
+    rename self new_name:Text -> Unresolved =
         raw = Meta_Helpers.create_unresolved_symbol_builtin new_name self.impl
-        Unresolved_Symbol.Symbol raw
+        Unresolved.Symbol raw
 
     ## ADVANCED
        GROUP Metadata
@@ -234,7 +234,7 @@ type Unresolved_Symbol
        Does this symbol represents an autoscoped constructor?
 
     is_constructor self -> Boolean = case self of
-        Unresolved_Symbol.Cons _ -> True
+        Unresolved.Cons _ -> True
         _ -> False
 
 
@@ -245,8 +245,8 @@ type Unresolved_Symbol
        Textual representation of the symbol
 
     to_text self -> Text = case self of
-        Unresolved_Symbol.Symbol _ -> "(Unresolved_Symbol "+self.name+")"
-        Unresolved_Symbol.Cons _ -> "(Auto_Constructor "+self.name+")"
+        Unresolved.Symbol _ -> "(Unresolved_Symbol "+self.name+")"
+        Unresolved.Cons _ -> "(Auto_Constructor "+self.name+")"
 
 type Error
     private Value impl
@@ -336,7 +336,7 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type | Function ! Private_Access =
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved | Error | Type | Function ! Private_Access =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     kind = if ac.is_nothing.not then 1 else
         Meta_Helpers.get_kind_builtin value
@@ -345,12 +345,12 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | E
         1 -> Constructor.Value ac
         2 -> Atom.Value value
         3 -> Polyglot.Value value
-        4 -> Unresolved_Symbol.Symbol value
+        4 -> Unresolved.Symbol value
         5 -> Error.Value value.catch
         6 -> Type.Value value
         7 -> Base_Error.throw <|
             Private_Access.Error Nothing Nothing "meta" "No Meta.meta for private objects"
-        8 -> Unresolved_Symbol.Cons value...
+        8 -> Unresolved.Cons value...
         9 -> Function.Value value...
         _ -> Primitive.Value value
 

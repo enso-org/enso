@@ -180,7 +180,7 @@ type Filter_Condition
     resolve_auto_scoped filter =
         case filter of
             _ : Function -> case Meta.meta filter of
-                s : Meta.Unresolved_Symbol -> if s.is_constructor then filter:Filter_Condition else filter
+                s : Meta.Unresolved -> if s.is_constructor then filter:Filter_Condition else filter
                 _ -> filter
             _ : Filter_Condition -> filter
             _ -> Panic.throw (Illegal_Argument.Error "The filter condition can either be a Function or a Filter_Condition, but got: "+filter.to_display_text)

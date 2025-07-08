@@ -1,8 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
@@ -12,6 +9,10 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.nodes.Node;
 
 @BuiltinMethod(
     type = "Meta",
@@ -41,7 +42,7 @@ public abstract class CreateUnresolvedSymbolNode extends Node {
   ModuleScope doFallback(Object name, Object symbol) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     throw new PanicException(
-        builtins.error().makeTypeError("Unresolved_Symbol", symbol, "symbol"), this);
+        builtins.error().makeTypeError("Unresolved", symbol, "symbol"), this);
   }
 
   private Object executeWithScope(Object name, ModuleScope scope) {
