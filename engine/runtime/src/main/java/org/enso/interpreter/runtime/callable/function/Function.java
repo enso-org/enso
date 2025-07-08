@@ -295,22 +295,6 @@ public final class Function extends EnsoObject {
       case MethodNames.Function.EQUALS:
         Object that = Types.extractArguments(args, Object.class);
         return this == that;
-      case MethodNames.Function.GET_SOURCE_START:
-        {
-          SourceSection sect = getSourceSection();
-          if (sect == null) {
-            return null;
-          }
-          return sect.getCharIndex();
-        }
-      case MethodNames.Function.GET_SOURCE_LENGTH:
-        {
-          SourceSection sect = getSourceSection();
-          if (sect == null) {
-            return null;
-          }
-          return sect.getCharLength();
-        }
     }
     throw UnknownIdentifierException.create(member);
   }
@@ -323,9 +307,7 @@ public final class Function extends EnsoObject {
    */
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(MethodNames.Function.EQUALS)
-        || member.equals(MethodNames.Function.GET_SOURCE_START)
-        || member.equals(MethodNames.Function.GET_SOURCE_LENGTH);
+    return member.equals(MethodNames.Function.EQUALS);
   }
 
   /**
@@ -349,9 +331,7 @@ public final class Function extends EnsoObject {
   @ExportMessage
   Object getMembers(boolean includeInternal) {
     return ArrayLikeHelpers.wrapStrings(
-        MethodNames.Function.EQUALS,
-        MethodNames.Function.GET_SOURCE_START,
-        MethodNames.Function.GET_SOURCE_LENGTH);
+        MethodNames.Function.EQUALS);
   }
 
   /**
