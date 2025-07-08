@@ -17,13 +17,12 @@ add_specs suite_builder = case get_configured_connection_details of
         message = "Snowflake test connection is not configured. See README.md for instructions."
         suite_builder.group "[Snowflake] Bulk load tests" pending=message (_-> Nothing)
     connection_details ->
-        db_name = connection_details.database
         connection_builder = _ -> Database.connect connection_details
 
         default_connection = Lazy_Ref.Value (connection_builder Nothing)
 
-        file = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv")
-        file_url = 'file://' + (file.path.replace "\\", "/")
+        file = (Project_Description.new enso_dev.Table_Tests).data / "data.csv"
+        file_url = 'file://' + (file.path.replace "\\" "/")
 
         suite_builder.group "[Snowflake] Bulk load tests" group_builder->
             group_builder.specify "can list the stage" <|
