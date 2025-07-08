@@ -6,7 +6,6 @@ import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
-import SetupUsernamePageActions from './SetupUsernamePageActions'
 
 /** Available actions for the login page. */
 export default class LoginPageActions<Context> extends BaseActions<Context> {
@@ -39,7 +38,7 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
     return this.step('Login (as new user)', async (page) => {
       await this.loginInternal(email, password)
       await passAgreementsDialog({ page })
-    }).into(SetupUsernamePageActions<Context>)
+    }).into(DrivePageActions<Context>)
   }
 
   /** Perform a failing login. */

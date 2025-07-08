@@ -2,11 +2,11 @@
 
 import type { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
+import { proxyRefs } from '@/util/reactivity'
 import {
   computed,
   nextTick,
   onScopeDispose,
-  proxyRefs,
   readonly,
   ref,
   shallowRef,

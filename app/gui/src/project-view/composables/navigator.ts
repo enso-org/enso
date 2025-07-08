@@ -11,20 +11,11 @@ import {
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { proxyRefs } from '@/util/reactivity'
 import { useEventListener, type VueInstance } from '@vueuse/core'
 import { useGesture, type Handler } from '@vueuse/gesture'
 import { clamp } from 'enso-common/src/utilities/data/math'
-import {
-  computed,
-  onScopeDispose,
-  proxyRefs,
-  readonly,
-  ref,
-  shallowRef,
-  toRef,
-  watch,
-  type Ref,
-} from 'vue'
+import { computed, onScopeDispose, readonly, ref, shallowRef, toRef, watch, type Ref } from 'vue'
 
 type ScaleRange = readonly [number, number]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]

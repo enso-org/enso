@@ -7,16 +7,14 @@ from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
+import project.Internal.Upload.Table_Upload_Implementation.Table_Upload_Implementation
 import project.Update_Action.Update_Action
 from project.Errors import all
 from project.Internal.Upload.Helpers.Default_Arguments import default_key_columns, default_key_columns_required
-from project.Internal.Upload.Operations.Delete import common_delete_rows
-from project.Internal.Upload.Operations.Select_Into import select_into_table_implementation
-from project.Internal.Upload.Operations.Update import common_update_table
 
-## GROUP Standard.Base.Output
+## GROUP Standard.Base.Database
    ICON data_output
-   Creates a new database table from this table.
+   Creates a new database table from this in-memory table.
 
    Arguments:
    - connection: the database connection to use. The table will be created in
@@ -59,25 +57,17 @@ from project.Internal.Upload.Operations.Update import common_update_table
      More expensive checks, like clashing keys are checked only on the sample of
      rows, so errors may still occur when the output action is enabled.
 @primary_key Widget_Helpers.make_column_name_vector_selector
-DB_Table.select_into_database_table : Connection -> Text -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Key | SQL_Error | Illegal_Argument
-DB_Table.select_into_database_table self connection (table_name : Text) primary_key=[] temporary=False on_problems:Problem_Behavior=..Report_Warning =
-    select_into_table_implementation self connection table_name primary_key temporary on_problems
+Table.select_into_database_table : Connection -> Text -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Key | SQL_Error | Illegal_Argument
+Table.select_into_database_table self connection (table_name : Text) primary_key=[] temporary=False on_problems:Problem_Behavior=..Report_Warning =
+    (Table_Upload_Implementation.resolve self "select_into_database_table").select_into_database_table self connection table_name primary_key temporary on_problems
 
-## GROUP Standard.Base.Output
+
+## GROUP Standard.Base.Database
    ICON data_output
-   Updates the database table with the contents of the provided table.
-
-   This operation will only work if this table is a 'trivial' table reference,
-   like returned by `Connection.query`, so it corresponds directly to a table
-   existing in a Database. If the target table is transformed in any way, this
-   correspondence is lost and the update operation cannot be performed on such a
-   transformed object.
+   Updates the target table with the contents of this table.
 
    Arguments:
-   - source_table: the table containing values for the update. This table may be
-     in-memory (in which case it will be uploaded as a temporary table) or any
-     database query with any desired transformations applied, as long as it is
-     coming from the same Connection as the target table.
+   - target_table: the target table to update. It must be a database table.
    - update_action: specifies the update strategy - how to handle existing new
      and missing rows.
    - key_columns: the names of the columns to use identify correlate rows from
@@ -134,11 +124,12 @@ DB_Table.select_into_database_table self connection (table_name : Text) primary_
      More expensive checks, like clashing keys or unmatched rows are checked
      only on a sample of rows, so errors may still occur when the output action
      is enabled.
-DB_Table.update_rows : DB_Table | Table -> Update_Action -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> DB_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
-DB_Table.update_rows self (source_table : DB_Table | Table) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = default_key_columns self) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) =
-    common_update_table source_table self update_action key_columns error_on_missing_columns on_problems
+Table.update_rows self (source_table : Table) (update_action : Update_Action = ..Update_Or_Insert) (key_columns : Vector | Nothing = default_key_columns self) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) -> Table =
+    result = (Table_Upload_Implementation.resolve self "update_rows").update_rows self source_table update_action key_columns error_on_missing_columns on_problems
+    ## Workaround for https://github.com/enso-org/enso/issues/13374
+    result:Table
 
-## GROUP Standard.Base.Output
+## GROUP Standard.Base.Database
    ICON data_output
    Removes rows from a database table.
 
@@ -194,6 +185,5 @@ DB_Table.update_rows self (source_table : DB_Table | Table) (update_action : Upd
      columns, and returns the count of rows that would have been deleted by this
      operation, with a `Dry_Run_Operation` warning attached.
 @key_columns Widget_Helpers.make_column_name_vector_selector
-DB_Table.delete_rows : DB_Table | Table -> Vector Text | Nothing -> Boolean -> Integer ! Missing_Input_Columns | SQL_Error
-DB_Table.delete_rows self (key_values_to_delete : DB_Table | Table) (key_columns : Vector Text | Nothing = default_key_columns_required self) (allow_duplicate_matches : Boolean = False) =
-    common_delete_rows self key_values_to_delete key_columns allow_duplicate_matches
+Table.delete_rows self (key_values_to_delete : Table) (key_columns : Vector Text | Nothing = default_key_columns_required self) (allow_duplicate_matches : Boolean = False) -> Integer =
+    (Table_Upload_Implementation.resolve self "delete_rows").delete_rows self key_values_to_delete key_columns allow_duplicate_matches

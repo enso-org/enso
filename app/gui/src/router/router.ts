@@ -4,17 +4,16 @@ import {
   DASHBOARD_PATH,
   FORGOT_PASSWORD_PATH,
   LOGIN_PATH,
+  PAYMENTS_SUCCESS_PATH,
+  REGISTRATION_PATH,
   RESET_PASSWORD_PATH,
   RESTORE_USER_PATH,
-  SETUP_PATH,
   SUBSCRIBE_PATH,
-  SUBSCRIBE_SUCCESS_PATH,
 } from '$/appUtils'
-import { UserSessionType } from '$/providers/auth'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
 import { reactComponent } from '@/util/react'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
@@ -30,15 +29,19 @@ const routes = [
     path: UNAVAILABLE_PATH,
     component: withDataLoader(() => import('$/components/ProtectedLayout.vue')),
     children: [
-      { path: LOGIN_PATH, component: reactComponent(Login), meta: { access: 'guest' as const } },
       {
-        path: '/registration',
+        path: LOGIN_PATH,
+        meta: { access: 'guest' },
+        component: reactComponent(Login),
+      },
+      {
+        path: REGISTRATION_PATH,
+        meta: { access: 'guest' },
         component: withDataLoader(() => import('$/components/RegistrationPage.vue')),
-        meta: { access: 'guest' as const },
       },
       {
         path: UNAVAILABLE_PATH,
-        meta: { access: UserSessionType.full },
+        meta: { access: 'anyLoggedIn' },
         component: withDataLoader(() => import('$/components/AppContainerLayout.vue')),
         beforeEnter: requireCloudBrowserEnabled,
         children: [
@@ -55,32 +58,17 @@ const routes = [
         ],
       },
       {
-        path: SUBSCRIBE_SUCCESS_PATH,
-        meta: { access: UserSessionType.full },
-        component: () =>
-          import('#/pages/subscribe/SubscribeSuccess').then((mod) =>
-            reactComponent(mod.SubscribeSuccess),
-          ),
-      },
-      {
         path: RESTORE_USER_PATH,
-        meta: { access: 'deleted' as const },
+        meta: { access: 'deleted' },
         component: () =>
           import('#/pages/authentication/RestoreAccount').then((mod) =>
             reactComponent(mod.default),
           ),
       },
       {
-        path: SETUP_PATH,
-        meta: { access: 'anyLoggedIn' as const },
-        beforeEnter: requireCloudBrowserEnabled,
-        component: () =>
-          import('#/pages/authentication/Setup').then((mod) => reactComponent(mod.Setup)),
-      },
-      {
         path: '/',
         name: 'cloudDisabled',
-        meta: { access: 'anyLoggedIn' as const },
+        meta: { access: 'anyLoggedIn' },
         component: () =>
           import('#/layouts/CloudBrowserDisabled').then((mod) =>
             reactComponent(mod.CloudBrowserDisabledPage),
@@ -88,6 +76,12 @@ const routes = [
         props: { redirectPath: DASHBOARD_PATH },
       },
     ],
+  },
+  {
+    path: PAYMENTS_SUCCESS_PATH,
+    meta: { access: 'anyLoggedIn' },
+    component: () =>
+      import('#/pages/PaymentsSuccess').then((mod) => reactComponent(mod.PaymentsSuccess)),
   },
 
   /* Other pages are visible to unauthenticated and authenticated users. */
@@ -112,7 +106,7 @@ const routes = [
     path: '/:anyPath(.*)*',
     redirect: '/',
   },
-]
+] satisfies readonly RouteRecordRaw[]
 
 const router = createRouter({
   history: createWebHistory(),

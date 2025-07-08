@@ -18,12 +18,12 @@
       "url": "https://community.ensoanalytics.com/",
       "menu": [
         {
-          "name": "askAQuestion",
-          "url": "https://community.ensoanalytics.com/c/q_and_a/"
+          "name": "gettingStarted",
+          "url": "https://community.ensoanalytics.com/c/start-here/welcome-to-enso-community"
         },
         {
-          "name": "gettingStarted",
-          "url": "https://community.ensoanalytics.com/c/getting-started-with-enso/"
+          "name": "askAQuestion",
+          "url": "https://community.ensoanalytics.com/c/q_and_a/"
         },
         {
           "name": "componentExamples",

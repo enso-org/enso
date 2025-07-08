@@ -10,11 +10,8 @@ import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
 import * as appUtils from '$/appUtils'
 import { useRouter, useSession, useText } from '$/providers/react'
-import { useVueValue } from '$/providers/react/common'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { useMutation } from '@tanstack/react-query'
-import * as react from 'react'
-import { stringifyQuery } from 'vue-router'
 import AuthenticationPage from './AuthenticationPage'
 
 const REDIRECT_TIMEOUT = 5_000
@@ -23,9 +20,8 @@ const REDIRECT_TIMEOUT = 5_000
 export default function ConfirmRegistration() {
   const { confirmSignUp } = useSession()
   const { getText } = useText()
-  const { router, route } = useRouter()
+  const { router } = useRouter()
 
-  const query = useVueValue(react.useCallback(() => route.query, [route]))
   const [email] = useQueryParam('email')
   const [verificationCode] = useQueryParam('verification_code')
   const [redirectUrl] = useQueryParam('redirect_url')
@@ -36,9 +32,7 @@ export default function ConfirmRegistration() {
     if (redirectUrl != null) {
       return redirectUrl
     }
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { verification_code: _skip1, email: _skip2, redirect_url: _skip3, ...newQuery } = query
-    return appUtils.SETUP_PATH + '?' + stringifyQuery(newQuery)
+    return appUtils.DASHBOARD_PATH
   })()
 
   const confirmRegistrationMutation = useMutation({

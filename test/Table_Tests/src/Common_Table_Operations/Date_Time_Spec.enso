@@ -7,9 +7,10 @@ from Standard.Table.Errors import Invalid_Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation, Unsupported_Database_Type
 import Standard.Database.Column_Description.Column_Description
+from Standard.Database.DB_Table import DB_Table
 import Standard.Database.Internal.Internals_Access
 # Import the `update_rows` extension method.
-import Standard.Database.Extensions.Upload_Database_Table
+import Standard.Database.Extensions.Upload_Table
 
 from Standard.Test import all
 
@@ -83,7 +84,7 @@ add_specs suite_builder setup =
             named_zone = Time_Zone.parse "US/Hawaii"
             dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
 
-            connection = Internals_Access.get_connection data.dates
+            connection = Internals_Access.get_connection (data.dates:DB_Table)
             db_table = connection.create_table "dates-test-"+Date_Time.now.to_text [Column_Description.Value "C" (Value_Type.Date_Time with_timezone=False), Column_Description.Value "X" Value_Type.Integer] temporary=True on_problems=Problem_Behavior.Ignore
             Problems.assume_no_problems db_table
 

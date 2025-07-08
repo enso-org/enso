@@ -5,7 +5,6 @@ import { Button } from '#/components/Button'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
-import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
@@ -18,7 +17,6 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useIntersectionRatio } from '#/hooks/intersectionHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -132,11 +130,6 @@ LocalStorage.registerKey('enabledColumns', {
   schema: z.nativeEnum(Column).array().readonly(),
 })
 
-/**
- * If the ratio of intersection between the main dropzone that should be visible, and the
- * scrollable container, is below this value, then the backup dropzone will be shown.
- */
-const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
 /**
  * The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling.
@@ -271,21 +264,11 @@ function AssetsTable(props: AssetsTableProps) {
     query,
   })
 
-  const [isDraggingFiles, setIsDraggingFiles] = useState(false)
-  const [droppedFilesCount, setDroppedFilesCount] = useState(0)
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
   const mainDropzoneRef = useRef<HTMLButtonElement | null>(null)
   const headerRowRef = useRef<HTMLTableRowElement>(null)
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
-
-  const isMainDropzoneVisible = useIntersectionRatio(
-    rootRef,
-    mainDropzoneRef,
-    MINIMUM_DROPZONE_INTERSECTION_RATIO,
-    (ratio) => ratio >= MINIMUM_DROPZONE_INTERSECTION_RATIO,
-    true,
-  )
 
   useEffect(() => {
     setNewestFolderId(null)
@@ -847,22 +830,6 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }
 
-  const updateIsDraggingFiles = (event: DragEvent<Element>) => {
-    if (event.dataTransfer.types.includes('Files')) {
-      setIsDraggingFiles(true)
-      setDroppedFilesCount(event.dataTransfer.items.length)
-    }
-  }
-
-  const handleFileDrop = (event: DragEvent) => {
-    setIsDraggingFiles(false)
-    if (event.dataTransfer.types.includes('Files')) {
-      event.preventDefault()
-      event.stopPropagation()
-      void uploadFiles(Array.from(event.dataTransfer.files), currentDirectoryId)
-    }
-  }
-
   const getAssetNodeById = useEventCallback(
     (id: AssetId) => assets.find((node) => node.id === id) ?? null,
   )
@@ -1145,11 +1112,6 @@ function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const onRowDragEnd = useEventCallback(() => {
-    setIsDraggingFiles(false)
-    endAutoScroll()
-  })
-
   const onRowDrop = useEventCallback(
     (event: DragEvent<HTMLElement>, item: AnyAsset | null = null) => {
       if (category.type === 'trash' || category.type === 'recent') {
@@ -1232,7 +1194,7 @@ function AssetsTable(props: AssetsTableProps) {
         select={selectRow}
         labels={labels ?? []}
         onDragStart={onRowDragStart}
-        onDragEnd={onRowDragEnd}
+        onDragEnd={endAutoScroll}
         onDrop={onRowDrop}
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
@@ -1241,13 +1203,6 @@ function AssetsTable(props: AssetsTableProps) {
       />
     )
   })
-
-  const dropzoneText =
-    isDraggingFiles ?
-      droppedFilesCount === 1 ?
-        getText('assetsDropFileDescription')
-      : getText('assetsDropFilesDescription', droppedFilesCount)
-    : getText('assetsDropzoneDescription')
 
   const specialEmptyText =
     query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
@@ -1286,9 +1241,6 @@ function AssetsTable(props: AssetsTableProps) {
           )}
           onDragEnter={onDropzoneDragOver}
           onDragOver={onDropzoneDragOver}
-          onDragEnd={() => {
-            setIsDraggingFiles(false)
-          }}
           onDrop={(event) => {
             event.preventDefault()
             event.stopPropagation()
@@ -1311,7 +1263,7 @@ function AssetsTable(props: AssetsTableProps) {
               className="rounded-2xl"
               contentClassName="h-[186px] flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
             >
-              {dropzoneText}
+              {getText('assetsDropzoneDescription')}
             </Button>
           </FileTrigger>
         </div>
@@ -1367,11 +1319,6 @@ function AssetsTable(props: AssetsTableProps) {
               setKeyboardSelectedIndex(null)
             }
           }}
-          onDragEnter={updateIsDraggingFiles}
-          onDragOver={updateIsDraggingFiles}
-          onDragEnd={() => {
-            setIsDraggingFiles(false)
-          }}
           ref={rootRef}
         >
           <SelectionBrush
@@ -1412,25 +1359,6 @@ function AssetsTable(props: AssetsTableProps) {
           </div>
         </div>
       </IsolateLayout>
-
-      {isDraggingFiles && !isMainDropzoneVisible && category.canUploadHere && (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
-          <div
-            className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
-            onDragEnter={onDropzoneDragOver}
-            onDragOver={onDropzoneDragOver}
-            onDragEnd={() => {
-              setIsDraggingFiles(false)
-            }}
-            onDrop={(event) => {
-              handleFileDrop(event)
-            }}
-          >
-            <SvgMask src={DropFilesImage} className="size-8" />
-            {dropzoneText}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

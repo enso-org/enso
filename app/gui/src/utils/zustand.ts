@@ -1,6 +1,6 @@
 import { defaultEquality } from '@/util/equals'
-import { DeepReadonly, onScopeDispose, readonly, Ref, shallowRef } from 'vue'
-import { StoreApi } from 'zustand'
+import { onScopeDispose, readonly, shallowRef, type DeepReadonly, type Ref } from 'vue'
+import type { StoreApi } from 'zustand'
 
 /**
  * Get zustand store as Vue ref.

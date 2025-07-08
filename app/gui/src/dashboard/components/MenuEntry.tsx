@@ -72,6 +72,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   selectAdditionalRange: 'selectAdditionalRangeShortcut',
   goBack: 'goBackShortcut',
   goForward: 'goForwardShortcut',
+  upgradePlan: 'upgradePlanShortcut',
   aboutThisApp: 'aboutThisAppShortcut',
   openInFileBrowser: 'openInFileBrowserShortcut',
   ensoDevtools: 'ensoDevtoolsShortcut',
