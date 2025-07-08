@@ -63,7 +63,7 @@ type Type_Error
        - actual: The actual type at the error location.
        - comment: Description of the value that was being checked,
          e.g. function argument, result or an arbitrary expression.
-    Error expected actual comment
+    private Error expected actual comment
 
     ## PRIVATE
        Convert the Type_Error error to a human-readable format.
