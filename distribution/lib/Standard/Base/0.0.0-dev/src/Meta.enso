@@ -167,6 +167,14 @@ type Primitive
 type Function
     private Value impl kind:Integer
 
+    ## PRIVATE
+       ADVANCED
+
+       Identifies whether a function is resolved or not. Certain constructs
+       are known to result in a function (like automatic constructors `..None`)
+       but aren't yet resolved to actual function. Such objects
+       return `False` from this method.
+
     is_resolved self -> Boolean =
         self.kind != 4 && self.kind != 8
 
@@ -176,7 +184,7 @@ type Unresolved_Symbol
     ## PRIVATE
        ADVANCED
 
-       Not yet resolved
+       Not yet resolved.
     is_resolved self -> Boolean = False
 
     ## PRIVATE
