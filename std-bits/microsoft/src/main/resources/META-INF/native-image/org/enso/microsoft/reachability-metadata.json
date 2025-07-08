@@ -39,6 +39,47 @@
       "type": "[B"
     },
     {
+      "type": "[Ljava.lang.String;"
+    },
+    {
+      "type": "io.netty.handler.ssl.OpenSslClientSessionCache"
+    },
+    {
+      "type": "io.netty.handler.ssl.OpenSslSessionCache",
+      "methods": [
+        {
+          "name": "getSession",
+          "parameterTypes": [
+            "long",
+            "byte[]"
+          ]
+        },
+        {
+          "name": "sessionCreated",
+          "parameterTypes": [
+            "long",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslClientContext$ExtendedTrustManagerVerifyCallback"
+    },
+    {
+      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslContext$AbstractCertificateVerifier",
+      "methods": [
+        {
+          "name": "verify",
+          "parameterTypes": [
+            "long",
+            "byte[][]",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
       "type": "io.netty.internal.tcnative.Buffer"
     },
     {
@@ -131,6 +172,26 @@
       ]
     },
     {
+      "type": "java.lang.Class",
+      "methods": [
+        {
+          "name": "getClassLoader",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.ClassLoader",
+      "methods": [
+        {
+          "name": "loadClass",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
       "type": "java.lang.Exception"
     },
     {
@@ -156,6 +217,9 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "jdk.internal.loader.ClassLoaders$AppClassLoader"
     }
   ]
 }
