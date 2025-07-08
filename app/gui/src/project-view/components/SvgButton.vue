@@ -33,18 +33,13 @@ const emit = defineEmits<{ activate: [] }>()
 .SvgButton {
   margin: -4px;
   gap: 4px;
-  transition: opacity 0.2s;
 
   &.disabled {
-    opacity: 0.3;
+    opacity: 0.2;
   }
-}
 
-.toggledOff svg {
-  opacity: 0.4;
-}
-
-:is(.toggledOff, .toggledOn):active svg {
-  opacity: 0.7;
+  &.toggledOn {
+    background-color: var(--color-menu-entry-selected-bg);
+  }
 }
 </style>

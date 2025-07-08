@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.Feature.Feature
 from Standard.Database.Errors import all
-from Standard.Table import Position, Value_Type, Table
+from Standard.Table import Position, Table
 from Standard.Table.Errors import all
 
 from Standard.Test import all
@@ -505,17 +505,16 @@ add_select_column_specs suite_builder setup =
             fail_3 . should_fail_with Illegal_Argument
             fail_3.catch.message.should_equal "Expected a table with one or two columns of text values."
 
-        if setup.is_database then group_builder.specify "should error if renaming by Database table (it must be materialized)" <|
+        if setup.is_database then group_builder.specify "can rename by Database table" <|
             db_source_table = data.table
-            db_rename_table = data.table.select_columns [0, 1] . cast [0, 1] Value_Type.Char
-            fail_1 = db_source_table.rename_columns db_rename_table
-            fail_1.should_fail_with Illegal_Argument
-            fail_1.catch.message.should_contain "materialize"
+            db_rename_table = table_builder [["old", ["ALPHA", "DELTA"]], ["new", ["FirstColumn", "Another"]]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                db_source_table.rename_columns db_rename_table Case_Sensitivity.Insensitive
 
-            # We also check that renaming an in-memory table with a database table as mapping also fails.
-            fail_2 = (Table.new [["X", [1, 2]]]).rename_columns db_rename_table
-            fail_2.should_fail_with Illegal_Argument
-            fail_2.catch.message.should_contain "materialize"
+            # We also check rename an in-memory table with a database table as mapping.
+            in_mem_source_table = data.table.read
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                in_mem_source_table.rename_columns db_rename_table Case_Sensitivity.Insensitive
 
         group_builder.specify "should work by name case-insensitively" <|
             map = Dictionary.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]

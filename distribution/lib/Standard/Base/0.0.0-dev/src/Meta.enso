@@ -408,29 +408,3 @@ Type.from (that:Any) =
        # everything else is an error
        _ -> Base_Error.throw
            Private_Access.Error Nothing Nothing "meta" "Doesn't represent a Type"
-
-## PRIVATE
-   ADVANCED
-   Represents the multi-type associated with the multi-value - allowing
-   to inspect all the types that the value pretends to be.
-
-   This is a useful helper for debugging multi-value behaviour.
-type Multi_Type
-    private Type visible extra
-
-    ## PRIVATE
-       ADVANCED
-       Returns a multi-type for a given value.
-
-       Even if the value is not a multi-value, it will return a
-       'singleton' multi-type that holds just a single type.
-    get value =
-        array = Vector.from_polyglot_array <| Meta_Helpers.get_multi_types_builtin value
-        Multi_Type.Type array.first array.second
-
-    ## PRIVATE
-    to_text self =
-        visible_part = self.visible.map .to_text . join " & "
-        extra_part = self.extra.map .to_text . join " & "
-        if extra_part.is_empty then visible_part else
-            visible_part + " & hidden (" + extra_part + ")"

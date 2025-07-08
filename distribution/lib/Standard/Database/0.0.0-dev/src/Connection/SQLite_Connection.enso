@@ -141,7 +141,7 @@ type SQLite_Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : SQL_Query -> Text -> DB_Table ! Table_Not_Found
+    query : SQL_Query -> Text -> Table & DB_Table ! Table_Not_Found
     query self query:SQL_Query alias="" = self.connection.query query alias
 
     ## ALIAS import, load, open, query
@@ -210,8 +210,8 @@ type SQLite_Connection
          (like missing columns) and if successful, return a temporary table with
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
-    create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
+    create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED

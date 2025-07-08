@@ -7,7 +7,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Aggregate_Column, Column, Value_Type
+from Standard.Table import Aggregate_Column, Column, Value_Type, Table
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
@@ -165,7 +165,7 @@ type Snowflake_Dialect
        private: true
        ---
        Prepares a distinct operation.
-    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name

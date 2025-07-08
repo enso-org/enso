@@ -2,25 +2,17 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
+import Page from '#/components/Page'
+import { usePaywall } from '#/hooks/billing'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
-
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
-
-import Page from '#/components/Page'
-
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
-
-import { usePaywall } from '#/hooks/billing'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -29,6 +21,8 @@ import AppContainerVue from '$/components/AppContainer.vue'
 import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import { usePrefetchQuery } from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax

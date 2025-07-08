@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Database.DB_Table.DB_Table
 from Standard.Table import Column, Table
 
 from Standard.Test import all
@@ -11,7 +10,11 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 Table.should_equal : Any -> Boolean -> Any
 Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected ignore_order) error->
+    ## For DB_Tables we want to materialise and then compare.
+       For In_Memory_Tables these are no-ops
+    materialised_self = self.read
+    materialised_expected = expected.read
+    Panic.catch Test_Failure_Error (table_should_equal_impl materialised_self materialised_expected ignore_order) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Any
@@ -21,14 +24,6 @@ Column.should_equal self expected = Frame_Hider.hide <|
     expected_materialized = expected.read ..All_Rows
     Panic.catch Test_Failure_Error (column_should_equal_impl self_materialized expected_materialized) error->
         Test.fail error.payload.message
-
-DB_Table.should_equal : DB_Table|Table -> Boolean -> Any
-DB_Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
-    rhs_error_check expected
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1 ignore_order
-
 type Test_Failure_Error
     ## PRIVATE
        The runtime representation of a test failure.
