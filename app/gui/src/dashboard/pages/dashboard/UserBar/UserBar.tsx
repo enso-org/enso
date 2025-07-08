@@ -8,19 +8,30 @@ import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
+import { VisualTooltip } from '#/components/VisualTooltip'
 import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
-import { useFullUserSession, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useText } from '$/providers/react'
+import { useQuery } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
 import UserMenu from './UserMenu'
+
+/** The number of milliseconds in an hour. */
+const HOUR_MS = 3_600_000
+/** The number of hours in a day. */
+const DAY_HOUR = 24
+/** The number of milliseconds in a day. */
+const DAY_MS = DAY_HOUR * HOUR_MS
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
@@ -70,6 +81,24 @@ export function UserBar(props: UserBarProps) {
   const { getText } = useText()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const { isOffline } = useOffline()
+  const { remoteBackend } = useBackends()
+  const { data: organization } = useQuery(
+    backendQueryOptions(remoteBackend, 'getOrganization', [], {
+      enabled: user.isOrganizationAdmin,
+    }),
+  )
+  const trialEndDate =
+    user.isOrganizationAdmin && organization?.subscription?.trialEnd != null ?
+      new Date(organization.subscription.trialEnd)
+    : null
+  const trialDaysLeft =
+    trialEndDate ?
+      Math.max(0, Math.floor((Number(trialEndDate) - Number(new Date())) / DAY_MS))
+    : null
+  const trialHoursLeft =
+    trialDaysLeft != null && trialDaysLeft < 1 ?
+      Math.max(0, Math.floor((Number(trialEndDate) - Number(new Date())) / HOUR_MS))
+    : null
 
   const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
 
@@ -134,6 +163,20 @@ export function UserBar(props: UserBarProps) {
           <Button variant={upgradeButtonVariant} size="medium" href={SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </Button>
+        )}
+
+        {trialDaysLeft != null && trialEndDate && (
+          <VisualTooltip
+            tooltip={getText('yourSubscriptionExpiresAtX', toReadableIsoString(trialEndDate))}
+          >
+            <Text className="cursor-help">
+              {trialHoursLeft != null ?
+                trialHoursLeft > 0 ?
+                  getText('xDaysLeftInTrial', trialHoursLeft)
+                : getText('lessThanOneHourLeftInTrial')
+              : getText('xDaysLeftInTrial', trialDaysLeft)}
+            </Text>
+          </VisualTooltip>
         )}
 
         <NotificationTray />
