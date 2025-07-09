@@ -126,7 +126,7 @@ type Constructor
 
        Returns a vector of field names defined by a constructor.
     fields self -> Vector Text =
-        Meta_Helpers.get_constructor_fields_builtin (self.impl...)
+        Meta_Helpers.get_argument_names_builtin (self.impl...) True True True True
 
     ## ADVANCED
        GROUP Metadata
