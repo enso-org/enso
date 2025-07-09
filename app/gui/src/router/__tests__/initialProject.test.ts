@@ -1,7 +1,16 @@
-import { EmailAddress, OrganizationId, Path, Plan, User, UserId } from '#/services/Backend'
+import {
+  AnyAsset,
+  AssetType,
+  EmailAddress,
+  OrganizationId,
+  Path,
+  Plan,
+  User,
+  UserId,
+} from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import * as container from '$/providers/container'
-import { expect, test, vi } from 'vitest'
+import { expect, test } from 'vitest'
 import {
   CLOUD_INITIAL_PROJECT_RELATIVE_PATH,
   initialProjectPath,
@@ -10,14 +19,16 @@ import {
 
 // keep import registerting local storage key
 const _ = container
-const CLOUD_ROOT_PATH = 'enso://Users/user'
+const CLOUD_ROOT_PATH = 'enso://Users/mock'
 const LOCAL_ROOT_PATH = '/home/user/Documents/enso-projects'
+const LOCAL_WELCOME_PROJECT = `local//home/user/Documents/enso-projects/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
+const CLOUD_WELCOME_PROJECT = `cloud/Users/mock/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`
 const USER: User = {
   isEnabled: true,
   isOrganizationAdmin: false,
   rootDirectoryId: newDirectoryId(Path(CLOUD_ROOT_PATH)),
   userGroups: null,
-  plan: Plan.free,
+  plan: Plan.solo,
   isEnsoTeamMember: false,
   organizationId: OrganizationId('organization-Mock'),
   userId: UserId('Mock user'),
@@ -25,21 +36,34 @@ const USER: User = {
   email: EmailAddress('mock@mock.com'),
 }
 
-function mockBackends() {
+interface AssetEntry {
+  type: AssetType
+  title: string
+}
+
+function mockBackends(plan: Plan, localHome: AssetEntry[] = [], cloudHome: AssetEntry[] = []) {
   return {
-    localBackend: { rootPath: vi.fn(() => Path(LOCAL_ROOT_PATH)) },
+    localBackend: {
+      rootPath: () => Path(LOCAL_ROOT_PATH),
+      listDirectory: () => Promise.resolve(localHome as AnyAsset[]),
+    },
+    remoteBackend: {
+      rootPath: () =>
+        plan === Plan.free || plan === Plan.solo ? Path(CLOUD_ROOT_PATH) : Path('enso://'),
+      listDirectory: () => Promise.resolve(cloudHome as AnyAsset[]),
+    },
   }
 }
 
 test.each([Plan.free, Plan.solo, Plan.team, Plan.enterprise])(
   'Initial project from configuration with %s plan',
-  (plan) => {
-    const resultFromName = initialProjectPath('Name', { ...USER, plan }, mockBackends())
+  async (plan) => {
+    const resultFromName = await initialProjectPath('Name', { ...USER, plan }, mockBackends(plan))
     expect(resultFromName).toBe('local//home/user/Documents/enso-projects/Name')
-    const resultFromURL = initialProjectPath(
+    const resultFromURL = await initialProjectPath(
       'file:///home/user/Name.enso-project',
       { ...USER, plan },
-      mockBackends(),
+      mockBackends(plan),
     )
     expect(resultFromURL).toBeUndefined()
   },
@@ -47,11 +71,74 @@ test.each([Plan.free, Plan.solo, Plan.team, Plan.enterprise])(
 
 test.each`
   plan               | expected
-  ${Plan.free}       | ${`local//home/user/Documents/enso-projects/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`}
-  ${Plan.solo}       | ${`cloud/Users/user/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`}
-  ${Plan.team}       | ${`cloud/Users/user/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`}
-  ${Plan.enterprise} | ${`cloud/Users/user/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`}
-`('Initial project on fresh install with $plan plan', ({ plan, expected }) => {
-  const result = initialProjectPath(undefined, { ...USER, plan }, mockBackends())
+  ${Plan.free}       | ${LOCAL_WELCOME_PROJECT}
+  ${Plan.solo}       | ${CLOUD_WELCOME_PROJECT}
+  ${Plan.team}       | ${CLOUD_WELCOME_PROJECT}
+  ${Plan.enterprise} | ${CLOUD_WELCOME_PROJECT}
+`('Initial project on fresh install with $plan plan', async ({ plan, expected }) => {
+  const result = await initialProjectPath(undefined, { ...USER, plan }, mockBackends(plan))
   expect(result).toBe(expected)
 })
+
+test.each([
+  {
+    localHome: [{ title: 'Samples', type: AssetType.directory }],
+    cloudHome: [{ title: 'Samples', type: AssetType.directory }],
+    shouldOpen: true,
+  },
+  {
+    localHome: [],
+    cloudHome: [{ title: 'Samples', type: AssetType.directory }],
+    shouldOpen: true,
+  },
+  {
+    localHome: [{ title: 'Samples', type: AssetType.directory }],
+    cloudHome: [],
+    shouldOpen: true,
+  },
+  {
+    localHome: [],
+    cloudHome: [],
+    shouldOpen: true,
+  },
+  {
+    localHome: [
+      { title: 'Samples', type: AssetType.directory },
+      { title: 'New Project 1', type: AssetType.project },
+    ],
+    cloudHome: [{ type: AssetType.directory, title: 'Samples' }],
+    shouldOpen: false,
+  },
+  {
+    localHome: [{ title: 'Samples', type: AssetType.directory }],
+    cloudHome: [
+      { type: AssetType.directory, title: 'Samples' },
+      { title: 'New Project 1', type: AssetType.project },
+    ],
+    shouldOpen: false,
+  },
+  {
+    localHome: [{ title: 'Samples', type: AssetType.project }],
+    cloudHome: [{ title: 'Samples', type: AssetType.directory }],
+    shouldOpen: false,
+  },
+  {
+    localHome: [{ title: 'Samples', type: AssetType.directory }],
+    cloudHome: [{ title: 'Samples', type: AssetType.project }],
+    shouldOpen: false,
+  },
+])(
+  'Initial project with homes $localHome and $cloudHome',
+  async ({ localHome, cloudHome, shouldOpen }) => {
+    const result = await initialProjectPath(
+      undefined,
+      USER,
+      mockBackends(USER.plan, localHome, cloudHome),
+    )
+    if (shouldOpen) {
+      expect(result).toBe(CLOUD_WELCOME_PROJECT)
+    } else {
+      expect(result).toBeUndefined()
+    }
+  },
+)

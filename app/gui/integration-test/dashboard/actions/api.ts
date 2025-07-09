@@ -1326,6 +1326,19 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     })
   })
 
+  // Initialize asset with mock project.
+  assets.push(
+    createAsset({
+      type: backend.AssetType.project,
+      id: backend.ProjectId('project-' + uniqueString.uniqueString()),
+      title: 'Mock Project',
+      projectState: {
+        type: backend.ProjectState.closed,
+        volumeId: '',
+      },
+    }),
+  )
+
   const api = {
     defaultEmail,
     defaultName: defaultUsername,
