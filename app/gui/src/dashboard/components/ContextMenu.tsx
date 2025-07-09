@@ -20,6 +20,7 @@ export interface ContextMenuProps {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label': string
   readonly entries: readonly (MenuEntryProps | false | null | undefined)[]
+  readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
 }
 
 /** Imperative API for {@link ContextMenu}. */
@@ -33,14 +34,16 @@ export const ContextMenu = forwardRef(function ContextMenu(
   props: ContextMenuProps,
   ref: ForwardedRef<ContextMenuApi>,
 ) {
-  const { entries } = props
+  const { entries, initialPosition } = props
 
   const root = usePortalContext()
-  const [isOpen, setIsOpen] = useState(false)
-  const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>({
-    pageX: 0,
-    pageY: 0,
-  })
+  const [isOpen, setIsOpen] = useState(initialPosition != null)
+  const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
+    initialPosition ?? {
+      pageX: 0,
+      pageY: 0,
+    },
+  )
 
   useImperativeHandle(ref, () => ({
     open: (newPosition) => {

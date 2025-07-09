@@ -48,6 +48,7 @@ export interface AssetContextMenuProps {
     newParentId: backendModule.DirectoryId,
   ) => void
   readonly rightPanel: RightPanelData
+  readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
@@ -55,7 +56,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   props: AssetContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const { innerProps, triggerRef, currentDirectoryId, rightPanel } = props
+  const { innerProps, triggerRef, currentDirectoryId, rightPanel, initialPosition } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
@@ -368,5 +369,12 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       ],
   )
 
-  return <ContextMenu ref={ref} aria-label={getText('assetContextMenuLabel')} entries={entries} />
+  return (
+    <ContextMenu
+      ref={ref}
+      aria-label={getText('assetContextMenuLabel')}
+      entries={entries}
+      initialPosition={initialPosition}
+    />
+  )
 })

@@ -161,6 +161,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const contextMenuRef = React.useRef<ContextMenuApi>(null)
   const [isNavigating, startNavigation] = useTransition()
 
+  const [contextMenuPosition, setContextMenuPosition] = React.useState<Pick<
+    MouseEvent,
+    'pageX' | 'pageY'
+  > | null>(null)
   const driveStore = useDriveStore()
   const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
@@ -381,9 +385,13 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               if (!isSelected) {
                 select(item)
+                setContextMenuPosition(event)
+              } else {
+                if (contextMenuPosition != null) {
+                  setContextMenuPosition(null)
+                }
+                contextMenuRef.current?.open(event)
               }
-
-              contextMenuRef.current?.open(event)
             }}
             onDragStart={(event) => {
               if (rowState.isEditingName) {
@@ -467,6 +475,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               doCut={doCut}
               doPaste={doPaste}
               rightPanel={rightPanel}
+              initialPosition={contextMenuPosition}
             />
           )}
         </>
