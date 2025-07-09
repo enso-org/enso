@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Widget_Helpers
 import project.Table.Table
@@ -49,7 +48,7 @@ type Row
     @column (self -> Widget_Helpers.make_column_name_selector self)
     at : (Integer | Text) -> Any
     at self (column:(Integer | Text)=0) =
-        self.get column if_missing=(Error.throw (Illegal_Argument.Error "Column not found"))
+        self.get column if_missing=(Error.throw (Illegal_Argument.Error "Column "+column.to_text+" not found"))
 
     ## GROUP Standard.Base.Conversions
        ICON convert

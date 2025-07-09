@@ -2,7 +2,6 @@ package org.enso.table.data.table;
 
 import java.util.Arrays;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class Row {
   private final Table table;

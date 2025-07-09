@@ -1,7 +1,7 @@
 package org.enso.table.operations;
 
+import java.util.function.BiPredicate;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -10,8 +10,6 @@ import org.enso.table.data.table.Row;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ProgressHandler;
-
-import java.util.function.BiPredicate;
 
 public class AddGroupNumber {
   public static ColumnStorage<?> numberGroupsUnique(

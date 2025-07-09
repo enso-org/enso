@@ -117,8 +117,9 @@ public class Table {
   }
 
   /**
-   * Gets the value of a cell in the table by column name and row index.
-   * If the column does not exist, it calls the provided function with the column name.
+   * Gets the value of a cell in the table by column name and row index. If the column does not
+   * exist, it calls the provided function with the column name.
+   *
    * @param columnName the name of the column
    * @param rowIndex the index of the row
    * @param ifMissing a function to call if the column is missing
@@ -133,8 +134,9 @@ public class Table {
   }
 
   /**
-   * Gets the value of a cell in the table by column index and row index.
-   * If the column does not exist, it calls the provided function with the column name.
+   * Gets the value of a cell in the table by column index and row index. If the column does not
+   * exist, it calls the provided function with the column name.
+   *
    * @param columnIndex the index of the column
    * @param rowIndex the index of the row
    * @param ifMissing a function to call if the column is missing
@@ -154,14 +156,16 @@ public class Table {
    * @return a column with the given name
    */
   public Column getColumnByName(String name) {
-    return columnNameMap.computeIfAbsent(name, columnName -> {
-      for (Column column : columns) {
-        if (Text_Utils.equals(column.getName(), columnName)) {
-          return column;
-        }
-      }
-      return null;
-    });
+    return columnNameMap.computeIfAbsent(
+        name,
+        columnName -> {
+          for (Column column : columns) {
+            if (Text_Utils.equals(column.getName(), columnName)) {
+              return column;
+            }
+          }
+          return null;
+        });
   }
 
   /**
