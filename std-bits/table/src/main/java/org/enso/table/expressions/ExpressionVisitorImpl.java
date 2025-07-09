@@ -147,10 +147,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final var moduleTypePairs = java.util.List.of(new EnsoType("Standard.Table.Expression_Statics", "Expression_Statics", true), new EnsoType(moduleName, typeName, false));
     Function<String, MethodInterface> getMethod =
         name -> Method.create(moduleTypePairs, name, setVariableArgumentFunctions.contains(name));
-    final var module =
-        Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
     Function<String, Value> makeConstructor =
-        name -> module.invokeMember("eval_expression", ".." + name);
+        name -> moduleTypePairs.get(0).module.invokeMember("eval_expression", ".." + name);
 
     return evaluateImpl(
         expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
