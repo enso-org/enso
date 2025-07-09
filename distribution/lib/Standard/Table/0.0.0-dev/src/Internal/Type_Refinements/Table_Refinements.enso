@@ -12,7 +12,7 @@ import project.Value_Type.Value_Type
 from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
 from project.Internal.Type_Refinements.Single_Column_Typed_Table_Conversions import all
 
-refine_table (table : In_Memory_Table) =
+refine_table (table : Table & In_Memory_Table) =
     if table . column_count != 1 then (table : Table & In_Memory_Table) else
         column = (table:Table).at 0
         inferred_value_type = column.inferred_precise_value_type
@@ -21,7 +21,7 @@ refine_table (table : In_Memory_Table) =
             Value_Type.Byte -> _refine_numeric_column table column
             Value_Type.Float _ -> _refine_numeric_column table column
             Value_Type.Decimal _ _ -> _refine_numeric_column table column
-            _ -> _refine_other_column table
+            _ -> _refine_other_column table column
 
 private _refine_numeric_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column = case column.length of
     1 -> case column.at 0 of
