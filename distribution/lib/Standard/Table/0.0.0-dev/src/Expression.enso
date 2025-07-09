@@ -39,13 +39,13 @@ type Expression
         _is_column value = value.is_a Column
         ## Helper for the expression to tell it which functions needs a Vector.
         var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
+        x = [["Standard.Table.Expression_Statics", "Expression_Statics", "true"], ["Standard.Table.Column", "Column", "false"]]
         handle_parse_error = Panic.catch ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
 
         handle_parse_error <| handle_unsupported <| handle_arguments <|
-            ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column "Standard.Table.Column" "Column" var_args_functions
+            ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column x var_args_functions
 
 type Expression_Error
     ## PRIVATE

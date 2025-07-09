@@ -138,13 +138,15 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       Function<Value, Boolean> isColumn,
-      String moduleName,
-      String typeName,
+      String [][] x,
       String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
-    final var moduleTypePairs = java.util.List.of(new EnsoType("Standard.Table.Expression_Statics", "Expression_Statics", true), new EnsoType(moduleName, typeName, false));
+        
+    final var moduleTypePairs = java.util.Arrays.stream(x)
+        .map(entry -> new EnsoType(entry[0], entry[1], Boolean.parseBoolean(entry[2])))
+        .toList();
     Function<String, MethodInterface> getMethod =
         name -> Method.create(moduleTypePairs, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
