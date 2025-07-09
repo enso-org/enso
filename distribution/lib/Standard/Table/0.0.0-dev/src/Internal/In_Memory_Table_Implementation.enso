@@ -452,7 +452,7 @@ type In_Memory_Table_Implementation
             this_table.java_table.getColumns.at i . getName
 
     rows (this_table : Table & In_Memory_Table) max_rows:Rows_To_Read =
-        length = max_rows.rows_to_read . if_is_nothing this_table.row_count . min this_table.row_count
+        length = max_rows.rows_to_read . if_nothing this_table.row_count . min this_table.row_count
         Vector.from_polyglot_array (Array_Proxy.new length this_table.get_row)
 
     first_row (this_table : Table & In_Memory_Table) =
