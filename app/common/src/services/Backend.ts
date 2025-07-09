@@ -1,5 +1,4 @@
 /** @file Type definitions common between all backends. */
-
 import { z } from 'zod'
 import { getText, resolveDictionary, type TextId } from '../text'
 import * as array from '../utilities/data/array'
@@ -1380,11 +1379,19 @@ export interface GetLogEventsRequestParams {
   readonly pageSize?: number | null | undefined
 }
 
+export type AssetSortExpression = 'asset_discriminator_and_id' | 'modified_at' | 'title'
+
+export type AssetSortDirection = 'ascending' | 'descending'
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
+  readonly from: AssetId | null
+  readonly pageSize: number | null
+  readonly sortExpression: AssetSortExpression | null
+  readonly sortDirection: AssetSortDirection | null
   readonly recentProjects: boolean
   /**
    * The root path of the directory to list.
@@ -1392,6 +1399,17 @@ export interface ListDirectoryRequestParams {
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
+}
+
+/** URL query string parameters for the "search directory" endpoint. */
+export interface SearchDirectoryRequestParams {
+  readonly parentId: DirectoryId | null
+  readonly title: string | null
+  readonly description: string | null
+  readonly type: string | null
+  readonly extension: string | null
+  readonly from: AssetId | null
+  readonly pageSize: number | null
 }
 
 /** URL query string parameters for the "get project session logs" endpoint. */
@@ -1591,9 +1609,7 @@ export function doesContainInvalidNames(title: string) {
   return INVALID_NAME_MASKS.some((mask) => mask.test(title))
 }
 
-/**
- * A Zod schema for validating a title.
- */
+/** A Zod schema for validating a title. */
 export function titleSchema(options: TitleSchemaOptions) {
   const { asset, siblings } = options
 
@@ -1615,9 +1631,7 @@ export function titleSchema(options: TitleSchemaOptions) {
     })
 }
 
-/**
- * Check whether a new title is unique among the siblings.
- */
+/** Check whether a new title is unique among the siblings. */
 export function isNewTitleUnique(
   item: AnyAsset,
   newTitle: string,

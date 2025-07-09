@@ -571,6 +571,10 @@ export default class RemoteBackend extends Backend {
           : [
               ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
               ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+              ...(query.from != null ? [['from', query.from]] : []),
+              ...(query.pageSize != null ? [['page_size', String(query.pageSize)]] : []),
+              ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
+              ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
               ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
             ],
         ).toString(),
