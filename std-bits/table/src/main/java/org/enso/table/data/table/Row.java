@@ -16,6 +16,10 @@ public class Row {
     this.rowIndex = rowIndex;
   }
 
+  public Table table() {
+    return table;
+  }
+
   public long index() {
     return rowIndex;
   }
@@ -24,13 +28,17 @@ public class Row {
     return Arrays.stream(table.getColumns()).map(Column::getName).toArray(String[]::new);
   }
 
-  public long column_count() {
+  public int column_count() {
     return table.getColumns().length;
   }
 
   public Object get_value(int index, Function<Object, Object> ifMissing) {
-    if (index < 0 || index >= column_count()) {
+    var count = column_count();
+    if (index < -count || index >= count) {
       return ifMissing.apply(index);
+    }
+    if (index < 0) {
+      index += count;
     }
     return table.getColumns()[index].getItem(rowIndex);
   }
