@@ -1235,9 +1235,5 @@
   "manageLabelsModal.nextColor": "Next color",
   "manageLabelsModal.chooseColor": "Choose a color",
   "manageLabelsModal.labelAlreadyExists": "Label already exists",
-  "manageLabelsModal.selectedLabels": "Selected labels",
-  "xDaysLeftInTrial": "$0 days left in trial",
-  "xHoursLeftInTrial": "$0 hours left in trial",
-  "lessThanOneHourLeftInTrial": "<1 hour left in trial",
-  "yourSubscriptionExpiresAtX": "Your subscription expires at $0"
+  "manageLabelsModal.selectedLabels": "Selected labels"
 }
