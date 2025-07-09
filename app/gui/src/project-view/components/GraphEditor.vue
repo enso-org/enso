@@ -7,7 +7,7 @@ import {
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
-import { graphBindings, panelsBindings } from '@/bindings'
+import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
@@ -332,12 +332,11 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-useEvent(window, 'keydown', (e) => panelsBindingsHandler(e))
-
-function onGraphKeyDown(e: KeyboardEvent) {
-  if (graphBindingsHandler(e)) return
-  else graphNavigator.keyboardEvents.keydown(e)
-}
+useEvent(
+  window,
+  'keydown',
+  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
+)
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSoleSelection()
@@ -364,13 +363,6 @@ const { handleClick } = useDoubleClick(
 const graphBindingsHandler = graphBindings.handler(
   objects.mapEntries(
     graphBindings.bindings,
-    (actionName) => () => void actionHandlers[actionName].action(),
-  ),
-)
-
-const panelsBindingsHandler = panelsBindings.handler(
-  objects.mapEntries(
-    panelsBindings.bindings,
     (actionName) => () => void actionHandlers[actionName].action(),
   ),
 )
@@ -637,7 +629,6 @@ const contextMenuActions: DisplayableActionName[] = [
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
-    @keydown="onGraphKeyDown($event)"
   >
     <div class="vertical">
       <ContextMenuTrigger

@@ -3,7 +3,6 @@ import {
   documentationEditorFormatBindings,
   graphBindings,
   nodeEditBindings,
-  panelsBindings,
   visualizationBindings,
 } from '@/bindings'
 import { createContextStore } from '@/providers'
@@ -137,12 +136,12 @@ const displayableActions = {
   'graph.toggleCodeEditor': {
     icon: 'bottom_panel',
     description: 'Code Editor',
-    shortcut: panelsBindings.bindings['graph.toggleCodeEditor'],
+    shortcut: graphBindings.bindings['graph.toggleCodeEditor'],
   },
   'graph.toggleDocumentationEditor': {
     icon: 'right_panel',
     description: 'Documentation Editor',
-    shortcut: panelsBindings.bindings['graph.toggleDocumentationEditor'],
+    shortcut: graphBindings.bindings['graph.toggleDocumentationEditor'],
   },
   'graph.renameProject': {
     icon: 'edit',

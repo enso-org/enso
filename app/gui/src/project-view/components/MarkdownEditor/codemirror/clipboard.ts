@@ -60,6 +60,7 @@ export function markdownClipboard({ tryUploadPastedImage }: MarkdownClipboardOpt
           'textEditor.paste': (event) => handlePaste(event, false),
           'textEditor.pasteRaw': (event) => handlePaste(event, true),
         }),
+        true,
       ),
     ]),
   ]

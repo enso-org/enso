@@ -44,10 +44,13 @@ export function handlerToKeyBinding(
 function bindCommands<T extends string>(
   bindings: Record<T, Command>,
 ): Record<T, (event: CmKeyboardEvent) => boolean> {
-  return objects.mapEntries(
-    bindings,
-    (_binding, command) => (event: CmKeyboardEvent) => command(event.codemirrorView),
-  )
+  return objects.mapEntries(bindings, (_binding, command) => (event: CmKeyboardEvent) => {
+    command(event.codemirrorView)
+    // Some commands return `false` if not applicable to the current state; this allows falling
+    // back to a lower-priority command, but we don't allow conditionally bubbling the event out
+    // of the editor.
+    return true
+  })
 }
 
 const stopNormalKeys: KeyBinding[] = [

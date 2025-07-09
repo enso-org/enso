@@ -46,12 +46,9 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
   'componentBrowser.switchPanelFocus': ['Tab'],
 })
 
-export const panelsBindings = defineKeybinds('graph-editor', {
+export const graphBindings = defineKeybinds('graph-editor', {
   'graph.toggleCodeEditor': ['Mod+`'],
   'graph.toggleDocumentationEditor': ['Mod+D'],
-})
-
-export const graphBindings = defineKeybinds('graph-editor', {
   'graph.undo': ['Mod+Z'],
   // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
   'graph.redo': isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
