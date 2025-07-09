@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -59,6 +60,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
   }
 
+  public record ModuleTypePair(Value module, Value type) {}
   public record Method(
       Value ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
       implements MethodInterface {
@@ -73,19 +75,19 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     public static Method create(
-        Value module, Value type, String name, boolean variableArgumentMethod) {
-      var staticMethod = STATICS_MODULE.invokeMember("get_method", STATICS_TYPE, name);
+        ModuleTypePair moduleTypePair, String methodName, boolean variableArgumentMethod) {
+      var staticMethod = STATICS_MODULE.invokeMember("get_method", STATICS_TYPE, methodName);
       if (staticMethod.canExecute()) {
-        return new Method(staticMethod, variableArgumentMethod, true, name);
+        return new Method(staticMethod, variableArgumentMethod, true, methodName);
       } else {
-        var instanceMethod = module.invokeMember("get_method", type, name);
+        var instanceMethod = moduleTypePair.module().invokeMember("get_method", moduleTypePair.type(), methodName);
         if (!instanceMethod.canExecute()) {
-          throw new UnsupportedOperationException("Method not found: " + name);
+          throw new UnsupportedOperationException("Method not found: " + methodName);
         }
-        return new Method(instanceMethod, variableArgumentMethod, false, name);
+        return new Method(instanceMethod, variableArgumentMethod, false, methodName);
       }
     }
-
+    
     @Override
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects = prepareArguments(args, makeConstantColumn);
@@ -137,8 +139,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final Value type = module.invokeMember("get_type", typeName);
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
+    ModuleTypePair moduleTypePair = new ModuleTypePair(module, type);
     Function<String, MethodInterface> getMethod =
-        name -> Method.create(module, type, name, setVariableArgumentFunctions.contains(name));
+        name -> Method.create(moduleTypePair, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
