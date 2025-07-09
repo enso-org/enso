@@ -83,24 +83,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
   public record Method(
-      Value ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
+      EnsoMethod ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
       implements MethodInterface {
-
-    private static final Value STATICS_MODULE;
-    private static final Value STATICS_TYPE;
-
-    static {
-      var context = Context.getCurrent().getBindings("enso");
-      STATICS_MODULE = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
-      STATICS_TYPE = STATICS_MODULE.invokeMember("get_type", "Expression_Statics");
-    }
-
     public static Method create(
         Iterable<EnsoType> moduleTypePairs, String methodName, boolean variableArgumentMethod) {
         for (var moduleTypePair : moduleTypePairs) {
           var instanceMethod = new EnsoMethod(moduleTypePair, methodName);
           if (instanceMethod.canExecute()) {
-            return new Method(instanceMethod.get(), variableArgumentMethod, moduleTypePair.isStaticMethod, methodName);
+            return new Method(instanceMethod, variableArgumentMethod, moduleTypePair.isStaticMethod, methodName);
           }
         }
         throw new UnsupportedOperationException("Method not found: " + methodName);
@@ -110,7 +100,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects = prepareArguments(args, makeConstantColumn);
       try {
-        var result = ensoMethod.execute(objects);
+        var result = ensoMethod.methodImpl.execute(objects);
         if (result.canExecute()) {
           throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
         }
@@ -133,7 +123,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
       } else if (isStaticMethod) {
         objects = new Object[args.length + 1];
-        objects[0] = STATICS_TYPE;
+        objects[0] = ensoMethod.type.module;
         System.arraycopy(args, 0, objects, 1, args.length);
       } else {
         objects = Arrays.copyOf(args, args.length, Object[].class);
