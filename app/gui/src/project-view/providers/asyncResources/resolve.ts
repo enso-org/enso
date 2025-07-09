@@ -4,6 +4,7 @@ import RemoteBackend from '#/services/RemoteBackend'
 import { OpenedProjectsStore } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, Ok, rejectionToResult, Result } from '@/util/data/result'
+import { urlParse } from '@/util/url'
 import { toValue } from 'vue'
 import { Opt } from 'ydoc-shared/util/data/opt'
 import { ResourceDefinition } from './AsyncResource'
@@ -64,7 +65,7 @@ export function useAsyncResourceResolver(
           cloudBackend.getFileDetails(typedAsset.id, asset.title, true),
         )
         if (!details.ok) return details
-        const url = details.value.url && URL.parse(details.value.url)
+        const url = details.value.url && urlParse(details.value.url)
         if (!url) return Err('Invalid aaset URL provided')
         return Ok(url)
       },
@@ -73,7 +74,7 @@ export function useAsyncResourceResolver(
 
   function resolveWebResource(url: URL): ResourceDefinition {
     return {
-      cacheKey: `web-${url}`,
+      cacheKey: `web-${url.href}`,
       async fetch() {
         return Ok(url)
       },

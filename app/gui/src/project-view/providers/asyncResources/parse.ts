@@ -1,6 +1,7 @@
 import { EnsoPath } from '#/services/Backend'
 import { Err, Ok, Result } from '@/util/data/result'
 import { ToValue } from '@/util/reactivity'
+import { urlParse } from '@/util/url'
 import { toValue } from 'vue'
 
 export type ParsedAssetUrl =
@@ -20,9 +21,11 @@ export function parseResourceUrl(
   basePathSegments?: ToValue<string[] | undefined>,
 ): Result<ParsedAssetUrl> {
   if (!urlString) return Err('Expected non-empty resource URL')
-  const asUrl = URL.parse(urlString)
+  const asUrl = urlParse(urlString)
+
   if (asUrl != null) {
     switch (asUrl.protocol) {
+      case 'data:':
       case 'http:':
       case 'https:':
         return Ok({ kind: 'webUrl', url: asUrl })
@@ -44,7 +47,7 @@ export function parseResourceUrl(
         isAbsolute ?
           CANARY_ROOT + urlString
         : [CANARY_ROOT, ...segments.slice(0, -1), urlString].join('/')
-      const asProjectUrl = URL.parse(rootRelativePath, 'project:///')
+      const asProjectUrl = urlParse(rootRelativePath, 'project:///')
       if (asProjectUrl?.protocol === 'project:') {
         const relativePath = decodeURI(asProjectUrl.pathname)
         if (!relativePath.startsWith('/' + CANARY_ROOT + '/'))

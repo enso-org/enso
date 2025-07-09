@@ -638,7 +638,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
           if (request.method() !== theMethod) {
             return await route.fallback()
           } else {
-            const url = URL.parse(request.url())!
+            const url = new URL(request.url())
             const [_, ...globCaptures] = (url.origin + url.pathname).match(urlPathRegex)!
             const result = await callback(route, request, globCaptures, url.searchParams)
             // `null` counts as a JSON value that we will want to return.

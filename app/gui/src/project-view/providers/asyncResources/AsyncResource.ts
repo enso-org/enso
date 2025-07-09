@@ -138,6 +138,7 @@ export class AsyncResource {
   private exposeNewObject(object: File | Blob | MediaSource) {
     if (!this.scope.active) return
     this.revokeCurrentObject()
+    console.log('exposeNewObject', object)
     this.urlRef.value = this.createdObjectUrl = URL.createObjectURL(object)
   }
 

@@ -1,12 +1,13 @@
 import { EnsoPath } from '#/services/Backend'
 import { Err, Ok } from '@/util/data/result'
+import { urlParse } from '@/util/url'
 import { describe, expect, test } from 'vitest'
 import { parseResourceUrl } from '../parse'
 
 describe('parseResourceUrl', () => {
   const asEnsoPath = (ensoPath: string) => Ok({ kind: 'ensoPath', ensoPath: EnsoPath(ensoPath) })
   const asProjectPath = (relativePath: string) => Ok({ kind: 'projectRelative', relativePath })
-  const asWebUrl = (url: string) => Ok({ kind: 'webUrl', url: URL.parse(url)! })
+  const asWebUrl = (url: string) => Ok({ kind: 'webUrl', url: urlParse(url)! })
 
   const errEmpty = Err('Expected non-empty resource URL')
   const errOutsideProject = Err('Resource path outside of project directory')
