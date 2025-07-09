@@ -10,7 +10,7 @@ from Standard.Table import Table
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
-import project.Dialect
+import project.Dialects.Dialect
 import project.Internal.Common.Connections_Helpers
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Data_Link_Setup.Data_Link_Setup

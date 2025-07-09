@@ -1,4 +1,7 @@
+export project.Column_Constraint.Column_Constraint
 export project.Column_Description.Column_Description
+export project.DB_Column.DB_Column
+export project.DB_Table.DB_Table
 
 export project.Connection.Client_Certificate.Client_Certificate
 export project.Connection.Connection_Options.Connection_Options

@@ -4,7 +4,6 @@ from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 type Feature
-
     ## PRIVATE
        select, remove, reorder, and rename columns.
     Select_Columns
