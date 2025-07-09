@@ -10,6 +10,10 @@
   ],
   "items": [
     {
+      "name": "contactUs",
+      "url": "https://ensoanalytics.com/contact"
+    },
+    {
       "name": "whatsNew",
       "url": "https://community.ensoanalytics.com/c/what-is-new-in-enso/"
     },

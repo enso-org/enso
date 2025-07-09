@@ -969,6 +969,7 @@
   "arbitraryFormErrorMessage": "Something went wrong while submitting the form. Please try again or contact the administrators.",
   "subscribeSubmit": "Subscribe",
   "contactSales": "Contact Sales",
+  "contactUs": "Contact Us",
   "setupOrganization": "Setup your organization",
   "setupOrganizationDescription": "Before you can invite users, you need to set up your organization.",
   "setOrgNameTitle": "Set your organization name",
