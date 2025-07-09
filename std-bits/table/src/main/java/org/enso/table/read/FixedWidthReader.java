@@ -34,7 +34,7 @@ public class FixedWidthReader {
   private final InvalidFixedWidthRowsBehavior invalidRowsBehavior;
 
   // Null means Infer; otherwise, contains the exact line ending string.
-  @Nullable private String lineEnding;
+  private String lineEnding;
 
   // Only used if lineEnding is the empty string; the layout must be specified
   // and cannot be inferred.
@@ -63,7 +63,7 @@ public class FixedWidthReader {
       long skipRows,
       long rowLimit,
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
-      @Nullable String lineEnding,
+      String lineEnding,
       boolean emptyToNull,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
@@ -97,7 +97,7 @@ public class FixedWidthReader {
   }
 
   public Table read(InputStream inputStream) throws IOException {
-    var pushbackInputStream = new PushbackInputStream(inputStream)
+    var pushbackInputStream = new PushbackInputStream(inputStream);
     for (int i = 0; i < skipRows; ++i) {
       readLine(pushbackInputStream);
     }
@@ -203,10 +203,10 @@ public class FixedWidthReader {
         } else {
           break;
         }
-      } else if (lineEnding != null && lineEnding.isEmpty() && currentLineLength = lineLength - 1) {
-        readBuffer[currentLineLnegth++] = (byte) c;
+      } else if (lineEnding != null && lineEnding.isEmpty() && currentLineLength == lineLength - 1) {
+        readBuffer[currentLineLength++] = (byte) c;
         break;
-      } else if isLineEnding((byte) c, inputStream) {
+      } else if (isLineEnding((byte) c, inputStream)) {
         // Line is done. Don't include the line ending.
         break;
       } else {
@@ -232,7 +232,7 @@ public class FixedWidthReader {
 
   // If a line ending is found, it is consumed. If not, anything read beyond the
   // first character 'c' is unconsumed.
-  private boolean isLineEnding(byte c, PushbackInputStream inputStream) {
+  private boolean isLineEnding(byte c, PushbackInputStream inputStream) throws IOException {
     if (lineEnding == null) {
       // Infer -- can be \n, \r or \r\n
       if (c == '\r') {
@@ -247,17 +247,29 @@ public class FixedWidthReader {
         return false;
       }
     } else {
-      assert lineEnding.length() > 0, "Internal error: should not try to detect the zero-length line ending";
       // We have a fixed string.
-      for (int i = 0; i < lineEnding.length(); ++i) {
-        if (c != lineEnding.charAt(i)) {
+
+      assert lineEnding.length() > 0 : "Internal error: should not try to detect the zero-length line ending";
+
+      if (c != lineEnding.charAt(0)) {
+        return false;
+      }
+
+      for (int i = 1; i < lineEnding.length(); ++i) {
+        int c2 = inputStream.read();
+
+        // This condition also handles the EOF (c2 == -1) case
+        if (c2 != lineEnding.charAt(i)) {
           // Mismatch, un-read all of the peeked chars.
-          for (int j = i; j > 0; --j) {
+
+          if (c2 != -1) {
+            inputStream.unread(c2);
+          }
+
+          for (int j = i-1; j > 0; --j) {
             inputStream.unread(lineEnding.charAt(j));
           }
           return false;
-        } else {
-          c = inputStream.read();
         }
       }
       return true;
@@ -317,7 +329,7 @@ public class FixedWidthReader {
   }
 
   private void inferHeaders(PushbackInputStream inputStream) throws IOException {
-    assert lineEnding == null || !lineEnding().isEmpty();
+    assert lineEnding == null || !lineEnding.isEmpty();
 
     lineLength = readLine(inputStream);
 

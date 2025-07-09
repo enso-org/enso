@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -18,8 +17,6 @@ import Standard.Test.Test_Environment
 
 import enso_dev.Base_Tests.Data.Text.Encoding_Spec
 
-
-polyglot java import org.enso.table.read.FixedWidthReader
 
 polyglot java import org.enso.table.read.FixedWidthReader
 
@@ -455,15 +452,15 @@ add_direct_specs suite_builder =
 
         group_builder.specify "should handle differen line endings" <|
                 test_with_line_endings '\r\n' Infer
-                test_with_Line_Endings '\r\n' Line_Ending_Style.Windows
-                test_with_Line_Endings '\n' Infer
-                test_with_Line_Endings '\n' Line_Ending_Style.Unix
-                test_with_Line_Endings '\r' Infer
-                test_with_Line_Endings '\r' Line_Ending_Style.Mac_Legacy
-                test_with_Line_Endings 'é' (Custom_Line_Ending.Value 'é')
-                test_with_Line_Endings '5é.' (Custom_Line_Ending.Value '5é.')
-                test_with_Line_Endings '' (Custom_Line_Ending.Value '')
-                test_with_Line_Endings '' No_Line_Ending
+                test_with_line_endings '\r\n' Line_Ending_Style.Windows
+                test_with_line_endings '\n' Infer
+                test_with_line_endings '\n' Line_Ending_Style.Unix
+                test_with_line_endings '\r' Infer
+                test_with_line_endings '\r' Line_Ending_Style.Mac_Legacy
+                test_with_line_endings 'é' (Custom_Line_Ending.Value 'é')
+                test_with_line_endings '5é.' (Custom_Line_Ending.Value '5é.')
+                test_with_line_endings '' (Custom_Line_Ending.Value '')
+                test_with_line_endings '' No_Line_Ending
 
         group_builder.specify "Should report row and column for bad characters" <|
             descs = []
