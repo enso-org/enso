@@ -385,7 +385,7 @@ object Runtime {
       case class Modify(
         index: Int,
         name: Option[String]                 = None,
-        reprType: Option[String]             = None,
+        reprType: Option[Seq[String]]        = None,
         isSuspended: Option[Boolean]         = None,
         hasDefault: Option[Boolean]          = None,
         defaultValue: Option[Option[String]] = None

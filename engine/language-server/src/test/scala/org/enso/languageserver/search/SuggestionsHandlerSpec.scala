@@ -252,7 +252,7 @@ class SuggestionsHandlerSpec
                   arguments = Some(
                     Seq(
                       Api.SuggestionArgumentAction
-                        .Modify(0, reprType = Some("A"))
+                        .Modify(0, reprType = Some(Seq("A")))
                     )
                   )
                 )
@@ -311,7 +311,7 @@ class SuggestionsHandlerSpec
                     0,
                     reprType = Some(
                       SearchProtocol
-                        .FieldUpdate(SearchProtocol.FieldActions.Set, Some("A"))
+                        .FieldUpdate(SearchProtocol.FieldActions.Set, Some(Seq("A")))
                     )
                   )
               )
@@ -916,7 +916,7 @@ class SuggestionsHandlerSpec
     }*/
   }
 
-  private def fieldUpdate(value: String): SearchProtocol.FieldUpdate[String] =
+  private def fieldUpdate[A](value: A): SearchProtocol.FieldUpdate[A] =
     SearchProtocol.FieldUpdate(SearchProtocol.FieldActions.Set, Some(value))
 
   private def fieldRemove[A]: SearchProtocol.FieldUpdate[A] =
@@ -1095,7 +1095,7 @@ class SuggestionsHandlerSpec
         name          = "main",
         arguments     = Seq(),
         selfType      = "Test.Main",
-        returnType    = "IO",
+        returnType    = Seq("IO"),
         isStatic      = true,
         documentation = None,
         annotations   = Seq()

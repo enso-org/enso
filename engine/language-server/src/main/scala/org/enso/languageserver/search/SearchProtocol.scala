@@ -277,11 +277,11 @@ object SearchProtocol {
       */
     case class Modify(
       index: Int,
-      name: Option[FieldUpdate[String]]         = None,
-      reprType: Option[FieldUpdate[String]]     = None,
-      isSuspended: Option[FieldUpdate[Boolean]] = None,
-      hasDefault: Option[FieldUpdate[Boolean]]  = None,
-      defaultValue: Option[FieldUpdate[String]] = None
+      name: Option[FieldUpdate[String]]          = None,
+      reprType: Option[FieldUpdate[Seq[String]]] = None,
+      isSuspended: Option[FieldUpdate[Boolean]]  = None,
+      hasDefault: Option[FieldUpdate[Boolean]]   = None,
+      defaultValue: Option[FieldUpdate[String]]  = None
     ) extends SuggestionArgumentUpdate
 
     implicit val suggestionArgumentActionDecoder

@@ -121,6 +121,20 @@ object Suggestion {
       }
   }
 
+  /** Return type extractor. */
+  object ReturnType {
+
+    def apply(suggestion: Suggestion): Seq[String] =
+      suggestion match {
+        case module: Module           => Seq(module.name)
+        case tpe: Type                => Seq(tpe.returnType)
+        case constructor: Constructor => Seq(constructor.returnType)
+        case method: Method           => method.returnType
+        case function: Function       => function.returnType
+        case local: Local             => local.returnType
+      }
+  }
+
   /** Annotations extractor. */
   object Annotations {
 
@@ -146,7 +160,7 @@ object Suggestion {
     */
   case class Argument(
     name: String,
-    reprType: String,
+    reprType: Seq[String],
     isSuspended: Boolean,
     hasDefault: Boolean,
     defaultValue: Option[String],
@@ -164,6 +178,17 @@ object Suggestion {
       s",tagValues=" +
       (if (shouldMask) tagValues.map(_ => STUB) else tagValues) +
       ")"
+  }
+
+  object Argument {
+    def apply(
+      name: String,
+      reprType: String,
+      isSuspended: Boolean,
+      hasDefault: Boolean,
+      defaultValue: Option[String]
+    ): Argument =
+      Argument(name, Seq(reprType), isSuspended, hasDefault, defaultValue, None)
   }
 
   /** Position in the text.

@@ -66,7 +66,7 @@ class ContextEventsListenerSpec
               Suggestions.method.externalId.get,
               Some(
                 Api.ExpressionType(
-                  Vector(Suggestions.method.returnType),
+                  Suggestions.method.returnType.toVector,
                   Vector(Suggestions.method.selfType)
                 )
               ),
@@ -91,7 +91,7 @@ class ContextEventsListenerSpec
               Vector(
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
-                  Vector(Suggestions.method.returnType),
+                  Suggestions.method.returnType.toVector,
                   Vector(Suggestions.method.selfType),
                   Some(toProtocolMethodCall(methodCall)),
                   Vector(),

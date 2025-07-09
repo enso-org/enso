@@ -185,7 +185,7 @@ class RuntimeTextEditsTest
                     "main",
                     List(),
                     moduleName,
-                    ConstantsGen.ANY,
+                    Seq(ConstantsGen.ANY),
                     true,
                     None,
                     Seq()

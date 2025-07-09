@@ -55,7 +55,7 @@ object Suggestions {
     name          = "a",
     arguments     = Vector(),
     selfType      = "MyType",
-    returnType    = "Any",
+    returnType    = Seq("Any"),
     documentation = None,
     annotations   = Seq()
   )
@@ -69,7 +69,7 @@ object Suggestions {
       Suggestion.Argument("foo", "Number", false, true, Some("42"))
     ),
     selfType      = "MyType",
-    returnType    = "Number",
+    returnType    = Seq("Number"),
     isStatic      = false,
     documentation = Some("Lovely"),
     annotations   = Seq("foo")
@@ -84,7 +84,7 @@ object Suggestions {
       Suggestion.Argument("b", "Any", true, false, None),
       Suggestion.Argument("c", "Any", false, true, Some("C"))
     ),
-    returnType = "IO",
+    returnType = Seq("IO"),
     scope =
       Suggestion.Scope(Suggestion.Position(1, 9), Suggestion.Position(1, 22)),
     documentation = Some("My Function")
@@ -94,7 +94,7 @@ object Suggestions {
     externalId = Some(UUID.fromString("dc077227-d9b6-4620-9b51-792c2a69419d")),
     module     = "local.Test.Main",
     name       = "x",
-    returnType = "Number",
+    returnType = Seq("Number"),
     scope =
       Suggestion.Scope(Suggestion.Position(21, 0), Suggestion.Position(89, 0)),
     documentation = None
@@ -109,7 +109,7 @@ object Suggestions {
       Suggestion.Argument("that", "Any", false, false, None)
     ),
     selfType      = "Any",
-    returnType    = "Any",
+    returnType    = Seq("Any"),
     isStatic      = false,
     documentation = Some("Lovely"),
     annotations   = Seq()
@@ -123,7 +123,7 @@ object Suggestions {
       Suggestion.Argument("this", "Number", false, false, None)
     ),
     selfType      = "Number",
-    returnType    = "Number",
+    returnType    = Seq("Number"),
     isStatic      = false,
     documentation = None,
     annotations   = Seq()
@@ -137,7 +137,7 @@ object Suggestions {
       Suggestion.Argument("that", "Number", false, false, None)
     ),
     selfType      = "Integer",
-    returnType    = "Number",
+    returnType    = Seq("Number"),
     isStatic      = false,
     documentation = Some("Blah, blah"),
     annotations   = Seq()

@@ -57,7 +57,7 @@ class SuggestionsHandlerEventsTest
                   "params" : [
                     {
                       "name" : "a",
-                      "reprType" : "Any",
+                      "reprType" : ["Any"],
                       "isSuspended" : false,
                       "hasDefault" : false,
                       "defaultValue" : null,
@@ -108,7 +108,7 @@ class SuggestionsHandlerEventsTest
                   "arguments" : [
                     {
                       "name" : "a",
-                      "reprType" : "Any",
+                      "reprType" : ["Any"],
                       "isSuspended" : false,
                       "hasDefault" : false,
                       "defaultValue" : null,
@@ -160,7 +160,7 @@ class SuggestionsHandlerEventsTest
                   "name" : "a",
                   "arguments" : [ ],
                   "selfType" : "MyType",
-                  "returnType" : "Any",
+                  "returnType" : ["Any"],
                   "isStatic" : false,
                   "annotations" : [ ],
                   "reexports" : [ ]
@@ -215,7 +215,7 @@ class SuggestionsHandlerEventsTest
                   "arguments" : [
                     {
                       "name" : "this",
-                      "reprType" : "MyType",
+                      "reprType" : ["MyType"],
                       "isSuspended" : false,
                       "hasDefault" : false,
                       "defaultValue" : null,
@@ -223,7 +223,7 @@ class SuggestionsHandlerEventsTest
                     },
                     {
                       "name" : "foo",
-                      "reprType" : "Number",
+                      "reprType" : ["Number"],
                       "isSuspended" : false,
                       "hasDefault" : true,
                       "defaultValue" : "42",
@@ -231,7 +231,7 @@ class SuggestionsHandlerEventsTest
                     }
                   ],
                   "selfType" : "MyType",
-                  "returnType" : "Number",
+                  "returnType" : ["Number"],
                   "isStatic" : false,
                   "documentation" : "Lovely",
                   "annotations" : ["foo"],
@@ -295,7 +295,7 @@ class SuggestionsHandlerEventsTest
                   "arguments" : [
                     {
                       "name" : "a",
-                      "reprType" : "Any",
+                      "reprType" : ["Any"],
                       "isSuspended" : false,
                       "hasDefault" : false,
                       "defaultValue" : null,
@@ -303,7 +303,7 @@ class SuggestionsHandlerEventsTest
                     },
                     {
                       "name" : "b",
-                      "reprType" : "Any",
+                      "reprType" : ["Any"],
                       "isSuspended" : true,
                       "hasDefault" : false,
                       "defaultValue" : null,
@@ -311,14 +311,14 @@ class SuggestionsHandlerEventsTest
                     },
                     {
                       "name" : "c",
-                      "reprType" : "Any",
+                      "reprType" : ["Any"],
                       "isSuspended" : false,
                       "hasDefault" : true,
                       "defaultValue" : "C",
                       "tagValues" : null
                     }
                   ],
-                  "returnType" : "IO",
+                  "returnType" : ["IO"],
                   "scope" : {
                     "start" : {
                       "line" : 1,
@@ -394,7 +394,7 @@ class SuggestionsHandlerEventsTest
                   "externalId" : "dc077227-d9b6-4620-9b51-792c2a69419d",
                   "module" : "local.Test.Main",
                   "name" : "x",
-                  "returnType" : "Number",
+                  "returnType" : ["Number"],
                   "scope" : {
                     "start" : {
                       "line" : 21,
@@ -428,7 +428,7 @@ class SuggestionsHandlerEventsTest
                     arguments = Some(
                       Seq(
                         Api.SuggestionArgumentAction
-                          .Modify(0, reprType = Some("A")),
+                          .Modify(0, reprType = Some(Seq("A"))),
                         Api.SuggestionArgumentAction
                           .Add(1, Suggestions.function.arguments(1))
                       )
@@ -484,7 +484,7 @@ class SuggestionsHandlerEventsTest
                     "index" : 0,
                     "reprType" : {
                       "tag" : "Set",
-                      "value" : "A"
+                      "value" : ["A"]
                     }
                   },
                   {
@@ -492,7 +492,7 @@ class SuggestionsHandlerEventsTest
                     "index" : 1,
                     "argument" : {
                       "name" : "b",
-                      "reprType" : "Any",
+                      "reprType" : ["Any"],
                       "isSuspended" : true,
                       "hasDefault" : false,
                       "defaultValue" : null,

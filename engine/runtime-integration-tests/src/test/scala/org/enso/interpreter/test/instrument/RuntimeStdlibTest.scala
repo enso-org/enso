@@ -139,11 +139,11 @@ class RuntimeStdlibTest
 
   def extractTypes(suggestion: Suggestion): Seq[QualifiedName] = {
     val arguments  = Suggestion.Arguments(suggestion)
-    val argTypes   = arguments.map(_.reprType)
+    val argTypes   = arguments.flatMap(_.reprType)
     val selfType   = Suggestion.SelfType(suggestion)
-    val returnType = suggestion.returnType
+    val returnType = Suggestion.ReturnType(suggestion)
 
-    (argTypes ++ selfType :+ returnType).map(QualifiedName.fromString)
+    (argTypes ++ selfType ++ returnType).map(QualifiedName.fromString)
   }
 
   /** Checks if a given type name has been resolved.

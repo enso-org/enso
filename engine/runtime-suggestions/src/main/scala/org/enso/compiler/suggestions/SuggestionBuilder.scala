@@ -315,8 +315,8 @@ final class SuggestionBuilder[A: IndexedSource](
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      selfType      = methodArgs.head.reprType,
-      returnType    = selfType.fold(Any)(_.toString),
+      selfType      = methodArgs.head.reprType.head,
+      returnType    = Seq(selfType.fold(Any)(_.toString)),
       documentation = doc
     )
   }
@@ -579,7 +579,7 @@ final class SuggestionBuilder[A: IndexedSource](
             } else {
               val thisArg = Suggestion.Argument(
                 name         = defArg.name.name,
-                reprType     = selfType.toString,
+                reprType     = Seq(selfType.toString),
                 isSuspended  = defArg.suspended,
                 hasDefault   = defArg.defaultValue.isDefined,
                 defaultValue = defArg.defaultValue.map(buildDefaultValue)
@@ -644,7 +644,7 @@ final class SuggestionBuilder[A: IndexedSource](
   ): Suggestion.Argument =
     Suggestion.Argument(
       name         = varg.name.name,
-      reprType     = buildTypeArgumentName(targ),
+      reprType     = buildTypeArgumentType(targ),
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.map(buildDefaultValue),
@@ -703,12 +703,12 @@ final class SuggestionBuilder[A: IndexedSource](
     }
   }
 
-  /** Build the name of type argument.
+  /** Build the type of type argument.
     *
     * @param targ the type argument
-    * @return the name of type argument
+    * @return the type of type argument
     */
-  private def buildTypeArgumentName(targ: TypeArg): String = {
+  private def buildTypeArgumentType(targ: TypeArg): Seq[String] = {
     def go(targ: TypeArg, level: Int): String =
       targ match {
         case TypeArg.Value(name)   => name.toString
@@ -732,7 +732,25 @@ final class SuggestionBuilder[A: IndexedSource](
           variants.map(go(_, level + 1)).mkString(" | ")
       }
 
-    go(targ, 0)
+    targ match {
+      case TypeArg.Value(name)   => Seq(name.toString)
+      case TypeArg.TypeDef(name) => Seq(name.toString)
+      case TypeArg.Function(args, ret) =>
+        val types    = args :+ ret
+        val typeList = types.map(go(_, 1))
+        Seq(typeList.mkString(" -> "))
+      case TypeArg.Binary(l, r, op) =>
+        val left  = go(l, 1)
+        val right = go(r, 1)
+        Seq(s"$left $op $right")
+      case TypeArg.Application(fun, args) =>
+        val funText  = go(fun, 0)
+        val argsList = args.map(go(_, 1)).mkString(" ")
+        Seq(s"$funText $argsList")
+      case TypeArg.Sum(Some(n), _) => Seq(n.toString)
+      case TypeArg.Sum(None, variants) =>
+        variants.map(go(_, 1))
+    }
   }
 
   /** Build suggestion argument from an untyped definition.
@@ -750,7 +768,7 @@ final class SuggestionBuilder[A: IndexedSource](
       case _ =>
         Suggestion.Argument(
           name         = arg.name.name,
-          reprType     = Any,
+          reprType     = Seq(Any),
           isSuspended  = arg.suspended,
           hasDefault   = arg.defaultValue.isDefined,
           defaultValue = arg.defaultValue.map(buildDefaultValue)
@@ -763,8 +781,8 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param typeDef the type definition
     * @return the type name
     */
-  private def buildReturnType(typeDef: Option[TypeArg]): String =
-    typeDef.map(buildTypeArgumentName).getOrElse(Any)
+  private def buildReturnType(typeDef: Option[TypeArg]): Seq[String] =
+    typeDef.map(buildTypeArgumentType).getOrElse(Seq(Any))
 
   /** Build argument default value from the expression.
     *
