@@ -38,22 +38,22 @@ export default function FilePathInput(props: FilePathInputProps) {
     twMerge(ROUNDED_INPUT_BASE_CLASSES, roundBottom ? 'rounded-input' : 'rounded-t-input')
 
   // We want the selection submenu to be below the file browser.
-  const SELECTION_SUBMENU_Z_INDEX = 0
-  const FILE_BROWSER_Z_INDEX = 1
+  const selectionSubmenuZIndex = 0
+  const fileBrowserZIndex = 1
 
-  // eslint-disable @typescript-eslint/naming-convention
-  // eslint-disable-next-line no-restricted-syntax
+  /* eslint-disable @typescript-eslint/naming-convention */
+  /* eslint-disable-next-line no-restricted-syntax */
   const fileBrowserStyles = {
     '--file-browser-min-width': '280px',
-    '--z-index-selection-submenu': SELECTION_SUBMENU_Z_INDEX,
-    '--z-index-file-browser': FILE_BROWSER_Z_INDEX,
+    '--z-index-selection-submenu': selectionSubmenuZIndex,
+    '--z-index-file-browser': fileBrowserZIndex,
     '--selection-submenu-color': 'black',
     '--selection-submenu-background-color': 'var(--color-dashboard-background)',
     '--file-browser-background-color': 'var(--color-dashboard-background)',
     '--file-browser-corner-radius': 'var(--input-corner-radius)',
     '--file-browser-top-bar-color': 'var(--color-primary)',
   } as CSSProperties
-  // eslint-enable @typescript-eslint/naming-convention
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   return (
     <div
