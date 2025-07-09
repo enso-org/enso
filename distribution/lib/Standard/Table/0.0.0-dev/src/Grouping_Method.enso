@@ -21,12 +21,3 @@ type Grouping_Method
          the ordering of the output rows. Defaults to the order of the rows in
          the table.
     Equal_Count (group_count:Integer=5) (order_by:(Vector | Text)=[])
-
-    ## Create a group number based on a flag function, which is passed the
-       current group first row and the current row. If the function returns
-       True then the group number is incremented, otherwise it remains the same.
-
-       Arguments:
-       - flag_function: A function that takes two rows and returns a Boolean.
-         If it returns True, the group number is incremented.
-    Flag_Function (flag_function:(Row->Row->Boolean)=Missing_Argument.throw "flag_function")

@@ -119,13 +119,14 @@ type In_Memory_Table_Implementation
         if java_column.is_nothing then if_missing else In_Memory_Column.from_java_column java_column
 
     get_value (this_table : Table & In_Memory_Table) (selector : Text | Integer = 0) index:Integer=0 ~if_missing:Any=Nothing -> Any =
-        col = this_table.get selector if_missing=Nothing
-        if Nothing == col then if_missing else col.get index if_missing
+        if index < -this_table.row_count || index >= this_table.row_count then if_missing else
+            used_index = (if index < 0 then index + this_table.row_count else index)
+            java_to_enso <| this_table.java_table.getValue selector used_index _->if_missing
 
     get_row (this_table : Table & In_Memory_Table) index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
         if index < -this_table.row_count || index >= this_table.row_count then if_missing else
             used_index = (if index < 0 then index + this_table.row_count else index)
-            Row.Value (Java_Row.new (this_table:In_Memory_Table).java_table used_index)
+            Row.Value (Java_Row.new this_table.java_table used_index)
 
     first_value (this_table : Table & In_Memory_Table) -> Any ! Index_Out_Of_Bounds = this_table.at 0 . at 0
 
