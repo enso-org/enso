@@ -75,7 +75,6 @@ from project.Extensions.Table_Conversions import all
 from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
-from project.Internal.Rows_View import Rows_View
 from project.In_Memory_Table import from_java_table
 
 polyglot java import org.enso.base.ObjectComparator
@@ -452,8 +451,8 @@ type In_Memory_Table_Implementation
             this_table.java_table.getColumns.at i . getName
 
     rows (this_table : Table & In_Memory_Table) max_rows:Rows_To_Read=..All_Rows -> Vector Row =
-        proxy = Rows_View.Value (this_table.read max_rows)
-        Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
+        length = max_rows.rows_to_read . if_is_nothing this_table.row_count . min this_table.row_count
+        Vector.from_polyglot_array (Array_Proxy.new length this_table.get_row)
 
     first_row (this_table : Table & In_Memory_Table) -> Row ! Index_Out_Of_Bounds =
         In_Memory_Table_Implementation.get_row this_table 0 if_missing=(Error.throw (Index_Out_Of_Bounds.Error 0 0))
