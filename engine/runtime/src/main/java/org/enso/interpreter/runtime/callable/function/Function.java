@@ -431,19 +431,19 @@ public final class Function extends EnsoObject {
   }
 
   /**
-   * Iterates over function arguments while sorting them into three categories and reporting their
-   * actual values or {@code null} if none are provided. Any of the arguments can be {@code null}
-   * when info about such arguments isn't needed.
+   * Iterates over function arguments while sorting them into categories and reporting their actual
+   * values when available. Any of the arguments can be {@code null} when info about such a category
+   * isn't needed.
    *
    * @param pending names of arguments that still need to be applied before the function is invoked
    *     are provided to this constumer
    * @param defaulted names of arguments with default values (without the value itself as it is not
    *     computed yet) are provided to this consumer. These arguments may or may not be provided in
-   *     order to invoke the funcation
-   * @param preapplied reports argument name with an associated value that has already been applied
+   *     order to invoke the function
+   * @param preapplied reports argument name and its associated value that has already been applied
    *     and will be used when the function is invoked
    * @param oversaturated reports over-saturated argument name with a value which will be applied to
-   *     the result of the function invocations, when the function is invoked
+   *     the result of the function invocation, when the function is invoked
    */
   @CompilerDirectives.TruffleBoundary
   public final void iterateArguments(
