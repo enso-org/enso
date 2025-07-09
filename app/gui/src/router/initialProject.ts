@@ -1,51 +1,44 @@
-import BackendFull, { Plan, User } from '#/services/Backend'
+import { Plan, User } from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { useAuth, UserSessionType } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { ensoPathToTabId } from '$/providers/container'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { RouteLocation } from 'vue-router'
-import { assert } from 'ydoc-shared/util/assert'
 
 export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = 'Samples/Getting_Started_Reading'
 export const CLOUD_INITIAL_PROJECT_RELATIVE_PATH = 'Samples/Colorado COVID.project'
 
-type Backend = Pick<BackendFull, 'rootPath'>
+type Backend = Pick<LocalBackend, 'rootPath'>
 
 /** Get path of the project to auto-open on application launch. */
 export function initialProjectPath(
   cliStartupProject: string | undefined,
   user: User,
-  {
-    localBackend,
-    remoteBackend,
-  }: { localBackend: Backend | null; remoteBackend: Backend } = useBackends(),
+  { localBackend }: { localBackend: Backend | null } = useBackends(),
 ) {
-  let relativePath: string | undefined
-  let backend: Backend | null | undefined
+  let path: string | undefined
 
   if (cliStartupProject?.startsWith('file:')) return undefined
   // If not file url, we expect this parameter to be a project name
   if (cliStartupProject) {
-    relativePath = cliStartupProject
-    backend = localBackend
+    path = `${localBackend?.rootPath()}/${cliStartupProject}`
   } else {
     const navigatedInDrive =
       window.localStorage.getItem('enso-category-id') ||
       window.localStorage.getItem('enso-current-directory-id')
     if (!navigatedInDrive && !LocalStorage.getInstance().get('launchedProjects')) {
       if (user.plan === Plan.free) {
-        relativePath = LOCAL_INITIAL_PROJECT_RELATIVE_PATH
-        backend = localBackend
+        path = `${localBackend?.rootPath()}/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
       } else {
-        relativePath = CLOUD_INITIAL_PROJECT_RELATIVE_PATH
-        backend = remoteBackend
+        path = `enso://Users/${user.name}/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`
       }
     }
   }
 
-  if (relativePath && backend) {
-    return ensoPathToTabId(`${backend.rootPath(user)}/${relativePath}`)
+  if (path) {
+    return ensoPathToTabId(path)
   }
 }
 
@@ -57,8 +50,10 @@ export async function maybeRedirectToInitialProject(to: RouteLocation) {
   const auth = useAuth()
   await auth.waitForSession()
 
-  assert(auth.session?.type === UserSessionType.full)
+  // In case of not being logged in, the redirection should be managed by ProtectedLayout.
+  if (auth.session?.type !== UserSessionType.full) return
 
   const initialPath = initialProjectPath(config.params.startup.project, auth.session.user)
-  return initialPath ? { params: { path: initialPath.split('/') } } : true
+  console.debug(initialPath)
+  return initialPath ? { name: 'dashboard', params: { path: initialPath.split('/') } } : true
 }

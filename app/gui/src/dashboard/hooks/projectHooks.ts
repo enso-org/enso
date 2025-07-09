@@ -6,15 +6,14 @@ import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
+import type { LaunchedProject, LaunchedProjectId } from '$/providers/container'
+import * as authProvider from '$/providers/react'
 import {
   useAddLaunchedProject,
-  useProjectsStore,
+  useContainerData,
   useRemoveLaunchedProject,
   useUpdateLaunchedProjects,
-  type LaunchedProject,
-  type LaunchedProjectId,
-} from '#/providers/ProjectsProvider'
-import * as authProvider from '$/providers/react'
+} from '$/providers/react/container'
 
 import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
@@ -414,7 +413,7 @@ const OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA = z.object({
 /** A callback to open a project. */
 function useOpenProject() {
   const client = reactQuery.useQueryClient()
-  const projectsStore = useProjectsStore()
+  const containerData = useContainerData()
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
   const addLaunchedProject = useAddLaunchedProject()
@@ -440,7 +439,7 @@ function useOpenProject() {
       if (!enableMultitabs) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
         // The current project is opened as launched above.
-        if (projectsStore.getState().launchedProjects.length > 0) {
+        if (containerData.openedProjects.length > 0) {
           await closeAllProjects()
         }
       }
@@ -629,25 +628,24 @@ export function useCloseProject() {
 /** A function to close all projects. */
 export function useCloseAllProjects() {
   const closeProject = useCloseProject()
-  const projectsStore = useProjectsStore()
+  const containerData = useContainerData()
   const removeLaunchedProject = useRemoveLaunchedProject()
   const { remoteBackend, localBackend } = useBackends()
   const ensureQueryData = useEnsureQueryData()
 
   return eventCallbacks.useEventCallback(async () => {
-    const launchedProjects = projectsStore.getState().launchedProjects
+    const launchedProjects = containerData.openedProjects
 
     await Promise.all(
       launchedProjects.map(async (project) => {
-        const isHybrid = project.hybrid != null
         const backend =
-          project.type === backendModule.BackendType.remote || isHybrid ?
+          project.type === backendModule.BackendType.remote || project.hybrid != null ?
             remoteBackend
           : localBackend
         invariant(backend != null, 'Backend must not be async null')
         const projectDetails = await ensureQueryData(
           createGetProjectDetailsQuery({
-            assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
+            assetId: project.hybrid != null ? project.hybrid.cloudProjectId : project.id,
             backend,
           }),
         )

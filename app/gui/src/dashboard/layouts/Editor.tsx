@@ -7,9 +7,9 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
+import type { LaunchedProject } from '$/providers/container'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import ProjectViewTabVue from '@/ProjectViewTab.vue'
@@ -34,7 +34,8 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
-  const { preventAutoReopen = false } = project
+  const preventAutoReopen =
+    project.type !== backendModule.BackendType.local || project.hybrid == null
   const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
@@ -246,6 +247,7 @@ function EditorInternal(props: EditorInternalProps) {
       projectId: openedProject.projectId,
       projectInitialName: openedProject.packageName,
       projectDisplayedName: projectName,
+      projectPath: openedProject.ensoPath,
       engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
       renameProject: onRenameProject,
       projectBackend,

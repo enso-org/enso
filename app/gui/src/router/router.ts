@@ -48,12 +48,7 @@ const routes = [
             name: 'dashboard',
             path: '/:path(.*)*',
             beforeEnter: maybeRedirectToInitialProject,
-            component: withDataLoader(() =>
-              import('#/pages/dashboard/Dashboard').then((mod) => ({
-                default: reactComponent(mod.default),
-                dataLoader: mod.dataLoader,
-              })),
-            ),
+            component: withDataLoader(() => import('$/components/AppContainer.vue')),
           },
           {
             path: SUBSCRIBE_PATH,

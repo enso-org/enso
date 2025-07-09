@@ -3,5 +3,7 @@ import type { BackendType, ProjectAsset } from '#/services/Backend'
 
 /** Dashboard properties */
 export interface DashboardProps {
-  readonly projectToOpen?: { readonly asset: ProjectAsset; readonly backend: BackendType }
+  readonly projectToOpen?:
+    | { readonly asset: ProjectAsset; readonly backend: BackendType }
+    | undefined
 }

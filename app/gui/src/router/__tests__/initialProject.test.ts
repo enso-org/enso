@@ -1,6 +1,6 @@
-import ProjectProvider from '#/providers/ProjectsProvider'
 import { EmailAddress, OrganizationId, Path, Plan, User, UserId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
+import * as container from '$/providers/container'
 import { expect, test, vi } from 'vitest'
 import {
   CLOUD_INITIAL_PROJECT_RELATIVE_PATH,
@@ -9,7 +9,7 @@ import {
 } from '../initialProject'
 
 // keep import registerting local storage key
-const _ = ProjectProvider
+const _ = container
 const CLOUD_ROOT_PATH = 'enso://Users/user'
 const LOCAL_ROOT_PATH = '/home/user/Documents/enso-projects'
 const USER: User = {
@@ -27,8 +27,7 @@ const USER: User = {
 
 function mockBackends() {
   return {
-    localBackend: { rootPath: vi.fn(() => LOCAL_ROOT_PATH) },
-    remoteBackend: { rootPath: vi.fn(() => CLOUD_ROOT_PATH) },
+    localBackend: { rootPath: vi.fn(() => Path(LOCAL_ROOT_PATH)) },
   }
 }
 

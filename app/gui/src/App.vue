@@ -107,8 +107,8 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 if (projectViewOnly) {
   const openedProjects = provideOpenedProjects()
   provideAsyncResources(openedProjects)
-  provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId, () => false, useText())
+  provideContainerData()
+  provideRightPanelData('local/mock/Mock Project', () => false, useText())
   provideFullscreenRoot(fullscreenRoot)
 }
 </script>

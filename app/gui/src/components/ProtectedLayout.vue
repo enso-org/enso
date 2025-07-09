@@ -131,6 +131,7 @@ watch(
   (allowed) => {
     if (!allowed) {
       const redirectValue = redirect(auth, LocalStorage.getInstance())
+      console.debug('Redirected here', redirectValue)
       if (redirectValue) router.push(redirectValue)
     }
   },
@@ -178,7 +179,7 @@ const shouldDisplayAgreementsModal = computed(
     v-if="allowed && agreementsModalProps && shouldDisplayAgreementsModal"
     v-bind="agreementsModalProps"
   />
-  <RouterView v-else-if="allowed" />
+  <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
 
   <EnsoDevtools v-if="displayDevTools" />
 </template>

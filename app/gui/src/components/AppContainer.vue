@@ -1,147 +1,64 @@
 <script lang="ts">
-import type { PaywallFeatureName } from '#/hooks/billing'
-import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
-import { LaunchedProject } from '#/providers/ProjectsProvider'
-import { BackendType, ProjectId } from '#/services/Backend'
-import { Drive, Editor, Settings } from '$/components/AppContainer/reactTabs'
-import RightPanel from '$/components/AppContainer/RightPanel.vue'
-import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
-import { ensoPathToTabId, provideContainerData, TabId } from '$/providers/container'
+import DashboardReact from '#/pages/dashboard/Dashboard'
+import { DashboardProps } from '#/pages/dashboard/Dashboard/types'
+import { AssetType, EnsoPath, type RealAssetId } from '#/services/Backend'
+import { useBackends } from '$/providers/backends'
+import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
-import { RightPanelDataProviderForReact } from '$/providers/react/rightPanel'
-import { provideRightPanelData } from '$/providers/rightPanel'
-import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
+import { ContainerDataProviderForReact } from '$/providers/react/container'
+import type { DataLoader } from '$/router/dataLoader'
+import { backendQueryOptions } from '@/composables/backend'
 import { provideAsyncResources } from '@/providers/asyncResources'
-import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
-import { applyPureReactInVue } from 'veaury'
-import { reactive, shallowRef, toRef, toRefs, watch, watchEffect } from 'vue'
+import { Ok } from '@/util/data/result'
+import { reactComponent } from '@/util/react'
+import { useQueryClient } from '@tanstack/vue-query'
 
-const UserBar = applyPureReactInVue(UserBarReact)
+const Dashboard = reactComponent(DashboardReact)
+
+export const dataLoader: DataLoader<DashboardProps> = {
+  async beforeRouteEnter(to) {
+    const { localBackend, remoteBackend } = useBackends()
+    const queryClient = useQueryClient()
+
+    const [type, urlPath] =
+      to.params.path instanceof Array ?
+        [to.params.path[0], to.params.path.slice(1).join('/')]
+      : [to.params.path, '']
+
+    const ensoPath: EnsoPath | null =
+      type === 'cloud' ? EnsoPath(`enso://${urlPath}`)
+      : type === 'local' ? EnsoPath(urlPath)
+      : null
+
+    if (ensoPath == null) return Ok({})
+    const backend = type === 'cloud' ? remoteBackend : localBackend
+    if (backend == null) return Ok({})
+    const resolvedPath = await backend.resolveEnsoPath(ensoPath).catch(() => null)
+    if (resolvedPath == null) return Ok({})
+    const asset = await queryClient.fetchQuery(
+      backendQueryOptions('getAssetDetails', [resolvedPath.id as RealAssetId], backend),
+    )
+    if (asset?.type === AssetType.project) {
+      return Ok({ projectToOpen: { asset: { ...asset, ensoPath }, backend: backend.type } })
+    } else {
+      return Ok({})
+    }
+  },
+}
 </script>
 
 <script setup lang="ts">
-const props = defineProps<{
-  launchedProjects: readonly LaunchedProject[]
-  closeProject(project: LaunchedProject): void
-  closeAllProjects(): void
-  isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
-}>()
-
-// NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
-// with veaury's ref assignment implementation that runs during parent React component lifecycle.
-const fullscreenRoot = shallowRef<HTMLElement>()
+const props = defineProps<DashboardProps>()
 
 const openedProjectsStore = provideOpenedProjects()
 provideAsyncResources(openedProjectsStore)
-const { tab, openedProjects } = toRefs(provideContainerData(toRef(props, 'launchedProjects')))
-provideRightPanelData(tab, props.isFeatureUnderPaywall)
-provideFullscreenRoot(fullscreenRoot)
-
-const readyProjects = reactive(new Set<ProjectId>())
-const projectNames = reactive(new Map<ProjectId, string>())
-
-function setProjectReady(project: ProjectId, projectTab: TabId, ready: boolean) {
-  if (ready) {
-    readyProjects.add(project)
-    tab.value = projectTab
-  } else {
-    readyProjects.delete(project)
-  }
-}
-
-function loadingProjectSpinnerPhase(project: LaunchedProject) {
-  return project.hybrid != null || project.type === BackendType.local ?
-      'loading-fast'
-    : 'loading-slow'
-}
-
-watch(openedProjects, (openedProjectsList) => {
-  const openedProjectsSet = new Set(openedProjectsList.map((proj) => proj.id))
-  for (const proj of readyProjects) {
-    if (!openedProjectsSet.has(proj)) {
-      readyProjects.delete(proj)
-    }
-  }
-  for (const proj of projectNames.keys()) {
-    if (!openedProjectsSet.has(proj)) {
-      projectNames.delete(proj)
-    }
-  }
-})
-
-watchEffect(() => console.log('TAB', tab.value), { flush: 'sync' })
-
-const onSignOut = () => {
-  void props.closeAllProjects()
-}
+provideContainerData()
 </script>
 <template>
   <div class="TabView">
-    <RightPanelDataProviderForReact>
-      <div class="bar">
-        <div role="tablist" class="tablist">
-          <SelectableTab
-            selectionLayoutId="tab-highlight"
-            :selected="tab === 'drive'"
-            icon="drive"
-            label="Data Catalog"
-            @update:selected="$event && (tab = 'drive')"
-          />
-          <SelectableTab
-            v-for="project in openedProjects"
-            :key="project.id"
-            data-testid="editor-tab-button"
-            selectionLayoutId="tab-highlight"
-            :selected="project.shown.value"
-            :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
-            :label="projectNames.get(project.id)"
-            @update:selected="$event && (tab = ensoPathToTabId(project.ensoPath))"
-            @close="closeProject(project)"
-          >
-            <GrowingSpinner
-              v-if="!readyProjects.has(project.id)"
-              :phase="loadingProjectSpinnerPhase(project)"
-              :size="16"
-            />
-          </SelectableTab>
-          <SelectableTab
-            v-if="tab === 'settings'"
-            selectionLayoutId="tab-highlight"
-            :selected="true"
-            icon="settings"
-            label="Settings"
-          />
-        </div>
-        <div class="filler" />
-        <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
-      </div>
-      <div class="mainView">
-        <div class="panel">
-          <KeepAlive>
-            <Drive v-if="tab === 'drive'" />
-          </KeepAlive>
-          <div
-            v-for="project in openedProjects"
-            :key="project.id"
-            class="editor"
-            :class="{ hidden: !project.shown.value }"
-          >
-            <Editor
-              :hidden="!project.shown.value"
-              :project="project"
-              @readyUpdate="setProjectReady(project.id, ensoPathToTabId(project.ensoPath), $event)"
-              @nameUpdate="projectNames.set(project.id, $event)"
-            />
-          </div>
-
-          <KeepAlive>
-            <Settings v-if="tab === 'settings'" />
-          </KeepAlive>
-        </div>
-        <RightPanel />
-        <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
-      </div>
-    </RightPanelDataProviderForReact>
+    <ContainerDataProviderForReact>
+      <Dashboard v-bind="props" />
+    </ContainerDataProviderForReact>
   </div>
 </template>
 
@@ -151,64 +68,5 @@ const onSignOut = () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.bar {
-  background-color: rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: 3rem;
-  min-height: 3rem;
-  position: relative;
-  padding: 0 8px;
-  z-index: 1;
-}
-
-.tablist {
-  display: flex;
-  flex-direction: row;
-  /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
-  isolation: isolate;
-  font-family: var(--font-sans);
-}
-
-.filler {
-  flex-grow: 1;
-}
-
-.mainView {
-  flex-grow: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: row;
-  position: relative;
-}
-
-.panel {
-  flex-grow: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-}
-
-.editor {
-  display: contents;
-
-  &.hidden {
-    display: none;
-  }
-}
-
-.FullscreenRoot {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  & > * {
-    pointer-events: initial;
-  }
 }
 </style>

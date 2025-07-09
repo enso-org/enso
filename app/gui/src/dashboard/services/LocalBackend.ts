@@ -303,22 +303,22 @@ export default class LocalBackend extends Backend {
     body: backend.CreateProjectRequestBody,
   ): Promise<backend.CreatedProject> {
     const projectsDirectory =
-      body.parentDirectoryId == null ? null : extractTypeAndId(body.parentDirectoryId).id
+      body.parentDirectoryId == null ?
+        this.projectManager.rootDirectory
+      : extractTypeAndId(body.parentDirectoryId).id
     const project = await this.projectManager.createProject({
       name: projectManager.ProjectName(body.projectName),
       ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
       missingComponentAction: projectManager.MissingComponentAction.install,
-      ...(projectsDirectory == null ? {} : { projectsDirectory }),
+      projectsDirectory,
     })
     return {
       name: project.projectName,
       organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(
-        project.projectId,
-        projectsDirectory ?? this.projectManager.rootDirectory,
-      ),
+      projectId: newProjectId(project.projectId, projectsDirectory),
       packageName: project.projectName,
       state: { type: backend.ProjectState.closed, volumeId: '' },
+      ensoPath: backend.EnsoPath(`${projectsDirectory}/${project.projectNormalizedName}`),
     }
   }
 
@@ -382,12 +382,15 @@ export default class LocalBackend extends Backend {
     const state = this.projectManager.projects.get(id)
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directory)
-      const project = entries
-        .flatMap((entry) => (entry.type === 'ProjectEntry' ? [entry.metadata] : []))
-        .find((metadata) => metadata.id === id)
-      if (project == null) {
+      const entry = entries
+        .flatMap((e) => (e.type === 'ProjectEntry' ? [[e.metadata, e.path] as const] : []))
+        .find(([metadata]) => metadata.id === id)
+      if (entry == null) {
         throw new Error(`Could not get details of project.`)
       } else {
+        const [project, path] = entry
+        const ensoPathRaw = normalizePath(path)
+        const ensoPath = backend.EnsoPath(ensoPathRaw)
         return {
           name: project.name,
           jsonAddress: null,
@@ -397,6 +400,7 @@ export default class LocalBackend extends Backend {
           packageName: project.name,
           projectId,
           state: { type: backend.ProjectState.closed, volumeId: '' },
+          ensoPath,
         }
       }
     } else {
@@ -413,6 +417,7 @@ export default class LocalBackend extends Backend {
           type: backend.ProjectState.opened,
           volumeId: '',
         },
+        ensoPath: backend.EnsoPath(`${directory}/${cachedProject.projectNormalizedName}`),
       }
     }
   }
@@ -496,6 +501,7 @@ export default class LocalBackend extends Backend {
       packageName: project.projectNormalizedName,
       organizationId: backend.OrganizationId('organization-'),
       state: { type: backend.ProjectState.closed, volumeId: '' },
+      ensoPath: backend.EnsoPath(`${typeAndId.directory}/${project.projectNormalizedName}`),
     }
   }
 

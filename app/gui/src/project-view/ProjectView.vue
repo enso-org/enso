@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Backend, { ProjectId } from '#/services/Backend'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
+import { ensoPathToTabId } from '$/providers/container'
 import { injectOpenedProjects } from '$/providers/openedProjects'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideEventLogger } from '@/providers/eventLogging'
@@ -27,6 +28,7 @@ const props = defineProps<{
   readonly projectInitialName: string
   readonly projectDisplayedName: string
   readonly projectNamespace?: string
+  readonly projectPath: string
   readonly engine: LsUrls
   readonly renameProject: (newName: string) => void
   /** The current project's backend, which may be remote or local. */
@@ -79,7 +81,7 @@ onDeactivated(() => (visible.value = false))
       <!-- Key property is needed because of still many usages of deprecated useXStore 
        (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor
        will be no longer necessary -->
-      <GraphEditor v-if="projectId" :key="projectId" />
+      <GraphEditor v-if="projectId" :key="projectId" :tab="ensoPathToTabId(projectPath)" />
     </WithCurrentProject>
   </div>
 </template>

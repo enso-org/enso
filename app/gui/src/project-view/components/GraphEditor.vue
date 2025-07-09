@@ -6,6 +6,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
+import { TabId } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
@@ -60,6 +61,8 @@ import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
 import { computed, onMounted, ref, toRaw, toRef, useTemplateRef, watch, watchEffect } from 'vue'
 
+const props = defineProps<{ tab: TabId }>()
+
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
 const projectStore = useProjectStore()
@@ -67,7 +70,7 @@ const projectNames = useProjectNames()
 const graphStore = useGraphStore()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
-const _visualizationStore = provideVisualizationStore(projectStore)
+provideVisualizationStore(projectStore)
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -371,7 +374,7 @@ const displayedDocs = computed(() =>
 
 watchEffect(() => {
   const projectId = projectStore.id
-  rightPanel.setContext(projectId, {
+  rightPanel.setContext(props.tab, {
     item: projectId,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })

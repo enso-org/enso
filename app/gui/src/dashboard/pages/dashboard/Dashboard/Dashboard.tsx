@@ -9,7 +9,6 @@ import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
@@ -17,9 +16,10 @@ import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import AppContainerVue from '$/components/AppContainer.vue'
+import AppContainerInnerVue from '$/components/AppContainer/AppContainerInner.vue'
 import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
+import { useLaunchedProjects } from '$/providers/react/container'
 import { usePrefetchQuery } from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
@@ -27,7 +27,7 @@ import type { DashboardProps } from './types'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
-const AppContainer = vueComponent(AppContainerVue).default
+const AppContainerInner = vueComponent(AppContainerInnerVue).default
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
@@ -36,9 +36,7 @@ export default function Dashboard(props: DashboardProps) {
      * due to modals being in `TheModal`. */
     <DriveProvider>
       <CategoriesProvider>
-        <ProjectsProvider>
-          <DashboardInner {...props} />
-        </ProjectsProvider>
+        <DashboardInner {...props} />
       </CategoriesProvider>
     </DriveProvider>
   )
@@ -72,12 +70,12 @@ function DashboardInner(props: DashboardProps) {
     React.useCallback(() => config.params.startup.project, [config]),
   )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
+  const launchedProjects = useLaunchedProjects()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const lauchedProjects = useLaunchedProjects()
-  const initialAlreadyLaunchedProject = lauchedProjects.find(
+  const initialAlreadyLaunchedProject = launchedProjects.find(
     (lp) => lp.id === props.projectToOpen?.asset.id,
   )
-  const initialAlreadyLaunchedHybridProject = lauchedProjects.find(
+  const initialAlreadyLaunchedHybridProject = launchedProjects.find(
     (lp) => lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
   )
 
@@ -163,7 +161,6 @@ function DashboardInner(props: DashboardProps) {
     [inputBindings],
   )
 
-  const launchedProjects = useLaunchedProjects()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const { user } = useFullUserSession()
@@ -178,8 +175,7 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <AppContainer
-          launchedProjects={launchedProjects}
+        <AppContainerInner
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
           isFeatureUnderPaywall={isFeatureUnderPaywall}
