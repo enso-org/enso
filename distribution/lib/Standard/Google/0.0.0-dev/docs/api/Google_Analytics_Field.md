@@ -1,5 +1,5 @@
 ## Enso Signatures 1.0
-## module Standard.Google_Api.Google_Analytics_Field
+## module Standard.Google.Google_Analytics_Field
 - type Google_Analytics_Field
     - api_name self -> Standard.Base.Any.Any
     - category self -> Standard.Base.Any.Any

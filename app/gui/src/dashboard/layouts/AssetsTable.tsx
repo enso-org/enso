@@ -27,6 +27,7 @@ import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -47,6 +48,7 @@ import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
 import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
 import {
+  setDriveLocation,
   useDriveStore,
   useSetCanDownload,
   useSetNewestFolderId,
@@ -171,25 +173,24 @@ export interface AssetRowState {
 export interface AssetsTableProps {
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
-  readonly category: Category
   readonly initialProjectName: string | null
 }
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
-  const { query, setQuery, category } = props
+  const { query, setQuery } = props
   const { initialProjectName } = props
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const openedProjects = useLaunchedProjects()
   const openProjectLocally = useOpenProjectLocally()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { backendForType, reconnectToProjectManager } = useBackends()
+  const { reconnectToProjectManager } = useBackends()
   const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
-  const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const localStorage = useLocalStorage()
   const { getText } = useText()
@@ -243,7 +244,7 @@ function AssetsTable(props: AssetsTableProps) {
     { unsafeEnableTransition: true },
   )
 
-  const { queryDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
+  const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({
     category,
   })
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
@@ -255,7 +256,7 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
-      setCurrentDirectoryId(null)
+      setDriveLocation(null, category.id)
       return false
     },
   })
@@ -606,7 +607,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                setCurrentDirectoryId(item.id)
+                setDriveLocation(item.id, category.id)
                 break
               }
               case AssetType.project: {

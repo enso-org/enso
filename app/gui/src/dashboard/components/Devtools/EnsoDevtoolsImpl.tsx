@@ -21,9 +21,9 @@ import {
   DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
-import { useLocalStorage, usePlanOverride, useText } from '$/providers/react'
-import { useSetPlanOverride, useUserSession } from '$/providers/react/auth'
-import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
+import { useLocalStorage, useText } from '$/providers/react'
+import { useUserSession } from '$/providers/react/auth'
+import { useFeatureFlag, useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { motion } from 'framer-motion'
@@ -33,7 +33,6 @@ import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
 import {
-  useAnimationsDisabled,
   useEnableVersionChecker,
   usePaywallDevtools,
   useSetAnimationsDisabled,
@@ -73,13 +72,11 @@ export function EnsoDevStatus() {
   const queryClient = useQueryClient()
   const { getText } = useText()
   const showEnsoDevtools = useShowEnsoDevtools()
-  const planOverride = usePlanOverride()
-  const setPlanOverride = useSetPlanOverride()
-  const animationsDisabled = useAnimationsDisabled()
   const setAnimationsDisabled = useSetAnimationsDisabled()
   const versionCheckerEnabled = useEnableVersionChecker() ?? false
   const setVersionCheckerEnabled = useSetEnableVersionChecker()
   const {
+    developerPlanOverride,
     showDeveloperIds,
     enableMultitabs,
     enableAssetsTableBackgroundRefresh,
@@ -88,12 +85,13 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
+    disableAnimations,
     fileChunkUploadPoolSize,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
-    switch (planOverride) {
+    switch (developerPlanOverride) {
       case backend.Plan.free: {
         return getText('free')
       }
@@ -111,9 +109,9 @@ export function EnsoDevStatus() {
       }
     }
   })()
+
   const isOverridden =
     planName != null ||
-    animationsDisabled ||
     versionCheckerEnabled ||
     !enableAssetsTableBackgroundRefresh ||
     assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
@@ -121,6 +119,7 @@ export function EnsoDevStatus() {
     showDeveloperIds ||
     overrideProfilePicture ||
     multiplyUserList ||
+    disableAnimations ||
     enableMultitabs ||
     enableAdvancedProjectExecutionOptions ||
     fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
@@ -142,13 +141,13 @@ export function EnsoDevStatus() {
         {planName != null && (
           <DeveloperOverrideEntry
             reset={() => {
-              setPlanOverride(undefined)
+              setFeatureFlag('developerPlanOverride', undefined)
             }}
           >
             {getText('planOverriddenToX', planName)}
           </DeveloperOverrideEntry>
         )}
-        {animationsDisabled && (
+        {disableAnimations && (
           <DeveloperOverrideEntry
             reset={() => {
               setAnimationsDisabled(false)
@@ -272,7 +271,7 @@ export function EnsoDevtools() {
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
 
-  const animationsDisabled = useAnimationsDisabled()
+  const animationsDisabled = useFeatureFlag('disableAnimations')
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
   const localStorage = useLocalStorage()
@@ -283,7 +282,6 @@ export function EnsoDevtools() {
 
   const featureFlags = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
-  const setPlanOverride = useSetPlanOverride()
 
   return (
     <Popover.Trigger>
@@ -341,7 +339,7 @@ export function EnsoDevtools() {
                 name="plan"
                 onChange={(value) => {
                   invariant(backend.isPlan(value), 'Invalid plan type')
-                  setPlanOverride(value)
+                  setFeatureFlag('developerPlanOverride', value)
                 }}
               >
                 <Radio label={getText('free')} value={backend.Plan.free} />
@@ -354,7 +352,7 @@ export function EnsoDevtools() {
                 size="small"
                 variant="outline"
                 onPress={() => {
-                  setPlanOverride(undefined)
+                  setFeatureFlag('developerPlanOverride', undefined)
                 }}
               >
                 {getText('reset')}

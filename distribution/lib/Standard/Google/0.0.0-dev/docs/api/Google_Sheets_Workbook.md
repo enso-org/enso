@@ -1,5 +1,5 @@
 ## Enso Signatures 1.0
-## module Standard.Google_Api.Google_Sheets_Workbook
+## module Standard.Google.Google_Sheets_Workbook
 - type Google_Api_Error
     - Error details:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
@@ -9,4 +9,4 @@
     - read self query:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) headers:Standard.Table.Headers.Headers= limit:Standard.Table.Rows_To_Read.Rows_To_Read= skip_rows:Standard.Base.Data.Numbers.Integer= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - sheet_count self -> Standard.Base.Any.Any
     - sheet_names self -> Standard.Base.Any.Any
-- Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Google_Api.Google_Sheets_Workbook.Google_Sheets_Workbook -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
+- Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Google.Google_Sheets_Workbook.Google_Sheets_Workbook -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

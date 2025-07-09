@@ -224,9 +224,4 @@ export interface DeleteProjectParams {
   readonly projectsDirectory?: Path
 }
 
-/** Possible events that may be emitted by a {@link ProjectManager}. */
-export enum ProjectManagerEvents {
-  // If this member is renamed, the corresponding event listener should also be renamed in
-  // `app/gui/src/project-view/components/GraphEditor/toasts.ts`.
-  loadingFailed = 'project-manager-loading-failed',
-}
+export const PROJECT_MANAGER_LOADING_FAILED_EVENT = 'enso-project-manager-loading-failed'
