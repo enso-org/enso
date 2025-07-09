@@ -60,7 +60,18 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
   }
 
-  public record ModuleTypePair(Value module, Value type) {}
+  public record EnsoType(Value module, Value type) {}
+  public record EnsoMethod(EnsoType type, String methodName, Value methodImpl) {
+    public EnsoMethod(EnsoType type, String methodName) {
+      this(type, methodName, type.module().invokeMember("get_method", type.type(), methodName));
+    }
+    public boolean canExecute() {
+      return methodImpl.canExecute();
+    }
+    public Value get() {
+      return methodImpl;
+    }
+  }
   public record Method(
       Value ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
       implements MethodInterface {
@@ -75,16 +86,16 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     public static Method create(
-        ModuleTypePair moduleTypePair, String methodName, boolean variableArgumentMethod) {
+        EnsoType moduleTypePair, String methodName, boolean variableArgumentMethod) {
       var staticMethod = STATICS_MODULE.invokeMember("get_method", STATICS_TYPE, methodName);
       if (staticMethod.canExecute()) {
         return new Method(staticMethod, variableArgumentMethod, true, methodName);
       } else {
-        var instanceMethod = moduleTypePair.module().invokeMember("get_method", moduleTypePair.type(), methodName);
+        var instanceMethod = new EnsoMethod(moduleTypePair, methodName);
         if (!instanceMethod.canExecute()) {
           throw new UnsupportedOperationException("Method not found: " + methodName);
         }
-        return new Method(instanceMethod, variableArgumentMethod, false, methodName);
+        return new Method(instanceMethod.get(), variableArgumentMethod, false, methodName);
       }
     }
     
@@ -139,7 +150,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final Value type = module.invokeMember("get_type", typeName);
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
-    ModuleTypePair moduleTypePair = new ModuleTypePair(module, type);
+    EnsoType moduleTypePair = new EnsoType(module, type);
     Function<String, MethodInterface> getMethod =
         name -> Method.create(moduleTypePair, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
