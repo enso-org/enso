@@ -133,7 +133,7 @@ public class Table {
   }
 
   /**
-   * Gets the value of a cell in the table by column name and row index.
+   * Gets the value of a cell in the table by column index and row index.
    * If the column does not exist, it calls the provided function with the column name.
    * @param columnIndex the index of the column
    * @param rowIndex the index of the row

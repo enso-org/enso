@@ -36,10 +36,6 @@ add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (fr
                     _illegal_if (group_count < 1) "group_count must be at least 1" <|
                         ordering = _prepare_ordering table problem_builder order_by
                         AddGroupNumber.numberGroupsEqualCount table.row_count group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
-                Grouping_Method.Flag_Function flag_function ->
-                    predicate row1 row2 =
-                        flag_function (Row.Value row1) (Row.Value row2)
-                    AddGroupNumber.flagFunction (table:In_Memory_Table).java_table from step predicate java_problem_aggregator
             new_column = In_Memory_Column.from_storage name new_storage
             renamed_table = rename_columns_if_needed table name on_problems Table.new
             problem_builder.attach_problems_before on_problems <| 

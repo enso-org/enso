@@ -114,7 +114,7 @@ type In_Memory_Table_Implementation
 
     get (this_table : Table & In_Memory_Table) (selector : Integer | Text = 0) ~if_missing=Nothing -> Column | Any =
         java_column = case selector of
-            _ : Integer -> Vector.from_polyglot_array this_table.java_table.getColumns . get selector
+            _ : Integer -> this_table.java_table.getColumns . get selector
             _ : Text -> this_table.java_table.getColumnByName selector
         if java_column.is_nothing then if_missing else In_Memory_Column.from_java_column java_column
 

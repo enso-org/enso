@@ -320,8 +320,6 @@ type DB_Table_Implementation
                         renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
-                Grouping_Method.Flag_Function _ ->
-                    Error.throw (Unsupported_Database_Operation.Error "Flag_Function grouping method is not supported in the database")
 
     set (this_table : Table & DB_Table) (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         problem_builder = Problem_Builder.new
