@@ -1,5 +1,5 @@
-import { expect, type Locator, type Page } from '@playwright/test'
 import assert from 'assert'
+import { expect, type Locator, type Page } from 'playwright/test'
 
 // ================
 // === Locators ===

@@ -1,5 +1,5 @@
 /** @file Test the login flow. */
-import { test } from '@playwright/test'
+import { test } from 'playwright/test'
 
 import { INVALID_PASSWORD, mockAll, TEXT, VALID_EMAIL, VALID_PASSWORD } from './actions'
 

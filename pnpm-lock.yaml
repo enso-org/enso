@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    playwright:
+      specifier: 1.50.1
+      version: 1.50.1
     typescript:
       specifier: ^5.7.2
       version: 5.7.2
@@ -421,9 +424,6 @@ importers:
       '@open-rpc/server-js':
         specifier: ^1.9.5
         version: 1.9.5
-      '@playwright/test':
-        specifier: ^1.50.1
-        version: 1.50.1
       '@react-types/shared':
         specifier: 3.27.0
         version: 3.27.0(react@18.3.1)
@@ -530,7 +530,7 @@ importers:
         specifier: ^26.0.0
         version: 26.0.0
       playwright:
-        specifier: ^1.50.1
+        specifier: 'catalog:'
         version: 1.50.1
       postcss:
         specifier: ^8.4.49
@@ -629,9 +629,6 @@ importers:
       '@electron/notarize':
         specifier: 2.1.0
         version: 2.1.0
-      '@playwright/test':
-        specifier: ^1.50.1
-        version: 1.50.1
       '@types/mime-types':
         specifier: ^2.1.4
         version: 2.1.4
@@ -684,7 +681,7 @@ importers:
         specifier: ^0.2.99
         version: 0.2.99
       playwright:
-        specifier: ^1.50.1
+        specifier: 'catalog:'
         version: 1.50.1
       portfinder:
         specifier: ^1.0.32
@@ -1944,11 +1941,6 @@ packages:
   '@pkgr/core@0.1.1':
     resolution: {integrity: sha512-cq8o4cWH0ibXh9VGi5P20Tu9XF/0fFXl9EUinr9QfTM7a7p0oTA4iJRCQWppXR1Pg8dSM0UCItCkPwsk9qWWYA==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
-
-  '@playwright/test@1.50.1':
-    resolution: {integrity: sha512-Jii3aBg+CEDpgnuDxEp/h7BimHcUTDlpEtce89xEumlJ5ef2hqepZ+PWp1DDpYC/VO9fmWVI1IlEaoI5fK9FXQ==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   '@polka/url@1.0.0-next.28':
     resolution: {integrity: sha512-8LduaNlMZGwdZ6qWrKlfa+2M4gahzFkprZiAt2TF8uS0qQgBizKXpXURqvTJ4WtmupWxaLqjRb2UCTe72mu+Aw==}
@@ -9029,10 +9021,6 @@ snapshots:
     optional: true
 
   '@pkgr/core@0.1.1': {}
-
-  '@playwright/test@1.50.1':
-    dependencies:
-      playwright: 1.50.1
 
   '@polka/url@1.0.0-next.28': {}
 

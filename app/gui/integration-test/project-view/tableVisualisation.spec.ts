@@ -1,4 +1,4 @@
-import { test, type BrowserContext, type Locator, type Page } from '@playwright/test'
+import { test, type BrowserContext, type Locator, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'

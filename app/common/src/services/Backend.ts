@@ -44,27 +44,9 @@ export function isDirectoryId(id: unknown): id is DirectoryId {
   return typeof id === 'string' && id.startsWith('directory-')
 }
 
-/**
- * Unique identifier for an asset representing the items inside a directory for which the
- * request to retrive the items has not yet completed.
- */
-export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
-export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
-
-/** Unique identifier for an asset representing the nonexistent children of an empty directory. */
-export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
-export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
-
 /** Unique identifier for an asset representing the parent directory. */
 export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
 export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
-
-/**
- * Unique identifier for an asset representing the nonexistent children of a directory
- * that failed to fetch.
- */
-export type ErrorAssetId = newtype.Newtype<string, 'ErrorAssetId'>
-export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
 
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
@@ -145,13 +127,9 @@ export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
 export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
 
-/** The path of this asset, including the root directory. */
+/** The path of this asset, including the root directory. This is NOT url-encoded. */
 export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
 export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
-
-/** The path string of this asset, including the root directory. */
-export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
-export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
@@ -168,7 +146,7 @@ export function isPlaceholderUserGroupId(id: string) {
  * being created on the backend.
  */
 export function newPlaceholderUserGroupId() {
-  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}` as const)
+  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
 }
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
@@ -630,6 +608,39 @@ export interface UserGroupPermission {
 /** User permission for a specific user or user group. */
 export type AssetPermission = UserGroupPermission | UserPermission
 
+/** The format of all errors returned by the backend. */
+export interface RemoteBackendError {
+  readonly type: string
+  readonly code: string
+  readonly message: string
+  readonly param: string
+}
+
+/** HTTP response body for the "list users" endpoint. */
+export interface ListUsersResponseBody {
+  readonly users: readonly User[]
+}
+
+/** HTTP response body for the "list projects" endpoint. */
+export interface ListDirectoryResponseBody {
+  readonly assets: readonly AnyAsset[]
+}
+
+/** HTTP response body for the "list files" endpoint. */
+export interface ListFilesResponseBody {
+  readonly files: readonly FileLocator[]
+}
+
+/** HTTP response body for the "list secrets" endpoint. */
+export interface ListSecretsResponseBody {
+  readonly secrets: readonly SecretInfo[]
+}
+
+/** HTTP response body for the "list tag" endpoint. */
+export interface ListTagsResponseBody {
+  readonly tags: readonly Label[]
+}
+
 /**
  * Response from the "create customer portal session" endpoint.
  * Returns a URL that the user can use to access the customer portal and manage their subscription.
@@ -967,8 +978,6 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
   readonly ensoPath?: EnsoPath | undefined
-  /** The actual path (URL encoded when on the Remote backend). */
-  readonly ensoPathValue?: EnsoPathValue | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1095,7 +1104,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
   let result: AssetId
   switch (assetType) {
     case AssetType.directory: {
-      result = DirectoryId(`directory-${id}` as const)
+      result = DirectoryId(`directory-${id}`)
       break
     }
     case AssetType.project: {

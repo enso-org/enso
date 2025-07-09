@@ -27,7 +27,7 @@ export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
-  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}` as const)
+  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}`)
 }
 
 /** Create a {@link backend.ProjectId} from a UUID. */
@@ -234,7 +234,6 @@ export default class LocalBackend extends Backend {
             parentsPath: backend.ParentsPath(parentsPath),
             virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
             ensoPath,
-            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
           } satisfies Partial<backend.DirectoryAsset>
 
           switch (entry.type) {

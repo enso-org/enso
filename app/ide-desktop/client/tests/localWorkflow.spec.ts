@@ -1,8 +1,8 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
-import { type Page, expect } from '@playwright/test'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
+import { type Page, expect } from 'playwright/test'
 import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
 
 const startTimestamp = Date.now()

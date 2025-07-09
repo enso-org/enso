@@ -1,5 +1,5 @@
 /** @file Test the search bar and its suggestions. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import { mockAllAndLogin } from './actions'
 

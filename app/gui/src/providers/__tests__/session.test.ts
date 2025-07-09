@@ -46,9 +46,7 @@ class MockAuthService implements ISessionProvider {
       })),
     ),
   )
-  getMFAPreference = vi.fn(() =>
-    Promise.resolve(Result.wrap<MfaType, AmplifyError>(() => 'NOMFA' as const)),
-  )
+  getMFAPreference = vi.fn(() => Promise.resolve(Result.wrap<MfaType, AmplifyError>(() => 'NOMFA')))
   signInWithGitHub = vi.fn(() => Promise.resolve())
   signInWithGoogle = vi.fn(() => Promise.resolve())
   signOut = vi.fn(() => Promise.resolve())

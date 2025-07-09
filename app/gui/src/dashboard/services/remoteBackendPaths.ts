@@ -71,17 +71,8 @@ export const GET_LOG_EVENTS_PATH = 'log_events'
 export const POST_LOG_EVENT_PATH = 'logs'
 /** Resolve an enso URL path. */
 export const RESOLVE_ENSO_PATH = 'path/resolve'
-
 /** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
-export function getCustomerPortalSessionPath(returnUrl?: string) {
-  const baseUrl = 'payments/customer-portal-sessions/create'
-
-  if (returnUrl === undefined) {
-    return baseUrl
-  } else {
-    return `${baseUrl}?returnUrl=${returnUrl}`
-  }
-}
+export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-sessions/create'
 
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {

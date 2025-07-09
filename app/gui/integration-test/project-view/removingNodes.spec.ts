@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { test } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'

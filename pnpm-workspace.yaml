@@ -16,3 +16,4 @@ catalog:
   typescript: ^5.7.2
   vite: ^6.2.4
   vitest: ^3.0.5
+  playwright: 1.50.1

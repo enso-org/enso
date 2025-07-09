@@ -156,7 +156,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           <table>
             <tbody>
-              {item.ensoPath != null && item.ensoPathValue && (
+              {item.ensoPath != null && (
                 <tr data-testid="asset-panel-path" className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
@@ -166,7 +166,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                       <Text className="w-0 grow" truncate="1">
                         {item.ensoPath}
                       </Text>
-                      <CopyButton copyText={item.ensoPathValue} />
+                      <CopyButton copyText={encodeURI(item.ensoPath)} />
                     </div>
                   </td>
                 </tr>
