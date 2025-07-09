@@ -84,7 +84,7 @@ type Type_Error
                fn : Meta.Function ->
                   missing_args = fn . arguments pending=True
                   err_with_args fn.value missing_args
-               c : Meta.Constructor ->
+               _ : Meta.Constructor ->
                   fn = self.actual
                   fn_info = self.actual.to_text
                   missing_args = fn_info.split " " . filter (_.ends_with "=_") . map (_.split "=") . map (_.at 0)

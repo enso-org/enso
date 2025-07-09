@@ -1,7 +1,5 @@
 private
 
-from project.Data.Boolean import True
-
 is_type value =
    k = get_kind_builtin value
    k == 6 || k == 7
