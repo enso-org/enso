@@ -185,6 +185,12 @@ export function RealAssetRow(props: RealAssetRowProps) {
     { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
+  React.useEffect(() => {
+    if (contextMenuPosition != null) {
+      setContextMenuPosition(null)
+    }
+  }, [contextMenuPosition])
+
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
@@ -387,9 +393,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 select(item)
                 setContextMenuPosition(event)
               } else {
-                if (contextMenuPosition != null) {
-                  setContextMenuPosition(null)
-                }
                 contextMenuRef.current?.open(event)
               }
             }}

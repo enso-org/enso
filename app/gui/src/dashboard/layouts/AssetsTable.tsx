@@ -1332,6 +1332,12 @@ function AssetsTable(props: AssetsTableProps) {
             <div
               className="flex h-max min-h-full w-max min-w-full flex-col"
               onContextMenu={(event) => {
+                if (
+                  event.target instanceof HTMLElement &&
+                  event.target.dataset.testid === 'underlay'
+                ) {
+                  return
+                }
                 event.preventDefault()
                 event.stopPropagation()
                 contextMenuRef.current?.open(event)
