@@ -46,7 +46,7 @@ type Row
 
        Arguments:
        - column: The name or index of the column being looked up.
-    @column (self -> Widget_Helpers.make_column_name_selector self.table)
+    @column (self -> Widget_Helpers.make_column_name_selector self)
     at : (Integer | Text) -> Any
     at self (column:(Integer | Text)=0) =
         self.get column if_missing=(Error.throw (Illegal_Argument.Error "Column not found"))
