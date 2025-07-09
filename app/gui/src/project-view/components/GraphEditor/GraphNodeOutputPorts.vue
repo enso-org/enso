@@ -44,7 +44,7 @@ const otherNodeHovered = computed(
 
 const selection = injectGraphSelection(true)
 const { baseColor, selected, pending } = useComponentColors(
-  graph.value!.db, // FIXME: Non-reactive
+  () => graph.value?.db,
   selection,
   toRef(props, 'nodeId'),
 )

@@ -5,18 +5,22 @@ import { computed, toValue } from 'vue'
 
 /** Returns the component's base color, and information about state that may modify it. */
 export function useComponentColors(
-  graphDb: GraphDb,
+  graphDb: ToValue<GraphDb>,
   nodeSelection: { isSelected: (nodeId: NodeId) => boolean } | undefined,
   nodeId: ToValue<NodeId | undefined>,
 ) {
   const nodeIdValue = computed(() => toValue(nodeId))
-  const node = computed(() => nodeIdValue.value && graphDb.nodeIdToNode.get(nodeIdValue.value))
+  const node = computed(
+    () => nodeIdValue.value && toValue(graphDb)?.nodeIdToNode.get(nodeIdValue.value),
+  )
   const expressionInfo = computed(
-    () => node.value && graphDb.getExpressionInfo(node.value.innerExpr.externalId),
+    () => node.value && toValue(graphDb).getExpressionInfo(node.value.innerExpr.externalId),
   )
   const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
   return {
-    baseColor: computed(() => nodeIdValue.value && graphDb.getNodeColorStyle(nodeIdValue.value)),
+    baseColor: computed(
+      () => nodeIdValue.value && toValue(graphDb)?.getNodeColorStyle(nodeIdValue.value),
+    ),
     selected: computed(
       () => (nodeIdValue.value && nodeSelection?.isSelected(nodeIdValue.value)) ?? false,
     ),
