@@ -481,8 +481,8 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 interface SuggestionEntryArgument {
   /** The argument name. */
   name: string;
-  /** The argument type. String 'Any' is used to specify generic types. */
-  reprType: string;
+  /** The argument type. */
+  reprType: string[];
   /** Indicates whether the argument is lazy. */
   isSuspended: boolean;
   /** Indicates whether the argument has default value. */
@@ -619,7 +619,7 @@ interface Method {
   selfType: string;
 
   /** The return type of this method. */
-  returnType: string;
+  returnType: string[];
 
   /** The flag indicating whether this method is static or instance. */
   isStatic: boolean;
@@ -654,7 +654,7 @@ interface Function {
   arguments: SuggestionEntryArgument[];
 
   /** The function return type. */
-  returnType: string;
+  returnType: string[];
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
@@ -674,7 +674,7 @@ interface Local {
   module: string;
 
   /** The type of a value. */
-  returnType: string;
+  returnType: string[];
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
@@ -781,7 +781,7 @@ interface SuggestionArgumentModify {
   /** The new name. */
   name?: FieldUpdate<string>;
   /** The new argument type. */
-  reprType?: FieldUpdate<string>;
+  reprType?: FieldUpdate<string[]>;
   /** The new `isSuspended` flag. */
   isSuspended?: FieldUpdate<boolean>;
   /** The new `hasDefault` flag. */
@@ -828,7 +828,7 @@ interface SuggestionsDatabaseUpdateModify {
   /** The new self type. */
   selfType?: FieldUpdate<string>;
   /** The new return type. */
-  returnType?: FieldUpdate<string>;
+  returnType?: FieldUpdate<string[]>;
   /** The new documentation string. */
   documentation?: FieldUpdate<string>;
   /** The new scope. */
