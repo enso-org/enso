@@ -12,18 +12,13 @@ import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Delimited_Writer
-import project.Internal.Java_Problems
-import project.Internal.Problem_Builder.Problem_Builder
-import project.Row.Row
 import project.Table.Table
 import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.In_Memory_Table_Implementation.In_Memory_Table_Implementation
-from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Table_Type_Helpers import table_from_implementation
 
 polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.table.Table as Java_Table
-polyglot java import org.enso.table.operations.AddGroupNumber
 
 # A table whose data is stored in memory.
 type In_Memory_Table
@@ -79,37 +74,6 @@ type In_Memory_Table
         result = Delimited_Writer.write_text self format
         if delimiter.is_a Text then result else
             Warning.attach (Deprecated.Warning "Standard.Table.Table" "to_delimited" "Deprecated: specify the arguments separately rather than using a `Delimited_Format`.") result
-
-    ## Creates a group number based on a predicate function.
-    find_group_number self predicate=(Missing_Argument.throw "predicate") (over:Predicate_Over=..Table_Row) (current_item:Current_Value=..First) name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table =
-        problem_builder = Problem_Builder.new error_on_missing_columns=True
-        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-            new_storage = case over of
-                Predicate_Over.Table_Row ->
-                    row_predicate row1 row2 = predicate (Row.Value row1) (Row.Value row2)
-                    AddGroupNumber.flagFunction self.java_table from step row_predicate (current_item==Current_Value.Previous) java_problem_aggregator
-                _ ->
-                    Error.throw (Illegal_Argument.Error "The 'over' argument must be a Table_Row, Text, or Integer. Got: " + over.to_text)
-            new_column = In_Memory_Column.from_storage name new_storage
-            renamed_table = rename_columns_if_needed self name on_problems Table.new
-            problem_builder.attach_problems_before on_problems <|
-                renamed_table.set new_column name set_mode=..Add
-
-
-type Predicate_Over
-    ## The predicate will be passed a Row object.
-    Table_Row
-
-    ## The predicate will be passed a value from a column with the given name.
-    Name name:Text
-
-    ## The predicate will be passed a value from a column with the given index.
-    Index index:Integer
-
-type Current_Value
-    First
-
-    Previous
 
 ## PRIVATE
    Helper method for internal use to make a Table from a Java Table.
