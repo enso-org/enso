@@ -25,7 +25,7 @@ const [provideSelectionArrowInfo, injectSelectionArrow] = createContextStore(
       requestArrow: (target: RendererNode) => {
         arrowLocation.value = target
       },
-      handled: false,
+      handled: ref(false),
       suppressArrow: ref(false),
     }),
 )
