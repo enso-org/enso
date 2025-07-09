@@ -39,13 +39,12 @@ public abstract class GetUnresolvedSymbolNameNode extends Node {
 
   @Specialization
   Text doConversion(UnresolvedConstructor cons) {
-    return Text.create(cons.toString().substring(2));
+    return Text.create(cons.getName());
   }
 
   @Fallback
   Text doFallback(Object symbol) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    throw new PanicException(
-        builtins.error().makeTypeError("Unresolved", symbol, "symbol"), this);
+    throw new PanicException(builtins.error().makeTypeError("Unresolved", symbol, "symbol"), this);
   }
 }
