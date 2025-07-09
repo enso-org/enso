@@ -9,4 +9,8 @@
     - to_dictionary self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - to_vector self -> Standard.Base.Any.Any
+- type Row_Comparator
+    - compare obj1:Standard.Base.Any.Any obj2:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash obj:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Vector.Vector.from that:Standard.Table.Row.Row -> Standard.Base.Data.Vector.Vector
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Table.Row.Row -> Standard.Base.Data.Ordering.Comparable
