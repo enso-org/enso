@@ -245,8 +245,8 @@ type Unresolved
        Textual representation of the symbol
 
     to_text self -> Text = case self of
-        Unresolved.Symbol _ -> "(Unresolved_Symbol "+self.name+")"
-        Unresolved.Cons _ -> "(Auto_Constructor "+self.name+")"
+        Unresolved.Symbol _ -> "(Unresolved.Symbol "+self.name+")"
+        Unresolved.Cons _ -> "(Unresolved.Cons "+self.name+")"
 
 type Error
     private Value impl
