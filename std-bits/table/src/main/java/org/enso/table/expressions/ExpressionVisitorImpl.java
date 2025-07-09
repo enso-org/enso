@@ -86,16 +86,19 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     public static Method create(
-        EnsoType moduleTypePair, String methodName, boolean variableArgumentMethod) {
-      var staticMethod = STATICS_MODULE.invokeMember("get_method", STATICS_TYPE, methodName);
+        Iterable<EnsoType> moduleTypePairs, String methodName, boolean variableArgumentMethod) {
+      var staticType = new EnsoType(STATICS_MODULE, STATICS_TYPE);
+      var staticMethod = new EnsoMethod(staticType, methodName);
       if (staticMethod.canExecute()) {
-        return new Method(staticMethod, variableArgumentMethod, true, methodName);
+        return new Method(staticMethod.get(), variableArgumentMethod, true, methodName);
       } else {
-        var instanceMethod = new EnsoMethod(moduleTypePair, methodName);
-        if (!instanceMethod.canExecute()) {
-          throw new UnsupportedOperationException("Method not found: " + methodName);
+        for (var moduleTypePair : moduleTypePairs) {
+          var instanceMethod = new EnsoMethod(moduleTypePair, methodName);
+          if (instanceMethod.canExecute()) {
+            return new Method(instanceMethod.get(), variableArgumentMethod, false, methodName);
+          }
         }
-        return new Method(instanceMethod.get(), variableArgumentMethod, false, methodName);
+        throw new UnsupportedOperationException("Method not found: " + methodName);
       }
     }
     
@@ -150,9 +153,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final Value type = module.invokeMember("get_type", typeName);
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
-    EnsoType moduleTypePair = new EnsoType(module, type);
+    var moduleTypePairs = java.util.List.of(new EnsoType(module, type));
     Function<String, MethodInterface> getMethod =
-        name -> Method.create(moduleTypePair, name, setVariableArgumentFunctions.contains(name));
+        name -> Method.create(moduleTypePairs, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
