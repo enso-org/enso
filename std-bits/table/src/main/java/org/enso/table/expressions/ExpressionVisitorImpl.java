@@ -60,7 +60,17 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
   }
 
-  public record EnsoType(Value module, Value type) {}
+  public record EnsoType(Value module, Value type, boolean isStaticMethod) {
+    public EnsoType(String moduleName, String typeName, boolean isStaticMethod) {
+      this(
+          Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
+          Context.getCurrent()
+              .getBindings("enso")
+              .invokeMember("get_module", moduleName)
+              .invokeMember("get_type", typeName),
+              isStaticMethod);
+    }
+  }
   public record EnsoMethod(EnsoType type, String methodName, Value methodImpl) {
     public EnsoMethod(EnsoType type, String methodName) {
       this(type, methodName, type.module().invokeMember("get_method", type.type(), methodName));
@@ -87,19 +97,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     public static Method create(
         Iterable<EnsoType> moduleTypePairs, String methodName, boolean variableArgumentMethod) {
-      var staticType = new EnsoType(STATICS_MODULE, STATICS_TYPE);
-      var staticMethod = new EnsoMethod(staticType, methodName);
-      if (staticMethod.canExecute()) {
-        return new Method(staticMethod.get(), variableArgumentMethod, true, methodName);
-      } else {
         for (var moduleTypePair : moduleTypePairs) {
           var instanceMethod = new EnsoMethod(moduleTypePair, methodName);
           if (instanceMethod.canExecute()) {
-            return new Method(instanceMethod.get(), variableArgumentMethod, false, methodName);
+            return new Method(instanceMethod.get(), variableArgumentMethod, moduleTypePair.isStaticMethod, methodName);
           }
         }
         throw new UnsupportedOperationException("Method not found: " + methodName);
-      }
     }
     
     @Override
@@ -148,14 +152,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       String typeName,
       String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
-    var context = Context.getCurrent().getBindings("enso");
-    final Value module = context.invokeMember("get_module", moduleName);
-    final Value type = module.invokeMember("get_type", typeName);
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
-    var moduleTypePairs = java.util.List.of(new EnsoType(module, type));
+    final var moduleTypePairs = java.util.List.of(new EnsoType("Standard.Table.Expression_Statics", "Expression_Statics", true), new EnsoType(moduleName, typeName, false));
     Function<String, MethodInterface> getMethod =
         name -> Method.create(moduleTypePairs, name, setVariableArgumentFunctions.contains(name));
+    final var module =
+        Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
