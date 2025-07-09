@@ -19,7 +19,7 @@ import * as projectHooks from '#/hooks/projectHooks'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategories } from '#/layouts/Drive/Categories'
-import { useGlobalContextMenuEntries } from '#/layouts/GlobalContextMenuEntries'
+import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import type * as assetRow from '#/pages/dashboard/components/AssetRow'
@@ -156,7 +156,6 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
         doAction: () => {
           const directoryId =
             asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
-
           doPaste(directoryId, directoryId)
         },
       },

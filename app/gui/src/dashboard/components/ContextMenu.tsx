@@ -4,7 +4,6 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Popover } from '#/components/Dialog'
 import type { MenuEntryProps } from '#/components/MenuEntry'
 import { usePortalContext } from '#/components/Portal'
-import { unsetModal } from '#/providers/ModalProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isOnMacOS } from 'enso-common/src/detect'
 import {
@@ -68,7 +67,9 @@ export const ContextMenu = forwardRef(function ContextMenu(
         UNSTABLE_portalContainer={root}
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        onClose={unsetModal}
+        onClose={() => {
+          setIsOpen(false)
+        }}
       >
         <div
           aria-label={props['aria-label']}

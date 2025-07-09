@@ -8,7 +8,7 @@ import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -68,14 +68,12 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     {
       action: 'newProject',
       doAction: () => {
-        unsetModal()
         void newProject(null, null)
       },
     },
     {
       action: 'newFolder',
       doAction: () => {
-        unsetModal()
         void newFolder()
       },
     },
@@ -130,7 +128,6 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
       directoryId == null && {
         action: 'paste',
         doAction: () => {
-          unsetModal()
           doPaste(currentDirectoryId, currentDirectoryId)
         },
       },

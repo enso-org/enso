@@ -752,9 +752,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const doCopy = useEventCallback(() => {
-    unsetModal()
     const { selectedIds } = driveStore.getState()
-
     setPasteData({
       type: 'copy',
       data: {
@@ -768,7 +766,6 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const doCut = useEventCallback(() => {
-    unsetModal()
     const { selectedIds } = driveStore.getState()
     setPasteData({
       type: 'move',
@@ -784,19 +781,12 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
-    unsetModal()
-
     const { pasteData } = driveStore.getState()
-
-    if (pasteData == null) {
-      return
-    }
-
+    if (pasteData == null) return
     if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
       toast.error('Cannot paste a folder into itself.')
       return
     }
-
     void paste({
       fromCategory: pasteData.data.category,
       toCategory: category,
@@ -804,7 +794,6 @@ function AssetsTable(props: AssetsTableProps) {
       pasteData: pasteData.data,
       method: pasteData.type,
     })
-
     setPasteData(null)
   })
 
@@ -1310,6 +1299,7 @@ function AssetsTable(props: AssetsTableProps) {
 
         <IsolateLayout className="isolate h-full w-full" useRAF>
           <div
+            tabIndex={-1}
             className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
             onKeyDown={onKeyDown}
             onBlur={(event) => {
@@ -1320,7 +1310,12 @@ function AssetsTable(props: AssetsTableProps) {
                 setKeyboardSelectedIndex(null)
               }
             }}
-            ref={rootRef}
+            ref={(el) => {
+              rootRef.current = el
+              if (document.activeElement === document.body) {
+                el?.focus()
+              }
+            }}
           >
             <SelectionBrush
               targetRef={rootRef}

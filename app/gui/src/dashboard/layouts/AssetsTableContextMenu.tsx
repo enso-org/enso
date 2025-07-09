@@ -18,10 +18,10 @@ import {
   isCloudCategory,
 } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useGlobalContextMenuEntries } from '#/layouts/GlobalContextMenuEntries'
+import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
-import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
@@ -194,7 +194,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
             action: 'undelete',
             label: getText('restoreAllFromTrashShortcut'),
             doAction: () => {
-              unsetModal()
               restoreAssetsMutation.mutate({
                 ids: selectedAssets.map((asset) => asset.id),
                 parentId: null,
