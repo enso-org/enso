@@ -9,7 +9,6 @@ import Standard.Table.In_Memory_Column.In_Memory_Column
 
 from Standard.Database import all
 from Standard.Database.Errors import all
-import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 
