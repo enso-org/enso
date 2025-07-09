@@ -6,6 +6,7 @@ import { Dialog, Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
 import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'
+import { ProgressBar } from '#/components/ProgressBar'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import { VisualTooltip } from '#/components/VisualTooltip'
@@ -14,6 +15,7 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { TRIAL_DURATION_DAYS } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
@@ -99,6 +101,14 @@ export function UserBar(props: UserBarProps) {
     trialDaysLeft != null && trialDaysLeft < 1 ?
       Math.max(0, Math.floor((Number(trialEndDate) - Number(new Date())) / HOUR_MS))
     : null
+  const trialProgress = trialDaysLeft != null ? 1 - trialDaysLeft / TRIAL_DURATION_DAYS : null
+  const trialText =
+    trialDaysLeft == null ? null
+    : trialHoursLeft != null ?
+      trialHoursLeft > 0 ?
+        getText('xDaysLeftInTrial', trialHoursLeft)
+      : getText('lessThanOneHourLeftInTrial')
+    : getText('xDaysLeftInTrial', trialDaysLeft)
 
   const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
 
@@ -141,6 +151,22 @@ export function UserBar(props: UserBarProps) {
           </Popover.Trigger>
         </div>
 
+        {trialDaysLeft != null && trialProgress != null && trialEndDate && (
+          <VisualTooltip
+            className="relative px-2"
+            tooltip={getText('yourSubscriptionExpiresAtX', toReadableIsoString(trialEndDate))}
+          >
+            <Text className="opacity-0">{trialText}</Text>
+            <ProgressBar
+              progress={trialProgress}
+              variant="clipped"
+              className="absolute inset-0"
+              progressBarClassName="bg-accent/50"
+            />
+            <Text className="absolute inset-0 mx-2 cursor-help text-center">{trialText}</Text>
+          </VisualTooltip>
+        )}
+
         <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
 
         {shouldShowPaywallButton && (
@@ -163,20 +189,6 @@ export function UserBar(props: UserBarProps) {
           <Button variant={upgradeButtonVariant} size="medium" href={SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </Button>
-        )}
-
-        {trialDaysLeft != null && trialEndDate && (
-          <VisualTooltip
-            tooltip={getText('yourSubscriptionExpiresAtX', toReadableIsoString(trialEndDate))}
-          >
-            <Text className="cursor-help">
-              {trialHoursLeft != null ?
-                trialHoursLeft > 0 ?
-                  getText('xDaysLeftInTrial', trialHoursLeft)
-                : getText('lessThanOneHourLeftInTrial')
-              : getText('xDaysLeftInTrial', trialDaysLeft)}
-            </Text>
-          </VisualTooltip>
         )}
 
         <NotificationTray />
