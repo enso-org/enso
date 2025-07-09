@@ -9,8 +9,8 @@ from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits, ex
 from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Feature.Feature
-import Standard.Database.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all

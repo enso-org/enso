@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Aggregate_Column, Table
 from Standard.Table.Errors import all
 
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import all
 
 from Standard.Test import all
