@@ -6,6 +6,7 @@ import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Function.Function
 import project.Meta
+import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
@@ -86,8 +87,7 @@ type Type_Error
                   err_with_args fn.value missing_args
                _ : Meta.Constructor ->
                   fn = self.actual
-                  fn_info = self.actual.to_text
-                  missing_args = fn_info.split " " . filter (_.ends_with "=_") . map (_.split "=") . map (_.at 0)
+                  missing_args = Meta_Helpers.get_argument_names_builtin fn True False False False
                   err_with_args fn missing_args
                u : Meta.Unresolved ->
                   if u.is_constructor then ".."+u.name else
