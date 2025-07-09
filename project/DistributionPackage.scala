@@ -251,7 +251,8 @@ object DistributionPackage {
           "--no-compile-dependencies",
           "--no-global-cache",
           "--log-level",
-          "DEBUG",
+          "TRACE",
+          "--no-log-masking",
           "--compile",
           path.getAbsolutePath
         )
