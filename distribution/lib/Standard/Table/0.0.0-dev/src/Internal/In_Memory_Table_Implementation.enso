@@ -453,7 +453,7 @@ type In_Memory_Table_Implementation
 
     rows (this_table : Table & In_Memory_Table) max_rows:Rows_To_Read =
         length = max_rows.rows_to_read . if_nothing this_table.row_count . min this_table.row_count
-        Vector.from_polyglot_array (Array_Proxy.new length this_table.get_row)
+        Vector.from_polyglot_array (Array_Proxy.new length (i-> this_table.get_row i))
 
     first_row (this_table : Table & In_Memory_Table) =
         In_Memory_Table_Implementation.get_row this_table 0 if_missing=(Error.throw (Index_Out_Of_Bounds.Error 0 0))
