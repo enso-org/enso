@@ -161,6 +161,11 @@ type Filter_Condition
     Is_In values=[] keep_or_remove:Filter_Action=..Keep
 
     ## PRIVATE
+
+       Generic function based check. With a function that returns `True` or `False`.
+    Predicate predicate:(Any -> Boolean)
+
+    ## PRIVATE
        The action to perform on the matched items.
     action : Filter_Action
     action self = case self of
@@ -234,6 +239,7 @@ type Filter_Condition
                     _ -> Regex.compile regex
                 compiled_regex.matches
             Is_In values _ -> Hashset.from_vector values . contains
+            Predicate fn -> fn
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
     ## PRIVATE
@@ -331,24 +337,6 @@ type Filter_Action
 sql_like_to_regex (sql_pattern : Text) =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
-
-## PRIVATE
-unify_condition_or_predicate : Filter_Condition | (Any -> Boolean) -> (Any -> Boolean)
-unify_condition_or_predicate (condition_or_predicate : Filter_Condition | (Any -> Boolean)) =
-    case Filter_Condition.resolve_auto_scoped condition_or_predicate of
-        condition : Filter_Condition -> condition.to_predicate
-        predicate -> predicate
-
-## PRIVATE
-unify_condition_predicate_or_element condition =
-    case condition of
-        condition : Filter_Condition -> condition.to_predicate
-        predicate : Function ->
-            resolved = Filter_Condition.resolve_auto_scoped predicate
-            case resolved of
-                condition : Filter_Condition -> condition.to_predicate
-                _ -> resolved
-        element -> (== element)
 
 ## PRIVATE
    Extends the provided predicate to handle `Nothing` values without error.
