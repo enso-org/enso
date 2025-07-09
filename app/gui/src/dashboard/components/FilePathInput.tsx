@@ -22,7 +22,7 @@ export interface FilePathInputProps {
   readonly value: string
   readonly onChange: (value: string) => void
   readonly validationErrorClassName?: string | undefined
-  readonly errors?: React.ReactNode[]
+  readonly errors?: readonly React.ReactNode[]
 }
 
 /** A file path input component with an integrated file browser. */
@@ -37,12 +37,16 @@ export default function FilePathInput(props: FilePathInputProps) {
   const roundedInputClassName = (roundBottom: boolean) =>
     twMerge(ROUNDED_INPUT_BASE_CLASSES, roundBottom ? 'rounded-input' : 'rounded-t-input')
 
+  // We want the selection submenu to be below the file browser.
+  const SELECTION_SUBMENU_Z_INDEX = 0
+  const FILE_BROWSER_Z_INDEX = 1
+
   // eslint-disable @typescript-eslint/naming-convention
   // eslint-disable-next-line no-restricted-syntax
   const fileBrowserStyles = {
     '--file-browser-min-width': '280px',
-    '--z-index-selection-submenu': '0',
-    '--z-index-file-browser': '1',
+    '--z-index-selection-submenu': SELECTION_SUBMENU_Z_INDEX,
+    '--z-index-file-browser': FILE_BROWSER_Z_INDEX,
     '--selection-submenu-color': 'black',
     '--selection-submenu-background-color': 'var(--color-dashboard-background)',
     '--file-browser-background-color': 'var(--color-dashboard-background)',
@@ -57,13 +61,11 @@ export default function FilePathInput(props: FilePathInputProps) {
       className={twMerge('flex flex-col', isFileBrowserOpened && 'mb-4')}
       style={fileBrowserStyles}
       tabIndex={-1}
-      onBlur={() => {
+      onBlur={(event) => {
         // Check if the focus is still inside the current component, otherwise close the file browser.
-        setTimeout(() => {
-          if (rootRef.current && !rootRef.current.contains(document.activeElement)) {
-            setFileBrowserOpened(false)
-          }
-        }, 0)
+        if (rootRef.current && !rootRef.current.contains(event.relatedTarget)) {
+          setFileBrowserOpened(false)
+        }
       }}
     >
       <FocusRing within={true}>

@@ -439,7 +439,7 @@ declare module '@/providers/widgetRegistry' {
         <div
           ref="activityElement"
           class="activityElement widgetOutOfLayout floatingElement"
-          :style="{ ...activityStyles, '--z-index-selection-submenu': -5 }"
+          :style="activityStyles"
         >
           <SizeTransition height :duration="100">
             <component :is="toValue(activity)" />
