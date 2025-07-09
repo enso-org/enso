@@ -79,26 +79,31 @@ public class GoogleSheetsForEnso {
     return new Table(columns);
   }
 
+  private com.google.api.services.sheets.v4.model.Spreadsheet getSpreadsheet(String workbookId)
+      throws IOException {
+    return service.spreadsheets().get(workbookId).setIncludeGridData(false).execute();
+  }
+
+  public int getNumberOfSheets(String workbookId) throws IOException {
+    return getSpreadsheet(workbookId).getSheets().size();
+  }
+
   public List<String> getSheetNames(String workbookId) throws IOException {
-    return service
-        .spreadsheets()
-        .get(workbookId)
-        .setIncludeGridData(false)
-        .execute()
-        .getSheets()
-        .stream()
+    return getSpreadsheet(workbookId).getSheets().stream()
         .map(sheet -> sheet.getProperties().getTitle())
         .toList();
   }
 
-  public int getNumberOfSheets(String workbookId) throws IOException {
-    return service
-        .spreadsheets()
-        .get(workbookId)
-        .setIncludeGridData(false)
-        .execute()
-        .getSheets()
-        .size();
+  public int getNumberOfNames(String workbookId) throws IOException {
+    var namedRanges = getSpreadsheet(workbookId).getNamedRanges();
+    return namedRanges == null ? 0 : namedRanges.size();
+  }
+
+  public List<String> getRangeNames(String workbookId) throws IOException {
+    var namedRanges = getSpreadsheet(workbookId).getNamedRanges();
+    return namedRanges == null
+        ? List.of()
+        : namedRanges.stream().map(range -> range.getName()).toList();
   }
 
   private static List<Object> getDataRow(List<List<Object>> rawData, int rowIndex) {
