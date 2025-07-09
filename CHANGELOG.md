@@ -63,6 +63,7 @@
 - [Add `execute_query` to the `Connection` types.][13415]
 - [`Meta.meta` recognizes functions and unresolved constructors as
   `Meta.Function`][13443]
+- [Remane Google_Api library to Google][13436]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -74,6 +75,7 @@
 [13365]: https://github.com/enso-org/enso/pull/13365
 [13415]: https://github.com/enso-org/enso/pull/13415
 [13415]: https://github.com/enso-org/enso/pull/13443
+[13436]: https://github.com/enso-org/enso/pull/13436
 
 #### Enso Language & Runtime
 

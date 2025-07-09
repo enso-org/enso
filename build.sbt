@@ -112,8 +112,8 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(`std-generic-jdbc`)
   ),
   makeStdLibDistribution(
-    "Google_Api",
-    Distribution.sbtProjects(`std-google-api`)
+    "Google",
+    Distribution.sbtProjects(`std-google`)
   ),
   makeStdLibDistribution("Table", Distribution.sbtProjects(`std-table`)),
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
@@ -341,7 +341,7 @@ lazy val enso = (project in file("."))
     `std-benchmarks`,
     `std-database`,
     `std-generic-jdbc`,
-    `std-google-api`,
+    `std-google`,
     `std-image`,
     `std-microsoft`,
     `std-snowflake`,
@@ -2571,7 +2571,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
       .dependsOn(`std-generic-jdbc` / Compile / packageBin)
-      .dependsOn(`std-google-api` / Compile / packageBin)
+      .dependsOn(`std-google` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
       .dependsOn(`std-snowflake` / Compile / packageBin)
@@ -3588,7 +3588,7 @@ lazy val `engine-runner` = project
           `database-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
-          `google-api-polyglot-root`
+          `google-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
@@ -4605,10 +4605,10 @@ val `generic-jdbc-polyglot-root` =
   stdLibComponentRoot("Generic_JDBC") / "polyglot" / "java"
 val `generic-jdbc-native-libs` =
   stdLibComponentRoot("Generic_JDBC") / "polyglot" / "lib"
-val `google-api-polyglot-root` =
-  stdLibComponentRoot("Google_Api") / "polyglot" / "java"
-val `google-api-native-libs` =
-  stdLibComponentRoot("Google_Api") / "polyglot" / "lib"
+val `google-polyglot-root` =
+  stdLibComponentRoot("Google") / "polyglot" / "java"
+val `google-native-libs` =
+  stdLibComponentRoot("Google") / "polyglot" / "lib"
 val `database-polyglot-root` =
   stdLibComponentRoot("Database") / "polyglot" / "java"
 val `database-native-libs` =
@@ -4986,8 +4986,8 @@ lazy val `std-generic-jdbc` = project
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
 
-lazy val `std-google-api` = project
-  .in(file("std-bits") / "google-api")
+lazy val `std-google` = project
+  .in(file("std-bits") / "google")
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4995,7 +4995,7 @@ lazy val `std-google-api` = project
       .dependsOn(SPIHelpers.ensureSPIConsistency)
       .value,
     Compile / packageBin / artifactPath :=
-      `google-api-polyglot-root` / "std-google-api.jar",
+      `google-polyglot-root` / "std-google.jar",
     libraryDependencies ++= Seq(
       "com.google.api-client" % "google-api-client"          % googleApiClientVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.apis"       % "google-api-services-sheets" % googleApiServicesSheetsVersion exclude ("com.google.code.findbugs", "jsr305"),
@@ -5004,8 +5004,8 @@ lazy val `std-google-api` = project
       "io.grpc"               % "grpc-netty-shaded"          % grpcVersion exclude ("com.google.code.findbugs", "jsr305")
     ),
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
-    // Standard/Google_Api/polyglot/lib directory. The minimized jar will
-    // be put under Standard/Google_Api/polyglot/java directory.
+    // Standard/Google/polyglot/lib directory. The minimized jar will
+    // be put under Standard/Google/polyglot/java directory.
     extractNativeLibs := Def.task {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
@@ -5013,8 +5013,8 @@ lazy val `std-google-api` = project
       val prev = extractNativeLibs.previous
       StdBits
         .copyDependencies(
-          `google-api-polyglot-root`,
-          Seq("std-google-api.jar"),
+          `google-polyglot-root`,
+          Seq("std-google.jar"),
           ignoreScalaLibrary = true,
           ignoreDependencyIncludeTransitive =
             Some(s"grpc-netty-shaded-${grpcVersion}"),
@@ -5026,8 +5026,8 @@ lazy val `std-google-api` = project
         )
       val grpc = StdBits
         .extractNativeLibsFromGrpc(
-          `google-api-polyglot-root`,
-          `google-api-native-libs`,
+          `google-polyglot-root`,
+          `google-native-libs`,
           grpcVersion,
           updateReport       = (Compile / update).value,
           logger             = streams.value.log,
@@ -5038,8 +5038,8 @@ lazy val `std-google-api` = project
         )
       val conscrypt = StdBits
         .extractNativeLibsFromConscrypt(
-          `google-api-polyglot-root`,
-          `google-api-native-libs`,
+          `google-polyglot-root`,
+          `google-native-libs`,
           updateReport       = (Compile / update).value,
           logger             = streams.value.log,
           moduleName         = moduleName.value,
@@ -5054,12 +5054,12 @@ lazy val `std-google-api` = project
       val forceClean = extractNativeLibs.previous.isEmpty
       val logger     = streams.value.log
       StdBits.ensureDirExistsAndIsClean(
-        `google-api-polyglot-root`.toPath,
+        `google-polyglot-root`.toPath,
         logger,
         forceClean
       )
       StdBits.ensureDirExistsAndIsClean(
-        `google-api-native-libs`.toPath,
+        `google-native-libs`.toPath,
         logger,
         forceClean
       )
@@ -5074,8 +5074,8 @@ lazy val `std-google-api` = project
       .value,
     clean := Def.task {
       val _ = clean.value
-      IO.delete(`google-api-polyglot-root`)
-      IO.delete(`google-api-native-libs`)
+      IO.delete(`google-polyglot-root`)
+      IO.delete(`google-native-libs`)
     }.value
   )
   .dependsOn(`std-base` % "provided")
@@ -5836,7 +5836,7 @@ val stdBitsProjects =
     "Base",
     "Database",
     "Generic_JDBC",
-    "Google_Api",
+    "Google",
     "Image",
     "Microsoft",
     "Snowflake",
@@ -5899,8 +5899,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-database` / Compile / packageBin).value
     case "Generic_JDBC" =>
       (`std-generic-jdbc` / Compile / packageBin).value
-    case "Google_Api" =>
-      (`std-google-api` / Compile / packageBin).value
+    case "Google" =>
+      (`std-google` / Compile / packageBin).value
     case "Image" =>
       (`std-image` / Compile / packageBin).value
     case "Table" =>
@@ -5930,7 +5930,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value
       (`std-generic-jdbc` / Compile / packageBin).value
-      (`std-google-api` / Compile / packageBin).value
+      (`std-google` / Compile / packageBin).value
       (`std-aws` / Compile / packageBin).value
       (`std-snowflake` / Compile / packageBin).value
       (`std-microsoft` / Compile / packageBin).value

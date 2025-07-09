@@ -425,7 +425,7 @@ object StdBits {
   }
 
   /** Extract native libraries from `grpc-netty-shaded-<version>.jar` and put them under
-    * `Standard/Google_Api/polyglot/lib` directory.
+    * `Standard/Google/polyglot/lib` directory.
     * @param grpcPolyglotRoot root dir of Std Google polyglot dir
     * @param grpcNativeLibs root dir of Std Google lib dir
     * @param grpcVersion GRPC's library version
@@ -596,7 +596,7 @@ object StdBits {
     * `com.google.analytics:google-analytics-admin:0.66.0` and of
     * `net.snowflake:snowflake-jdbc-thin:3.15.0`.
     *
-    * Currently, it is included in both `Standard.Google_Api` and `Standard.Snowflake` libraries.
+    * Currently, it is included in both `Standard.Google` and `Standard.Snowflake` libraries.
     *
     * Names of the native libraries in jar:
     * - `META-INF/native/conscrypt_openjdk_jni-windows-x86.dll`
