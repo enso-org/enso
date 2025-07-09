@@ -48,7 +48,7 @@ from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
 import project.DB_Column.DB_Column
 from project.DB_Table import DB_Table, MAX_LITERAL_ELEMENT_COUNT, make_literal_table
-import project.Feature.Feature
+import project.Dialects.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper

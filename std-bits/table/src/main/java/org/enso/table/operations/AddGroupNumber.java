@@ -130,6 +130,7 @@ public class AddGroupNumber {
       long start,
       long step,
       BiPredicate<Row, Row> predicate,
+      boolean passPrevious,
       ProblemAggregator problemAggregator) {
     if (table.rowCount() == 0) {
       return new LongStorage(new long[0], IntegerType.INT_64);
@@ -146,8 +147,13 @@ public class AddGroupNumber {
 
       for (long i = 1; i < table.rowCount(); i++) {
         newRow.setRowIndex(i);
+        if (passPrevious) {
+          currentRow.setRowIndex(i - 1);
+        }
         if (predicate.test(currentRow, newRow)) {
-          currentRow.setRowIndex(i);
+          if (!passPrevious) {
+            currentRow.setRowIndex(i);
+          }
           currentGroup = Math.addExact(currentGroup, step);
         }
         builder.appendLong(currentGroup);

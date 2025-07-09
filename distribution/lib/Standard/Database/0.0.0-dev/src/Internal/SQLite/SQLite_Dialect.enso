@@ -11,6 +11,7 @@ import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Dialects.Dialect
+import project.Dialects.Dialect.Temp_Table_Style
 import project.Dialects.Dialect_Flag.Dialect_Flag
 import project.Dialects.Feature.Feature
 import project.Errors.Unsupported_Database_Operation
@@ -189,8 +190,8 @@ type SQLite_Dialect
 
     ## PRIVATE
        Specifies how the database creates temp tables.
-    temp_table_style : Dialect.Temp_Table_Style
-    temp_table_style self = Dialect.Temp_Table_Style.Temporary_Table
+    temp_table_style : Temp_Table_Style
+    temp_table_style self = Temp_Table_Style.Temporary_Table
 
     ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.

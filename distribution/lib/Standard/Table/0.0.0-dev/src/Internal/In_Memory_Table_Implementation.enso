@@ -75,6 +75,7 @@ from project.Extensions.Table_Conversions import all
 from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
+from project.Internal.Storage import java_to_enso
 from project.In_Memory_Table import from_java_table
 
 polyglot java import org.enso.base.ObjectComparator

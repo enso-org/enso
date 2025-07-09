@@ -15,6 +15,7 @@ import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialects.Dialect
+import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Aggregate_Helper
@@ -241,8 +242,8 @@ type Snowflake_Dialect
        private: true
        ---
        Specifies how the database creates temp tables.
-    temp_table_style : Dialect.Temp_Table_Style
-    temp_table_style self = Dialect.Temp_Table_Style.Temporary_Table
+    temp_table_style : Temp_Table_Style
+    temp_table_style self = Temp_Table_Style.Temporary_Table
 
     ## ---
        private: true

@@ -210,7 +210,7 @@ make_grouping_method_selector table:Table display:Display=..Always -> Widget =
 
     unique = Option "..Unique" "..Unique" [["on", columns_selector]]
     equal_count = Option "..Equal_Count" "..Equal_Count" [["order_by", columns_selector]]
-    names=[unique, equal_count, Option "..Flag_Function" "..Flag_Function"]
+    names=[unique, equal_count]
 
     Single_Choice display=display values=names
 
