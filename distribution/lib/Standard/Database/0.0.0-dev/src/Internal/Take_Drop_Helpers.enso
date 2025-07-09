@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -19,7 +21,7 @@ type Take_Drop
 ## PRIVATE
    Apply `take` or `drop` to a table, returning the specified by the selector.
 take_drop_helper : Take_Drop -> Table & DB_Table -> (Index_Sub_Range | Range | Integer) -> Table & DB_Table
-take_drop_helper take_drop table selector:(Index_Sub_Range | Range | Integer) =
+take_drop_helper take_drop:Take_Drop table selector:(Index_Sub_Range | Range | Integer) =
     check_supported selector <|
         length = table.row_count
         ranges = cleanup_ranges (collect_ranges take_drop length selector)

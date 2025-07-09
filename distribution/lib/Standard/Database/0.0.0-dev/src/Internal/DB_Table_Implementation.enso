@@ -70,9 +70,8 @@ import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 
 import project.SQL_Type.SQL_Type
-import project.Take_Drop_Helpers
+import project.Internal.Take_Drop_Helpers
 from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
-from project.Take_Drop_Helpers import Take_Drop
 
 ## This conversion allows us to convert the 'unsafe' raw DB_Table instance
    (lacking `& Table`, that we get from `Table.underlying`) back to a well-behaved `Table & DB_Table`.
@@ -239,12 +238,12 @@ type DB_Table_Implementation
     take (this_table : Table & DB_Table) (range : Index_Sub_Range | Range | Integer = ..First) -> Table & DB_Table =
         Feature.Sample.if_supported_else_throw this_table.connection.dialect "take" <|
             Ordering_Helpers.require_ordering this_table "take" <|
-                Take_Drop_Helpers.take_drop_helper Take_Drop.Take this_table range
+                Take_Drop_Helpers.take_drop_helper ..Take this_table range
 
     drop (this_table : Table & DB_Table) (range : Index_Sub_Range | Range | Integer = ..First) -> Table & DB_Table =
         Feature.Sample.if_supported_else_throw this_table.connection.dialect "drop" <|
             Ordering_Helpers.require_ordering this_table "drop" <|
-                Take_Drop_Helpers.take_drop_helper Take_Drop.Drop this_table range
+                Take_Drop_Helpers.take_drop_helper ..Drop this_table range
 
     remove_all_rows (this_table : Table & DB_Table) =
         Feature.Filter.if_supported_else_throw this_table.connection.dialect "remove_all_rows" <|

@@ -48,7 +48,6 @@ import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-import project.Take_Drop_Helpers
 from project.Errors import Table_Not_Found
 
 polyglot java import java.sql.JDBCType
