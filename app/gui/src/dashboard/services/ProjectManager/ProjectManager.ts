@@ -394,7 +394,7 @@ export class ProjectManager {
 
   /** Delete a file or directory. */
   async deleteFile(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-delete', 'json', path)
+    await this.runStandaloneCommandJson(null, 'filesystem-delete', path)
     const children = this.internalDirectories.get(path)
     // Assume a directory needs to be loaded for its children to be loaded.
     if (children) {

@@ -5,9 +5,9 @@ import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
-import singleColumnDates from './table-vis-json/singleColumnDates.json' assert { type: 'json' }
-import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' assert { type: 'json' }
-import singleColumnTimes from './table-vis-json/singleColumnTimes.json' assert { type: 'json' }
+import singleColumnDates from './table-vis-json/singleColumnDates.json' with { type: 'json' }
+import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' with { type: 'json' }
+import singleColumnTimes from './table-vis-json/singleColumnTimes.json' with { type: 'json' }
 import { mockVisualizationDataUpdate } from './visualizationUpdates'
 
 /** Prepare the graph for the tests. We add the table type to the `aggregated` node. */
