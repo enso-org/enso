@@ -176,7 +176,7 @@ private _make_start_date_widget -> Widget =
    ---
 private _read_sample_data dimensions:Vector metrics:Vector start_date:Date end_date:Date -> Table =
     _ = [dimensions, metrics, start_date, end_date]
-    Data.read ((Project_Description.new Standard.Google_Api . data) / "Google_Analytics_Sample.csv") (..Delimited value_formatter=Standard.Base.Nothing)
+    Data.read ((Project_Description.new Standard.Google . data) / "Google_Analytics_Sample.csv") (..Delimited value_formatter=Standard.Base.Nothing)
 
 ## ---
    private: true

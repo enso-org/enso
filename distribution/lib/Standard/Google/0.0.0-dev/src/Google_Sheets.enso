@@ -7,7 +7,7 @@ type Google_Sheets
        aliases: [load, open]
        group: Standard.Base.Web
        icon: cloud_from
-       suggested: true
+       suggested: 10
        ---
        Reads a Google Sheet into Enso.
     read workbook_id:Text credential:Enso_Secret -> Google_Sheets_Workbook =

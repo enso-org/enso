@@ -1,6 +1,6 @@
 /** @file A hook returning the root directory id and expanded directory ids. */
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { useCurrentDirectoryId, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { useCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useUser } from '$/providers/react'
 
 /** Options for {@link useDirectoryIds}. */
@@ -18,10 +18,8 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
   /** The id of the directory to use in the "list directory" query. */
   const queryDirectoryId = useCurrentDirectoryId() ?? category.homeDirectoryId
   const currentDirectoryId = queryDirectoryId ?? rootDirectoryId
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   return {
-    setCurrentDirectoryId,
     rootDirectoryId,
     queryDirectoryId,
     currentDirectoryId,

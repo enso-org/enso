@@ -53,6 +53,7 @@ import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
@@ -455,6 +456,21 @@ public final class ExecutionService {
    */
   public CompletionStage<Object> typeOfValue(Object value) {
     return submitExecution(() -> TypeOfNode.getUncached().findTypeOrError(value));
+  }
+
+  /**
+   * Sets global execution environment.
+   *
+   * @param env the execution envrionment to use
+   * @return old execution environment
+   */
+  public CompletionStage<ExecutionEnvironment> setExecutionInstrument(ExecutionEnvironment env) {
+    return submitExecution(
+        () -> {
+          var old = getContext().getExecutionEnvironment();
+          getContext().setExecutionEnvironment(env);
+          return old;
+        });
   }
 
   private scala.Option<File> findFileByModuleName(String module) {

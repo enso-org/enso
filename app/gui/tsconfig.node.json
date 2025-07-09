@@ -9,7 +9,6 @@
     "eslint.config.js",
     "tailwind.config.ts",
     "integration-test/**/*",
-    "src/dashboard/hooks/storeHooks.ts",
     "src/dashboard/modules/payments/constants.ts",
     "src/dashboard/services/RemoteBackend/ids.ts",
     "src/dashboard/services/remoteBackendPaths.ts",
@@ -19,6 +18,7 @@
     "src/dashboard/utilities/zustand.ts",
     "src/project-view/util/equals.ts",
     "src/providers/featureFlags.ts",
+    "src/providers/session/constants.ts",
     "src/utils/zustand.ts",
     "node.env.d.ts"
   ],

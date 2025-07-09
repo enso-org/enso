@@ -11,7 +11,7 @@ import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import { getFileName } from '../../utilities/fileInfo'
 import {
   MissingComponentAction,
-  ProjectManagerEvents,
+  PROJECT_MANAGER_LOADING_FAILED_EVENT,
   type CloseProjectParams,
   type CreateProject,
   type CreateProjectParams,
@@ -108,7 +108,7 @@ export class ProjectManager {
           event.preventDefault()
           justErrored = true
           if (Number(new Date()) - firstConnectionStartMs > MAXIMUM_DELAY_MS) {
-            document.dispatchEvent(new Event(ProjectManagerEvents.loadingFailed))
+            document.dispatchEvent(new Event(PROJECT_MANAGER_LOADING_FAILED_EVENT))
             reject(new Error())
           } else {
             const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)

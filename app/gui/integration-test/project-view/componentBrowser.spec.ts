@@ -47,15 +47,15 @@ test('Different ways of opening Component Browser', async ({ page }) => {
 
   // (+) button
   await locate.addNewNodeButton(page).click()
-  await expectAndCancelBrowser(page, '', 'Input Components')
+  await expectAndCancelBrowser(page, '', 'Input')
   // (+) button with selection (ignored)
   await locate.graphNodeByBinding(page, 'selected').click()
   await locate.addNewNodeButton(page).click()
-  await expectAndCancelBrowser(page, '', 'Input Components')
+  await expectAndCancelBrowser(page, '', 'Input')
   // Enter key
   await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
   await locate.graphEditor(page).press('Enter')
-  await expectAndCancelBrowser(page, '', 'Input Components')
+  await expectAndCancelBrowser(page, '', 'Input')
 
   // With source node
 
@@ -65,7 +65,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   })
   await locate.graphNodeByBinding(page, 'selected').click()
   await locate.graphEditor(page).press('Enter')
-  await expectAndCancelBrowser(page, '', 'Table Components', 'selected')
+  await expectAndCancelBrowser(page, '', 'Table', 'selected')
   // Dragging out an edge
   let outputPort = await locate.outputPortCoordinates(
     page,
@@ -73,7 +73,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   )
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
-  await expectAndCancelBrowser(page, '', 'Table Components', 'selected')
+  await expectAndCancelBrowser(page, '', 'Table', 'selected')
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
@@ -81,7 +81,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   outputPort = await locate.outputPortCoordinates(page, locate.graphNodeByBinding(page, 'selected'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(outputPort.x, outputPort.y)
-  await expectAndCancelBrowser(page, '', 'Table Components', 'selected')
+  await expectAndCancelBrowser(page, '', 'Table', 'selected')
 })
 
 test('Opening Component Browser from output port buttons', async ({ page }) => {

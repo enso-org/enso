@@ -1,0 +1,225 @@
+{
+  "reflection": [
+    {
+      "type": "io.netty.internal.tcnative.CertificateCallback"
+    },
+    {
+      "type": "io.netty.internal.tcnative.CertificateCallbackTask"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodDecryptTask"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodSignTask"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodTask"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLTask"
+    },
+    {
+      "type": "java.lang.Exception"
+    },
+    {
+      "type": "java.lang.IllegalArgumentException"
+    },
+    {
+      "type": "java.lang.NullPointerException"
+    },
+    {
+      "type": "java.lang.OutOfMemoryError"
+    },
+    {
+      "type": "java.lang.String"
+    }
+  ],
+  "jni": [
+    {
+      "type": "[B"
+    },
+    {
+      "type": "[Ljava.lang.String;"
+    },
+    {
+      "type": "io.netty.handler.ssl.OpenSslClientSessionCache"
+    },
+    {
+      "type": "io.netty.handler.ssl.OpenSslSessionCache",
+      "methods": [
+        {
+          "name": "getSession",
+          "parameterTypes": [
+            "long",
+            "byte[]"
+          ]
+        },
+        {
+          "name": "sessionCreated",
+          "parameterTypes": [
+            "long",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslClientContext$ExtendedTrustManagerVerifyCallback"
+    },
+    {
+      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslContext$AbstractCertificateVerifier",
+      "methods": [
+        {
+          "name": "verify",
+          "parameterTypes": [
+            "long",
+            "byte[][]",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.Buffer"
+    },
+    {
+      "type": "io.netty.internal.tcnative.CertificateCallbackTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "byte[]",
+            "byte[][]",
+            "io.netty.internal.tcnative.CertificateCallback"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.CertificateVerifierTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "byte[][]",
+            "java.lang.String",
+            "io.netty.internal.tcnative.CertificateVerifier"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.Library"
+    },
+    {
+      "type": "io.netty.internal.tcnative.NativeStaticallyReferencedJniMethods"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSL"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLContext"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodDecryptTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "byte[]",
+            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodSignTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "int",
+            "byte[]",
+            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodTask",
+      "fields": [
+        {
+          "name": "resultBytes"
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLSession"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLTask",
+      "fields": [
+        {
+          "name": "complete"
+        },
+        {
+          "name": "returnValue"
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Class",
+      "methods": [
+        {
+          "name": "getClassLoader",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.ClassLoader",
+      "methods": [
+        {
+          "name": "loadClass",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Exception"
+    },
+    {
+      "type": "java.lang.IllegalArgumentException"
+    },
+    {
+      "type": "java.lang.NullPointerException"
+    },
+    {
+      "type": "java.lang.OutOfMemoryError"
+    },
+    {
+      "type": "java.lang.String",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "byte[]"
+          ]
+        },
+        {
+          "name": "getBytes",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "jdk.internal.loader.ClassLoaders$AppClassLoader"
+    }
+  ]
+}

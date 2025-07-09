@@ -86,11 +86,5 @@
     "META-INF/resources/nfi-native/libnfi/darwin/amd64/bin/libtrufflenfi.dylib",
     "META-INF/resources/nfi-native/libnfi/darwin/aarch64/bin/libtrufflenfi.dylib",
     "META-INF/resources/nfi-native/libnfi/windows/amd64/bin/trufflenfi.dll"
-  ],
-  "lib/Standard/Microsoft/0.0.0-dev/polyglot/java/netty-tcnative-boringssl-static-2.0.70.Final-linux-x86_64.jar": [
-    "META-INF/native/libnetty_tcnative_linux_x86_64.so"
-  ],
-  "lib/Standard/Microsoft/0.0.0-dev/polyglot/java/netty-transport-native-epoll-4.1.118.Final-linux-x86_64.jar": [
-    "META-INF/native/libnetty_transport_native_epoll_x86_64.so"
   ]
 }

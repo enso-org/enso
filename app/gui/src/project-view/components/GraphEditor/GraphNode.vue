@@ -187,7 +187,7 @@ const {
   nodeRect,
   scale,
   isFocused: isOnlyOneSelected,
-  typename: () => expressionInfo.value?.typeInfo?.primaryType,
+  typeinfo: () => expressionInfo.value?.typeInfo,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
   emit,
 })
@@ -413,7 +413,12 @@ const actionHandlers = registerHandlers(
     'component.toggleDocPanel': {
       action: () => emit('toggleDocPanel'),
     },
-    'component.toggleVisualization': toggledAction(isVisualizationEnabled),
+    'component.toggleVisualization': {
+      ...toggledAction(isVisualizationEnabled),
+      description: computed(() =>
+        isVisualizationEnabled.value ? 'Hide visualization' : 'Show visualization',
+      ),
+    },
     'component.pickColor': toggledAction(colorPickerOpened),
     'component.recompute': {
       enabled: computed(() => !isBeingRecomputed.value),

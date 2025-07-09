@@ -1,8 +1,8 @@
 from Standard.Base import all
-from Standard.Google_Api import all
+from Standard.Google import all
 
 from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet, Not_All_Rows_Downloaded
-from Standard.Google_Api.Google_Sheets_Workbook import Google_Api_Error
+from Standard.Google.Google_Sheets_Workbook import Google_Api_Error
 
 from Standard.Test import all
 from Standard.Table import Table

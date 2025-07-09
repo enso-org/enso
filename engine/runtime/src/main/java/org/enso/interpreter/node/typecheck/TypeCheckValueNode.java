@@ -57,12 +57,10 @@ public final class TypeCheckValueNode extends Node {
    *
    * @param frame frame requesting the conversion
    * @param value the value to convert
-   * @param expr the expression node that produced the {@code value}
    * @return {@code null} when the check isn't satisfied and conversion isn't possible or non-{@code
    *     null} value that can be used as a result
    */
-  public final Object handleCheckOrConversion(
-      VirtualFrame frame, Object value, ExpressionNode expr) {
+  public final Object handleCheckOrConversion(VirtualFrame frame, Object value) {
     if (isAllFitValue(value)) {
       return value;
     }
@@ -73,7 +71,7 @@ public final class TypeCheckValueNode extends Node {
       }
       try {
         var plainValue = warnings.removeWarnings(value);
-        var result = handleCheckOrConversionImpl(frame, plainValue, expr);
+        var result = handleCheckOrConversionImpl(frame, plainValue);
         if (result == plainValue) {
           return value;
         } else {
@@ -85,17 +83,16 @@ public final class TypeCheckValueNode extends Node {
         throw ctx.raiseAssertionPanic(this, null, ex);
       }
     } else {
-      return handleCheckOrConversionImpl(frame, value, expr);
+      return handleCheckOrConversionImpl(frame, value);
     }
   }
 
-  private final Object handleCheckOrConversionImpl(
-      VirtualFrame frame, Object value, ExpressionNode expr) {
+  private final Object handleCheckOrConversionImpl(VirtualFrame frame, Object value) {
     var direct = check.findDirectMatch(frame, value);
     if (direct != null) {
       return direct;
     }
-    var result = check.executeConversion(frame, value, expr);
+    var result = check.executeConversion(frame, value);
     if (result == null) {
       throw panicAtTheEnd(value);
     }
