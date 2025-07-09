@@ -14,9 +14,9 @@ import { Opt } from 'ydoc-shared/util/data/opt'
  * @param userSession - Reactive reference to the user session data
  */
 export function useAppTitle(userSession: ToValue<Opt<UserSession>>) {
-  const text = useText()
-  const commercialUseNotice = text.getText('commercialUseNotice')
   const originalTitle = document.title
+  const text = useText()
+  const commercialUseNotice = text.getText('commercialUseNotice', originalTitle)
 
   const shouldShowCommercialNotice = computed(() => {
     const session = toValue(userSession)

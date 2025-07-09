@@ -1237,5 +1237,5 @@
   "manageLabelsModal.chooseColor": "Choose a color",
   "manageLabelsModal.labelAlreadyExists": "Label already exists",
   "manageLabelsModal.selectedLabels": "Selected labels",
-  "commercialUseNotice": " - Not for commercial use"
+  "commercialUseNotice": "$0 - Not for commercial use"
 }
