@@ -38,8 +38,8 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Fragment
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
+import project.SQL.SQL_Statement
+import project.SQL.SQL_Type
 
 polyglot java import java.sql.Types
 

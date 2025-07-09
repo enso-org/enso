@@ -4,7 +4,7 @@ import Standard.Table.Internal.Java_Problems
 from Standard.Table import Table
 
 import project.Internal.Column_Fetcher.Column_Fetcher
-import project.SQL_Type.SQL_Type
+import project.SQL.SQL_Type
 from project.Internal.SQL_Warning_Helper import extract_warnings_into_builder
 
 polyglot java import java.sql.ResultSet
