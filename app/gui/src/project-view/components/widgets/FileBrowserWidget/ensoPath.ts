@@ -12,12 +12,10 @@ export function pathToSegments(path: string) {
   const withProtocol = path.split('/')
   if (withProtocol[0] !== 'enso:') return Err(`"${path}" is not an enso path`)
   const endsWithSlash = withProtocol[withProtocol.length - 1] === ''
-  return Ok(
-    withProtocol
-      .slice(1)
-      .filter((segment) => segment)
-      .concat(endsWithSlash ? [''] : []),
-  )
+  const segments = withProtocol.slice(1).filter((segment) => segment)
+  const nonEmpty = segments.length > 0
+  const res = segments.concat(endsWithSlash && nonEmpty ? [''] : [])
+  return Ok(res)
 }
 
 export interface EnsoPath {
