@@ -1998,7 +1998,7 @@ type Column
        Returns a Table describing this column's contents and type.
 
        The table behaves like `Table.column_info.
-    info self -> Table =
+    info self -> Table | Any =
         self.implementation.info self
 
     ## ALIAS order_by
@@ -2092,7 +2092,7 @@ type Column
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
-    slice : Integer -> Integer -> Column
+    slice : Integer -> Integer -> Column | Any
     slice self start end =
         self.implementation.slice self start end
 
@@ -2181,7 +2181,7 @@ type Column
 
        Arguments:
        - statistics: Set of statistics to calculate.
-    compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table =
+    compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table | Any =
         self.implementation.compute_bulk self statistics
 
     ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
