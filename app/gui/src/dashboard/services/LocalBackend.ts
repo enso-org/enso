@@ -98,9 +98,8 @@ export default class LocalBackend extends Backend {
   override rootDirectoryId(
     _user: backend.User,
     _organization: backend.OrganizationInfo | null,
-    rootDirectory: backend.Path | null | undefined,
   ): backend.DirectoryId {
-    return newDirectoryId(rootDirectory ?? this.projectManager.rootDirectory)
+    return newDirectoryId(this.rootPath())
   }
 
   /**
@@ -113,7 +112,7 @@ export default class LocalBackend extends Backend {
     if (query.filterBy != null && query.filterBy !== backend.FilterBy.active) {
       return []
     }
-    const { rootPath = this.rootPath() } = query
+    const rootPath = this.rootPath()
     const parentIdRaw =
       query.parentId == null ? null : backend.extractTypeAndPath(query.parentId).path
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
@@ -133,19 +132,12 @@ export default class LocalBackend extends Backend {
               const parentsPathArray: backend.DirectoryId[] =
                 entry.path.startsWith(rootPath) ? [newDirectoryId(rootPath)] : []
               const splitPath = virtualParentsPath.split('/')
-
               let previousPath = entry.path.startsWith(rootPath) ? rootPath : backend.Path('')
-
               for (const directory of splitPath) {
-                if (directory === '') {
-                  continue
-                }
-
+                if (directory === '') continue
                 previousPath = backend.Path((previousPath + '/' + directory).replace(/\/$/g, ''))
-
                 parentsPathArray.push(newDirectoryId(previousPath))
               }
-
               return parentsPathArray.slice(0, -1).join('/')
             })()
 
@@ -163,11 +155,9 @@ export default class LocalBackend extends Backend {
 
             switch (entry.type) {
               case 'DirectoryEntry': {
-                const id = newDirectoryId(entry.path)
-
                 return {
                   ...shared,
-                  id,
+                  id: newDirectoryId(entry.path),
                   type: backend.AssetType.directory,
                   modifiedAt: entry.attributes.lastModifiedTime,
                   parentId,
@@ -210,14 +200,12 @@ export default class LocalBackend extends Backend {
         if (parentIdRaw === this.projectManager.rootDirectory) {
           // Auto create the root directory
           await this.projectManager.createDirectory(this.projectManager.rootDirectory)
-
           result = []
         } else {
           throw new backend.DirectoryDoesNotExistError()
         }
       }
     }
-
     return result
   }
 
@@ -274,28 +262,22 @@ export default class LocalBackend extends Backend {
     ReturnType extends Id extends backend.DirectoryId ?
       backend.Asset<backend.AssetType.directory> | null
     : backend.Asset<Type>,
-  >(assetId: Id, rootPath: backend.Path | undefined): Promise<ReturnType> {
+  >(assetId: Id): Promise<ReturnType> {
     const { path } = backend.extractTypeAndPath(assetId)
     const { directoryPath } = getDirectoryAndName(path)
-
     const directoryContents = await this.listDirectory({
       parentId: newDirectoryId(directoryPath),
       filterBy: null,
       labels: null,
       recentProjects: false,
-      rootPath: rootPath ?? this.rootPath(),
     })
-
     const entry = directoryContents.find((content) => content.id === assetId)
-
     if (entry == null) {
       if (backend.isDirectoryId(assetId)) {
         throw new backend.DirectoryDoesNotExistError()
       }
-
       throw new backend.AssetDoesNotExistError()
     }
-
     // eslint-disable-next-line no-restricted-syntax
     return entry as never
   }

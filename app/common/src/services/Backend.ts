@@ -1304,12 +1304,6 @@ export interface ListDirectoryRequestParams {
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
   readonly recentProjects: boolean
-  /**
-   * The root path of the directory to list.
-   * This is used to list a subdirectory of a local root directory,
-   * because a root could be any local folder on the machine.
-   */
-  readonly rootPath?: Path | undefined
 }
 
 /** URL query string parameters for the "get project session logs" endpoint. */
@@ -1653,11 +1647,7 @@ export default abstract class Backend {
   /** The path to the root directory of this {@link Backend}. */
   abstract rootPath(user: User): string
   /** Return the ID of the root directory, if known. */
-  abstract rootDirectoryId(
-    user: User,
-    organization: OrganizationInfo | null,
-    localRootDirectory: Path | null | undefined,
-  ): DirectoryId | null
+  abstract rootDirectoryId(user: User, organization: OrganizationInfo | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<readonly Omit<User, 'groups'>[]>
   /** Set the username of the current user. */
