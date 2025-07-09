@@ -36,12 +36,19 @@ export const ContextMenu = forwardRef(function ContextMenu(
   const { entries } = props
 
   const root = usePortalContext()
-  const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'> | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>({
+    pageX: 0,
+    pageY: 0,
+  })
 
   useImperativeHandle(ref, () => ({
-    open: setPosition,
+    open: (newPosition) => {
+      setPosition(newPosition)
+      setIsOpen(true)
+    },
     close: () => {
-      setPosition(null)
+      setIsOpen(false)
     },
   }))
 
@@ -52,16 +59,12 @@ export const ContextMenu = forwardRef(function ContextMenu(
       </Pressable>
       <Popover
         data-testid="context-menu"
-        style={{ left: position?.pageX ?? 0, top: position?.pageY ?? 0 }}
+        style={{ left: position.pageX, top: position.pageY }}
         shouldCloseOnInteractOutside={() => true}
         className="sticky flex w-min items-start"
         UNSTABLE_portalContainer={root}
-        isOpen={position != null}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setPosition(null)
-          }
-        }}
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
         onClose={unsetModal}
       >
         <div

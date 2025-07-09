@@ -33,6 +33,8 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
             entry.doAction()
             return
           }
+          // If no handlers matched this binding, do not consider it as handled.
+          return false
         },
       }),
     [bindingFocusScope, inputBindings],
