@@ -15,7 +15,6 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import { TRIAL_DURATION_DAYS } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
@@ -93,15 +92,20 @@ export function UserBar(props: UserBarProps) {
     user.isOrganizationAdmin && organization?.subscription?.trialEnd != null ?
       new Date(organization.subscription.trialEnd)
     : null
-  const trialDaysLeft =
-    trialEndDate ?
-      Math.max(0, Math.floor((Number(trialEndDate) - Number(new Date())) / DAY_MS))
+  const trialStartDate =
+    user.isOrganizationAdmin && organization?.subscription?.trialStart != null ?
+      new Date(organization.subscription.trialStart)
     : null
+  const msToTrialEnd = Number(trialEndDate) - Number(new Date())
+  const trialDaysLeft = trialEndDate ? Math.max(0, Math.floor(msToTrialEnd / DAY_MS)) : null
   const trialHoursLeft =
     trialDaysLeft != null && trialDaysLeft < 1 ?
-      Math.max(0, Math.floor((Number(trialEndDate) - Number(new Date())) / HOUR_MS))
+      Math.max(0, Math.floor(msToTrialEnd / HOUR_MS))
     : null
-  const trialProgress = trialDaysLeft != null ? 1 - trialDaysLeft / TRIAL_DURATION_DAYS : null
+  const trialProgress =
+    trialStartDate != null && trialEndDate != null ?
+      1 - msToTrialEnd / (Number(trialEndDate) - Number(trialStartDate))
+    : null
   const trialText =
     trialDaysLeft == null ? null
     : trialHoursLeft != null ?
