@@ -4,16 +4,16 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.Internal.Value_Type_Helpers
+import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Table.Table
 import project.Value_Type.Value_Type
-from project.Internal.Type_Refinements.In_Memory_Column_Refinements import is_single_value
 from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
 from project.Internal.Type_Refinements.Single_Column_Typed_Table_Conversions import all
 
 refine_table (table : In_Memory_Table) =
-    if is_single_column table . not then (table : Table & In_Memory_Table) else
+    if table . column_count != 1 then (table : Table & In_Memory_Table) else
         column = (table:Table).at 0
         inferred_value_type = column.inferred_precise_value_type
         case inferred_value_type of

@@ -455,7 +455,7 @@ type DB_Table_Implementation
                 problem_builder.attach_problems_before on_problems new_table
 
     duplicates (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex) case_sensitivity:Case_Sensitivity on_problems:Problem_Behavior =
-        _ = [columns, case_sensitivity, on_problems]
+        _ = [this_table, columns, case_sensitivity, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "duplicates")
 
     join (this_table : Table & DB_Table) (right : Table) join_kind:Join_Kind (on : Join_Condition | Text | Vector (Join_Condition | Text)) (right_prefix : Text) on_problems:Problem_Behavior =
