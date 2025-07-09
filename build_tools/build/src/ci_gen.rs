@@ -268,7 +268,7 @@ pub fn cleaning_step(
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
     let mut ret = run("git-clean").with_name(name);
-    ret.r#if = CleaningCondition::format_conjunction(conditions);
+    ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }
 
