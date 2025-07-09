@@ -10,7 +10,17 @@ import { type LsUrls } from '@/stores/project'
 import { provideSettings } from '@/stores/settings'
 import { type Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
-import { markRaw, onActivated, onDeactivated, onScopeDispose, ref, toRaw, toRef, watch } from 'vue'
+import {
+  markRaw,
+  onActivated,
+  onDeactivated,
+  onScopeDispose,
+  readonly,
+  ref,
+  toRaw,
+  toRef,
+  watch,
+} from 'vue'
 
 const props = defineProps<{
   readonly projectId: ProjectId
@@ -56,7 +66,10 @@ provideSettings()
 
 const visible = ref(false)
 provideVisibility(visible)
-openedProjects.registerProject(props)
+openedProjects.registerProject({
+  ...props,
+  projectDisplayedName: readonly(toRef(props, 'projectDisplayedName')),
+})
 onScopeDispose(() => openedProjects.projectClosed(props.projectId))
 
 onActivated(() => (visible.value = true))
