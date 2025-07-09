@@ -169,7 +169,7 @@ class ImportExportTest
       val mainBindingsMap = mainIr.unwrapBindingMap
       mainBindingsMap.resolvedImports.size shouldEqual 1
       mainBindingsMap
-        .resolvedImports(0)
+        .resolvedImports()(0)
         .targets
         .head
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
@@ -185,10 +185,10 @@ class ImportExportTest
           .getIr
       moduleIr.unwrapBindingMap.definedEntities.size shouldEqual 2
       moduleIr.unwrapBindingMap
-        .definedEntities(0)
+        .definedEntities()(0)
         .name shouldEqual "Other_Module_Type"
       moduleIr.unwrapBindingMap
-        .definedEntities(1)
+        .definedEntities()(1)
         .name shouldEqual "Another_Type"
 
       val mainIr =
@@ -199,7 +199,7 @@ class ImportExportTest
           .getIr
       mainIr.unwrapBindingMap.resolvedImports.size shouldEqual 1
       mainIr.unwrapBindingMap
-        .resolvedImports(0)
+        .resolvedImports()(0)
         .targets
         .head
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
@@ -330,11 +330,11 @@ class ImportExportTest
         "False"
       )
       bindingMap
-        .exportedSymbols("True")
+        .exportedSymbols()("True")
         .head
         .isInstanceOf[BindingsMap.ResolvedConstructor] shouldBe true
       bindingMap
-        .exportedSymbols("False")
+        .exportedSymbols()("False")
         .head
         .isInstanceOf[BindingsMap.ResolvedConstructor] shouldBe true
     }
@@ -384,9 +384,9 @@ class ImportExportTest
       mainIr.imports.head
         .isInstanceOf[errors.ImportExport] shouldBe false
       val bm = mainIr.unwrapBindingMap
-      bm.exportedSymbols.size shouldBe 1
-      bm.exportedSymbols.get("extension_method") shouldBe defined
-      bm.exportedSymbols("extension_method").size shouldBe 2
+      bm.exportedSymbols().size shouldBe 1
+      bm.exportedSymbols().get("extension_method") shouldBe defined
+      bm.exportedSymbols()("extension_method").size shouldBe 2
     }
 
     "result in error when trying to import mix of constructors and methods from a type" in {

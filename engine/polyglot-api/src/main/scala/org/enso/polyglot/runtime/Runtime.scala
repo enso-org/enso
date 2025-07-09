@@ -902,7 +902,8 @@ object Runtime {
     @named("pushContextRequest")
     final case class PushContextRequest(
       contextId: ContextId,
-      stackItem: StackItem
+      stackItem: StackItem,
+      execute: Boolean = true
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PushContextRequest]]

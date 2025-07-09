@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import MarkdownEditorImpl from '@/components/MarkdownEditor/MarkdownEditorImpl.vue'
 import type { Text } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
 import { SyntaxNode, TreeCursor } from '@lezer/common'
-import { computed } from 'vue'
+import { computed, watch, WatchSource } from 'vue'
 
 const { source, parsed } = defineProps<{
   source: Text
@@ -40,21 +41,40 @@ const content = computed(() => {
   }
   return { headers, rows }
 })
+
+const sync = (text: WatchSource<string | undefined>) => (view: EditorView) => {
+  watch(
+    text,
+    (newText) =>
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: newText ?? '' },
+      }),
+    { immediate: true },
+  )
+}
 </script>
 
 <template>
   <table>
     <thead>
       <tr>
-        <th v-for="(cell, c) in content.headers" :key="c" class="cell">
-          <MarkdownEditorImpl :content="cell" :toolbar="false" />
+        <th v-for="(_cell, c) in content.headers" :key="c" class="cell">
+          <MarkdownEditorImpl
+            :toolbar="false"
+            readonly
+            @editorReady="sync(() => content.headers[c])"
+          />
         </th>
       </tr>
     </thead>
     <tbody class="tableBody">
       <tr v-for="(row, r) in content.rows" :key="r" class="row">
-        <td v-for="(cell, c) in row" :key="c" class="cell">
-          <MarkdownEditorImpl :content="cell" :toolbar="false" />
+        <td v-for="(_cell, c) in row" :key="c" class="cell">
+          <MarkdownEditorImpl
+            :toolbar="false"
+            readonly
+            @editorReady="sync(() => content.rows[r]?.[c])"
+          />
         </td>
       </tr>
     </tbody>

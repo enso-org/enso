@@ -26,8 +26,8 @@ read_column result_set column_name =
 
 ## PRIVATE
    Converts a ResultSet into a Table.
-result_set_to_table : ResultSet -> (SQL_Type -> Column_Fetcher) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Table
-result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_row_only=False =
+result_set_to_table : ResultSet -> (SQL_Type -> Column_Fetcher) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
+result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_row_only=False row_limit=-1 =
     metadata = result_set.getMetaData
     ncols = metadata.getColumnCount
     column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
@@ -61,15 +61,15 @@ result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_r
                             @Tail_Call go result_set.next values
                     go result_set.next Nothing
                 False ->
-                    go has_next = if has_next.not then Nothing else
+                    go has_next row_number = if has_next.not || (row_limit>0 && row_number>=row_limit) then Nothing else
                         fetchers_and_builders.each_with_index ix-> pair->
                             fetcher = pair.first
                             builder = pair.second
                             value = fetcher.fetch_value result_set ix+1
                             builder.append value
                         extract_warnings_into_builder warnings_builder result_set
-                        @Tail_Call go result_set.next
-                    go result_set.next
+                        @Tail_Call go result_set.next row_number+1
+                    go result_set.next 0
         Problem_Behavior.Report_Warning.attach_problems_before warnings <|
             columns = column_builders.zip column_names builder-> name->
                 builder.make_column name

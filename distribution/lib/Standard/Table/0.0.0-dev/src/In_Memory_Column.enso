@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Internal.Polyglot_Helpers
+import Standard.Base.Runtime.Context
 
 import project.Column.Column
 import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
@@ -16,6 +17,7 @@ from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Val
 from project.Internal.Column_Type_Helpers import column_from_implementation
 from project.Internal.Storage import enso_to_java
 
+polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
@@ -55,13 +57,16 @@ type In_Memory_Column
 
     ## PRIVATE
        Creates a new column given a Java Column object.
-    private from_java_column java_column:Java_Column -> Column =
+    private from_java_column java_column:Java_Column =
+        ## Trigger data quality metrics computation (conditionally on Output context).
+        if Context.Output.is_enabled.not then DataQualityMetrics.triggerColumn java_column
+
         column = In_Memory_Column.Value java_column
         In_Memory_Column_Refinements.refine_column column
 
     ## PRIVATE
        Implementation fro `Column.from_vector`.
-    private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
+    private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
            which is quite costly - so if we can guarantee it is unnecessary,

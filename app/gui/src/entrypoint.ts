@@ -3,7 +3,7 @@ import './beforeMain' // Keep newline below to ensure that this import is always
 import '#/styles.css'
 import '#/tailwind.css'
 import App from '$/App.vue'
-import router from '$/router.tsx'
+import router from '$/router'
 import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
 import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'

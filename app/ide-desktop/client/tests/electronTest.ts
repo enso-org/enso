@@ -1,8 +1,7 @@
 /** @file Commonly used functions for electron tests */
 /* eslint-disable no-empty-pattern */
 
-import { test as base, expect } from '@chromatic-com/playwright'
-import { _electron, ElectronApplication, type Page } from '@playwright/test'
+import { _electron, test as base, ElectronApplication, expect, type Page } from '@playwright/test'
 import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -65,21 +64,6 @@ export const test = base.extend<{
   page: async function ({ app, viewport }, use) {
     const innerPage = await app.firstWindow()
     if (viewport) innerPage.setViewportSize(viewport)
-
-    // Chromatic runtime depends on `page.context().browser().name`, which doesn't exist on electron.
-    // In those cases, we have to stub it as chromium-based "browser".
-    const originalBrowserFn = innerPage.context().browser
-    Object.defineProperty(innerPage.context(), 'browser', {
-      value: function browser() {
-        return (
-          originalBrowserFn.apply(this) ?? {
-            browserType: () => ({
-              name: () => 'chromium',
-            }),
-          }
-        )
-      },
-    })
     await use(innerPage)
   },
 })

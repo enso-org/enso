@@ -3,7 +3,6 @@ import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Problem_Builder.Problem_Builder
-import project.Internal.Table_Helpers
 import project.Set_Mode.Set_Mode
 import project.Table.Table
 import project.Value_Type.By_Type

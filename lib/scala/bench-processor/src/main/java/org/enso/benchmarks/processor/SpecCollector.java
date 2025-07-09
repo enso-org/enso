@@ -287,17 +287,16 @@ public final class SpecCollector {
     out.println("    File languageHomeOverride = Utils.findLanguageHomeOverride();");
     out.println("    var fallbackLogHandler = JulHandler.get();");
     out.println("    var logHandler = new LogHandler(fallbackLogHandler);");
+    out.println("    Map<String, String> options = new java.util.HashMap<>();");
+    out.println("    options.put(\"engine.TraceCompilation\", \"true\");");
     out.println(
-        """
-                     Map<String, String> options = Map.of(
-                         "engine.TraceCompilation", "true",
-                         RuntimeOptions.LANGUAGE_HOME_OVERRIDE, languageHomeOverride.getAbsolutePath()
-                     );
-        """);
+        "    options.put(RuntimeOptions.LANGUAGE_HOME_OVERRIDE,"
+            + " languageHomeOverride.getAbsolutePath());");
     out.println("    var ctxFactory = ContextFactory.create();");
     out.println("    ctxFactory.enableStaticAnalysis(false);");
     out.println("    ctxFactory.enableDebugServer(false);");
     out.println("    ctxFactory.projectRoot(projectRootDir.getAbsolutePath());");
+    out.println("    ctxFactory.executionEnvironment(\"live\");");
     out.println("    ctxFactory.options(options);");
     out.println("    ctxFactory.logHandler(logHandler);");
     out.println("    var ctx = ctxFactory.build();");

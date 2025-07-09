@@ -64,6 +64,14 @@ public final class EnsoMultiValue extends EnsoObject {
     return values[firstDispatch];
   }
 
+  public Type[] getVisibleTypes() {
+    return dispatch.getTypes();
+  }
+
+  public Type[] getExtraTypes() {
+    return extra.getTypes();
+  }
+
   /** Creates new instance of EnsoMultiValue from provided information. */
   @GenerateUncached
   public abstract static class NewNode extends Node {
@@ -583,13 +591,17 @@ public final class EnsoMultiValue extends EnsoObject {
     throw ctx.raiseAssertionPanic(here, "Field assignment isn't supported", null);
   }
 
-  @TruffleBoundary
   @Override
   public String toString() {
-    var both = EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, extra, 0);
-    return Stream.of(both)
-        .map(t -> t != null ? t.getName() : "[?]")
-        .collect(Collectors.joining(" & "));
+    return toTypeDisplayText();
+  }
+
+  @TruffleBoundary
+  public final String toTypeDisplayText() {
+    var namesDispatch = Stream.of(dispatch.getTypes()).map(t -> t != null ? t.getName() : "[?]");
+    var namesExtra = Stream.of(extra.getTypes()).map(t -> t != null ? "~" + t.getName() : "[?]");
+    var both = Stream.concat(namesDispatch, namesExtra);
+    return both.collect(Collectors.joining(" & "));
   }
 
   /** Casts {@link EnsoMultiValue} to requested type effectively. */

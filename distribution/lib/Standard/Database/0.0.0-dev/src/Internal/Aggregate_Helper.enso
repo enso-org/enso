@@ -6,7 +6,7 @@ from Standard.Base.Errors.Common import Floating_Point_Equality, Missing_Argumen
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Aggregate_Column_Helper.Internal_Order_By_Column_Reference
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Aggregate_Column
+from Standard.Table import Aggregate_Column, Table
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Output_Columns
 
@@ -115,7 +115,7 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
            we need to push it into a subquery to not interfere with aggregations.
         base_table = if table.context.orders.not_empty then table.as_subquery else table
 
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns base_table.column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns (base_table:Table).column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
 
         key_columns = validated.key_columns
         key_problems = key_columns.flat_map internal_column->
@@ -203,7 +203,7 @@ make_infer_return_type dialect connection context =
    created.
 type Aggregate_With_Helper_Expressions
     ## PRIVATE
-    Value (create_helper_expressions : Aggregate_Column -> Vector Internal_Column -> Vector (Pair Text SQL_IR_Expression)) (make_aggregate : Aggregate_Column -> Text -> Vector Internal_Column -> DB_Table -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column)
+    Value (create_helper_expressions : Aggregate_Column -> Vector Internal_Column -> Vector (Pair Text SQL_IR_Expression)) (make_aggregate : Aggregate_Column -> Text -> Vector Internal_Column -> Table & DB_Table -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column)
 
     ## PRIVATE
        This method should be declared as result of `dialect.custom_build_aggregate` to use this setup.
@@ -217,8 +217,8 @@ type Aggregate_With_Helper_Expressions
                     self.make_aggregate aggregate as [] base_table infer_return_type problem_builder
                 default_build_aggregate adapted_make_aggregate dialect base_table key_columns resolved_aggregates problem_builder
             False ->
-                name_generator = base_table.column_naming_helper.create_unique_name_strategy
-                name_generator.mark_used base_table.column_names
+                name_generator = (base_table:Table).column_naming_helper.create_unique_name_strategy
+                name_generator.mark_used (base_table:Table).column_names
                 helper_columns = needed_expressions.map p->
                     name = name_generator.make_unique p.first
                     Internal_Column.Value name SQL_Type_Reference.null p.second

@@ -114,8 +114,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Generic_JDBC
-  stdlib-api-check-Google_Api-linux-amd64:
-    name: Google_Api-change-labels
+  stdlib-api-check-Google-linux-amd64:
+    name: Google-change-labels
     runs-on:
       - ubuntu-latest
     steps:
@@ -124,21 +124,21 @@ jobs:
         with:
           clean: false
           fetch-depth: 2
-      - id: Google_Api-changed-files
-        name: Google_Api-changed-files
+      - id: Google-changed-files
+        name: Google-changed-files
         uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Google_Api/**/docs/api/**/**.md
-      - name: List all changed files in Google_Api
-        run: "\n        if [[ \"${{ steps.Google_Api-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+          files: distribution/lib/Standard/Google/**/docs/api/**/**.md
+      - name: List all changed files in Google
+        run: "\n        if [[ \"${{ steps.Google-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
-          ALL_CHANGED_FILES: ${{ steps.Google_Api-changed-files.outputs.all_changed_files }}
-      - if: steps.Google_Api-changed-files.outputs.any_changed == 'true'
-        name: Append -libs-API-change-Google_Api label
+          ALL_CHANGED_FILES: ${{ steps.Google-changed-files.outputs.all_changed_files }}
+      - if: steps.Google-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Google label
         uses: actions-ecosystem/action-add-labels@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          labels: -libs-API-change-Google_Api
+          labels: -libs-API-change-Google
   stdlib-api-check-Image-linux-amd64:
     name: Image-change-labels
     runs-on:

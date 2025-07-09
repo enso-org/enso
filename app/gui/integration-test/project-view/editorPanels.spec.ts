@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { type Locator, test } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
-import { mockCollapsedFunctionInfo, mockMethodCallInfo } from './expressionUpdates'
+import { mockMethodCallInfo, mockUserDefinedFunctionInfo } from './expressionUpdates'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
@@ -128,13 +128,13 @@ test('Component help', async ({ page }) => {
 test('Documentation reflects entered function', async ({ page }) => {
   const { docsContent } = await goToGraphAndGetDocs(page)
 
-  // Enter the collapsed function
-  await mockCollapsedFunctionInfo(page, 'final', 'func1')
+  // Enter the User Defined Function function
+  await mockUserDefinedFunctionInfo(page, 'final', 'func1')
   await locate.graphNodeByBinding(page, 'final').dblclick()
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
-  // Editor should contain collapsed function's docs
-  await expect(docsContent).toHaveText('A collapsed function')
+  // Editor should contain function's docs
+  await expect(docsContent).toHaveText('A User Defined Function')
 })
 
 test('Link in documentation is rendered and interactive', async ({ page, context }) => {

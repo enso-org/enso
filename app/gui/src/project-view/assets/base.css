@@ -9,13 +9,13 @@
  *************************************************/
 :root {
   --color-ag-header-text: rgb(0 0 0);
-  --color-text: rgb(82 82 82);
+  --color-text: rgb(0 0 0 / 0.9);
   --color-primary: rgb(0 0 0 / 0.6);
-  --color-text-light: rgb(255 255 255 / 0.7);
+  --color-text-light: rgb(255 255 255 / 0.9);
   --color-text-inversed: rgb(255 255 255);
   --color-app-bg: rgb(255 255 255 / 0.8);
   --color-menu-entry-hover-bg: rgb(0 0 0 / 0.1);
-  --color-menu-entry-selected-bg: rgb(0 0 0 / 0.05);
+  --color-menu-entry-selected-bg: rgb(0 0 0 / 0.2);
   --color-visualization-bg: rgb(242 242 242);
   --color-dim: rgb(0 0 0 / 0.25);
   --color-frame-bg: rgb(255 255 255 / 0.3);

@@ -8,9 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
@@ -26,51 +27,50 @@ import org.graalvm.polyglot.Context;
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final ProblemAggregator problemAggregator;
   private final Column[] keyColumns;
-  private final Map<KeyType, List<Integer>> locs;
+  private final Map<KeyType, List<Long>> locs;
   private final boolean isUnique;
 
   public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
       Column[] keyColumns,
-      int tableSize,
+      long tableSize,
       int[] ordering,
       Comparator<Object> objectComparator,
       ProblemAggregator problemAggregator) {
-    TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
+    TreeMap<OrderedMultiValueKey, List<Long>> locs = new TreeMap<>();
     final var storage =
         Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
-    IntFunction<OrderedMultiValueKey> keyFactory =
+    LongFunction<OrderedMultiValueKey> keyFactory =
         i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory, problemAggregator);
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
       Column[] keyColumns,
-      int tableSize,
+      long tableSize,
       List<TextFoldingStrategy> textFoldingStrategies,
       ProblemAggregator problemAggregator) {
-    HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
+    HashMap<UnorderedMultiValueKey, List<Long>> locs = new HashMap<>();
     final var storage =
         Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
-    IntFunction<UnorderedMultiValueKey> keyFactory =
+    LongFunction<UnorderedMultiValueKey> keyFactory =
         i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory, problemAggregator);
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
       Column[] keyColumns,
-      int tableSize,
+      long tableSize,
       TextFoldingStrategy commonTextFoldingStrategy,
       ProblemAggregator problemAggregator) {
-    List<TextFoldingStrategy> strategies =
-        ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
+    var strategies = ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
     return makeUnorderedIndex(keyColumns, tableSize, strategies, problemAggregator);
   }
 
   private MultiValueIndex(
       Column[] keyColumns,
-      int tableSize,
-      Map<KeyType, List<Integer>> initialLocs,
-      IntFunction<KeyType> keyFactory,
+      long tableSize,
+      Map<KeyType, List<Long>> initialLocs,
+      LongFunction<KeyType> keyFactory,
       ProblemAggregator problemAggregator) {
     this.keyColumns = keyColumns;
     this.locs = initialLocs;
@@ -78,17 +78,16 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
     if (keyColumns.length != 0) {
       boolean isUnique = true;
-      int size = keyColumns[0].getSize();
-      ColumnAggregatedProblemAggregator groupingProblemAggregator =
-          new ColumnAggregatedProblemAggregator(problemAggregator);
+      long size = keyColumns[0].getSize();
+      var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         KeyType key = keyFactory.apply(i);
         key.checkAndReportFloatingEquality(
             groupingProblemAggregator, columnIx -> keyColumns[columnIx].getName());
 
-        List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
+        var ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
         ids.add(i);
         isUnique = isUnique && ids.size() == 1;
 
@@ -99,7 +98,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     } else {
       this.isUnique = tableSize <= 1;
       this.locs.put(
-          keyFactory.apply(0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+          keyFactory.apply(0), LongStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 
@@ -126,9 +125,11 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         context.safepoint();
       }
     } else {
-      for (List<Integer> group_locs : this.locs.values()) {
+      for (List<Long> group_locs : this.locs.values()) {
+        // ToDo: Temporary workaround to avoid redoing all aggregators.
+        var mapped = group_locs.stream().map(Long::intValue).collect(Collectors.toList());
         for (int i = 0; i < length; i++) {
-          Object value = columns[i].aggregate(group_locs, problemAggregator);
+          Object value = columns[i].aggregate(mapped, problemAggregator);
           storage[i].append(value);
           context.safepoint();
         }
@@ -149,11 +150,11 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     return this.locs.containsKey(key);
   }
 
-  public List<Integer> get(KeyType key) {
+  public List<Long> get(KeyType key) {
     return this.locs.get(key);
   }
 
-  public Map<KeyType, List<Integer>> mapping() {
+  public Map<KeyType, List<Long>> mapping() {
     return locs;
   }
 

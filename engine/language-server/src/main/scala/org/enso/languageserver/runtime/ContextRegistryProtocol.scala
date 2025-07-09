@@ -56,11 +56,13 @@ object ContextRegistryProtocol {
     * @param rpcSession reference to the client
     * @param contextId execution context identifier
     * @param stackItem an object representing an item on the stack
+    * @param execute true if a completed request should trigger an execution
     */
   case class PushContextRequest(
     rpcSession: JsonSession,
     contextId: ContextId,
-    stackItem: StackItem
+    stackItem: StackItem,
+    execute: Boolean
   ) extends ToLogString {
 
     /** @inheritdoc */
@@ -69,6 +71,7 @@ object ContextRegistryProtocol {
       s"contextId=$contextId," +
       s"rpcSession=$rpcSession," +
       s"stackItem=${stackItem.toLogString(shouldMask)}" +
+      s"execute=${execute}" +
       ")"
   }
 

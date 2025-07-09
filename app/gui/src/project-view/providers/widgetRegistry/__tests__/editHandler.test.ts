@@ -1,8 +1,8 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
+import { proxyRefs } from '@/util/reactivity'
 import { expect, test, vi, type Mock } from 'vitest'
-import { proxyRefs } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
 import { newWidgetInstanceId, WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 

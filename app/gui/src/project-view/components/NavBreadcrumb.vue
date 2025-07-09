@@ -10,14 +10,13 @@ const editorRoot = useTemplateRef('editorRoot')
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView } = useCodeMirror(editorRoot, {
-  content: model.value,
   extensions: [syncExt, selectOnMouseFocus],
   readonly: false,
   lineMode: 'single',
 })
 
 const { getText, setText } = connectSync(editorView)
-watch(model, (text) => setText(text))
+watch(model, (text) => setText(text), { immediate: true })
 function onEditorBlur() {
   model.value = getText()
 }

@@ -9,11 +9,8 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -21,7 +18,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.common.MethodNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -32,10 +28,8 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallerFrameAccess;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.type.Types;
 import org.slf4j.LoggerFactory;
 
 /** A runtime representation of a function object in Enso. */
@@ -271,87 +265,6 @@ public final class Function extends EnsoObject {
         throw ex;
       }
     }
-  }
-
-  /**
-   * Handles member invocation through the polyglot API.
-   *
-   * <p>The only supported member is {@code equals} checking for object identity.
-   *
-   * @param member the member name.
-   * @param args arguments to pass to the execution.
-   * @return the result of invoking the member.
-   * @throws ArityException when an invalid number of arguments is passed to the member.
-   * @throws UnknownIdentifierException when an invalid member is requested.
-   */
-  @ExportMessage
-  @CompilerDirectives.TruffleBoundary
-  Object invokeMember(String member, Object... args)
-      throws ArityException,
-          UnknownIdentifierException,
-          UnsupportedTypeException,
-          UnsupportedMessageException {
-    switch (member) {
-      case MethodNames.Function.EQUALS:
-        Object that = Types.extractArguments(args, Object.class);
-        return this == that;
-      case MethodNames.Function.GET_SOURCE_START:
-        {
-          SourceSection sect = getSourceSection();
-          if (sect == null) {
-            return null;
-          }
-          return sect.getCharIndex();
-        }
-      case MethodNames.Function.GET_SOURCE_LENGTH:
-        {
-          SourceSection sect = getSourceSection();
-          if (sect == null) {
-            return null;
-          }
-          return sect.getCharLength();
-        }
-    }
-    throw UnknownIdentifierException.create(member);
-  }
-
-  /**
-   * Verifies whether a member can be invoked through the polyglot API.
-   *
-   * @param member the member name.
-   * @return {@code true} if the member can be invoked, {@code false} otherwise.
-   */
-  @ExportMessage
-  boolean isMemberInvocable(String member) {
-    return member.equals(MethodNames.Function.EQUALS)
-        || member.equals(MethodNames.Function.GET_SOURCE_START)
-        || member.equals(MethodNames.Function.GET_SOURCE_LENGTH);
-  }
-
-  /**
-   * Marks the object as having members available for the polyglot API.
-   *
-   * @return {@code true}
-   */
-  @ExportMessage
-  boolean hasMembers() {
-    return true;
-  }
-
-  /**
-   * Returns a collection of all members this object exposes through the polyglot API.
-   *
-   * <p>The only supported member is {@code equals}.
-   *
-   * @param includeInternal ignored
-   * @return a collection of all supported member names.
-   */
-  @ExportMessage
-  Object getMembers(boolean includeInternal) {
-    return ArrayLikeHelpers.wrapStrings(
-        MethodNames.Function.EQUALS,
-        MethodNames.Function.GET_SOURCE_START,
-        MethodNames.Function.GET_SOURCE_LENGTH);
   }
 
   /**

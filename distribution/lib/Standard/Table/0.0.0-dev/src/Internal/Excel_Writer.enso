@@ -7,6 +7,7 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.System.File import file_as_java
 
 import project.Excel.Excel_Range.Excel_Range
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Excel_Reader
 import project.Internal.Excel_Section.Excel_Section
 import project.Match_Columns.Match_Columns
@@ -127,7 +128,7 @@ prepare_file_modification_strategy table section on_existing_file match_columns 
             java_headers = Excel_Reader.make_java_headers headers
             java_limit = row_limit.rows_to_write
             workbook_to_modify->
-                ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows table.java_table java_limit java_headers
+                ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
         Excel_Section.Cell_Range address headers skip_rows row_limit ->
             java_headers = Excel_Reader.make_java_headers headers
             java_limit = row_limit.rows_to_write
@@ -135,7 +136,7 @@ prepare_file_modification_strategy table section on_existing_file match_columns 
                 _ : Excel_Range -> address.java_range
                 _ : Text -> address
             workbook_to_modify->
-                ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows table.java_table java_limit java_headers
+                ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
 
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file

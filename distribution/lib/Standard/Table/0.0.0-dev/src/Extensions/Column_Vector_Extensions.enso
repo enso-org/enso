@@ -4,6 +4,7 @@ import project.Column.Column
 
 ## GROUP Standard.Base.Conversions
    ICON convert
+   SUGGESTED 2
    Creates a column from a `Vector` of values.
 
    Arguments:

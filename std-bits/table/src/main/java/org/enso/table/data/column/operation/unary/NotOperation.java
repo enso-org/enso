@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.unary;
 
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
@@ -68,6 +67,7 @@ public class NotOperation implements UnaryOperation {
   }
 
   public static ColumnBooleanStorage applySpecializedNullStorage(ColumnStorage<?> storage) {
-    return BoolBuilder.makeEmpty(storage.getSize());
+    return BooleanType.INSTANCE.asTypedStorage(
+        Builder.makeEmpty(BooleanType.INSTANCE, storage.getSize()));
   }
 }

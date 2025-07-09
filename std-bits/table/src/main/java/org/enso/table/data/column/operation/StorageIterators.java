@@ -49,6 +49,19 @@ public class StorageIterators {
     boolean apply(long index, double value, boolean isNothing);
   }
 
+  @FunctionalInterface
+  public interface ForEachBooleanOperation {
+    /**
+     * Applies an operation to each item in the boolean storage.
+     *
+     * @param index the index of the item in the storage
+     * @param value the value of the item at that index
+     * @param isNothing true if the item is a Nothing value, false otherwise
+     * @return true if the operation should stop early, false otherwise
+     */
+    boolean apply(long index, boolean value, boolean isNothing);
+  }
+
   public static <S> boolean forEachOverStorage(
       ColumnStorage<S> source, boolean includeNothing, ForEachOperation<S> operation) {
     try (var progressHandle = ProgressHandler.init("buildObjectOverStorage", source.getSize())) {
@@ -97,6 +110,26 @@ public class StorageIterators {
           }
         } else if (!iterator.isNothing()) {
           if (operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false)) {
+            return true;
+          }
+        }
+        progressHandle.advance();
+      }
+    }
+    return false;
+  }
+
+  public static boolean forEachOverBooleanStorage(
+      ColumnBooleanStorage source, boolean includeNothing, ForEachBooleanOperation operation) {
+    try (var progressHandle = ProgressHandler.init("forEachOverDoubleStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (includeNothing && iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), false, true)) {
+            return true;
+          }
+        } else if (!iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false)) {
             return true;
           }
         }

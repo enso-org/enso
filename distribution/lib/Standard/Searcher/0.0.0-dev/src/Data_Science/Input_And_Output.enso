@@ -1,44 +1,47 @@
 ## All the tools to work with data are useless without a way to get your data
    into Enso.
-
    This section contains a suite of common tools for loading your data into your
-   workflow, including the ability to read and write Excel files, CSVs, and
-   text. Beyond that, it also provides tools for creating your own data on the
-   fly, including text, numbers, and tables.
+   workflow, including the ability to read and write Excel files, CSVs, and text.
+   Beyond that, it also provides tools for creating your own data on the fly,
+   including text, numbers, and tables.
 
-   > Example
-     Read the active sheet of an XLSX from disk and convert it into a table.
+   ## Examples
+   ### Read the active sheet of an XLSX from disk and convert it into a table.
 
+   ```
          from Standard.Table import Table
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read
+   ```
 
-   > Example
-     Read a CSV from disk and convert it into a table.
+   ### Read a CSV from disk and convert it into a table.
 
+   ```
          from Standard.Table import Table
          import Standard.Examples
 
          example_csv_to_table = Examples.csv.read
+   ```
 
-   > Example
-     Write a table to an XLSX file.
+   ### Write a table to an XLSX file.
 
+   ```
          from Standard.Table import Table
          import Standard.Examples
 
          example_to_xlsx =
              path = enso_project.data / example_xlsx_output.xlsx
              Examples.inventory_table.write path
+   ```
 
-   > Example
-     Write a table to a CSV file.
+   ### Write a table to a CSV file.
 
+   ```
          from Standard.Table import Table
          import Standard.Examples
 
          example_to_csv =
              path = enso_project.data / example_csv_output.csv
              Examples.inventory_table.write path
-
+   ```

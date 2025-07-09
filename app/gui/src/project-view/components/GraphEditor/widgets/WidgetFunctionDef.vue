@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ArgumentRow from '@/components/GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
@@ -17,7 +17,7 @@ import { assertUnreachable } from 'ydoc-shared/util/assert'
 import { renameArgumentInDefaultValue } from './WidgetFunctionDef/argumentAst'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
-const openedProject = injectCurrentProject().ref
+const openedProject = useCurrentProject().ref
 const tree = injectWidgetTree()
 
 const funcIcon = computed(() => {

@@ -1,4 +1,4 @@
-import { extractMetadata } from '@/components/DocumentationPanel/metadata'
+import { extractMetadata } from '@/components/ComponentHelp/metadata'
 import type { GroupInfo } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'

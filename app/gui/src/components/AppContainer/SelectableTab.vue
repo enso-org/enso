@@ -148,10 +148,12 @@ const VARIANTS = {
   align-items: center;
   gap: 12px;
   transition: background-color 0.3s;
-  opacity: 0.5;
+  cursor: not-allowed;
+  opacity: 0.2;
 
   &.enabled {
     opacity: 1;
+    cursor: pointer;
 
     &:hover,
     &:active {

@@ -9,6 +9,9 @@ import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -32,7 +35,7 @@ final class EpbContext {
   private @CompilationFinal TruffleContext innerContext;
   private final TruffleLogger log;
   private final Random delayer = new Random();
-  private boolean polyfillInitialized;
+  private Future<Void> polyfillInitialized;
 
   /**
    * Creates a new instance of this context.
@@ -89,44 +92,77 @@ final class EpbContext {
     this.log.log(level, msg, args);
   }
 
-  final void initializePolyfill(Node node, TruffleContext ctx) {
-    if (!polyfillInitialized) {
-      var parserPolyfill = new ParserPolyfill();
-      polyfillInitialized = true;
-      var ensoLanguage = getEnv().getInternalLanguages().get("enso");
-      var exec = getEnv().lookup(ensoLanguage, ScheduledExecutorService.class);
-      assert exec != null : "Need executor from " + ensoLanguage;
-      Function<URL, Value> eval =
-          (url) -> {
-            try {
-              var src = Source.newBuilder("js", url).build();
-              var obj = ctx.evalPublic(node, src);
-              return Value.asValue(obj);
-            } catch (IOException ex) {
-              throw new IllegalStateException(ex);
-            }
-          };
-      WebEnvironment.initialize(eval, exec);
-      parserPolyfill.initialize(eval);
+  final Void initializePolyfill(Node node, TruffleContext ctx) {
+    Runnable toInit = null;
+    synchronized (this) {
+      if (polyfillInitialized == null) {
+        var cf = new CompletableFuture<Void>();
+        toInit = createPolyfillSetup(cf, node, ctx);
+        polyfillInitialized = cf;
+      }
     }
+    if (toInit != null) {
+      toInit.run();
+    }
+    for (; ; ) {
+      try {
+        return polyfillInitialized.get();
+      } catch (InterruptedException | ExecutionException ex) {
+        // log and try again
+        this.log.log(Level.INFO, null, ex);
+      }
+    }
+  }
+
+  private Runnable createPolyfillSetup(
+      CompletableFuture<Void> whenDone, Node node, TruffleContext ctx) {
+    var ensoLanguage = getEnv().getInternalLanguages().get("enso");
+    var exec = getEnv().lookup(ensoLanguage, ScheduledExecutorService.class);
+    assert exec != null : "Need executor from " + ensoLanguage;
+    Function<URL, Value> eval =
+        (url) -> {
+          try {
+            var src = Source.newBuilder("js", url).build();
+            var obj = ctx.evalPublic(node, src);
+            return Value.asValue(obj);
+          } catch (IOException ex) {
+            throw raise(RuntimeException.class, ex);
+          }
+        };
+    return () -> {
+      try {
+        WebEnvironment.initialize(eval, exec);
+        var parserPolyfill = new ParserPolyfill();
+        parserPolyfill.initialize(eval);
+        whenDone.complete(null);
+      } catch (Exception ex) {
+        whenDone.completeExceptionally(ex);
+      }
+    };
   }
 
   final void handleMultiAccess(String msg) {
     try {
       var ms = delayer.nextInt(10, 1000);
       // dump stack when assertions on
-      assert dumpStack(ms);
+      assert dumpStack(msg, ms);
       Thread.sleep(ms);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
     }
   }
 
-  private boolean dumpStack(int ms) {
-    var msg =
-        ThreadUtils.dumpAllStacktraces(
-            "Polyglot access failed. Waiting " + ms + " ms. Thread dump:");
+  private boolean dumpStack(String msg, int ms) {
+    var prefix = "[PolyglotAccess:" + Thread.currentThread().getName() + "]";
+    var dump = ThreadUtils.dumpAllStacktraces("[epb] ", prefix);
     log(Level.WARNING, msg);
+    log(Level.FINE, dump);
+    log(Level.INFO, "Waiting " + ms + " ms");
     return true;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 }

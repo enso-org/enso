@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.System.Encoding.Encoding_Resolver
 import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
@@ -12,7 +11,7 @@ import project.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.On_Empty_Field.On_Empty_Field
 import project.Internal.Java_Problems
 from project.Errors import Empty_File_Error, Fixed_Width_Line_Too_Long, No_Column_Names_Found
-from project.Table import from_java_table
+from project.In_Memory_Table import from_java_table
 
 polyglot java import java.io.IOException
 polyglot java import java.io.Reader

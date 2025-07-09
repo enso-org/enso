@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class FillFromPreviousOperation implements UnaryOperation {
@@ -54,8 +54,10 @@ public class FillFromPreviousOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    if (storage.getType() instanceof NullType) {
+      return storage; // Nothing to fill in a column of nulls.
+    }
     return switch (storage) {
-      case NullStorage nullStorage -> nullStorage;
       case ColumnBooleanStorage boolStorage -> {
         var state = new BooleanState();
         yield StorageIterators.buildOverBooleanStorage(
