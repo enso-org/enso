@@ -3,14 +3,19 @@ import { Button, CopyButton } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import { Text } from '#/components/Text'
+import { useModalState, type ModalApi } from '#/utilities/modal'
 import { useBackends, useText } from '$/providers/react'
-import type * as text from 'enso-common/src/text'
-import * as React from 'react'
+import type { TextId } from 'enso-common/src/text'
+import { forwardRef, useMemo, type ForwardedRef } from 'react'
 
 /** A modal for confirming the deletion of an asset. */
-export default function AboutModal() {
+export const AboutModal = forwardRef(function AboutModal(
+  _props: object,
+  ref: ForwardedRef<ModalApi>,
+) {
   const { localBackend } = useBackends()
   const { getText } = useText()
+  const { isOpen, setIsOpen } = useModalState(ref)
 
   const versionsEntries = [
     ...(window.versionInfo != null ?
@@ -25,15 +30,19 @@ export default function AboutModal() {
         ...($config.COMMIT_HASH == null ? [] : ([['build', $config.COMMIT_HASH]] as const)),
       ]),
     ['userAgent', navigator.userAgent],
-  ] satisfies readonly (readonly [text.TextId, string])[]
+  ] satisfies readonly (readonly [TextId, string])[]
 
-  const copyText = React.useMemo(
+  const copyText = useMemo(
     () => versionsEntries.map(([textId, version]) => `${getText(textId)} ${version}`).join('\n'),
     [getText, versionsEntries],
   )
 
   return (
-    <Dialog title={getText('aboutThisAppShortcut')} modalProps={{ defaultOpen: true }}>
+    <Dialog
+      title={getText('aboutThisAppShortcut')}
+      modalProps={{ isOpen }}
+      onOpenChange={setIsOpen}
+    >
       <div className="relative flex items-center gap-4">
         <Icon icon="enso_logo" className="size-16 shrink-0 self-start" />
 
@@ -72,4 +81,4 @@ export default function AboutModal() {
       </div>
     </Dialog>
   )
-}
+})

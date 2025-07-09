@@ -1,9 +1,13 @@
 import { createGlobalState } from '@vueuse/core'
 import type { JSX } from 'react'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 function createModalStack() {
   const modals = ref<{ readonly id: string; readonly modal: JSX.Element }[]>([])
+
+  function isModalOpen(id: string) {
+    return computed(() => modals.value.some((modal) => modal.id === id))
+  }
 
   function pushModal(id: string, modal: JSX.Element) {
     modals.value.push({ id, modal })
@@ -27,10 +31,11 @@ function createModalStack() {
 
   return {
     modals,
+    isModalOpen,
     pushModal,
     popModal,
   }
 }
 
-/** A React provider for the Cognito API. */
+/** A React provider for the modal stack. */
 export const useModalStack = createGlobalState(createModalStack)

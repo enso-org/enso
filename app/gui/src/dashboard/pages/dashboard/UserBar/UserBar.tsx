@@ -24,7 +24,7 @@ import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
-import UserMenu from './UserMenu'
+import { UserMenu } from './UserMenu'
 
 /** The number of milliseconds in an hour. */
 const HOUR_MS = 3_600_000
@@ -131,7 +131,6 @@ export function UserBar(props: UserBarProps) {
             </motion.div>
           )}
         </AnimatePresence>
-
         <div className="flex sm:hidden">
           <Popover.Trigger>
             <Button variant="icon" icon="help" aria-label={getText('help')} />
@@ -140,15 +139,12 @@ export function UserBar(props: UserBarProps) {
             </Popover>
           </Popover.Trigger>
         </div>
-
         <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
-
         {shouldShowPaywallButton && (
           <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
             {getText('invite')}
           </PaywallDialogButton>
         )}
-
         {shouldShowInviteButton && (
           <Dialog.Trigger>
             <Button size="medium" variant="accent">
@@ -158,13 +154,11 @@ export function UserBar(props: UserBarProps) {
             <InviteUsersModal />
           </Dialog.Trigger>
         )}
-
         {shouldShowUpgradeButton && (
           <Button variant={upgradeButtonVariant} size="medium" href={SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </Button>
         )}
-
         {trialDaysLeft != null && trialEndDate && (
           <VisualTooltip
             tooltip={getText('yourSubscriptionExpiresAtX', toReadableIsoString(trialEndDate))}
@@ -178,9 +172,7 @@ export function UserBar(props: UserBarProps) {
             </Text>
           </VisualTooltip>
         )}
-
         <NotificationTray />
-
         <Popover.Trigger>
           <Button
             size="custom"
@@ -188,14 +180,8 @@ export function UserBar(props: UserBarProps) {
             icon={<ProfilePicture picture={user.profilePicture} name={user.name} />}
             aria-label={getText('userMenuLabel')}
           />
-
           <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
         </Popover.Trigger>
-
-        {/* Required for shortcuts to work. */}
-        <div className="hidden">
-          <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
-        </div>
       </div>
     </div>
   )
@@ -225,10 +211,8 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
                 <Button href={item.url} {...getSafetyProps(item.url)}>
                   {getText(item.name)}
                 </Button>
-
                 <Menu.Trigger>
                   <Button icon={ArrowDownIcon} aria-label={getText('more')} />
-
                   <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
                       <Menu.Item
