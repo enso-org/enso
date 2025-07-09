@@ -6,13 +6,7 @@ import { GuiConfig } from '@/providers/guiConfig'
 import * as react from 'react'
 import { useInReactFunction } from './common'
 
-export {
-  useAuth,
-  useFullUserSession,
-  usePlanOverride,
-  useUser,
-  useUserSession,
-} from '$/providers/react/auth'
+export { useAuth, useFullUserSession, useUser, useUserSession } from '$/providers/react/auth'
 export { useBackends } from '$/providers/react/backends'
 export { useRightPanelData } from '$/providers/react/rightPanel'
 export { useRouter } from '$/providers/react/router'

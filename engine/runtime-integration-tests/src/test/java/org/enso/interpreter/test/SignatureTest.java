@@ -1475,6 +1475,37 @@ public class SignatureTest {
     }
   }
 
+  @Test
+  public void avoidDoubleEvaluation() {
+    var code =
+        """
+        from Standard.Base import IO, Integer
+
+        type A
+            A_Ctor a
+        type B
+            B_Ctor b
+
+        A.from that:B =
+            A.A_Ctor that
+
+        A.extension_method self (arg1:Integer) -> A =
+            IO.println "extension_method called"
+            constructed_b = B.B_Ctor "constructed {self.A="+self.to_text+"} {arg1="+arg1.to_text+"}"
+            constructed_b
+
+        main =
+            a = A.A_Ctor "a"
+            v = a.extension_method 42
+            v
+        """;
+
+    ctxRule.resetOut();
+    var res = ctxRule.evalModule(code);
+    assertEquals(res.getMetaObject().getMetaSimpleName(), "A");
+    assertEquals("One call", "extension_method called", ctxRule.getOut().trim());
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     assertEquals(
         "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",
