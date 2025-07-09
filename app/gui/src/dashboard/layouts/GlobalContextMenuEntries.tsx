@@ -1,49 +1,36 @@
 /** @file Context menu entries available everywhere in the directory. */
-import { useStore } from '#/utilities/zustand'
-
-import ContextMenuEntry from '#/components/ContextMenuEntry'
-
-import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
-
 import { backendMutationOptions, useNewFolder, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { defineMenuEntries } from '#/hooks/menuHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
+import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useStore } from '#/utilities/zustand'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenuEntries}. */
-export interface GlobalContextMenuEntriesProps {
+export interface GlobalContextMenuEntriesOptions {
   readonly backend: Backend
   readonly category: Category
   readonly currentDirectoryId: DirectoryId
   readonly directoryId: DirectoryId | null
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
-  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
 /** Context menu entries available everywhere in the directory. */
-export const GlobalContextMenuEntries = function GlobalContextMenuEntries(
-  props: GlobalContextMenuEntriesProps,
-) {
+export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOptions) {
   // For some reason, applying the ReactCompiler for this component breaks the copy-paste functionality
   // eslint-disable-next-line react-compiler/react-compiler
   'use no memo'
 
-  const {
-    backend,
-    category,
-    directoryId = null,
-    currentDirectoryId,
-    doPaste,
-    bindingFocusScope,
-  } = props
+  const { backend, category, directoryId = null, currentDirectoryId, doPaste } = options
 
   const isCloud = backend.type === BackendType.remote
 
@@ -71,98 +58,81 @@ export const GlobalContextMenuEntries = function GlobalContextMenuEntries(
     await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
   })
 
-  return (
-    <>
-      <ContextMenuEntry
-        bindingFocusScope={bindingFocusScope}
-        action="uploadFiles"
-        doAction={async () => {
-          const files = await readUserSelectedFile()
-          await uploadFiles(Array.from(files))
-        }}
-      />
-      <ContextMenuEntry
-        bindingFocusScope={bindingFocusScope}
-        action="newProject"
-        doAction={() => {
+  return defineMenuEntries([
+    {
+      action: 'uploadFiles',
+      doAction: () => {
+        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
+      },
+    },
+    {
+      action: 'newProject',
+      doAction: () => {
+        unsetModal()
+        void newProject(null, null)
+      },
+    },
+    {
+      action: 'newFolder',
+      doAction: () => {
+        unsetModal()
+        void newFolder()
+      },
+    },
+    isCloud && {
+      action: 'newSecret',
+      doAction: () => {
+        setModal(
+          <UpsertSecretModal
+            doCreate={async (name, value) => {
+              await newSecret([
+                { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },
+              ])
+            }}
+          />,
+        )
+      },
+    },
+    isCloud && {
+      action: 'newCredential',
+      doAction: () => {
+        setModal(
+          <CreateCredentialModal
+            doCreate={async (name, value) =>
+              await newCredential([
+                { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },
+              ])
+            }
+          />,
+        )
+      },
+    },
+    isCloud && {
+      action: 'newDatalink',
+      doAction: () => {
+        setModal(
+          <UpsertDatalinkModal
+            doCreate={async (name, value) => {
+              await newDatalink([
+                {
+                  name,
+                  value,
+                  parentDirectoryId: directoryId ?? currentDirectoryId,
+                  datalinkId: null,
+                },
+              ])
+            }}
+          />,
+        )
+      },
+    },
+    hasPasteData &&
+      directoryId == null && {
+        action: 'paste',
+        doAction: () => {
           unsetModal()
-          void newProject(null, null)
-        }}
-      />
-      <ContextMenuEntry
-        bindingFocusScope={bindingFocusScope}
-        action="newFolder"
-        doAction={() => {
-          unsetModal()
-          void newFolder()
-        }}
-      />
-      {isCloud && (
-        <ContextMenuEntry
-          bindingFocusScope={bindingFocusScope}
-          action="newSecret"
-          doAction={() => {
-            setModal(
-              <UpsertSecretModal
-                doCreate={async (name, value) => {
-                  await newSecret([
-                    { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },
-                  ])
-                }}
-              />,
-            )
-          }}
-        />
-      )}
-      {isCloud && (
-        <ContextMenuEntry
-          bindingFocusScope={bindingFocusScope}
-          action="newCredential"
-          doAction={() => {
-            setModal(
-              <CreateCredentialModal
-                doCreate={async (name, value) =>
-                  await newCredential([
-                    { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },
-                  ])
-                }
-              />,
-            )
-          }}
-        />
-      )}
-      {isCloud && (
-        <ContextMenuEntry
-          bindingFocusScope={bindingFocusScope}
-          action="newDatalink"
-          doAction={() => {
-            setModal(
-              <UpsertDatalinkModal
-                doCreate={async (name, value) => {
-                  await newDatalink([
-                    {
-                      name,
-                      value,
-                      parentDirectoryId: directoryId ?? currentDirectoryId,
-                      datalinkId: null,
-                    },
-                  ])
-                }}
-              />,
-            )
-          }}
-        />
-      )}
-      {hasPasteData && directoryId == null && (
-        <ContextMenuEntry
-          bindingFocusScope={bindingFocusScope}
-          action="paste"
-          doAction={() => {
-            unsetModal()
-            doPaste(currentDirectoryId, currentDirectoryId)
-          }}
-        />
-      )}
-    </>
-  )
+          doPaste(currentDirectoryId, currentDirectoryId)
+        },
+      },
+  ])
 }

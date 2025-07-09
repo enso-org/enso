@@ -4,6 +4,7 @@ import { Popover } from '#/components/Dialog'
 import MenuEntry from '#/components/MenuEntry'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { Text } from '#/components/Text'
+import { useMenuEntries } from '#/hooks/menuHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { AboutModal } from '#/modals/AboutModal'
 import { unsetModal } from '#/providers/ModalProvider'
@@ -35,6 +36,50 @@ export function UserMenu(props: UserMenuProps) {
   const toggleEnsoDevtools = useToggleEnsoDevtools()
   const aboutModalRef = useRef<ModalApi>(null)
 
+  const entries = useMenuEntries([
+    localBackend == null && {
+      action: 'downloadApp',
+      doAction: () => {
+        unsetModal()
+        void getDownloadUrl().then((downloadUrl) => {
+          if (downloadUrl == null) {
+            toastAndLog('noAppDownloadError')
+          } else {
+            void download({ url: downloadUrl })
+          }
+        })
+      },
+    },
+    { action: 'settings', doAction: goToSettingsPage },
+    {
+      action: 'aboutThisApp',
+      doAction: () => {
+        aboutModalRef.current?.open()
+      },
+    },
+    user.isEnsoTeamMember &&
+      IS_DEV_MODE && {
+        action: 'ensoDevtools',
+        doAction: () => {
+          toggleEnsoDevtools()
+        },
+      },
+    (user.plan === Plan.free || user.plan === Plan.solo) && {
+      action: 'upgradePlan',
+      doAction: () => {
+        onSignOut()
+        void router.push(SUBSCRIBE_PATH)
+      },
+    },
+    {
+      action: 'signOut',
+      doAction: () => {
+        onSignOut()
+        void signOut()
+      },
+    },
+  ])
+
   return (
     <>
       <Popover data-testid="user-menu" size="xxsmall">
@@ -48,51 +93,12 @@ export function UserMenu(props: UserMenuProps) {
           </div>
         </div>
         <div className="flex flex-col overflow-hidden">
-          {localBackend == null && (
-            <MenuEntry
-              action="downloadApp"
-              doAction={async () => {
-                unsetModal()
-                const downloadUrl = await getDownloadUrl()
-                if (downloadUrl == null) {
-                  toastAndLog('noAppDownloadError')
-                } else {
-                  void download({ url: downloadUrl })
-                }
-              }}
-            />
-          )}
-          <MenuEntry action="settings" doAction={goToSettingsPage} />
-          <MenuEntry
-            action="aboutThisApp"
-            doAction={() => {
-              aboutModalRef.current?.open()
-            }}
-          />
-          {user.isEnsoTeamMember && IS_DEV_MODE && (
-            <MenuEntry
-              action="ensoDevtools"
-              doAction={() => {
-                toggleEnsoDevtools()
-              }}
-            />
-          )}
-          {(user.plan === Plan.free || user.plan === Plan.solo) && (
-            <MenuEntry
-              action="upgradePlan"
-              doAction={() => {
-                onSignOut()
-                void router.push(SUBSCRIBE_PATH)
-              }}
-            />
-          )}
-          <MenuEntry
-            action="signOut"
-            doAction={() => {
-              onSignOut()
-              void signOut()
-            }}
-          />
+          {entries.flatMap((entry) => {
+            if (entry == null || entry === false) {
+              return []
+            }
+            return [<MenuEntry key={entry.action} {...entry} />]
+          })}
         </div>
       </Popover>
       <AboutModal ref={aboutModalRef} />

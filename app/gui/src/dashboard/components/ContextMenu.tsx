@@ -1,6 +1,8 @@
 /** @file A context menu. */
 import { Pressable } from '#/components/aria'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Popover } from '#/components/Dialog'
+import type { MenuEntryProps } from '#/components/MenuEntry'
 import { usePortalContext } from '#/components/Portal'
 import { unsetModal } from '#/providers/ModalProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -11,14 +13,13 @@ import {
   useState,
   type ForwardedRef,
   type MouseEvent,
-  type PropsWithChildren,
 } from 'react'
 
 /** Props for a {@link ContextMenu}. */
-export interface ContextMenuProps extends Readonly<PropsWithChildren> {
+export interface ContextMenuProps {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label': string
-  readonly hidden?: boolean
+  readonly entries: readonly (MenuEntryProps | false | null | undefined)[]
 }
 
 /** Imperative API for {@link ContextMenu}. */
@@ -32,7 +33,7 @@ export const ContextMenu = forwardRef(function ContextMenu(
   props: ContextMenuProps,
   ref: ForwardedRef<ContextMenuApi>,
 ) {
-  const { hidden = false, children } = props
+  const { entries } = props
 
   const root = usePortalContext()
   const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'> | null>(null)
@@ -43,10 +44,6 @@ export const ContextMenu = forwardRef(function ContextMenu(
       setPosition(null)
     },
   }))
-
-  if (hidden) {
-    return children
-  }
 
   return (
     <Popover.Trigger>
@@ -74,7 +71,12 @@ export const ContextMenu = forwardRef(function ContextMenu(
             isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
           )}
         >
-          {children}
+          {entries.flatMap((entry) => {
+            if (entry == null || entry === false) {
+              return []
+            }
+            return [<ContextMenuEntry key={entry.action} {...entry} />]
+          })}
         </div>
       </Popover>
     </Popover.Trigger>

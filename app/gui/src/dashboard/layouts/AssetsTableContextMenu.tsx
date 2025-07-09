@@ -4,9 +4,6 @@
  */
 import type { ContextMenuApi } from '#/components/ContextMenu'
 import { ContextMenu } from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
-import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
-import { Separator } from '#/components/Separator'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
@@ -14,13 +11,14 @@ import {
 import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
 import {
   canTransferBetweenCategories,
   type Category,
   isCloudCategory,
 } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { GlobalContextMenuEntries } from '#/layouts/GlobalContextMenuEntries'
+import { useGlobalContextMenuEntries } from '#/layouts/GlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
@@ -44,7 +42,6 @@ export interface AssetsTableContextMenuProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
-  readonly rootRef?: React.RefObject<HTMLElement>
 }
 
 /**
@@ -57,7 +54,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
 ) {
   // eslint-disable-next-line react-compiler/react-compiler
   'use no memo'
-  const { backend, category, currentDirectoryId, doCopy, doCut, doPaste, rootRef } = props
+  const { backend, category, currentDirectoryId, doCopy, doCut, doPaste } = props
 
   const { getText } = useText()
 
@@ -76,6 +73,14 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   const uploadFileToLocal = useUploadFileToLocal(category)
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
+
+  const globalContextMenuEntries = useGlobalContextMenuEntries({
+    backend,
+    category,
+    currentDirectoryId,
+    directoryId: null,
+    doPaste,
+  })
 
   const canUploadAllProjectsToCloud = useStore(
     driveStore,
@@ -152,54 +157,54 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
     )
   })
 
-  const copyIdsMenuEntry = showDeveloperIds && (
-    <ContextMenuEntry
-      bindingFocusScope={rootRef}
-      action="copyId"
-      color="accent"
-      label={getText('copyAllIdsShortcut')}
-      doAction={() => copyMutation.mutateAsync(selectedAssets.map((asset) => asset.id).join('\n'))}
-    />
+  const copyIdsMenuEntry = defineMenuEntry(
+    showDeveloperIds && {
+      action: 'copyId',
+      color: 'accent',
+      label: getText('copyAllIdsShortcut'),
+      doAction: () => {
+        copyMutation.mutate(selectedAssets.map((asset) => asset.id).join('\n'))
+      },
+    },
   )
 
-  const pasteAllMenuEntry = hasPasteData && (
-    <ContextMenuEntry
-      bindingFocusScope={rootRef}
-      action="paste"
-      label={getText('pasteAllShortcut')}
-      doAction={() => {
+  const pasteAllMenuEntry = defineMenuEntry(
+    hasPasteData && {
+      action: 'paste',
+      label: getText('pasteAllShortcut'),
+      doAction: () => {
         const selected = selectedAssets[0]
         if (selected?.type === backendModule.AssetType.directory) {
           doPaste(selected.id, selected.id)
         } else {
           doPaste(currentDirectoryId, currentDirectoryId)
         }
-      }}
-    />
+      },
+    },
   )
 
-  if (category.type === 'trash') {
-    return (
-      selectedAssets.length > 1 && (
-        <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')}>
-          {copyIdsMenuEntry}
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="undelete"
-            label={getText('restoreAllFromTrashShortcut')}
-            doAction={() => {
+  const entries = useMenuEntries(
+    category.type === 'recent' ? [copyIdsMenuEntry]
+    : category.type === 'trash' ?
+      selectedAssets.length === 0 ?
+        []
+      : [
+          copyIdsMenuEntry,
+          {
+            action: 'undelete',
+            label: getText('restoreAllFromTrashShortcut'),
+            doAction: () => {
               unsetModal()
               restoreAssetsMutation.mutate({
                 ids: selectedAssets.map((asset) => asset.id),
                 parentId: null,
               })
-            }}
-          />
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="delete"
-            label={getText('deleteAllForeverShortcut')}
-            doAction={() => {
+            },
+          },
+          {
+            action: 'delete',
+            label: getText('deleteAllForeverShortcut'),
+            doAction: () => {
               const asset = selectedAssets[0]
               const soleAssetName = asset?.title ?? '(unknown)'
               setModal(
@@ -219,83 +224,48 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
                   }}
                 />,
               )
-            }}
-          />
-          {pasteAllMenuEntry}
-        </ContextMenu>
-      )
-    )
-  }
-
-  if (category.type === 'recent') {
-    return (
-      showDeveloperIds && (
-        <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')}>
-          {copyIdsMenuEntry}
-        </ContextMenu>
-      )
-    )
-  }
+            },
+          },
+          pasteAllMenuEntry,
+        ]
+    : [
+        copyIdsMenuEntry,
+        selectedAssets.length !== 0 && {
+          action: 'delete',
+          label: isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut'),
+          doAction: doDeleteAll,
+        },
+        selectedAssets.length !== 0 &&
+          canUploadAllProjectsToCloud && {
+            isUnderPaywall: !canUploadToCloud,
+            action: 'uploadToCloud',
+            feature: 'uploadToCloud',
+            label: getText('uploadAllToCloudShortcut'),
+            doAction: () => {
+              void uploadFilesToCloudCallback()
+            },
+          },
+        selectedAssets.length !== 0 &&
+          canDownloadAllProjectsToLocal && {
+            action: 'downloadToLocal',
+            label: getText('downloadAllToLocalShortcut'),
+            doAction: () => {
+              void downloadFilesToLocalCallback()
+            },
+          },
+        selectedAssets.length !== 0 &&
+          isCloud && { action: 'copy', label: getText('copyAllShortcut'), doAction: doCopy },
+        selectedAssets.length !== 0 && {
+          action: 'cut',
+          label: getText('cutAllShortcut'),
+          doAction: doCut,
+        },
+        pasteAllMenuEntry,
+        ...globalContextMenuEntries,
+      ],
+  )
 
   return (
-    <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')}>
-      <>
-        {copyIdsMenuEntry}
-        {selectedAssets.length !== 0 && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="delete"
-            label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
-            doAction={doDeleteAll}
-          />
-        )}
-        {selectedAssets.length !== 0 && canUploadAllProjectsToCloud && (
-          <PaywallContextMenuEntry
-            bindingFocusScope={rootRef}
-            isUnderPaywall={!canUploadToCloud}
-            action="uploadToCloud"
-            feature="uploadToCloud"
-            label={getText('uploadAllToCloudShortcut')}
-            doAction={uploadFilesToCloudCallback}
-          />
-        )}
-        {selectedAssets.length !== 0 && canDownloadAllProjectsToLocal && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="downloadToLocal"
-            label={getText('downloadAllToLocalShortcut')}
-            doAction={downloadFilesToLocalCallback}
-          />
-        )}
-        {selectedAssets.length !== 0 && isCloud && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="copy"
-            label={getText('copyAllShortcut')}
-            doAction={doCopy}
-          />
-        )}
-        {selectedAssets.length !== 0 && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="cut"
-            label={getText('cutAllShortcut')}
-            doAction={doCut}
-          />
-        )}
-        {pasteAllMenuEntry}
-      </>
-
-      <Separator className="my-2 first:hidden" />
-
-      <GlobalContextMenuEntries
-        backend={backend}
-        category={category}
-        currentDirectoryId={currentDirectoryId}
-        directoryId={null}
-        doPaste={doPaste}
-        bindingFocusScope={rootRef}
-      />
-    </ContextMenu>
+    <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')} entries={entries} />
   )
 })

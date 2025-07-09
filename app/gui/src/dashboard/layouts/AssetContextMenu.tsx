@@ -1,9 +1,6 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import type { ContextMenuApi } from '#/components/ContextMenu'
 import { ContextMenu } from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
-import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
-import { Separator } from '#/components/Separator'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -17,11 +14,12 @@ import {
   useUploadFileToLocal,
 } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
+import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategories } from '#/layouts/Drive/Categories'
-import { GlobalContextMenuEntries } from '#/layouts/GlobalContextMenuEntries'
+import { useGlobalContextMenuEntries } from '#/layouts/GlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import type * as assetRow from '#/pages/dashboard/components/AssetRow'
@@ -50,7 +48,6 @@ export interface AssetContextMenuProps {
     newParentId: backendModule.DirectoryId,
   ) => void
   readonly rightPanel: RightPanelData
-  readonly rootRef?: React.MutableRefObject<HTMLElement | null> | undefined
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
@@ -58,7 +55,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   props: AssetContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const { innerProps, triggerRef, currentDirectoryId, rightPanel, rootRef } = props
+  const { innerProps, triggerRef, currentDirectoryId, rightPanel } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
@@ -108,6 +105,14 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
     firstPasteDataId != null ? getAsset(firstPasteDataId.id)?.parentId : null
   const pasteDataParent = pasteDataParentId != null ? getAsset(pasteDataParentId) : null
 
+  const globalContextMenuEntries = useGlobalContextMenuEntries({
+    backend,
+    category,
+    currentDirectoryId,
+    directoryId: canAddToThisDirectory ? asset.id : null,
+    doPaste,
+  })
+
   const canPaste =
     (
       !pasteDataParent ||
@@ -143,53 +148,50 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
 
-  const pasteMenuEntry = hasPasteData && canPaste && (
-    <ContextMenuEntry
-      bindingFocusScope={rootRef}
-      action="paste"
-      doAction={() => {
-        const directoryId =
-          asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
+  const pasteMenuEntry = defineMenuEntry(
+    hasPasteData &&
+      canPaste && {
+        action: 'paste',
+        doAction: () => {
+          const directoryId =
+            asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
 
-        doPaste(directoryId, directoryId)
-      }}
-    />
+          doPaste(directoryId, directoryId)
+        },
+      },
   )
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
-  const copyIdEntry = showDeveloperIds && (
-    <ContextMenuEntry
-      bindingFocusScope={rootRef}
-      color="accent"
-      action="copyId"
-      doAction={() => copyMutation.mutateAsync(asset.id)}
-    />
+  const copyIdEntry = defineMenuEntry(
+    showDeveloperIds && {
+      color: 'accent',
+      action: 'copyId',
+      doAction: () => {
+        void copyMutation.mutateAsync(asset.id)
+      },
+    },
   )
 
-  return (
+  const entries = useMenuEntries(
     category.type === 'trash' ?
-      !ownsThisAsset ? null
-      : <ContextMenu ref={ref} aria-label={getText('assetContextMenuLabel')}>
-          {copyIdEntry}
-
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="undelete"
-            label={getText('restoreFromTrashShortcut')}
-            doAction={() => {
+      !ownsThisAsset ? []
+      : [
+          copyIdEntry,
+          {
+            action: 'undelete',
+            label: getText('restoreFromTrashShortcut'),
+            doAction: () => {
               void restoreAssetsMutation({
                 ids: [asset.id],
                 parentId: null,
               })
-            }}
-          />
-
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="delete"
-            label={getText('deleteForeverShortcut')}
-            doAction={() => {
+            },
+          },
+          {
+            action: 'delete',
+            label: getText('deleteForeverShortcut'),
+            doAction: () => {
               setModal(
                 <ConfirmDeleteModal
                   defaultOpen
@@ -200,141 +202,117 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                   }}
                 />,
               )
-            }}
-          />
-          {pasteMenuEntry}
-        </ContextMenu>
-    : !canManageThisAsset ? null
-    : <ContextMenu ref={ref} aria-label={getText('assetContextMenuLabel')}>
-        {copyIdEntry}
-        {(asset.type === backendModule.AssetType.datalink ||
-          asset.type === backendModule.AssetType.file) && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="useInNewProject"
-            doAction={() => {
-              void newProject(
-                { templateName: asset.title, ensoPath: asset.ensoPath },
-                asset.parentId,
-              )
-            }}
-          />
-        )}
-        {asset.type === backendModule.AssetType.project &&
+            },
+          },
+          pasteMenuEntry,
+        ]
+    : !canManageThisAsset ? []
+    : [
+        copyIdEntry,
+        (asset.type === backendModule.AssetType.datalink ||
+          asset.type === backendModule.AssetType.file) && {
+          action: 'useInNewProject',
+          doAction: () => {
+            void newProject({ templateName: asset.title, ensoPath: asset.ensoPath }, asset.parentId)
+          },
+        },
+        asset.type === backendModule.AssetType.project &&
           canExecute &&
           !isRunningProject &&
-          !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              bindingFocusScope={rootRef}
-              action="open"
-              isDisabled={!canRunProjects.locally[backend.type]}
-              tooltip={disabledTooltip}
-              doAction={() => openProjectLocally(asset, backend.type)}
-            />
-          )}
-        {asset.type === backendModule.AssetType.project && isCloud && localBackend != null && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="run"
-            isDisabled={!canRunProjects.natively[backend.type]}
-            tooltip={disabledTooltip}
-            doAction={() => openProjectNatively(asset, backend.type)}
-          />
-        )}
-        {!isCloud && path != null && systemApi && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="openInFileBrowser"
-            doAction={() => {
+          !isOtherUserUsingProject && {
+            action: 'open',
+            isDisabled: !canRunProjects.locally[backend.type],
+            tooltip: disabledTooltip,
+            doAction: () => {
+              void openProjectLocally(asset, backend.type)
+            },
+          },
+        asset.type === backendModule.AssetType.project &&
+          isCloud &&
+          localBackend != null && {
+            action: 'run',
+            isDisabled: !canRunProjects.natively[backend.type],
+            tooltip: disabledTooltip,
+            doAction: () => {
+              void openProjectNatively(asset, backend.type)
+            },
+          },
+        !isCloud &&
+          path != null &&
+          systemApi && {
+            action: 'openInFileBrowser',
+            doAction: () => {
               systemApi.showItemInFolder(path)
-            }}
-          />
-        )}
-        {asset.type === backendModule.AssetType.project &&
+            },
+          },
+        asset.type === backendModule.AssetType.project &&
           canExecute &&
           isRunningProject &&
-          !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              bindingFocusScope={rootRef}
-              action="close"
-              doAction={() => {
-                void closeProject({
-                  id: asset.id,
-                  title: asset.title,
-                  parentId: asset.parentId,
-                  type: state.backend.type,
-                })
-              }}
-            />
-          )}
-        {isUploadableAsset(asset) && !isCloud && localBackend != null && (
-          <PaywallContextMenuEntry
-            bindingFocusScope={rootRef}
-            isUnderPaywall={!canUploadToCloud}
-            feature="uploadToCloud"
-            action="uploadToCloud"
-            doAction={() =>
-              uploadFileToCloudMutation(localBackend, {
+          !isOtherUserUsingProject && {
+            action: 'close',
+            doAction: () => {
+              void closeProject({
+                id: asset.id,
+                title: asset.title,
+                parentId: asset.parentId,
+                type: state.backend.type,
+              })
+            },
+          },
+        isUploadableAsset(asset) &&
+          !isCloud &&
+          localBackend != null && {
+            isUnderPaywall: !canUploadToCloud,
+            action: 'uploadToCloud',
+            feature: 'uploadToCloud',
+            doAction: () => {
+              void uploadFileToCloudMutation(localBackend, {
                 assets: [asset],
                 targetDirectoryId: user.rootDirectoryId,
               })
-            }
-          />
-        )}
-        {isUploadableAsset(asset) && isCloud && localBackend != null && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="downloadToLocal"
-            doAction={() => uploadFileToLocal([asset])}
-          />
-        )}
-        {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="rename"
-            doAction={() => {
+            },
+          },
+        isUploadableAsset(asset) &&
+          isCloud &&
+          localBackend != null && {
+            action: 'downloadToLocal',
+            doAction: () => {
+              void uploadFileToLocal([asset])
+            },
+          },
+        canExecute &&
+          !isRunningProject &&
+          !isOtherUserUsingProject && {
+            action: 'rename',
+            doAction: () => {
               setRowState(object.merger({ isEditingName: true }))
-            }}
-          />
-        )}
-        {(asset.type === backendModule.AssetType.secret ||
+            },
+          },
+        (asset.type === backendModule.AssetType.secret ||
           asset.type === backendModule.AssetType.datalink) &&
-          canEditThisAsset && (
-            <ContextMenuEntry
-              bindingFocusScope={rootRef}
-              action="edit"
-              doAction={() => {
-                rightPanel.setTemporaryTab('settings')
-                rightPanel.updateContext('drive', (ctx) => {
-                  ctx.category = category
-                  ctx.item = asset
-                  switch (asset.type) {
-                    case backendModule.AssetType.secret:
-                    case backendModule.AssetType.datalink:
-                      ctx.spotlightOn = asset.type
-                      break
-                  }
-                  return ctx
-                })
-              }}
-            />
-          )}
-        {isCloud && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            isDisabled
-            action="snapshot"
-            doAction={() => {
-              // No backend support yet.
-            }}
-          />
-        )}
-        {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="delete"
-            label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
-            doAction={() => {
+          canEditThisAsset && {
+            action: 'edit',
+            doAction: () => {
+              rightPanel.setTemporaryTab('settings')
+              rightPanel.updateContext('drive', (ctx) => {
+                ctx.category = category
+                ctx.item = asset
+                switch (asset.type) {
+                  case backendModule.AssetType.secret:
+                  case backendModule.AssetType.datalink:
+                    ctx.spotlightOn = asset.type
+                    break
+                }
+                return ctx
+              })
+            },
+          },
+        ownsThisAsset &&
+          !isRunningProject &&
+          !isOtherUserUsingProject && {
+            action: 'delete',
+            label: isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut'),
+            doAction: () => {
               const textId = isCloud ? 'trashTheAssetTypeTitle' : 'deleteTheAssetTypeTitle'
               setModal(
                 <ConfirmDeleteModal
@@ -349,70 +327,46 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                   }}
                 />,
               )
-            }}
-          />
-        )}
-        {isCloud && <Separator className="my-0.5" />}
-
-        {isCloud && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="label"
-            doAction={() => {
-              setModal(<ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />)
-            }}
-          />
-        )}
-        {isCloud && managesThisAsset && self != null && <Separator className="my-0.5" />}
-        {asset.type === backendModule.AssetType.project && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="duplicate"
-            doAction={async () => {
-              await copyAssetsMutation([[asset.id], asset.parentId])
-            }}
-          />
-        )}
-        {<ContextMenuEntry bindingFocusScope={rootRef} action="copy" doAction={doCopy} />}
-        {path != null && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            action="copyAsPath"
-            doAction={() => copyMutation.mutateAsync(path)}
-          />
-        )}
-        {!isRunningProject && !isOtherUserUsingProject && (
-          <ContextMenuEntry bindingFocusScope={rootRef} action="cut" doAction={doCut} />
-        )}
-        {(isCloud ?
+            },
+          },
+        isCloud && {
+          action: 'label',
+          doAction: () => {
+            setModal(<ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />)
+          },
+        },
+        asset.type === backendModule.AssetType.project && {
+          action: 'duplicate',
+          doAction: () => {
+            void copyAssetsMutation([[asset.id], asset.parentId])
+          },
+        },
+        { action: 'copy', doAction: doCopy },
+        path != null && {
+          action: 'copyAsPath',
+          doAction: () => {
+            void copyMutation.mutateAsync(path)
+          },
+        },
+        !isRunningProject && !isOtherUserUsingProject && { action: 'cut', doAction: doCut },
+        (isCloud ?
           asset.type !== backendModule.AssetType.directory
-        : asset.type === backendModule.AssetType.project) && (
-          <ContextMenuEntry
-            bindingFocusScope={rootRef}
-            isDisabled={asset.type === backendModule.AssetType.secret}
-            action="download"
-            doAction={() => {
-              void downloadAssetsMutation({
-                ids: [{ id: asset.id, title: asset.title }],
-                targetDirectoryId:
-                  !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
-                shouldUnpackProject: false,
-              })
-            }}
-          />
-        )}
-        {pasteMenuEntry}
-        {canAddToThisDirectory && <Separator className="my-0.5" />}
-        {canAddToThisDirectory && (
-          <GlobalContextMenuEntries
-            bindingFocusScope={rootRef}
-            backend={backend}
-            category={category}
-            currentDirectoryId={currentDirectoryId}
-            directoryId={asset.id}
-            doPaste={doPaste}
-          />
-        )}
-      </ContextMenu>
+        : asset.type === backendModule.AssetType.project) && {
+          isDisabled: asset.type === backendModule.AssetType.secret,
+          action: 'download',
+          doAction: () => {
+            void downloadAssetsMutation({
+              ids: [{ id: asset.id, title: asset.title }],
+              targetDirectoryId:
+                !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
+              shouldUnpackProject: false,
+            })
+          },
+        },
+        pasteMenuEntry,
+        ...(canAddToThisDirectory ? globalContextMenuEntries : []),
+      ],
   )
+
+  return <ContextMenu ref={ref} aria-label={getText('assetContextMenuLabel')} entries={entries} />
 })

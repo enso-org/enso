@@ -45,6 +45,7 @@ import {
 } from '#/pages/dashboard/components/column/columnUtils'
 import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
+import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
 import {
   useDriveStore,
   useSetCanDownload,
@@ -811,7 +812,6 @@ function AssetsTable(props: AssetsTableProps) {
     isSingleSelectedDirectoryItem ? null : (
       <AssetsTableContextMenu
         ref={contextMenuRef}
-        rootRef={rootRef}
         backend={backend}
         category={category}
         currentDirectoryId={currentDirectoryId}
@@ -1200,7 +1200,6 @@ function AssetsTable(props: AssetsTableProps) {
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
         openProject={doOpenProject}
-        tableRootRef={rootRef}
       />
     )
   })
@@ -1282,74 +1281,76 @@ function AssetsTable(props: AssetsTableProps) {
   }
 
   return (
-    <div className="relative grow contain-strict">
-      {contextMenu}
+    <BindingFocusScopeContext.Provider value={rootRef}>
+      <div className="relative grow contain-strict">
+        {contextMenu}
 
-      {hiddenColumns.length !== 0 && (
-        <div
-          data-testid="extra-columns"
-          className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
-        >
+        {hiddenColumns.length !== 0 && (
           <div
-            className="inline-flex gap-icons"
-            onFocus={() => {
-              setKeyboardSelectedIndex(null)
-            }}
-          >
-            {hiddenColumns.map((column) => (
-              <HiddenColumn
-                key={column}
-                column={column}
-                enabledColumns={enabledColumns}
-                onColumnClick={setEnabledColumns}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <IsolateLayout className="isolate h-full w-full" useRAF>
-        <div
-          className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
-          onKeyDown={onKeyDown}
-          onBlur={(event) => {
-            if (
-              event.relatedTarget instanceof HTMLElement &&
-              !event.currentTarget.contains(event.relatedTarget)
-            ) {
-              setKeyboardSelectedIndex(null)
-            }
-          }}
-          ref={rootRef}
-        >
-          <SelectionBrush
-            targetRef={rootRef}
-            onDrag={onSelectionDrag}
-            onDragEnd={onSelectionDragEnd}
-            onDragCancel={onSelectionDragCancel}
-            preventDrag={preventSelection}
-          />
-          <div
-            className="flex h-max min-h-full w-max min-w-full flex-col"
-            onContextMenu={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              contextMenuRef.current?.open(event)
-            }}
+            data-testid="extra-columns"
+            className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
           >
             <div
-              className="flex h-full w-min min-w-full grow flex-col px-1"
-              onDrop={(event) => {
-                onRowDrop(event, null)
+              className="inline-flex gap-icons"
+              onFocus={() => {
+                setKeyboardSelectedIndex(null)
               }}
             >
-              {table}
-              <AssetsTableAssetsUnselector />
+              {hiddenColumns.map((column) => (
+                <HiddenColumn
+                  key={column}
+                  column={column}
+                  enabledColumns={enabledColumns}
+                  onColumnClick={setEnabledColumns}
+                />
+              ))}
             </div>
           </div>
-        </div>
-      </IsolateLayout>
-    </div>
+        )}
+
+        <IsolateLayout className="isolate h-full w-full" useRAF>
+          <div
+            className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
+            onKeyDown={onKeyDown}
+            onBlur={(event) => {
+              if (
+                event.relatedTarget instanceof HTMLElement &&
+                !event.currentTarget.contains(event.relatedTarget)
+              ) {
+                setKeyboardSelectedIndex(null)
+              }
+            }}
+            ref={rootRef}
+          >
+            <SelectionBrush
+              targetRef={rootRef}
+              onDrag={onSelectionDrag}
+              onDragEnd={onSelectionDragEnd}
+              onDragCancel={onSelectionDragCancel}
+              preventDrag={preventSelection}
+            />
+            <div
+              className="flex h-max min-h-full w-max min-w-full flex-col"
+              onContextMenu={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                contextMenuRef.current?.open(event)
+              }}
+            >
+              <div
+                className="flex h-full w-min min-w-full grow flex-col px-1"
+                onDrop={(event) => {
+                  onRowDrop(event, null)
+                }}
+              >
+                {table}
+                <AssetsTableAssetsUnselector />
+              </div>
+            </div>
+          </div>
+        </IsolateLayout>
+      </div>
+    </BindingFocusScopeContext.Provider>
   )
 }
 

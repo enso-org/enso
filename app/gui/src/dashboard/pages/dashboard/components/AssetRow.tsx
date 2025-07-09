@@ -82,7 +82,6 @@ export interface AssetRowProps {
   readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
-  readonly tableRootRef: React.MutableRefObject<HTMLElement | null> | undefined
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
@@ -156,7 +155,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
     renameAsset,
     closeProject,
     openProject,
-    tableRootRef,
   } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
@@ -462,7 +460,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
           {isSoleSelected && (
             <AssetContextMenu
               ref={contextMenuRef}
-              rootRef={tableRootRef}
               innerProps={innerProps}
               currentDirectoryId={currentDirectoryId}
               triggerRef={rootRef}
