@@ -11,7 +11,8 @@ import { ToolbarItem } from './toolbar'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
-export const inputType = 'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Base.Data.Vector.Vector'
+export const inputType =
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Base.Data.Vector.Vector'
 
 // The number of points to display by default.
 const DEFAULT_LIMIT = 15000
@@ -712,94 +713,99 @@ watchPostEffect(() => {
   const yScale_ = yScale.value
 
   const allPlotData = getPlotData(data.value) as Point[]
-  const circleData = allPlotData.filter(p => (p.shape || 'circle') === 'circle')
-  const symbolData = allPlotData.filter(p => (p.shape || 'circle') !== 'circle')
-  const labelsData = data.value.points.labels === VISIBLE_POINTS ? [] : allPlotData.filter(d => (d.label != null && d.label !== ''))
+  const circleData = allPlotData.filter((p) => (p.shape || 'circle') === 'circle')
+  const symbolData = allPlotData.filter((p) => (p.shape || 'circle') !== 'circle')
+  const labelsData =
+    data.value.points.labels === VISIBLE_POINTS ?
+      []
+    : allPlotData.filter((d) => d.label != null && d.label !== '')
   console.log(allPlotData, circleData, symbolData, labelsData)
 
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
   const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
-  
-  const colorScale = data.value.is_multi_series ? (d: Point) => color(d.series ?? '') : (d: Point) => d.color ?? DEFAULT_FILL_COLOR;
+
+  const colorScale =
+    data.value.is_multi_series ?
+      (d: Point) => color(d.series ?? '')
+    : (d: Point) => d.color ?? DEFAULT_FILL_COLOR
 
   // Circles
   d3Points.value
     .selectAll<SVGCircleElement, Point>('circle')
-    .data(circleData, pt => pt.row_number)
-    .join(
-      enter =>
-        enter.append('circle')
-          .attr('class', 'scatterPoint')
-          .on('dblclick', (d:any) => {
-            createNode(d.srcElement.__data__.row_number)
-          })
-          .on('mouseover', (event, d) => {
-            d3.select(event.currentTarget).append('title').text(getTooltipMessage(d))
-          })
-          .on('mouseout', (event) => {
-            d3.select(event.currentTarget).select('title').remove()
-          })
+    .data(circleData, (pt) => pt.row_number)
+    .join((enter) =>
+      enter
+        .append('circle')
+        .attr('class', 'scatterPoint')
+        .on('dblclick', (d: any) => {
+          createNode(d.srcElement.__data__.row_number)
+        })
+        .on('mouseover', (event, d) => {
+          d3.select(event.currentTarget).append('title').text(getTooltipMessage(d))
+        })
+        .on('mouseout', (event) => {
+          d3.select(event.currentTarget).select('title').remove()
+        }),
     )
-      .style('fill', colorScale)
-      .attr('r', (d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER / 5)
-      .attr('cx', (d:Point) => xScale_(Number(d.x)))
-      .attr('cy', (d:Point) => yScale_(d.y))
+    .style('fill', colorScale)
+    .attr('r', (d) => ((d.size ?? 0.15) * SIZE_SCALE_MULTIPLER) / 5)
+    .attr('cx', (d: Point) => xScale_(Number(d.x)))
+    .attr('cy', (d: Point) => yScale_(d.y))
 
   // Symbols
   d3Points.value
     .selectAll<SVGPathElement, Point>('path')
-    .data(symbolData, pt => pt.row_number)
-    .join(
-      enter => 
-        enter.append('path')
-          .attr('class', 'scatterPoint')
-          .on('dblclick', (d:any) => {
-            createNode(d.srcElement.__data__.row_number)
-          })
-          .on('mouseover', (event, d) => {
-            d3.select(event.currentTarget).append('title').text(getTooltipMessage(d))
-          })
-          .on('mouseout', (event) => {
-            d3.select(event.currentTarget).select('title').remove()
-          })
+    .data(symbolData, (pt) => pt.row_number)
+    .join((enter) =>
+      enter
+        .append('path')
+        .attr('class', 'scatterPoint')
+        .on('dblclick', (d: any) => {
+          createNode(d.srcElement.__data__.row_number)
+        })
+        .on('mouseover', (event, d) => {
+          d3.select(event.currentTarget).append('title').text(getTooltipMessage(d))
+        })
+        .on('mouseout', (event) => {
+          d3.select(event.currentTarget).select('title').remove()
+        }),
     )
-      .style('--color', colorScale)
-      .attr(
-        'd',
-        symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
-      )
-      .attr('transform', (d:Point) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
+    .style('--color', colorScale)
+    .attr(
+      'd',
+      symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
+    )
+    .attr('transform', (d: Point) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
 
   // Render the points labels
   d3Points.value
-      .selectAll<SVGPathElement, Point>('text')
-      .data(labelsData, pt => pt.row_number)
-      .join(
-        enter => enter.append('text').attr('class', 'label')
-      )
-        .text((d) => d.label ?? '')
-        .attr('x', (d) => xScale_(Number(d.x)) + POINT_LABEL_PADDING_X_PX)
-        .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
+    .selectAll<SVGPathElement, Point>('text')
+    .data(labelsData, (pt) => pt.row_number)
+    .join((enter) => enter.append('text').attr('class', 'label'))
+    .text((d) => d.label ?? '')
+    .attr('x', (d) => xScale_(Number(d.x)) + POINT_LABEL_PADDING_X_PX)
+    .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
 
   // Render the Legend
   if (data.value.is_multi_series) {
-    const formatLabel = (lbl: string) =>
-      lbl.length > 15 ? `${lbl.substring(0, 15)}...` : lbl
+    const formatLabel = (lbl: string) => (lbl.length > 15 ? `${lbl.substring(0, 15)}...` : lbl)
 
     d3Legend.value
       .selectAll('circle')
       .data(seriesLabels.value)
-      .join(
-        enter => enter.append('circle').attr('r', 5).attr('cy', 9)
-      )
-        .attr('cx', (d, i) => 90 + i * 120)
-        .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
+      .join((enter) => enter.append('circle').attr('r', 5).attr('cy', 9))
+      .attr('cx', (d, i) => 90 + i * 120)
+      .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     d3Legend.value
       .selectAll('text')
       .data(seriesLabels.value)
-      .join(
-        enter => enter.append('text').attr('y', 10).style('font-size', LABEL_FONT_STYLE).attr('alignment-baseline', 'middle')
+      .join((enter) =>
+        enter
+          .append('text')
+          .attr('y', 10)
+          .style('font-size', LABEL_FONT_STYLE)
+          .attr('alignment-baseline', 'middle'),
       )
       .attr('x', (d, i) => 100 + i * 120)
       .text((d) => formatLabel(d))

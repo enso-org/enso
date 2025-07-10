@@ -16,7 +16,9 @@ const additionalTypes = computed<string[]>(() => {
   }
 
   const typeInfo = props.typeInfo
-  return typeInfo?.visibleTypes?.flatMap((type) => (type.path ? qnLastSegment(type.path) : [])) ?? []
+  return (
+    typeInfo?.visibleTypes?.flatMap((type) => (type.path ? qnLastSegment(type.path) : [])) ?? []
+  )
 })
 
 const hiddenTypes = computed<string[]>(() => {
