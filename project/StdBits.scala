@@ -318,9 +318,12 @@ object StdBits {
     // tcNativeJar has name like:
     // "netty-tcnative-boringssl-static-2.0.70.Final-linux-x86_64.jar"
     // It contains just a single native library
+    def isExpectedTcNativeJarName(name: String): Boolean = {
+      name.contains(arch().replace("aarch64", "aarch_64")) &&
+      name.contains(osName())
+    }
     val tcNativeJar = tcNativeJars.filter { jar =>
-      jar.getName.contains(arch()) &&
-      jar.getName.contains(osName())
+      isExpectedTcNativeJarName(jar.getName)
     }
     if (tcNativeJar.size != 1) {
       throw new IllegalStateException(
