@@ -72,7 +72,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-  public static EnsoType make(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> typeColumnMethod) {
+  public static EnsoType newMethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> typeColumnMethod) {
     return new EnsoType(moduleName, typeName, isStaticMethod, typeColumnMethod);
   }
 
