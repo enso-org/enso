@@ -5,7 +5,7 @@
 // ===============
 
 /** An interface specifying the variant of a newtype. */
-interface NewtypeVariant<TypeName extends string> {
+type NewtypeVariant<TypeName extends string> = {
   readonly _$type: TypeName
 }
 
