@@ -48,6 +48,7 @@ add_specs suite_builder =
             r2.should_be_a Table
             r2.column_names . should_equal ["Col", "Value"]
             r2.at "Col" . to_vector . should_equal files_vector
+            r2.at "Col" . value_type . should_equal "Char"
             check_returned_vector (r2.at "Value" . to_vector)
 
         group_builder.specify "should read files listed in a single column Table" <|
