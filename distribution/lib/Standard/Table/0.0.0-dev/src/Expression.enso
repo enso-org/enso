@@ -38,8 +38,9 @@ type Expression
                 _ : Column -> value 
                 _ -> table.make_constant_column value
         _is_column value = value.is_a Column
-        ## Helper for the expression to tell it which functions needs a Vector.
+        ## Helper for the expression to tell it which functions needs a Vector
         var_args_functions = ['is_in', 'coalesce', 'min', 'max']
+        ## Define which enso types we will look in to resolve methods in the expression
         mr1 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Expression_Statics" "Expression_Statics" isStaticMethod=True makeTypedColumn=Nothing
         mr2 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Column" "Column" isStaticMethod=False makeTypedColumn=c->c
         mr3 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Refined_Types.Numeric_Column" "Numeric_Column" isStaticMethod=False makeTypedColumn=c->(c : Column & Numeric_Column)
