@@ -30,6 +30,6 @@ public final class AnyClosureTest extends TransitiveInfra {
 
   @Override
   protected Collection<String> disallowModules() {
-    return List.of("Standard.Base.Data.Text.Text_Cleanse");
+    return List.of("Standard.Base.Data.Text.Text_Cleanse", "Standard.Base.Meta.Enso_Project");
   }
 }

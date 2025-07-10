@@ -877,6 +877,7 @@ class Compiler(
 
     if (
       "Standard.Base.Data.Text".equals(n) ||
+      "Standard.Base.Meta".equals(n) ||
       "Standard.Base.Errors".equals(n)
     ) {
       System.err.println("don't injectSyntheticModuleExports: " + n)
