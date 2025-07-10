@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -136,11 +135,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects;
       try {
-      objects = prepareArguments(args, makeConstantColumn);
-      }
-      catch (PolyglotException e) {
-       if (e.getMessage().startsWith("Type error: expected expression to be")) {
-          throw new TypeErrorException(e.getMessage().replace("Type error: expected expression", "method '"+name+"' expected first argument"));
+        objects = prepareArguments(args, makeConstantColumn);
+      } catch (PolyglotException e) {
+        if (e.getMessage().startsWith("Type error: expected expression to be")) {
+          throw new TypeErrorException(
+              e.getMessage()
+                  .replace(
+                      "Type error: expected expression",
+                      "method '" + name + "' expected first argument"));
         }
         throw e;
       }
