@@ -71,6 +71,11 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
               isStaticMethod);
     }
   }
+
+  public static EnsoType make(String moduleName, String typeName, boolean isStaticMethod) {
+    return new EnsoType(moduleName, typeName, isStaticMethod);
+  }
+
   public record EnsoMethod(EnsoType type, String methodName, Value methodImpl) {
     public EnsoMethod(EnsoType type, String methodName) {
       this(type, methodName, type.module().invokeMember("get_method", type.type(), methodName));
@@ -138,15 +143,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       Function<Value, Boolean> isColumn,
-      String [][] x,
+      EnsoType[] x,
       String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
         
-    final var moduleTypePairs = java.util.Arrays.stream(x)
-        .map(entry -> new EnsoType(entry[0], entry[1], Boolean.parseBoolean(entry[2])))
-        .toList();
+    final var moduleTypePairs = java.util.Arrays.stream(x).toList();
     Function<String, MethodInterface> getMethod =
         name -> Method.create(moduleTypePairs, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
