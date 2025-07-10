@@ -140,7 +140,10 @@ pub fn expose_gui_vars(step: Step) -> Step {
     .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
     .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide::web::env::ENSO_IDE_SENTRY_DSN)
     .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide::web::env::ENSO_IDE_STRIPE_KEY)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_MICROSOFT_SIGN_OUT_URL, ide::web::env::ENSO_IDE_MICROSOFT_SIGN_OUT_URL)
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_MICROSOFT_SIGN_OUT_URL,
+        ide::web::env::ENSO_IDE_MICROSOFT_SIGN_OUT_URL
+    )
     .with_variable_exposed_as(
         variables::ENSO_CLOUD_AUTH_ENDPOINT,
         ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
