@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -60,15 +59,21 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
   }
 
-  public record MethodResolver(Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
-    public MethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+  public record MethodResolver(
+      Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    public MethodResolver(
+        String moduleName,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
       this(
           Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
           Context.getCurrent()
               .getBindings("enso")
               .invokeMember("get_module", moduleName)
               .invokeMember("get_type", typeName),
-              isStaticMethod,makeTypedColumn);
+          isStaticMethod,
+          makeTypedColumn);
     }
 
     public boolean canResolve(String methodName) {
@@ -80,9 +85,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-  public static MethodResolver newMethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+  public static MethodResolver newMethodResolver(
+      String moduleName,
+      String typeName,
+      boolean isStaticMethod,
+      Function<Object, Value> makeTypedColumn) {
     return new MethodResolver(moduleName, typeName, isStaticMethod, makeTypedColumn);
   }
+
   public static class Method implements MethodInterface {
     protected final MethodResolver methodResolver;
     protected final String name;
@@ -93,19 +103,21 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     public static Method create(
-        Iterable<MethodResolver> methodResolvers, String methodName, boolean isVariableArgumentMethod) {
-        for (var resolver : methodResolvers) {
-           if (resolver.canResolve(methodName)) {
-            if (isVariableArgumentMethod) {
-              return new VariableArgumentMethod(resolver, methodName);
-            } else if (resolver.isStaticMethod) {
-              return new StaticArgumentMethod(resolver, methodName);
-            } else {
+        Iterable<MethodResolver> methodResolvers,
+        String methodName,
+        boolean isVariableArgumentMethod) {
+      for (var resolver : methodResolvers) {
+        if (resolver.canResolve(methodName)) {
+          if (isVariableArgumentMethod) {
+            return new VariableArgumentMethod(resolver, methodName);
+          } else if (resolver.isStaticMethod) {
+            return new StaticArgumentMethod(resolver, methodName);
+          } else {
             return new Method(resolver, methodName);
-            }
           }
         }
-        throw new UnsupportedOperationException("Method not found: " + methodName);
+      }
+      throw new UnsupportedOperationException("Method not found: " + methodName);
     }
 
     @Override
@@ -132,6 +144,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       return objects;
     }
   }
+
   public static class VariableArgumentMethod extends Method {
     public VariableArgumentMethod(MethodResolver methodResolver, String name) {
       super(methodResolver, name);
@@ -140,8 +153,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
       return new Object[] {
-          this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0])),
-          Arrays.copyOfRange(args, 1, args.length, Object[].class)
+        this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0])),
+        Arrays.copyOfRange(args, 1, args.length, Object[].class)
       };
     }
   }
@@ -171,7 +184,11 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
     Function<String, MethodInterface> getMethod =
-        name -> Method.create(java.util.Arrays.stream(methodResolvers).toList(), name, setVariableArgumentFunctions.contains(name));
+        name ->
+            Method.create(
+                java.util.Arrays.stream(methodResolvers).toList(),
+                name,
+                setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
         name -> methodResolvers[0].module.invokeMember("eval_expression", ".." + name);
 
