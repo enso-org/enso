@@ -4,6 +4,7 @@ from Standard.Base.Metadata import Widget
 import project.Column.Column
 import project.Table.Table
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import Standard.Base.Errors.Common.Type_Error
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
@@ -48,8 +49,9 @@ type Expression
         handle_parse_error = Panic.catch ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
+        handle_type = Panic.catch Type_Error handler=(e-> Error.throw e.payload)
 
-        handle_parse_error <| handle_unsupported <| handle_arguments <|
+        handle_parse_error <| handle_unsupported <| handle_arguments <| handle_type <|
             ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column method_resolvers var_args_functions
 
 type Expression_Error

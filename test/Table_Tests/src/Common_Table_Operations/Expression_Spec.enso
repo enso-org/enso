@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -431,7 +432,7 @@ add_expression_specs suite_builder detailed setup =
             expression_test "pi()" Math.pi
             expression_test "e()" Math.e
         
-        specify_test "should be able to call numemric_column methods" group_builder expression_test->
+        specify_test "should be able to call numeric_column methods" group_builder expression_test->
             expression_test "abs([E])" [1.0, 1.5, 2.5, 4.0, 6.0]
 
         specify_test "should be able to perform arithmetic and get integer results" group_builder expression_test->
@@ -479,6 +480,10 @@ add_expression_specs suite_builder detailed setup =
 
         group_builder.specify "should fail with Argument_Mismatch if too many arguments" <|
             expect_error Expression_Error.Argument_Mismatch <| test_table.get.evaluate_expression "is_empty([C], 'Hello')"
+
+        group_builder.specify "calling numeric_column methods on non numeric column errors" <|
+            r = test_table.get.evaluate_expression "abs([C])"
+            r.catch.should_be_a Type_Error
             
         if setup.is_database.not then group_builder.specify "should fail with bad regex" <|
             ## Unclosed regex literal

@@ -173,12 +173,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       throws UnsupportedOperationException, IllegalArgumentException {
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
-        
-    final var moduleTypePairs = java.util.Arrays.stream(methodResolvers).toList();
     Function<String, MethodInterface> getMethod =
-        name -> Method.create(moduleTypePairs, name, setVariableArgumentFunctions.contains(name));
+        name -> Method.create(java.util.Arrays.stream(methodResolvers).toList(), name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
-        name -> moduleTypePairs.get(0).module.invokeMember("eval_expression", ".." + name);
+        name -> methodResolvers[0].module.invokeMember("eval_expression", ".." + name);
 
     return evaluateImpl(
         expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
