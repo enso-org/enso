@@ -435,6 +435,12 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to call numeric_column methods" group_builder expression_test->
             expression_test "abs([E])" [1.0, 1.5, 2.5, 4.0, 6.0]
 
+        specify_test "should be able to call numeric_column methods on constants" group_builder expression_test->
+            expression_test "abs(-1)" 1
+
+        specify_test "should be able to call numeric_column methods on results of other methods" group_builder expression_test->
+            expression_test "abs(text_length([C]))" [5, 5, 12, 0, Nothing]
+
         specify_test "should be able to perform arithmetic and get integer results" group_builder expression_test->
             # This requires column offset which is not available in databases due to ordering
             if setup.is_database.not then
