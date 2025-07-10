@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 

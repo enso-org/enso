@@ -38,6 +38,10 @@
     {
       "name": "docs",
       "url": "https://help.enso.org/"
+    },
+    {
+      "name": "contactUs",
+      "url": "https://ensoanalytics.com/contact"
     }
   ]
 }

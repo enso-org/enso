@@ -9,8 +9,8 @@ import project.Connection.Connection.Connection
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
-import project.SQL_Statement.SQL_Statement
 from project.Errors import Unsupported_Database_Type
 
 ## PRIVATE

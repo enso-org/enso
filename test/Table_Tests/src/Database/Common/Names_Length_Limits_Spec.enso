@@ -4,9 +4,9 @@ from Standard.Table import Table, Join_Kind, Aggregate_Column, Value_Type, expr
 from Standard.Table.Errors import Name_Too_Long, Truncated_Column_Names, Duplicate_Output_Column_Names
 
 from Standard.Database import all
-from Standard.Database.Dialect import Temp_Table_Style
+import Standard.Database.Dialects.Dialect.Temp_Table_Style
 from Standard.Database.Errors import Table_Not_Found, Unsupported_Database_Operation
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
