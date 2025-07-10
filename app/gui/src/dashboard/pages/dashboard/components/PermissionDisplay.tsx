@@ -39,7 +39,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
             permissionsModule.PERMISSION_CLASS_NAME[permission.type],
             className,
           )}
-          onPress={onPress ?? (() => {})}
+          onPress={onPress}
         >
           {children}
         </Button>
@@ -55,7 +55,8 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
             'relative inline-block whitespace-nowrap rounded-full',
             className,
           )}
-          onPress={onPress ?? (() => {})}
+          isDisabled={!onPress}
+          onPress={onPress}
         >
           {permission.docs && (
             <div className="absolute size-full rounded-full border-2 border-permission-docs clip-path-top" />

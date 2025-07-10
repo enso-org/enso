@@ -124,6 +124,7 @@
   "acceptInvitationBackendError": "Could not accept invitation.",
   "createPermissionBackendError": "Could not set permissions",
   "listFolderBackendError": "Could not list folder '$0'",
+  "searchFolderBackendError": "Could not search in folder",
   "listRootFolderBackendError": "Could not list root folder",
   "createFolderBackendError": "Could not create folder '$0'",
   "updateFolderBackendError": "Could not update folder '$0'",

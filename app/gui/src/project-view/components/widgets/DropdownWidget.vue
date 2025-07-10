@@ -4,11 +4,7 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref } from 'vue'
 
-enum SortDirection {
-  none = 'none',
-  ascending = 'ascending',
-  descending = 'descending',
-}
+type SortDirection = 'none' | 'ascending' | 'descending'
 
 const props = defineProps<{ color: string; backgroundColor: string; entries: Entry[] }>()
 const emit = defineEmits<{
@@ -16,7 +12,7 @@ const emit = defineEmits<{
   scroll: []
 }>()
 
-const sortDirection = ref<SortDirection>(SortDirection.none)
+const sortDirection = ref<SortDirection>('none')
 const graphNavigator = injectGraphNavigator(true)
 
 function lexicalCmp(a: string, b: string) {
@@ -29,13 +25,13 @@ function lexicalCmp(a: string, b: string) {
 
 const sortedValues = computed<Entry[]>(() => {
   switch (sortDirection.value) {
-    case SortDirection.ascending: {
+    case 'ascending': {
       return [...props.entries].sort((a, b) => lexicalCmp(a.value, b.value))
     }
-    case SortDirection.descending: {
+    case 'descending': {
       return [...props.entries].sort((a, b) => lexicalCmp(b.value, a.value))
     }
-    case SortDirection.none:
+    case 'none':
     default: {
       return props.entries
     }
@@ -43,15 +39,15 @@ const sortedValues = computed<Entry[]>(() => {
 })
 
 const ICON_LOOKUP: Record<SortDirection, Icon> = {
-  [SortDirection.none]: 'sort',
-  [SortDirection.ascending]: 'sort_ascending',
-  [SortDirection.descending]: 'sort_descending',
+  none: 'sort',
+  ascending: 'sort_ascending',
+  descending: 'sort_descending',
 }
 
 const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
-  [SortDirection.none]: SortDirection.ascending,
-  [SortDirection.ascending]: SortDirection.descending,
-  [SortDirection.descending]: SortDirection.none,
+  none: 'ascending',
+  ascending: 'descending',
+  descending: 'none',
 }
 
 // Currently unused.
@@ -133,6 +129,7 @@ export interface DropdownEntry {
 .ExtendUpwards {
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
+
   &:before {
     content: '';
     display: block;
@@ -167,6 +164,7 @@ export interface DropdownEntry {
 
   &:hover {
     background-color: color-mix(in oklab, var(--dropdown-bg) 50%, white 50%);
+
     .itemContent {
       --text-scroll-max: calc(var(--dropdown-max-width) - 28px);
       will-change: transform;
@@ -217,6 +215,7 @@ export interface DropdownEntry {
     max-width: unset;
     transform: translateX(0);
   }
+
   50%,
   70% {
     max-width: unset;

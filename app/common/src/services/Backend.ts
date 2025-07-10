@@ -1387,7 +1387,7 @@ export type AssetSortDirection = 'ascending' | 'descending'
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
-  readonly labels: LabelName[] | null
+  readonly labels: readonly LabelName[] | null
   readonly from: AssetId | null
   readonly pageSize: number | null
   readonly sortExpression: AssetSortExpression | null
@@ -1404,6 +1404,7 @@ export interface ListDirectoryRequestParams {
 /** URL query string parameters for the "search directory" endpoint. */
 export interface SearchDirectoryRequestParams {
   readonly parentId: DirectoryId | null
+  readonly query: string | null
   readonly title: string | null
   readonly description: string | null
   readonly type: string | null
@@ -1729,6 +1730,8 @@ export default abstract class Backend {
     query: ListDirectoryRequestParams,
     title: string,
   ): Promise<readonly AnyAsset[]>
+  /** Return a list of assets recursively in a directory matching a query. */
+  abstract searchDirectory(query: SearchDirectoryRequestParams): Promise<readonly AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(
     body: CreateDirectoryRequestBody,

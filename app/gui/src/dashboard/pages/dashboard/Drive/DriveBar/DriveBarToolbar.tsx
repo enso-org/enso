@@ -22,7 +22,7 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
+import { AssetSearchBar } from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { canTransferBetweenCategories } from '#/layouts/CategorySwitcher/Category'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
@@ -320,6 +320,9 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
     category,
     parentId: category.homeDirectoryId,
     refetchInterval: null,
+    labels: null,
+    sortDirection: null,
+    sortExpression: null,
   })
 
   const { data: isEmpty } = useSuspenseQuery({

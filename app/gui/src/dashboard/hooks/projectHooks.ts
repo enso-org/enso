@@ -500,6 +500,10 @@ function useOpenHybridProject() {
             parentId: parentId,
             filterBy: null,
             labels: null,
+            sortExpression: null,
+            sortDirection: null,
+            from: null,
+            pageSize: null,
             recentProjects: false,
           })
           project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)

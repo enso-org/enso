@@ -12,7 +12,6 @@ import Label from '#/pages/dashboard/components/Label'
 import * as modalProvider from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import type { Label as BackendLabel } from '#/services/Backend'
-import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
@@ -67,9 +66,7 @@ export const searchbarSuggestionsStore = createStore<{
   },
 }))
 
-/**
- * Sets the suggestions.
- */
+/** Sets the suggestions. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useSetSuggestions() {
   return useStore(searchbarSuggestionsStore, (state) => state.setSuggestions, {
@@ -135,7 +132,7 @@ export interface AssetSearchBarProps {
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
-function AssetSearchBar(props: AssetSearchBarProps) {
+export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSearchBarProps) {
   const { backend, isCloud, query, setQuery } = props
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
@@ -371,7 +368,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
       </aria.Label>
     </div>
   )
-}
+})
 
 /** Props for a {@link AssetSearchBarInput}. */
 interface AssetSearchBarInputProps {
@@ -616,54 +613,39 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
 
   const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
 
-  const labelOnPress = useEventCallback(
-    (event: aria.PressEvent | React.MouseEvent<HTMLButtonElement>, label?: BackendLabel) => {
-      if (label == null) {
-        return
-      }
-      unsafeWriteValue(querySource, 'current', QuerySource.internal)
-      setQuery((oldQuery) => {
-        const newQuery = oldQuery.withToggled(
-          'labels',
-          'negativeLabels',
-          label.value,
-          event.shiftKey,
-        )
-        unsafeWriteValue(baseQuery, 'current', newQuery)
-        return newQuery
-      })
-    },
-  )
+  const labelOnPress = useEventCallback((label?: BackendLabel) => {
+    if (label == null) {
+      return
+    }
+    unsafeWriteValue(querySource, 'current', QuerySource.internal)
+    setQuery((oldQuery) => {
+      const newQuery = oldQuery.withToggled('labels', label.value)
+      unsafeWriteValue(baseQuery, 'current', newQuery)
+      return newQuery
+    })
+  })
+
+  if (!isCloud || labels.length === 0) {
+    return null
+  }
 
   return (
-    <>
-      {isCloud && labels.length !== 0 && (
-        <div data-testid="asset-search-labels" className="pointer-events-auto flex gap-2 px-1.5">
-          {[...labels]
-            .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
-            .map((label) => {
-              const negated = query.negativeLabels.some((term) =>
-                array.shallowEqual(term, [label.value]),
-              )
-              return (
-                <Label
-                  key={label.id}
-                  color={label.color}
-                  label={label}
-                  active={
-                    negated || query.labels.some((term) => array.shallowEqual(term, [label.value]))
-                  }
-                  negated={negated}
-                  onPress={labelOnPress}
-                >
-                  {label.value}
-                </Label>
-              )
-            })}
-        </div>
-      )}
-    </>
+    <div data-testid="asset-search-labels" className="pointer-events-auto flex gap-2 px-1.5">
+      {[...labels]
+        .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
+        .map((label) => {
+          return (
+            <Label
+              key={label.id}
+              color={label.color}
+              label={label}
+              active={query.labels.some((term) => term === label.value)}
+              onPress={labelOnPress}
+            >
+              {label.value}
+            </Label>
+          )
+        })}
+    </div>
   )
 })
-
-export default React.memo(AssetSearchBar)

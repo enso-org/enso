@@ -1,25 +1,25 @@
 /** @file Utilities related to sorting. */
 import type { SvgUseIcon } from '#/components/types'
+import type { AssetSortDirection } from '#/services/Backend'
 
-/** Sort direction. */
-export enum SortDirection {
-  ascending = 'ascending',
-  descending = 'descending',
-}
+/** Sort direction for assets. */
+export type SortDirection = AssetSortDirection
 
 /**
- * The next {@link SortDirection}, in the order they are cycled through when clicking a column
+ * The next {@link AssetSortDirection}, in the order they are cycled through when clicking a column
  * header.
  */
-export function nextSortDirection(sortDirection: SortDirection | null) {
+export function nextSortDirection(
+  sortDirection: AssetSortDirection | null,
+): AssetSortDirection | null {
   switch (sortDirection) {
     case null: {
-      return SortDirection.ascending
+      return 'ascending'
     }
-    case SortDirection.ascending: {
-      return SortDirection.descending
+    case 'ascending': {
+      return 'descending'
     }
-    case SortDirection.descending: {
+    case 'descending': {
       return null
     }
   }
@@ -27,7 +27,7 @@ export function nextSortDirection(sortDirection: SortDirection | null) {
 
 /** The corresponding icon id forr a given {@link SortDirection}. */
 export function iconIdFor(
-  sortDirection: SortDirection | null | undefined,
+  sortDirection: AssetSortDirection | null | undefined,
   sortInfoAppliesToCurrentColumn = true,
 ): SvgUseIcon {
   if (!sortInfoAppliesToCurrentColumn) {
@@ -38,17 +38,17 @@ export function iconIdFor(
     case undefined: {
       return 'sort'
     }
-    case SortDirection.ascending: {
+    case 'ascending': {
       return 'sort_ascending'
     }
-    case SortDirection.descending: {
+    case 'descending': {
       return 'sort_descending'
     }
   }
 }
 
 /** Sort information. */
-export interface SortInfo<Field> {
+export interface SortInfo<Field extends string> {
   readonly field: Field
-  readonly direction: SortDirection
+  readonly direction: AssetSortDirection
 }

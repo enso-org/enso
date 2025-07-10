@@ -12,6 +12,7 @@ import {
   backendMutationOptions,
   backendQueryOptions,
   listDirectoryQueryOptions,
+  searchDirectoryQueryOptions,
   useListDirectoryRefetchInterval,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
@@ -34,7 +35,6 @@ import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
 import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import { NameColumn } from '#/pages/dashboard/components/column'
-import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
   Column,
   COLUMN_CSS_CLASS,
@@ -59,12 +59,11 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
-import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
+import type { AssetId, AssetSortExpression, DirectoryId, ProjectId } from '#/services/Backend'
 import {
   assetIsProject,
   AssetType,
   BackendType,
-  getAssetPermissionName,
   IS_OPENING_OR_OPENED,
   isAssetCredential,
   isDirectoryId,
@@ -78,7 +77,6 @@ import { fileExtension } from '#/utilities/fileInfo'
 import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -91,7 +89,7 @@ import {
   useText,
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
   Children,
   cloneElement,
@@ -114,12 +112,7 @@ import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
-import {
-  SUGGESTIONS_FOR_HAS,
-  SUGGESTIONS_FOR_NEGATIVE_TYPE,
-  SUGGESTIONS_FOR_NO,
-  SUGGESTIONS_FOR_TYPE,
-} from './Drive/suggestionsConstants'
+import { SUGGESTIONS_FOR_TYPE } from './Drive/suggestionsConstants'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -132,6 +125,7 @@ LocalStorage.registerKey('enabledColumns', {
   schema: z.nativeEnum(Column).array().readonly(),
 })
 
+const LIST_DIRECTORY_DEFAULT_PAGE_SIZE = 10
 /**
  * The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling.
@@ -151,8 +145,8 @@ export interface AssetsTableState {
   readonly currentDirectoryId: DirectoryId
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly category: Category
-  readonly sortInfo: SortInfo<SortableColumn> | null
-  readonly setSortInfo: (sortInfo: SortInfo<SortableColumn> | null) => void
+  readonly sortInfo: SortInfo<AssetSortExpression> | null
+  readonly setSortInfo: (sortInfo: SortInfo<AssetSortExpression> | null) => void
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly hideColumn: (column: Column) => void
@@ -208,7 +202,7 @@ function AssetsTable(props: AssetsTableProps) {
     [backend.type, category, enabledColumns, user],
   )
 
-  const [sortInfo, setSortInfo] = useState<SortInfo<SortableColumn> | null>(null)
+  const [sortInfo, setSortInfo] = useState<SortInfo<AssetSortExpression> | null>(null)
   const driveStore = useDriveStore()
   const setNewestFolderId = useSetNewestFolderId()
   const setSelectedAssets = useSetSelectedAssets()
@@ -245,25 +239,43 @@ function AssetsTable(props: AssetsTableProps) {
     category,
   })
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
-  const { data: assets = [] } = useSuspenseQuery({
-    ...listDirectoryQueryOptions({
-      backend,
-      parentId: queryDirectoryId,
-      category,
-      refetchInterval: listDirectoryRefetchInterval,
-    }),
+  const directoryQueryOptions =
+    query.query === '' ?
+      listDirectoryQueryOptions({
+        backend,
+        parentId: queryDirectoryId,
+        category,
+        refetchInterval: listDirectoryRefetchInterval,
+        labels: null,
+        sortExpression: sortInfo?.field ?? null,
+        sortDirection: sortInfo?.direction ?? null,
+      })
+    : searchDirectoryQueryOptions({
+        backend,
+        parentId: queryDirectoryId,
+        query: query.keywords[0] ?? null,
+        title: query.names[0] ?? null,
+        extension: query.extensions[0] ?? null,
+        description: query.descriptions[0] ?? null,
+        type: query.types[0] ?? null,
+      })
+  const assetsPages = useInfiniteQuery({
+    ...directoryQueryOptions,
+    queryFn: (context) =>
+      directoryQueryOptions.queryFn(context, {
+        from: context.pageParam,
+        pageSize: LIST_DIRECTORY_DEFAULT_PAGE_SIZE,
+      }),
+    initialPageParam: ((): AssetId | null => null)(),
+    getNextPageParam: (lastPage) => lastPage[lastPage.length - 1]?.id ?? null,
     retry: () => {
       setDriveLocation(null, category.id)
       return false
     },
   })
+  const assets = useMemo(() => assetsPages.data?.pages.flat() ?? [], [assetsPages.data?.pages])
 
-  const { visibleItems } = useAssetsTableItems({
-    parentId: currentDirectoryId,
-    assets,
-    sortInfo,
-    query,
-  })
+  const { visibleItems } = useAssetsTableItems({ parentId: currentDirectoryId, assets, sortInfo })
 
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -321,12 +333,12 @@ function AssetsTable(props: AssetsTableProps) {
     ): assetSearchBar.Suggestion => ({
       key: node.id,
       render: () => `${key === 'names' ? '' : '-:'}${node.title}`,
-      addToQuery: (oldQuery) => oldQuery.addToLastTerm({ [key]: [node.title] }),
-      deleteFromQuery: (oldQuery) => oldQuery.deleteFromLastTerm({ [key]: [node.title] }),
+      addToQuery: (oldQuery) => oldQuery.add({ [key]: [node.title] }),
+      deleteFromQuery: (oldQuery) => oldQuery.delete({ [key]: [node.title] }),
     })
 
-    const allVisible = (negative = false) => {
-      return assets.map((node) => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
+    const allVisible = () => {
+      return assets.map((node) => nodeToSuggestion(node, 'names'))
     }
 
     const terms = AssetQuery.terms(query.query)
@@ -337,38 +349,19 @@ function AssetsTable(props: AssetsTableProps) {
     if (termValues.length !== 0) {
       setSuggestions(shouldOmitNames ? [] : allVisible())
     } else {
-      const negative = term?.tag?.startsWith('-') ?? false
       switch (term?.tag ?? null) {
         case null:
         case '':
-        case '-':
-        case 'name':
-        case '-name': {
-          setSuggestions(allVisible(negative))
-          break
-        }
-        case 'no':
-        case '-has': {
-          setSuggestions(isCloud ? SUGGESTIONS_FOR_NO : [])
-          break
-        }
-        case 'has':
-        case '-no': {
-          setSuggestions(isCloud ? SUGGESTIONS_FOR_HAS : [])
+        case 'name': {
+          setSuggestions(allVisible())
           break
         }
         case 'type': {
           setSuggestions(SUGGESTIONS_FOR_TYPE)
           break
         }
-        case '-type': {
-          setSuggestions(SUGGESTIONS_FOR_NEGATIVE_TYPE)
-          break
-        }
         case 'ext':
-        case '-ext':
-        case 'extension':
-        case '-extension': {
+        case 'extension': {
           const extensions = assets
             .filter((node) => node.type === AssetType.file)
             .map((node) => fileExtension(node.title))
@@ -377,26 +370,15 @@ function AssetsTable(props: AssetsTableProps) {
               new Set(extensions),
               (extension): assetSearchBar.Suggestion => ({
                 key: extension,
-                render: () =>
-                  AssetQuery.termToString({
-                    tag: `${negative ? '-' : ''}extension`,
-                    values: [extension],
-                  }),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] },
-                  ),
+                render: () => AssetQuery.termToString({ tag: 'extension', values: [extension] }),
+                addToQuery: (oldQuery) => oldQuery.add({ extensions: [extension] }),
+                deleteFromQuery: (oldQuery) => oldQuery.delete({ extensions: [extension] }),
               }),
             ),
           )
           break
         }
-        case 'modified':
-        case '-modified': {
+        case 'modified': {
           const modifieds = assets.map((node) => {
             const date = new Date(node.modifiedAt)
             return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
@@ -408,54 +390,17 @@ function AssetsTable(props: AssetsTableProps) {
                 key: modified,
                 render: () =>
                   AssetQuery.termToString({
-                    tag: `${negative ? '-' : ''}modified`,
+                    tag: 'modified',
                     values: [modified],
                   }),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] },
-                  ),
+                addToQuery: (oldQuery) => oldQuery.add({ modifieds: [modified] }),
+                deleteFromQuery: (oldQuery) => oldQuery.delete({ modifieds: [modified] }),
               }),
             ),
           )
           break
         }
-        case 'owner':
-        case '-owner': {
-          const owners = assets.flatMap((asset) =>
-            (asset.permissions ?? [])
-              .filter((permission) => permission.permission === PermissionAction.own)
-              .map(getAssetPermissionName),
-          )
-          setSuggestions(
-            Array.from(
-              new Set(owners),
-              (owner): assetSearchBar.Suggestion => ({
-                key: owner,
-                render: () =>
-                  AssetQuery.termToString({
-                    tag: `${negative ? '-' : ''}owner`,
-                    values: [owner],
-                  }),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeOwners: [owner] } : { owners: [owner] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeOwners: [owner] } : { owners: [owner] },
-                  ),
-              }),
-            ),
-          )
-          break
-        }
-        case 'label':
-        case '-label': {
+        case 'label': {
           setSuggestions(
             (labels ?? []).map(
               (label): assetSearchBar.Suggestion => ({
@@ -465,14 +410,8 @@ function AssetsTable(props: AssetsTableProps) {
                     {label.value}
                   </Label>
                 ),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] },
-                  ),
+                addToQuery: (oldQuery) => oldQuery.add({ labels: [label.value] }),
+                deleteFromQuery: (oldQuery) => oldQuery.delete({ labels: [label.value] }),
               }),
             ),
           )

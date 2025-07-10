@@ -13,7 +13,7 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import type Backend from '#/services/Backend'
 import type { EmailAddress } from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
-import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
+import { iconIdFor, nextSortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import { getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
@@ -64,7 +64,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const users = [...usersRaw].sort((a, b) => a.name.localeCompare(b.name))
   const allEmails = users.map((user) => user.email)
   const usersByEmail = new Map(users.map((user) => [user.email, user]))
-  const isDescending = sortInfo?.direction === SortDirection.descending
+  const isDescending = sortInfo?.direction === 'descending'
 
   const lambdaKindsByName = new Map(
     SELECTABLE_LAMBDA_KINDS.map((kind) => [getText(EVENT_TYPE_NAME_ID[kind]), kind]),
@@ -118,7 +118,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       return filteredLogs
     } else {
       let compare: (a: AuditLogEvent, b: AuditLogEvent) => number
-      const multiplier = sortInfo.direction === SortDirection.ascending ? 1 : -1
+      const multiplier = sortInfo.direction === 'ascending' ? 1 : -1
       switch (sortInfo.field) {
         case ActivityLogSortableColumn.type: {
           compare = (a, b) => {
@@ -284,7 +284,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.type ?
                         nextSortDirection(sortInfo.direction)
-                      : SortDirection.ascending
+                      : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
@@ -326,7 +326,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.user ?
                         nextSortDirection(sortInfo.direction)
-                      : SortDirection.ascending
+                      : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
@@ -369,7 +369,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.timestamp ?
                         nextSortDirection(sortInfo.direction)
-                      : SortDirection.ascending
+                      : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {

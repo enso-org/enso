@@ -1,5 +1,4 @@
 /** @file An label that can be applied to an asset. */
-import type { PressEvent } from '#/components/aria'
 import { Button } from '#/components/Button'
 import FocusRing from '#/components/styled/FocusRing'
 import { Text } from '#/components/Text'
@@ -9,26 +8,20 @@ import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
 
+const MAXIMUM_LIGHTNESS_FOR_DARK_COLORS = 50
+
 /** Props for a {@link Label}. */
 interface InternalLabelProps extends Readonly<PropsWithChildren> {
   readonly 'data-testid'?: string
   /** When true, the button is not faded out even when not hovered. */
   readonly active?: boolean
-  /**
-   * When true, the button has a red border signifying that it will be deleted,
-   * or that it is excluded from search.
-   */
-  readonly negated?: boolean
   /** When true, the button cannot be clicked. */
   readonly isDisabled?: boolean
   readonly draggable?: boolean
   readonly color: LChColor
   readonly title?: string
   readonly label?: BackendLabel
-  readonly onPress?: (
-    event: MouseEvent<HTMLButtonElement> | PressEvent,
-    label?: BackendLabel,
-  ) => void
+  readonly onPress?: (label?: BackendLabel) => void
   readonly onDelete?: () => Promise<void> | void
   readonly onContextMenu?: (event: MouseEvent<HTMLElement>) => void
   readonly onDragStart?: (event: DragEvent<HTMLElement>) => void
@@ -36,16 +29,15 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
 
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
-  const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
+  const { active = false, isDisabled = false, color, draggable, title } = props
   const { onPress, onDragStart, onContextMenu, label, onDelete } = props
   const { children: childrenRaw } = props
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  const isLight = color.lightness > 50
+  const isLight = color.lightness > MAXIMUM_LIGHTNESS_FOR_DARK_COLORS
 
   const handleDelete = useEventCallback(onDelete)
-  const onClick = useEventCallback((e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    onPress?.(e, label)
+  const onClick = useEventCallback((event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    onPress?.(label)
   })
 
   const onDragStartStableCallback = useEventCallback((e: DragEvent<HTMLElement>) => {
@@ -55,12 +47,7 @@ export default function Label(props: InternalLabelProps) {
 
   return (
     <FocusRing within placement="after">
-      <div
-        className={twMerge(
-          'relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-inherit',
-          negated && 'after:!outline-offset-0',
-        )}
-      >
+      <div className="relative rounded-full">
         {/* An `aria.Button` MUST NOT be used here, as it breaks dragging. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
         <button
@@ -70,10 +57,9 @@ export default function Label(props: InternalLabelProps) {
           title={title}
           disabled={isDisabled}
           className={twMerge(
-            'relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-50 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
+            'relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-50 transition-all hover:opacity-100 focus:opacity-100',
             onPress == null && 'cursor-default',
             active && 'active',
-            negated && 'after:border-2 after:border-delete',
           )}
           style={{ backgroundColor: lChColorToCssColor(color) }}
           onClick={onClick}

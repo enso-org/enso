@@ -280,8 +280,22 @@ export default class LocalBackend extends Backend {
         }
       }
     }
+    const index = Math.max(
+      0,
+      query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from),
+    )
+    return result.slice(index, query.pageSize ?? undefined)
+  }
 
-    return result
+  /**
+   * Recursively search for assets in a directory.
+   * @throws Always.
+   */
+  override async searchDirectory(
+    _query: backend.SearchDirectoryRequestParams,
+  ): Promise<readonly backend.AnyAsset[]> {
+    await Promise.resolve()
+    throw new Error('')
   }
 
   /**
@@ -365,6 +379,10 @@ export default class LocalBackend extends Backend {
       labels: null,
       recentProjects: false,
       rootPath: this.rootPath(),
+      sortExpression: null,
+      sortDirection: null,
+      from: null,
+      pageSize: null,
     })
 
     const entry = directoryContents.find((content) => content.id === assetId)

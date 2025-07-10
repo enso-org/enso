@@ -1,31 +1,31 @@
 /** @file Tests for comparing assets. */
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
-import { Column, type SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
-import { SortDirection, type SortInfo } from '#/utilities/sorting'
+import type { SortInfo } from '#/utilities/sorting'
 import * as fc from '@fast-check/vitest'
-import { DirectoryId, createPlaceholderFileAsset } from 'enso-common/src/services/Backend'
+import {
+  DirectoryId,
+  createPlaceholderFileAsset,
+  type AssetSortExpression,
+} from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { merge } from 'enso-common/src/utilities/data/object'
 import { expect } from 'vitest'
 
-const SORT_BY_NAME_ASCENDING: SortInfo<SortableColumn> = {
-  field: Column.name,
-  direction: SortDirection.ascending,
+const SORT_BY_NAME_ASCENDING: SortInfo<AssetSortExpression> = {
+  field: 'title',
+  direction: 'ascending',
 }
-
-const SORT_BY_NAME_DESCENDING: SortInfo<SortableColumn> = {
-  field: Column.name,
-  direction: SortDirection.descending,
+const SORT_BY_NAME_DESCENDING: SortInfo<AssetSortExpression> = {
+  field: 'title',
+  direction: 'descending',
 }
-
-const SORT_BY_MODIFIED_ASCENDING: SortInfo<SortableColumn> = {
-  field: Column.modified,
-  direction: SortDirection.ascending,
+const SORT_BY_MODIFIED_ASCENDING: SortInfo<AssetSortExpression> = {
+  field: 'modified_at',
+  direction: 'ascending',
 }
-
-const SORT_BY_MODIFIED_DESCENDING: SortInfo<SortableColumn> = {
-  field: Column.modified,
-  direction: SortDirection.descending,
+const SORT_BY_MODIFIED_DESCENDING: SortInfo<AssetSortExpression> = {
+  field: 'modified_at',
+  direction: 'descending',
 }
 
 fc.test.prop({

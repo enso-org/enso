@@ -15,9 +15,6 @@ export enum Column {
   accessedData = 'accessedData',
 }
 
-/** Columns that can be used as a sort column. */
-export type SortableColumn = Column.modified | Column.name
-
 export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.name,
   Column.modified,

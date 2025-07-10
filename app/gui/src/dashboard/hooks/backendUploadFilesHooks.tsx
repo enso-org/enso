@@ -389,6 +389,9 @@ function useGetSiblings() {
             backend,
             parentId,
             category: cloudHomeCategory,
+            labels: null,
+            sortExpression: null,
+            sortDirection: null,
             refetchInterval: null,
           }),
         )
@@ -400,6 +403,9 @@ function useGetSiblings() {
             backend,
             parentId,
             category: cloudTrashCategory,
+            labels: null,
+            sortExpression: null,
+            sortDirection: null,
             refetchInterval: null,
           }),
         )

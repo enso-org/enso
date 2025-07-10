@@ -5,20 +5,17 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API.
  */
-import * as detect from 'enso-common/src/detect'
-import type * as text from 'enso-common/src/text'
-
 import type * as loggerProvider from '#/providers/LoggerProvider'
-
-import Backend, * as backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
+import Backend, { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
-
-import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import type { ResponseWithTypedJson } from '#/utilities/HttpClient'
 import * as objects from '#/utilities/object'
 import type { GetText } from '$/providers/text'
+import * as detect from 'enso-common/src/detect'
+import type * as text from 'enso-common/src/text'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
@@ -233,22 +230,17 @@ export default class RemoteBackend extends Backend {
   ): Promise<never> {
     if (textId instanceof backend.NetworkError) {
       this.logger.error(textId.message)
-
       throw textId
     }
-
     const error =
       response == null || response.headers.get('Content-Type') !== 'application/json' ?
         { message: 'unknown error' }
         // This is SAFE only when the response has been confirmed to have an erroring status code.
         // eslint-disable-next-line no-restricted-syntax
       : ((await response.json()) as RemoteBackendError)
-
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
     this.logger.error(message)
-
     const status = response?.status
-
     throw new backend.NetworkError(message, status)
   }
 
@@ -561,23 +553,21 @@ export default class RemoteBackend extends Backend {
     query: backend.ListDirectoryRequestParams,
     title: string,
   ): Promise<readonly backend.AnyAsset[]> {
-    const path = remoteBackendPaths.LIST_DIRECTORY_PATH
+    const paramsString = new URLSearchParams(
+      query.recentProjects ?
+        [['recent_projects', String(true)]]
+      : [
+          ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+          ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+          ...(query.from != null ? [['from', query.from]] : []),
+          ...(query.pageSize != null ? [['page_size', String(query.pageSize)]] : []),
+          ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
+          ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
+          ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
+        ],
+    ).toString()
     const response = await this.get<ListDirectoryResponseBody>(
-      path +
-        '?' +
-        new URLSearchParams(
-          query.recentProjects ?
-            [['recent_projects', String(true)]]
-          : [
-              ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
-              ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-              ...(query.from != null ? [['from', query.from]] : []),
-              ...(query.pageSize != null ? [['page_size', String(query.pageSize)]] : []),
-              ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
-              ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
-              ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
-            ],
-        ).toString(),
+      `${remoteBackendPaths.LIST_DIRECTORY_PATH}?${paramsString}`,
     )
     if (!response.ok) {
       if (response.status === STATUS_SERVER_ERROR) {
@@ -594,26 +584,33 @@ export default class RemoteBackend extends Backend {
         return await this.throw(response, 'listRootFolderBackendError')
       }
     } else {
-      const ret = (await response.json()).assets
-        .map((asset) =>
-          objects.merge(asset, {
-            type: backend.getAssetTypeFromId(asset.id),
-            // `Users` and `Teams` folders are virtual, so their children incorrectly have
-            // the organization root id as their parent id.
-            parentId: query.parentId ?? asset.parentId,
-          }),
-        )
-        .map((asset) =>
-          objects.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
-            ...(asset.ensoPath != null ?
-              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
-            : {}),
-          }),
-        )
-        .map((asset) => this.dynamicAssetUser(asset))
-        .sort(backend.compareAssets)
-      return ret
+      return this.listDirectoryResponseToAssetList(await response.json(), query.parentId)
+    }
+  }
+
+  /**
+   * Search for assets in a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async searchDirectory(
+    query: backend.SearchDirectoryRequestParams,
+  ): Promise<readonly backend.AnyAsset[]> {
+    const paramsString = new URLSearchParams([
+      ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+      ...(query.query != null ? [['query', query.query]] : []),
+      ...(query.title != null ? [['title', query.title]] : []),
+      ...(query.description != null ? [['description', query.description]] : []),
+      ...(query.type != null ? [['type', query.type]] : []),
+      ...(query.extension != null ? [['extension', query.extension]] : []),
+      ...(query.from != null ? [['from', query.from]] : []),
+      ...(query.pageSize != null ? [['pageSize', String(query.pageSize)]] : []),
+    ]).toString()
+    const path = `${remoteBackendPaths.SEARCH_DIRECTORY_PATH}?${paramsString}`
+    const response = await this.post<ListDirectoryResponseBody>(path, {})
+    if (!response.ok) {
+      return await this.throw(response, 'searchFolderBackendError')
+    } else {
+      return this.listDirectoryResponseToAssetList(await response.json(), query.parentId)
     }
   }
 
@@ -1647,29 +1644,25 @@ export default class RemoteBackend extends Backend {
     await this.post(path, {})
   }
 
-  /**
-   * Replaces the `user` of all permissions for the current user on an asset, so that they always
-   * return the up-to-date user.
-   */
-  private dynamicAssetUser<Asset extends backend.AnyAsset>(asset: Asset) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-    let foundSelfPermission = (() => false)()
-    const permissions = asset.permissions?.map((permission) => {
-      if (!('user' in permission) || permission.user.userId !== this.user?.userId) {
-        return permission
-      } else {
-        foundSelfPermission = true
-        return {
-          ...permission,
-          /** Return a dynamic reference to the current user. */
-          get user() {
-            return self.user
-          },
-        }
-      }
-    })
-    return !foundSelfPermission ? asset : { ...asset, permissions }
+  /** Convert a {@link ListDirectoryResponseBody} to an array of {@link backend.AnyAsset}. */
+  private listDirectoryResponseToAssetList(
+    response: ListDirectoryResponseBody,
+    parentId: DirectoryId | null,
+  ): readonly backend.AnyAsset[] {
+    return response.assets
+      .map((asset) =>
+        objects.merge(asset, {
+          type: backend.getAssetTypeFromId(asset.id),
+          // `Users` and `Teams` folders are virtual, so their children incorrectly have
+          // the organization root id as their parent id.
+          parentId: parentId ?? asset.parentId,
+          permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
+          ...(asset.ensoPath != null ?
+            { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
+          : {}),
+        }),
+      )
+      .sort(backend.compareAssets)
   }
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
