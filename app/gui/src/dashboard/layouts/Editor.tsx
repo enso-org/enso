@@ -4,7 +4,6 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
@@ -12,6 +11,7 @@ import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
+import * as analytics from '$/utils/analytics'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -212,7 +212,6 @@ function EditorInternal(props: EditorInternalProps) {
   const { hidden = false, renameProject, openedProject, backendType, projectName } = props
 
   const { getText } = useText()
-  const gtagEvent = gtagHooks.useGtagEvent()
   const config = useConfig()
   const ydocUrl = useVueValue(React.useCallback(() => config.ydocUrl, [config]))
 
@@ -220,9 +219,9 @@ function EditorInternal(props: EditorInternalProps) {
 
   React.useEffect(() => {
     if (!hidden) {
-      return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_workflow', 'close_workflow')
+      return analytics.editorOpenCloseCallback()
     }
-  }, [hidden, gtagEvent])
+  }, [hidden])
 
   const onRenameProject = useEventCallback((newName: string) => {
     renameProject(newName)
