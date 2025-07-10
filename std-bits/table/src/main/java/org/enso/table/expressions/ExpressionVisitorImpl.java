@@ -127,8 +127,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
-      Object[] objects;
-      objects = Arrays.copyOf(args, args.length, Object[].class);
+      Object[] objects = Arrays.copyOf(args, args.length, Object[].class);
       objects[0] = this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
       return objects;
     }
@@ -140,11 +139,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
-      Object[] objects;
-      objects = new Object[2];
-      objects[0] = this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
-      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-      return objects;
+      return new Object[] {
+          this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0])),
+          Arrays.copyOfRange(args, 1, args.length, Object[].class)
+      };
     }
   }
 
@@ -155,8 +153,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
-      Object[] objects;
-      objects = new Object[args.length + 1];
+      Object[] objects = new Object[args.length + 1];
       objects[0] = this.methodResolver.module;
       System.arraycopy(args, 0, objects, 1, args.length);
       return objects;
