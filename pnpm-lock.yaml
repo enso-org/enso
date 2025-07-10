@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@fast-check/vitest':
+      specifier: ^0.2.1
+      version: 0.2.1
     playwright:
       specifier: 1.50.1
       version: 1.50.1
@@ -129,7 +132,7 @@ importers:
         version: 3.24.1
     devDependencies:
       '@fast-check/vitest':
-        specifier: ^0.2.1
+        specifier: 'catalog:'
         version: 0.2.1(vitest@3.2.4)
 
   app/gui:
@@ -179,9 +182,6 @@ importers:
       '@codemirror/view':
         specifier: ^6.36.4
         version: 6.36.4
-      '@fast-check/vitest':
-        specifier: ^0.2.1
-        version: 0.2.1(vitest@3.2.4)
       '@floating-ui/vue':
         specifier: ^1.1.5
         version: 1.1.5(vue@3.5.13(typescript@5.7.2))
@@ -417,6 +417,9 @@ importers:
       '@danmarshall/deckgl-typings':
         specifier: ^4.9.28
         version: 4.9.28
+      '@fast-check/vitest':
+        specifier: 'catalog:'
+        version: 0.2.1(vitest@3.2.4)
       '@open-rpc/server-js':
         specifier: ^1.9.5
         version: 1.9.5
@@ -797,7 +800,7 @@ importers:
         version: 3.24.1
     devDependencies:
       '@fast-check/vitest':
-        specifier: ^0.2.1
+        specifier: 'catalog:'
         version: 0.2.1(vitest@3.2.4)
       '@types/debug':
         specifier: ^4.1.12
@@ -917,8 +920,8 @@ importers:
         version: 3.24.1
     devDependencies:
       '@fast-check/vitest':
-        specifier: ^0.0.8
-        version: 0.0.8(vitest@3.2.4)
+        specifier: 'catalog:'
+        version: 0.2.1(vitest@3.2.4)
       '@tsconfig/node20':
         specifier: ^20.1.4
         version: 20.1.4
@@ -1669,11 +1672,6 @@ packages:
 
   '@fal-works/esbuild-plugin-global-externals@2.1.2':
     resolution: {integrity: sha512-cEee/Z+I12mZcFJshKcCqC8tuX5hG3s+d+9nZ3LabqKF1vKdF41B92pJVCBggjAGORAeOzyyDDKrZwIkLffeOQ==}
-
-  '@fast-check/vitest@0.0.8':
-    resolution: {integrity: sha512-cFrcu7nwH+rk1qm1J4YrM1k4MIwvIHG7MrQUMGizqPe58XsvvpZz0X9Xkx1e+xaNg9s1YRVTd241WSR0dK/SpQ==}
-    peerDependencies:
-      vitest: '>=0.28.1'
 
   '@fast-check/vitest@0.2.1':
     resolution: {integrity: sha512-qbmGd1PC38iGvDjAY3WCpfQbWl60Bh0S5A/P60bFTVobyXzhYwq/3AtqVJWMRLnKHSfCDc2CSAApRUqrhVfcZQ==}
@@ -8652,11 +8650,6 @@ snapshots:
       levn: 0.4.1
 
   '@fal-works/esbuild-plugin-global-externals@2.1.2': {}
-
-  '@fast-check/vitest@0.0.8(vitest@3.2.4)':
-    dependencies:
-      fast-check: 3.23.2
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.10.4)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
 
   '@fast-check/vitest@0.2.1(vitest@3.2.4)':
     dependencies:

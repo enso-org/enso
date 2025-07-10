@@ -36,6 +36,6 @@
     "vue": "*"
   },
   "devDependencies": {
-    "@fast-check/vitest": "^0.2.1"
+    "@fast-check/vitest": "catalog:"
   }
 }
