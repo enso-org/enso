@@ -84,7 +84,7 @@ export async function loginAsTestUser(page: Page) {
   }
   await page.getByRole('textbox', { name: 'email' }).fill(process.env.ENSO_TEST_USER)
   await page.getByRole('textbox', { name: 'password' }).fill(process.env.ENSO_TEST_USER_PASSWORD)
-  await page.getByRole('button', { name: TEXT.login }).click()
+  await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
