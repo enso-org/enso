@@ -112,14 +112,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects = prepareArguments(args, makeConstantColumn);
       try {
-        var result = this.methodResolver.resolve(this.name).execute(objects);
+        var result = methodResolver.resolve(this.name).execute(objects);
         if (result.canExecute()) {
-          throw new IllegalArgumentException("Insufficient arguments for method " + this.name + ".");
+          throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
         }
         return result;
       } catch (PolyglotException e) {
         if (e.getMessage().startsWith("Type error: expected a function")) {
-          throw new IllegalArgumentException("Too many arguments for method " + this.name + ".");
+          throw new IllegalArgumentException("Too many arguments for method " + name + ".");
         }
         throw e;
       }
