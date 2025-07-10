@@ -22,7 +22,7 @@ export const defaultPreprocessor = [
   'process_to_json_text',
   'Nothing',
   DEFAULT_LIMIT.toString(),
-]
+] as const
 
 const bindings = defineKeybinds('scatterplot-visualization', {
   zoomToSelected: ['Mod+A'],
