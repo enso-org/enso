@@ -311,7 +311,10 @@ class SuggestionsHandlerSpec
                     0,
                     reprType = Some(
                       SearchProtocol
-                        .FieldUpdate(SearchProtocol.FieldActions.Set, Some(Seq("A")))
+                        .FieldUpdate(
+                          SearchProtocol.FieldActions.Set,
+                          Some(Seq("A"))
+                        )
                     )
                   )
               )

@@ -3938,12 +3938,19 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       method shouldBe defined
       method.get.arguments.size shouldEqual 3
       val arg1 = method.get.arguments(1)
-      arg1.reprType shouldEqual Seq("Location.Start", "Location.End", "Location.Both")
+      arg1.reprType shouldEqual Seq(
+        "Location.Start",
+        "Location.End",
+        "Location.Both"
+      )
       arg1.tagValues shouldEqual Some(
         List("Location.Start", "Location.End", "Location.Both")
       )
       val arg2 = method.get.arguments(2)
-      arg2.reprType shouldEqual Seq("Standard.Base.Data.Text.Text", "(Standard.Base.Data.Text.Text -> Boolean)")
+      arg2.reprType shouldEqual Seq(
+        "Standard.Base.Data.Text.Text",
+        "(Standard.Base.Data.Text.Text -> Boolean)"
+      )
       arg2.tagValues shouldEqual None
     }
 
@@ -3966,11 +3973,16 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       method.get.arguments.size shouldEqual 4
       val arg1 = method.get.arguments(1)
       arg1.name shouldEqual "column"
-      arg1.reprType shouldEqual Seq("Standard.Base.Data.Text.Text", "Standard.Base.Data.Numbers.Integer")
+      arg1.reprType shouldEqual Seq(
+        "Standard.Base.Data.Text.Text",
+        "Standard.Base.Data.Numbers.Integer"
+      )
       arg1.tagValues shouldEqual None
       val arg2 = method.get.arguments(2)
       arg2.name shouldEqual "fun"
-      arg2.reprType shouldEqual Seq("Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean")
+      arg2.reprType shouldEqual Seq(
+        "Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean"
+      )
       arg2.tagValues shouldEqual None
 
       val arg3 = method.get.arguments(3)
@@ -3999,7 +4011,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     method.get.arguments.size shouldEqual 4
     val arg1 = method.get.arguments(1)
     arg1.name shouldEqual "column"
-    arg1.reprType shouldEqual Seq("Standard.Base.Data.Text.Text", "Standard.Base.Data.Numbers.Integer")
+    arg1.reprType shouldEqual Seq(
+      "Standard.Base.Data.Text.Text",
+      "Standard.Base.Data.Numbers.Integer"
+    )
     arg1.tagValues shouldEqual None
     val arg2 = method.get.arguments(2)
     arg2.name shouldEqual "fun"
@@ -4032,7 +4047,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     method.get.arguments.size shouldEqual 4
     val arg1 = method.get.arguments(1)
     arg1.name shouldEqual "column"
-    arg1.reprType shouldEqual Seq("Standard.Base.Data.Text.Text", "Standard.Base.Data.Numbers.Integer")
+    arg1.reprType shouldEqual Seq(
+      "Standard.Base.Data.Text.Text",
+      "Standard.Base.Data.Numbers.Integer"
+    )
     arg1.tagValues shouldEqual None
     val arg2 = method.get.arguments(2)
     arg2.name shouldEqual "fun"
@@ -4064,7 +4082,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     method.get.arguments.size shouldEqual 4
     val arg1 = method.get.arguments(1)
     arg1.name shouldEqual "column"
-    arg1.reprType shouldEqual Seq("Standard.Base.Data.Text.Text", "Standard.Base.Data.Numbers.Integer")
+    arg1.reprType shouldEqual Seq(
+      "Standard.Base.Data.Text.Text",
+      "Standard.Base.Data.Numbers.Integer"
+    )
     arg1.tagValues shouldEqual None
     val arg2 = method.get.arguments(2)
     arg2.name shouldEqual "fun"
@@ -4097,7 +4118,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     method.get.arguments.size shouldEqual 4
     val arg1 = method.get.arguments(1)
     arg1.name shouldEqual "column"
-    arg1.reprType shouldEqual Seq("Standard.Base.Data.Text.Text", "Standard.Base.Data.Numbers.Integer")
+    arg1.reprType shouldEqual Seq(
+      "Standard.Base.Data.Text.Text",
+      "Standard.Base.Data.Numbers.Integer"
+    )
     arg1.tagValues shouldEqual None
     val arg2 = method.get.arguments(2)
     arg2.name shouldEqual "fun"
