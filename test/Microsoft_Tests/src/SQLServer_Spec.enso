@@ -4,8 +4,8 @@ import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits
 
-import Standard.Database.Feature.Feature
-import Standard.Database.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all

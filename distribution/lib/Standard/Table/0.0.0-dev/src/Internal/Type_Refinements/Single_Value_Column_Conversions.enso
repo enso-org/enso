@@ -7,7 +7,6 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
-from project.Internal.Type_Refinements.In_Memory_Column_Refinements import is_single_value
 
 ## This conversion is internal and should never be exported.
 Integer.from that:In_Memory_Column -> Integer =
@@ -53,3 +52,6 @@ Date_Time.from that:In_Memory_Column -> Date_Time =
 Decimal.from that:In_Memory_Column -> Decimal =
     Runtime.assert (is_single_value that)
     (that:Column).at 0
+
+private is_single_value that:Column =
+    that.length == 1

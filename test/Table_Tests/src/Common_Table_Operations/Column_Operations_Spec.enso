@@ -13,7 +13,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import all
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Test import all

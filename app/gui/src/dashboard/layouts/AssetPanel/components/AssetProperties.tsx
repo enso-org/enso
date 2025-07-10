@@ -391,7 +391,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                       <Form.Reset />
                     </Button.Group>
                   )}
-
                   <Form.FormError />
                 </>
               )}

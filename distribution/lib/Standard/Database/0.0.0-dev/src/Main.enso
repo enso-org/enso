@@ -1,3 +1,4 @@
+export project.Column_Constraint.Column_Constraint
 export project.Column_Description.Column_Description
 
 export project.Connection.Client_Certificate.Client_Certificate
@@ -8,6 +9,9 @@ export project.Connection.Postgres.Postgres
 export project.Connection.SQLite.SQLite
 export project.Connection.SQLite_Format.SQLite_Format
 export project.Connection.SSL_Mode.SSL_Mode
+
+export project.DB_Column.DB_Column
+export project.DB_Table.DB_Table
 
 export project.Extensions.Upload_Table.delete_rows
 export project.Extensions.Upload_Table.select_into_database_table

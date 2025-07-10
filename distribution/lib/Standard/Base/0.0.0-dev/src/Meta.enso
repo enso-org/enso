@@ -6,10 +6,10 @@ import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Private_Access
-import project.Function.Function
+import project.Function.Function as Real_Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean
+from project.Data.Boolean import Boolean, False, True
 
 type Type
     private Value value
@@ -111,14 +111,14 @@ type Atom
         Meta.Constructor.Value c...
 
 type Constructor
-    private Value impl:Function
+    private Value impl:Real_Function
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Obtains the qualified accessor function of the constructor
-    value self -> Function = self.impl...
+    value self -> Real_Function = self.impl...
 
     ## ADVANCED
        GROUP Metadata
@@ -126,7 +126,7 @@ type Constructor
 
        Returns a vector of field names defined by a constructor.
     fields self -> Vector Text =
-        Meta_Helpers.get_constructor_fields_builtin (self.impl...)
+        Meta_Helpers.get_argument_names_builtin (self.impl...) True True True True
 
     ## ADVANCED
        GROUP Metadata
@@ -163,8 +163,43 @@ type Primitive
        Returns the (primitive) value wrapped by this type
     value self = self.impl
 
-type Unresolved_Symbol
+
+type Function
     private Value impl
+
+    ## PRIVATE
+       ADVANCED
+
+       The function associated with the Meta object.
+
+    value self = self.impl
+
+    ## PRIVATE
+       ADVANCED
+
+       Names of function arguments.
+
+       Arguments:
+       - pending: should pending arguments be listed? `True` by default.
+       - defaulted: should arguments with default values already provided be listed? `False` by default.
+       - preapplied: should arguments with already pre-applied values be listed? `False` by default.
+       - oversaturated: should over-saturated arguments be listed? `False` by default.
+
+       > Example
+         By default returns names of _pending arguments_ that still need to be supplied
+         in order to invoke the function.
+
+            fn = Meta.meta (\x -> x+1)
+            if fn . arguments . is_empty then fn.value else
+                Error.throw "Missing "+fn.arguments.length+" arguments"
+
+    arguments self pending:Boolean=True defaulted:Boolean=False preapplied:Boolean=False oversaturated:Boolean=False -> Vector Text =
+        Meta_Helpers.get_argument_names_builtin self.impl pending defaulted preapplied oversaturated
+
+
+type Unresolved
+    private Symbol impl
+    private Cons impl
 
     ## PRIVATE
        ADVANCED
@@ -180,9 +215,9 @@ type Unresolved_Symbol
 
        Arguments:
        - new_name: The new name for the unresolved symbol.
-    rename self new_name:Text -> Unresolved_Symbol =
+    rename self new_name:Text -> Unresolved =
         raw = Meta_Helpers.create_unresolved_symbol_builtin new_name self.impl
-        Unresolved_Symbol.Value raw
+        Unresolved.Symbol raw
 
     ## ADVANCED
        GROUP Metadata
@@ -190,6 +225,28 @@ type Unresolved_Symbol
 
        Returns the name of an unresolved symbol.
     name self -> Text = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.impl
+
+
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
+
+       Does this symbol represents an autoscoped constructor?
+
+    is_constructor self -> Boolean = case self of
+        Unresolved.Cons _ -> True
+        _ -> False
+
+
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
+
+       Textual representation of the symbol
+
+    to_text self -> Text = case self of
+        Unresolved.Symbol _ -> "(Unresolved.Symbol "+self.name+")"
+        Unresolved.Cons _ -> "(Unresolved.Cons "+self.name+")"
 
 type Error
     private Value impl
@@ -279,7 +336,7 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type ! Private_Access =
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved | Error | Type | Function ! Private_Access =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     kind = if ac.is_nothing.not then 1 else
         Meta_Helpers.get_kind_builtin value
@@ -288,11 +345,13 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | E
         1 -> Constructor.Value ac
         2 -> Atom.Value value
         3 -> Polyglot.Value value
-        4 -> Unresolved_Symbol.Value value
+        4 -> Unresolved.Symbol value
         5 -> Error.Value value.catch
         6 -> Type.Value value
         7 -> Base_Error.throw <|
             Private_Access.Error Nothing Nothing "meta" "No Meta.meta for private objects"
+        8 -> Unresolved.Cons value...
+        9 -> Function.Value value...
         _ -> Primitive.Value value
 
 ## PRIVATE
