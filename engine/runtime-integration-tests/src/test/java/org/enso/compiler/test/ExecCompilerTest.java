@@ -1,5 +1,6 @@
 package org.enso.compiler.test;
 
+import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -13,15 +14,11 @@ import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
-import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import org.hamcrest.core.AllOf;
 import org.junit.After;
-import static org.junit.Assert.fail;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -553,9 +550,11 @@ public class ExecCompilerTest {
 
   @Test
   public void castToUnresolvedType() throws Exception {
-    var code = """
-                 fn f = (f : Unknown).to_text
-                 """;
+    var code =
+        """
+        from Standard.Base import all
+        fn f = (f : Unknown).to_text
+        """;
     try {
       var module = ctxRule.eval(LanguageInfo.ID, code);
       var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
@@ -564,7 +563,9 @@ public class ExecCompilerTest {
     } catch (PolyglotException ex) {
       assertThat(
           ex.getMessage(),
-          AllOf.allOf(containsString("Unknown"), containsString("could not be found")));
+          AllOf.allOf(
+              containsString("expected unresolved symbol Unknown"),
+              containsString("to be resolved to a type")));
     }
   }
 }

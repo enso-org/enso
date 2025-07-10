@@ -152,9 +152,11 @@ public class ExecStrictCompilerTest {
 
   @Test
   public void castToUnresolvedType() throws Exception {
-    var code = """
-                 fn f = (f : Unknown).to_text
-                 """;
+    var code =
+        """
+        from Standard.Base import all
+        fn f = (f : Unknown).to_text
+        """;
     try {
       var module = ctxRule.eval(LanguageInfo.ID, code);
       var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
