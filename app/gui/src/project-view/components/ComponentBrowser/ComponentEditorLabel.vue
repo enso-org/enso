@@ -11,16 +11,21 @@ const props = defineProps<{
 }>()
 
 const additionalTypes = computed<string[]>(() => {
-  if (props.typeInfo == null) {
+  if (props.typeInfo == null || props.typeInfo?.visibleTypes?.length === 1) {
     return []
   }
 
   const typeInfo = props.typeInfo
-  const combinedTypes = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
-  const additionalTypes = combinedTypes.flatMap((type) =>
-    type.path ? qnLastSegment(type.path) : [],
-  )
-  return additionalTypes.length === 1 ? [] : additionalTypes
+  return typeInfo?.visibleTypes?.flatMap((type) => (type.path ? qnLastSegment(type.path) : [])) ?? []
+})
+
+const hiddenTypes = computed<string[]>(() => {
+  if (props.typeInfo == null || props.typeInfo?.hiddenTypes?.length === 0) {
+    return []
+  }
+
+  const typeInfo = props.typeInfo
+  return typeInfo?.hiddenTypes?.flatMap((type) => (type.path ? qnLastSegment(type.path) : [])) ?? []
 })
 
 const label = computed(() => {
@@ -35,17 +40,18 @@ const label = computed(() => {
 
 <template>
   <div v-if="label" :data-testid="props.testId" class="componentEditorLabel">
-    <TooltipTrigger v-if="additionalTypes.length > 0">
+    <TooltipTrigger v-if="additionalTypes.length > 0 || hiddenTypes.length > 0">
       <template #default="triggerProps">
         <span
           class="additionalTypesPlaceholder"
           v-bind="triggerProps"
-          v-text="`${label} & + ${additionalTypes.length - 1}`"
+          v-text="`${label} & + ${additionalTypes.length + hiddenTypes.length - 1}`"
         />
       </template>
       <template #tooltip>
         <div class="flex flex-col">
           <span v-for="type in additionalTypes" :key="type" v-text="type" />
+          <span v-for="type in hiddenTypes" :key="type" v-text="type" class="hiddenType" />
         </div>
       </template>
     </TooltipTrigger>
@@ -63,5 +69,9 @@ const label = computed(() => {
 .componentEditorLabel {
   white-space: nowrap;
   opacity: 0.7;
+}
+
+.hiddenType {
+  font-style: italic;
 }
 </style>

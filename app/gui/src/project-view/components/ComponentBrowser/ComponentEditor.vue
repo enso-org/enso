@@ -123,6 +123,7 @@ const rootStyle = computed(() => {
 
 .componentEditorLabel {
   position: absolute;
+  top: 3px;
   width: 100%;
   padding-right: 20px;
   text-align: right;
