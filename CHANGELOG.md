@@ -26,6 +26,7 @@
 - [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
   resulting in an Error page without option of returning back to Local.][13366]
 - ["Grouped Components" are renamed to "User Defined Components"][13389]
+- [File Browser Widget is used when editing file paths to datalinks][13439]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -46,6 +47,7 @@
 [13347]: https://github.com/enso-org/enso/pull/13347
 [13366]: https://github.com/enso-org/enso/pull/13366
 [13389]: https://github.com/enso-org/enso/pull/13389
+[13439]: https://github.com/enso-org/enso/pull/13439
 
 #### Enso Standard Library
 
@@ -61,6 +63,9 @@
 - [Add Google_Sheets.read][13307]
 - [Align the Generic JDBC Connection with the main Connection type][13365]
 - [Add `execute_query` to the `Connection` types.][13415]
+- [`Meta.meta` recognizes functions as `Meta.Function`][13443]
+- [`Meta.Unresolved_Symbol` renamed to `Meta.Unresolved`][13443]
+- [Remane Google_Api library to Google][13436]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -71,6 +76,8 @@
 [13307]: https://github.com/enso-org/enso/pull/13307
 [13365]: https://github.com/enso-org/enso/pull/13365
 [13415]: https://github.com/enso-org/enso/pull/13415
+[13415]: https://github.com/enso-org/enso/pull/13443
+[13436]: https://github.com/enso-org/enso/pull/13436
 
 #### Enso Language & Runtime
 

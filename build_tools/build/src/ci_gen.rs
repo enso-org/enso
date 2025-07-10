@@ -949,7 +949,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Base",
         "Database",
         "Generic_JDBC",
-        "Google_Api",
+        "Google",
         "Image",
         "Microsoft",
         "Strava",

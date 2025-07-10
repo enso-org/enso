@@ -6,8 +6,7 @@ import { createProjectStore, LsUrls, ProjectStore } from '@/stores/project'
 import { createProjectNameStore, ProjectNameStore } from '@/stores/projectNames'
 import { createSuggestionDbStore, SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
-import { ToValue } from '@/util/reactivity'
-import { EffectScope, effectScope, shallowReactive } from 'vue'
+import { EffectScope, effectScope, shallowReactive, toValue, type ToRefs } from 'vue'
 
 /** All stores of a single opened project */
 export interface OpenedProject {
@@ -25,9 +24,9 @@ export interface OpenedProject {
  */
 export interface ProjectProps {
   projectId: ProjectId
-  projectNamespace: ToValue<string | undefined>
+  projectNamespace: string | undefined
   projectInitialName: string
-  projectDisplayedName: ToValue<string>
+  projectDisplayedName: string
   renameProject: (newName: string) => void
   engine: LsUrls
 }
@@ -54,18 +53,36 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
       new Map<string, OpenedProject & { storesScope: EffectScope }>(),
     )
 
-    function registerProject(props: ProjectProps) {
-      const { projectId } = props
-      assert(!projects.has(projectId), 'Registering already registered project')
+    function registerProject(props: ToRefs<ProjectProps>) {
+      const { projectId, projectDisplayedName, projectNamespace } = props
+      assert(!projects.has(toValue(projectId)), 'Registering already registered project')
       const storesScope = effectScope()
 
       storesScope.run(() => {
-        const names = createProjectNameStore(props)
-        const store = createProjectStore(props, names)
+        const names = createProjectNameStore({
+          projectNamespace,
+          projectDisplayedName,
+          projectInitialName: toValue(props.projectInitialName),
+        })
+        const store = createProjectStore(
+          {
+            projectId: toValue(projectId),
+            renameProject: toValue(props.renameProject),
+            engine: toValue(props.engine),
+          },
+          names,
+        )
         const suggestionDb = createSuggestionDbStore(store, names)
         const graph = createGraphStore(store, suggestionDb, names)
         const widgetRegistry = new WidgetRegistry(graph.db)
-        projects.set(projectId, { names, store, suggestionDb, graph, widgetRegistry, storesScope })
+        projects.set(toValue(projectId), {
+          names,
+          store,
+          suggestionDb,
+          graph,
+          widgetRegistry,
+          storesScope,
+        })
       })
     }
 

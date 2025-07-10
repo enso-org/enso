@@ -7,7 +7,7 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.SQL_Part.SQL_Part
 import project.SQL.SQL_Builder
-import project.SQL_Statement.SQL_Statement
+import project.SQL.SQL_Statement
 
 ## PRIVATE
 

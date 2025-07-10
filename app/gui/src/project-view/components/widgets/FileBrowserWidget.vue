@@ -5,6 +5,7 @@ export default {
 </script>
 
 <script setup lang="ts">
+import { useBackends } from '$/providers/backends'
 import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
@@ -28,7 +29,7 @@ import {
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { registerHandlers } from '@/providers/action'
-import { injectProjectBackend } from '@/providers/projectBackend'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
@@ -40,12 +41,14 @@ const props = withDefaults(
     choosenPath?: string
     type?: 'file' | 'secret' | 'directory'
     fileTypes?: FileType[]
+    allowOverride?: boolean
   }>(),
   {
     writeMode: false,
     choosenPath: '',
     type: 'file',
     fileTypes: () => [{ label: 'All files', extensions: ['*'] }],
+    allowOverride: false,
   },
 )
 
@@ -59,7 +62,7 @@ const browserContent = useTemplateRef('browserContent')
 // === Cloud file APIs ===
 
 const { query, fetch, ensureQueryData, mutation } = useBackend('remote')
-const { remote: backend } = injectProjectBackend()
+const { remoteBackend: backend } = useBackends()
 const { userFiles, userFilesError } = useUserFiles({
   backend,
   user: query('usersMe', []),
@@ -158,7 +161,12 @@ async function tryAcceptCurrentFile() {
   }
   setFilename(unenteredPathSuffix.value)
   const assetInfo = await assetExists(fullFilePath.value)
-  if (assetInfo.exists && assetInfo.type === AssetType.file && props.writeMode) {
+  if (
+    assetInfo.exists &&
+    assetInfo.type === AssetType.file &&
+    props.writeMode &&
+    !props.allowOverride
+  ) {
     overwriteFilename.value = fullFilePath.value
   } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
     warningText.value = `'${fullFilePath.value}' is a directory, not a file`
@@ -188,6 +196,7 @@ function chooseEntry(asset: AnyAsset, close: boolean) {
 }
 
 const root = useTemplateRef<HTMLDivElement>('root')
+providePopoverRoot(root)
 
 registerHandlers({
   'fileBrowser.newDirectory': {
@@ -268,16 +277,19 @@ registerHandlers({
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
-  background-color: var(--color-panel-accent);
+  background-color: var(--file-browser-background-color, var(--color-panel-accent));
+  --corner-radius: var(--file-browser-corner-radius, var(--radius-default));
   padding: var(--border-width);
-  border-radius: 0 0 var(--radius-default) var(--radius-default);
-  min-width: 400px;
+  border-radius: 0 0 var(--corner-radius) var(--corner-radius);
+  min-width: var(--file-browser-min-width, 400px);
   min-height: 200px;
   max-height: 600px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   contain: layout;
+  position: relative;
+  z-index: var(--z-index-file-browser, 0);
 }
 
 .browserContents {

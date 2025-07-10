@@ -35,7 +35,7 @@ type In_Memory_Table
     private java_table self = self.internal_java_table
 
     ## PRIVATE
-    new (columns : Vector (Vector | Column)) -> Table & In_Memory_Table =
+    new (columns : Vector (Vector | Column)) -> Table | Any =
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a vector whose first element is the column name, second element is a vector of elements that will constitute that column (or an existing column) and an optional third element that is the Value_Type for the column. Got: "+columns.to_text)
         cols = columns.map on_problems=No_Wrap.Value c->
@@ -74,7 +74,6 @@ type In_Memory_Table
         result = Delimited_Writer.write_text self format
         if delimiter.is_a Text then result else
             Warning.attach (Deprecated.Warning "Standard.Table.Table" "to_delimited" "Deprecated: specify the arguments separately rather than using a `Delimited_Format`.") result
-
 
 ## PRIVATE
    Helper method for internal use to make a Table from a Java Table.

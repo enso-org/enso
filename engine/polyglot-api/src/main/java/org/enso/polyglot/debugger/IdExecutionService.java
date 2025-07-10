@@ -5,6 +5,8 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public interface IdExecutionService {
   String INSTRUMENT_ID = "id-value-extractor";
@@ -70,7 +72,28 @@ public interface IdExecutionService {
      */
     Object onFunctionReturn(Info info);
 
+    /**
+     * Returns execution environment with which node should be executed.
+     *
+     * @param info with identification of the node
+     * @return {@link org.enso.interpreter.runtime.state.ExecutionEnvironment} to be used when
+     *     executing the node (and all its children), or {@code null} if execution environment
+     *     should be simply inherited
+     */
     Object getExecutionEnvironment(Info info);
+
+    /**
+     * Updates information about an execution environment when entering/exiting a specific node
+     * execution.
+     *
+     * @param uuid identification of the node
+     * @param shouldUpdate test returning true if execution environment should be altered
+     * @param onSuccess function that takes a stored information about a local execution
+     *     environment. Function returns an update value, or {@code null} if per-node information is
+     *     safe to remove
+     */
+    void updateLocalExecutionEnvironment(
+        UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess);
   }
 
   /**

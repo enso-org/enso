@@ -9,10 +9,10 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import { DirectoryDoesNotExistError } from '#/services/Backend'
+import { setDriveLocation } from '#/providers/DriveProvider'
+import { BackendType, DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -21,7 +21,6 @@ import * as appUtils from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import * as React from 'react'
-import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
@@ -38,8 +37,7 @@ function Drive(props: DriveProps) {
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const categoriesAPI = useCategoriesAPI()
-  const { category, resetCategory, setCategory } = categoriesAPI
+  const { category } = useCategoriesAPI()
 
   const isCloud = categoryModule.isCloudCategory(category)
 
@@ -69,7 +67,7 @@ function Drive(props: DriveProps) {
                 size="medium"
                 variant="primary"
                 onPress={() => {
-                  setCategory('local')
+                  setDriveLocation(null, 'local')
                 }}
               >
                 {getText('switchToLocal')}
@@ -103,26 +101,18 @@ function Drive(props: DriveProps) {
               toast.error(getText('directoryDoesNotExistError'), {
                 toastId: 'directory-does-not-exist-error',
               })
-              resetCategory()
+              setDriveLocation(null, null)
               resetQueries()
               resetErrorBoundary()
             }
 
             if (error instanceof OfflineError) {
-              return (
-                <OfflineMessage
-                  supportLocalBackend={supportLocalBackend}
-                  setCategory={(nextCategory) => {
-                    setCategory(nextCategory)
-                    resetErrorBoundary()
-                  }}
-                />
-              )
+              return <OfflineMessage onPress={resetErrorBoundary} />
             }
           }}
         >
           <Suspense>
-            <DriveAssetsView {...props} category={category} setCategory={setCategory} />
+            <DriveAssetsView {...props} />
           </Suspense>
         </ErrorBoundary>
       )
@@ -130,33 +120,16 @@ function Drive(props: DriveProps) {
   }
 }
 
-/** Props for a {@link DriveAssetsView}. */
-interface DriveAssetsViewProps extends DriveProps {
-  readonly category: Category
-  readonly setCategory: (categoryId: Category['id']) => void
-}
-
 /** The assets view of the Drive. */
-function DriveAssetsView(props: DriveAssetsViewProps) {
-  const { category, setCategory, initialProjectName } = props
-
-  const deferredCategory = useDeferredValue(category)
+function DriveAssetsView(props: DriveProps) {
+  const { initialProjectName } = props
 
   const { getText } = useText()
   const { isOffline } = offlineHooks.useOffline()
-  const { user } = authProvider.useFullUserSession()
-  const { localBackend, backendForType } = useBackends()
-  const backend = backendForType(category.backend)
-
+  const { associatedBackend } = useCategoriesAPI()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-
-  const isCloud = categoryModule.isCloudCategory(category)
-  const supportLocalBackend = localBackend != null
-
-  const status =
-    isCloud && isOffline ? 'offline'
-    : isCloud && !user.isEnabled ? 'not-enabled'
-    : 'ok'
+  const isCloud = associatedBackend.type === BackendType.remote
+  const isInaccessible = isCloud && isOffline
 
   return (
     <div className="relative flex h-full w-full">
@@ -170,34 +143,27 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
               <Text variant="subtitle" weight="semibold">
                 {getText('category')}
               </Text>
-              <CategorySwitcher category={category} setCategoryId={setCategory} />
+              <CategorySwitcher />
             </div>
 
             <AssetsTableAssetsUnselector />
           </div>
 
           <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
-            <DriveBar
-              backend={backend}
-              query={query}
-              setQuery={setQuery}
-              category={category}
-              setCategoryId={setCategory}
-            />
+            <DriveBar query={query} setQuery={setQuery} />
 
-            {status === 'offline' ?
-              <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
-            : <Suspense>
+            {isInaccessible && <OfflineMessage />}
+            {!isInaccessible && (
+              <Suspense>
                 <ErrorBoundary>
                   <AssetsTable
                     query={query}
                     setQuery={setQuery}
-                    category={deferredCategory}
                     initialProjectName={initialProjectName}
                   />
                 </ErrorBoundary>
               </Suspense>
-            }
+            )}
           </div>
         </div>
       </div>
@@ -207,17 +173,17 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
 /** Props for an {@link OfflineMessage}. */
 interface OfflineMessageProps {
-  readonly supportLocalBackend: boolean
-  readonly setCategory: (category: categoryModule.Category['id']) => void
+  readonly onPress?: (() => void) | undefined
 }
 
 /**
  * Offline message component.
- * Displays info that the ctegory selected in unavailable
- * in offline mode
+ * Tells the user that the category selected is unavailable in offline mode.
  */
 function OfflineMessage(props: OfflineMessageProps) {
-  const { supportLocalBackend, setCategory } = props
+  const { onPress } = props
+
+  const { localBackend } = useBackends()
   const { getText } = useText()
 
   return (
@@ -226,14 +192,15 @@ function OfflineMessage(props: OfflineMessageProps) {
       className="my-12"
       centered="horizontal"
       title={getText('cloudUnavailableOffline')}
-      subtitle={`${getText('cloudUnavailableOfflineDescription')} ${supportLocalBackend ? getText('cloudUnavailableOfflineDescriptionOfferLocal') : ''}`}
+      subtitle={`${getText('cloudUnavailableOfflineDescription')} ${localBackend != null ? getText('cloudUnavailableOfflineDescriptionOfferLocal') : ''}`}
     >
-      {supportLocalBackend && (
+      {localBackend != null && (
         <Button
           variant="primary"
           className="mx-auto"
           onPress={() => {
-            setCategory('local')
+            setDriveLocation(null, 'local')
+            onPress?.()
           }}
         >
           {getText('switchToLocal')}

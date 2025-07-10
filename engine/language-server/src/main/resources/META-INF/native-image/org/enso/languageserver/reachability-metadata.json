@@ -1,5 +1,4 @@
 {
-  "$schema": "https://www.graalvm.org/docs/reference-manual/native-image/assets/reachability-metadata-schema-v1.1.0.json",
   "reflection": [
     {
       "type": "scala.Symbol",

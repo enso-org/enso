@@ -344,7 +344,7 @@ useEvent(
 )
 
 function tryGetSelectionDocUrl() {
-  const selected = nodeSelection.tryGetSoleSelection()
+  const selected = nodeSelection.tryGetSingleSelectedNode()
   if (!selected.ok) return selected
   const suggestion = graphStore.db.getNodeMainSuggestion(selected.value)
   const documentation = suggestion && suggestionDocumentationUrl(suggestion)
@@ -387,7 +387,7 @@ const panelsHandler = panelsBindings.handler(
 const overrideDisplayedDocs = ref<SuggestionId>()
 const aiMode = ref<boolean>(false)
 const docsForSelection = computed(() => {
-  const selected = nodeSelection.tryGetSoleSelection()
+  const selected = nodeSelection.tryGetSingleSelectedNode()
   if (!selected.ok) return Err('Select a single component to display help')
   const suggestionId = graphStore.db.nodeMainSuggestionId.lookup(selected.value)
   if (suggestionId == null) return Err('No documentation available for selected component')

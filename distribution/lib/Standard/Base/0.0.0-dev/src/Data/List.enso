@@ -39,7 +39,7 @@ type List
        Arguments:
        - x: The element at this position in the list.
        - xs: The rest of the list.
-    Cons x xs
+    Cons x xs:List
 
     ## GROUP Metadata
        ICON metadata
