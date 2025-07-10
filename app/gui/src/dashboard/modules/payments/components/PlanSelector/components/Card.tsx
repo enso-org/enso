@@ -9,8 +9,7 @@ import type { PaywallLevel } from '#/hooks/billing'
 import type { SubscribeButtonProps } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
 import { SubscribeButton } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
 import { PLAN_TO_TEXT_ID, PRICE_BY_PLAN } from '#/modules/payments/constants'
-import type { PlanBillingPeriod } from '#/services/Backend'
-import { Plan } from '#/services/Backend'
+import { BillingPortalFlowType, Plan, PlanBillingPeriod } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/backends'
@@ -171,6 +170,7 @@ export function Card(props: CardProps) {
         price: mutationData.plan,
         quantity: mutationData.seats,
         interval: mutationData.period,
+        flowType: BillingPortalFlowType.subscriptionUpdateConfirm,
       })
       window.open(url, '_blank')?.focus()
     },

@@ -42,7 +42,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   const buttonText = (() => {
     if (isDowngrade) {
-      return getText('downgrade')
+      return getText('unavailable')
     }
     if (isCurrent) {
       return getText('currentPlan')

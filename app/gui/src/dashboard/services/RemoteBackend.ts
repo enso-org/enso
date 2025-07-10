@@ -1412,6 +1412,22 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /**
+   * Cancel given subscription.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async cancelSubscription(subscriptionId: backend.SubscriptionId): Promise<void> {
+    const response = await this.delete(
+      remoteBackendPaths.cancelSubscriptionPath(subscriptionId),
+      {},
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'cancelSubscriptionBackendError')
+    } else {
+      return
+    }
+  }
+
   /** List events in the organization's audit log. */
   override async getLogEvents(
     params: backend.GetLogEventsRequestParams,

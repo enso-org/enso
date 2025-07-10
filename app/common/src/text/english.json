@@ -687,7 +687,7 @@
   "subscribe": "Subscribe",
   "currentPlan": "Current Plan",
   "continueUsingFreePlan": "Continue using",
-  "downgrade": "Unavailable",
+  "unavailable": "Unavailable",
   "learnMore": "Learn More",
   "comingSoon": "Coming soon",
   "upgradeCTA": "Upgrade to $0 to access:",
@@ -1234,5 +1234,10 @@
   "manageLabelsModal.chooseColor": "Choose a color",
   "manageLabelsModal.labelAlreadyExists": "Label already exists",
   "manageLabelsModal.selectedLabels": "Selected labels",
-  "commercialUseNotice": "$0 - Not for commercial use"
+  "commercialUseNotice": "$0 - Not for commercial use",
+  "trialEnded": "Your cloud access trial period has endend.",
+  "trialEndedExplenation": "You can proceed to checkout and extend your access or you can downgrade to Free plan.",
+  "trialEndedWarning": "Moving to Free plan will discard your access to all of your cloud assets. We will permanently remove them after 90 days.",
+  "cancelSubscriptionBackendError": "We couldn't cancel your subscription. Please contant the administrator.",
+  "downgrade": "Downgrade"
 }

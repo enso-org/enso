@@ -595,6 +595,7 @@ export interface Subscription {
   readonly plan?: Plan
   readonly trialStart?: dateTime.Rfc3339DateTime | null
   readonly trialEnd?: dateTime.Rfc3339DateTime | null
+  readonly isPaused?: boolean | null
 }
 
 /** Metadata for an organization. */
@@ -1362,11 +1363,18 @@ export interface CreateUserGroupRequestBody {
 /** Valid plan intervals. */
 export type PlanBillingPeriod = 1 | 12
 
+/** Types of supported billing portal flows. */
+export enum BillingPortalFlowType {
+  paymentMethodUpdate = 'payment_method_update',
+  subscriptionUpdateConfirm = 'subscription_update_confirm',
+}
+
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
   readonly price: Plan
   readonly quantity: number
   readonly interval: PlanBillingPeriod
+  readonly flowType: BillingPortalFlowType
 }
 
 /** URL query string parameters for the "get log events" endpoint. */
