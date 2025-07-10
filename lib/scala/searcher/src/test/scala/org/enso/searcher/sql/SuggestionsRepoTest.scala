@@ -229,368 +229,6 @@ class SuggestionsRepoTest
         v3 shouldEqual v4
     }
 
-    "update suggestion external id" taggedAs Retry in withRepo { repo =>
-      val newUuid = UUID.randomUUID()
-      val action = for {
-        (v1, Seq(_, _, _, id1, _, _, _)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, Some(id2)) <- repo.update(
-          suggestion.method,
-          Some(Some(newUuid)),
-          None,
-          None,
-          None
-        )
-        s <- repo.select(id1)
-      } yield (v1, id1, v2, id2, s)
-      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-      v1 should not equal v2
-      id1 shouldEqual id2
-      s shouldEqual Some(suggestion.method.copy(externalId = Some(newUuid)))
-    }
-
-    "update suggestion removing external id" taggedAs Retry in withRepo {
-      repo =>
-        val action = for {
-          (v1, Seq(_, _, _, _, _, id1, _)) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (v2, Some(id2)) <- repo.update(
-            suggestion.function,
-            Some(None),
-            None,
-            None,
-            None
-          )
-          s <- repo.select(id1)
-        } yield (v1, id1, v2, id2, s)
-        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-        v1 should not equal v2
-        id1 shouldEqual id2
-        s shouldEqual Some(suggestion.function.copy(externalId = None))
-    }
-
-    "update suggestion return type" taggedAs Retry in withRepo { repo =>
-      val newReturnType = "NewType"
-      val action = for {
-        (v1, Seq(_, _, _, _, _, id1, _)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, Some(id2)) <- repo.update(
-          suggestion.function,
-          None,
-          Some(newReturnType),
-          None,
-          None
-        )
-        s <- repo.select(id1)
-      } yield (v1, id1, v2, id2, s)
-      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-      v1 should not equal v2
-      id1 shouldEqual id2
-      s shouldEqual Some(suggestion.function.copy(returnType = newReturnType))
-    }
-
-    "update suggestion type documentation" taggedAs Retry in withRepo { repo =>
-      val newDoc = "My Doc"
-      val action = for {
-        (v1, Seq(_, id1, _, _, _, _, _)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, Some(id2)) <- repo.update(
-          suggestion.tpe,
-          None,
-          None,
-          Some(Some(newDoc)),
-          None
-        )
-        s <- repo.select(id1)
-      } yield (v1, id1, v2, id2, s)
-      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-      v1 should not equal v2
-      id1 shouldEqual id2
-      s shouldEqual Some(
-        suggestion.tpe.copy(documentation = Some(newDoc))
-      )
-    }
-
-    "update suggestion constructor documentation" taggedAs Retry in withRepo {
-      repo =>
-        val newDoc = "My Doc"
-        val action = for {
-          (v1, Seq(_, _, id1, _, _, _, _)) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (v2, Some(id2)) <- repo.update(
-            suggestion.constructor,
-            None,
-            None,
-            Some(Some(newDoc)),
-            None
-          )
-          s <- repo.select(id1)
-        } yield (v1, id1, v2, id2, s)
-        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-        v1 should not equal v2
-        id1 shouldEqual id2
-        s shouldEqual Some(
-          suggestion.constructor.copy(documentation = Some(newDoc))
-        )
-    }
-
-    "update suggestion module documentation" taggedAs Retry in withRepo {
-      repo =>
-        val newDoc = "My Doc"
-        val action = for {
-          (v1, Seq(id1, _, _, _, _, _, _)) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (v2, Some(id2)) <- repo.update(
-            suggestion.module,
-            None,
-            None,
-            Some(Some(newDoc)),
-            None
-          )
-          s <- repo.select(id1)
-        } yield (v1, id1, v2, id2, s)
-        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-        v1 should not equal v2
-        id1 shouldEqual id2
-        s shouldEqual Some(suggestion.module.copy(documentation = Some(newDoc)))
-    }
-
-    "update suggestion conversion documentation" taggedAs Retry in withRepo {
-      repo =>
-        val newDoc = "My Doc"
-        val action = for {
-          (v1, Seq(_, _, _, _, id1, _, _)) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (v2, Some(id2)) <- repo.update(
-            suggestion.conversion,
-            None,
-            None,
-            Some(Some(newDoc)),
-            None
-          )
-          s <- repo.select(id1)
-        } yield (v1, id1, v2, id2, s)
-        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-        v1 should not equal v2
-        id1 shouldEqual id2
-        s shouldEqual Some(
-          suggestion.conversion.copy(documentation = Some(newDoc))
-        )
-    }
-
-    "update suggestion function documentation" taggedAs Retry in withRepo {
-      repo =>
-        val newDoc = "My awesome function!"
-        val action = for {
-          (v1, Seq(_, _, _, _, _, id1, _)) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (v2, Some(id2)) <- repo.update(
-            suggestion.function,
-            None,
-            None,
-            Some(Some(newDoc)),
-            None
-          )
-          s <- repo.select(id1)
-        } yield (v1, id1, v2, id2, s)
-        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-        v1 should not equal v2
-        id1 shouldEqual id2
-        s shouldEqual Some(
-          suggestion.function.copy(documentation = Some(newDoc))
-        )
-    }
-
-    "update suggestion local documentation" taggedAs Retry in withRepo { repo =>
-      val newDoc = "Some stuff there"
-      val action = for {
-        (v1, Seq(_, _, _, _, _, _, id1)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, Some(id2)) <- repo.update(
-          suggestion.local,
-          None,
-          None,
-          Some(Some(newDoc)),
-          None
-        )
-        s <- repo.select(id1)
-      } yield (v1, id1, v2, id2, s)
-      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-      v1 should not equal v2
-      id1 shouldEqual id2
-      s shouldEqual Some(
-        suggestion.local.copy(documentation = Some(newDoc))
-      )
-    }
-
-    "update suggestion removing documentation" taggedAs Retry in withRepo {
-      repo =>
-        val action = for {
-          (v1, Seq(_, _, id1, _, _, _, _)) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (v2, Some(id2)) <- repo.update(
-            suggestion.constructor,
-            None,
-            None,
-            Some(None),
-            None
-          )
-          s <- repo.select(id1)
-        } yield (v1, id1, v2, id2, s)
-        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-        v1 should not equal v2
-        id1 shouldEqual id2
-        s shouldEqual Some(suggestion.constructor.copy(documentation = None))
-    }
-
-    "update suggestion scope" taggedAs Retry in withRepo { repo =>
-      val newScope = Suggestion.Scope(
-        Suggestion.Position(14, 15),
-        Suggestion.Position(42, 43)
-      )
-      val action = for {
-        (v1, Seq(_, _, _, _, _, _, id1)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, Some(id2)) <- repo.update(
-          suggestion.local,
-          None,
-          None,
-          None,
-          Some(newScope)
-        )
-        s <- repo.select(id1)
-      } yield (v1, id1, v2, id2, s)
-      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-      v1 should not equal v2
-      id1 shouldEqual id2
-      s shouldEqual Some(suggestion.local.copy(scope = newScope))
-    }
-
-    "update suggestion empty request" taggedAs Retry in withRepo { repo =>
-      val action = for {
-        (v1, Seq(_, _, _, id1, _, _, _)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, id2) <- repo.update(
-          suggestion.method,
-          None,
-          None,
-          None,
-          None
-        )
-      } yield (v1, v2, id1, id2)
-      val (v1, v2, id1, id2) = Await.result(action, Timeout)
-      v1 shouldEqual v2
-      id2 shouldEqual Some(id1)
-    }
-
     "get exported symbols" taggedAs Retry in withRepo { repo =>
       val reexport = "Foo.Bar"
       val method   = suggestion.method.copy(reexports = Set(reexport))
@@ -675,7 +313,7 @@ class SuggestionsRepoTest
         name          = "a",
         arguments     = Seq(),
         selfType      = "Standard.Builtins.Pair",
-        returnType    = "Standard.Builtins.IO",
+        returnType    = Seq("Standard.Builtins.IO"),
         documentation = None,
         annotations   = Seq()
       )
@@ -687,7 +325,7 @@ class SuggestionsRepoTest
         name          = "main",
         arguments     = Seq(),
         selfType      = "local.Test.Main",
-        returnType    = "Standard.Builtins.IO",
+        returnType    = Seq("Standard.Builtins.IO"),
         isStatic      = true,
         documentation = None,
         annotations   = Seq()
@@ -700,7 +338,7 @@ class SuggestionsRepoTest
         name          = "foo",
         arguments     = Seq(),
         selfType      = "local.Test.Main.A",
-        returnType    = "Standard.Builtins.Nothing",
+        returnType    = Seq("Standard.Builtins.Nothing"),
         isStatic      = false,
         documentation = None,
         annotations   = Seq()
@@ -712,7 +350,7 @@ class SuggestionsRepoTest
         module        = "local.Test.Main",
         arguments     = Seq(),
         selfType      = "local.Test.Main.Foo",
-        returnType    = "local.Test.Main.Bar",
+        returnType    = Seq("local.Test.Main.Bar"),
         documentation = None
       )
 
@@ -724,7 +362,7 @@ class SuggestionsRepoTest
         arguments = Seq(
           Suggestion.Argument("x", "Number", false, true, Some("0"))
         ),
-        returnType = "local.Test.Main.MyType",
+        returnType = Seq("local.Test.Main.MyType"),
         scope = Suggestion
           .Scope(Suggestion.Position(1, 5), Suggestion.Position(6, 0)),
         documentation = Some("My function bar.")
@@ -735,7 +373,7 @@ class SuggestionsRepoTest
         externalId = Some(UUID.randomUUID()),
         module     = "local.Test.Main",
         name       = "bazz",
-        returnType = "local.Test.Main.MyType",
+        returnType = Seq("local.Test.Main.MyType"),
         scope = Suggestion.Scope(
           Suggestion.Position(3, 4),
           Suggestion.Position(6, 0)

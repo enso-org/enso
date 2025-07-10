@@ -62,7 +62,7 @@ object SuggestionRandom {
       name          = nextString(),
       arguments     = Seq(),
       selfType      = nextString(),
-      returnType    = nextString(),
+      returnType    = Seq(nextString()),
       documentation = optional(nextString()),
       annotations   = Seq()
     )
@@ -74,7 +74,7 @@ object SuggestionRandom {
       name          = nextString(),
       arguments     = Seq(),
       selfType      = nextString(),
-      returnType    = nextString(),
+      returnType    = Seq(nextString()),
       isStatic      = Random.nextBoolean(),
       documentation = optional(nextString()),
       annotations   = Seq()
@@ -86,7 +86,7 @@ object SuggestionRandom {
       module        = "Test.Main",
       name          = nextString(),
       arguments     = Seq(),
-      returnType    = nextString(),
+      returnType    = Seq(nextString()),
       scope         = nextScope(),
       documentation = optional(nextString())
     )
@@ -96,7 +96,7 @@ object SuggestionRandom {
       externalId    = optional(UUID.randomUUID()),
       module        = "Test.Main",
       name          = nextString(),
-      returnType    = nextString(),
+      returnType    = Seq(nextString()),
       scope         = nextScope(),
       documentation = optional(nextString())
     )

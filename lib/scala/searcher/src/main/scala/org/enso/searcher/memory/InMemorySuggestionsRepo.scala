@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
     extends SuggestionsRepo[Future] {
-  private[this] var db: mutable.Map[Long, Suggestion] = null
+  private[this] var db: mutable.Map[Long, Suggestion] = _
   @volatile private[this] var version: Long           = 0
   @volatile private[this] var index: Long             = 0
 
@@ -265,40 +265,6 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
         (version, suggestions.map(_._1).toSeq)
       }
     }
-
-  /*
-  /** Update the suggestion.
-   *
-   * @param suggestion    the key suggestion
-   * @param externalId    the external id to update
-   * @param returnType    the return type to update
-   * @param documentation the documentation string to update
-   * @param scope         the scope to update
-   */
-  override def update(
-    suggestion: Suggestion,
-    externalId: Option[Option[ExternalID]],
-    returnType: Option[Seq[String]],
-    documentation: Option[Option[String]],
-    scope: Option[Suggestion.Scope]
-  ): Future[(Long, Option[Long])] = Future {
-    db.synchronized {
-      val suggestionEntry = db.find(_._2 == suggestion)
-      val result = suggestionEntry.flatMap { case (idx, oldSuggestion) =>
-        val updated =
-          oldSuggestion.update(externalId, returnType, documentation, scope)
-        if (updated != oldSuggestion) {
-          db.put(idx, updated)
-          Some(idx)
-        } else {
-          None
-        }
-      }
-      condVersionIncrement(result.nonEmpty)
-      (version, suggestionEntry.map(_._1))
-    }
-  }
-   */
 
   private def versionIncrement(): Unit = {
     version += 1
