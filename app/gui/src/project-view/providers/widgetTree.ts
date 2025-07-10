@@ -3,7 +3,8 @@ import { type WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandl
 import { PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { Opt } from '@/util/data/opt'
-import { computed, proxyRefs, shallowRef, type Ref, type ShallowUnwrapRef } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed, shallowRef, type Ref, type ShallowUnwrapRef } from 'vue'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 export const [provideWidgetTree, injectWidgetTree] = createContextStore(

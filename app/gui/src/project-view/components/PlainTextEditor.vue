@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import { Extension } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
 import { type ComponentInstance, computed, defineAsyncComponent, ref } from 'vue'
-import * as Y from 'yjs'
 
-const props = defineProps<{ content: Y.Text | string; contentTestId?: string | undefined }>()
+const props = defineProps<{
+  extensions?: Extension
+  readonly?: boolean
+  contentTestId?: string | undefined
+  onEditorReady: (view: EditorView) => void
+}>()
 
 const impl = ref<ComponentInstance<typeof LazyPlainTextEditor>>()
 

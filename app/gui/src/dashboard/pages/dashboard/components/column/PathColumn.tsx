@@ -6,9 +6,9 @@ import { Icon } from '#/components/Icon'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCategories, useCategoriesAPI, type AnyCloudCategory } from '#/layouts/Drive/Categories'
+import { useCategories, type AnyCloudCategory } from '#/layouts/Drive/Categories'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
-import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { setDriveLocation } from '#/providers/DriveProvider'
 import type { DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useUser } from '$/providers/react'
@@ -17,16 +17,10 @@ import invariant from 'tiny-invariant'
 
 /** A column displaying the path of the asset. */
 export function PathColumn(props: AssetColumnProps) {
-  const { item, state } = props
-
+  const { item } = props
   const { virtualParentsPath, parentsPath } = item
 
-  const { getAssetNodeById } = state
-
-  const { setCategory } = useCategoriesAPI()
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const { rootDirectoryId } = useUser()
-
   const { getCategoryByDirectoryId } = useCategories()
 
   const { finalPath } = parseDirectoriesPath({
@@ -39,49 +33,27 @@ export function PathColumn(props: AssetColumnProps) {
   const navigateToDirectory = useEventCallback((targetDirectory: DirectoryId) => {
     const targetDirectoryIndex = finalPath.findIndex(({ id }) => id === targetDirectory)
     const targetDirectoryInfo = finalPath[targetDirectoryIndex]
-
     if (targetDirectoryIndex === -1 || !targetDirectoryInfo) {
       return
     }
-
     const pathToDirectory = finalPath
       .slice(0, targetDirectoryIndex + 1)
       .map(({ id, categoryId }) => ({ id, categoryId }))
-
     const rootDirectoryInThePath = pathToDirectory[0]
-
     // This should never happen, as we always have the root directory in the path.
-    // If it happens, it means you've skrewed up
-    invariant(rootDirectoryInThePath != null, 'Root directory id is null')
-
-    // If the target directory is null, we assume that this directory is outside of the current tree (in another category).
-    // Which is the default, because the path is only displayed in the Recent and Trash folders.
-    // But sometimes the user might delete a directory with its whole content,
-    // and in that case it will be present in the tree,
-    // because the parent is always fetched before its children.
-    const targetDirectoryNode = getAssetNodeById(targetDirectory)
-
-    if (targetDirectoryNode == null && rootDirectoryInThePath.categoryId != null) {
-      setCategory(rootDirectoryInThePath.categoryId)
-    }
-
-    setCurrentDirectoryId(targetDirectory)
+    invariant(rootDirectoryInThePath, 'Root directory id is null')
+    setDriveLocation(targetDirectory, rootDirectoryInThePath.categoryId)
   })
-
-  if (finalPath.length === 0) {
-    return <></>
-  }
 
   const firstItemInPath = finalPath.at(0)
   const lastItemInPath = finalPath.at(-1)
-
-  // Should not happen, as we ensure that the final path is not empty.
+  // This will be true if `finalPath` is empty.
   if (lastItemInPath == null || firstItemInPath == null) {
     return <></>
   }
 
-  // This also means that the first and the last item in the path are the same
-  if (finalPath.length === 1) {
+  // If the first and last item are the same, then there is only one entry.
+  if (firstItemInPath === lastItemInPath) {
     return (
       <div
         className="contents"

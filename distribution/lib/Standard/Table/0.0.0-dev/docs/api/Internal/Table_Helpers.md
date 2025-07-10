@@ -17,7 +17,7 @@
     - Common_Type value_type:Standard.Table.Value_Type.Value_Type
     - Fallback_To_Text
     - No_Types_To_Unify
-- duplicate_rows table:Standard.Table.Table.Table counts:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer) -> Standard.Table.Table.Table
+- duplicate_rows table:Standard.Base.Any.Any counts:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer) -> Standard.Table.Table.Table
 - filter_blank_rows table:Standard.Base.Any.Any when:Standard.Base.Any.Any treat_nans_as_blank:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - is_index_valid length:Standard.Base.Any.Any ix:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - match_columns name:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity columns:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any

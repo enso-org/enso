@@ -16,11 +16,14 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.data.BindingsMap.ImportTarget;
 import org.enso.compiler.data.BindingsMap.Resolution;
+import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.lint.unusedimports.UsedSymbols.Builder;
 import org.enso.compiler.pass.resolve.GenericAnnotations$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
+import org.enso.compiler.pass.resolve.MethodCalls$;
 import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations;
@@ -73,6 +76,23 @@ final class UsedSymbolsCollector {
     irsToProcess.add(root);
     while (!irsToProcess.isEmpty()) {
       var ir = irsToProcess.removeFirst();
+
+      addUsedSymbolForResolution(getGlobalNamesMeta(ir));
+      addUsedSymbolForResolution(getMethodDefinitionsMeta(ir));
+      addUsedSymbolForResolution(getTypeNameMeta(ir));
+      addUsedSymbolForResolution(getPatternsMeta(ir));
+      addUsedSymbolForResolution(getMethodCallsMeta(ir));
+      var typeSig = getTypeSignatureMeta(ir);
+      if (typeSig != null) {
+        var sig = typeSig.signature();
+        irsToProcess.addLast(sig);
+      }
+      var anotMeta = getGenericAnnotationMeta(ir);
+      if (anotMeta != null) {
+        var annotations = asJava(anotMeta.annotations());
+        irsToProcess.addAll(annotations);
+      }
+
       // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
       // resolution to the first synthetic self argument.
       if (ir instanceof Application.Prefix app
@@ -104,30 +124,12 @@ final class UsedSymbolsCollector {
             // Add all the children except for the first argument
             asJava(app.arguments()).stream().skip(1).forEach(irsToProcess::addLast);
             irsToProcess.addLast(app.function());
-          } else {
-            irsToProcess.addAll(asJava(ir.children()));
+            continue;
           }
-        } else {
-          irsToProcess.addAll(asJava(ir.children()));
         }
-      } else {
-        addUsedSymbolForResolution(getGlobalNamesMeta(ir));
-        addUsedSymbolForResolution(getMethodDefinitionsMeta(ir));
-        addUsedSymbolForResolution(getTypeNameMeta(ir));
-        addUsedSymbolForResolution(getPatternsMeta(ir));
-        var typeSig = getTypeSignatureMeta(ir);
-        if (typeSig != null) {
-          var sig = typeSig.signature();
-          irsToProcess.addLast(sig);
-        }
-        var anotMeta = getGenericAnnotationMeta(ir);
-        if (anotMeta != null) {
-          var annotations = asJava(anotMeta.annotations());
-          irsToProcess.addAll(annotations);
-        }
-        var children = asJava(ir.children());
-        irsToProcess.addAll(children);
       }
+      var children = asJava(ir.children());
+      irsToProcess.addAll(children);
     }
   }
 
@@ -178,12 +180,21 @@ final class UsedSymbolsCollector {
               .targets()
               .find(
                   target -> {
-                    var resolvedNames = target.findExportedSymbolsFor(targetSymbolName.item());
-                    var targetNameMatches = target.qualifiedName().equals(targetSymbolName);
-                    var exportsSymbol = !resolvedNames.isEmpty();
-                    if (targetNameMatches || exportsSymbol) {
+                    if (target.qualifiedName().equals(targetSymbolName)) {
                       return true;
                     }
+                    if (exportsSymbol(target, targetSymbolName.item())) {
+                      return true;
+                    }
+
+                    if (target instanceof ResolvedModule) {
+                      var qualifiedRes =
+                          bindingsMap.resolveQualifiedName(targetSymbolName.fullPath());
+                      if (qualifiedRes.toOption().isDefined()) {
+                        return true;
+                      }
+                    }
+
                     var suffix = dropPrefix(targetModName, targetSymbolName);
                     if (suffix.size() > 1) {
                       // We are trying to resolve a qualified name within a module of size greater
@@ -214,6 +225,11 @@ final class UsedSymbolsCollector {
         targetSymbolName,
         importDefsToString(importDefs));
     return importDefs;
+  }
+
+  private static boolean exportsSymbol(ImportTarget target, String symbol) {
+    var resolvedNames = target.findExportedSymbolsFor(symbol);
+    return !resolvedNames.isEmpty();
   }
 
   @SuppressWarnings("unchecked")
@@ -296,6 +312,11 @@ final class UsedSymbolsCollector {
   private static BindingsMap.Resolution getPatternsMeta(IR ir) {
     return MetadataInteropHelpers.getMetadataOrNull(
         ir, Patterns$.MODULE$, BindingsMap.Resolution.class);
+  }
+
+  private static BindingsMap.Resolution getMethodCallsMeta(IR ir) {
+    return MetadataInteropHelpers.getMetadataOrNull(
+        ir, MethodCalls$.MODULE$, BindingsMap.Resolution.class);
   }
 
   private static Annotations getGenericAnnotationMeta(IR ir) {

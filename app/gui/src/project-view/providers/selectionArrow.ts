@@ -1,6 +1,6 @@
 import { createContextStore } from '@/providers'
-import type { PortId } from '@/providers/portInfo.ts'
-import type { AstId, TokenId } from '@/util/ast/abstract.ts'
+import type { PortId } from '@/providers/portInfo'
+import type { AstId, TokenId } from '@/util/ast/abstract'
 import { identity } from '@vueuse/core'
 import type { RendererElement } from 'vue'
 

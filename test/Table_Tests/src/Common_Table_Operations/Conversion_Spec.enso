@@ -6,7 +6,7 @@ from Standard.Table.Errors import Loss_Of_Decimal_Precision, Loss_Of_Integer_Pre
 
 from Standard.Database.Errors import Unsupported_Database_Operation, Unsupported_Database_Type
 
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 

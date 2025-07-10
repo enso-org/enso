@@ -107,13 +107,14 @@ const { extensionMenu, extensionInputField } = useFileExtensions({
 
 .fileExtensionSeparator {
   width: 0;
+  position: relative;
   &::before {
     content: '.';
     font-size: 26px;
     color: var(--color-frame-selected-bg);
-    position: relative;
+    position: absolute;
     left: -4px;
-    bottom: -4px;
+    bottom: -6px;
   }
 }
 

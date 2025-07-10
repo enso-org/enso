@@ -100,7 +100,14 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
     }
     case undefined:
     default: {
-      throw new Error(`Invalid type '${typeRaw}'`)
+      // This is INCORRECT but avoids a crash, to allow the error to be handled gracefully.
+      // eslint-disable-next-line no-restricted-properties
+      console.error(`Invalid type '${typeRaw}' for asset id`)
+      return {
+        type: backend.AssetType.directory,
+        id: projectManager.Path(idRaw),
+        directory: directoryPath,
+      }
     }
   }
 }
@@ -988,11 +995,6 @@ export default class LocalBackend extends Backend {
   /** Return an empty array. */
   override listUserGroups() {
     return Promise.resolve([])
-  }
-
-  /** Invalid operation. */
-  override getCheckoutSession() {
-    return this.invalidOperation()
   }
 
   /** Invalid operation. */

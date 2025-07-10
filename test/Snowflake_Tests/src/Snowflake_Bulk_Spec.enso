@@ -1,0 +1,55 @@
+from Standard.Base import all
+
+from Standard.Table import Table
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Snowflake import all
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+from project.Snowflake_Spec import get_configured_connection_details, Lazy_Ref
+
+add_specs suite_builder = case get_configured_connection_details of
+    Nothing ->
+        message = "Snowflake test connection is not configured. See README.md for instructions."
+        suite_builder.group "[Snowflake] Bulk load tests" pending=message (_-> Nothing)
+    connection_details ->
+        connection_builder = _ -> Database.connect connection_details
+
+        default_connection = Lazy_Ref.Value (connection_builder Nothing)
+
+        file = (Project_Description.new enso_dev.Table_Tests).data / "data.csv"
+        file_url = 'file://' + (file.path.replace "\" "/")
+
+        suite_builder.group "[Snowflake] Bulk load tests" group_builder->
+            group_builder.specify "can list the stage" <|
+                raw_table = default_connection.get.execute_query "LIST @~"
+                raw_table.should_be_a Table
+                raw_table.column_names.should_equal ["name", "size", "md5", "last_modified"]
+
+                if (raw_table.filter "name" (..Equal "data.csv.gz") . row_count) != 0 then
+                    default_connection.get.execute_query "REMOVE @~/data.csv.gz"
+
+            group_builder.specify "can load a file to a stage" <|
+                upload = default_connection.get.execute_query "PUT '"+file_url+"' @~"
+                upload.should_be_a Table
+                upload.row_count.should_equal 1
+                upload.get_value "source" 0 . should_equal "data.csv"
+                upload.get_value "target" 0 . should_equal "data.csv.gz"
+
+            group_builder.specify "can remove a file from the stage" <|
+                raw_table = default_connection.get.execute_query "LIST @~"
+                if (raw_table.filter "name" (..Equal "data.csv.gz") . row_count) == 0 then default_connection.get.execute_query "PUT '"+file_url+"' @~"
+
+                remove = default_connection.get.execute_query "REMOVE @~/data.csv.gz"
+                remove.row_count . should_equal 1
+                remove.get_value "name" 0 . should_equal "data.csv.gz"
+                remove.get_value "result" 0 . should_equal "removed"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

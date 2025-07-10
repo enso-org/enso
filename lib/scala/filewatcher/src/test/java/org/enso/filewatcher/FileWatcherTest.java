@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,22 +23,38 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 public class FileWatcherTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileWatcherTest.class);
+  private static final Level AT = Level.DEBUG;
   private static final long TIMEOUT_SECONDS = 5;
 
   @Rule public RetryTestRule retryRule = new RetryTestRule(3);
   @Rule public TemporaryFolder tmpFolder = new TemporaryFolder();
 
   private File tmpDir;
+  private Path fileInTmpDir;
+  private Path nestedDir;
+  private Path fileInNestedDir;
   private ExecutorService executor;
   private BlockingQueue<WatcherEvent> eventQueue = new LinkedBlockingDeque<>();
   private Watcher watcher;
+  private boolean isClosingWatcher;
 
   @Before
   public void before() throws IOException {
+    isClosingWatcher = false;
     executor = Executors.newSingleThreadExecutor();
     tmpDir = tmpFolder.newFolder();
+    fileInTmpDir = tmpDir.toPath().resolve("file.txt");
+    Files.writeString(fileInTmpDir, "Initial content");
+    nestedDir = tmpDir.toPath().resolve("nested-dir");
+    Files.createDirectory(nestedDir);
+    fileInNestedDir = nestedDir.resolve("nested-file.txt");
+    Files.writeString(fileInNestedDir, "Initial content in nested file");
     eventQueue = new LinkedBlockingDeque<>();
     watcher =
         new DefaultWatcherFactory()
@@ -49,6 +66,7 @@ public class FileWatcherTest {
   public void after() throws Exception {
     assertThat(
         "No further events should be in the queue: " + eventQueue, eventQueue.isEmpty(), is(true));
+    isClosingWatcher = true;
     eventQueue.clear();
     executor.shutdown();
     watcher.close();
@@ -63,8 +81,26 @@ public class FileWatcherTest {
   }
 
   private void exceptionCallback(Watcher.WatcherError error) {
-    throw new AssertionError(
-        "Unexpected Watcher error: " + error.throwable().getMessage(), error.throwable());
+    // ClosedWatchServiceException is expected when closing the watcher
+    if (!isClosingWatcher || !(error.throwable() instanceof ClosedWatchServiceException)) {
+      var errMsg =
+          String.format(
+              "Unexpected Watcher error: %s '%s'",
+              error.throwable(), error.throwable().getMessage());
+      throw new AssertionError(errMsg);
+    }
+  }
+
+  @Test
+  public void tracksModificationToExistingFile() throws IOException {
+    atomicAppend(fileInTmpDir, "Appended content");
+    assertNextEventIs(modifyEvent(fileInTmpDir));
+  }
+
+  @Test
+  public void tracksModificationToExistingNestedFile() throws IOException {
+    atomicAppend(fileInNestedDir, "Appended content in nested file");
+    assertNextEventIs(modifyEvent(fileInNestedDir));
   }
 
   @Test
@@ -175,8 +211,15 @@ public class FileWatcherTest {
   }
 
   private void assertNextEventIs(WatcherEvent expectedEvent) {
-    var event = pollEvent();
-    assertThat(event, is(expectedEvent));
+    LOGGER.atLevel(AT).log("Expecting event: {}", expectedEvent);
+    for (; ; ) {
+      var event = pollEvent();
+      LOGGER.atLevel(AT).log("  got event: {}" + event);
+      if (expectedEvent.equals(event)) {
+        LOGGER.atLevel(AT).log("  good!");
+        return;
+      }
+    }
   }
 
   private WatcherEvent pollEvent() {

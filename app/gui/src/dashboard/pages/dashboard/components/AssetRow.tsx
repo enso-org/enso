@@ -18,8 +18,8 @@ import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUt
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
+  setDriveLocation,
   useDriveStore,
-  useSetCurrentDirectoryId,
   useSetDragTargetAssetId,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
@@ -181,7 +181,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
     { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
@@ -264,13 +263,11 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }
   }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
-  const setDirectoryId = useSetCurrentDirectoryId()
-
   const dragDelayProps = useDragDelayAction(
     item.type === backendModule.AssetType.directory ?
       () => {
         startNavigation(() => {
-          setDirectoryId(item.id)
+          setDriveLocation(item.id, category.id)
         })
       }
     : undefined,
@@ -335,7 +332,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             onDoubleClick={() => {
               if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
-                  setCurrentDirectoryId(item.id)
+                  setDriveLocation(item.id, category.id)
                 })
               }
             }}

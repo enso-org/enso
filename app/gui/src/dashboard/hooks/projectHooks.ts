@@ -16,6 +16,7 @@ import {
 } from '#/providers/ProjectsProvider'
 import * as authProvider from '$/providers/react'
 
+import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useAddOpeningProject, useRemoveOpeningProject } from '#/providers/ProjectsProvider/hooks'
@@ -45,11 +46,6 @@ const DEFAULT_INTERVAL_MS = 120_000
 export interface CreateOpenedProjectQueryOptions {
   readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
   readonly backend: Backend
-}
-
-/** Whether the user can open projects. */
-export function useCanOpenProjects() {
-  return useFeatureFlag('enableCloudExecution')
 }
 
 /** Return a function to update a project asset in the TanStack Query cache. */
@@ -417,7 +413,6 @@ const OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA = z.object({
 /** A callback to open a project. */
 function useOpenProject() {
   const client = reactQuery.useQueryClient()
-  const canOpenProjects = useCanOpenProjects()
   const projectsStore = useProjectsStore()
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
@@ -429,10 +424,6 @@ function useOpenProject() {
   const enableMultitabs = useFeatureFlag('enableMultitabs')
 
   return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
-    if (!canOpenProjects) {
-      return
-    }
-
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
       predicate: (mutation) => mutation.options.scope?.id === project.id,
@@ -485,7 +476,7 @@ function useOpenProject() {
 }
 
 /** Return a hook to open a project in Hybrid Mode. */
-export function useOpenHybridProject() {
+function useOpenHybridProject() {
   const { localBackend, remoteBackend } = useBackends()
   const toastAndLog = useToastAndLog()
   const openProject = useOpenProject()
@@ -556,6 +547,7 @@ export function useReopenProject(openProjectMutation: ReturnType<typeof useOpenP
 
 /** Return a function to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
 export function useOpenProjectNatively() {
+  const canRunProjects = useCanRunProjects()
   const openProject = useOpenProject()
 
   return eventCallbacks.useEventCallback(
@@ -563,6 +555,9 @@ export function useOpenProjectNatively() {
       asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
+      if (!canRunProjects.natively[backendType]) {
+        return
+      }
       await openProject({ ...asset, type: backendType })
     },
   )
@@ -571,7 +566,7 @@ export function useOpenProjectNatively() {
 /** Return a function to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
 export function useOpenProjectLocally() {
   const openProject = useOpenProject()
-  const enableHybridExecution = useFeatureFlag('enableHybridExecution')
+  const canRunProjects = useCanRunProjects()
   const openHybridProject = useOpenHybridProject()
 
   return eventCallbacks.useEventCallback(
@@ -579,8 +574,11 @@ export function useOpenProjectLocally() {
       asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
+      if (!canRunProjects.locally[backendType]) {
+        return
+      }
       const isCloud = backendType === backendModule.BackendType.remote
-      if (isCloud && enableHybridExecution) {
+      if (isCloud) {
         await openHybridProject(asset)
       } else {
         await openProject({ ...asset, type: backendType })

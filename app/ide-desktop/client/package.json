@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "@babel/plugin-syntax-import-attributes": "^7.26.0",
-    "@chromatic-com/playwright": "=0.10.2",
     "@electron/notarize": "2.1.0",
     "@playwright/test": "^1.50.1",
     "@types/mime-types": "^2.1.4",
@@ -43,7 +42,6 @@
     "@types/tar": "^6.1.13",
     "@types/yargs": "^17.0.33",
     "babel-plugin-react-compiler": "19.0.0-beta-6fc168f-20241025",
-    "chromatic": "11.25.1",
     "cross-env": "^7.0.3",
     "electron": "31.2.0",
     "electron-builder": "^24.13.3",
@@ -70,7 +68,6 @@
     "dist": "vite-node dist.ts",
     "lint": "eslint . --cache --max-warnings=0",
     "ide-integration-test": "playwright test",
-    "ide-build-chromatic": "build-archive-storybook",
     "watch:windows": "cross-env ENSO_IDE_VERSION=0.0.0-dev ENSO_IDE_COMMIT_HASH=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ENSO_BUILD_IDE=%LOCALAPPDATA%\\Temp\\enso\\dist\\ide ENSO_BUILD_PROJECT_MANAGER=%CD%\\..\\..\\..\\dist\\backend ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=bin\\project-manager.exe ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=0 ENSO_POLYGLOT_YDOC_SERVER=wss://localhost:8080 vite-node watch.ts",
     "watch:linux": "ENSO_IDE_VERSION=\"${ENSO_IDE_VERSION:-0.0.0-dev}\" ENSO_IDE_COMMIT_HASH=\"${ENSO_IDE_COMMIT_HASH:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}\" ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" ENSO_POLYGLOT_YDOC_SERVER=\"${ENSO_POLYGLOT_YDOC_SERVER:-wss://localhost:8080}\" vite-node watch.ts \"$@\"",
     "watch:macos": "ENSO_IDE_VERSION=\"${ENSO_IDE_VERSION:-0.0.0-dev}\" ENSO_IDE_COMMIT_HASH=\"${ENSO_IDE_COMMIT_HASH:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}\" ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" ENSO_POLYGLOT_YDOC_SERVER=\"${ENSO_POLYGLOT_YDOC_SERVER:-wss://localhost:8080}\" vite-node watch.ts \"$@\""

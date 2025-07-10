@@ -12,7 +12,7 @@ import project.Headers.Headers
 import project.Internal.Java_Problems
 import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
-from project.Table import from_java_table
+from project.In_Memory_Table import from_java_table
 
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import java.io.InputStream

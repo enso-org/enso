@@ -1,0 +1,23 @@
+from Standard.Base import all
+from Standard.Test import all
+from Standard.Microsoft import all
+
+add_specs suite_builder =
+    suite_builder.group "Azure_Storage" group_builder->
+        group_builder.specify "Connect to dummy blob storage should fail with authentication error" <|
+            dummy_token = "sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2025-08-30T19:03:22Z&st=2025-06-24T11:03:22Z&spr=https&sig=z1Gm3CUR896qh1eBfebjkMhsTD4Mw8cB9c3W40kl5z9rzC"
+            storage_ident = "ensostorage"
+            container_ident = "test-container"
+            caught = Panic.catch Any (Azure_Storage.list_blob storage_ident container=container_ident cred=(..SAS_Token dummy_token)) handler=\panic -> panic
+            actual_exception_msg = caught.payload.to_text
+            clue = "Expected Authentication error, but actual panic was: " + caught.to_text
+            expected_msg = "AuthenticationFailed"
+            Test.with_clue clue <|
+                actual_exception_msg.contains expected_msg . should_be_true
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

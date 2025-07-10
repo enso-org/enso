@@ -2,30 +2,32 @@ package org.enso.table.data.table;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.Text_Utils;
+import org.enso.base.arrays.LongArrayList;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.masks.IndexMapper;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
-import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.OrderedMultiValueKey;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
 import org.enso.table.data.table.join.JoinKind;
-import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -37,7 +39,7 @@ import org.graalvm.polyglot.Context;
 
 /** A representation of a table structure. */
 public class Table {
-
+  private final Map<String, Column> columnNameMap = new HashMap<>();
   private final Column[] columns;
   private String versionId;
 
@@ -115,18 +117,55 @@ public class Table {
   }
 
   /**
+   * Gets the value of a cell in the table by column name and row index. If the column does not
+   * exist, it calls the provided function with the column name.
+   *
+   * @param columnName the name of the column
+   * @param rowIndex the index of the row
+   * @param ifMissing a function to call if the column is missing
+   * @return the value of the cell, or the result of the function if the column is missing
+   */
+  public Object getValue(String columnName, long rowIndex, Function<String, Object> ifMissing) {
+    Column column = getColumnByName(columnName);
+    if (column == null) {
+      return ifMissing.apply(columnName);
+    }
+    return column.getItem(rowIndex);
+  }
+
+  /**
+   * Gets the value of a cell in the table by column index and row index. If the column does not
+   * exist, it calls the provided function with the column name.
+   *
+   * @param columnIndex the index of the column
+   * @param rowIndex the index of the row
+   * @param ifMissing a function to call if the column is missing
+   * @return the value of the cell, or the result of the function if the column is missing
+   */
+  public Object getValue(int columnIndex, long rowIndex, Function<Integer, Object> ifMissing) {
+    if (columnIndex < 0 || columnIndex >= columns.length) {
+      return ifMissing.apply(columnIndex);
+    }
+    return columns[columnIndex].getItem(rowIndex);
+  }
+
+  /**
    * Returns a column with the given name, or null if it doesn't exist.
    *
    * @param name the column name
    * @return a column with the given name
    */
   public Column getColumnByName(String name) {
-    for (Column column : columns) {
-      if (Text_Utils.equals(column.getName(), name)) {
-        return column;
-      }
-    }
-    return null;
+    return columnNameMap.computeIfAbsent(
+        name,
+        columnName -> {
+          for (Column column : columns) {
+            if (Text_Utils.equals(column.getName(), columnName)) {
+              return column;
+            }
+          }
+          return null;
+        });
   }
 
   /**
@@ -137,18 +176,37 @@ public class Table {
    * @return the result of masking this table with the provided column
    */
   public Table filter(Column filterColumn) {
-    if (!(filterColumn.getStorage() instanceof BoolStorage storage)) {
+    if (filterColumn.getSize() > this.rowCount()) {
+      // If given too many rows, we slice it to the size of the table.
+      return filter(filterColumn.slice(0, this.rowCount()));
+    }
+
+    if (!(filterColumn.getStorage() instanceof ColumnBooleanStorage storage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
-    var mask = BoolStorage.toMask(storage);
-    var localStorageMask = new BitSet();
-    localStorageMask.set(0, rowCount());
-    mask.and(localStorageMask);
-    int cardinality = mask.cardinality();
+    // Build a mask from the filter column.
+    var maskBuilder = new LongArrayList((int) Math.min(storage.getSize(), 100000));
+    StorageIterators.forEachOverBooleanStorage(
+        storage,
+        false,
+        (index, value, isNothing) -> {
+          if (value) {
+            maskBuilder.add(index);
+          }
+          return false;
+        });
+
+    // The filter didn't remove any rows, so we return the table as is.
+    if (maskBuilder.getSize() == this.rowCount()) {
+      return this;
+    }
+
+    // Create a new table with the mask applied to all columns.
+    var mask = maskBuilder.toArray();
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].applyFilter(mask, cardinality);
+      newColumns[i] = columns[i].mask(mask);
     }
     return new Table(newColumns);
   }
@@ -242,8 +300,18 @@ public class Table {
       context.safepoint();
     }
     Arrays.sort(keys);
-    OrderMask mask = OrderMask.fromObjects(keys, MultiValueKeyBase::getRowIndex);
-    return this.applyMask(mask);
+
+    // Create a new mask
+    boolean unchanged = true;
+    long[] mask = new long[n];
+    for (int i = 0; i < n; i++) {
+      long newIndex = keys[i].getRowIndex();
+      mask[i] = newIndex;
+      if (newIndex != i) {
+        unchanged = false;
+      }
+    }
+    return unchanged ? this : this.mask(mask);
   }
 
   /**
@@ -258,15 +326,18 @@ public class Table {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
+    // If there are no key columns, we return the table as is.
+    if (keyColumns.length == 0) {
+      return this;
+    }
+
     var rowsToKeep =
         Distinct.buildDistinctRowsMask(
             rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
-    int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].applyFilter(rowsToKeep, cardinality);
+      newColumns[i] = this.columns[i].mask(rowsToKeep);
     }
-
     return new Table(newColumns);
   }
 
@@ -282,13 +353,17 @@ public class Table {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
+    // If there are no key columns, we return the table.
+    if (keyColumns.length == 0) {
+      return this;
+    }
+
     var rowsToKeep =
         Distinct.buildDuplicatesRowsMask(
             rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
-    int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].applyFilter(rowsToKeep, cardinality);
+      newColumns[i] = this.columns[i].mask(rowsToKeep);
     }
 
     return new Table(newColumns);
@@ -330,21 +405,21 @@ public class Table {
       ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
-    JoinStrategy strategy = JoinStrategy.createStrategy(conditions, joinKind);
-    JoinResult joinResult = strategy.join(problemAggregator);
+    var strategy = JoinStrategy.createStrategy(conditions, joinKind);
+    var joinResult = strategy.join(problemAggregator);
 
     List<Column> newColumns = new ArrayList<>();
 
     if (includeLeftColumns) {
-      OrderMask leftMask = joinResult.getLeftOrderMask();
+      var leftMask = joinResult.getLeftIndexMapper();
       for (Column column : this.columns) {
-        var newColumn = column.applyMask(leftMask);
+        var newColumn = column.mask(leftMask);
         newColumns.add(newColumn);
       }
     }
 
     if (includeRightColumns) {
-      OrderMask rightMask = joinResult.getRightOrderMask();
+      var rightMask = joinResult.getRightIndexMapper();
       List<String> leftColumnNames = newColumns.stream().map(Column::getName).toList();
 
       HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
@@ -358,7 +433,7 @@ public class Table {
       for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
         Column column = rightColumnsToKeep.get(i);
         String newName = newRightColumnNames.get(i);
-        var newColumn = column.applyMask(rightMask).rename(newName);
+        var newColumn = column.mask(rightMask).rename(newName);
         newColumns.add(newColumn);
       }
     }
@@ -378,20 +453,20 @@ public class Table {
     List<String> newRightColumnNames =
         nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, rightPrefix);
 
-    JoinResult joinResult = CrossJoin.perform(this.rowCount(), right.rowCount());
-    OrderMask leftMask = joinResult.getLeftOrderMask();
-    OrderMask rightMask = joinResult.getRightOrderMask();
+    var joinResult = CrossJoin.perform(this.rowCount(), right.rowCount());
+    var leftMask = joinResult.getLeftIndexMapper();
+    var rightMask = joinResult.getRightIndexMapper();
 
     Column[] newColumns = new Column[this.columns.length + right.columns.length];
 
     int leftColumnCount = this.columns.length;
     int rightColumnCount = right.columns.length;
     for (int i = 0; i < leftColumnCount; i++) {
-      newColumns[i] = this.columns[i].applyMask(leftMask);
+      newColumns[i] = this.columns[i].mask(leftMask);
     }
     for (int i = 0; i < rightColumnCount; i++) {
       newColumns[leftColumnCount + i] =
-          right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
+          right.columns[i].mask(rightMask).rename(newRightColumnNames.get(i));
     }
 
     return new Table(newColumns);
@@ -452,24 +527,6 @@ public class Table {
     builder.appendBulkStorage(storage);
     builder.appendNulls(newSize - inputSize);
     return new Column(input.getName(), builder.seal());
-  }
-
-  /**
-   * Applies an order mask to all columns and indexes of this array.
-   *
-   * @param orderMask the mask to apply
-   * @return a new table, with all columns and indexes reordered accordingly
-   */
-  public Table applyMask(OrderMask orderMask) {
-    Column[] newColumns =
-        Arrays.stream(columns)
-            .map(
-                column -> {
-                  var newStorage = column.getStorage().applyMask(orderMask);
-                  return new Column(column.getName(), newStorage);
-                })
-            .toArray(Column[]::new);
-    return new Table(newColumns);
   }
 
   /**
@@ -544,10 +601,14 @@ public class Table {
   /**
    * @return a copy of the Table containing a slice of the original data
    */
-  public Table slice(int offset, int limit) {
+  public Table slice(long offset, long limit) {
+    var indexMapper =
+        offset > rowCount()
+            ? new IndexMapper.SingleSlice(0, 0)
+            : new IndexMapper.SingleSlice(offset, limit);
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].slice(offset, limit);
+      newColumns[i] = columns[i].mask(indexMapper);
     }
     return new Table(newColumns);
   }
@@ -556,9 +617,36 @@ public class Table {
    * @return a copy of the Table consisting of slices of the original data
    */
   public Table slice(List<SliceRange> ranges) {
+    if (ranges.isEmpty()) {
+      // Creates an empty table
+      return slice(0, 0);
+    }
+
+    if (ranges.size() == 1) {
+      // If there is only one range, we can use the existing slice method
+      SliceRange range = ranges.get(0);
+      return slice(range.start(), range.end() - range.start());
+    }
+
+    // Now we have to form multiple parts so create a mask
+    long[] mask = SliceRange.createMask(ranges);
+    return mask(mask);
+  }
+
+  public Table mask(long[] mask) {
+    var indexMapper = new IndexMapper.ArrayMapping(mask);
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].slice(ranges);
+      newColumns[i] = columns[i].mask(indexMapper);
+    }
+    return new Table(newColumns);
+  }
+
+  public Table reverse() {
+    var indexMapper = new IndexMapper.Reversed(0, rowCount());
+    Column[] newColumns = new Column[columns.length];
+    for (int i = 0; i < columns.length; i++) {
+      newColumns[i] = columns[i].mask(indexMapper);
     }
     return new Table(newColumns);
   }

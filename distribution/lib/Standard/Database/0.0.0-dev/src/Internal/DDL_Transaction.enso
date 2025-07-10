@@ -3,6 +3,7 @@ import Standard.Base.Data.Vector.Builder as Vector_Builder
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+from Standard.Table import Table
 
 import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
@@ -45,7 +46,7 @@ type Transactional_Table_Description
     ## PRIVATE
        This operation creates the tables regardless of the Output Context setting.
        It is the responsibility of the caller to ensure that the operation may proceed.
-    private create self connection -> DB_Table = Context.Output.with_enabled <|
+    private create self connection -> Table & DB_Table = Context.Output.with_enabled <|
         created_name = create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=self.on_problems
         connection.query (SQL_Query.Table_Name created_name)
 

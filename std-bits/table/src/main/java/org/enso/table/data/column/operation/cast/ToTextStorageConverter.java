@@ -13,11 +13,11 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.StringStorage;
-import org.enso.table.data.column.storage.datetime.DateStorage;
-import org.enso.table.data.column.storage.datetime.DateTimeStorage;
-import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 
 public class ToTextStorageConverter implements StorageConverter<String> {
   private final TextType targetType;
@@ -34,6 +34,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   @Override
   public ColumnStorage<String> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    var storageType = storage.getType();
     if (storage instanceof StringStorage stringStorage) {
       if (canAvoidCopying(stringStorage)) {
         return retypeStringStorage(stringStorage);
@@ -47,12 +48,15 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       return castDoubleStorage(doubleStorage, problemAggregator);
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return castBoolStorage(boolStorage, problemAggregator);
-    } else if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
-      return castTemporalStorage(timeOfDayStorage, this::convertTime, problemAggregator);
-    } else if (storage instanceof DateStorage dateStorage) {
-      return castTemporalStorage(dateStorage, this::convertDate, problemAggregator);
-    } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return castTemporalStorage(dateTimeStorage, this::convertDateTime, problemAggregator);
+    } else if (storageType instanceof TimeOfDayType timeOfDayType) {
+      return castTemporalStorage(
+          timeOfDayType.asTypedStorage(storage), this::convertTime, problemAggregator);
+    } else if (storageType instanceof DateType dateType) {
+      return castTemporalStorage(
+          dateType.asTypedStorage(storage), this::convertDate, problemAggregator);
+    } else if (storageType instanceof DateTimeType dateTimeType) {
+      return castTemporalStorage(
+          dateTimeType.asTypedStorage(storage), this::convertDateTime, problemAggregator);
     } else {
       return castFromObject(storage, problemAggregator);
     }

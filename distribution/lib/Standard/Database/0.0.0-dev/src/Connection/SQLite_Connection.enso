@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -10,12 +10,12 @@ from Standard.Table import Table
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
-import project.Dialect
+import project.Dialects.Dialect
 import project.Internal.Common.Connections_Helpers
 import project.Internal.JDBC_Connection
 import project.Internal.SQLite.SQLite_Entity_Naming_Properties
+import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
-import project.SQL_Statement.SQL_Statement
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
@@ -141,7 +141,7 @@ type SQLite_Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : SQL_Query -> Text -> DB_Table ! Table_Not_Found
+    query : SQL_Query -> Text -> Table & DB_Table ! Table_Not_Found
     query self query:SQL_Query alias="" = self.connection.query query alias
 
     ## ALIAS import, load, open, query
@@ -210,9 +210,29 @@ type SQLite_Connection
          (like missing columns) and if successful, return a temporary table with
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
-    create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
+    create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
+
+    ## ADVANCED
+       ICON data_input
+
+       Executes a raw query returning a Table object, which can be used to get the
+       results of the query. This is meant for advanced users who need to call direct
+       SQL queries that are not supported by the `query` method.
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of SQL_Statement
+         representing the query to execute.
+       - write_operation: if set to `True`, the query is expected to be a
+         write operation and will only run if the output context is enabled.
+         If set to `False`, the query is expected to be a read operation and
+         will run regardless of the output context. Defaults to `True`.
+    @query Text_Input display=..Always
+    @limit Rows_To_Read.default_widget
+    execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
+    execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
+        self.connection.execute_query query limit write_operation
 
     ## ADVANCED
        GROUP Standard.Base.Output

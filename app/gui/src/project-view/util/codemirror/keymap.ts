@@ -169,38 +169,38 @@ const baseKeymap: KeyBinding[] = [
   { mac: 'Mod-Delete', run: commands.deleteLineBoundaryForward, stopPropagation: true },
 
   {
-    key: 'Ctrl-b',
+    mac: 'Ctrl-b',
     run: commands.cursorCharLeft,
     shift: commands.selectCharLeft,
     preventDefault: true,
     stopPropagation: true,
   },
   {
-    key: 'Ctrl-f',
+    mac: 'Ctrl-f',
     run: commands.cursorCharRight,
     shift: commands.selectCharRight,
     stopPropagation: true,
   },
 
   {
-    key: 'Ctrl-a',
+    mac: 'Ctrl-a',
     run: commands.cursorLineStart,
     shift: commands.selectLineStart,
     stopPropagation: true,
   },
   {
-    key: 'Ctrl-e',
+    mac: 'Ctrl-e',
     run: commands.cursorLineEnd,
     shift: commands.selectLineEnd,
     stopPropagation: true,
   },
 
-  { key: 'Ctrl-d', run: commands.deleteCharForward, stopPropagation: true },
-  { key: 'Ctrl-h', run: commands.deleteCharBackward, stopPropagation: true },
-  { key: 'Ctrl-k', run: commands.deleteToLineEnd, stopPropagation: true },
-  { key: 'Ctrl-Alt-h', run: commands.deleteGroupBackward, stopPropagation: true },
+  { mac: 'Ctrl-d', run: commands.deleteCharForward, stopPropagation: true },
+  { mac: 'Ctrl-h', run: commands.deleteCharBackward, stopPropagation: true },
+  { mac: 'Ctrl-k', run: commands.deleteToLineEnd, stopPropagation: true },
+  { mac: 'Ctrl-Alt-h', run: commands.deleteGroupBackward, stopPropagation: true },
 
-  { key: 'Ctrl-t', run: commands.transposeChars, stopPropagation: true },
+  { mac: 'Ctrl-t', run: commands.transposeChars, stopPropagation: true },
 ]
 
 /** Bindings applicable in text that is always single-line, or single-line by default. */
@@ -273,20 +273,20 @@ export const verticalMovementKeymap: KeyBinding[] = [
   },
 
   {
-    key: 'Ctrl-p',
+    mac: 'Ctrl-p',
     run: commands.cursorLineUp,
     shift: commands.selectLineUp,
     stopPropagation: true,
   },
   {
-    key: 'Ctrl-n',
+    mac: 'Ctrl-n',
     run: commands.cursorLineDown,
     shift: commands.selectLineDown,
     stopPropagation: true,
   },
 
-  { key: 'Ctrl-o', run: commands.splitLine, stopPropagation: true },
-  { key: 'Ctrl-v', run: commands.cursorPageDown, stopPropagation: true },
+  { mac: 'Ctrl-o', run: commands.splitLine, stopPropagation: true },
+  { mac: 'Ctrl-v', run: commands.cursorPageDown, stopPropagation: true },
 ]
 
 const autoOrMultiHandlers = handlerToKeyBinding(

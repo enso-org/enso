@@ -24,7 +24,8 @@ import { useState } from 'react'
 /** A form for users to log in. */
 export default function Login() {
   const { router } = useRouter()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
+  const { signInWithApple, signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } =
+    useSession()
   const { getText } = useText()
 
   const [initialEmail] = useQueryParam('email')
@@ -44,17 +45,19 @@ export default function Login() {
 
       switch (res.challenge) {
         case 'SMS_MFA':
-        case 'SOFTWARE_TOKEN_MFA':
+        case 'SOFTWARE_TOKEN_MFA': {
           setUser(res.user)
           nextStep()
           break
+        }
         case 'NO_CHALLENGE':
         case 'CUSTOM_CHALLENGE':
         case 'MFA_SETUP':
         case 'NEW_PASSWORD_REQUIRED':
         case 'SELECT_MFA_TYPE':
-        default:
+        default: {
           await router.push(DASHBOARD_PATH)
+        }
       }
     },
   })
@@ -67,6 +70,10 @@ export default function Login() {
   const { nextStep, stepperState, previousStep } = Stepper.useStepperState({
     steps: 2,
     defaultStep: 0,
+  })
+
+  const handleApplePress = useEventCallback(async () => {
+    await signInWithApple()
   })
 
   const handleGooglePress = useEventCallback(async () => {
@@ -112,6 +119,9 @@ export default function Login() {
                 onPress={handleGitHubPress}
               >
                 {getText('signUpOrLoginWithGitHub')}
+              </Button>
+              <Button size="large" variant="outline" icon="apple_color" onPress={handleApplePress}>
+                {getText('signUpOrLoginWithApple')}
               </Button>
 
               <Form form={form} gap="medium">

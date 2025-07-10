@@ -5,7 +5,7 @@ from Standard.Table import Value_Type
 
 from Standard.Database.DB_Table import MAX_LITERAL_ELEMENT_COUNT
 from Standard.Database.Errors import all
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 

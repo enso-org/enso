@@ -95,8 +95,9 @@ final class ImportResolver(compiler: Compiler) extends ImportResolutionForIR {
         val newImportIRs =
           importedModules.map(_._1) ++ syntheticImports.map(_._1)
 
-        currentLocal.resolvedImports =
+        currentLocal.resolvedImports(
           resolvedImports ++ resolvedSyntheticImports
+        )
 
         val newIr = ir.copy(imports = newImportIRs)
         context.updateModule(

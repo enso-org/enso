@@ -10,11 +10,13 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
@@ -55,12 +57,13 @@ public final class TypeCheckValueNode extends Node {
    *
    * @param frame frame requesting the conversion
    * @param value the value to convert
-   * @param expr the expression node that produced the {@code value}
    * @return {@code null} when the check isn't satisfied and conversion isn't possible or non-{@code
    *     null} value that can be used as a result
    */
-  public final Object handleCheckOrConversion(
-      VirtualFrame frame, Object value, ExpressionNode expr) {
+  public final Object handleCheckOrConversion(VirtualFrame frame, Object value) {
+    if (isAllFitValue(value)) {
+      return value;
+    }
     if (warnings.hasWarnings(value)) {
       if (append == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -68,7 +71,7 @@ public final class TypeCheckValueNode extends Node {
       }
       try {
         var plainValue = warnings.removeWarnings(value);
-        var result = handleCheckOrConversionImpl(frame, plainValue, expr);
+        var result = handleCheckOrConversionImpl(frame, plainValue);
         if (result == plainValue) {
           return value;
         } else {
@@ -80,13 +83,16 @@ public final class TypeCheckValueNode extends Node {
         throw ctx.raiseAssertionPanic(this, null, ex);
       }
     } else {
-      return handleCheckOrConversionImpl(frame, value, expr);
+      return handleCheckOrConversionImpl(frame, value);
     }
   }
 
-  private final Object handleCheckOrConversionImpl(
-      VirtualFrame frame, Object value, ExpressionNode expr) {
-    var result = check.executeCheckOrConversion(frame, value, expr);
+  private final Object handleCheckOrConversionImpl(VirtualFrame frame, Object value) {
+    var direct = check.findDirectMatch(frame, value);
+    if (direct != null) {
+      return direct;
+    }
+    var result = check.executeConversion(frame, value);
     if (result == null) {
       throw panicAtTheEnd(value);
     }
@@ -168,7 +174,7 @@ public final class TypeCheckValueNode extends Node {
   public static TypeCheckValueNode meta(
       String comment, Supplier<? extends Object> metaObjectSupplier) {
     var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
-    var typeCheckNodeImpl = MetaTypeCheckNodeGen.create(comment, cachingSupplier);
+    var typeCheckNodeImpl = new MetaTypeCheckNode(comment, cachingSupplier);
     return new TypeCheckValueNode(typeCheckNodeImpl, true);
   }
 
@@ -226,5 +232,9 @@ public final class TypeCheckValueNode extends Node {
 
   final boolean isAllTypes() {
     return allTypes;
+  }
+
+  private static boolean isAllFitValue(Object v) {
+    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 }

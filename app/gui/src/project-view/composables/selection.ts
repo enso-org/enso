@@ -144,7 +144,7 @@ function useSelectionImpl<T, PackedT>(
   }
 
   /** Returns the single selected component, or an error. */
-  function tryGetSoleSelection(): Result<T, string> {
+  function tryGetSingleSelectedNode(): Result<T, string> {
     if (selected.value.size === 0) {
       return Err('No component selected')
     } else if (selected.value.size > 1) {
@@ -254,9 +254,11 @@ function useSelectionImpl<T, PackedT>(
       const packed = pack(element)
       return packed != null && rawSelected.has(packed)
     },
+    isSoleSelection: (element: T) =>
+      committedSelection.value.has(element) && committedSelection.value.size === 1,
     committedSelection,
     setSelection,
-    tryGetSoleSelection,
+    tryGetSingleSelectedNode,
     // === Selection changes ===
     anchor,
     focus,
