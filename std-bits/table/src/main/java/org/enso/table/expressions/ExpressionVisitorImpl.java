@@ -83,31 +83,43 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   public static MethodResolver newMethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
     return new MethodResolver(moduleName, typeName, isStaticMethod, makeTypedColumn);
   }
-  public record Method(
-      MethodResolver methodResolver, String name, boolean isVariableArgumentMethod)
-      implements MethodInterface {
+  public static class Method implements MethodInterface {
+    protected final MethodResolver methodResolver;
+    protected final String name;
+
+    public Method(MethodResolver methodResolver, String name) {
+      this.methodResolver = methodResolver;
+      this.name = name;
+    }
+
     public static Method create(
         Iterable<MethodResolver> methodResolvers, String methodName, boolean isVariableArgumentMethod) {
         for (var resolver : methodResolvers) {
            if (resolver.canResolve(methodName)) {
-            return new Method(resolver, methodName, isVariableArgumentMethod);
+            if (isVariableArgumentMethod) {
+              return new VariableArgumentMethod(resolver, methodName);
+            } else if (resolver.isStaticMethod) {
+              return new StaticArgumentMethod(resolver, methodName);
+            } else {
+            return new Method(resolver, methodName);
+            }
           }
         }
         throw new UnsupportedOperationException("Method not found: " + methodName);
     }
-    
+
     @Override
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects = prepareArguments(args, makeConstantColumn);
       try {
-        var result = methodResolver.resolve(name).execute(objects);
+        var result = this.methodResolver.resolve(this.name).execute(objects);
         if (result.canExecute()) {
-          throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
+          throw new IllegalArgumentException("Insufficient arguments for method " + this.name + ".");
         }
         return result;
       } catch (PolyglotException e) {
         if (e.getMessage().startsWith("Type error: expected a function")) {
-          throw new IllegalArgumentException("Too many arguments for method " + name + ".");
+          throw new IllegalArgumentException("Too many arguments for method " + this.name + ".");
         }
         throw e;
       }
@@ -116,19 +128,37 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects;
-      if (isVariableArgumentMethod) {
-        objects = new Object[2];
-        objects[0] = methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
+      objects = Arrays.copyOf(args, args.length, Object[].class);
+      objects[0] = this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
+      return objects;
+    }
+  }
+  public static class VariableArgumentMethod extends Method {
+    public VariableArgumentMethod(MethodResolver methodResolver, String name) {
+      super(methodResolver, name);
+    }
 
-        objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-      } else if (methodResolver.isStaticMethod) {
-        objects = new Object[args.length + 1];
-        objects[0] = methodResolver.module;
-        System.arraycopy(args, 0, objects, 1, args.length);
-      } else {
-        objects = Arrays.copyOf(args, args.length, Object[].class);
-        objects[0] = methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
-      }
+    @Override
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects;
+      objects = new Object[2];
+      objects[0] = this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
+      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
+      return objects;
+    }
+  }
+
+  public static class StaticArgumentMethod extends Method {
+    public StaticArgumentMethod(MethodResolver methodResolver, String name) {
+      super(methodResolver, name);
+    }
+
+    @Override
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects;
+      objects = new Object[args.length + 1];
+      objects[0] = this.methodResolver.module;
+      System.arraycopy(args, 0, objects, 1, args.length);
       return objects;
     }
   }
