@@ -60,20 +60,20 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
   }
 
-  public record EnsoType(Value module, Value type, boolean isStaticMethod, Function<Object, Value> typeColumnMethod) {
-    public EnsoType(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> typeColumnMethod) {
+  public record EnsoType(Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    public EnsoType(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
       this(
           Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
           Context.getCurrent()
               .getBindings("enso")
               .invokeMember("get_module", moduleName)
               .invokeMember("get_type", typeName),
-              isStaticMethod,typeColumnMethod);
+              isStaticMethod,makeTypedColumn);
     }
   }
 
-  public static EnsoType newMethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> typeColumnMethod) {
-    return new EnsoType(moduleName, typeName, isStaticMethod, typeColumnMethod);
+  public static EnsoType newMethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    return new EnsoType(moduleName, typeName, isStaticMethod, makeTypedColumn);
   }
 
   public record EnsoMethod(EnsoType type, String methodName, Value methodImpl) {
@@ -123,7 +123,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Object[] objects;
       if (isVariableArgumentMethod) {
         objects = new Object[2];
-        objects[0] = ensoMethod.type.typeColumnMethod.apply(makeConstantColumn.apply(args[0]));
+        objects[0] = ensoMethod.type.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
 
         objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
       } else if (isStaticMethod) {
@@ -132,7 +132,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         System.arraycopy(args, 0, objects, 1, args.length);
       } else {
         objects = Arrays.copyOf(args, args.length, Object[].class);
-        objects[0] = ensoMethod.type.typeColumnMethod.apply(makeConstantColumn.apply(args[0]));
+        objects[0] = ensoMethod.type.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
       }
       return objects;
     }
