@@ -33,7 +33,7 @@ export const dataLoader: DataLoader<{
     if (!auth.session) return Ok({})
     const { isOrganizationAdmin, plan = backendModule.Plan.free } = auth.session.user
 
-    if (!isOrganizationAdmin) return Ok({})
+    if (!isOrganizationAdmin || plan === backendModule.Plan.free) return Ok({})
 
     const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
     await organizationQuery.suspense()
@@ -61,7 +61,7 @@ export const dataLoader: DataLoader<{
 <script setup lang="ts">
 defineProps<{
   shouldSetupOrganization?: boolean
-  trialEndedModalProps?: { subscriptionId?: string | undefined }
+  trialEndedModalProps?: { subscriptionId?: backendModule.SubscriptionId | undefined }
 }>()
 
 const { remoteBackend } = useBackends()

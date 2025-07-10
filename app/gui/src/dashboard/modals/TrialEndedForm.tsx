@@ -1,4 +1,4 @@
-/** @file Modal for setting the organization name. */
+/** @file Modal for handling user subscription after initial trial ended. */
 import { Alert } from '#/components/Alert'
 import { AlertDialog } from '#/components/AlertDialog'
 import { Text } from '#/components/Text'
@@ -12,7 +12,7 @@ export interface TrialEndedModalProps {
   readonly subscriptionId: backend.SubscriptionId
 }
 
-/** The mutation data for the `createCheckoutSession` mutation. */
+/** The mutation data for the `cancelSubscription` mutation. */
 interface CancelSubcriptionMutationParams {
   readonly subscriptionId: backend.SubscriptionId
 }
