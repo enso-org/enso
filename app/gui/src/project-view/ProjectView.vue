@@ -15,10 +15,10 @@ import {
   onActivated,
   onDeactivated,
   onScopeDispose,
-  readonly,
   ref,
   toRaw,
   toRef,
+  toRefs,
   watch,
 } from 'vue'
 
@@ -66,10 +66,7 @@ provideSettings()
 
 const visible = ref(false)
 provideVisibility(visible)
-openedProjects.registerProject({
-  ...props,
-  projectDisplayedName: readonly(toRef(props, 'projectDisplayedName')),
-})
+openedProjects.registerProject(toRefs(props))
 onScopeDispose(() => openedProjects.projectClosed(props.projectId))
 
 onActivated(() => (visible.value = true))
