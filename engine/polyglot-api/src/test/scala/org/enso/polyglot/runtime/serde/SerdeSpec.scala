@@ -37,7 +37,7 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                     name          = "main",
                     arguments     = Seq.empty,
                     selfType      = "local.New_Project_1.Main",
-                    returnType    = "Standard.Base.Any.Any",
+                    returnType    = Seq("Standard.Base.Any.Any"),
                     isStatic      = true,
                     documentation = None,
                     annotations   = Seq.empty
@@ -52,7 +52,7 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                         externalId = Some(UUID.randomUUID()),
                         module     = "local.New_Project_1.Main",
                         name       = "main",
-                        returnType = "Standard.Base.Any.Any",
+                        returnType = Seq("Standard.Base.Any.Any"),
                         scope = Suggestion.Scope(
                           Suggestion.Position(0, 1),
                           Suggestion.Position(2, 3)
@@ -71,8 +71,7 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                         module     = "Standard.Base.Data.Set",
                         name       = "Set",
                         params = Seq(
-                          Suggestion
-                            .Argument("foo", "bar", true, false, None, None)
+                          Suggestion.Argument("foo", "bar", true, false, None)
                         ),
                         returnType = "Standard.Base.Data.Set.Set",
                         parentType = Some("Standard.Base.Any.Any"),
@@ -92,8 +91,7 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                         module     = "Standard.Base.Data.Vector",
                         name       = "Set",
                         params = Seq(
-                          Suggestion
-                            .Argument("foo", "bar", true, false, None, None)
+                          Suggestion.Argument("foo", "bar", true, false, None)
                         ),
                         returnType = "Standard.Base.Data.Set.Set",
                         parentType = Some("Standard.Base.Any.Any"),
@@ -103,7 +101,7 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                       ),
                     action = SuggestionAction.Modify(
                       documentation = Some(None),
-                      returnType    = Some("foo")
+                      returnType    = Some(Seq("foo"))
                     )
                   ),
                   children = Vector.empty
