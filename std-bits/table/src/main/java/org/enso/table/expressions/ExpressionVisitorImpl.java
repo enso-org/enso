@@ -60,8 +60,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
   }
 
-  public record EnsoType(Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
-    public EnsoType(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+  public record MethodResolver(Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    public MethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
       this(
           Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
           Context.getCurrent()
@@ -72,12 +72,12 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-  public static EnsoType newMethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
-    return new EnsoType(moduleName, typeName, isStaticMethod, makeTypedColumn);
+  public static MethodResolver newMethodResolver(String moduleName, String typeName, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    return new MethodResolver(moduleName, typeName, isStaticMethod, makeTypedColumn);
   }
 
-  public record EnsoMethod(EnsoType type, String methodName, Value methodImpl) {
-    public EnsoMethod(EnsoType type, String methodName) {
+  public record EnsoMethod(MethodResolver type, String methodName, Value methodImpl) {
+    public EnsoMethod(MethodResolver type, String methodName) {
       this(type, methodName, type.module().invokeMember("get_method", type.type(), methodName));
     }
     public boolean canExecute() {
@@ -91,7 +91,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       EnsoMethod ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
       implements MethodInterface {
     public static Method create(
-        Iterable<EnsoType> moduleTypePairs, String methodName, boolean variableArgumentMethod) {
+        Iterable<MethodResolver> moduleTypePairs, String methodName, boolean variableArgumentMethod) {
         for (var moduleTypePair : moduleTypePairs) {
           var instanceMethod = new EnsoMethod(moduleTypePair, methodName);
           if (instanceMethod.canExecute()) {
@@ -143,13 +143,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       Function<Value, Boolean> isColumn,
-      EnsoType[] x,
+      MethodResolver[] methodResolvers,
       String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
         
-    final var moduleTypePairs = java.util.Arrays.stream(x).toList();
+    final var moduleTypePairs = java.util.Arrays.stream(methodResolvers).toList();
     Function<String, MethodInterface> getMethod =
         name -> Method.create(moduleTypePairs, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
