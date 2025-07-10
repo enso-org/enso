@@ -51,7 +51,7 @@ const label = computed(() => {
       <template #tooltip>
         <div class="flex flex-col">
           <span v-for="type in additionalTypes" :key="type" v-text="type" />
-          <span v-for="type in hiddenTypes" :key="type" v-text="type" class="hiddenType" />
+          <span v-for="type in hiddenTypes" :key="type" class="hiddenType" v-text="type" />
         </div>
       </template>
     </TooltipTrigger>
