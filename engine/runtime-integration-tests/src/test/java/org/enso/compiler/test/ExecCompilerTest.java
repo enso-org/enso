@@ -258,7 +258,9 @@ public class ExecCompilerTest {
   public void inlineReturnSignature() {
     var module =
         ctxRule.eval(
-            LanguageInfo.ID, """
+            LanguageInfo.ID,
+            """
+    import Standard.Base.Data.Numbers.Integer
     foo (x : Integer) (y : Integer) -> Integer = 10*x + y
     """);
     var foo = module.invokeMember("eval_expression", "foo");
@@ -273,6 +275,7 @@ public class ExecCompilerTest {
             LanguageInfo.ID,
             """
             import Standard.Base.Data.Numbers
+            import Standard.Base.Data.Numbers.Integer
             type My_Type
                 Value x
 
@@ -310,6 +313,7 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
+    import Standard.Base.Data.Numbers.Integer
     foo x y =
         inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
         a = 3
@@ -323,7 +327,11 @@ public class ExecCompilerTest {
 
   @Test
   public void inlineReturnSignatureWithoutArguments() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+    import Standard.Base.Data.Numbers.Integer
     the_number -> Integer = 23
     """);
     var result = module.invokeMember("eval_expression", "the_number");
