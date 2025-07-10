@@ -779,7 +779,8 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 }
                 Result::Ok(())
             };
-            let bazel_clean = enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean);
+            let bazel_clean =
+                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean);
 
             try_join!(git_clean, clean_cache, bazel_clean)?;
         }
