@@ -5,7 +5,7 @@ import Standard.Base.Runtime.Ref.Ref
 import project.Connection.Connection.Connection
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
-import project.SQL_Type.SQL_Type
+import project.SQL.SQL_Type
 
 ## PRIVATE
 type SQL_Type_Reference

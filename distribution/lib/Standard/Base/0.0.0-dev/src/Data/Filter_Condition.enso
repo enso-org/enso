@@ -7,7 +7,6 @@ import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
-import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Nothing.Nothing
@@ -16,6 +15,7 @@ import project.Internal.Predicate_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all
+import project.Meta
 from project.Metadata import Display, make_single_choice, Widget
 from project.Metadata.Choice import Option
 from project.Widget_Helpers import make_any_selector

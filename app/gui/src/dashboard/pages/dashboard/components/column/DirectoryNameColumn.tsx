@@ -3,7 +3,7 @@ import { Button } from '#/components/Button'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
-import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -26,7 +26,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   const { getText } = useText()
   const driveStore = useDriveStore()
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const getAssetChildren = useGetAssetChildren()
 
   const setIsEditing = (isEditingName: boolean) => {
@@ -63,7 +62,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startNavigation(() => {
-            setCurrentDirectoryId(item.id)
+            setDriveLocation(item.id)
           })
         }}
       />

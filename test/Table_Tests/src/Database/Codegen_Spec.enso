@@ -4,9 +4,7 @@ from Standard.Table import Value_Type, Blank_Selector, Aggregate_Column
 from Standard.Table.Errors import Missing_Input_Columns, No_Such_Column
 
 from Standard.Database import all
-import Standard.Database.DB_Column.DB_Column
-import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Dialect
+import Standard.Database.Dialects.Dialect
 
 from Standard.Test import all
 

@@ -1,6 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.No_Such_Argument
-import Standard.Base.Errors.Common.Not_Invokable
 import Standard.Base.Metadata.Widget
 from Standard.Base.Logging import all
 
@@ -33,16 +31,9 @@ get_widget_json value call_name argument_names uuids="{}" =
         case annotation of
             # The annotation is a function that is taking the 'self' value and _maybe_ a cache parameter.
             f : Function ->
-                # We pass the self value and the cache to the function.
-                Panic.catch Not_Invokable (f no_warnings cache=cache) caught_panic->
-                    ## If the cache argument was not expected, we ignore the problem
-                       and return just the result of `f value` - held by
-                       the target of the Not_Invokable error.
-                    was_not_expecting_cache_argument = caught_panic.payload.cause == (No_Such_Argument.Error "cache")
-                    if was_not_expecting_cache_argument then caught_panic.payload.target else
-                        # If this is some other error, we want to rethrow it.
-                        log_panic argument caught_panic
-
+                with_cache = Meta.meta f . arguments pending=True defaulted=True . contains "cache"
+                fwc = if with_cache then f cache=cache else f
+                fwc no_warnings
             # The annotation is a constant, so we just return it.
             _ -> annotation
 

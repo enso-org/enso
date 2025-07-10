@@ -10,8 +10,11 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
-import project.Dialect
-import project.Dialect_Flag.Dialect_Flag
+import project.Dialects.Dialect
+import project.Dialects.Dialect.Temp_Table_Style
+import project.Dialects.Dialect_Flag.Dialect_Flag
+import project.Dialects.Feature.Feature
+import project.Errors.Unsupported_Database_Operation
 import project.Internal.Aggregate_Helper
 import project.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
 import project.Internal.Base_Generator
@@ -24,6 +27,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
@@ -32,12 +36,8 @@ import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
-from project.Dialect import Temp_Table_Style
-from project.Errors import Unsupported_Database_Operation
-from project.Feature import Feature
-from project.Internal.JDBC_Connection import JDBC_Connection
+import project.SQL.SQL_Statement
+import project.SQL.SQL_Type
 
 ## PRIVATE
 

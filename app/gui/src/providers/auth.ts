@@ -4,7 +4,6 @@ import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
 import { useFeatureFlag } from '$/providers/featureFlags'
-import { useZustandStoreRef } from '$/utils/zustand'
 import { Opt } from '@/util/data/opt'
 import { proxyRefs, ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -14,8 +13,6 @@ import { createGlobalState } from '@vueuse/core'
 import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
-import { createStore } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { useBackends } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
@@ -56,24 +53,6 @@ export function createUsersMeQuery(
   })
 }
 
-/** State for {@link authOverridesStore}. */
-interface AuthOverridesStoreState {
-  readonly planOverride: backendModule.Plan | undefined
-  readonly setPlanOverride: (planOverride: backendModule.Plan | undefined) => void
-}
-
-export const authOverridesStore = createStore<AuthOverridesStoreState>()(
-  persist(
-    (set): AuthOverridesStoreState => ({
-      planOverride: undefined,
-      setPlanOverride: (planOverride) => {
-        set({ planOverride })
-      },
-    }),
-    { name: 'enso-auth-overrides', version: 1 },
-  ),
-)
-
 export type AuthStore = ReturnType<typeof createAuthStore>
 function createAuthStore(
   onAuthenticated: ((accessToken: string | null) => void) | undefined = inject('onAuthenticated'),
@@ -93,7 +72,7 @@ function createAuthStore(
 
   const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
-  const planOverride = useZustandStoreRef(authOverridesStore, (state) => state.planOverride)
+  const planOverride = useFeatureFlag('developerPlanOverride')
   const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({

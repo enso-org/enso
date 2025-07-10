@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import all
 
 from Standard.Table import all

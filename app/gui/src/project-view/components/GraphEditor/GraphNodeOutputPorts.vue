@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import CreateNodeFromPortButton from '@/components/GraphEditor/CreateNodeFromPortButton.vue'
 import { useApproach } from '@/composables/animation'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { NodeId } from '@/stores/graph'
+import type { NodeId } from '@/stores/graph'
 import { isDef } from '@vueuse/core'
+import { setsIntersect } from 'enso-common/src/utilities/data/set'
 import { setIfUndefined } from 'lib0/map'
 import {
   computed,
@@ -20,23 +21,30 @@ import {
 } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
 
-const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
+const props = defineProps<{ nodeId: NodeId }>()
 
 const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
   newNodeClick: [portId: AstId]
-  'update:visible': [hovered: boolean]
-  'update:animation': [progress: number]
 }>()
 
-const graph = useGraphStore()
+const { graph } = useCurrentProject().storesRefs
 
-const nodeRect = computed(() => graph.nodeRects.get(props.nodeId))
+const nodeRect = computed(() => graph.value?.nodeRects.get(props.nodeId))
+const nodeHovered = computed(
+  (): boolean => graph.value != null && graph.value.nodeHovered.get(props.nodeId),
+)
+const nodeExtended = computed(
+  (): boolean => graph.value != null && graph.value.nodeExtended.get(props.nodeId),
+)
+const otherNodeHovered = computed(
+  (): boolean => graph.value != null && !nodeHovered.value && graph.value.nodeHovered.exists.value,
+)
 
 const selection = injectGraphSelection(true)
 const { baseColor, selected, pending } = useComponentColors(
-  graph.db,
+  () => graph.value?.db,
   selection,
   toRef(props, 'nodeId'),
 )
@@ -49,10 +57,11 @@ interface PortData {
   portId: AstId
 }
 
-const outputPortsSet = computed(() => {
-  const bindings = graph.db.nodeOutputPorts.lookup(props.nodeId)
+const outputPortsSet = computed((): Set<AstId> => {
+  if (!graph.value) return new Set()
+  const bindings = graph.value.db.nodeOutputPorts.lookup(props.nodeId)
   if (bindings.size === 0) {
-    const astId = graph.db.idFromExternal(props.nodeId)
+    const astId = graph.value.db.idFromExternal(props.nodeId)
     return new Set([astId].filter(isDef))
   }
   return bindings
@@ -66,7 +75,7 @@ const outputPorts = computed((): PortData[] => {
   return Array.from(ports, (portId, index): PortData => {
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
-      label: numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) : undefined,
+      label: numPorts > 1 ? graph.value?.db.getOutputPortIdentifier(portId) : undefined,
       portId,
     }
   })
@@ -77,18 +86,17 @@ const outputPorts = computed((): PortData[] => {
 const mouseOverOutput = ref<AstId>()
 const mouseOverCreateNodeFromPortButton = ref(false)
 
-const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
+const outputHovered = computed(() =>
+  graph.value?.mouseEditedEdge ? undefined : mouseOverOutput.value,
+)
 
-function isPortDisconnected(portId: AstId) {
-  return !graph.isConnectedSource(portId)
+function isPortDisconnected(portId: AstId): boolean {
+  return graph.value != null && !graph.value.isConnectedSource(portId)
 }
 
-const anyPortDisconnected = computed(() => {
-  for (const port of outputPortsSet.value) {
-    if (graph.unconnectedEdgeSources.has(port)) return true
-  }
-  return false
-})
+const anyPortDisconnected = computed(() =>
+  setsIntersect(outputPortsSet.value, graph.value?.unconnectedEdgeSources),
+)
 
 const handlePortClick = useDoubleClick(
   (event: PointerEvent, portId: AstId) => emit('portClick', event, portId),
@@ -99,7 +107,8 @@ const handlePortClick = useDoubleClick(
 
 const portsVisible = computed(
   () =>
-    props.forceVisible ||
+    (nodeExtended.value && !otherNodeHovered.value) ||
+    nodeHovered.value ||
     (outputHovered.value && outputPortsSet.value.has(outputHovered.value)) ||
     anyPortDisconnected.value ||
     mouseOverCreateNodeFromPortButton.value,
@@ -107,8 +116,8 @@ const portsVisible = computed(
 
 const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
 
-watchEffect(() => emit('update:visible', portsVisible.value))
-watchEffect(() => emit('update:animation', portsHoverAnimation.value))
+watchEffect(() => graph.value?.nodeOutputVisible.set(props.nodeId, portsVisible.value))
+watchEffect(() => graph.value?.nodeOutputAnimations.set(props.nodeId, portsHoverAnimation.value))
 
 const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
 watchEffect(() => {
@@ -152,7 +161,7 @@ function portGroupStyle(port: PortData) {
   }
 }
 
-graph.suggestEdgeFromOutput(outputHovered)
+graph.value?.suggestEdgeFromOutput(outputHovered)
 </script>
 
 <template>

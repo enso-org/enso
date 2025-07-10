@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
+import { useAppTitle } from '$/composables/appTitle'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
@@ -22,8 +23,9 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { onMounted, shallowRef } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { useAuth } from './providers/auth'
 import { provideContainerData } from './providers/container'
 import { provideRightPanelData } from './providers/rightPanel'
 import { useText } from './providers/text'
@@ -42,6 +44,11 @@ const appTooltips = provideTooltipRegistry()
 
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
+
+const auth = useAuth()
+const userSession = computed(() => auth.session)
+
+useAppTitle(userSession)
 
 provideKeyboard()
 const interaction = provideInteractionHandler()

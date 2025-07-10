@@ -181,6 +181,7 @@ interface PlaceholderOverrides {
   readonly soloPlanPricing: [pricePerMonth: number, billingInterval: string]
   readonly teamPlanPricing: [pricePerMonth: number, billingInterval: string]
   readonly enterprisePlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly commercialUseNotice: [originalTitle: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

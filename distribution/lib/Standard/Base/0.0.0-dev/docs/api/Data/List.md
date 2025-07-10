@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.List
 - type List
-    - Cons x:Standard.Base.Any.Any xs:Standard.Base.Any.Any
+    - Cons x:Standard.Base.Any.Any xs:Standard.Base.Data.List.List
     - Nil
     - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
     - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any

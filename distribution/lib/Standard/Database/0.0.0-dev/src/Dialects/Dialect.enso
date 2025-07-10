@@ -8,7 +8,9 @@ from Standard.Table import Aggregate_Column, Value_Type, Table
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
-import project.Dialect_Flag.Dialect_Flag
+import project.Dialects.Dialect_Flag.Dialect_Flag
+import project.Dialects.Feature.Feature
+import project.Errors.Unsupported_Database_Operation
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -16,6 +18,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
@@ -24,11 +27,8 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
-from project.Errors import Unsupported_Database_Operation
-from project.Feature import Feature
-from project.Internal.JDBC_Connection import JDBC_Connection
+import project.SQL.SQL_Statement
+import project.SQL.SQL_Type
 from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
