@@ -11,7 +11,7 @@ const props = defineProps<{
 }>()
 
 const additionalTypes = computed<string[]>(() => {
-  if (props.typeInfo == null || props.typeInfo?.visibleTypes?.length === 1) {
+  if (props.typeInfo == null) {
     return []
   }
 
@@ -38,11 +38,13 @@ const label = computed(() => {
 
   return undefined
 })
+
+console.log(props.typeInfo, additionalTypes.value, hiddenTypes.value, label.value)
 </script>
 
 <template>
   <div v-if="label" :data-testid="props.testId" class="componentEditorLabel">
-    <TooltipTrigger v-if="additionalTypes.length > 0 || hiddenTypes.length > 0">
+    <TooltipTrigger v-if="additionalTypes.length + hiddenTypes.length > 1">
       <template #default="triggerProps">
         <span
           class="additionalTypesPlaceholder"
