@@ -13,11 +13,15 @@ import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
+import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import org.hamcrest.core.AllOf;
 import org.junit.After;
+import static org.junit.Assert.fail;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -544,6 +548,23 @@ public class ExecCompilerTest {
       var typeError = ex.getGuestObject();
       assertEquals("Expected type", "First_Type", typeError.getMember("expected").asString());
       assertEquals("Got wrong value", 42, typeError.getMember("actual").asInt());
+    }
+  }
+
+  @Test
+  public void castToUnresolvedType() throws Exception {
+    var code = """
+                 fn f = (f : Unknown).to_text
+                 """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute(0);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("Unknown"), containsString("could not be found")));
     }
   }
 }
