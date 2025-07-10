@@ -7,7 +7,7 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.SQL_Type.SQL_Type
+import project.SQL.SQL_Type
 
 ## PRIVATE
 type SQL_Type_Mapping

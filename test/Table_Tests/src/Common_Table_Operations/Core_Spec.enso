@@ -9,10 +9,9 @@ from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
 from Standard.Database import all
-from Standard.Database.DB_Table import DB_Table
 import Standard.Database.Internal.Internals_Access
 from Standard.Database.Errors import Implicit_DB_Table_Read, Integrity_Error
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 

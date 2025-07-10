@@ -1,35 +1,34 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+from Standard.Base.Data.Ordering import Comparable, Ordering
 
 import project.Internal.Widget_Helpers
-import project.Table.Table
+import project.Errors.No_Such_Column
+from project.Internal.Storage import java_to_enso
 
 ## Represents a single row of some in-memory Table.
 type Row
     ## PRIVATE
-    Value (table:Table) (index:Integer)
+    private Value java_row
+
+    ## PRIVATE
+       Access the index
+    index : Integer
+    index self = self.java_row.index
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Gets the set of column column_names
     column_names : Vector Text
-    column_names self = self.table.column_names
+    column_names self =
+        Vector.from_polyglot_array self.java_row.column_names
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Gets the number of columns in the table.
     length : Integer
-    length self = self.table.columns.length
-
-    ## GROUP Standard.Base.Selections
-       ICON parse3
-       Gets the value of the specified column.
-
-       Arguments:
-       - column: The name or index of the column being looked up.
-    @column (self -> Widget_Helpers.make_column_name_selector self.table)
-    at : (Integer | Text) -> Any
-    at self (column:(Integer | Text)=0) = self.table.at column . at self.index
+    length self = self.java_row.column_count
 
     ## ICON parse3
        Gets the value of the specified column.
@@ -37,13 +36,24 @@ type Row
        Arguments:
        - column: The name or index of the column being looked up.
        - if_missing: The value to use if the column isn't present.
-    @column (self -> Widget_Helpers.make_column_name_selector self.table)
+    @column (self -> Widget_Helpers.make_column_name_selector self)
     get : (Integer | Text) -> Any -> Any
     get self (column:(Integer | Text)=0) ~if_missing=Nothing =
-        table_column = self.table.get column
-        case table_column of
-            Nothing -> if_missing
-            _ -> table_column.at self.index
+        java_to_enso <| self.java_row.get_value column _->if_missing
+
+    ## GROUP Standard.Base.Selections
+       ICON parse3
+       Gets the value of the specified column.
+
+       Arguments:
+       - column: The name or index of the column being looked up.
+    @column (self -> Widget_Helpers.make_column_name_selector self)
+    at : (Integer | Text) -> Any
+    at self (column:(Integer | Text)=0) =
+        if_missing column = case column of
+            _:Integer -> Error.throw (Index_Out_Of_Bounds.Error column self.length)
+            _:Text -> Error.throw (No_Such_Column.Error column)
+        java_to_enso <| self.java_row.get_value column if_missing
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -56,16 +66,33 @@ type Row
        Gets the row as a Dictionary.
     to_dictionary : Dictionary
     to_dictionary self =
-        pairs = self.table.column_names.map n-> [n, self.get n]
+        pairs = self.column_names.map n-> [n, self.get n]
         Dictionary.from_vector pairs
 
     ## PRIVATE
        Converts this row into a JS_Object.
     to_js_object : JS_Object
     to_js_object self =
-        pairs = self.table.column_names.map n-> [n, self.get n]
+        pairs = self.column_names.map n-> [n, self.get n]
         JS_Object.from_pairs pairs
 
 ## PRIVATE
    Conversion method to a Column to a Vector.
 Vector.from (that:Row) = that.to_vector
+
+## PRIVATE
+type Row_Comparator
+    ## PRIVATE
+    compare : Row -> Row -> (Ordering|Nothing)
+    compare obj1 obj2 =
+        if (obj1.java_row.table.equals obj2.java_row.table) && (obj1.index == obj2.index) then Ordering.Equal else Nothing
+
+    ## PRIVATE
+    hash : Row -> Integer
+    hash obj =
+        table_hash = obj.java_row.table.hashCode
+        index_hash = obj.index.hashCode
+        (53 * table_hash + 31 * index_hash)
+
+## PRIVATE
+Comparable.from (that:Row) = Comparable.new that Row_Comparator

@@ -290,6 +290,23 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         l.get 3 . should_equal Nothing
         l.get -4 . should_equal Nothing
 
+    group_builder.specify "auto constructor and unresolved symbol" <|
+        s1 = .head
+        c2 = ..Nil
+        c3 = ..Cons 10 c2
+
+        v2 = c2:List
+        v3 = c3:List
+        v1 = s1 v3
+
+        r1 = [v1, s1, Meta.type_of s1, Meta.meta s1]
+        r2 = [v2, c2, Meta.type_of c2, Meta.meta c2]
+        r3 = [v3, c3, Meta.type_of c3, Meta.meta c3]
+
+        r1.to_text . should_equal "[10, UnresolvedSymbol<head>, Function, (Unresolved.Symbol head)]"
+        r2.to_text . should_equal "[Nil, ..Nil, Function, (Unresolved.Cons Nil)]"
+        r3.to_text . should_equal "[(Cons 10 Nil), ..Cons, Function, (Unresolved.Cons Cons)]"
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

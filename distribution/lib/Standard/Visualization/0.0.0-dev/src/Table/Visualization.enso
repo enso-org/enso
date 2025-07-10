@@ -119,7 +119,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
             pairs = row.keys.map k-> [k.to_text, _make_json_for_value (row.get k)]
             JS_Object.from_pairs pairs
         _ : Row ->
-            pairs = row.table.column_names.map f-> [f, _make_json_for_value (row.get f)]
+            pairs = row.column_names.map f-> [f, _make_json_for_value (row.get f)]
             JS_Object.from_pairs pairs
         _ ->
             js_object = row.to_js_object

@@ -46,7 +46,7 @@ public class TypeCheckValueTest {
         new TestRootNode(
             (frame) -> {
               var arg = frame.getArguments()[0];
-              var res = bothNode.handleCheckOrConversion(frame, arg, null);
+              var res = bothNode.handleCheckOrConversion(frame, arg);
               return res;
             });
     root.insertChildren(bothNode);

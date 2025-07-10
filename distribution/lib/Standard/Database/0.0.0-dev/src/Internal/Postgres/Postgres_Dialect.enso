@@ -12,19 +12,24 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
-import project.Dialect
-import project.Dialect_Flag.Dialect_Flag
+import project.Dialects.Dialect
+import project.Dialects.Dialect.Temp_Table_Style
+import project.Dialects.Dialect_Flag.Dialect_Flag
+import project.Dialects.Feature.Feature
+import project.Errors.Unsupported_Database_Operation
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.Operation_Metadata.Date_Period_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.Internal.Replace_Params.Replace_Params
@@ -34,13 +39,8 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Fragment
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
-from project.Dialect import Temp_Table_Style
-from project.Errors import Unsupported_Database_Operation
-from project.Feature import Feature
-from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
-from project.Internal.JDBC_Connection import JDBC_Connection
+import project.SQL.SQL_Statement
+import project.SQL.SQL_Type
 
 polyglot java import java.sql.Types
 

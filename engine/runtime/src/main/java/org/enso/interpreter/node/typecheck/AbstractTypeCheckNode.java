@@ -6,7 +6,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 
 /**
@@ -24,7 +23,7 @@ abstract sealed class AbstractTypeCheckNode extends Node
 
   abstract Object findDirectMatch(VirtualFrame frame, Object value);
 
-  abstract Object executeConversion(VirtualFrame frame, Object value, ExpressionNode valueNode);
+  abstract Object executeConversion(VirtualFrame frame, Object value);
 
   abstract String expectedTypeMessage();
 
