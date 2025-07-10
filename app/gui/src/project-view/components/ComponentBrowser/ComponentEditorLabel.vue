@@ -38,8 +38,6 @@ const label = computed(() => {
 
   return undefined
 })
-
-console.log(props.typeInfo, additionalTypes.value, hiddenTypes.value, label.value)
 </script>
 
 <template>
