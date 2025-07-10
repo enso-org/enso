@@ -70,7 +70,7 @@ export function Submit<
 
   return (
     <Button
-      type="button"
+      type="submit"
       variant={variant}
       size={size}
       isLoading={loading || formState.isSubmitting}
