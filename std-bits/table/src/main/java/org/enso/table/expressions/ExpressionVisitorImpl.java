@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -155,8 +156,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       } catch (PolyglotException e) {
         if (e.getMessage().startsWith("Type error: expected a function")) {
           throw new IllegalArgumentException("Too many arguments for method " + name + ".");
-        } else if (e.getMessage().startsWith("Type error: expected expression to be")) {
-          throw new IllegalArgumentException("blah");
         }
         throw e;
       }
