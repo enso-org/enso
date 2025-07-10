@@ -51,6 +51,7 @@ function onActivate() {
         :disabled="disabled ?? false"
         v-bind="triggerProps"
         @pointerdown.prevent
+        type="button"
         @click.stop="onActivate"
         @keydown.enter.stop
       >

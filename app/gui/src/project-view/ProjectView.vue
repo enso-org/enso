@@ -132,8 +132,4 @@ onDeactivated(() => (visible.value = false))
 :deep(.draggable) {
   cursor: grab;
 }
-
-:deep(.clickable) {
-  cursor: pointer;
-}
 </style>

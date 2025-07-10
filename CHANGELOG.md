@@ -26,6 +26,7 @@
 - [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
   resulting in an Error page without option of returning back to Local.][13366]
 - ["Grouped Components" are renamed to "User Defined Components"][13389]
+- [File Browser Widget is used when editing file paths to datalinks][13439]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -46,6 +47,7 @@
 [13347]: https://github.com/enso-org/enso/pull/13347
 [13366]: https://github.com/enso-org/enso/pull/13366
 [13389]: https://github.com/enso-org/enso/pull/13389
+[13439]: https://github.com/enso-org/enso/pull/13439
 
 #### Enso Standard Library
 
