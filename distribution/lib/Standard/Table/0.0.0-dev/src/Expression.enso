@@ -49,7 +49,7 @@ type Expression
         handle_parse_error = Panic.catch ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
-        handle_type_error = Panic.catch Type_Error handler=(e-> Error.throw e.payload)
+        handle_type_error = Panic.catch ExpressionVisitorImpl.TypeErrorException handler=(cause-> Error.throw (Expression_Error.Type_Error cause.payload.getMessage))
 
         handle_parse_error <| handle_unsupported <| handle_arguments <| handle_type_error <|
             ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column method_resolvers var_args_functions
@@ -68,6 +68,10 @@ type Expression_Error
     Argument_Mismatch message:Text
 
     ## PRIVATE
+       Expression error when the type of arguments for a function is incorrect.
+    Type_Error message:Text
+
+    ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
@@ -75,6 +79,7 @@ type Expression_Error
         Expression_Error.Syntax_Error _ _ _ -> "Expression.Syntax_Error: " + self.message + " (line " + self.line.to_text + ", column " + self.column.to_text + ")."
         Expression_Error.Unsupported_Operation _ -> "Expression.Unsupported: " + self.name + " is not a supported method."
         Expression_Error.Argument_Mismatch _ -> "Expression.Argument_Mismatch: " + self.message
+        Expression_Error.Type_Error _ -> "Expression.Type_Error: " + self.message
 
 ## PRIVATE
 handle_java_error java_type enso_constructor =

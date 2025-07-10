@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Floating_Point_Equality
-import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -489,7 +488,8 @@ add_expression_specs suite_builder detailed setup =
 
         group_builder.specify "calling numeric_column methods on non numeric column errors" <|
             r = test_table.get.evaluate_expression "abs([C])"
-            r.catch.should_be_a Type_Error
+            r.catch.should_be_a Expression_Error.Type_Error
+            r.catch.to_display_text.should_equal "Expression.Type_Error: method 'abs' expected first argument to be Numeric_Column, but got Column."
             
         if setup.is_database.not then group_builder.specify "should fail with bad regex" <|
             ## Unclosed regex literal

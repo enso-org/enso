@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -50,6 +51,12 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     public int getColumn() {
       return column;
+    }
+  }
+
+  public static class TypeErrorException extends RuntimeException {
+    public TypeErrorException(String message) {
+      super(message);
     }
   }
 
@@ -127,7 +134,16 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     @Override
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
-      Object[] objects = prepareArguments(args, makeConstantColumn);
+      Object[] objects;
+      try {
+      objects = prepareArguments(args, makeConstantColumn);
+      }
+      catch (PolyglotException e) {
+       if (e.getMessage().startsWith("Type error: expected expression to be")) {
+          throw new TypeErrorException(e.getMessage().replace("Type error: expected expression", "method '"+name+"' expected first argument"));
+        }
+        throw e;
+      }
       try {
         var result = methodResolver.resolve(this.name).execute(objects);
         if (result.canExecute()) {
@@ -137,6 +153,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       } catch (PolyglotException e) {
         if (e.getMessage().startsWith("Type error: expected a function")) {
           throw new IllegalArgumentException("Too many arguments for method " + name + ".");
+        } else if (e.getMessage().startsWith("Type error: expected expression to be")) {
+          throw new IllegalArgumentException("blah");
         }
         throw e;
       }
