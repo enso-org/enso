@@ -3,6 +3,7 @@ from Standard.Base.Metadata import Widget
 
 import project.Column.Column
 import project.Table.Table
+import project.Refined_Types.Numeric_Column.Numeric_Column
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
@@ -34,14 +35,15 @@ type Expression
         ## Define callbacks for the java code
         _get_column name = table.at name
         _make_constant_column value = case value of
-                _ : Column -> value
+                _ : Column -> value 
                 _ -> table.make_constant_column value
         _is_column value = value.is_a Column
         ## Helper for the expression to tell it which functions needs a Vector.
         var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-        lib1 = ExpressionVisitorImpl.make "Standard.Table.Expression_Statics" "Expression_Statics" True
-        lib2 = ExpressionVisitorImpl.make "Standard.Table.Column" "Column" False
-        x = [lib1, lib2]
+        lib1 = ExpressionVisitorImpl.make "Standard.Table.Expression_Statics" "Expression_Statics" True Nothing
+        lib2 = ExpressionVisitorImpl.make "Standard.Table.Column" "Column" False c->c
+        lib3 = ExpressionVisitorImpl.make "Standard.Table.Refined_Types.Numeric_Column" "Numeric_Column" False c->(c : Column & Numeric_Column)
+        x = [lib1, lib2, lib3]
         handle_parse_error = Panic.catch ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
