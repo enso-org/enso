@@ -68,12 +68,17 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         Function<Object, Value> makeTypedColumn) {
       this(
           Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
-          Context.getCurrent()
-              .getBindings("enso")
-              .invokeMember("get_module", moduleName)
-              .invokeMember("get_type", typeName),
+          typeName,
           isStaticMethod,
           makeTypedColumn);
+    }
+
+    private MethodResolver(
+        Value module,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
+      this(module, module.invokeMember("get_type", typeName), isStaticMethod, makeTypedColumn);
     }
 
     public boolean canResolve(String methodName) {
