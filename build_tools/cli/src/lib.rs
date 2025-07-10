@@ -444,6 +444,14 @@ impl Processor {
                                 ]));
                             config.use_native_runner = false;
                         }
+                        Tests::StdSnowflakeJVM => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Snowflake_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                            config.extra_engine_runner_args = Some(vec!["--jvm".to_string()])
+                        }
                         Tests::StdCloudRelated => {
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::whitelist(vec![
