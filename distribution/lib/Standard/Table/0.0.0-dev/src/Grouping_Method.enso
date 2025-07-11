@@ -19,3 +19,11 @@ type Grouping_Method
          the ordering of the output rows. Defaults to the order of the rows in
          the table.
     Equal_Count (group_count:Integer=5) (order_by:(Vector | Text)=[])
+
+## Specifies the row representing a group.
+type Group_Row
+    ## The row representing the group is the first row of the group.
+    First
+
+    ## The row representing the group is the last row of the group.
+    Previous
