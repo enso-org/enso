@@ -1,4 +1,5 @@
 import {
+  appContainerBindings,
   componentBrowserBindings,
   documentationEditorFormatBindings,
   graphBindings,
@@ -272,6 +273,12 @@ const displayableActions = {
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {
+  // === App Container ===
+
+  'container.closeTab': {
+    shortcut: appContainerBindings.bindings['container.closeTab'],
+  },
+
   // === Component Browser ===
 
   'componentBrowser.acceptInput': {

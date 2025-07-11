@@ -1,6 +1,10 @@
 import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
 
+export const appContainerBindings = defineKeybinds('app-container-bindings', {
+  'container.closeTab': ['Mod+W', ...(!isMacLike ? ['Mod+F4' as const] : [])],
+})
+
 export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
   'documentationEditor.italic': ['Mod+I'],
   'documentationEditor.bold': ['Mod+B'],
