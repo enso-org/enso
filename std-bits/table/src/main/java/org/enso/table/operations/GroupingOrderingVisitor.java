@@ -15,6 +15,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
+import org.enso.table.util.ProgressHandler;
 
 /**
  * Abstract class GroupingOrderingVisitor
@@ -54,6 +55,7 @@ abstract class GroupingOrderingVisitor {
       throw new IllegalArgumentException(
           "The number of ordering columns and directions must be the same.");
     }
+
     GroupingOrderingVisitor visitMethod;
     if (groupingColumns.length > 0 && orderingColumns.length > 0) {
       visitMethod =
@@ -74,16 +76,16 @@ abstract class GroupingOrderingVisitor {
 }
 
 class NoGroupingNoOrderingRunning extends GroupingOrderingVisitor {
-
-  NoGroupingNoOrderingRunning() {}
-
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     var it = runningStatistic.getNewRowVisitor();
-    for (long i = 0; i < numRows; i++) {
-      it.visit(i);
+    try (var progressHandle = ProgressHandler.init("running", numRows)) {
+      for (long i = 0; i < numRows; i++) {
+        it.visit(i);
+        progressHandle.advance();
+      }
+      it.finalise();
     }
-    it.finalise();
   }
 }
 

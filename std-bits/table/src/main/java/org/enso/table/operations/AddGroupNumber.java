@@ -1,8 +1,8 @@
 package org.enso.table.operations;
 
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Row;
@@ -22,49 +22,40 @@ public class AddGroupNumber {
     if (groupingColumns.length == 0) {
       throw new IllegalArgumentException("At least one grouping column is required.");
     }
-    var groupNumberRowVisitorFactory =
-        new GroupNumberRowVisitorFactory(start, step, Math.toIntExact(numRows));
+
+    var visitorFactory = new GroupNumberRowVisitorFactory(start, step, numRows, problemAggregator);
     GroupingOrderingVisitor.visit(
         groupingColumns,
         new Column[0],
         new int[0],
         problemAggregator,
-        groupNumberRowVisitorFactory,
+        visitorFactory,
         numRows);
-    return new LongStorage(groupNumberRowVisitorFactory.storageForResult, IntegerType.INT_64);
+    return visitorFactory.builder.seal();
   }
 
   private static class GroupNumberRowVisitorFactory implements RowVisitorFactory {
-
     private long current;
     private final long step;
-    long[] storageForResult;
+    private final BuilderForLong builder;
 
-    GroupNumberRowVisitorFactory(long start, long step, int size) {
+    GroupNumberRowVisitorFactory(long start, long step, long size, ProblemAggregator problemAggregator) {
       this.current = start;
       this.step = step;
-      storageForResult = new long[size];
+      this.builder = Builder.getForLong(IntegerType.INT_64, size, problemAggregator);
     }
 
     @Override
     public GroupRowVisitor getNewRowVisitor() {
       var nextGroupNumber = current;
       current = Math.addExact(current, step);
-      return new GroupNumberRowVisitor(nextGroupNumber, storageForResult);
+      return new GroupNumberRowVisitor(nextGroupNumber, builder);
     }
 
-    private static class GroupNumberRowVisitor implements GroupRowVisitor {
-      private final long groupNumber;
-      private final long[] storageForResult;
-
-      GroupNumberRowVisitor(long groupNumber, long[] storageForResult) {
-        this.groupNumber = groupNumber;
-        this.storageForResult = storageForResult;
-      }
-
+    private record GroupNumberRowVisitor(long groupNumber, BuilderForLong builder) implements GroupRowVisitor {
       @Override
       public void visit(long row) {
-        storageForResult[Math.toIntExact(row)] = groupNumber;
+        builder.appendLong(groupNumber);
       }
     }
   }
@@ -77,56 +68,47 @@ public class AddGroupNumber {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    var equalCountRowVisitorFactory =
-        new EqualCountRowVisitorFactory(start, step, numRows, groupCount);
+    var visitorFactory = new EqualCountRowVisitorFactory(start, step, numRows, groupCount, problemAggregator);
     GroupingOrderingVisitor.visit(
         new Column[0],
         orderingColumns,
         directions,
         problemAggregator,
-        equalCountRowVisitorFactory,
+        visitorFactory,
         numRows);
-    return new LongStorage(equalCountRowVisitorFactory.storageForResult, IntegerType.INT_64);
+    return visitorFactory.builder.seal();
   }
 
   private static class EqualCountRowVisitorFactory implements RowVisitorFactory {
-
     private final long start;
     private final long step;
     private final long groupSize;
-    long[] storageForResult;
+    private final BuilderForLong builder;
+    private final GroupRowVisitor visitor;
 
-    EqualCountRowVisitorFactory(long start, long step, long totalCount, long numgroups) {
+    EqualCountRowVisitorFactory(long start, long step, long totalCount, long numgroups, ProblemAggregator problemAggregator) {
       this.start = start;
       this.step = step;
-      groupSize = (long) Math.ceil((double) totalCount / (double) numgroups);
-      storageForResult = new long[Math.toIntExact(totalCount)];
+      this.groupSize = (long) Math.ceil((double) totalCount / (double) numgroups);
+      this.builder = Builder.getForLong(IntegerType.INT_64, totalCount, problemAggregator);
+      this.visitor = new EqualCountRowVisitor(this);
     }
 
     @Override
     public GroupRowVisitor getNewRowVisitor() {
-      return new EqualCountRowVisitor(this);
+      return visitor;
     }
 
-    private static class EqualCountRowVisitor implements GroupRowVisitor {
-      private final EqualCountRowVisitorFactory parent;
-      private long currentIndex = 0;
-
-      EqualCountRowVisitor(EqualCountRowVisitorFactory parent) {
-        this.parent = parent;
-      }
-
+    private record EqualCountRowVisitor(EqualCountRowVisitorFactory parent) implements GroupRowVisitor {
       @Override
       public void visit(long row) {
-        parent.storageForResult[Math.toIntExact(row)] =
-            Math.addExact(
-                parent.start, Math.multiplyExact(parent.step, (currentIndex / parent.groupSize)));
-        currentIndex = Math.addExact(currentIndex, 1L);
+        long group = Math.addExact(parent().start, Math.multiplyExact(parent().step, (row / parent().groupSize)));
+        parent.builder.appendLong(group);
       }
     }
   }
 
-  public static ColumnStorage<?> flagFunction(
+  public static ColumnStorage<?> flaggedGroups(
       Table table,
       Column column,
       long start,
@@ -134,12 +116,12 @@ public class AddGroupNumber {
       BiPredicate<Object, Object> predicate,
       boolean passPrevious,
       ProblemAggregator problemAggregator) {
+    var builder = Builder.getForLong(IntegerType.INT_64, table.rowCount(), problemAggregator);
     if (table.rowCount() == 0) {
-      return new LongStorage(new long[0], IntegerType.INT_64);
+      return builder.seal();
     }
 
-    try (var progressHandle = ProgressHandler.init("addGroupNumberFlagged", table.rowCount())) {
-      var builder = Builder.getForLong(IntegerType.INT_64, table.rowCount(), problemAggregator);
+    try (var progressHandle = ProgressHandler.init("find_group_number", table.rowCount())) {
       var currentRow = new Row(table, 0);
       var newRow = new Row(table, 0);
 
