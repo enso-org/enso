@@ -7,11 +7,8 @@ import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
-import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Function.Function
-import project.Nothing.Nothing
-import project.Panic.Panic
 import project.Internal.Predicate_Helpers
+import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all
@@ -164,7 +161,7 @@ type Filter_Condition
     ## PRIVATE
 
        Generic function based check. With a function that returns `True` or `False`.
-    Predicate predicate:(Any -> Boolean)
+    Predicate (predicate:(Any -> Boolean) = (Missing_Argument.throw "predicate"))
 
     ## PRIVATE
        The action to perform on the matched items.
