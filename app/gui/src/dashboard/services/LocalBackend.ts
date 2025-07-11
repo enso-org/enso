@@ -988,6 +988,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override cancelSubscription() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override deleteUserGroup() {
     return this.invalidOperation()
   }

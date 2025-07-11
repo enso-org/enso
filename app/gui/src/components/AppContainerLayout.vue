@@ -44,15 +44,14 @@ export const dataLoader: DataLoader<{
       : undefined,
     )
 
-    if (!PLANS_TO_SPECIFY_ORG_NAME.includes(plan))
-      return Ok({ trialEndedModalProps: trialEndedModalProps })
+    if (!PLANS_TO_SPECIFY_ORG_NAME.includes(plan)) return Ok({ trialEndedModalProps })
 
     return Ok({
       shouldSetupOrganization: computed(
         () =>
           organizationQuery.data.value?.name == null || organizationQuery.data.value?.name === '',
       ),
-      trialEndedModalProps: trialEndedModalProps,
+      trialEndedModalProps,
     })
   },
 }
@@ -61,7 +60,7 @@ export const dataLoader: DataLoader<{
 <script setup lang="ts">
 defineProps<{
   shouldSetupOrganization?: boolean
-  trialEndedModalProps?: { subscriptionId?: backendModule.SubscriptionId | undefined }
+  trialEndedModalProps?: { subscriptionId?: backendModule.SubscriptionId }
 }>()
 
 const { remoteBackend } = useBackends()

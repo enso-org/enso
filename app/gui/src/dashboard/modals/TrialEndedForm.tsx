@@ -2,18 +2,14 @@
 import { Alert } from '#/components/Alert'
 import { AlertDialog } from '#/components/AlertDialog'
 import { Text } from '#/components/Text'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as backend from '#/services/Backend'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/backends'
 import { useText } from '$/providers/react'
+import { useMutation } from '@tanstack/react-query'
 
 /** Props for a {@link TrialEndedModal}. */
 export interface TrialEndedModalProps {
-  readonly subscriptionId: backend.SubscriptionId
-}
-
-/** The mutation data for the `cancelSubscription` mutation. */
-interface CancelSubcriptionMutationParams {
   readonly subscriptionId: backend.SubscriptionId
 }
 
@@ -23,23 +19,19 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
   const { getText } = useText()
   const { remoteBackend } = useBackends()
 
-  const onConfirm = useMutationCallback({
-    mutationFn: async () => {
-      const { url } = await remoteBackend.createCheckoutSession({
-        price: backend.Plan.solo,
-        quantity: 1,
-        interval: 1,
-        flowType: backend.BillingPortalFlowType.paymentMethodUpdate,
-      })
-      window.open(url, '_blank')?.focus()
-    },
-  })
+  const onConfirm = useMutation(
+    backendMutationOptions(remoteBackend, 'createCheckoutSession', {
+      onSuccess: ({ url }) => window.open(url, '_blank'),
+    }),
+  )
 
-  const onCancel = useMutationCallback({
-    mutationFn: async (mutationData: CancelSubcriptionMutationParams) => {
-      await remoteBackend.cancelSubscription(mutationData.subscriptionId)
-    },
-  })
+  // const onCancel = useMutationCallback({
+  //   mutationFn: async (mutationData: CancelSubcriptionMutationParams) => {
+  //     await remoteBackend.cancelSubscription(mutationData.subscriptionId)
+  //   },
+  // })
+
+  const onCancel = useMutation(backendMutationOptions(remoteBackend, 'cancelSubscription'))
 
   return (
     <AlertDialog
@@ -47,8 +39,19 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
       modalProps={{ defaultOpen: true }}
       cancel={getText('downgrade')}
       confirm={getText('subscribe')}
-      onConfirm={onConfirm}
-      onCancel={() => onCancel({ subscriptionId })}
+      onConfirm={() => {
+        onConfirm.mutate([
+          {
+            price: backend.Plan.solo,
+            quantity: 1,
+            interval: 1,
+            flowType: backend.BillingPortalFlowType.paymentMethodUpdate,
+          },
+        ])
+      }}
+      onCancel={() => {
+        onCancel.mutate([subscriptionId])
+      }}
     >
       <Text className="relative">{getText('trialEndedExplenation')}</Text>
 

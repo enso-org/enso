@@ -1416,7 +1416,7 @@ export default class RemoteBackend extends Backend {
    * Cancel given subscription.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async cancelSubscription(subscriptionId: backend.SubscriptionId): Promise<void> {
+  override async cancelSubscription(subscriptionId: backend.SubscriptionId): Promise<void> {
     const response = await this.delete(
       remoteBackendPaths.cancelSubscriptionPath(subscriptionId),
       {},
