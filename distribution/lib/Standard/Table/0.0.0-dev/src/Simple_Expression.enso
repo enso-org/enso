@@ -61,8 +61,8 @@ type Simple_Expression
             Simple_Calculation.Text_Length -> input_column.text_length
             Simple_Calculation.Format format -> input_column.format format
             Simple_Calculation.If condition true_value false_value ->
-                condition_column = case filter of
-                    Filter_Condition.Predicate predicate ->
+                condition_column = case condition of
+                    Filter_Condition.Predicate _ ->
                         Error.throw (Illegal_Argument.Error "Predicate filter conditions cannot be used in expressions.")
                     _ -> make_filter_column input_column (table.resolve_condition condition) on_problems
                 condition_column.iif (table.resolve true_value) (table.resolve false_value)
