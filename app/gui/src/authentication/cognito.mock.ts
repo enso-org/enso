@@ -177,6 +177,19 @@ export class Cognito {
   }
 
   /**
+   * Sign in via the Apple federated identity provider.
+   *
+   * This function will open the Apple authentication page in the user's browser. The user will
+   * be asked to log in to their Apple ID account, and then to grant access to the application.
+   * After the user has granted access, the browser will be redirected to the application.
+   */
+  async signInWithApple() {
+    this.isSignedIn = true
+    listen.authEventListener?.(listen.AuthEvent.signIn)
+    await Promise.resolve()
+  }
+
+  /**
    * Sign in via the Google federated identity provider.
    *
    * This function will open the Google authentication page in the user's browser. The user will

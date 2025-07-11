@@ -9,13 +9,11 @@ from Standard.Table import Table
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
-import project.DB_Table.DB_Table
 
 ## PRIVATE
-align_structure : Connection | Any -> DB_Table | Table | Vector Column_Description -> Vector Column_Description
+align_structure : Connection | Any -> Table & Table | Vector Column_Description -> Vector Column_Description
 align_structure connection table_or_columns = case table_or_columns of
     vector : Vector   -> align_vector_structure vector
-    table : DB_Table  -> structure_from_existing_table connection table
     table : Table     -> structure_from_existing_table connection table
 
 ## PRIVATE
@@ -29,7 +27,7 @@ align_vector_structure vector =
                 Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.")
 
 ## PRIVATE
-structure_from_existing_table connection table =
+structure_from_existing_table connection table:Table =
     table.columns.map column->
         value_type = connection.dialect.value_type_for_upload_of_existing_column column
         Column_Description.Value column.name value_type

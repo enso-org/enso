@@ -52,6 +52,7 @@ class MockAuthService implements ISessionProvider {
   signInWithGitHub = vi.fn(() => Promise.resolve())
   signInWithGoogle = vi.fn(() => Promise.resolve())
   signInWithMicrosoft = vi.fn(() => Promise.resolve())
+  signInWithApple = vi.fn(() => Promise.resolve())
   signOut = vi.fn(() => Promise.resolve())
   signUp = vi.fn(() => Promise.resolve(Result.wrap<undefined, SignUpError>(() => {})))
   updateMFAPreference = vi.fn()

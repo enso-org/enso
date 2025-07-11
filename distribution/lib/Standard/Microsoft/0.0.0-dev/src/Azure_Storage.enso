@@ -50,12 +50,16 @@ type Azure_Storage
 type Azure_Blob_Storage
     SAS_Token (token : (Text|Enso_Secret) = (Missing_Argument.throw "token"))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts the Azure_Credential into the Java SDK object
     private to_java self =
         AzureCredential.BlobStorageSASToken.new (as_hideable_value self.token)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     default_widget (display : Display = ..When_Modified) -> Widget =
         options = ["Default", "Environment", "CLI", "Client_Secret", "SAS_Token"].map k-> Option k (".."+k)
         Widget.Single_Choice values=options display=display
@@ -77,9 +81,13 @@ type Azure_Storage_Account
     ## The endpoints as text
     endpoints self -> Text = self.java_object.endpoints
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self -> Text = self.name + " (" + self.id + ")"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text self -> Text = "Storage Account {" + self.name + " (" + self.id + ")}"
 

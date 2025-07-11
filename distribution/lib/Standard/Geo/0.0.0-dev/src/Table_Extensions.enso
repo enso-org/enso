@@ -6,18 +6,21 @@ import Standard.Table.Internal.Table_Ref.Table_Ref
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Column, Column_Ref, Table, Value_Type
 
-## UNSTABLE
-   ICON geo_map_distance
+## ---
+   unstable: true
+   icon: geo_map_distance
+   ---
+   Computes the distance between two latitude/longitude points on each row of the
+   table.
 
-   Computes the distance between two latitude/longitude points on each row of the table.
-
-   Arguments:
-   - lat1: The latitude of the first point, either a Column or single value.
-   - long1: The longitude of the first point, either a Column or single value.
-   - lat2: The latitude of the second point, either a Column or single value.
-   - long2: The longitude of the second point, either a Column or single value.
-   - units: The unit to return the result in.
-   - as: The name of the resulting column to add.
+   ## Arguments
+    - `lat1`: The latitude of the first point, either a Column or single value.
+    - `long1`: The longitude of the first point, either a Column or single value.
+    - `lat2`: The latitude of the second point, either a Column or single value.
+    - `long2`: The longitude of the second point, either a Column or single
+      value.
+    - `units`: The unit to return the result in.
+    - `as`: The name of the resulting column to add.
 @lat1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
 @long1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
 @lat2 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
@@ -32,7 +35,9 @@ Table.geo_distance self lat1:(Float | Column | Column_Ref | Expression)=(_find_c
         Column_Naming_Helper.in_memory.function_name "geo_distance" [resolved_lat1, resolved_long1, resolved_lat2, resolved_long2, units]
     compute_distance self resolved_lat1 resolved_long1 resolved_lat2 resolved_long2 units used_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _find_column_with_similar_name  table:Table column_name:Text prefix:Text=column_name ~on_fail=(Missing_Argument.throw column_name) =
     names = table.column_names
     cond = [Filter_Condition.Equal column_name, Filter_Condition.Equal_Ignore_Case column_name, Filter_Condition.Equal prefix, Filter_Condition.Equal_Ignore_Case prefix, Filter_Condition.Starts_With prefix ..Insensitive]
@@ -40,7 +45,9 @@ private _find_column_with_similar_name  table:Table column_name:Text prefix:Text
     Column_Ref.Name name
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private compute_distance table:Table lat1:(Column | Float) lng1:(Column | Float) lat2:(Column | Float) lng2:(Column | Float) units:Distance_Units as:Text =
     lat1_col = if lat1.is_a Float then table.make_constant_column lat1 else lat1
     lng1_col = if lng1.is_a Float then table.make_constant_column lng1 else lng1
@@ -89,7 +96,9 @@ type Distance_Units
        https://en.wikipedia.org/wiki/Smoot
     Smoots
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts meters to the unit.
     from_meters self meters:Float -> Float = case self of
         Distance_Units.Meters -> meters

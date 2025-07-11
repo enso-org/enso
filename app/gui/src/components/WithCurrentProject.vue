@@ -59,19 +59,19 @@ function useStoreTemplate<K extends keyof OpenedProject>(
   }
 }
 
-/** @deprecated it expects the current project will not change. Use injectCurrentProject instead. */
+/** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
 export const useProjectStore = useStoreTemplate('store')
 
-/** @deprecated it expects the current project will not change. Use injectCurrentProject instead. */
+/** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
 export const useProjectNames = useStoreTemplate('names')
 
-/** @deprecated it expects the current project will not change. Use injectCurrentProject instead. */
+/** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
 export const useSuggestionDbStore = useStoreTemplate('suggestionDb')
 
-/** @deprecated it expects the current project will not change. Use injectCurrentProject instead. */
+/** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
 export const useGraphStore = useStoreTemplate('graph')
 
-/** @deprecated it expects the current project will not change. Use injectCurrentProject instead. */
+/** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
 export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 </script>
 

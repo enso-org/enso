@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
+import { useBlockTypeDropdown } from '@/components/MarkdownEditor/blockTypeDropdown'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
 import type { BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import { useDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
+import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
@@ -73,14 +74,21 @@ const { focused, focusHandlers } = useEditorFocus(editorView)
 const editing = computed(() => !readonly && focused.value)
 
 const formatting = useMarkdownFormatting(editorView)
-const { formatBindings } = useFormatActions({
+const { actions, formatBindings } = useFormatActions({
   formatting,
+  readonly,
   editing,
   uploadImage: () => images?.value && (() => images.value.tryUploadImageFile(editorView)),
 })
 setExtraExtensions([formatBindings])
 
 onEditorReady(editorView)
+
+const blockType = computed({
+  get: () => formatting.blockType.value ?? 'Unknown',
+  set: (value) => formatting.blockType.set(value as BlockType),
+})
+const blockTypeDropdown = useBlockTypeDropdown({ blockType, actions })
 
 defineExpose({
   editorView,
@@ -95,17 +103,12 @@ defineExpose({
   >
     <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
       <ActionButton action="panel.fullscreen" />
-      <template v-if="!readonly">
-        <BlockTypeDropdown
-          :modelValue="formatting.blockType.value ?? 'Unknown'"
-          @update:modelValue="formatting.blockType.set($event as BlockType)"
-        />
-        <ActionButton action="documentationEditor.italic" />
-        <ActionButton action="documentationEditor.bold" />
-        <ActionButton action="documentationEditor.link" />
-        <ActionButton action="documentationEditor.code" />
-        <ActionButton action="documentationEditor.image" />
-      </template>
+      <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
+      <ActionButton action="documentationEditor.italic" />
+      <ActionButton action="documentationEditor.bold" />
+      <ActionButton action="documentationEditor.link" />
+      <ActionButton action="documentationEditor.code" />
+      <ActionButton action="documentationEditor.image" />
     </div>
     <slot name="belowToolbar" />
     <CodeMirrorRoot

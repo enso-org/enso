@@ -7,7 +7,7 @@ from Standard.Table.Errors import all
 
 from Standard.Database import all
 from Standard.Database.Errors import all
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 

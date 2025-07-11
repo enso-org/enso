@@ -12,7 +12,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.SQL_Type.SQL_Type
+import project.SQL.SQL_Type
 from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types

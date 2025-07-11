@@ -6,7 +6,7 @@ from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata
 from Standard.Table import Table
 
 import project.Connection.Connection_Options.Connection_Options
-import project.Dialect.Temp_Table_Style
+import project.Dialects.Dialect.Temp_Table_Style
 import project.Internal.Data_Link_Setup.DB_Data_Link_Type
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 

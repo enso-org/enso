@@ -1,5 +1,6 @@
 package org.enso.compiler.test;
 
+import static org.enso.compiler.test.ExecCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -9,10 +10,13 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.hamcrest.core.AllOf;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -144,5 +148,24 @@ public class ExecStrictCompilerTest {
         "There should be no errors or warnings. But there was: " + errors,
         errors.isEmpty(),
         is(true));
+  }
+
+  @Test
+  public void castToUnresolvedType() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn f = (f : Unknown).to_text
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute(0);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("Unknown"), containsString("could not be found")));
+    }
   }
 }

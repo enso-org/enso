@@ -24,11 +24,8 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
-import {
-  canTransferBetweenCategories,
-  isCloudCategory,
-  type Category,
-} from '#/layouts/CategorySwitcher/Category'
+import { canTransferBetweenCategories } from '#/layouts/CategorySwitcher/Category'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
@@ -38,7 +35,7 @@ import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DrivePr
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import { type CredentialConfig } from '#/services/Backend'
+import { BackendType, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -50,10 +47,8 @@ import * as React from 'react'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
-  readonly backend: Backend
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly category: Category
 }
 
 /**
@@ -61,13 +56,14 @@ export interface DriveBarToolbarProps {
  * and a column display mode switcher.
  */
 export function DriveBarToolbar(props: DriveBarToolbarProps) {
-  const { backend, query, setQuery, category } = props
+  const { query, setQuery } = props
 
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const inputBindings = useInputBindings()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
-  const isCloud = isCloudCategory(category)
+  const isCloud = backend.type === BackendType.remote
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
 

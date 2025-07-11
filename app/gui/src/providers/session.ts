@@ -8,12 +8,14 @@ import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent, ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
+import { LOGOUT_EVENT } from '$/providers/session/constants'
 import { Err } from '@/util/data/result'
+import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import { computed, onScopeDispose, proxyRefs, ref, toRaw, watchEffect } from 'vue'
+import { computed, onScopeDispose, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
 
@@ -75,6 +77,7 @@ export function createSessionStore(
     mutationKey: computed(() => ['session', 'logout', session.data.value?.clientId] as const),
     mutationFn: async () => {
       isLoggingOut.value = true
+      document.dispatchEvent(new Event(LOGOUT_EVENT))
       await authService.signOut()
 
       gtag.event('cloud_sign_out')
@@ -143,6 +146,15 @@ export function createSessionStore(
     } else {
       throw new Error(result.val.message)
     }
+  }
+
+  const signInWithApple = () => {
+    gtag.event('cloud_sign_in', { provider: 'Apple' })
+
+    return authService.signInWithApple().then(
+      () => true,
+      () => false,
+    )
   }
 
   const signInWithGoogle = () => {
@@ -313,6 +325,7 @@ export function createSessionStore(
     signInWithGitHub,
     signInWithGoogle,
     signInWithMicrosoft,
+    signInWithApple,
     confirmSignIn,
     forgotPassword,
     resetPassword,

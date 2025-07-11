@@ -4,7 +4,7 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-import project.SQL_Statement.SQL_Statement
+import project.SQL.SQL_Statement
 
 ## PRIVATE
 

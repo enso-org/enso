@@ -1,35 +1,17 @@
 /** @file Plan selector component. */
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-
 import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
 import { usePaywall } from '#/hooks/billing'
-import { Plan, PLANS } from '#/services/Backend'
+import { Plan } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useAuth, useBackends, useText } from '$/providers/react'
 import { Card } from './components'
-import { getComponentPerPlan } from './getComponentForPlan'
-
-const USER_REFETCH_DELAY_MS = 3_000
-const USER_REFETCH_TIMEOUT_MS = 30_000
-
-/** The mutation data for the `onCompleteMutation` mutation. */
-interface CreateCheckoutSessionMutation {
-  readonly plan: Plan
-  readonly paymentMethodId: string
-  readonly seats: number
-  readonly period: number
-}
 
 /** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
   readonly userPlan: Plan
-  readonly showFreePlan?: boolean
-  readonly hasTrial?: boolean
-  readonly isOrganizationAdmin?: boolean
+  readonly showFreePlan: boolean
+  readonly isOrganizationAdmin: boolean
   readonly plan?: Plan | null | undefined
-  readonly onSubscribeSuccess?: (plan: Plan, paymentMethodId: string) => void
-  readonly onSubscribeError?: (error: Error) => void
 }
 
 const PLAN_SELECTOR_STYLES = tv({
@@ -37,17 +19,10 @@ const PLAN_SELECTOR_STYLES = tv({
     className: 'w-full snap-x overflow-auto rounded-4xl scroll-hidden',
   }),
   variants: {
-    showFreePlan: {
-      true: {
-        grid: 'grid-cols-1fr md:grid-cols-2 xl:grid-cols-4',
-      },
-      false: {
-        grid: 'grid-cols-1fr md:grid-cols-3 justify-center',
-      },
-    },
+    showFreePlan: { true: { grid: '2xl:grid-cols-5' } },
   },
   slots: {
-    grid: 'inline-grid min-w-full gap-6 p-6',
+    grid: 'inline-grid min-w-full gap-6 p-6 grid-cols-1fr justify-center md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
     card: 'min-w-64 snap-center',
   },
 })
@@ -58,116 +33,49 @@ const PLAN_SELECTOR_STYLES = tv({
  */
 export function PlanSelector(props: PlanSelectorProps) {
   const {
-    onSubscribeSuccess,
-    onSubscribeError,
     plan,
     userPlan,
-    showFreePlan = true,
-    hasTrial = true,
-    isOrganizationAdmin = false,
+    showFreePlan,
+    isOrganizationAdmin,
     variants = PLAN_SELECTOR_STYLES,
   } = props
 
-  const { getText } = useText()
-  const { remoteBackend: backend } = useBackends()
-  const { refetchSession } = useAuth()
   const { getPaywallLevel } = usePaywall({ plan: userPlan })
-
-  const queryClient = useQueryClient()
-  const onCompleteMutation = useMutation({
-    mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
-      const { id } = await backend.createCheckoutSession({
-        plan: mutationData.plan,
-        paymentMethodId: mutationData.paymentMethodId,
-        quantity: mutationData.seats,
-        interval: mutationData.period,
-      })
-
-      return backend.getCheckoutSession(id).then((data) => {
-        if (['trialing', 'active'].includes(data.status)) {
-          return data
-        } else {
-          throw new Error('The payment was not successful. Please try again or contact support.')
-        }
-      })
-    },
-    onError: (error) => onSubscribeError?.(error),
-  })
 
   const classes = variants({ showFreePlan })
 
   return (
     <div className={classes.base()}>
       <div className={classes.grid()}>
-        {PLANS.map((newPlan) => {
-          const paywallLevel = getPaywallLevel(newPlan)
-          const userPaywallLevel = getPaywallLevel(userPlan)
-          const planProps = getComponentPerPlan(newPlan, getText)
-
-          if (showFreePlan || newPlan !== Plan.free) {
-            const isCurrentPlan = newPlan === userPlan
-
-            return (
-              <Card
-                key={newPlan}
-                className={classes.card()}
-                features={planProps.features}
-                subtitle={planProps.subtitle}
-                title={planProps.title}
-                elevated={planProps.elevated === true ? 'xxlarge' : 'none'}
-                submitButton={
-                  <planProps.submitButton
-                    onSubmit={async (paymentMethodId, seats, period) => {
-                      await onCompleteMutation.mutateAsync({
-                        plan: newPlan,
-                        paymentMethodId,
-                        seats,
-                        period,
-                      })
-
-                      const startEpochMs = Number(new Date())
-
-                      while (true) {
-                        const { data: session } = await refetchSession()
-                        if (session && 'user' in session && session.user.plan === newPlan) {
-                          onSubscribeSuccess?.(newPlan, paymentMethodId)
-                          // Invalidate "users me" query as the user has changed the plan.
-                          await queryClient.invalidateQueries({
-                            queryKey: [backend.type, 'usersMe'],
-                          })
-                          break
-                        } else {
-                          const timePassedMs = Number(new Date()) - startEpochMs
-                          if (timePassedMs > USER_REFETCH_TIMEOUT_MS) {
-                            throw new Error(
-                              'Timed out waiting for subscription, please contact support to continue.',
-                            )
-                          } else {
-                            await new Promise((resolve) => {
-                              window.setTimeout(resolve, USER_REFETCH_DELAY_MS)
-                            })
-                          }
-                        }
-                      }
-                    }}
-                    plan={newPlan}
-                    userHasSubscription={userPlan !== Plan.free}
-                    isCurrent={isCurrentPlan}
-                    isDowngrade={userPaywallLevel > paywallLevel}
-                    defaultOpen={newPlan === plan}
-                    features={planProps.features}
-                    canTrial={hasTrial}
-                    planName={getText(newPlan)}
-                    isOrganizationAdmin={isOrganizationAdmin}
-                  />
-                }
-                learnMore={<planProps.learnMore />}
-                pricing={planProps.pricing}
-              />
-            )
-          } else {
-            return null
+        {(
+          [
+            /* eslint-disable @typescript-eslint/no-magic-numbers */
+            { plan: Plan.free, period: 12 },
+            { plan: Plan.solo, period: 1 },
+            { plan: Plan.solo, period: 12 },
+            { plan: Plan.team, period: 12 },
+            { plan: Plan.enterprise, period: 12 },
+            /* eslint-enable @typescript-eslint/no-magic-numbers */
+          ] as const
+        ).map(({ plan: newPlan, period }) => {
+          if (!showFreePlan && newPlan === Plan.free) {
+            return
           }
+
+          return (
+            <Card
+              key={`${newPlan}/${period}`}
+              plan={newPlan}
+              period={period}
+              modalOpen={newPlan === plan}
+              userHasSubscription={userPlan !== Plan.free}
+              isOrganizationAdmin={isOrganizationAdmin}
+              isCurrent={newPlan === userPlan}
+              paywallLevel={getPaywallLevel(newPlan)}
+              userPaywallLevel={getPaywallLevel(userPlan)}
+              className={classes.card()}
+            />
+          )
         })}
       </div>
     </div>

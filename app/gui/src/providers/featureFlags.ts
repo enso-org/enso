@@ -4,6 +4,7 @@
  * Feature flags provider.
  * Feature flags are used to enable or disable certain features in the application.
  */
+import { Plan } from '#/services/Backend'
 import { unsafeEntries } from '#/utilities/object'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useZustandStoreRef } from '$/utils/zustand'
@@ -26,8 +27,10 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableSignInWithMicrosoft: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
   showDeveloperIds: z.boolean(),
+  developerPlanOverride: z.nativeEnum(Plan).or(z.undefined()),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
+  disableAnimations: z.boolean(),
   fileChunkUploadPoolSize: z.number().int().min(1),
 })
 
@@ -59,8 +62,10 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         enableSignInWithMicrosoft: false,
         enableAdvancedProjectExecutionOptions: false,
         showDeveloperIds: false,
+        developerPlanOverride: undefined,
         overrideProfilePicture: false,
         multiplyUserList: false,
+        disableAnimations: false,
         fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
       },
       setFeatureFlag: (key, value) => {

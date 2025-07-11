@@ -1,19 +1,19 @@
 ## Enso Signatures 1.0
 ## module Standard.Table.Column
 - type Column
-    - != self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - % self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - && self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - * self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - + self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - - self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - / self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - < self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - <= self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - == self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - > self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - >= self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - ^ self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
+    - != self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - % self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - && self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - * self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - + self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - - self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - / self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - < self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - <= self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - == self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - > self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - >= self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
+    - ^ self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - at self index:Standard.Base.Data.Numbers.Integer= -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - auto_cast self shrink_types:Standard.Base.Data.Boolean.Boolean= -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - auto_value_type self shrink_types:Standard.Base.Data.Boolean.Boolean= -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
@@ -22,7 +22,7 @@
     - ceil self -> (Standard.Table.Column.Column|Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - coalesce self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - compute self statistic:Standard.Base.Data.Statistics.Statistic= -> Standard.Base.Any.Any
-    - compute_bulk self statistics:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Statistics.Statistic)= -> Standard.Table.Table.Table
+    - compute_bulk self statistics:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Statistics.Statistic)= -> (Standard.Table.Table.Table|Standard.Base.Any.Any)
     - const self value:Standard.Base.Any.Any -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - contains self other:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - count self -> Standard.Base.Data.Numbers.Integer
@@ -49,7 +49,7 @@
     - hour self -> (Standard.Table.Column.Column|Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - iif self when_true:(Standard.Table.Column.Column|Standard.Base.Any.Any) when_false:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - inferred_precise_value_type self -> Standard.Table.Value_Type.Value_Type
-    - info self -> Standard.Table.Table.Table
+    - info self -> (Standard.Table.Table.Table|Standard.Base.Any.Any)
     - is_blank self treat_nans_as_blank:Standard.Base.Data.Boolean.Boolean= -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - is_column object:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
     - is_empty self -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
@@ -99,7 +99,7 @@
     - value_type self -> Standard.Table.Value_Type.Value_Type
     - year self -> (Standard.Table.Column.Column|Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
-    - || self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
+    - || self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
 - default_date_period column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - default_row_limit_for_read column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Vector.Vector name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column

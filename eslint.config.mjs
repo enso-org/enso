@@ -239,6 +239,18 @@ const config = [
           argsIgnorePattern: '^_',
         },
       ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'vue',
+              importNames: ['proxyRefs'],
+              message: 'Use more type-safe alternative in @/util/reactivity',
+            },
+          ],
+        },
+      ],
       'no-restricted-properties': [
         'warn',
         { object: 'console', property: 'debug', message: DEBUG_STATEMENTS_MESSAGE },
@@ -356,7 +368,9 @@ const config = [
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
       'no-restricted-imports': [
         'error',
-        { paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+        {
+          paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }],
+        },
       ],
       'no-restricted-properties': [
         'error',

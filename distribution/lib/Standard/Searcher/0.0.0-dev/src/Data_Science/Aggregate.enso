@@ -1,14 +1,14 @@
 ## With your data in the state that you want, the next step is to pull useful
-   summaries from it to give you insight. This is the process of _aggregation_
-   or _summarization_.
-
+   summaries from it to give you insight. This is the process of _aggregation_ or
+   _summarization_.
    Enso provides robust facilities for getting aggregate results from your data,
    all built on a flexible foundation of grouping.
 
-   > Example
-     Compute the number of transactions that each item has participated in, as
+   ## Examples
+   ### Compute the number of transactions that each item has participated in, as
      well as the number of each item sold across those transactions.
 
+   ```
          import Standard.Examples
 
          example_group =
@@ -18,11 +18,12 @@
              num_transactions = aggregated.at "transaction_id" . reduce .length . rename "transaction_count"
              num_sold = aggregated.at "quantity" . reduce .sum . rename "num_sold"
              item_names.join [num_transactions, num_sold]
+   ```
 
-   > Example
-     Compute the maximum value of a column, the minimum value, the sum of its
+   ### Compute the maximum value of a column, the minimum value, the sum of its
      values, and its mean, and return these in a vector.
 
+   ```
          from Standard.Table import all
          import Standard.Examples
 
@@ -30,4 +31,5 @@
              column = Examples.integer_column
              as_table = column.to_table
              aggregate = as_table.aggregate [Aggregate_Column.Minimum, Aggregate_Column.Maximum, Aggregate_Column.Sum, Aggregate_Column.Average]
+   ```
 

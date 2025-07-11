@@ -1,26 +1,29 @@
 ## Numerical data is _everywhere_. This makes it of the greatest importance that
    any data analysis system provides a robust set of numerical operations.
-
    Enso provides a comprehensive suite of tools to work with numbers, spanning
    from the standard mathematical operations to some more advanced tools.
 
-   > Example
-     Create a range containing the numbers 0, 1, 2, 3, 4.
+   ## Examples
+   ### Create a range containing the numbers 0, 1, 2, 3, 4.
 
+   ```
          0.up_to 5
+   ```
 
-   > Example
-     Calculate the smallest number out of 1 and 2.
+   ### Calculate the smallest number out of 1 and 2.
 
+   ```
          1.min 2
+   ```
 
-   > Example
-     Calculate the largest number out of 1 and 2.
+   ### Calculate the largest number out of 1 and 2.
 
+   ```
          1.max 2
+   ```
 
-   > Example
-     Calculate the sine of 2.
+   ### Calculate the sine of 2.
 
+   ```
          2.sin
-
+   ```

@@ -1,7 +1,6 @@
 package org.enso.polyglot
 
 import org.graalvm.polyglot.Value
-import org.enso.common.MethodNames
 
 /** Represents an Enso function.
   *
@@ -27,8 +26,7 @@ class Function(val value: Value) {
     *        `false` otherwise.
     */
   override def equals(obj: Any): Boolean = obj match {
-    case fun: Function =>
-      value.invokeMember(MethodNames.Function.EQUALS, fun.value).asBoolean()
-    case _ => false
+    case fun: Function => value == fun.value
+    case _             => false
   }
 }

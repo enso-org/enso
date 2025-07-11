@@ -4,7 +4,7 @@ from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Lookup_Helpers
 import Standard.Table.Internal.Lookup_Helpers.Lookup_Column
-from Standard.Table import Join_Kind, Value_Type
+from Standard.Table import Join_Kind, Value_Type, Table
 from Standard.Table.Errors import all
 
 import project.DB_Table.DB_Table
@@ -19,7 +19,7 @@ from project.Internal.Upload.Helpers.Check_Queries import check_for_null_keys
 ## PRIVATE
    Implementation of `lookup_and_replace` for Database backend.
    See `Table.lookup_and_replace` for more details.
-build_lookup_query : DB_Table -> DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+build_lookup_query : DB_Table -> Table & DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
 build_lookup_query base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems:Problem_Behavior =
     lookup_columns = Lookup_Helpers.prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
     lookup_columns.if_not_error <| check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows <|
@@ -62,7 +62,7 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
 ## PRIVATE
    Checks if they key contains NULL values or if there would be unmatched rows
    (if `allow_unmatched_rows` is `False`), and reports any errors.
-check_initial_invariants : DB_Table -> DB_Table -> Vector Lookup_Column -> Boolean -> Any -> Any
+check_initial_invariants : DB_Table -> Table & DB_Table -> Vector Lookup_Column -> Boolean -> Any -> Any
 check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows ~continuation =
     key_column_names = lookup_columns.flat_map c-> case c of
         Lookup_Column.Key_Column base_column lookup_column ->

@@ -7,7 +7,6 @@ import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
-import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Nothing.Nothing
@@ -15,6 +14,7 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all
+import project.Meta
 from project.Metadata import Display, make_single_choice, Widget
 from project.Metadata.Choice import Option
 from project.Widget_Helpers import make_any_selector
@@ -178,9 +178,10 @@ type Filter_Condition
        Resolves a possibly auto-scoped value to a concrete value.
     resolve_auto_scoped : Any -> Any
     resolve_auto_scoped filter =
-        resolve filter:Filter_Condition = filter
         case filter of
-            _ : Function -> Panic.catch Type_Error (resolve filter) _->filter
+            _ : Function -> case Meta.meta filter of
+                s : Meta.Unresolved -> if s.is_constructor then filter:Filter_Condition else filter
+                _ -> filter
             _ : Filter_Condition -> filter
             _ -> Panic.throw (Illegal_Argument.Error "The filter condition can either be a Function or a Filter_Condition, but got: "+filter.to_display_text)
 

@@ -7,10 +7,11 @@ import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import { keymap } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { toValue } from 'vue'
+import { computed, toValue } from 'vue'
 
 interface FormatActionsOptions {
   formatting: ReturnType<typeof useMarkdownFormatting>
+  readonly: ToValue<boolean>
   editing: ToValue<boolean>
   uploadImage: ToValue<(() => void) | undefined>
 }
@@ -18,10 +19,13 @@ interface FormatActionsOptions {
 /** Registers actions for the given editor's format state. */
 export function useFormatActions({
   formatting: { italic, bold, insertLink, insertCodeBlock, blockType },
+  readonly,
   editing,
   uploadImage,
 }: FormatActionsOptions) {
   const toastError = useToast.error()
+
+  const notReadonly = computed(() => !toValue(readonly))
 
   function reportUnformattable() {
     toastError.show('The selected text cannot be formated')
@@ -32,6 +36,7 @@ export function useFormatActions({
     value: boolean
   }) {
     return {
+      available: notReadonly,
       enabled: () => !!toValue(editing) && !!format.set,
       toggled: () => format.value,
       action: () => {
@@ -46,6 +51,7 @@ export function useFormatActions({
 
   function doFormatAction(action: ToValue<(() => void) | undefined>) {
     return {
+      available: notReadonly,
       enabled: () => toValue(action) != null,
       action: () => {
         const actionValue = toValue(action)
@@ -63,6 +69,7 @@ export function useFormatActions({
   ): Record<T, ActionHandler & { action: () => void }> {
     const setBlockTypeAction = (actionName: BlockTypeAction) =>
       ({
+        available: notReadonly,
         action: () => blockType.set(actionBlockType[actionName]),
       }) satisfies Action
     return objects.unsafeFromEntries(
@@ -76,6 +83,7 @@ export function useFormatActions({
     'documentationEditor.link': doFormatAction(insertLink),
     'documentationEditor.code': doFormatAction(insertCodeBlock),
     'documentationEditor.image': {
+      available: notReadonly,
       enabled: () => toValue(editing) && toValue(uploadImage) != null,
       action: () => toValue(uploadImage)?.(),
     },
@@ -99,5 +107,5 @@ export function useFormatActions({
     ),
   ])
 
-  return { formatBindings }
+  return { actions: actionHandlers, formatBindings }
 }

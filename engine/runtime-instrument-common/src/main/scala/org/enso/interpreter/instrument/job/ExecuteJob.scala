@@ -9,6 +9,8 @@ import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.concurrent.ExecutionException
+
 /** A job responsible for executing a call stack for the provided context.
   *
   * @param contextId an identifier of a context to execute
@@ -96,50 +98,63 @@ class ExecuteJob(
       () =>
         ctx.locking.withReadCompilationLock(
           this.getClass,
-          () => {
-            val context = ctx.executionService.getContext
-            val originalExecutionEnvironment =
-              executionEnvironment.map(_ =>
-                context.getGlobalExecutionEnvironment
-              )
-            executionEnvironment.foreach(env =>
-              context.setExecutionEnvironment(
-                ExecutionEnvironment.forName(env.name)
-              )
-            )
-            val outcome =
-              try ProgramExecutionSupport.runProgram(contextId, stack)
-              finally {
-                originalExecutionEnvironment.foreach(
-                  context.setExecutionEnvironment
-                )
-              }
-            outcome match {
-              case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
-                if (diagnostic.isError) {
-                  ctx.endpoint.sendToClient(
-                    Api.Response(Api.ExecutionFailed(contextId, diagnostic))
+          () =>
+            try {
+              val originalExecutionEnvironment = executionEnvironment.map(env =>
+                ctx.executionService
+                  .setExecutionInstrument(
+                    ExecutionEnvironment.forName(env.name)
                   )
-                } else {
-                  ctx.endpoint.sendToClient(
-                    Api.Response(
-                      Api.ExecutionUpdate(contextId, Seq(diagnostic))
+                  .toCompletableFuture
+                  .get()
+              )
+              val outcome =
+                try ProgramExecutionSupport.runProgram(contextId, stack)
+                finally {
+                  originalExecutionEnvironment.foreach(original =>
+                    ctx.executionService
+                      .setExecutionInstrument(original)
+                      .toCompletableFuture
+                      .get()
+                  )
+                }
+              outcome match {
+                case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+                  if (diagnostic.isError) {
+                    ctx.endpoint.sendToClient(
+                      Api.Response(Api.ExecutionFailed(contextId, diagnostic))
                     )
+                  } else {
+                    ctx.endpoint.sendToClient(
+                      Api.Response(
+                        Api.ExecutionUpdate(contextId, Seq(diagnostic))
+                      )
+                    )
+                    ctx.endpoint.sendToClient(
+                      Api.Response(Api.ExecutionComplete(contextId))
+                    )
+                  }
+                case Some(failure: Api.ExecutionResult.Failure) =>
+                  ctx.endpoint.sendToClient(
+                    Api.Response(Api.ExecutionFailed(contextId, failure))
                   )
+                case None =>
                   ctx.endpoint.sendToClient(
                     Api.Response(Api.ExecutionComplete(contextId))
                   )
-                }
-              case Some(failure: Api.ExecutionResult.Failure) =>
+              }
+            } catch {
+              case e: ExecutionException =>
                 ctx.endpoint.sendToClient(
-                  Api.Response(Api.ExecutionFailed(contextId, failure))
+                  Api.Response(
+                    Api.ExecutionFailed(
+                      contextId,
+                      Api.ExecutionResult.Failure(e.getMessage, None)
+                    )
+                  )
                 )
-              case None =>
-                ctx.endpoint.sendToClient(
-                  Api.Response(Api.ExecutionComplete(contextId))
-                )
+                throw e;
             }
-          }
         )
     )
   }

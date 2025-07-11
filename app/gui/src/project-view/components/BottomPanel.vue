@@ -73,6 +73,12 @@ const style = computed(() =>
   --panel-size: var(--code-editor-default-height);
   position: relative;
   height: var(--panel-size);
+  /*
+   * Limit the size of the panel. Because size is persisted, allowing the panel to fill the screen
+   * may be confusing, especially if the user sets the size on one screen and then reopens the code
+   * editor on a screen with a lower resolution.
+   */
+  max-height: 85svh;
   margin-right: 1px;
   /*
    * Ensure that the content height doesn't exceed the panel's height while animating, which can

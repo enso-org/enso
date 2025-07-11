@@ -107,12 +107,10 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupBackendError: [userGroupName: string]
   readonly listVersionsBackendError: [versionType: string]
   readonly createCheckoutSessionBackendError: [plan: string]
-  readonly getCheckoutSessionBackendError: [checkoutSessionId: string]
   readonly getDefaultVersionBackendError: [versionType: string]
   readonly logEventBackendError: [eventType: string]
 
   readonly subscribeSuccessSubtitle: [plan: string]
-  readonly assetsDropFilesDescription: [count: number]
 
   readonly paywallAvailabilityLevel: [plan: string]
   readonly paywallScreenDescription: [plan: string]
@@ -138,7 +136,6 @@ interface PlaceholderOverrides {
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
-  readonly groupNameSettingsInputDescription: [howLong: number]
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
@@ -178,6 +175,13 @@ interface PlaceholderOverrides {
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
+
+  readonly annualPlanVariant: [originalPlanName: string]
+  readonly freePlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly soloPlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly teamPlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly enterprisePlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly commercialUseNotice: [originalTitle: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
