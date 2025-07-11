@@ -2,7 +2,6 @@ private
 
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -215,11 +214,11 @@ type DB_Table_Implementation
 
                     filter_condition = Filter_Condition.resolve_auto_scoped filter
                     case filter_condition of
+                        Filter_Condition.Predicate _ ->
+                            Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
                         _ : Filter_Condition ->
                             resolved = (this_table:Table_Ref).resolve_condition filter_condition
                             mask (make_filter_column column resolved on_problems)
-                        _ : Function ->
-                            Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
                 _ : Expression -> this_table.filter (this_table.evaluate_expression column on_problems) filter on_problems
                 _ ->
                     table_at = this_table.at column
@@ -228,7 +227,7 @@ type DB_Table_Implementation
     filter_by_expression (this_table : Table & DB_Table) expression:Text on_problems:Problem_Behavior =
         Feature.Filter.if_supported_else_throw this_table.connection.dialect "filter_by_expression" <|
             column = this_table.evaluate_expression (Expression.Value expression) on_problems
-            result = this_table.filter column Filter_Condition.Is_True
+            result = this_table.filter column ..Is_True
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
     take (this_table : Table & DB_Table) (range : Index_Sub_Range | Range | Integer) =

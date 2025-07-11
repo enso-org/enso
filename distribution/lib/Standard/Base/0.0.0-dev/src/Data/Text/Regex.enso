@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Dictionary.Dictionary
-import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Hashset.Hashset
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
@@ -483,7 +482,7 @@ build_tokenization_output_from_match pattern match =
     if pattern.group_count == 1 then match.text 0 else
         # Extract the ranges of the spans of all capturing groups
         group_numbers = 1.up_to pattern.group_count
-        spans = group_numbers.map (n-> match.span n) . filter Filter_Condition.Not_Nothing
+        spans = group_numbers.map (n-> match.span n) . filter i->i.is_nothing.not
         ranges = spans.map span-> case span of Span.Value range _ -> range
 
         # Eliminate nested capturing groups by sorting and merging the ranges.
