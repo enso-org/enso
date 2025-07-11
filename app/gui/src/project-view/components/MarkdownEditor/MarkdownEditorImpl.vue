@@ -89,7 +89,7 @@ async function insertStartedUploads(
       // Once the upload metadata is known, fill in the placeholder.
       if (result.ok) {
         const { filename, resourceUrl } = result.value
-        const safeAltText = filename.replace(/\.([-.]+)$/, '').replace(/[[\]]/g, '_')
+        const safeAltText = filename.replace(/\.([^.]+)$/, '').replace(/[[\]]/g, '_')
         replacePlaceholder(editorView, placeholder, `\n![${safeAltText}](${resourceUrl})\n`)
       } else {
         replacePlaceholder(editorView, placeholder, '')

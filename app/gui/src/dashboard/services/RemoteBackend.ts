@@ -22,7 +22,7 @@ import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
 import { extractTypeAndId } from './LocalBackend'
-import { extractIdFromDirectoryId } from './RemoteBackend/ids'
+import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids'
 
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
@@ -116,9 +116,7 @@ export default class RemoteBackend extends Backend {
       }
       case backend.Plan.team:
       case backend.Plan.enterprise: {
-        return organization == null ? null : (
-            backend.DirectoryId(`directory-${organization.id.replace(/^organization-/, '')}`)
-          )
+        return organization == null ? null : organizationIdToDirectoryId(organization.id)
       }
     }
   }

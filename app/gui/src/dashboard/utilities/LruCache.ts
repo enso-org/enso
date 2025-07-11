@@ -68,7 +68,7 @@ export class LRUCache<K, V extends NotUndefined> {
 
   /**
    * Get a value from the cache, but do NOT mark it as "recently used".
-   * The peeked value continues to be eligible for cleanup in any potential next `get` or `set` call.
+   * The peeked value continues to be eligible for cleanup in any potential next `set` call.
    */
   peek(key: K): V | undefined {
     const recentValue = this.recentGeneration.get(key)

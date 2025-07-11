@@ -66,7 +66,7 @@ export function useAsyncResourceResolver(
         )
         if (!details.ok) return details
         const url = details.value.url && urlParse(details.value.url)
-        if (!url) return Err('Invalid aaset URL provided')
+        if (!url) return Err('Invalid asset URL provided')
         return Ok(url)
       },
     }

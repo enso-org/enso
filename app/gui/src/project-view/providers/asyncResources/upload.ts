@@ -55,7 +55,6 @@ export function* normalizeUploadSources(dataSource: AnyUploadSource): Generator<
       } satisfies UploadDefinition
     }
   } else {
-    console.log('dataSource', dataSource)
     yield dataSource
   }
 }
