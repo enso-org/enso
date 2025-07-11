@@ -37,30 +37,10 @@ type Google_Sheets_Workbook
         Google_Sheets_Workbook.Value workbook_id service
 
     ## ---
-       group: Standard.Base.Metadata
-       icon: metadata
-       suggested: true
-       ---
-       Gets the names of all the sheets.
-    sheet_names : Vector Text
-    sheet_names self = _handle_exceptions <|
-        self.java_service.getSheetNames self.workbook_id
-
-    ## ---
-       group: Standard.Base.Metadata
-       icon: metadata
-       suggested: true
-       ---
-       Gets the number of sheets.
-    sheet_count : Integer
-    sheet_count self = _handle_exceptions <|
-        self.java_service.getNumberOfSheets self.workbook_id
-
-    ## ---
        aliases: [get, import, load, open, range, sheet, worksheet]
        group: Standard.Base.Input
        icon: data_input
-       suggested: true
+       suggested: 1
        ---
        Read a range into a Table.
 
@@ -87,6 +67,42 @@ type Google_Sheets_Workbook
         result.if_not_error <|
             Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
         result
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       suggested: 2
+       ---
+       Gets the number of sheets.
+    sheet_count self -> Integer = _handle_exceptions <|
+        self.java_service.getNumberOfSheets self.workbook_id
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       suggested: 3
+       ---
+       Gets the names of all the sheets.
+    sheet_names self -> Vector Text = _handle_exceptions <|
+        Vector.from_polyglot_array (self.java_service.getSheetNames self.workbook_id)
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       suggested: 4
+       ---
+       Gets the number of named ranges.
+    named_ranges_count self -> Integer = _handle_exceptions <|
+        self.java_service.getNumberOfNames self.workbook_id
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       suggested: 5
+       ---
+       Gets the names of all the named ranges.
+    named_ranges self -> Vector Text = _handle_exceptions <|
+        Vector.from_polyglot_array (self.java_service.getRangeNames self.workbook_id) . sort
 
 ## ---
    private: true
@@ -125,5 +141,5 @@ private _make_java_headers headers:Headers = case headers of
 
 ## Creates a query widget for the `read` method.
 private _query_widget wb:Google_Sheets_Workbook display:Display=..Always -> Widget =
-    options = [Option "<By Index>" "1"] + (wb.sheet_names . to_vector . map t-> Option t t.pretty)
+    options = [Option "<By Index>" "1"] + (wb.sheet_names . to_vector . map t-> Option t t.pretty) + (wb.named_ranges . to_vector . map t-> Option t t.pretty)
     Single_Choice display=display values=options

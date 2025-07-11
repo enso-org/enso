@@ -23,6 +23,7 @@
 - [Allow marking grouped component arguments as required or providing a default
   value.][13254]
 - [New Right Panel Tab with Markdown Description Editor][13347]
+- [Panic on unresolved type checks in the IDE][13467]
 - [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
   resulting in an Error page without option of returning back to Local.][13366]
 - ["Grouped Components" are renamed to "User Defined Components"][13389]
@@ -45,6 +46,7 @@
 [13266]: https://github.com/enso-org/enso/pull/13266
 [13254]: https://github.com/enso-org/enso/pull/13254
 [13347]: https://github.com/enso-org/enso/pull/13347
+[13467]: https://github.com/enso-org/enso/pull/13467
 [13366]: https://github.com/enso-org/enso/pull/13366
 [13389]: https://github.com/enso-org/enso/pull/13389
 [13439]: https://github.com/enso-org/enso/pull/13439

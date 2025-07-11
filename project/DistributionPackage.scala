@@ -273,7 +273,7 @@ object DistributionPackage {
           val runningProcess = Process(
             command,
             Some(path.getAbsoluteFile.getParentFile),
-            "JAVA_TOOL_OPTIONS" -> "-Dorg.jline.terminal.dumb=true"
+            "NO_COLOR" -> "true"
           ).run
           // Poor man's solution to stuck index generation
           val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes

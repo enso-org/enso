@@ -92,6 +92,9 @@ pub enum Tests {
     /// Run the Snowflake tests.
     StdSnowflake,
 
+    /// Run the Snowflake tests in `--jvm` mode.
+    StdSnowflakeJVM,
+
     /// Run a subset of Standard Library tests that deals with Cloud-related functionality.
     StdCloudRelated,
 

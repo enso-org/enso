@@ -1,17 +1,6 @@
 import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
 
-export const undoBindings = defineKeybinds('undo', {
-  'graph.undo': ['Mod+Z'],
-  // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
-  'graph.redo': isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
-})
-
-export const panelsBindings = defineKeybinds('panels', {
-  'graph.toggleCodeEditor': ['Mod+`'],
-  'graph.toggleDocumentationEditor': ['Mod+D'],
-})
-
 export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
   'documentationEditor.italic': ['Mod+I'],
   'documentationEditor.bold': ['Mod+B'],
@@ -58,6 +47,11 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {
+  'graph.toggleCodeEditor': ['Mod+`'],
+  'graph.toggleDocumentationEditor': ['Mod+D'],
+  'graph.undo': ['Mod+Z'],
+  // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
+  'graph.redo': isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
   'graph.openComponentBrowser': ['Enter'],
   'graph.toggleVisualization': ['Space'],
   'components.deleteSelected': ['Delete', 'Backspace'],
