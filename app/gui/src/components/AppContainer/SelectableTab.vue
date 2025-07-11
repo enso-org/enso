@@ -52,7 +52,7 @@ const VARIANTS = {
           role="tab"
           :aria-label="tooltip ?? label ?? ''"
           class="tabContent"
-          :class="{ enabled }"
+          :class="{ enabled, selected }"
           :disabled="!enabled"
           v-bind="triggerProps"
         >

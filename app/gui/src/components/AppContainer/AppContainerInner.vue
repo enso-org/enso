@@ -13,7 +13,7 @@ import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { applyPureReactInVue } from 'veaury'
-import { reactive, shallowRef, toRef, toRefs, watch } from 'vue'
+import { reactive, shallowRef, toRefs, watch } from 'vue'
 import { Drive, Editor, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
@@ -26,7 +26,6 @@ const props = defineProps<{
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
   isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
-  enableScheduledExecution: boolean
 }>()
 
 // NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
@@ -34,7 +33,7 @@ const props = defineProps<{
 const fullscreenRoot = shallowRef<HTMLElement>()
 
 const { tab, openedProjects } = toRefs(useContainerData())
-provideRightPanelData(tab, props.isFeatureUnderPaywall, toRef(props, 'enableScheduledExecution'))
+provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
 const readyProjects = reactive(new Set<ProjectId>())

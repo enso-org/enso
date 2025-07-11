@@ -2,7 +2,7 @@ import Backend, { AssetType, Plan, User } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useAuth, UserSessionType } from '$/providers/auth'
+import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { ensoPathToTabId } from '$/providers/container'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -56,7 +56,7 @@ export async function maybeRedirectToInitialProject(to: RouteLocation) {
   await auth.waitForSession()
 
   // In case of not being logged in, the redirection should be managed by ProtectedLayout.
-  if (auth.session?.type !== UserSessionType.full) return
+  if (auth.session == null) return
 
   const initialPath = await initialProjectPath(config.params.startup.project, auth.session.user)
   return initialPath ? { name: 'dashboard', params: { path: initialPath.split('/') } } : true
@@ -73,7 +73,7 @@ async function shouldOpenInitialProject(
   if (navigatedInDrive || anyProjectLaunched) return false
 
   const homeDirQuery = { parentId: null, filterBy: null, labels: null, recentProjects: false }
-  const onError = () => {
+  const onError = (err: unknown) => {
     console.error('Cannot read user home directory; will skip launching Welcome Project', err)
     return null
   }

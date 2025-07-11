@@ -290,7 +290,12 @@ export function useCloseProjectMutation() {
 
   return useMutationCallback({
     mutationKey: ['closeProject'],
-    mutationFn: async ({ type, id, title, hybrid }: LaunchedProject) => {
+    mutationFn: async ({
+      type,
+      id,
+      title,
+      hybrid,
+    }: Pick<LaunchedProject, 'hybrid' | 'id' | 'parentId' | 'title' | 'type'>) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -593,36 +598,38 @@ export function useCloseProject() {
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
 
-  return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
-    client
-      .getMutationCache()
-      .findAll({
-        mutationKey: ['openProject'],
-        predicate: (mutation) => mutation.options.scope?.id === project.id,
-      })
-      .forEach((mutation) => {
-        mutation.setOptions({ ...mutation.options, retry: false })
-        mutation.destroy()
-      })
+  return eventCallbacks.useEventCallback(
+    async (project: Pick<LaunchedProject, 'hybrid' | 'id' | 'parentId' | 'title' | 'type'>) => {
+      client
+        .getMutationCache()
+        .findAll({
+          mutationKey: ['openProject'],
+          predicate: (mutation) => mutation.options.scope?.id === project.id,
+        })
+        .forEach((mutation) => {
+          mutation.setOptions({ ...mutation.options, retry: false })
+          mutation.destroy()
+        })
 
-    const promise = closeProjectMutation(project)
+      const promise = closeProjectMutation(project)
 
-    client
-      .getMutationCache()
-      .findAll({
-        mutationKey: ['closeProject'],
-        // This is unsafe, but we cannot do anything about it.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: (mutation) => mutation.state.variables?.id === project.id,
-      })
-      .forEach((mutation) => {
-        mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
-      })
+      client
+        .getMutationCache()
+        .findAll({
+          mutationKey: ['closeProject'],
+          // This is unsafe, but we cannot do anything about it.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          predicate: (mutation) => mutation.state.variables?.id === project.id,
+        })
+        .forEach((mutation) => {
+          mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
+        })
 
-    removeLaunchedProject(project.id)
+      removeLaunchedProject(project.id)
 
-    await promise
-  })
+      await promise
+    },
+  )
 }
 
 /** A function to close all projects. */

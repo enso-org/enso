@@ -983,7 +983,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  readonly ensoPath: EnsoPath | undefined
+  readonly ensoPath: EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */

@@ -131,7 +131,6 @@ watch(
   (allowed) => {
     if (!allowed) {
       const redirectValue = redirect(auth, LocalStorage.getInstance())
-      console.debug('Redirected here', redirectValue)
       if (redirectValue) router.push(redirectValue)
     }
   },
