@@ -1,10 +1,16 @@
 package org.enso.table.operations;
 
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Row;
+import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.ProgressHandler;
+
+import java.util.function.BiPredicate;
 
 public class AddGroupNumber {
   public static ColumnStorage<?> numberGroupsUnique(
@@ -117,6 +123,52 @@ public class AddGroupNumber {
                 parent.start, Math.multiplyExact(parent.step, (currentIndex / parent.groupSize)));
         currentIndex = Math.addExact(currentIndex, 1L);
       }
+    }
+  }
+
+  public static ColumnStorage<?> flagFunction(
+      Table table,
+      Column column,
+      long start,
+      long step,
+      BiPredicate<Object, Object> predicate,
+      boolean passPrevious,
+      ProblemAggregator problemAggregator) {
+    if (table.rowCount() == 0) {
+      return new LongStorage(new long[0], IntegerType.INT_64);
+    }
+
+    try (var progressHandle = ProgressHandler.init("addGroupNumberFlagged", table.rowCount())) {
+      var builder = Builder.getForLong(IntegerType.INT_64, table.rowCount(), problemAggregator);
+      var currentRow = new Row(table, 0);
+      var newRow = new Row(table, 0);
+
+      long currentGroup = start;
+      builder.appendLong(currentGroup);
+      progressHandle.advance();
+
+      for (long i = 1; i < table.rowCount(); i++) {
+        newRow.setRowIndex(i);
+        if (passPrevious) {
+          currentRow.setRowIndex(i - 1);
+        }
+
+        boolean predicateResult = column == null
+            ? predicate.test(currentRow, newRow)
+            : predicate.test(column.getItem(currentRow.index()), column.getItem(i));
+
+        if (predicateResult) {
+          if (!passPrevious) {
+            currentRow.setRowIndex(i);
+          }
+          currentGroup = Math.addExact(currentGroup, step);
+        }
+
+        builder.appendLong(currentGroup);
+        progressHandle.advance();
+      }
+
+      return builder.seal();
     }
   }
 }

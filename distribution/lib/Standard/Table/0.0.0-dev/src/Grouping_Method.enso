@@ -27,3 +27,17 @@ type Group_Row
 
     ## The row representing the group is the last row of the group.
     Previous
+
+## Specified what a pred
+type Predicate_Over
+    Row
+
+    Name column:Text
+
+    Index index:Integer
+
+## PRIVATE
+Predicate_Over.from (that:Text) = Predicate_Over.Name that
+
+## PRIVATE
+Predicate_Over.from (that:Integer) = Predicate_Over.Index that
