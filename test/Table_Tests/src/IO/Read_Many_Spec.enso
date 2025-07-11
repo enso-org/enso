@@ -63,6 +63,7 @@ add_specs suite_builder =
             r2.should_be_a Table
             r2.column_names . should_equal ["Some column", "Value"]
             r2.at "Some column" . to_vector . should_equal returned_vector
+            r2.at "Some column" . value_type . should_equal (Value_Type.Char Nothing True)
             check_returned_vector (r2.at "Value" . to_vector)
 
         group_builder.specify "should read files listed in a Table with `path` column" <|
@@ -76,6 +77,7 @@ add_specs suite_builder =
             r2.column_names . should_equal ["X", "path", "Value"]
             r2.at "X" . to_vector . should_equal [1, 2]
             r2.at "path" . to_vector . should_equal returned_vector
+            r2.at "path" . value_type . should_equal (Value_Type.Char Nothing True)
             check_returned_vector (r2.at "Value" . to_vector)
 
             # Test that this is really case insensitive
@@ -83,6 +85,7 @@ add_specs suite_builder =
             r3 = Data.read_many table3 return=..With_New_Column
             r3.should_be_a Table
             r3.column_names . should_equal ["X", "pAtH", "Value"]
+            r3.at "pAtH" . value_type . should_equal (Value_Type.Char Nothing True)
             check_returned_vector (r3.at "Value" . to_vector)
 
         group_builder.specify "should fail if no `path` column can be found or its ambiguous" <|
@@ -133,6 +136,7 @@ add_specs suite_builder =
             r3 = Data.read_many files_vector
             r3.should_be_a Table
             r3.column_names . should_equal ["Path", "Value", "a", "b", "c"]
+            r3.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
             check_common_columns r3
 
         group_builder.specify "if input is a Vector, the default can be overridden to return a new column" <|
@@ -140,6 +144,7 @@ add_specs suite_builder =
             r1.should_be_a Table
             r1.column_names . should_equal ["Path", "Value"]
             r1.at "Path" . to_vector . should_equal returned_vector
+            r1.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
             check_returned_vector (r1.at "Value" . to_vector)
 
         group_builder.specify "should merge files that read as non-Table values into a Table using reasonable defaults" <|
@@ -168,6 +173,7 @@ add_specs suite_builder =
                 files = Data.list base_dir . sort on=(.name)
                 r = Data.read_many files
                 r.should_be_a Table
+                r.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
 
                 within_table r <|
                     rows = r.rows.map .to_vector
@@ -207,6 +213,7 @@ add_specs suite_builder =
                 Problems.assume_no_problems r1
                 r1.row_count . should_equal 3
                 r1 . at "Path" . to_vector . should_equal [base_dir.to_text + "/1_js_object.json", base_dir.to_text + "/2_empty_array.json", base_dir.to_text + "/3_js_object.json"]
+                r1.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r1.at "Value" . at 1 . should_equal []
 
                 r2 = Data.read_many files
@@ -233,6 +240,7 @@ add_specs suite_builder =
                 Problems.assume_no_problems r1
                 r1.row_count . should_equal 2
                 r1.at "Path" . to_vector . should_equal [base_dir.to_text + "/1_empty_table.csv", base_dir.to_text + "/2_table.csv"]
+                r1.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 empty_table1 = r1.at "Value" . at 0
                 empty_table1.should_be_a Table
                 empty_table1.row_count . should_equal 0
@@ -240,6 +248,7 @@ add_specs suite_builder =
 
                 r2 = Data.read_many files format=(..Delimited ',' headers=True) return=..As_Merged_Table
                 r2.should_be_a Table
+                r2.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 within_table r2 <|
                     ## But it DOES influence the columns present.
                        That is because the column structure is a 'structural' property,
@@ -266,12 +275,14 @@ add_specs suite_builder =
                 
                 r1 = Data.read_many files return=(..As_Merged_Table columns_to_keep=..In_All)
                 r1.should_be_a Table
+                r1.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 within_table r1 <|
                     r1.column_names . should_equal ["Path", "b"]
                     r1.at "b" . to_vector . should_equal [2, 3]
 
                 r2 = Data.read_many files return=(..As_Merged_Table columns_to_keep=(..In_List ["a", "c"]))
                 r2.should_be_a Table
+                r2.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 within_table r2 <|
                     r2.column_names . should_equal ["Path", "a", "c"]
                     r2.at "a" . to_vector . should_equal [1, Nothing]
@@ -279,6 +290,7 @@ add_specs suite_builder =
 
                 r3 = Data.read_many files return=(..As_Merged_Table match=..By_Position)
                 r3.should_be_a Table
+                r3.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 within_table r3 <|
                     r3.column_names . should_equal ["Path", "a", "b"]
                     r3.at "a" . to_vector . should_equal [1, 3]
@@ -292,6 +304,7 @@ add_specs suite_builder =
                 r = Data.read_many files
                 r.should_be_a Table
                 r.column_names . should_equal ["Path", "a"]
+                r.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r.at "a" . value_type . should_equal Value_Type.Char
                 r.at "a" . to_vector . should_equal ["1", "str"]
 
@@ -302,6 +315,7 @@ add_specs suite_builder =
                 files = Data.list base_dir . sort on=(.name)
                 r = Data.read_many files
                 r.should_be_a Table
+                r.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r.column_names . should_equal ["Path", "a"]
                 r.at "a" . value_type . should_equal Value_Type.Mixed
                 r.at "a" . to_vector . should_equal [JS_Object.from_pairs [], []]
@@ -351,6 +365,7 @@ add_specs suite_builder =
                 r.should_be_a Table
                 r.row_count . should_equal 1
                 r.at "Path" . to_vector . should_equal [base_dir.to_text + "/1_table.csv"]
+                r.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
 
                 w = Problems.expect_only_warning No_Rows r
                 w.to_display_text . should_contain "nonexistent.csv"
@@ -360,6 +375,7 @@ add_specs suite_builder =
                 r2.should_be_a Table
                 r2.row_count . should_equal 2
                 r2.at "Path" . to_vector . should_equal [base_dir.to_text + "/1_table.csv", base_dir.to_text + "/nonexistent.csv"]
+                r2.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r2.at "Value" . at 0 . should_be_a Table
                 r2.at "Value" . at 1 . should_equal Nothing
 
@@ -377,6 +393,7 @@ add_specs suite_builder =
                 Problems.expect_warning Illegal_Argument r
                 within_table r <|
                     r.column_names . should_equal ["Path", "Value"]
+                    r.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                     empty = JS_Object.from_pairs []
                     r.at "Value" . to_vector . should_equal [empty, empty, empty]
 
@@ -387,12 +404,14 @@ add_specs suite_builder =
                 files = Data.list base_dir . sort on=(.name)
                 r1 = Data.read_many files return=..With_New_Column
                 r1.should_be_a Table
+                r1.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r1.row_count . should_equal 2
                 r1.column_names . should_equal ["Path", "Value"]
                 Problems.assume_no_problems r1
 
                 r2 = Data.read_many files
                 r2.should_be_a Table
+                r2.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r2.row_count . should_equal 0
                 r2.column_names . should_equal ["Path"]
                 Problems.expect_only_warning No_Rows r2
@@ -405,12 +424,14 @@ add_specs suite_builder =
                 r = Data.read_many col return=..As_Merged_Table
                 r.column_names . should_equal ["Col", "Path", "Col 1"]
                 r.at "Col" . to_vector . should_equal [tmp_file.path]
+                r.at "Col" . value_type . should_equal (Value_Type.Char Nothing True)
                 r.at "Path" . to_vector . should_equal [1]
                 r.at "Col 1" . to_vector . should_equal [2]
 
                 table = Table.new [["Path", [tmp_file.path]], ["Col", ["X"]], ["Value", ["Y"]]]
                 r2 = Data.read_many table return=..As_Merged_Table
                 r2.column_names . should_equal ["Path", "Col", "Value", "Path 1", "Col 1"]
+                r2.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r2.at "Path" . to_vector . should_equal [tmp_file.path]
                 r2.at "Col" . to_vector . should_equal ["X"]
                 r2.at "Value" . to_vector . should_equal ["Y"]
@@ -419,6 +440,7 @@ add_specs suite_builder =
 
                 r3 = Data.read_many table return=..With_New_Column
                 r3.column_names . should_equal ["Path", "Col", "Value", "Value 1"]
+                r3.at "Path" . value_type . should_equal (Value_Type.Char Nothing True)
                 r3.at "Path" . to_vector . should_equal [tmp_file.path]
                 r3.at "Col" . to_vector . should_equal ["X"]
                 r3.at "Value" . to_vector . should_equal ["Y"]
