@@ -2,13 +2,13 @@ import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
 import project.Data.Text.Text
-import project.Error.Error
+import project.Error.Error as Throw_Error
 import project.Errors.Common.Arithmetic_Error
-import project.Function.Function
-import project.Meta
+import project.Function.Function as Function_Function
+from project.Meta import meta, is_polyglot, Error, Function, Constructor, Unresolved
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
-import project.Panic.Panic
+import project.Panic.Panic as Catch_Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import False, True
@@ -70,7 +70,9 @@ type Type_Error
        Convert the Type_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        err_simple v = Meta.type_of v . to_text
+        err_simple v =
+            t = Meta_Helpers.type_of_builtin v
+            t . to_text
         err_with_args v missing_args =
             fn_info = v.to_text
             fn_info + case missing_args.length of
@@ -79,22 +81,23 @@ type Type_Error
                 _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
 
         type_of_actual =
-            m = Meta.meta self.actual
+            m = meta self.actual
             case m of
-               e : Meta.Error -> e.to_display_text
-               fn : Meta.Function ->
+               e : Error -> e.to_display_text
+               fn : Function ->
                   missing_args = fn . arguments pending=True
                   err_with_args fn.value missing_args
-               _ : Meta.Constructor ->
+               _ : Constructor ->
                   fn = self.actual
                   missing_args = Meta_Helpers.get_argument_names_builtin fn True False False False
                   err_with_args fn missing_args
-               u : Meta.Unresolved ->
+               u : Unresolved ->
                   if u.is_constructor then ".."+u.name else
                      err_simple self.actual
                _ -> err_simple self.actual
 
-        got = if type_of_actual.is_a Text then type_of_actual else "<ERR>"
+        toa = type_of_actual
+        got = if Meta_Helpers.is_a_builtin toa Text then toa else "<ERR>"
         exp = self.expected.to_display_text
         msg = self.comment
             . replace "{exp}" exp
@@ -206,18 +209,18 @@ type No_Such_Method
                  error.method_name
     method_name : Text
     method_name self =
-        Meta.meta self.symbol . name
+        meta self.symbol . name
 
     ## PRIVATE
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
         target_name =
-          is_poly = Meta.is_polyglot self.target
-          is_fn = Meta.is_same_object Function (Meta.type_of self.target)
+          is_poly = is_polyglot self.target
+          is_fn = Meta_Helpers.is_same_object_builtin Function_Function (Meta_Helpers.type_of_builtin self.target)
           if is_poly then "type " + self.target.to_display_text else
              if is_fn then self.target.to_text else
-                "type " + (Meta.type_of self.target).to_display_text
+                "type " + (Meta_Helpers.type_of_builtin self.target).to_display_text
         "Method `"+self.method_name+"` of "+target_name+" could not be found."
 
 @Builtin_Type
@@ -235,7 +238,7 @@ type No_Such_Field
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        value_type_name = if Meta.is_polyglot self.value then self.value.to_display_text else (Meta.type_of self.value).to_display_text
+        value_type_name = if is_polyglot self.value then self.value.to_display_text else (Meta_Helpers.type_of_builtin self.value).to_display_text
         "Field `"+self.field_name+"` of "+value_type_name+" could not be found."
 
 @Builtin_Type
@@ -266,7 +269,7 @@ type Arithmetic_Error
     ## PRIVATE
        Capture a Java `ArithmeticException` and convert it to an Enso dataflow error - `Arithmetic_Error.Error`.
     handle_java_exception =
-        Panic.catch ArithmeticException handler=(cause-> Error.throw (Arithmetic_Error.Error cause.payload.getMessage))
+        catch ArithmeticException handler=(cause-> throw (Arithmetic_Error.Error cause.payload.getMessage))
 
 @Builtin_Type
 type Incomparable_Values
@@ -284,8 +287,8 @@ type Incomparable_Values
         case self.left.is_nothing && self.right.is_nothing of
             True -> "Could not compare values."
             False ->
-                left_text = self.left.to_display_text + " (" + (Meta.type_of self.left).to_text + ")"
-                right_text = self.right.to_display_text + " (" + (Meta.type_of self.right).to_text + ")"
+                left_text = self.left.to_display_text + " (" + (Meta_Helpers.type_of_builtin self.left).to_text + ")"
+                right_text = self.right.to_display_text + " (" + (Meta_Helpers.type_of_builtin self.right).to_text + ")"
                 "Cannot compare " + left_text + " with " + right_text + "."
 
     ## PRIVATE
@@ -293,8 +296,8 @@ type Incomparable_Values
        Catches possible errors from comparing values and throws an
        `Incomparable_Values` if any occur.
     handle_errors ~function =
-        handle t = Panic.catch t handler=(_-> Error.throw (Incomparable_Values.Error Nothing Nothing))
-        handle_cmp_exc = Panic.catch CompareException handler=(exc-> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand))
+        handle t = catch t handler=(_-> throw (Incomparable_Values.Error Nothing Nothing))
+        handle_cmp_exc = catch CompareException handler=(exc-> throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand))
 
         handle Type_Error <| handle Unsupported_Argument_Types <| handle ClassCastException <| handle_cmp_exc <|
             function
@@ -505,7 +508,7 @@ type Out_Of_Memory
        ADVANCED
        Catches possible `OutOfMemoryError` and throws an `Out_Of_Memory` error.
     handle_java_exception operation ~function =
-        Panic.catch OutOfMemoryError handler=(_-> Error.throw (Out_Of_Memory.Error operation)) <|
+        catch OutOfMemoryError handler=(_-> throw (Out_Of_Memory.Error operation)) <|
             function
 
 ## Indicates that an expression cannot be evaluated because somewhere within it,
@@ -533,7 +536,7 @@ type Missing_Argument
 
         error = if message_override.is_nothing then Missing_Argument.Error argument_name function_name call_location else
             Missing_Argument.Error argument_name function_name call_location message_override
-        Error.throw error
+        throw error
 
 ## Warning when additional warnings occurred.
 @Builtin_Type
@@ -603,7 +606,7 @@ type Response_Too_Large
     ## PRIVATE
        Convert the Java exception to an Enso dataflow error.
     handle_java_exception ~action =
-        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getActualSize cause.payload.getLimit))
+        catch ResponseTooLargeException action (cause-> throw (Response_Too_Large.Error cause.payload.getActualSize cause.payload.getLimit))
 
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.
@@ -662,3 +665,7 @@ type Mixed_Signed_And_Unsigned_Bytes
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Collection contains both signed (value < 0) and unsigned (value > 127) bytes. Please use one convention consistently."
+
+
+private throw = Throw_Error.throw...
+private catch = Catch_Panic.catch...
