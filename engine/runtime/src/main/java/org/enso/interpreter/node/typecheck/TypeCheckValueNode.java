@@ -152,6 +152,10 @@ public final class TypeCheckValueNode extends Node {
     };
   }
 
+  public static TypeCheckValueNode fail(String comment) {
+    return new TypeCheckValueNode(new FailCheckNode(comment), true);
+  }
+
   /**
    * Constructs "single type" check.
    *

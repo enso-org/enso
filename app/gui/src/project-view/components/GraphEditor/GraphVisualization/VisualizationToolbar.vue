@@ -24,6 +24,7 @@ const UNKNOWN_TYPE = 'Unknown'
 
 const props = defineProps<{
   showControls: boolean
+  isFocused: boolean
   allVisualizations: ReadonlyArray<VisualizationIdentifier>
   visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
   typename: ProjectPath | undefined
@@ -44,7 +45,7 @@ const visualizationSelector = useVisualizationSelector({
       </div>
       <div class="toolbarSection">
         <ActionButton action="panel.fullscreen" />
-        <SelectionDropdown v-bind="visualizationSelector" />
+        <SelectionDropdown v-bind="visualizationSelector" :alwaysShowArrow="isFocused" />
       </div>
       <div v-if="visualizationDefinedToolbar" class="visualization-defined-toolbars toolbarSection">
         <template v-for="(item, index) in visualizationDefinedToolbar" :key="index">
@@ -69,7 +70,7 @@ const visualizationSelector = useVisualizationSelector({
             v-model="item.selected.value"
             :options="item.options"
             :title="item.title"
-            alwaysShowArrow
+            :alwaysShowArrow="isFocused"
           />
           <SelectionDropdownText
             v-else-if="isTextSelectionMenu(item)"
@@ -77,7 +78,7 @@ const visualizationSelector = useVisualizationSelector({
             :options="item.options"
             :title="item.title"
             :heading="item.heading"
-            alwaysShowArrow
+            :alwaysShowArrow="isFocused"
           />
           <div v-else>?</div>
         </template>

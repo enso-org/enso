@@ -7,7 +7,7 @@ import {
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
-import { graphBindings, panelsBindings, undoBindings } from '@/bindings'
+import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
@@ -28,7 +28,7 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, unrefElement, useEvent } from '@/composables/events'
+import { unrefElement, useEvent } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
@@ -332,15 +332,10 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-// See also https://github.com/enso-org/enso/issues/10414
 useEvent(
   window,
   'keydown',
-  (event) =>
-    panelsHandler(event) ||
-    (!keyboardBusy() && undoBindingsHandler(event)) ||
-    (!keyboardBusy() && graphBindingsHandler(event)) ||
-    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
+  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
 )
 
 function tryGetSelectionDocUrl() {
@@ -365,21 +360,11 @@ const { handleClick } = useDoubleClick(
 
 // === Keyboard/Mouse bindings ===
 
-const undoBindingsHandler = undoBindings.handler(
-  objects.mapEntries(undoBindings.bindings, (actionName) => actionHandlers[actionName].action),
-)
-
 const graphBindingsHandler = graphBindings.handler(
   objects.mapEntries(
     graphBindings.bindings,
     (actionName) => () => void actionHandlers[actionName].action(),
   ),
-)
-
-// === Code Editor ===
-
-const panelsHandler = panelsBindings.handler(
-  objects.mapEntries(panelsBindings.bindings, (actionName) => actionHandlers[actionName].action),
 )
 
 // === Documentation Editor ===
