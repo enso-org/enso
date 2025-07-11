@@ -58,6 +58,7 @@ export function markdownClipboard({ customClipboardAction }: MarkdownClipboardOp
           'textEditor.paste': (event) => handlePaste(event, false),
           'textEditor.pasteRaw': (event) => handlePaste(event, true),
         }),
+        true,
       ),
     ]),
   ]

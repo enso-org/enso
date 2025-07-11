@@ -77,7 +77,7 @@ type In_Memory_Table
 
 ## PRIVATE
    Helper method for internal use to make a Table from a Java Table.
-from_java_table java_table -> Table & In_Memory_Table =
+from_java_table java_table =
     ## Trigger data quality metrics computation (conditionally on Output context).
     if Context.Output.is_enabled.not then DataQualityMetrics.triggerTable java_table
 

@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Common.Additional_Warnings
