@@ -66,6 +66,7 @@
 - [`Meta.meta` recognizes functions as `Meta.Function`][13443]
 - [`Meta.Unresolved_Symbol` renamed to `Meta.Unresolved`][13443]
 - [Remane Google_Api library to Google][13436]
+- [Data.read_many now returns the read path as a char field][13475]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -78,6 +79,7 @@
 [13415]: https://github.com/enso-org/enso/pull/13415
 [13415]: https://github.com/enso-org/enso/pull/13443
 [13436]: https://github.com/enso-org/enso/pull/13436
+[13475]: https://github.com/enso-org/enso/pull/13475
 
 #### Enso Language & Runtime
 
