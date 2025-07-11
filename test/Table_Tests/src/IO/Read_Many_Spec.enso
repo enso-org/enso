@@ -24,6 +24,7 @@ add_specs suite_builder =
     suite_builder.group "Data.read_many" group_builder->
         # One File and one Text path
         files_vector = [enso_project.data / "empty.txt", (enso_project.data / "sample.tsv") . path]
+        returned_vector = files_vector.map .to_text
         sample_table = Lazy_Ref.Value <|
             (enso_project.data / "sample.tsv") . read
 
@@ -44,11 +45,13 @@ add_specs suite_builder =
             check_returned_vector r1
             Problems.assume_no_problems r1
 
+        group_builder.specify "should read files listed in a Column (With_New_Column)" <|
+            column = Column.from_vector "Col" files_vector
             r2 = Data.read_many column return=..With_New_Column
             r2.should_be_a Table
             r2.column_names . should_equal ["Col", "Value"]
-            r2.at "Col" . to_vector . should_equal files_vector
-            r2.at "Col" . value_type . should_equal "Char"
+            r2.at "Col" . to_vector . should_equal returned_vector
+            r2.at "Col" . value_type . should_equal (Value_Type.Char Nothing True)
             check_returned_vector (r2.at "Value" . to_vector)
 
         group_builder.specify "should read files listed in a single column Table" <|
@@ -59,7 +62,7 @@ add_specs suite_builder =
             r2 = Data.read_many table1 return=..With_New_Column
             r2.should_be_a Table
             r2.column_names . should_equal ["Some column", "Value"]
-            r2.at "Some column" . to_vector . should_equal files_vector
+            r2.at "Some column" . to_vector . should_equal returned_vector
             check_returned_vector (r2.at "Value" . to_vector)
 
         group_builder.specify "should read files listed in a Table with `path` column" <|
@@ -72,7 +75,7 @@ add_specs suite_builder =
             r2.should_be_a Table
             r2.column_names . should_equal ["X", "path", "Value"]
             r2.at "X" . to_vector . should_equal [1, 2]
-            r2.at "path" . to_vector . should_equal files_vector
+            r2.at "path" . to_vector . should_equal returned_vector
             check_returned_vector (r2.at "Value" . to_vector)
 
             # Test that this is really case insensitive
@@ -116,7 +119,7 @@ add_specs suite_builder =
             r1 = Data.read_many (Column.from_vector "my column" files_vector)
             r1.should_be_a Table
             r1.column_names . should_equal ["my column", "Value", "a", "b", "c"]
-            r1.at "my column" . to_vector . should_equal [files_vector.first, files_vector.second, files_vector.second]
+            r1.at "my column" . to_vector . should_equal [files_vector.first.to_text, files_vector.second.to_text, files_vector.second.to_text]
             check_common_columns r1
 
             r2 = Data.read_many (Table.new [["X", [100, 200]], ["Path", files_vector], ["Y", [300, 400]]])
@@ -136,7 +139,7 @@ add_specs suite_builder =
             r1 = Data.read_many files_vector return=..With_New_Column
             r1.should_be_a Table
             r1.column_names . should_equal ["Path", "Value"]
-            r1.at "Path" . to_vector . should_equal files_vector
+            r1.at "Path" . to_vector . should_equal returned_vector
             check_returned_vector (r1.at "Value" . to_vector)
 
         group_builder.specify "should merge files that read as non-Table values into a Table using reasonable defaults" <|
@@ -167,28 +170,28 @@ add_specs suite_builder =
                 r.should_be_a Table
 
                 within_table r <|
-                    # We transform the Path to just file name
-                    rows = (r.set (r.at "Path" . map .name) "Path").rows.map .to_vector
+                    rows = r.rows.map .to_vector
 
                     null = Nothing
-                    r.column_names . should_equal ["Path",               "a",  "b",      "c", "Value",  "d"]
-                    rows.at 0 .      should_equal ["1_js_object.json",     1,    2,     null,    null, null]
-                    rows.at 1 .      should_equal ["2_js_array.json",     30,   40, "foobar",    null, null]
-                    rows.at 2 .      should_equal ["2_js_array.json",     50,   60,     null,    null, null]
-                    rows.at 3 .      should_equal ["3_js_numbers.json", null, null,     null,   "100", null]
-                    rows.at 4 .      should_equal ["3_js_numbers.json", null, null,     null,   "200", null]
-                    rows.at 5 .      should_equal ["3_js_numbers.json", null, null,     null,   "300", null]
-                    rows.at 6 .      should_equal ["4_table.tsv",         -1, null,     null,    null,   -4]
-                    rows.at 7 .      should_equal ["4_table.tsv",         -2, null,     null,    null,   -5]
-                    rows.at 8 .      should_equal ["5_plain_text.txt",  null, null,     null,   "Hi!", null]
-                    rows.at 9 .      should_equal ["6_js_null.json",    null, null,     null,    null, null]
-                    rows.at 10 .     should_equal ["7_js_string.json",  null, null,     null,   "str", null]
+                    r.column_names . should_equal ["Path",                                   "a",  "b",      "c", "Value",  "d"]
+                    rows.at 0 .      should_equal [base_dir.to_text + "/1_js_object.json",     1,    2,     null,    null, null]
+                    rows.at 1 .      should_equal [base_dir.to_text + "/2_js_array.json",     30,   40, "foobar",    null, null]
+                    rows.at 2 .      should_equal [base_dir.to_text + "/2_js_array.json",     50,   60,     null,    null, null]
+                    rows.at 3 .      should_equal [base_dir.to_text + "/3_js_numbers.json", null, null,     null,   "100", null]
+                    rows.at 4 .      should_equal [base_dir.to_text + "/3_js_numbers.json", null, null,     null,   "200", null]
+                    rows.at 5 .      should_equal [base_dir.to_text + "/3_js_numbers.json", null, null,     null,   "300", null]
+                    rows.at 6 .      should_equal [base_dir.to_text + "/4_table.tsv",         -1, null,     null,    null,   -4]
+                    rows.at 7 .      should_equal [base_dir.to_text + "/4_table.tsv",         -2, null,     null,    null,   -5]
+                    rows.at 8 .      should_equal [base_dir.to_text + "/5_plain_text.txt",  null, null,     null,   "Hi!", null]
+                    rows.at 9 .      should_equal [base_dir.to_text + "/6_js_null.json",    null, null,     null,    null, null]
+                    rows.at 10 .     should_equal [base_dir.to_text + "/7_js_string.json",  null, null,     null,   "str", null]
 
-                    r.at "a" . value_type     . should_equal Value_Type.Integer
-                    r.at "b" . value_type     . should_equal Value_Type.Integer
-                    r.at "c" . value_type     . should_equal Value_Type.Char
-                    r.at "Value" . value_type . should_equal Value_Type.Char
-                    r.at "d" . value_type     . should_equal Value_Type.Integer
+                    r.at "Path" . value_type     . should_equal Value_Type.Char
+                    r.at "a" . value_type        . should_equal Value_Type.Integer
+                    r.at "b" . value_type        . should_equal Value_Type.Integer
+                    r.at "c" . value_type        . should_equal Value_Type.Char
+                    r.at "Value" . value_type    . should_equal Value_Type.Char
+                    r.at "d" . value_type        . should_equal Value_Type.Integer
 
         group_builder.specify "should warn when a file loads as empty array and not include it in the As_Merged_Table result" <|
             # But such array should not influence the columns present:
@@ -203,7 +206,7 @@ add_specs suite_builder =
                 r1.should_be_a Table
                 Problems.assume_no_problems r1
                 r1.row_count . should_equal 3
-                r1 . at "Path" . map .name . to_vector . should_equal ["1_js_object.json", "2_empty_array.json", "3_js_object.json"]
+                r1 . at "Path" . to_vector . should_equal [base_dir.to_text + "/1_js_object.json", base_dir.to_text + "/2_empty_array.json", base_dir.to_text + "/3_js_object.json"]
                 r1.at "Value" . at 1 . should_equal []
 
                 r2 = Data.read_many files
@@ -214,7 +217,7 @@ add_specs suite_builder =
                 within_table r2 <|
                     r2.column_names . should_equal ["Path", "a", "b"]
                     r2.row_count . should_equal 2
-                    r2.at "Path" . map .name . to_vector . should_equal ["1_js_object.json", "3_js_object.json"]
+                    r2.at "Path" . to_vector . should_equal [base_dir.to_text + "/1_js_object.json", base_dir.to_text + "/3_js_object.json"]
                     r2.at "a" . to_vector . should_equal [1, 2]
                     r2.at "b" . to_vector . should_equal [Nothing, "..."]
 
@@ -229,7 +232,7 @@ add_specs suite_builder =
                 r1.should_be_a Table
                 Problems.assume_no_problems r1
                 r1.row_count . should_equal 2
-                r1.at "Path" . map .name . to_vector . should_equal ["1_empty_table.csv", "2_table.csv"]
+                r1.at "Path" . to_vector . should_equal [base_dir.to_text + "/1_empty_table.csv", base_dir.to_text + "/2_table.csv"]
                 empty_table1 = r1.at "Value" . at 0
                 empty_table1.should_be_a Table
                 empty_table1.row_count . should_equal 0
@@ -245,7 +248,7 @@ add_specs suite_builder =
                        Otherwise, a workflow that is running fine could stop working once a file is changed to contain no rows, as some column could no longer be found.
                     r2.column_names . should_equal ["Path", "A", "B", "C"]
                     r2.row_count . should_equal 1
-                    r2.at "Path" . map .name . to_vector . should_equal ["2_table.csv"]
+                    r2.at "Path" . to_vector . should_equal [base_dir.to_text + "/2_table.csv"]
                     r2.at "A" . to_vector . should_equal [Nothing]
                     r2.at "B" . to_vector . should_equal [1]
                     r2.at "C" . to_vector . should_equal [2]
@@ -347,7 +350,7 @@ add_specs suite_builder =
                 r = Data.read_many files
                 r.should_be_a Table
                 r.row_count . should_equal 1
-                r.at "Path" . map .name . to_vector . should_equal ["1_table.csv"]
+                r.at "Path" . to_vector . should_equal [base_dir.to_text + "/1_table.csv"]
 
                 w = Problems.expect_only_warning No_Rows r
                 w.to_display_text . should_contain "nonexistent.csv"
@@ -356,7 +359,7 @@ add_specs suite_builder =
                 r2 = Data.read_many files return=..With_New_Column
                 r2.should_be_a Table
                 r2.row_count . should_equal 2
-                r2.at "Path" . map .name . to_vector . should_equal ["1_table.csv", "nonexistent.csv"]
+                r2.at "Path" . to_vector . should_equal [base_dir.to_text + "/1_table.csv", base_dir.to_text + "/nonexistent.csv"]
                 r2.at "Value" . at 0 . should_be_a Table
                 r2.at "Value" . at 1 . should_equal Nothing
 
