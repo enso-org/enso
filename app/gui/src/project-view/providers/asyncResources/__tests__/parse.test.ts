@@ -6,7 +6,8 @@ import { parseResourceUrl } from '../parse'
 
 describe('parseResourceUrl', () => {
   const asEnsoPath = (ensoPath: string) => Ok({ kind: 'ensoPath', ensoPath: EnsoPath(ensoPath) })
-  const asProjectPath = (relativePath: string) => Ok({ kind: 'projectRelative', relativePath })
+  const asProjectPath = (relativePath: string, uploading = false) =>
+    Ok({ kind: 'projectRelative', relativePath, uploading })
   const asWebUrl = (url: string) => Ok({ kind: 'webUrl', url: urlParse(url)! })
 
   const errEmpty = Err('Expected non-empty resource URL')
@@ -22,8 +23,9 @@ describe('parseResourceUrl', () => {
     ['enso://some/:path', asEnsoPath('enso://some/:path')],
     ['/enso://some/path', errUnsupported('/enso://some/path')],
     ['http://example.com', asWebUrl('http://example.com')],
-    ['/a/b/c', asProjectPath('a/b/c')],
+    ['/a/b/c?xyz', asProjectPath('a/b/c')],
     ['/a/b/c', asProjectPath('a/b/c'), ['src', 'Main.enso']],
+    ['/a/b/c?uploading', asProjectPath('a/b/c', true), ['src', 'Main.enso']],
     ['//a/b/c', asProjectPath('a/b/c')],
     ['a/b//c', asProjectPath('src/a/b/c'), ['src', 'Main.enso']],
     ['a/b/c', errUnsupported('a/b/c')],
@@ -37,7 +39,7 @@ describe('parseResourceUrl', () => {
     ['../../../hello4', errOutsideProject, ['a', 'b', 'Mod.enso']],
     ['/../foo', errOutsideProject, ['a', 'b', 'c', 'd', 'Mod.enso']],
     ['//../bar', errOutsideProject, ['a', 'b', 'c', 'd', 'Mod.enso']],
-    ['../../../../foo2', asProjectPath('foo2'), ['a', 'b', 'c', 'd', 'Mod.enso']],
+    ['../../../../foo2?uploading', asProjectPath('foo2', true), ['a', 'b', 'c', 'd', 'Mod.enso']],
     ['../../../../foo3', errOutsideProject, ['a', 'b', 'c', 'Mod.enso']],
     ['../x/./a/b/.././../y/z', asProjectPath('m/x/y/z'), ['m', 'n', 'Mod.enso']],
     ['../x/./a/b/.././../y/z', asProjectPath('x/y/z'), ['m', 'Mod.enso']],

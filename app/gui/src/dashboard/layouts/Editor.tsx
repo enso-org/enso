@@ -12,13 +12,13 @@ import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
+import ProjectViewTabVue from '@/ProjectViewTab.vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 
-const ProjectViewTab = React.lazy(() =>
-  import('@/ProjectViewTab.vue').then(({ default: vue }) => vueComponent(vue)),
-)
+// eslint-disable-next-line no-restricted-syntax
+const ProjectViewTab = vueComponent(ProjectViewTabVue).default
 
 /** Props for the GUI editor root component. */
 export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
@@ -237,7 +237,7 @@ function EditorInternal(props: EditorInternalProps) {
   invariant(jsonAddress != null, getText('noJSONEndpointError'))
   invariant(binaryAddress != null, getText('noBinaryEndpointError'))
 
-  const appProps = {
+  const appProps: ProjectViewTabProps = {
     hidden,
     projectViewProps: {
       projectId: openedProject.projectId,
@@ -248,11 +248,9 @@ function EditorInternal(props: EditorInternalProps) {
       projectBackend,
       remoteBackend,
     },
-  } as const
-
-  const key: string = appProps.projectViewProps.projectId
+  }
 
   // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
   // this is no longer necessary, the `key` could be removed.
-  return <ProjectViewTab key={key} {...appProps} />
+  return <ProjectViewTab key={openedProject.projectId} {...appProps} />
 }

@@ -24,7 +24,8 @@ export type FetchResult = Result<ResolvedFetchData | FetchPartialProgress>
 
 export interface ResourceDefinition {
   cacheKey: ResourceKey
-  uploading?: Promise<FetchResult>
+  uploading?: Promise<FetchResult> | 'remote' | undefined
+  onCacheHit?(resource: AsyncResource): void
   fetch(abort: AbortSignal): Promise<FetchResult>
 }
 
@@ -73,6 +74,9 @@ export class AsyncResource {
           forceRefetchCount === 0 && fetcher.uploading != null ?
             fetcher.uploading
           : this.fetcher.fetch(controller.signal)
+
+        // Resource is being uploaded by another client, we have no idea when it ends. Wait for refetch.
+        if (fetchPromise === 'remote') return
 
         // NOTE: things happening asynchronously inside `then` call are *not* depended on for the purposes of the
         // watcher. This is intentional, we only want to refetch if the origianl `fetch` dependencies change.
@@ -148,6 +152,17 @@ export class AsyncResource {
   public refresh() {
     // We cannot refetch while uploading is still ongoing, since the place where we fetch from might not have the resource yet.
     if (!this.scope.active || this.status === 'uploading') return
+    this.doReload()
+  }
+
+  /** Signal that a 'remote' upload was finished. It is safe to refetch data from remote server. */
+  public remoteUploadFinished() {
+    if (!this.scope.active || this.status !== 'uploading' || this.fetcher.uploading !== 'remote')
+      return
+    this.doReload()
+  }
+
+  private doReload() {
     this._status.value = 'loading'
     this.refetchCount.value = this.refetchCount.value + 1
   }
@@ -207,10 +222,12 @@ export function useResourceCache() {
     const used = usedResources.get(fetcher.cacheKey)
     if (used) {
       used.refcount += 1
+      fetcher.onCacheHit?.(used.res)
       return used.res
     }
-    const parkedResource = parkedResources.take(fetcher.cacheKey) ?? new AsyncResource(fetcher)
-    return unparkResource(fetcher.cacheKey, parkedResource)
+    const parked = parkedResources.take(fetcher.cacheKey)
+    if (parked) fetcher.onCacheHit?.(parked)
+    return unparkResource(fetcher.cacheKey, parked ?? new AsyncResource(fetcher))
   }
 
   const scope = getCurrentScope()

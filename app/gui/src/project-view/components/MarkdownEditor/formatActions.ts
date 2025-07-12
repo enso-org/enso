@@ -13,7 +13,7 @@ interface FormatActionsOptions {
   formatting: ReturnType<typeof useMarkdownFormatting>
   readonly: ToValue<boolean>
   editing: ToValue<boolean>
-  uploadImage: ToValue<(() => void) | undefined>
+  uploadImage: (() => void) | undefined
 }
 
 /** Registers actions for the given editor's format state. */
@@ -84,8 +84,8 @@ export function useFormatActions({
     'documentationEditor.code': doFormatAction(insertCodeBlock),
     'documentationEditor.image': {
       available: notReadonly,
-      enabled: () => toValue(editing) && toValue(uploadImage) != null,
-      action: () => toValue(uploadImage)?.(),
+      enabled: () => toValue(editing) && uploadImage != null,
+      action: () => uploadImage?.(),
     },
     ...setBlockTypeActions([
       'documentationEditor.header1',

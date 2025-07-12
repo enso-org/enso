@@ -41,7 +41,13 @@ export function useAsyncResourceResolver(
         {
           const project = toValue(context.project)
           if (project == null) return Err('Cannot resolve relative path outside of project')
-          return Ok(resolveProjectResource(project, parsedUrl.value.relativePath))
+          return Ok(
+            resolveProjectResource(
+              project,
+              parsedUrl.value.relativePath,
+              parsedUrl.value.uploading,
+            ),
+          )
         }
       }
     }
@@ -81,9 +87,25 @@ export function useAsyncResourceResolver(
     }
   }
 
-  function resolveProjectResource(projectId: ProjectId, relativePath: string): ResourceDefinition {
+  // A never resolving promise that is used as a placeholder for "uploading" state when it is not
+  // our client that is doing the upload.
+
+  function resolveProjectResource(
+    projectId: ProjectId,
+    relativePath: string,
+    uploading: boolean,
+  ): ResourceDefinition {
     return {
       cacheKey: `projectRelative-${projectId}-${relativePath}`,
+      // In case of resources during upload, resolve as if it is a remote client doing upload.
+      // If this resource is uploaded by this client, the `uploading` field will be replaced with
+      // real data promise inside `finishResourceUpload` function.
+      uploading: uploading ? 'remote' : undefined,
+      // Remote client will eventually remove the `?uploading` parameter from the resource URL, which
+      // signals to all other clients that it is safe to fetch from remote server.
+      onCacheHit(resource) {
+        if (!uploading) resource.remoteUploadFinished()
+      },
       async fetch(abort) {
         const openedProject = openedProjects.get(projectId)
         if (openedProject) {

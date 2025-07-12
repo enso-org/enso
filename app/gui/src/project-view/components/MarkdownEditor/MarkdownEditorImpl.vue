@@ -7,12 +7,11 @@ import type { BlockType } from '@/components/MarkdownEditor/codemirror/formattin
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import { useAsyncResources } from '@/providers/asyncResources'
+import { StartedUpload, useAsyncResources } from '@/providers/asyncResources'
 import { AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
-import { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
@@ -72,10 +71,7 @@ function handleUpload(source: AnyUploadSource): boolean {
   return true
 }
 
-async function insertStartedUploads(
-  uploads: Promise<Result<{ filename: string; resourceUrl: string }>>[],
-  coords: Vec2 | undefined,
-) {
+async function insertStartedUploads(uploads: Promise<StartedUpload>[], coords: Vec2 | undefined) {
   const selection = editorView.state.selection.main
   let from = coords ? editorView.posAtCoords(coords, false) : selection.from
   let to = coords ? from : selection.to
@@ -89,9 +85,14 @@ async function insertStartedUploads(
     upload.then((result) => {
       // Once the upload metadata is known, fill in the placeholder.
       if (result.ok) {
-        const { filename, resourceUrl } = result.value
+        const { filename, resourceUrl, complete } = result.value
         const safeAltText = filename.replace(/\.([^.]+)$/, '').replace(/[[\]]/g, '_')
-        replacePlaceholder(editorView, placeholder, `\n![${safeAltText}](${resourceUrl})\n`)
+
+        const uploadText = `\n![${safeAltText}](${resourceUrl}?uploading)\n`
+        const finalText = `\n![${safeAltText}](${resourceUrl})\n`
+
+        replacePlaceholder(editorView, placeholder, uploadText, false)
+        complete.then(() => replacePlaceholder(editorView, placeholder, finalText))
       } else {
         replacePlaceholder(editorView, placeholder, '')
         uploadErrorToast.reportError(result.error)

@@ -21,7 +21,7 @@ export interface UploadDefinition {
 }
 
 export interface UploadProgress {
-  unparsedResourceUrl: string
+  resourceUrl: string
   uploadData: Promise<Blob>
   upload: Promise<Result>
 }
@@ -103,9 +103,8 @@ export function useResourceUpload(openedProjects: OpenedProjectsStore) {
     const nameResult = await api.pickUniqueName(dirPath, upload.filename)
     if (!nameResult.ok) return nameResult
     const fullFilePath = { rootId, segments: [...UPLOAD_PATH_SEGMENTS, nameResult.value] }
-    const unparsedResourceUrl = `/${fullFilePath.segments.map(encodeURI).join('/')}`
     return Ok({
-      unparsedResourceUrl,
+      resourceUrl: `/${fullFilePath.segments.map(encodeURI).join('/')}`,
       uploadData: upload.data,
       upload: upload.data.then((blob) => api.writeFileBinary(fullFilePath, blob)),
     })

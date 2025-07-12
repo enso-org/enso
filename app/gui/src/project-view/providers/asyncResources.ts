@@ -28,6 +28,12 @@ import {
 
 export type AsyncResourceStore = ReturnType<typeof useAsyncResources>
 
+export type StartedUpload = Result<{
+  filename: string
+  resourceUrl: string
+  complete: Promise<Result>
+}>
+
 export const [provideAsyncResources, useAsyncResources] = createContextStore(
   'asyncResourceStore',
   (openedProjects: OpenedProjectsStore) => {
@@ -39,8 +45,8 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
     function finishResourceUpload(
       progress: UploadProgress,
       context: ResourceContextSnapshot,
-    ): Result<string> {
-      const resolvedDefinition = resolveResourceInContext(progress.unparsedResourceUrl, context)
+    ): Result<{ resourceUrl: string; upload: Promise<Result> }> {
+      const resolvedDefinition = resolveResourceInContext(progress.resourceUrl, context)
       if (!resolvedDefinition.ok) return resolvedDefinition
 
       const uploadDefinition: ResourceDefinition = {
@@ -53,7 +59,10 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
       releaseResource(uploadDefinition.cacheKey)
 
       // Finally, return an resource URL that can be used to retrieve the uploaded resource.
-      return Ok(progress.unparsedResourceUrl)
+      return Ok({
+        resourceUrl: progress.resourceUrl,
+        upload: progress.upload,
+      })
     }
 
     async function uploadSingleResource(
@@ -76,11 +85,11 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
        * cache size limit.
        */
       useResourceFromUrl(
-        unparsedResourceUrl: ToValue<string>,
+        resourceUrl: ToValue<string>,
         context: ResourceContext = useCurrentProjectResourceContext(),
       ): ComputedRef<Result<AsyncResource>> {
         const resolved = computed(() =>
-          resolveResourceInContext(toValue(unparsedResourceUrl), context),
+          resolveResourceInContext(toValue(resourceUrl), context),
         )
 
         let previousKey: ResourceKey | null = null
@@ -104,18 +113,16 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
        * Try uploading files and create resource objects from them.
        * @returns resource URLs to pass into `useResourceFromUrl` to resolve uploaded assets.
        */
-      uploadResources(
-        source: AnyUploadSource,
-        context: ResourceContext,
-      ): Array<Promise<Result<{ filename: string; resourceUrl: string }>>> {
+      uploadResources(source: AnyUploadSource, context: ResourceContext): Promise<StartedUpload>[] {
         const capturedContext = captureResourceContext(context)
         // Start all uploads immediately, but yield them in original order.
         const normalizedSources = [...normalizeUploadSources(source)]
         return normalizedSources.map((s) =>
           uploadSingleResource(s, capturedContext).then((upload) =>
-            mapOk(upload, (resourceUrl) => ({
+            mapOk(upload, ({ resourceUrl, upload }) => ({
               filename: s.filename,
               resourceUrl,
+              complete: upload,
             })),
           ),
         )

@@ -28,7 +28,9 @@ export function insertPlaceholder(
 }
 
 /**
- * Replace a previously prepared placeholder with specified text. Each placeholder can be replaced only once.
+ * Replace a previously prepared placeholder with specified text.
+ * Once `cleanupPlaceholder` is passed as `true`, the placeholder metadata will be removed
+ * and it will not be usable anymore.
  *
  * Requires `uploadPlaceholders` extension to be present on the editor view.
  */
@@ -36,13 +38,14 @@ export function replacePlaceholder(
   editorView: EditorView,
   p: ReplaceablePlaceholder,
   insert: string,
+  cleanupPlaceholder = true,
 ) {
   const cursor = editorView.state.field(replaceablePlaceholders).iter()
   while (cursor.value) {
     if (cursor.value === p) {
       editorView.dispatch({
         changes: [{ from: cursor.from, to: cursor.to, insert }],
-        effects: [removePlaceholderEffect.of(p)],
+        effects: cleanupPlaceholder ? [removePlaceholderEffect.of(p)] : [],
       })
       break
     }
@@ -61,10 +64,10 @@ export const replaceablePlaceholders = StateField.define<RangeSet<ReplaceablePla
   update: (value, tx) => {
     const inserts = tx.effects.filter((e) => e.is(insertPlaceholderEffect)).map((e) => e.value)
     const removes = tx.effects.filter((e) => e.is(removePlaceholderEffect)).map((e) => e.value)
-    const replaced = removes.length > 0 ? new Set(removes) : null
+    const removed = removes.length > 0 ? new Set(removes) : null
     return value.map(tx.changes).update({
       add: inserts,
-      ...(replaced == null ? {} : { filter: (_f, _t, value) => !replaced.has(value) }),
+      ...(removed == null ? {} : { filter: (_f, _t, value) => !removed.has(value) }),
     })
   },
 })
