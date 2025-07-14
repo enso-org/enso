@@ -36,7 +36,9 @@ object Cargo {
     log.debug(cmd.toString())
 
     val exitCode =
-      try Process(cmd, None, extraEnv: _*).!(ProcessLogger(log.debug(_), log.debug(_)))
+      try Process(cmd, None, extraEnv: _*).!(
+        ProcessLogger(log.debug(_), log.debug(_))
+      )
       catch {
         case _: RuntimeException =>
           throw new RuntimeException(s"`$cargoCmd` command failed to run.")
