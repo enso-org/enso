@@ -585,7 +585,7 @@ function getPlotData(data: Data): Point[] {
       data.data.map((d) => ({
         ...d,
         x: d.x,
-        y: d[s as keyof Point],
+        y: d[s as keyof Point] as number,
         series: s,
       })),
     )
