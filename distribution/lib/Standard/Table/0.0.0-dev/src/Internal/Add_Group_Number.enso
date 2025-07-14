@@ -39,9 +39,6 @@ add_flagged_group table:(Table & In_Memory_Table) column:(Nothing | Column & In_
         new_storage = AddGroupNumber.flaggedGroup table.java_table java_column from step predicate group_row==Group_Row.Previous java_problem_aggregator
         In_Memory_Column.from_storage name new_storage
 
-map table:(Table & In_Memory_Table) function group_row (name:Text) (set_mode:Set_Mode) (on_problems:Problem_Behavior) =
-    Nothing
-
 _with_java_problem_aggregator table on_problems action =
     problem_builder = Problem_Builder.new error_on_missing_columns=True
 

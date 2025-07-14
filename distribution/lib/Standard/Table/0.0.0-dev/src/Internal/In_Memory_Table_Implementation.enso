@@ -396,9 +396,6 @@ type In_Memory_Table_Implementation
         ## Construct Group
         Add_Group_Number.add_flagged_group this_table resolved_column used_predicate group_row name from step on_problems
 
-    map (this_table : Table & In_Memory_Table) function as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
-        Add_Group_Number.map this_table function as set_mode on_problems
-
     set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new
         unique = this_table.column_naming_helper.create_unique_name_strategy

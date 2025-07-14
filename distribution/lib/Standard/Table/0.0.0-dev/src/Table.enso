@@ -2315,23 +2315,6 @@ type Table
     find_group_number self (predicate=Missing_Argument.throw "predicate") (over:Predicate_Over = ..Row) group_row:Group_Row=..First name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
         self.implementation.find_group_number self.underlying predicate over group_row name from step on_problems
 
-    ## PRIVATE
-       GROUP Standard.Base.Values
-       ICON column_add
-       Adds a new column to the table by mapping over the rows of the table.
-
-       Arguments:
-       - function: The mapping function to apply to each row.
-         The function should take a `Row` and return a value that will be used
-         as the new column value.
-       - as: Optional new name for the column.
-       - set_mode: Specifies the expected behaviour in regards to existing
-         column with the same name.
-       - on_problems: Specifies how to handle problems with expression
-         evaluation.
-    map self (function=Missing_Argument.throw "function") (as:Text="map_result") set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
-        self.implementation.map self.underlying function as set_mode on_problems
-
     ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
        ICON column_add
