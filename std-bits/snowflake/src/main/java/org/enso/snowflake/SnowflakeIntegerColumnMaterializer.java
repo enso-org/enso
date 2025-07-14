@@ -1,7 +1,6 @@
 package org.enso.snowflake;
 
 import java.math.BigInteger;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.builder.BuilderWithRetyping;
@@ -23,17 +22,22 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
 
   public SnowflakeIntegerColumnMaterializer(int initialCapacity) {
     mode = Mode.LONG;
-    longBuilder = Builder.getForLong(IntegerType.INT_64, initialCapacity, BlackholeProblemAggregator.INSTANCE);
+    longBuilder =
+        Builder.getForLong(
+            IntegerType.INT_64, initialCapacity, BlackholeProblemAggregator.INSTANCE);
 
-    if (!(longBuilder instanceof BuilderWithRetyping withRetyping) || !withRetyping.canRetypeTo(BigIntegerType.INSTANCE)) {
-      throw new IllegalArgumentException("SnowflakeIntegerColumnMaterializer: Cannot retype to BigIntegerType. This is a bug in the Table library.");
+    if (!(longBuilder instanceof BuilderWithRetyping withRetyping)
+        || !withRetyping.canRetypeTo(BigIntegerType.INSTANCE)) {
+      throw new IllegalArgumentException(
+          "SnowflakeIntegerColumnMaterializer: Cannot retype to BigIntegerType. This is a bug in"
+              + " the Table library.");
     }
   }
 
   private void retypeToBigIntegers() {
     assert mode == Mode.LONG;
 
-    bigIntegerBuilder = ((BuilderWithRetyping)longBuilder).retypeTo(BigIntegerType.INSTANCE);
+    bigIntegerBuilder = ((BuilderWithRetyping) longBuilder).retypeTo(BigIntegerType.INSTANCE);
     longBuilder = null;
     mode = Mode.BIG_INTEGER;
   }
@@ -82,7 +86,9 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
 
   @Override
   public long getCurrentSize() {
-    return mode == Mode.BIG_INTEGER ? bigIntegerBuilder.getCurrentSize() : longBuilder.getCurrentSize();
+    return mode == Mode.BIG_INTEGER
+        ? bigIntegerBuilder.getCurrentSize()
+        : longBuilder.getCurrentSize();
   }
 
   @Override

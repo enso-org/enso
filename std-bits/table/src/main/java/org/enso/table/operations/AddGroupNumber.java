@@ -1,5 +1,6 @@
 package org.enso.table.operations;
 
+import java.util.function.BiPredicate;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -9,8 +10,6 @@ import org.enso.table.data.table.Row;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ProgressHandler;
-
-import java.util.function.BiPredicate;
 
 public class AddGroupNumber {
   public static ColumnStorage<?> numberGroupsUnique(
@@ -25,12 +24,7 @@ public class AddGroupNumber {
 
     var visitorFactory = new GroupNumberRowVisitorFactory(start, step, numRows, problemAggregator);
     GroupingOrderingVisitor.visit(
-        groupingColumns,
-        new Column[0],
-        new int[0],
-        problemAggregator,
-        visitorFactory,
-        numRows);
+        groupingColumns, new Column[0], new int[0], problemAggregator, visitorFactory, numRows);
     return visitorFactory.builder.seal();
   }
 
@@ -39,7 +33,8 @@ public class AddGroupNumber {
     private final long step;
     private final BuilderForLong builder;
 
-    GroupNumberRowVisitorFactory(long start, long step, long size, ProblemAggregator problemAggregator) {
+    GroupNumberRowVisitorFactory(
+        long start, long step, long size, ProblemAggregator problemAggregator) {
       this.current = start;
       this.step = step;
       this.builder = Builder.getForLong(IntegerType.INT_64, size, problemAggregator);
@@ -52,7 +47,8 @@ public class AddGroupNumber {
       return new GroupNumberRowVisitor(nextGroupNumber, builder);
     }
 
-    private record GroupNumberRowVisitor(long groupNumber, BuilderForLong builder) implements GroupRowVisitor {
+    private record GroupNumberRowVisitor(long groupNumber, BuilderForLong builder)
+        implements GroupRowVisitor {
       @Override
       public void visit(long row) {
         builder.appendLong(groupNumber);
@@ -68,14 +64,10 @@ public class AddGroupNumber {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    var visitorFactory = new EqualCountRowVisitorFactory(start, step, numRows, groupCount, problemAggregator);
+    var visitorFactory =
+        new EqualCountRowVisitorFactory(start, step, numRows, groupCount, problemAggregator);
     GroupingOrderingVisitor.visit(
-        new Column[0],
-        orderingColumns,
-        directions,
-        problemAggregator,
-        visitorFactory,
-        numRows);
+        new Column[0], orderingColumns, directions, problemAggregator, visitorFactory, numRows);
     return visitorFactory.builder.seal();
   }
 
@@ -86,7 +78,12 @@ public class AddGroupNumber {
     private final BuilderForLong builder;
     private final GroupRowVisitor visitor;
 
-    EqualCountRowVisitorFactory(long start, long step, long totalCount, long numgroups, ProblemAggregator problemAggregator) {
+    EqualCountRowVisitorFactory(
+        long start,
+        long step,
+        long totalCount,
+        long numgroups,
+        ProblemAggregator problemAggregator) {
       this.start = start;
       this.step = step;
       this.groupSize = (long) Math.ceil((double) totalCount / (double) numgroups);
@@ -99,10 +96,13 @@ public class AddGroupNumber {
       return visitor;
     }
 
-    private record EqualCountRowVisitor(EqualCountRowVisitorFactory parent) implements GroupRowVisitor {
+    private record EqualCountRowVisitor(EqualCountRowVisitorFactory parent)
+        implements GroupRowVisitor {
       @Override
       public void visit(long row) {
-        long group = Math.addExact(parent().start, Math.multiplyExact(parent().step, (row / parent().groupSize)));
+        long group =
+            Math.addExact(
+                parent().start, Math.multiplyExact(parent().step, (row / parent().groupSize)));
         parent.builder.appendLong(group);
       }
     }
@@ -135,9 +135,10 @@ public class AddGroupNumber {
           currentRow.setRowIndex(i - 1);
         }
 
-        boolean predicateResult = column == null
-            ? predicate.test(currentRow, newRow)
-            : predicate.test(column.getItem(currentRow.index()), column.getItem(i));
+        boolean predicateResult =
+            column == null
+                ? predicate.test(currentRow, newRow)
+                : predicate.test(column.getItem(currentRow.index()), column.getItem(i));
 
         if (predicateResult) {
           if (!passPrevious) {

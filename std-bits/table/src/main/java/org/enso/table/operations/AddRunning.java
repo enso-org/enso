@@ -126,12 +126,12 @@ public class AddRunning {
     ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
     Column sourceColumn;
 
-    RunningStatisticDouble(
-        Column sourceColumn, ProblemAggregator problemAggregator) {
+    RunningStatisticDouble(Column sourceColumn, ProblemAggregator problemAggregator) {
       columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
       this.sourceColumn = sourceColumn;
-      this.builder = Builder.getForDouble(
-          FloatType.FLOAT_64, sourceColumn.getSize(), columnAggregatedProblemAggregator);
+      this.builder =
+          Builder.getForDouble(
+              FloatType.FLOAT_64, sourceColumn.getSize(), columnAggregatedProblemAggregator);
     }
 
     public void calculateNextValue(int i, RunningIterator<Double> it) {
@@ -139,7 +139,6 @@ public class AddRunning {
       if (value == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
             new IgnoredNothing(sourceColumn.getName(), i));
-
       }
 
       Double dValue = NumericConverter.tryConvertingToDouble(value);
@@ -166,7 +165,8 @@ public class AddRunning {
         Column sourceColumn, IntegerType type, ProblemAggregator problemAggregator) {
       columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
       this.sourceColumn = sourceColumn;
-      this.builder = Builder.getForLong(type, sourceColumn.getSize(), columnAggregatedProblemAggregator);
+      this.builder =
+          Builder.getForLong(type, sourceColumn.getSize(), columnAggregatedProblemAggregator);
     }
 
     public void calculateNextValue(int i, RunningIterator<Long> it) {
@@ -174,7 +174,6 @@ public class AddRunning {
       if (value == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
             new IgnoredNothing(sourceColumn.getName(), i));
-
       }
 
       Long lValue = NumericConverter.tryConvertingToLong(value);
