@@ -88,9 +88,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
         resourceUrl: ToValue<string>,
         context: ResourceContext = useCurrentProjectResourceContext(),
       ): ComputedRef<Result<AsyncResource>> {
-        const resolved = computed(() =>
-          resolveResourceInContext(toValue(resourceUrl), context),
-        )
+        const resolved = computed(() => resolveResourceInContext(toValue(resourceUrl), context))
 
         let previousKey: ResourceKey | null = null
         function releasePrevious() {
