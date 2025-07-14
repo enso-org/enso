@@ -45,6 +45,7 @@ Global / onLoad := {
 ThisBuild / organization := "org.enso"
 ThisBuild / scalaVersion := scalacVersion
 ThisBuild / publish / skip := true
+ThisBuild / assembly / logLevel := Level.Warn
 
 /* Tag limiting the concurrent access to tools/simple-library-server in tests.
  */
