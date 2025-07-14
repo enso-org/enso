@@ -59,7 +59,7 @@ add_specs spec_builder =
             cons_fn data = Public_Type.cons data
             Test.expect_panic Private_Access <| CallbackHelper.runCallbackInt cons_fn 42
 
-        group_builder.specify "can call private constructor from a lambda method" <|
+        group_builder.specify "can transitively call private constructor from a lambda method" <|
             obj = Public_Type.in_ctx <|
                 Public_Type.cons 42
             obj.data . should_equal 42
