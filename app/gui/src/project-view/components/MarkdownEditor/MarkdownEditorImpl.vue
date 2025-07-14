@@ -109,7 +109,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     EditorView.lineWrapping,
     highlightStyle(useCssModule()),
-    ensoMarkdown({ customClipboardAction: handleUpload }),
+    ensoMarkdown({ customClipboardAction: handleUpload, customDropAction: handleUpload }),
     replaceablePlaceholders,
     extensions,
   ],
@@ -148,7 +148,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="MarkdownEditorRoot" @dragover.prevent @drop.prevent="handleUpload">
+  <div class="MarkdownEditorRoot" @dragover.prevent>
     <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
       <ActionButton action="panel.fullscreen" />
       <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />

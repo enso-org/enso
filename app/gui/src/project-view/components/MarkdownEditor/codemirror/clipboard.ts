@@ -21,11 +21,15 @@ export function transformPastedText(text: string): string {
 }
 
 export interface MarkdownClipboardOptions {
-  customClipboardAction?: ((item: ClipboardItem) => boolean) | undefined
+  customClipboardAction: (item: ClipboardItem) => boolean
+  customDropAction: (event: DragEvent) => boolean
 }
 
 /** @returns a CodeMirror extension customizing the clipboard for Enso Markdown. */
-export function markdownClipboard({ customClipboardAction }: MarkdownClipboardOptions): Extension {
+export function markdownClipboard({
+  customClipboardAction,
+  customDropAction,
+}: MarkdownClipboardOptions): Extension {
   function handlePaste(event: CmEvent, raw: boolean) {
     const view = event.codemirrorView
     navigator.clipboard.read().then((items) => handleClipboardItems(view, items, raw))
@@ -52,6 +56,7 @@ export function markdownClipboard({ customClipboardAction }: MarkdownClipboardOp
 
   return [
     EditorView.clipboardInputFilter.of(transformPastedText),
+    EditorView.domEventHandlers({ drop: customDropAction }),
     keymap.of([
       handlerToKeyBinding(
         textEditorsCommonBindings.handler({

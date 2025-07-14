@@ -1,6 +1,6 @@
 import {
   markdownClipboard,
-  MarkdownClipboardOptions,
+  type MarkdownClipboardOptions,
 } from '@/components/MarkdownEditor/codemirror/clipboard'
 import { markdownDecorators } from '@/components/MarkdownEditor/codemirror/decoration'
 import { markdownFormatting } from '@/components/MarkdownEditor/codemirror/formatting'
@@ -13,11 +13,11 @@ export interface EnsoMarkdownOptions extends MarkdownClipboardOptions {}
 /**
  * CodeMirror Extension for the Enso Markdown dialect.
  */
-export function ensoMarkdown({ customClipboardAction }: EnsoMarkdownOptions): Extension {
+export function ensoMarkdown(options: EnsoMarkdownOptions): Extension {
   return [
     ensoMarkdownSyntax(),
     markdownDecorators(),
     markdownFormatting(),
-    markdownClipboard({ customClipboardAction }),
+    markdownClipboard(options),
   ]
 }
