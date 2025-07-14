@@ -299,6 +299,9 @@ export interface SearchDirectoryQueryOptions {
   readonly description: string | null
   readonly type: string | null
   readonly extension: string | null
+  readonly labels: readonly backendModule.LabelName[] | null
+  readonly sortExpression: backendModule.AssetSortExpression | null
+  readonly sortDirection: backendModule.AssetSortDirection | null
 }
 
 /** Build a query options object to fetch the children of a directory. */

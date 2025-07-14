@@ -165,8 +165,9 @@ export default class AssetQuery {
     if (toAdd == null && (toRemove == null || original.length === 0)) {
       return null
     } else {
-      let changed = false
-      let terms = original
+      let terms =
+        original.some((term) => term === '') ? original.filter((term) => term !== '') : original
+      let changed = terms === original
       if (toAdd != null) {
         const termsAfterAdditions = [
           ...terms,
@@ -231,34 +232,16 @@ export default class AssetQuery {
     }
   }
 
-  /**
-   * Return a new {@link AssetQuery} with the specified terms added,
-   * or itself if there are no terms to add.
-   */
-  add(values: Partial<AssetQueryData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedTerms(this[key], values[key] ?? null, null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
+  /** Return a new {@link AssetQuery} with the specified terms added. */
+  add(key: AssetQueryKey, value: readonly string[]): AssetQuery {
+    const update = AssetQuery.updatedTerms(this[key], value, null)
+    return this.withUpdates({ [key]: update })
   }
 
-  /**
-   * Return a new {@link AssetQuery} with the specified terms deleted,
-   * or itself if there are no terms to delete.
-   */
-  delete(values: Partial<AssetQueryData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedTerms(this[key], null, values[key] ?? null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
+  /** Return a new {@link AssetQuery} with the specified terms deleted. */
+  delete(key: AssetQueryKey, value: readonly string[]): AssetQuery {
+    const update = AssetQuery.updatedTerms(this[key], null, value)
+    return this.withUpdates({ [key]: update })
   }
 
   /** Try to cycle the tag between present, and not present. */
@@ -266,9 +249,9 @@ export default class AssetQuery {
     // This aliasing is INTENTIONAL because the variable is (potentially) reassigned.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     let newQuery: AssetQuery = this
-    newQuery = newQuery.delete({ [positiveTag]: [[value]] })
+    newQuery = newQuery.delete(positiveTag, [value])
     if (newQuery === this) {
-      newQuery = newQuery.add({ [positiveTag]: [[value]] })
+      newQuery = newQuery.add(positiveTag, [value])
     }
     return newQuery
   }
@@ -277,7 +260,11 @@ export default class AssetQuery {
   toString() {
     const segments: string[] = []
     for (const [key, tag] of AssetQuery.tagNames) {
-      segments.push(AssetQuery.termToString({ tag, values: this[key] }))
+      const values = this[key]
+      if (values.length === 0) {
+        continue
+      }
+      segments.push(AssetQuery.termToString({ tag, values }))
     }
     return segments.join(' ')
   }

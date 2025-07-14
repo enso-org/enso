@@ -111,7 +111,7 @@ function Tags(props: InternalTagsProps) {
                   className="min-w-12"
                   onPress={() => {
                     unsafeWriteValue(querySource, 'current', QuerySource.internal)
-                    setQuery(query.add({ [key]: [[]] }))
+                    setQuery(query.add(key, ['']))
                   }}
                 >
                   {tag + ':'}

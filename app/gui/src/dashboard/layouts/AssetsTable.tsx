@@ -8,6 +8,7 @@ import { Scroller } from '#/components/Scroller'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Text } from '#/components/Text'
+import { UserWithPopover } from '#/components/UserWithPopover'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -69,8 +70,10 @@ import {
   IS_OPENING_OR_OPENED,
   isAssetCredential,
   isDirectoryId,
+  LabelName,
   type AnyAsset,
 } from '#/services/Backend'
+import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
@@ -239,9 +242,31 @@ function AssetsTable(props: AssetsTableProps) {
     { unsafeEnableTransition: true },
   )
 
-  const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({
+  const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
+  const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
+
+  const { queryDirectoryId: queryDirectoryIdRaw, currentDirectoryId } = useDirectoryIds({
     category,
   })
+  const ownerLower = query.owners[0]?.toLowerCase()
+  const queryDirectoryId = (() => {
+    if (ownerLower == null) {
+      return queryDirectoryIdRaw
+    }
+    const userId = users?.find((otherUser) =>
+      otherUser.name.toLowerCase().includes(ownerLower),
+    )?.userId
+    if (userId != null) {
+      return userIdToDirectoryId(userId)
+    }
+    const userGroupId = userGroups?.find((userGroup) =>
+      userGroup.groupName.toLowerCase().includes(ownerLower),
+    )?.id
+    if (userGroupId != null) {
+      return userGroupIdToDirectoryId(userGroupId)
+    }
+    return queryDirectoryIdRaw
+  })()
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
   const directoryQueryOptions =
     query.query === '' ?
@@ -250,7 +275,7 @@ function AssetsTable(props: AssetsTableProps) {
         parentId: queryDirectoryId,
         category,
         refetchInterval: listDirectoryRefetchInterval,
-        labels: null,
+        labels: query.labels.length !== 0 ? query.labels.map(LabelName) : null,
         sortExpression: sortInfo?.field ?? null,
         sortDirection: sortInfo?.direction ?? null,
       })
@@ -262,6 +287,9 @@ function AssetsTable(props: AssetsTableProps) {
         extension: query.extensions[0] ?? null,
         description: query.descriptions[0] ?? null,
         type: query.types[0] ?? null,
+        labels: query.labels.length !== 0 ? query.labels.map(LabelName) : null,
+        sortExpression: sortInfo?.field ?? null,
+        sortDirection: sortInfo?.direction ?? null,
       })
   const assetsPages = useInfiniteQuery({
     ...directoryQueryOptions,
@@ -350,8 +378,8 @@ function AssetsTable(props: AssetsTableProps) {
     ): assetSearchBar.Suggestion => ({
       key: node.id,
       render: () => `${key === 'names' ? '' : '-:'}${node.title}`,
-      addToQuery: (oldQuery) => oldQuery.add({ [key]: [node.title] }),
-      deleteFromQuery: (oldQuery) => oldQuery.delete({ [key]: [node.title] }),
+      addToQuery: (oldQuery) => oldQuery.add(key, [node.title]),
+      deleteFromQuery: (oldQuery) => oldQuery.delete(key, [node.title]),
     })
 
     const allVisible = () => {
@@ -388,8 +416,8 @@ function AssetsTable(props: AssetsTableProps) {
               (extension): assetSearchBar.Suggestion => ({
                 key: extension,
                 render: () => AssetQuery.termToString({ tag: 'extension', values: [extension] }),
-                addToQuery: (oldQuery) => oldQuery.add({ extensions: [extension] }),
-                deleteFromQuery: (oldQuery) => oldQuery.delete({ extensions: [extension] }),
+                addToQuery: (oldQuery) => oldQuery.add('extensions', [extension]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('extensions', [extension]),
               }),
             ),
           )
@@ -410,8 +438,8 @@ function AssetsTable(props: AssetsTableProps) {
                     tag: 'modified',
                     values: [modified],
                   }),
-                addToQuery: (oldQuery) => oldQuery.add({ modifieds: [modified] }),
-                deleteFromQuery: (oldQuery) => oldQuery.delete({ modifieds: [modified] }),
+                addToQuery: (oldQuery) => oldQuery.add('modifieds', [modified]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('modifieds', [modified]),
               }),
             ),
           )
@@ -427,11 +455,33 @@ function AssetsTable(props: AssetsTableProps) {
                     {label.value}
                   </Label>
                 ),
-                addToQuery: (oldQuery) => oldQuery.add({ labels: [label.value] }),
-                deleteFromQuery: (oldQuery) => oldQuery.delete({ labels: [label.value] }),
+                addToQuery: (oldQuery) => oldQuery.add('labels', [label.value]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('labels', [label.value]),
               }),
             ),
           )
+          break
+        }
+        case 'owner': {
+          setSuggestions([
+            ...(users ?? []).map(
+              (otherUser): assetSearchBar.Suggestion => ({
+                key: otherUser.userId,
+                render: () => <UserWithPopover user={otherUser} />,
+                addToQuery: (oldQuery) => oldQuery.add('owners', [otherUser.name]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('owners', [otherUser.name]),
+              }),
+            ),
+            ...(userGroups ?? []).map(
+              (userGroup): assetSearchBar.Suggestion => ({
+                key: userGroup.id,
+                render: () =>
+                  AssetQuery.termToString({ tag: 'owner', values: [userGroup.groupName] }),
+                addToQuery: (oldQuery) => oldQuery.add('owners', [userGroup.groupName]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('owners', [userGroup.groupName]),
+              }),
+            ),
+          ])
           break
         }
         default: {
@@ -440,7 +490,7 @@ function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [isCloud, query, labels, setSuggestions, assets])
+  }, [isCloud, query, labels, setSuggestions, assets, users, userGroups])
 
   useEffect(
     () =>
