@@ -3675,7 +3675,11 @@ lazy val `engine-runner` = project
               // Needed for the NativeLibraryFeature
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
-              "--add-opens=java.base/java.nio=ALL-UNNAMED"
+              "--add-opens=java.base/java.nio=ALL-UNNAMED",
+              "-g",
+              "-O0",
+              "-H:+SourceLevelDebug",
+              "-H:-DeleteLocalSymbols",
             ) ++ (if (GraalVM.EnsoLauncher.debug) {
                     // useful perf & debug switches:
                     Seq(
