@@ -58,7 +58,7 @@ test('Graph can be empty', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(0)
 
   await locate.addNewNodeButton(page).click()
-  await expect(page.getByTestId('component-editor-content')).toBeFocused()
+  await expect(locate.componentBrowserInput(page)).toBeFocused()
   await page.keyboard.insertText('foo')
   await page.keyboard.press(`${CONTROL_KEY}+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(1)

@@ -11,6 +11,13 @@ async function _doScreenshot(page: Page): Promise<void> {
   page.screenshot({ path: `test-traces/screenshots/${startTimestamp}/${screenshotIndex++}.png` })
 }
 
+async function writeToFocusedComponentBrowser(page: Page, content: string): Promise<void> {
+  await expect(page.locator('.ComponentBrowser')).toBeVisible()
+  const input = page.getByTestId('component-editor-content')
+  await expect(input).toBeFocused()
+  await input.fill(content)
+}
+
 test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
@@ -32,11 +39,8 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
   await page.keyboard.press('Enter')
-  await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  await page.keyboard.insertText('count')
-  const entry = page.locator('.ComponentEntry', {
-    hasText: 'column_count',
-  })
+  await writeToFocusedComponentBrowser(page, 'count')
+  const entry = page.locator('.ComponentEntry', { hasText: 'column_count' })
   await expect(entry).toBeVisible()
   await await entry.click()
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
@@ -86,17 +90,16 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   // Create new text literal node.
   await page.keyboard.press('Escape') // deselect.
   await page.getByTestId('add-component-button').click()
-  await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const input = page.getByTestId('component-editor-content')
-  await input.fill(`'${TEXT_TO_WRITE}'`)
+  await writeToFocusedComponentBrowser(page, `'${TEXT_TO_WRITE}'`)
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
 
   // Create write node
   await page.keyboard.press('Enter')
-  await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const code = `write (enso_project.root / '${OUTPUT_FILE}') on_existing_file=..Append`
-  await input.fill(code)
+  await writeToFocusedComponentBrowser(
+    page,
+    `write (enso_project.root / '${OUTPUT_FILE}') on_existing_file=..Append`,
+  )
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(3)
 
