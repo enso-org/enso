@@ -561,6 +561,7 @@ export default class RemoteBackend extends Backend {
           ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
           ...(query.from != null ? [['from', query.from]] : []),
           ...(query.pageSize != null ? [['page_size', String(query.pageSize)]] : []),
+          ...(query.labels?.map((label) => ['label', label]) ?? []),
           ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
           ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
           ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
@@ -602,6 +603,9 @@ export default class RemoteBackend extends Backend {
       ...(query.description != null ? [['description', query.description]] : []),
       ...(query.type != null ? [['type', query.type]] : []),
       ...(query.extension != null ? [['extension', query.extension]] : []),
+      ...(query.labels?.map((label) => ['label', label]) ?? []),
+      ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
+      ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
       ...(query.from != null ? [['from', query.from]] : []),
       ...(query.pageSize != null ? [['pageSize', String(query.pageSize)]] : []),
     ]).toString()

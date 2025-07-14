@@ -257,7 +257,7 @@ function AssetsTable(props: AssetsTableProps) {
     : searchDirectoryQueryOptions({
         backend,
         parentId: queryDirectoryId,
-        query: query.keywords[0] ?? null,
+        query: query.keywords[0] != null ? query.keywords.join(' ') : null,
         title: query.names[0] ?? null,
         extension: query.extensions[0] ?? null,
         description: query.descriptions[0] ?? null,

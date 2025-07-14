@@ -289,10 +289,50 @@ export default class LocalBackend extends Backend {
    * @throws Always.
    */
   override async searchDirectory(
-    _query: backend.SearchDirectoryRequestParams,
+    query: backend.SearchDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
-    await Promise.resolve()
-    throw new Error('')
+    const assets = await this.listDirectory({
+      parentId: query.parentId,
+      filterBy: null,
+      labels: query.labels,
+      sortDirection: query.sortDirection,
+      sortExpression: query.sortExpression,
+      recentProjects: false,
+      from: null,
+      pageSize: null,
+    })
+    const typeLower = query.type?.toLowerCase()
+    const titleLower = query.title?.toLowerCase()
+    const extensionLower = query.extension?.toLowerCase()
+    const queryLower = query.query?.toLowerCase().split(/\s+/)
+    const isMatch = (asset: backend.AnyAsset) => {
+      if (typeLower != null && String(asset.type) !== typeLower) {
+        return false
+      }
+      if (titleLower != null && !asset.title.toLowerCase().includes(titleLower)) {
+        return false
+      }
+      if (
+        extensionLower != null &&
+        asset.extension?.toLowerCase().includes(extensionLower) !== true
+      ) {
+        return false
+      }
+      if (
+        queryLower?.some(
+          (term) =>
+            String(asset.type) !== term &&
+            !asset.title.toLowerCase().includes(term) &&
+            asset.extension?.toLowerCase().includes(term) !== true,
+        ) === true
+      ) {
+        return false
+      }
+      return true
+    }
+    const result = assets.filter(isMatch)
+    const index = query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from) + 1
+    return result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
   }
 
   /**

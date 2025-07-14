@@ -1388,8 +1388,6 @@ export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
   readonly labels: readonly LabelName[] | null
-  readonly from: AssetId | null
-  readonly pageSize: number | null
   readonly sortExpression: AssetSortExpression | null
   readonly sortDirection: AssetSortDirection | null
   readonly recentProjects: boolean
@@ -1399,6 +1397,8 @@ export interface ListDirectoryRequestParams {
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
+  readonly from: AssetId | null
+  readonly pageSize: number | null
 }
 
 /** URL query string parameters for the "search directory" endpoint. */
@@ -1409,6 +1409,9 @@ export interface SearchDirectoryRequestParams {
   readonly description: string | null
   readonly type: string | null
   readonly extension: string | null
+  readonly labels: readonly LabelName[] | null
+  readonly sortExpression: AssetSortExpression | null
+  readonly sortDirection: AssetSortDirection | null
   readonly from: AssetId | null
   readonly pageSize: number | null
 }
