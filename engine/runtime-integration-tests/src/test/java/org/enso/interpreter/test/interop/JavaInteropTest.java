@@ -269,6 +269,30 @@ public abstract class JavaInteropTest {
   }
 
   @Test
+  public void testToStringBehaviorSimple1() {
+    var code =
+        """
+    from Standard.Base import all
+
+    polyglot java import org.enso.example.ToString as Foo
+
+    type My_Fooable_Implementation
+        Instance x
+
+        foo : Integer
+        foo self = 100+self.x
+
+    main =
+        fooable = My_Fooable_Implementation.Instance 23
+        e = Foo.callFooAndShow fooable
+        e
+    """;
+
+    var res = ctx().evalModule(code);
+    assertEquals("{(Instance 23)}.foo() = 123", res.asString());
+  }
+
+  @Test
   public void testInterfaceProxyFailuresA() {
     var payload = evalInterfaceProxyFailures("a");
     assertEquals("My_Exc", payload.getMetaObject().getMetaSimpleName());

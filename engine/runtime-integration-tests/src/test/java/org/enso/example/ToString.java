@@ -1,5 +1,7 @@
 package org.enso.example;
 
+import org.graalvm.polyglot.PolyglotException;
+
 public class ToString {
 
   private ToString() {}
@@ -18,7 +20,12 @@ public class ToString {
   }
 
   public static String callFooAndShow(Fooable f) {
-    long x = f.foo();
-    return "{" + f.toString() + "}.foo() = " + x;
+    var x = f.foo();
+    try {
+      var s = f.toString();
+      return "{" + s + "}.foo() = " + x;
+    } catch (PolyglotException ex) {
+      return "Ex: " + ex.getMessage() + ", but foo() = " + x;
+    }
   }
 }
