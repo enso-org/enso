@@ -10,24 +10,21 @@ import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
-import org.junit.ClassRule;
 import org.junit.Test;
 
-public class JavaInteropTest {
-
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+public abstract class JavaInteropTest {
 
   @After
   public void resetOutput() {
-    ctxRule.resetOut();
+    ctx().resetOut();
   }
 
   private String[] getStdOutLines() {
-    return ctxRule.getOut().trim().split(System.lineSeparator());
+    return ctx().getOut().trim().split(System.lineSeparator());
   }
 
   private void checkPrint(String code, List<String> expected) {
-    Value result = ctxRule.evalModule(code);
+    Value result = ctx().evalModule(code);
     assertTrue("should return Nothing", result.isNull());
     assertArrayEquals(expected.toArray(), getStdOutLines());
   }
@@ -39,7 +36,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass
         main = TestClass.add 1 2
         """;
-    var result = ctxRule.evalModule(code);
+    var result = ctx().evalModule(code);
     assertEquals(3, result.asInt());
   }
 
@@ -53,7 +50,7 @@ public class JavaInteropTest {
             instance = TestClass.new (x -> x * 2)
             instance.callFunctionAndIncrement 10
         """;
-    var result = ctxRule.evalModule(code);
+    var result = ctx().evalModule(code);
     assertEquals(21, result.asInt());
   }
 
@@ -67,7 +64,7 @@ public class JavaInteropTest {
             instance = StaticInnerClass.new "my_data"
             instance.add 1 2
         """;
-    var result = ctxRule.evalModule(code);
+    var result = ctx().evalModule(code);
     assertEquals(3, result.asInt());
   }
 
@@ -162,7 +159,7 @@ public class JavaInteropTest {
             instance = TestClass.StaticInnerClass.new "my_data"
             instance.getData
         """;
-    var result = ctxRule.evalModule(code);
+    var result = ctx().evalModule(code);
     assertEquals("my_data", result.asString());
   }
 
@@ -193,7 +190,7 @@ public class JavaInteropTest {
             inner_inner_value = StaticInnerInnerClass.new
             inner_inner_value.mul 3 5
         """;
-    var res = ctxRule.evalModule(code);
+    var res = ctx().evalModule(code);
     assertEquals(15, res.asInt());
   }
 
@@ -204,7 +201,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass.StaticInnerClass.Non_Existing_Class
         """;
     try {
-      ctxRule.evalModule(code);
+      ctx().evalModule(code);
       fail("Should throw exception");
     } catch (Exception ignored) {
     }
@@ -217,7 +214,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass.Non_Existing_Class.Another_Non_ExistingClass
         """;
     try {
-      ctxRule.evalModule(code);
+      ctx().evalModule(code);
       fail("Should throw exception");
     } catch (Exception ignored) {
     }
@@ -233,7 +230,7 @@ public class JavaInteropTest {
             instance = TestClass.StaticInnerClass.StaticInnerInnerClass.new
             instance.mul 3 5
         """;
-    var res = ctxRule.evalModule(code);
+    var res = ctx().evalModule(code);
     assertEquals(15, res.asInt());
   }
 
@@ -261,7 +258,7 @@ public class JavaInteropTest {
         [a, b, c, d, e]
     """;
 
-    var res = ctxRule.evalModule(code);
+    var res = ctx().evalModule(code);
     assertTrue("It is an array", res.hasArrayElements());
     assertEquals("Array with five elements", 5, res.getArraySize());
     assertEquals(123, res.getArrayElement(0).asInt());
@@ -320,6 +317,8 @@ public class JavaInteropTest {
         b = Panic.catch No_Such_Method (Foo.callFoo Fooable_Unresolved.Value) (caught-> caught.payload.method_name)
         """;
 
-    return ctxRule.evalModule(code + "\nmain = " + methodToEval);
+    return ctx().evalModule(code + "\nmain = " + methodToEval);
   }
+
+  protected abstract ContextUtils ctx();
 }
