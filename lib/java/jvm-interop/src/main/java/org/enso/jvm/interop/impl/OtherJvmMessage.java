@@ -59,11 +59,6 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
-    var res = t.getConfig().loader.withCtx(() -> handle(t));
-    return res;
-  }
-
-  private OtherJvmResult<? extends Object, ? extends Exception> handle(Channel<OtherJvmPool> t) {
     try {
       var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;

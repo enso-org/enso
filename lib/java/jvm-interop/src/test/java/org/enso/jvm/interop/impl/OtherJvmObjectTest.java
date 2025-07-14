@@ -33,7 +33,6 @@ public class OtherJvmObjectTest {
   @BeforeClass
   public static void initializeChannel() {
     CHANNEL = Channel.create(null, OtherJvmPool.class);
-    CHANNEL.getConfig().loader.assignCtx(ctx.context());
   }
 
   @Test
