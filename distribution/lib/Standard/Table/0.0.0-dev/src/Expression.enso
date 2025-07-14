@@ -9,6 +9,8 @@ import Standard.Base.Errors.Common.Type_Error
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
+polyglot java import org.enso.table.expressions.ExpressionVisitorImpl.SyntaxErrorException
+polyglot java import org.enso.table.expressions.ExpressionVisitorImpl.TypeErrorException
 
 ## ICON column_add
    Create an expression from a Text value.
@@ -46,10 +48,10 @@ type Expression
         mr2 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Column" "Column" isStaticMethod=False makeTypedColumn=c->c
         mr3 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Refined_Types.Numeric_Column" "Numeric_Column" isStaticMethod=False makeTypedColumn=c->(c : Numeric_Column)
         method_resolvers = [mr1, mr2, mr3]
-        handle_parse_error = Panic.catch ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
+        handle_parse_error = Panic.catch SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
-        handle_type_error = Panic.catch ExpressionVisitorImpl.TypeErrorException handler=(cause-> Error.throw (Expression_Error.Type_Error cause.payload.getMessage))
+        handle_type_error = Panic.catch TypeErrorException handler=(cause-> Error.throw (Expression_Error.Type_Error cause.payload.getMessage))
 
         handle_parse_error <| handle_unsupported <| handle_arguments <| handle_type_error <|
             ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column method_resolvers var_args_functions
