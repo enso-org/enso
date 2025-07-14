@@ -61,6 +61,7 @@
 - [Column inference for fixed-width files.][13240]
 - [Specify fixed-width file layout with a `Vector` or `Column` of
   widths.][13240]
+- [Use `Filter_Condition.Predicate` to provide custom condition.][13460]
 - [Support `skip_rows` and `on_empty_field` for fixed-width files.][13240]
 - [Add Google_Sheets.read][13307]
 - [Align the Generic JDBC Connection with the main Connection type][13365]
@@ -76,6 +77,7 @@
 [13144]: https://github.com/enso-org/enso/pull/13144
 [13240]: https://github.com/enso-org/enso/pull/13240
 [13307]: https://github.com/enso-org/enso/pull/13307
+[13460]: https://github.com/enso-org/enso/pull/13460
 [13365]: https://github.com/enso-org/enso/pull/13365
 [13415]: https://github.com/enso-org/enso/pull/13415
 [13415]: https://github.com/enso-org/enso/pull/13443
