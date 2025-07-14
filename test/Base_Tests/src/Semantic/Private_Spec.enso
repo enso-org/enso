@@ -17,7 +17,7 @@ add_specs spec_builder =
         "Can't run JavaScript tests, language `js` is not installed."
 
     spec_builder.group "Private constructors" group_builder->
-        group_builder.specify "can get on hold of private constructor" <|
+        group_builder.specify "can get on hold of private constructor via public method" <|
             Public_Type.cons . is_nothing . should_be_false
 
         group_builder.specify "can call private constructor via public getter" <|
