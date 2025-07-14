@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 /** An internal language that serves as a bridge between Enso and other supported languages. */
 @TruffleLanguage.Registration(
-    id = "epb",
+    id = EpbLanguage.ID,
     name = "Enso Polyglot Bridge",
     characterMimeTypes = {EpbLanguage.MIME},
     internal = true,
@@ -14,6 +14,7 @@ import java.util.function.Consumer;
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     services = Consumer.class)
 public final class EpbLanguage extends TruffleLanguage<EpbContext> {
+  public static final String ID = "epb";
   public static final String MIME = "application/epb";
 
   @Override

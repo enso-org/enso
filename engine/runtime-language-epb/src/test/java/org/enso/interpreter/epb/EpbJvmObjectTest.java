@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -27,7 +28,11 @@ public class EpbJvmObjectTest {
   @BeforeClass
   public static void initializeCtx() {
     ctx = Context.create("js");
-    loader = ctx.eval("epb", "java:0#guest");
+    var epbParse = ctx.getEngine().getInstruments().get(EpbParseInstrument.ID);
+    ctx.enter();
+    @SuppressWarnings("unchecked")
+    BiFunction<String, String, Object> fn = epbParse.lookup(BiFunction.class);
+    loader = ctx.asValue(fn.apply("epb", "java:0#guest"));
   }
 
   @AfterClass
