@@ -1,5 +1,6 @@
 package org.enso.jvm.interop.api;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -68,11 +69,13 @@ public final class OtherJvmClassLoader implements TruffleObject {
     }
   }
 
+  @CompilerDirectives.TruffleBoundary
   private final TruffleObject loadClass(String name) throws ClassNotFoundException {
     var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
     return result.value();
   }
 
+  @CompilerDirectives.TruffleBoundary
   public final void addToClassPath(URL url) {
     channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(url.toString()));
   }

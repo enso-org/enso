@@ -40,7 +40,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
-import org.enso.common.PolyglotSymbolResolver;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
@@ -531,7 +530,8 @@ public final class EnsoContext {
         var url = file.toUri().toURL();
         hostClassLoader.add(url);
         if (isResolverClassLoading) {
-          PolyglotSymbolResolver.addToClassPath(url);
+          // XXX
+          // PolyglotSymbolResolver.addToClassPath(url);
         }
       } catch (MalformedURLException ex) {
         throw new IllegalStateException(ex);
@@ -668,7 +668,13 @@ public final class EnsoContext {
         var hostSymbol =
             ClassLookup.lookupJavaClass(
                 className, // name to search for
-                PolyglotSymbolResolver::loadClass, // pluggable polyglot searches
+                (n) -> {
+                    var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
+                    var target = environment.parseInternal(src);
+                    var loader = target.call();
+                    var clazz = InteropLibrary.getUncached().readMember(loader, n);
+                    return clazz;
+                }, // pluggable polyglot searches
                 collectedExceptions // collect exceptions
                 );
         if (hostSymbol instanceof TruffleObject) {
