@@ -2420,6 +2420,7 @@ lazy val `runtime-language-epb` =
         (`runtime-utils` / Compile / exportedModule).value
       )
     )
+    .dependsOn(`jvm-interop` % Test)
 
 lazy val `runtime-language-arrow` =
   (project in file("engine/runtime-language-arrow"))

@@ -83,11 +83,14 @@ final class ForeignEvalNode extends RootNode {
       var installedLanguages = context.getEnv().getPublicLanguages();
       var node =
           switch (installedLanguages.containsKey(id) ? 1 : 0) {
-            case 0 -> {
-              var sortedLangs = new TreeSet<>(installedLanguages.keySet());
-              var ex = new ForeignParsingException(id, sortedLangs, this);
-              yield new ExceptionForeignNode(ex);
-            }
+            case 0 -> switch (id) {
+              case "java" -> parseJava();
+              default -> {
+                var sortedLangs = new TreeSet<>(installedLanguages.keySet());
+                var ex = new ForeignParsingException(id, sortedLangs, this);
+                yield new ExceptionForeignNode(ex);
+              }
+            };
             default -> {
               context.log(
                   Level.FINE,
@@ -95,7 +98,6 @@ final class ForeignEvalNode extends RootNode {
                   id,
                   langAndCode.getName());
               yield switch (id) {
-                case "java" -> parseJava();
                 case "js" -> parseJs();
                 case "python" -> parseGeneric("python", PyForeignNode::new);
                 default -> parseGeneric(id, GenericForeignNode::new);
@@ -113,7 +115,12 @@ final class ForeignEvalNode extends RootNode {
   }
 
   private ForeignFunctionCallNode parseJava() {
-    throw new IllegalStateException();
+    var code = foreignSource(langAndCode);
+    return switch (code) {
+      case "guest" -> ForeignJavaNode.create();
+      default -> new GenericForeignNode(
+          RootNode.createConstantNode("Cannot evaluate script in inner context!").getCallTarget());
+    };
   }
 
   private ForeignFunctionCallNode parseJs() {

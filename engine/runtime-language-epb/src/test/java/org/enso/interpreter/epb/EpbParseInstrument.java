@@ -15,7 +15,8 @@ public final class EpbParseInstrument extends TruffleInstrument {
         (code, name) -> {
           var src = Source.newBuilder(EpbLanguage.ID, code, name).build();
           try {
-            return env.parse(src);
+            var target = env.parse(src);
+            return target.call();
           } catch (IOException ex) {
             throw new IllegalStateException(ex);
           }

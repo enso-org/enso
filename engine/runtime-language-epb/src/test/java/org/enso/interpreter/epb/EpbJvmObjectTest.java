@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
@@ -27,12 +28,12 @@ public class EpbJvmObjectTest {
 
   @BeforeClass
   public static void initializeCtx() {
-    ctx = Context.create("js");
+    ctx = Context.newBuilder("js").allowHostAccess(HostAccess.ALL).build();
     var epbParse = ctx.getEngine().getInstruments().get(EpbParseInstrument.ID);
     ctx.enter();
     @SuppressWarnings("unchecked")
     BiFunction<String, String, Object> fn = epbParse.lookup(BiFunction.class);
-    loader = ctx.asValue(fn.apply("epb", "java:0#guest"));
+    loader = ctx.asValue(fn.apply("java:0#guest", "Guest JVM"));
   }
 
   @AfterClass
