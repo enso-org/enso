@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
@@ -17,7 +16,7 @@ import project.Meta
 import project.Panic.Panic
 import project.Runtime
 import project.System
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
 
 polyglot java import java.lang.ArithmeticException

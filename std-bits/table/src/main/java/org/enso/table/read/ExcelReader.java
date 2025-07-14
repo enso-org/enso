@@ -9,7 +9,7 @@ import java.util.stream.IntStream;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.storage.ObjectStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptySheetException;
@@ -28,6 +28,8 @@ import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
 public class ExcelReader {
+  private static final ColumnStorage<?> EMPTY_STORAGE = Builder.getObjectBuilder(0).seal();
+
   /**
    * Reads a list of sheet names for the specified XLSX/XLS file into an array.
    *
@@ -118,6 +120,7 @@ public class ExcelReader {
    * @param file the {@link File} to load
    * @param index the 1-based index to the sheet.
    * @param skip_rows skip rows from the top the sheet.
+   * @param headers specifies whether the first row should be used as headers.
    * @param row_limit maximum number of rows to read.
    * @param format specifies the file format
    * @return a {@link Table} containing the specified data.
@@ -136,23 +139,44 @@ public class ExcelReader {
     return withWorkbook(
         file,
         format,
-        workbook -> {
-          int sheetCount = workbook.getNumberOfSheets();
-          if (index < 1 || index > sheetCount) {
-            throw new InvalidLocationException(
-                Integer.toString(index),
-                "Sheet " + index + " is out of range (1 to " + sheetCount + " inclusive).");
-          }
+        workbook ->
+            readSheetByIndex(workbook, index, headers, skip_rows, row_limit, problemAggregator));
+  }
 
-          return readTable(
-              workbook,
-              index - 1,
-              null,
-              headers,
-              skip_rows,
-              row_limit == null ? Integer.MAX_VALUE : row_limit,
-              problemAggregator);
-        });
+  /**
+   * Reads a sheet by index for the specified XLSX/XLS file into a table.
+   *
+   * @param workbook a {@link ExcelWorkbook} to read from.
+   * @param index the 1-based index to the sheet.
+   * @param skip_rows skip rows from the top the sheet.
+   * @param headers specifies whether the first row should be used as headers.
+   * @param row_limit maximum number of rows to read.
+   * @return a {@link Table} containing the specified data.
+   * @throws InvalidLocationException when the sheet index is not valid.
+   */
+  public static Table readSheetByIndex(
+      ExcelWorkbook workbook,
+      int index,
+      ExcelHeaders.HeaderBehavior headers,
+      int skip_rows,
+      Integer row_limit,
+      ProblemAggregator problemAggregator)
+      throws InvalidLocationException, InterruptedException {
+    int sheetCount = workbook.getNumberOfSheets();
+    if (index < 1 || index > sheetCount) {
+      throw new InvalidLocationException(
+          Integer.toString(index),
+          "Sheet " + index + " is out of range (1 to " + sheetCount + " inclusive).");
+    }
+
+    return readTable(
+        workbook,
+        index - 1,
+        null,
+        headers,
+        skip_rows,
+        row_limit == null ? Integer.MAX_VALUE : row_limit,
+        problemAggregator);
   }
 
   /**
@@ -312,7 +336,7 @@ public class ExcelReader {
             new Column[] {
               new Column(
                   CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                  ObjectStorage.EMPTY)
+                  EMPTY_STORAGE)
             });
       }
 

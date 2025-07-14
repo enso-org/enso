@@ -20,97 +20,6 @@
         ]
     },
     {
-        "name": "org.enso.table.data.column.storage.Storage",
-        "methods": [
-            {
-                "name": "<init>",
-                "parameterTypes": []
-            }
-        ],
-        "fields": [
-            {
-                "name": "Maps"
-            }
-        ]
-    },
-    {
-        "name": "org.enso.table.data.column.storage.Storage.Maps"
-    },
-    {
-        "name": "org.enso.table.data.column.storage.Storage$Maps",
-        "fields": [
-            {
-                "name": "EQ"
-            },
-            {
-                "name": "LT"
-            },
-            {
-                "name": "LTE"
-            },
-            {
-                "name": "GT"
-            },
-            {
-                "name": "GTE"
-            },
-            {
-                "name": "MUL"
-            },
-            {
-                "name": "ADD"
-            },
-            {
-                "name": "SUB"
-            },
-            {
-                "name": "DIV"
-            },
-            {
-                "name": "MOD"
-            },
-            {
-                "name": "POWER"
-            },
-            {
-                "name": "ROUND"
-            },
-            {
-                "name": "AND"
-            },
-            {
-                "name": "OR"
-            },
-            {
-                "name": "STARTS_WITH"
-            },
-            {
-                "name": "ENDS_WITH"
-            },
-            {
-                "name": "TEXT_LEFT"
-            },
-            {
-                "name": "TEXT_RIGHT"
-            },
-            {
-                "name": "CONTAINS"
-            },
-            {
-                "name": "IS_IN"
-            },
-            {
-                "name": "LIKE"
-            },
-            {
-                "name": "MIN"
-            },
-            {
-                "name": "MAX"
-            }
-        ]
-    },
-    {
         "name": "org.apache.commons.compress.archivers.zip.AsiExtraField",
         "methods": [
             {
@@ -274,28 +183,6 @@
         "fields": [
             {
                 "name": "SyntaxErrorException"
-            }
-        ]
-    },
-    {
-        "name": "org.enso.table.data.column.storage.BoolStorage",
-        "methods": [
-            {
-                "name": "iif",
-                "parameterTypes": [
-                    "org.graalvm.polyglot.Value",
-                    "org.graalvm.polyglot.Value",
-                    "org.enso.table.data.column.storage.type.StorageType",
-                    "org.enso.table.problems.ProblemAggregator"
-                ]
-            }
-        ]
-    },
-    {
-        "name": "org.enso.table.data.column.storage.numeric.BigIntegerStorage",
-        "methods": [
-            {
-                "name": "getMaxPrecisionStored"
             }
         ]
     },
@@ -598,17 +485,6 @@
     },
     {
         "name": "org.enso.table.operations.AddRunning"
-    },
-    {
-        "name": "org.enso.table.operations.OrderBuilder",
-        "methods": [
-            {
-                "name": "buildOrderMask",
-                "parameterTypes": [
-                    "java.util.List"
-                ]
-            }
-        ]
     },
     {
         "name": "org.enso.table.operations.OrderBuilder.OrderRule"

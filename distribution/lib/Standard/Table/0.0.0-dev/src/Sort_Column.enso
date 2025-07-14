@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
 
 type Sort_Column
     ## A column to sort by, selected by its name.

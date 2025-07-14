@@ -26,7 +26,7 @@ const props = defineProps<{
   contentTestId?: string
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
   /** Editor line mode. Single-line mode will not allow entering newline characters. */
-  lineMode: 'single' | 'multi' | 'auto'
+  lineMode: 'single' | 'multi' | 'auto' | 'autoMulti'
   onAccepted?: (value: string) => HandledUpdate
 }>()
 
@@ -40,7 +40,6 @@ const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('edi
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
-  content: model.value,
   placeholder: () => props.placeholder ?? ' ',
   extensions: [syncExt],
   readonly: false,
@@ -50,13 +49,13 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 watchEffect(() =>
   setExtraExtensions([
     highlightStyle(editorRoot.value?.highlightClasses ?? {}),
-    ...(props.lineMode !== 'multi' ? [selectOnMouseFocus] : []),
+    ...(props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? [selectOnMouseFocus] : []),
     ...(props.extensions ?? []),
   ]),
 )
 
 const { getText, setText, onTextEdited, onUserAction } = connectSync(editorView)
-watch(model, (text) => setText(text))
+watch(model, (text) => setText(text), { immediate: true })
 onTextEdited((text) => {
   editing.value.edit(props.transformUserInput?.(text) ?? text)
   emit('textEdited', text)
@@ -87,7 +86,7 @@ function blurEditor() {
   editorView.contentDOM.blur()
 }
 
-function focusEditor() {
+function focusAndSelect() {
   editorView.dispatch({ selection: { anchor: 0, head: editorView.state.doc.length } })
   editorView.focus()
 }
@@ -126,9 +125,7 @@ function onEnter(event: KeyboardEvent) {
 }
 
 defineExpose({
-  focusEditor,
-  blurEditor,
-  setText,
+  focusAndSelect,
 })
 </script>
 
@@ -145,12 +142,7 @@ defineExpose({
   />
 </template>
 <style scoped>
-.CodeMirrorWidgetBase {
-  :deep(.cm-content) {
-    caret-color: var(--color-node-text);
-  }
-  &:deep(::selection) {
-    background: var(--color-widget-selection);
-  }
+.CodeMirrorWidgetBase :deep(.cm-content) {
+  caret-color: var(--color-node-text);
 }
 </style>

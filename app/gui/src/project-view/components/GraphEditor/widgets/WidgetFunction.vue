@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+} from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
@@ -10,10 +15,7 @@ import {
   widgetProps,
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
-import { useProjectStore } from '@/stores/project'
-import { injectProjectNames } from '@/stores/projectNames'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -27,7 +29,8 @@ import {
 import { partitionPoint } from '@/util/data/array'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
-import { computed, proxyRefs } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -35,13 +38,13 @@ const graph = useGraphStore()
 const project = useProjectStore()
 
 const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
-const outputType = computed(() => exprInfo.value?.rawTypename)
+const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
 
 const { methodCallInfo, application } = useWidgetFunctionCallInfo(
   () => props.input,
   graph.db,
   project,
-  injectProjectNames(),
+  useProjectNames(),
 )
 
 provideFunctionInfo(
@@ -102,19 +105,18 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
       /* Case: Inserting value to a placeholder. */
-      let newArg: Ast.Owned<Ast.MutableExpression>
-      if (value instanceof Ast.Ast) {
-        newArg = value
+      const newArg = value instanceof Ast.Ast ? value : Ast.parseExpression(value, edit)!
+      if (argApp.appTree instanceof Ast.OprApp) {
+        edit.getVersion(argApp.appTree)[argApp.argument.index === 0 ? 'setLhs' : 'setRhs'](newArg)
       } else {
-        newArg = Ast.parseExpression(value, edit)!
+        const name =
+          argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
+            argApp.argument.argInfo.name
+          : undefined
+        edit
+          .getVersion(argApp.appTree)
+          .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
       }
-      const name =
-        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
-          argApp.argument.argInfo.name
-        : undefined
-      edit
-        .getVersion(argApp.appTree)
-        .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
       return props.onUpdate({ edit, directInteraction })
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */

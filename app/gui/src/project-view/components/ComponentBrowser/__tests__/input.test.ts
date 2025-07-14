@@ -1,10 +1,9 @@
 import { useComponentBrowserInput } from '@/components/ComponentBrowser/input'
 import { GraphDb, NodeId } from '@/stores/graph/graphDatabase'
-import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
+import { ComputedValueRegistry, TypeInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { makeMethod, makeType } from '@/stores/suggestionDatabase/mockSuggestion'
-import { unwrap } from '@/util/data/result'
-import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
+import { stdPath } from '@/util/projectPath'
 import { expect, test } from 'vitest'
 import { assert, assertUnreachable } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
@@ -16,12 +15,10 @@ const operator2Id = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as NodeId
 function mockGraphDb() {
   const computedValueRegistryMock = ComputedValueRegistry.Mock()
   computedValueRegistryMock.db.set(operator1Id, {
-    typename: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.Number')),
-    rawTypename: 'Standard.Base.Number',
+    typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Number')], [])!,
     methodCall: undefined,
     payload: { type: 'Value' },
     profilingInfo: [],
-    hiddenTypes: [],
     evaluationId: 1,
   })
   const db = GraphDb.Mock(computedValueRegistryMock)

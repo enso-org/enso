@@ -9,6 +9,8 @@ polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
 polyglot java import org.enso.table.error.EmptySheetException
 polyglot java import org.enso.table.error.InvalidColumnNameException
+polyglot java import org.enso.table.read.FixedWidthLineTooLongException
+polyglot java import org.enso.table.read.NoColumnNamesFoundException
 
 type Missing_Input_Columns
     ## PRIVATE
@@ -929,3 +931,27 @@ type No_Rows
 
     ## PRIVATE
     to_display_text self -> Text = self.message
+
+## Indicates that a fixed-width file's header line contained no column names.
+type No_Column_Names_Found
+    ## PRIVATE
+    private Error
+
+    ## PRIVATE
+    to_display_text self -> Text = "No column names were found in the header line."
+
+    ## PRIVATE
+    private handle_java_exception =
+        Panic.catch NoColumnNamesFoundException handler=(_ -> Error.throw No_Column_Names_Found.Error)
+
+## Indicates that a fixed-width file contains a line that is too long.
+type Fixed_Width_Line_Too_Long
+    ## PRIVATE
+    private Error source_line_number:Integer max_line_length:Integer
+
+    ## PRIVATE
+    to_display_text self -> Text = "Fixed width file line " + self.source_line_number.to_text + " is longer than the maximum length of " + self.max_line_length.to_text
+
+    ## PRIVATE
+    private handle_java_exception =
+        Panic.catch FixedWidthLineTooLongException handler=(e -> Error.throw (Fixed_Width_Line_Too_Long.Error e.payload.sourceLineNumber e.payload.maxLineLength))

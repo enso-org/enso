@@ -5,9 +5,8 @@ import * as toastify from 'react-toastify'
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
-import { useText } from '#/providers/TextProvider'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link Link}. */
 export interface LinkProps {
@@ -18,7 +17,7 @@ export interface LinkProps {
   readonly text: string
 }
 
-export default forwardRef(Link)
+export default React.forwardRef(Link)
 
 /** A styled colored link with an icon. */
 function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {

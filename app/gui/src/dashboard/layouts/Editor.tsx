@@ -1,5 +1,5 @@
 /** @file The container that launches the IDE. */
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'
@@ -7,12 +7,11 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
-import * as backendProvider from '#/providers/BackendProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
-import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
-import { useConfigInReact } from '$/providers/react'
+import { useBackends, useConfig, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -36,14 +35,13 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
   const { preventAutoReopen = false } = project
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
   const startProject = projectHooks.useReopenProject(openProjectMutation)
 
-  const backend = backendProvider.useBackendForProjectType(project.type)
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const localBackend = backendProvider.useLocalBackend()
+  const { localBackend, remoteBackend, backendForType: backendForProjectType } = useBackends()
+  const backend = backendForProjectType(project.type)
 
   const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
     assetId: project.id,
@@ -213,12 +211,12 @@ interface EditorInternalProps extends Omit<EditorProps, 'project'> {
 function EditorInternal(props: EditorInternalProps) {
   const { hidden = false, renameProject, openedProject, backendType, projectName } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const gtagEvent = gtagHooks.useGtagEvent()
-  const config = useConfigInReact()
+  const config = useConfig()
+  const ydocUrl = useVueValue(React.useCallback(() => config.ydocUrl, [config]))
 
-  const localBackend = backendProvider.useLocalBackend()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { localBackend, remoteBackend } = useBackends()
 
   React.useEffect(() => {
     if (!hidden) {
@@ -232,7 +230,7 @@ function EditorInternal(props: EditorInternalProps) {
 
   const jsonAddress = openedProject.jsonAddress
   const binaryAddress = openedProject.binaryAddress
-  const ydocAddress = openedProject.ydocAddress ?? config.ydocUrl ?? ''
+  const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
   const projectBackend =
     backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 
@@ -243,7 +241,7 @@ function EditorInternal(props: EditorInternalProps) {
     hidden,
     projectViewProps: {
       projectId: openedProject.projectId,
-      projectName: openedProject.packageName,
+      projectInitialName: openedProject.packageName,
       projectDisplayedName: projectName,
       engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
       renameProject: onRenameProject,

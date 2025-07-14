@@ -1,0 +1,215 @@
+/** @file A toolbar containing chat and the user menu. */
+import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
+import Offline from '#/assets/offline_filled.svg'
+import { Button } from '#/components/Button'
+import { Dialog, Popover } from '#/components/Dialog'
+import { Menu } from '#/components/Menu'
+import { PaywallDialogButton } from '#/components/Paywall'
+import { ProfilePicture } from '#/components/ProfilePicture'
+import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
+import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
+import { usePaywall } from '#/hooks/billing'
+import { useOffline } from '#/hooks/offlineHooks'
+import InviteUsersModal from '#/modals/InviteUsersModal'
+import { Plan } from '#/services/Backend'
+import { isAbsoluteUrl } from '#/utilities/url'
+import { SUBSCRIBE_PATH } from '$/appUtils'
+import { useFullUserSession, useText } from '$/providers/react'
+import type { TextId } from 'enso-common/src/text'
+import { AnimatePresence, motion } from 'framer-motion'
+import { z } from 'zod'
+import { NotificationTray } from './NotificationTray'
+import UserMenu from './UserMenu'
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const TOPBAR_LINKS_SCHEMA = z.object({
+  items: z.array(
+    z
+      .object({
+        name: z.custom<TextId>(),
+        url: z.string().url(),
+        menu: z.array(
+          z.object({
+            name: z.custom<TextId>().and(z.string()),
+            url: z.string().url(),
+          }),
+        ),
+      })
+      .or(
+        z.object({
+          name: z.custom<TextId>(),
+          menu: z.array(
+            z.object({
+              name: z.custom<TextId>().and(z.string()),
+              url: z.string().url(),
+            }),
+          ),
+        }),
+      )
+      .or(
+        z.object({
+          name: z.custom<TextId>().and(z.string()),
+          url: z.string().url(),
+        }),
+      ),
+  ),
+})
+
+/** Props for a {@link UserBar}. */
+export interface UserBarProps {
+  readonly goToSettingsPage: () => void
+  readonly onSignOut: () => void
+}
+
+/** A toolbar containing chat and the user menu. */
+export function UserBar(props: UserBarProps) {
+  const { goToSettingsPage, onSignOut } = props
+
+  const { user } = useFullUserSession()
+  const { getText } = useText()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const { isOffline } = useOffline()
+
+  const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
+
+  const upgradeButtonVariant = user.plan === Plan.free ? 'primary' : 'outline'
+  // eslint-disable-next-line no-restricted-syntax
+  const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
+  const shouldShowInviteButton =
+    // eslint-disable-next-line no-restricted-syntax
+    (false as boolean) && !shouldShowPaywallButton
+
+  const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
+
+  return (
+    <div className="pt-0.5">
+      <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x">
+        <AnimatePresence initial={false}>
+          {isOffline && (
+            <motion.div
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+              exit={{ opacity: 0, x: 12 }}
+              className="mr-2 flex items-center gap-2"
+            >
+              <SvgMask src={Offline} className="aspect-square w-4 flex-none" />
+              <Text tooltip={getText('offlineToastMessage')} tooltipDisplay="always">
+                {getText('youAreOffline')}
+              </Text>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex sm:hidden">
+          <Popover.Trigger>
+            <Button variant="icon" icon="help" aria-label={getText('help')} />
+            <Popover size="auto">
+              <UserBarHelpSection items={topbarLinks.items} className="flex-col" />
+            </Popover>
+          </Popover.Trigger>
+        </div>
+
+        <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
+
+        {shouldShowPaywallButton && (
+          <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
+            {getText('invite')}
+          </PaywallDialogButton>
+        )}
+
+        {shouldShowInviteButton && (
+          <Dialog.Trigger>
+            <Button size="medium" variant="accent">
+              {getText('invite')}
+            </Button>
+
+            <InviteUsersModal />
+          </Dialog.Trigger>
+        )}
+
+        {shouldShowUpgradeButton && (
+          <Button variant={upgradeButtonVariant} size="medium" href={SUBSCRIBE_PATH}>
+            {getText('upgrade')}
+          </Button>
+        )}
+
+        <NotificationTray />
+
+        <Popover.Trigger>
+          <Button
+            size="custom"
+            variant="icon"
+            icon={<ProfilePicture picture={user.profilePicture} name={user.name} />}
+            className="ml-2"
+            aria-label={getText('userMenuLabel')}
+          />
+
+          <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
+        </Popover.Trigger>
+
+        {/* Required for shortcuts to work. */}
+        <div className="hidden">
+          <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Props for a {@link UserBarHelpSection}. */
+export interface UserBarHelpSectionProps {
+  readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
+  readonly className?: string
+}
+
+/** A section containing help buttons. */
+export function UserBarHelpSection(props: UserBarHelpSectionProps) {
+  const { items, className } = props
+  const { getText } = useText()
+
+  const getSafetyProps = (url: string) =>
+    isAbsoluteUrl(url) ? { rel: 'opener', target: '_blank' } : {}
+
+  return (
+    <Button.Group gap="small" buttonVariants={{ variant: 'icon' }} className={className}>
+      {items.map((item) => {
+        if ('url' in item) {
+          if ('menu' in item) {
+            return (
+              <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
+                <Button href={item.url} {...getSafetyProps(item.url)}>
+                  {getText(item.name)}
+                </Button>
+
+                <Menu.Trigger>
+                  <Button icon={ArrowDownIcon} aria-label={getText('more')} />
+
+                  <Menu placement="bottom right">
+                    {item.menu.map((menuItem) => (
+                      <Menu.Item
+                        key={menuItem.name}
+                        href={menuItem.url}
+                        {...getSafetyProps(menuItem.url)}
+                      >
+                        {getText(menuItem.name)}
+                      </Menu.Item>
+                    ))}
+                  </Menu>
+                </Menu.Trigger>
+              </Button.GroupJoin>
+            )
+          }
+
+          return (
+            <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
+              {getText(item.name)}
+            </Button>
+          )
+        }
+      })}
+    </Button.Group>
+  )
+}

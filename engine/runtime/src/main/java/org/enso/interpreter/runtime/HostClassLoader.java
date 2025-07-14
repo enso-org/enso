@@ -60,26 +60,36 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
       logger.trace("Class {} found in cache", name);
       return l;
     }
-    if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
-      return polyglotClassLoader.loadClass(name);
-    }
-    if (name.startsWith("org.slf4j")) {
-      // Delegating to system class loader ensures that log classes are not loaded again
-      // and do not require special setup. In other words, it is using log configuration that
-      // has been setup by the runner that started the process. See #11641.
-      return polyglotClassLoader.loadClass(name);
-    }
-    try {
-      l = findClass(name);
-      if (resolve) {
-        l.getMethods();
+    synchronized (this) {
+      l = loadedClasses.get(name);
+      if (l != null) {
+        logger.trace("Class {} found in cache", name);
+        return l;
       }
-      logger.trace("Class {} found, putting in cache", name);
-      loadedClasses.put(name, l);
-      return l;
-    } catch (ClassNotFoundException ex) {
-      logger.trace("Class {} not found, delegating to super", name);
-      return super.loadClass(name, resolve);
+      if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
+        return polyglotClassLoader.loadClass(name);
+      }
+      if (name.startsWith("org.slf4j")) {
+        // Delegating to system class loader ensures that log classes are not loaded again
+        // and do not require special setup. In other words, it is using log configuration that
+        // has been setup by the runner that started the process. See #11641.
+        return polyglotClassLoader.loadClass(name);
+      }
+      try {
+        l = findClass(name);
+        if (resolve) {
+          l.getMethods();
+        }
+        logger.trace("Class {} found, putting in cache", name);
+        loadedClasses.put(name, l);
+        return l;
+      } catch (ClassNotFoundException ex) {
+        logger.trace("Class {} not found, delegating to super", name);
+        return super.loadClass(name, resolve);
+      } catch (Throwable e) {
+        logger.trace("Failure while loading a class: " + e.getMessage(), e);
+        throw e;
+      }
     }
   }
 

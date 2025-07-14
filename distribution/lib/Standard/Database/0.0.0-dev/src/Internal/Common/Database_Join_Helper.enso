@@ -3,8 +3,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Errors.Common import Floating_Point_Equality
 
 import Standard.Table.Internal.Join_Helpers
-import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-from Standard.Table import Join_Kind
+from Standard.Table import Join_Kind, Table
 
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
@@ -12,9 +11,7 @@ import project.Internal.Helpers
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
-import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.SQL_Type.SQL_Type
 
 ## PRIVATE
 make_join_helpers left_table right_table left_column_mapping right_column_mapping =
@@ -76,7 +73,7 @@ type Join_Subquery_Setup
             self.old_columns.zip self.new_columns old->new->[old.name, new]
 
 ## PRIVATE
-prepare_subqueries : Connection -> DB_Table -> DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
+prepare_subqueries : Connection -> Table & DB_Table -> Table & DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
     table_naming_helper = connection.base_connection.table_naming_helper
     column_naming_helper = connection.base_connection.column_naming_helper

@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import all
 from Standard.Table.Errors import Invalid_Value_Type, No_Rows
 from Standard.Database import all
+from Standard.Database.Errors import Implicit_DB_Table_Read
 
 from Standard.Test import all
 
@@ -101,7 +102,7 @@ add_specs suite_builder =
 
             col = table.at "path"
             r2 = Data.read_many col return=..As_Vector
-            r2.should_fail_with Illegal_Argument
+            Problems.expect_warning Implicit_DB_Table_Read r2
 
         group_builder.specify "fails if a column of invalid type is provided" <|
             table = Table.new [["path", [1, 2]], ["X", [33, 44]]]

@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Function;
-import org.slf4j.Logger;
 
 final class PerGenerator {
   static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x13, 0x0f};
@@ -24,20 +23,25 @@ final class PerGenerator {
   private int position;
 
   private PerGenerator(
-      OutputStream out, Histogram histogram, int position, Function<Object, Object> writeReplace) {
-    this.map = PerMap.create();
+      PerMap map,
+      OutputStream out,
+      Histogram histogram,
+      int position,
+      Function<Object, Object> writeReplace) {
+    this.map = map;
     this.main = out;
     this.writeReplace = writeReplace == null ? Function.identity() : writeReplace;
     this.position = position;
     this.histogram = histogram;
   }
 
-  static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
-    var histogram = PerUtils.LOG.isDebugEnabled() ? new Histogram() : null;
+  static byte[] writeObject(PerMap map, Object obj, Function<Object, Object> writeReplace)
+      throws IOException {
+    var histogram = PerUtils.LOG.isLoggable(System.Logger.Level.DEBUG) ? new Histogram() : null;
 
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
-    var g = new PerGenerator(out, histogram, 12, writeReplace);
+    var g = new PerGenerator(map, out, histogram, 12, writeReplace);
     data.write(PerGenerator.HEADER);
     data.writeInt(g.versionStamp());
     data.write(new byte[4]); // space
@@ -223,7 +227,7 @@ final class PerGenerator {
   private static final class Histogram {
     private final Map<Class, int[]> knownTypes = new HashMap<>();
 
-    private void dump(Logger log, int length) {
+    private void dump(System.Logger log, int length) {
       var counts = knownTypes;
       var list = new ArrayList<>(counts.entrySet());
       list.sort(
@@ -231,13 +235,14 @@ final class PerGenerator {
             return a.getValue()[0] - b.getValue()[0];
           });
 
-      log.debug("==== Top Bytes & Counts of Classes =====");
+      log.log(System.Logger.Level.DEBUG, "==== Top Bytes & Counts of Classes =====");
       for (var i = 0; i < list.size(); i++) {
         if (i == 30) {
           break;
         }
         var elem = list.get(list.size() - 1 - i);
-        log.debug(
+        log.log(
+            System.Logger.Level.DEBUG,
             "  " + elem.getValue()[0] + " " + elem.getValue()[1] + " " + elem.getKey().getName());
       }
     }

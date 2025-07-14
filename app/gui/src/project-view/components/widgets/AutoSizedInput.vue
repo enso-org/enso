@@ -3,7 +3,7 @@ import { useAutoBlur } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, type StyleValue } from 'vue'
 
-const model = defineModel<string>()
+const model = defineModel<string>({ default: '' })
 const { placeholder = '' } = defineProps<{
   placeholder?: string | undefined
 }>()

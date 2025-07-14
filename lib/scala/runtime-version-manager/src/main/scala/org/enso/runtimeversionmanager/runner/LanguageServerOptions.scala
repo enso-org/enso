@@ -11,7 +11,7 @@ import java.util.UUID
   * @param secureRpcPort an option secure RPC port that the server listen to
   * @param dataPort a data port that the server listen to
   * @param secureDataPort an optional secure data port that the server listen to
-  * @param jvmModeEnabled enables JVM mode if true
+  * @param jvm use JVM - default or provided
   */
 case class LanguageServerOptions(
   rootId: UUID,
@@ -21,5 +21,5 @@ case class LanguageServerOptions(
   secureRpcPort: Option[Int],
   dataPort: Int,
   secureDataPort: Option[Int],
-  jvmModeEnabled: Boolean
+  jvm: Option[Option[java.nio.file.Path]]
 )

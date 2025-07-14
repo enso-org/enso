@@ -25,6 +25,10 @@ public final class TestCollectorFeature implements Feature {
       RuntimeReflection.registerAllMethods(testClazz);
     }
     System.err.println("Registered test classes for reflection: " + ListOfTests.TEST_CLASSES);
+
+    var jvmPeerClass = access.findClassByName("org.enso.os.environment.jni.JVMPeer");
+    RuntimeReflection.register(jvmPeerClass);
+    RuntimeReflection.register(jvmPeerClass.getConstructors());
   }
 
   private static void recordModulePath(BeforeAnalysisAccess access) {

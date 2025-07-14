@@ -32,8 +32,8 @@ pub mod test_controls {
         /// Locates an Enso Cloud credentials file used in tests.
         ENSO_CLOUD_CREDENTIALS_FILE, String;
 
-        /// Denotes the URI of the Enso Cloud API deployment to be used in tests.
-        ENSO_CLOUD_API_URI, String;
+        /// Denotes the URL of the Enso Cloud API deployment to be used in tests.
+        ENSO_CLOUD_API_URL, String;
 
         /// A flag that tells the test suite to run applicable tests on the cloud environment instead of just a mock.
         ENSO_RUN_REAL_CLOUD_TEST, String;

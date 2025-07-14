@@ -1,71 +1,79 @@
 <script setup lang="ts">
-import { ContextsForReactProvider } from '$/providers/react'
+import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+import RightPanel from '$/components/AppContainer/RightPanel.vue'
+import { useAppTitle } from '$/composables/appTitle'
+import { provideOpenedProjects } from '$/providers/openedProjects'
+import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
-import { initializeActions } from '@/providers/action'
+import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
-import { provideGuiConfig } from '@/providers/guiConfig'
+import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
+import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
+import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
-import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
 import { reactComponent } from '@/util/react'
-import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
-import { computed, onMounted } from 'vue'
+import * as objects from 'enso-common/src/utilities/data/object'
+import { computed, onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { useAuth } from './providers/auth'
+import { provideContainerData } from './providers/container'
+import { provideRightPanelData } from './providers/rightPanel'
+import { useText } from './providers/text'
 
-const { projectViewOnly, onAuthenticated } = defineProps<{
+const { projectViewOnly } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
   // removed
   projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
-  onAuthenticated?: (accessToken: string | null) => void
 }>()
 
+const LoadingScreen = reactComponent(LoadingScreenReact)
+
+const config = injectGuiConfig()
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
-
-const appConfig = computed(() =>
-  mergeConfig(baseConfig, urlParams(), {
-    onUnrecognizedOption: (p) => {
-      const filtered = p.filter((p) => !p.startsWith('cloud-ide'))
-
-      if (filtered.length > 0) {
-        console.warn('Unrecognized option:', filtered)
-      }
-    },
-  }),
-)
-const appConfigValue = computed((): ApplicationConfigValue => configValue(appConfig.value))
 
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
-provideKeyboard()
-provideGuiConfig(appConfigValue)
-const interaction = provideInteractionHandler()
-initializeActions()
+const auth = useAuth()
+const userSession = computed(() => auth.session)
 
+useAppTitle(userSession)
+
+provideKeyboard()
+const interaction = provideInteractionHandler()
+const actions = initializeActions()
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
 
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.handleCancel(),
-})
+const actionHandlers = registerHandlers(
+  {
+    'interaction.cancel': { action: () => interaction.cancelAll() },
+  },
+  actions,
+)
+
+const interactionBindingsHandler = interactionBindings.handler(
+  objects.mapEntries(
+    interactionBindings.bindings,
+    (actionName) => actionHandlers[actionName].action,
+  ),
+)
+
+const { globalEventRegistry } = provideGlobalEventRegistry()
 
 useEvent(window, 'keydown', interactionBindingsHandler)
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
-  capture: true,
-})
+useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 
 const platformClass = (() => {
   switch (platform()) {
@@ -87,22 +95,34 @@ const platformClass = (() => {
 })()
 
 onMounted(() => {
-  if (appConfigValue.value.window.vibrancy) {
+  if (config.params.window.vibrancy) {
     document.body.classList.add('vibrancy')
   }
 })
+const fullscreenRoot = shallowRef<HTMLElement>()
+
+// Mock external context in Project View integration tests. Once both test projects will be merged,
+// this should be removed
+if (projectViewOnly) {
+  provideOpenedProjects()
+  provideContainerData([])
+  provideRightPanelData(projectViewOnly.options.projectId, () => false, useText())
+  provideFullscreenRoot(fullscreenRoot)
+}
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
+    <div v-if="projectViewOnly" ref="fullscreenRoot" class="mainView">
+      <ProjectView v-bind="projectViewOnly.options" />
+      <RightPanel />
+    </div>
     <ContextsForReactProvider v-else>
-      <ReactRootWrapper
-        :config="appConfigValue"
-        :queryClient="queryClient"
-        @authenticated="onAuthenticated ?? (() => {})"
-      >
-        <RouterView />
+      <ReactRootWrapper :queryClient="queryClient">
+        <RouterView v-slot="{ Component }">
+          <component :is="Component" v-if="Component" />
+          <LoadingScreen v-else />
+        </RouterView>
       </ReactRootWrapper>
     </ContextsForReactProvider>
   </div>
@@ -116,6 +136,8 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  /* This is to ensure the tooltips and floating elements will be over all other app elements */
+  isolation: isolate;
 }
 
 #floatingLayer {
@@ -139,6 +161,13 @@ onMounted(() => {
   > * {
     pointer-events: auto;
   }
+}
+
+.mainView {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 /*

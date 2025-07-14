@@ -1,8 +1,7 @@
 /** @file The categories available in the category switcher. */
-import invariant from 'tiny-invariant'
-
-import type { Resolution } from '#/components/AriaComponents'
-import { Alert, AlertDialog, ask, Text } from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { AlertDialog, ask, type Resolution } from '#/components/AlertDialog'
+import { Text } from '#/components/Text'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -12,14 +11,14 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useUser } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
-import { useText, type GetText } from '#/providers/TextProvider'
 import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends, useText, useUser } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'
 import { toast } from 'react-toastify'
+import invariant from 'tiny-invariant'
 import { z } from 'zod'
 import {
   CATEGORY_SCHEMA,
@@ -64,9 +63,8 @@ export type TransferrableAsset = z.infer<typeof TRANSFERRABLE_ASSET_SCHEMA>
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const localBackend = useLocalBackend()
-  const remoteBackend = useRemoteBackend()
-  const backend = useBackend(currentCategory)
+  const { localBackend, remoteBackend, backendForType } = useBackends()
+  const backend = backendForType(currentCategory.backend)
 
   const { rootDirectoryId } = useUser()
 

@@ -7,15 +7,10 @@ from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single
 from Standard.Base.System.File_Format import format_types
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
-import project.Aggregate_Column.Aggregate_Column
 import project.Expression.Expression
 import project.Internal.Parse_Values_Helper
-import project.Join_Condition.Join_Condition
-import project.Join_Kind.Join_Kind
-import project.Sort_Column.Sort_Column
 import project.Table.Table
 import project.Value_Type.Auto
-import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
@@ -75,7 +70,7 @@ make_column_name_selector : Table -> Boolean -> Display -> Widget
 make_column_name_selector table add_expression:Boolean=False display:Display=..Always =
     col_names = table.column_names
     names = col_names.map n-> Option n n.pretty
-    expression = if add_expression then [Option "<Expression>" "(expr '["+table.column_names.first+"]')"] else []
+    expression = if add_expression then [Option "<Expression>" "(expr '["+col_names.first+"]')"] else []
     Single_Choice display=display values=(expression+names)
 
 ## PRIVATE
@@ -213,8 +208,8 @@ make_grouping_method_selector table:Table display:Display=..Always -> Widget =
     column_selector = make_column_name_selector table display=Display.Always
     columns_selector = Vector_Editor item_editor=column_selector item_default=table.column_names.first.pretty display=display
 
-    unique = Option "Unique" "..Unique" [["on", columns_selector]]
-    equal_count = Option "Equal Count" "..Equal_Count" [["order_by", columns_selector]]
+    unique = Option "..Unique" "..Unique" [["on", columns_selector]]
+    equal_count = Option "..Equal_Count" "..Equal_Count" [["order_by", columns_selector]]
     names=[unique, equal_count]
 
     Single_Choice display=display values=names

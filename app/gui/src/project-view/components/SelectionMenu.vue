@@ -52,21 +52,7 @@ const pickColorMulti = resolveAction('components.pickColorMulti')
   backdrop-filter: var(--blur-app-bg);
 }
 
-.toggledOff svg {
-  opacity: 0.6;
-}
-
 .disableInput {
   pointer-events: none;
-}
-
-.v-enter-active,
-.v-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.v-enter-from,
-.v-leave-to {
-  opacity: 0;
 }
 </style>

@@ -283,11 +283,11 @@ type Keybinds<T extends Record<K, string[]>, K extends keyof T = keyof T> =
   : T
 
 declare const brandKey: unique symbol
-type Key_ = string & { [brandKey]: true }
+type Key_ = string & { [brandKey]: never }
 declare const brandModifierFlags: unique symbol
-type ModifierFlags = number & { [brandModifierFlags]: true }
+type ModifierFlags = number & { [brandModifierFlags]: never }
 declare const brandPointerButtonFlags: unique symbol
-type PointerButtonFlags = number & { [brandPointerButtonFlags]: true }
+type PointerButtonFlags = number & { [brandPointerButtonFlags]: never }
 
 const definedNamespaces = new Set<string>()
 
@@ -393,7 +393,24 @@ export function defineKeybinds<
     }
   }
 
-  function handler<Event_ extends KeyboardEvent | MouseEvent | PointerEvent | TouchEvent>(
+  function eventKey(event: KeyboardEvent): Key_ {
+    // On OS X, the `option` modifier causes keys to be interpreted as language-specific alternative
+    // characters. Ideally, we would identify the key pressed if `option` were not held, since we
+    // treat `option` as a modifier of the base key; however, the event API does not provide a way
+    // to do this.
+    // As a workaround to support `Alt+Digit` bindings, in case the physical key pressed is a digit,
+    // we use the physical key code instead. This would not be a suitable solution for most keys,
+    // since the physical key `code` doesn't respect the user's layout, but very few users are
+    // likely to use keyboard layouts that change the interpretation of the digits (the "original"
+    // Dvorak layout does this, but even Dvorak users mostly use a variant that leaves the digits in
+    // numeric order).
+    const digit = event.code.match(/Digit(\d)/)
+    if (digit) return digit[1] as Key_
+    // If the physical key is not a digit, we use the `key` field, which respects the user's layout.
+    return event.key.toLowerCase() as Key_
+  }
+
+  function handler<Event_ extends AnyHandlerEvent>(
     handlers: Partial<
       Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
     >,
@@ -405,7 +422,7 @@ export function defineKeybinds<
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
         event instanceof KeyboardEvent ?
-          keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
+          keyboardShortcuts[eventKey(event)]?.[eventModifierFlags]
         : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
 
       let handled = false
@@ -541,3 +558,5 @@ interface Mousebind {
   key: PointerButtonFlags
   modifierFlags: ModifierFlags
 }
+
+export type AnyHandlerEvent = KeyboardEvent | MouseEvent | PointerEvent | TouchEvent

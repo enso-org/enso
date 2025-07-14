@@ -1,7 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
-
-polyglot java import org.enso.table.operations.AddGroupNumber
 
 ## Specifies a method for grouping rows in `add_group_number`.
 type Grouping_Method

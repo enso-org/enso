@@ -13,6 +13,7 @@ import type {
   ReactiveEffectOptions,
   ReactiveEffectRunner,
   Ref,
+  ShallowUnwrapRef,
   WatchSource,
   WatchStopHandle,
   WritableComputedRef,
@@ -22,7 +23,6 @@ import {
   computed,
   effect,
   effectScope,
-  isRef,
   queuePostFlushCb,
   reactive,
   ReactiveEffect,
@@ -30,18 +30,11 @@ import {
   shallowRef,
   toRaw,
   toValue,
+  // Importing it to re-export it with a more type-safe signature.
+  // eslint-disable-next-line no-restricted-imports
+  proxyRefs as unsafeProxyRefs,
   watch,
 } from 'vue'
-
-/** Cast watch source to an observable ref. */
-export function watchSourceToRef<T>(src: WatchSource<T>): Ref<T> {
-  return isRef(src) ? src : computed(src)
-}
-
-/** Get the value behind a watch source at the current time. */
-export function evalWatchSource<T>(src: WatchSource<T>): T {
-  return isRef(src) ? src.value : src()
-}
 
 /** Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect. */
 export function lazyEffect<T = any>(
@@ -255,6 +248,11 @@ export function syncSetDiff<T>(
 /** Type of the parameter of `toValue`. */
 export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
 
+/** Transforms an array to an array of refs. */
+export type MaybeRefOrGetterArray<K extends [...any[]]> = {
+  [I in keyof K]: MaybeRefOrGetter<K[I]>
+}
+
 /**
  * A writable proxy computed value that reads a fallback value in case the base is `undefined`.
  * Useful for cases where we have a user-overridable behavior with a computed default.
@@ -374,3 +372,31 @@ export function debugAccess(anyRef: Ref<any>, name: string) {
     },
   })
 }
+
+/** Creates a type containing only the properties of the input type that not readonly. */
+type NonReadonlyProps<T> = {
+  [K in keyof T as Equals<Pick<T, K>, Readonly<Pick<T, K>>> extends true ? never : K]: T[K]
+}
+type Equals<A, B> =
+  (<Y>() => Y extends B ? 1 : 2) extends <Y>() => Y extends A ? 1 : 2 ? true : false
+
+/** Creates a type containing only the properties of the input type that are writable refs. */
+type NonReadonlyRefProps<T> = {
+  /** Each property is a writable ref if, after stripping readonly properties, it is a ref. */
+  [K in keyof T as NonReadonlyProps<T[K]> extends Ref<unknown> ? K : never]: T[K]
+}
+
+type SafeShallowUnwrapRef<T> = Readonly<ShallowUnwrapRef<T>> &
+  ShallowUnwrapRef<NonReadonlyRefProps<T>>
+
+/**
+ * @returns a proxy for the given object that shallowly unwraps properties that are refs. If the
+ * object already is reactive, it's returned as-is. If not, a new reactive proxy is created.
+ * @param objectWithRefs - Either an already-reactive object or a simple object that contains refs.
+ *
+ * This is a re-export of Vue's `proxyRefs` ({@link unsafeProxyRefs}), with improved type safety:
+ * Readonly references in the object passed to the function will become readonly fields in its
+ * return type, rather than all fields being writable.
+ */
+export const proxyRefs: <T extends object>(objectWithRefs: T) => SafeShallowUnwrapRef<T> =
+  unsafeProxyRefs

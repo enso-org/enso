@@ -79,7 +79,7 @@ object LauncherApplication {
         versionOverride,
         systemJVMOverride,
         jvmOpts,
-        jvmMode,
+        jvm,
         additionalArgs
       ) mapN {
         (
@@ -90,7 +90,7 @@ object LauncherApplication {
           versionOverride,
           systemJVMOverride,
           jvmOpts,
-          jvmMode,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).newProject(
@@ -101,7 +101,7 @@ object LauncherApplication {
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
-            jvmMode             = jvmMode,
+            jvm                 = Option(jvm),
             additionalArguments = additionalArgs
           )
       }
@@ -112,11 +112,12 @@ object LauncherApplication {
       "jvm",
       "These parameters will be passed to the launched JVM as -DKEY=VALUE."
     )
-  private def jvmMode =
-    Opts.flag(
+  private def jvm =
+    Opts.optionalParameter[Path](
       "jvm",
-      "Setting this flag runs Enso in JVM mode rather than the default native one.",
-      showInUsage = true
+      "path",
+      "Runs Enso in JVM mode rather than the default native one.",
+      true
     )
   private def systemJVMOverride =
     Opts.flag(
@@ -166,7 +167,7 @@ object LauncherApplication {
         engineLogLevel,
         systemJVMOverride,
         jvmOpts,
-        jvmMode,
+        jvm,
         additionalArgs
       ) mapN {
         (
@@ -175,7 +176,7 @@ object LauncherApplication {
           engineLogLevel,
           systemJVMOverride,
           jvmOpts,
-          jvmMode,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).runRun(
@@ -183,7 +184,7 @@ object LauncherApplication {
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
-            jvmMode             = jvmMode,
+            jvm                 = Option(jvm),
             additionalArguments = additionalArgs,
             logLevel            = engineLogLevel
           )
@@ -255,7 +256,7 @@ object LauncherApplication {
         engineLogLevel,
         systemJVMOverride,
         jvmOpts,
-        jvmMode,
+        jvm,
         additionalArgs
       ) mapN {
         (
@@ -271,7 +272,7 @@ object LauncherApplication {
           engineLogLevel,
           systemJVMOverride,
           jvmOpts,
-          jvmMode,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).runLanguageServer(
@@ -283,7 +284,7 @@ object LauncherApplication {
               secureRpcPort  = secureRpcPort,
               dataPort       = dataPort,
               secureDataPort = secureDataPort,
-              jvmModeEnabled = jvmMode
+              jvm            = Option(jvm)
             ),
             contentRoot         = path,
             versionOverride     = versionOverride,
@@ -316,7 +317,7 @@ object LauncherApplication {
         engineLogLevel,
         systemJVMOverride,
         jvmOpts,
-        jvmMode,
+        jvm,
         additionalArgs
       ) mapN {
         (
@@ -325,7 +326,7 @@ object LauncherApplication {
           engineLogLevel,
           systemJVMOverride,
           jvmOpts,
-          jvmMode,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).runRepl(
@@ -333,7 +334,7 @@ object LauncherApplication {
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
-            jvmMode             = jvmMode,
+            jvm                 = Option(jvm),
             additionalArguments = additionalArgs,
             logLevel            = engineLogLevel
           )

@@ -14,6 +14,7 @@ const _props = defineProps<{
 const emit = defineEmits<{
   closeColorPicker: []
   setNodeColor: [color: string | undefined]
+  'update:hovered': [hovered: boolean]
 }>()
 
 const isDropdownOpened = ref(false)
@@ -26,10 +27,10 @@ const isDropdownOpened = ref(false)
       menu: !colorPickerOpened,
       openedDropdown: isDropdownOpened,
     }"
+    @pointerenter="emit('update:hovered', true)"
+    @pointerleave="emit('update:hovered', false)"
   >
     <template v-if="!colorPickerOpened">
-      <ActionButton action="component.toggleVisualization" class="slotS" />
-      <ActionButton action="component.toggleDocPanel" class="slotSW" />
       <DropdownMenu
         v-model:open="isDropdownOpened"
         placement="bottom-start"
@@ -40,6 +41,7 @@ const isDropdownOpened = ref(false)
         <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
         <template #menu>
           <ActionMenu
+            data-testid="component-menu-more-entries"
             :actions="[
               'component.toggleDocPanel',
               'component.toggleVisualization',
@@ -56,6 +58,8 @@ const isDropdownOpened = ref(false)
           />
         </template>
       </DropdownMenu>
+      <ActionButton action="component.toggleDocPanel" class="slotSW" />
+      <ActionButton action="component.toggleVisualization" class="slotS" />
     </template>
     <ColorRing
       v-else

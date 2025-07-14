@@ -3,7 +3,8 @@ import './beforeMain' // Keep newline below to ensure that this import is always
 import '#/styles.css'
 import '#/tailwind.css'
 import App from '$/App.vue'
-import router from '$/router.tsx'
+import router from '$/router'
+import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
 import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
@@ -19,16 +20,20 @@ const SENTRY_SAMPLE_RATE = 0.005
 const SCAM_WARNING_TIMEOUT = 1000
 const INITIAL_URL_KEY = `Enso-initial-url`
 
-function main() {
+async function main() {
   setupScamWarning()
   setupSentry()
   configureAnimations()
-  const appProps = imNotSureButPerhapsFixingRefreshingWithAuthentication()
+  const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
+  const rootDirPath = await getRootDirPath()
 
-  const app = createApp(App, appProps)
-  app.use(VueQueryPlugin, { queryClient })
+  const app = createApp(App)
+  app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
   app.use(router)
+  app.use(widgetDevtools)
+  app.provide('rootDirPath', rootDirPath)
+  app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')
 }
 
@@ -155,18 +160,25 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  return {
-    onAuthenticated() {
-      if (isInAuthenticationFlow) {
-        const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
-        if (initialUrl != null) {
-          // This is not used past this point, however it is set to the initial URL
-          // to make refreshing work as expected.
-          history.replaceState(null, '', initialUrl)
-        }
+  function onAuthenticated() {
+    if (isInAuthenticationFlow) {
+      const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+      if (initialUrl != null) {
+        // This is not used past this point, however it is set to the initial URL
+        // to make refreshing work as expected.
+        history.replaceState(null, '', initialUrl)
       }
-    },
+    }
   }
+  return onAuthenticated
+}
+
+async function getRootDirPath() {
+  const supportsLocalBackend =
+    window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
+  if (!supportsLocalBackend) return undefined
+  const rootDirRequest = await fetch(`/api/root-directory`)
+  return await rootDirRequest.text()
 }
 
 main()

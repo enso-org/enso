@@ -1,4 +1,4 @@
-import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
+import { textEditorsBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -7,33 +7,35 @@ import {
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
-import { baseKeymap, handlerToKeyBinding, verticalMovementKeymap } from '@/util/codemirror/keymap'
+import { CmEventExt, extendCmEvent, keyBindings } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
+import type { Vec2 } from '@/util/data/vec2'
 import { elementHierarchy } from '@/util/dom'
 import { type ToValue } from '@/util/reactivity'
-import { insertNewlineKeepIndent } from '@codemirror/commands'
+import type { AnyHandlerEvent } from '@/util/shortcuts'
 import {
   Compartment,
   EditorState,
   type Extension,
-  Prec,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
   Text,
   Transaction,
+  TransactionSpec,
 } from '@codemirror/state'
-import { EditorView, type KeyBinding, keymap, placeholder } from '@codemirror/view'
+import { EditorView, placeholder } from '@codemirror/view'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
+import { createDebouncer } from 'lib0/eventloop.js'
 import {
   type ComponentInstance,
   computed,
-  isRef,
   onUnmounted,
+  ref,
   toValue,
-  watchEffect,
+  watch,
   type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
@@ -48,13 +50,11 @@ function disableEditContextApi() {
 /* Disable EditContext API because of https://github.com/codemirror/dev/issues/1458. */
 disableEditContextApi()
 
-export type LineMode = 'single' | 'multi' | 'auto'
+export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
 
 export type Getter<T> = () => T
 
 interface CodeMirrorOptions {
-  /** If a value is provided, the editor state will be synchronized with it. */
-  content?: ToValue<string | Y.Text>
   placeholder?: ToValue<string>
   /** CodeMirror {@link Extension}s to include in the editor's initial state. */
   extensions?: Extension
@@ -64,72 +64,76 @@ interface CodeMirrorOptions {
   vueHost?: WatchSource<VueHost | undefined>
   /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
   contentTestId?: string | undefined
-  readonly?: boolean
+  /** If provided, the element with class `cm-scroller` will also have the given `data-testid`. */
+  scrollerTestId?: string | undefined
+  readonly?: ToValue<boolean>
   lineMode: ToValue<LineMode>
 }
 
-/** Creates a CodeMirror editor instance, and sets its initial state. */
+/**
+ * Creates a CodeMirror editor instance.
+ *
+ * The editor will be empty. To set and synchronize its contents, use proper extension, like
+ * {@link useStringSync}, {@link yCollab} or {@link useYTextSync}. If they require {@link EditorView},
+ * they may be attached with `setExtraExtensions` method.
+ */
 export function useCodeMirror(
   editorRoot: ToValue<ComponentInstance<typeof CodeMirrorRoot> | null>,
   {
-    content,
     placeholder: placeholderText,
     extensions,
     vueHost,
     contentTestId,
-    readonly: isReadonly,
+    scrollerTestId,
+    readonly,
     lineMode,
   }: CodeMirrorOptions,
 ) {
-  const view = new EditorView()
-  onUnmounted(view.destroy.bind(view))
-  if (contentTestId != null) view.contentDOM.dataset['testid'] = contentTestId
-  const readonly = computed(
-    () => isReadonly ?? (!!content && !isRef(content) && typeof toValue(content) === 'string'),
-  )
-  const readonlyExt = useCompartment(view, () =>
+  const dispatch = { dispatch: (...specs: TransactionSpec[]) => view.dispatch(...specs) }
+  const readonlyExt = useCompartment(dispatch, () =>
     toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
   )
   const placeholderExt =
-    placeholderText ? useCompartment(view, () => placeholder(toValue(placeholderText))) : []
-  const { bindingsExt } = useBindings(view)
-  const sync = content ? useYTextOrReadonlySync(content) : undefined
+    placeholderText ? useCompartment(dispatch, () => placeholder(toValue(placeholderText))) : []
+  const { bindingsExt } = useBindings()
   const extrasCompartment = new Compartment()
-  const bindingsCompartment = useCompartment(view, () => keyBindings(toValue(lineMode)))
-  const singleLineState = computed(() => toValue(lineMode) !== 'multi')
-  const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
-  view.setState(
-    EditorState.create({
+  const bindingsCompartment = useCompartment(dispatch, () => keyBindings(toValue(lineMode)))
+  const singleLineState = computed(() => {
+    const mode = toValue(lineMode)
+    return mode !== 'multi' && mode !== 'autoMulti'
+  })
+  const themeCompartment = useCompartment(dispatch, () =>
+    theme({ singleLine: singleLineState.value }),
+  )
+
+  const view = new EditorView({
+    state: EditorState.create({
       extensions: [
         readonlyExt,
         bindingsExt,
         placeholderExt,
         bindingsCompartment,
         themeCompartment,
-        sync?.syncExt ?? [],
         extrasCompartment.of([]),
         extensions ?? [],
       ],
     }),
-  )
-  if (vueHost) useStateEffect(view, setVueHost, vueHost)
-  sync?.connectSync(view)
-
-  watchEffect(() => {
-    const editorRootValue = toValue(editorRoot)
-    if (editorRootValue) editorRootValue.$el.prepend(view.dom)
   })
+  watch(
+    () => toValue(editorRoot),
+    (editorRootValue) => {
+      if (editorRootValue) editorRootValue.$el.prepend(view.dom)
+    },
+    { immediate: true },
+  )
 
-  /**
-   * Replace text in given document range with `text`, putting text cursor after inserted text.
-   */
-  function putTextAt(text: string, from: number, to: number) {
-    const insert = Text.of(text.split(LINE_BOUNDARIES))
-    view.dispatch({
-      changes: { from, to, insert },
-      selection: { anchor: from + insert.length },
-    })
-  }
+  if (contentTestId != null) view.contentDOM.dataset['testid'] = contentTestId
+  if (scrollerTestId != null) view.scrollDOM.dataset['testid'] = scrollerTestId
+  onUnmounted(view.destroy.bind(view))
+
+  if (vueHost) useStateEffect(view, setVueHost, vueHost)
+
+  const extraExtsDebouncer = createDebouncer(0)
 
   return {
     /** The {@link EditorView}, connecting the current state with the DOM. */
@@ -151,34 +155,29 @@ export function useCodeMirror(
      * state while handling the event that removed it; and, while adding an extension, it doesn't
      * handle the event that caused its installation before it is ready.
      */
-    setExtraExtensions: (extensions: Extension | undefined) =>
-      setTimeout(() =>
+    setExtraExtensions: (extensions: Extension | undefined) => {
+      extraExtsDebouncer(() =>
         view.dispatch({
           effects: extrasCompartment.reconfigure(extensions ?? []),
         }),
-      ),
-    /**
-     * When `useCodeMirror` is configured to set up synchronization by passing the `content`
-     * argument, this value tracks whether the content synchronized with the document is writable.
-     */
-    readonly,
-    putTextAt,
+      )
+    },
     /** The DOM element containing the editor's content. */
     contentElement: view.contentDOM,
   }
 }
 
-function useBindings(view: EditorView) {
+function useBindings() {
   const keyboard = injectKeyboard(true)
 
-  function openLink(event: Event) {
+  function openLink(event: CmEventExt<AnyHandlerEvent>) {
     let element: HTMLAnchorElement | undefined = undefined
     for (const el of elementHierarchy(event.target)) {
       if (el instanceof HTMLAnchorElement) {
         element = el
         break
       }
-      if (el === view.contentDOM) break
+      if (el === event.codemirrorView.contentDOM) break
     }
     if (!element) return false
     event.preventDefault()
@@ -192,8 +191,10 @@ function useBindings(view: EditorView) {
   })
   return {
     bindingsExt: EditorView.domEventHandlers({
-      keydown: (event) => bindingsHandler(event),
-      click: (event) => bindingsHandler(event) || (view.state.readOnly && openLink(event)),
+      click: (event, view) => {
+        const cmEvent = extendCmEvent(view, event)
+        return bindingsHandler(cmEvent) || (view.state.readOnly && openLink(cmEvent))
+      },
       pointerdown: (event) => {
         keyboard?.updateState(event)
         if (keyboard?.mod) event.preventDefault()
@@ -209,6 +210,7 @@ function useBindings(view: EditorView) {
 export function useStringSync() {
   const textEditCallbacks: ((text: string) => void)[] = []
   const userActionCallbacks: ((text: string, selection: SelectionRange) => void)[] = []
+
   return {
     syncExt: EditorView.updateListener.of((update) => {
       const textEdit = update.transactions.some(
@@ -248,29 +250,24 @@ export function useStringSync() {
       function onUserAction(callback: (text: string, selection: SelectionRange) => void): void {
         userActionCallbacks.push(callback)
       }
-
-      return {
-        getText,
-        setText,
-        onTextEdited,
-        onUserAction,
-      }
+      return { getText, setText, onTextEdited, onUserAction }
     },
   }
 }
 
-function useYTextOrReadonlySync(content: ToValue<string | Y.Text>) {
+/** An extension synchronizing CM with a Y.Text node in the ref. */
+export function useYTextSync(content: ToValue<Y.Text | undefined>) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
   function sync() {
     const contentValue = toValue(content)
-    if (typeof contentValue === 'string') {
-      return { text: contentValue, extensions: [] }
-    } else {
+    if (contentValue != null) {
       assert(contentValue.doc !== null)
       const yTextWithDoc: Y.Text & { doc: Y.Doc } = contentValue as any
       return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness) }
+    } else {
+      return { text: '', extensions: [] }
     }
   }
 
@@ -290,7 +287,7 @@ function useYTextOrReadonlySync(content: ToValue<string | Y.Text>) {
 
   return {
     syncExt: syncCompartment.of([]),
-    connectSync: (view: EditorView) =>
+    connectSync: (view: EditorView) => {
       useDispatch(
         view,
         () => applySync(view.state, sync()),
@@ -300,7 +297,8 @@ function useYTextOrReadonlySync(content: ToValue<string | Y.Text>) {
           view.dispatch({
             effects: syncCompartment.reconfigure([]),
           }),
-      ),
+      )
+    },
   }
 }
 
@@ -312,34 +310,6 @@ function lastEffect<T>(
     const effect = effects[i]!
     if (effect.is(effectType)) return effect.value
   }
-}
-
-const stopEvent = (event: Event) => {
-  event.stopImmediatePropagation()
-  return false
-}
-
-const autoOrMultiHandlers = handlerToKeyBinding(
-  textEditorsMultilineBindings.handler({
-    newline: (e) => {
-      e.stopImmediatePropagation()
-      return insertNewlineKeepIndent(e.codemirrorView)
-    },
-  }),
-)
-
-const standardBindings: Record<LineMode, KeyBinding[]> = {
-  single: [],
-  multi: [autoOrMultiHandlers, ...verticalMovementKeymap()],
-  auto: [autoOrMultiHandlers],
-}
-
-function keyBindings(lineMode: LineMode): Extension {
-  return [
-    Prec.lowest(keymap.of(baseKeymap())),
-    Prec.low(keymap.of(standardBindings[lineMode])),
-    ...(lineMode === 'multi' ? [EditorView.domEventHandlers({ wheel: stopEvent })] : []),
-  ]
 }
 
 const baseTheme = EditorView.theme({
@@ -392,3 +362,55 @@ export const selectOnMouseFocus = [
     return tr
   }),
 ]
+
+/**
+ * Replace text in given document range with `text`, putting text cursor after inserted text.
+ */
+export function putTextAt(view: EditorView, text: string, from: number, to: number) {
+  const insert = Text.of(text.split(LINE_BOUNDARIES))
+  view.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: from + insert.length },
+  })
+}
+
+/**
+ * Insert text at cursor or replacing any selection, putting text cursor after inserted text.
+ */
+export function putText(view: EditorView, text: string) {
+  const range = view.state.selection.main
+  putTextAt(view, text, range.from, range.to)
+}
+
+/** Insert text at the given position in the editor. */
+export function putTextAtCoords(view: EditorView, text: string, coords: Vec2) {
+  const pos = view.posAtCoords(coords, false)
+  putTextAt(view, text, pos, pos)
+}
+
+/**
+ * @returns the editor's reactive focused state, maintained by attaching the returned event handlers
+ * to the editor's root element.
+ * This implements a focus state that differs from the DOM focus of any particular element. It
+ * exhibits some hysteresis: When the scrollbar is clicked, the computed focus state doesn't change.
+ * Thus, this should be used in lieu of the element's focus when the rendering of the editor's
+ * content is focus-dependent in a way that may affect its size.
+ */
+export function useEditorFocus(view: EditorView) {
+  const focused = ref(false)
+  const focusHandlers = {
+    focusin: (event: FocusEvent) => {
+      // Enable rendering the line containing the current cursor in `editing` mode if focus enters
+      // the element *inside* the scroll area--if we handled the event for the editor root, clicking
+      // the scrollbar would cause editing mode to be activated.
+      if (event.target instanceof Node && view.contentDOM.contains(event.target))
+        focused.value = true
+    },
+    focusout: () => {
+      // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
+      // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
+      focused.value = false
+    },
+  }
+  return { focused, focusHandlers }
+}

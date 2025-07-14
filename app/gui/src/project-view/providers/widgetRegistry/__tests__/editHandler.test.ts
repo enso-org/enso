@@ -1,8 +1,8 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
+import { proxyRefs } from '@/util/reactivity'
 import { expect, test, vi, type Mock } from 'vitest'
-import { proxyRefs } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
 import { newWidgetInstanceId, WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 
@@ -161,7 +161,7 @@ test.each`
       widgetTree,
     )
     handlers.get(edited)?.handler.start()
-    interactionHandler.handlePointerEvent(event, 'pointerdown')
+    interactionHandler.handlePointerDown(event)
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
       if ((interaction.pointerdown as Mock | undefined)?.mock.lastCall) handlersCalled.add(id)

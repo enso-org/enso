@@ -2,29 +2,22 @@
  * @file
  *
  * Hooks for working with categories.
- * Categories are shortcuts to specific directories in the Cloud, e.g. team spaces, recent and trash
- * It's not the same as the categories like LocalBackend
+ * Categories are shortcuts to specific directories in the Cloud, e.g. Team spaces, Recent and Trash.
  */
 import ComputerIcon from '#/assets/computer.svg'
 import RecentIcon from '#/assets/recent.svg'
-
-import { useUser } from '#/providers/AuthProvider'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useLocalBackend } from '#/providers/BackendProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import type Backend from '#/services/Backend'
 import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useBackends, useText, useUser } from '$/providers/react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
-import { createStore } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type {
   AnyCategory,
   AnyCloudCategory,
@@ -52,28 +45,10 @@ const LOCAL_ROOT_DIRECTORIES_SCHEMA = z.string().array().readonly()
 
 LocalStorage.registerKey('localRootDirectories', { schema: LOCAL_ROOT_DIRECTORIES_SCHEMA })
 
-/** State for {@link categoryIdStore}. */
-interface CategoryIdStoreState {
-  readonly categoryId: CategoryId | null
-}
-
-export const categoryIdStore = createStore<CategoryIdStoreState>()(
-  persist(
-    (): CategoryIdStoreState => ({
-      categoryId: null,
-    }),
-    { name: 'enso-category-id', version: 1 },
-  ),
-)
-
-/**
- * Result of the useCloudCategoryList hook.
- */
+/** Result of the useCloudCategoryList hook. */
 export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 
-/**
- * List of categories in the Cloud.
- */
+/** List of categories in the Cloud. */
 function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
@@ -184,13 +159,15 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
  */
 function useLocalCategoryList() {
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
   const [localRootDirectories, setLocalRootDirectories] = useLocalStorageState(
     'localRootDirectories',
     [],
   )
+
+  let categories: readonly AnyLocalCategory[] = []
 
   const addDirectory = useEventCallback((directory: string) => {
     setLocalRootDirectories([...localRootDirectories, directory])
@@ -210,9 +187,10 @@ function useLocalCategoryList() {
     (id: CategoryId) => categories.find((category) => category.id === id) ?? null,
   )
 
-  const getCategoryByDirectoryId = useEventCallback((id: DirectoryId): AnyLocalCategory | null => {
-    return categories.find((category) => category.homeDirectoryId === id) ?? null
-  })
+  const getCategoryByDirectoryId = useEventCallback(
+    (id: DirectoryId): AnyLocalCategory | null =>
+      categories.find((category) => category.homeDirectoryId === id) ?? null,
+  )
 
   const getCategoriesByType = useEventCallback(
     <T extends AnyLocalCategory['type']>(type: T) =>
@@ -249,14 +227,11 @@ function useLocalCategoryList() {
     backend: BackendType.local,
   }
 
-  const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
-
   const localDirectories = localRootDirectories.map<LocalDirectoryCategory>(
     createLocalDirectoryCategory,
   )
 
-  const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localDirectories] as const)
+  categories = localBackend == null ? [] : ([localCategory, ...localDirectories] as const)
 
   return {
     categories,
@@ -271,14 +246,10 @@ function useLocalCategoryList() {
   } as const
 }
 
-/**
- * Result of the useCategories hook.
- */
+/** Result of the useCategories hook. */
 export type CategoriesResult = ReturnType<typeof useCategories>
 
-/**
- * List of all categories.
- */
+/** List of all categories. */
 export function useCategories() {
   const cloudCategories = useCloudCategoryList()
   const localCategories = useLocalCategoryList()
@@ -296,32 +267,24 @@ export function useCategories() {
   return { cloudCategories, localCategories, findCategoryById, getCategoryByDirectoryId }
 }
 
-/**
- * Context value for the categories.
- */
+/** Context value for categories. */
 export interface CategoriesContextValue {
   readonly cloudCategories: CloudCategoryResult
   readonly localCategories: LocalCategoryResult
   readonly category: Category
-  readonly setCategory: (category: CategoryId) => void
-  readonly resetCategory: () => void
   readonly associatedBackend: Backend
 }
 
 export const CategoriesContext = createContext<CategoriesContextValue | null>(null)
 
-/**
- * Returns the current category and the associated backend.
- */
+/** Returns the current category and the associated backend. */
 export function useCategory() {
   const { category, associatedBackend } = useCategoriesAPI()
 
   return { category, associatedBackend }
 }
 
-/**
- * Gets the api to interact with the categories.
- */
+/** An api to interact with categories. */
 export function useCategoriesAPI() {
   const context = useContext(CategoriesContext)
 

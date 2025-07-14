@@ -1,10 +1,9 @@
 /** @file A wrapper containing all UI-related React Provdiers. */
-import * as React from 'react'
-
-import { DialogStackProvider } from '#/components/AriaComponents'
+import { DialogStackProvider } from '#/components/Dialog'
 import { PortalProvider } from '#/components/Portal'
 import type { Spring } from 'framer-motion'
 import { MotionConfig } from 'framer-motion'
+import * as React from 'react'
 import { I18nProvider } from 'react-aria-components'
 
 const DEFAULT_TRANSITION_OPTIONS: Spring = {

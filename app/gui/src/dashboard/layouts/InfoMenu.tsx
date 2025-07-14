@@ -1,14 +1,12 @@
 /** @file A menu containing info about the app. */
-import { LOGIN_PATH } from '#/appUtils'
-import { Popover, Text } from '#/components/AriaComponents'
+import { Popover } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import MenuEntry from '#/components/MenuEntry'
+import { Text } from '#/components/Text'
 import AboutModal from '#/modals/AboutModal'
-import { useAuth } from '#/providers/AuthProvider'
-import { useSetModal } from '#/providers/ModalProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
-import { useRouterInReact } from '$/providers/react'
+import { setModal } from '#/providers/ModalProvider'
+import { LOGIN_PATH } from '$/appUtils'
+import { useAuth, useRouter, useSession, useText } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
 
 /** Props for an {@link InfoMenu}. */
@@ -20,10 +18,9 @@ export interface InfoMenuProps {
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
 
-  const { router } = useRouterInReact()
-  const { signOut } = useSessionAPI()
+  const { router } = useRouter()
+  const { signOut } = useSession()
   const { session } = useAuth()
-  const { setModal } = useSetModal()
   const { getText } = useText()
 
   return (

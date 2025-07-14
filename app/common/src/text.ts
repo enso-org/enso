@@ -68,7 +68,6 @@ interface PlaceholderOverrides {
   readonly downloadFileError: [fileName: string]
   readonly downloadDatalinkError: [datalinkName: string]
   readonly deleteUserGroupError: [userGroupName: string]
-  readonly removeUserFromUserGroupError: [userName: string, userGroupName: string]
   readonly deleteUserError: [userName: string]
 
   readonly inviteUserBackendError: [userEmail: string]
@@ -92,7 +91,6 @@ interface PlaceholderOverrides {
   readonly openProjectBackendError: [projectTitle: string]
   readonly openProjectMissingCredentialsBackendError: [projectTitle: string]
   readonly updateProjectBackendError: [projectTitle: string]
-  readonly checkResourcesBackendError: [projectTitle: string]
   readonly uploadFileWithNameBackendError: [fileTitle: string]
   readonly getFileDetailsBackendError: [fileTitle: string]
   readonly createDatalinkBackendError: [datalinkTitle: string]
@@ -109,12 +107,10 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupBackendError: [userGroupName: string]
   readonly listVersionsBackendError: [versionType: string]
   readonly createCheckoutSessionBackendError: [plan: string]
-  readonly getCheckoutSessionBackendError: [checkoutSessionId: string]
   readonly getDefaultVersionBackendError: [versionType: string]
   readonly logEventBackendError: [eventType: string]
 
   readonly subscribeSuccessSubtitle: [plan: string]
-  readonly assetsDropFilesDescription: [count: number]
 
   readonly paywallAvailabilityLevel: [plan: string]
   readonly paywallScreenDescription: [plan: string]
@@ -140,7 +136,6 @@ interface PlaceholderOverrides {
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
-  readonly groupNameSettingsInputDescription: [howLong: number]
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
@@ -173,6 +168,20 @@ interface PlaceholderOverrides {
     categoryName: string,
     destinationCategoryName: string,
   ]
+
+  readonly plusXUsers: [count: number]
+  readonly managingUserGroupX: [groupName: string]
+  readonly planOverriddenToX: [planName: string]
+  readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
+  readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
+  readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
+
+  readonly annualPlanVariant: [originalPlanName: string]
+  readonly freePlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly soloPlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly teamPlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly enterprisePlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly commercialUseNotice: [originalTitle: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

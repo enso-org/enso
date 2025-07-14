@@ -92,8 +92,14 @@ pub enum Tests {
     /// Run the Snowflake tests.
     StdSnowflake,
 
+    /// Run the Snowflake tests in `--jvm` mode.
+    StdSnowflakeJVM,
+
     /// Run a subset of Standard Library tests that deals with Cloud-related functionality.
     StdCloudRelated,
+
+    /// Run Microsoft tests.
+    StdMicrosoft,
 }
 
 /// Configuration for how the binary inside the engine distribution should be built.
@@ -101,6 +107,9 @@ pub enum Tests {
 pub enum EngineLauncher {
     /// The binary inside the engine distribution will be built as an optimized native image
     Native,
+    /// The binary inside the engine distribution will be built as an optimized native image
+    /// without language server.
+    NativeWithoutLS,
     /// The binary inside the engine distribution will be built as native image with assertions
     /// enabled but no debug information
     TestNative,
@@ -124,6 +133,7 @@ impl Display for EngineLauncher {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         let str = match self {
             EngineLauncher::Native => "native".to_string(),
+            EngineLauncher::NativeWithoutLS => "native,-ls".to_string(),
             EngineLauncher::TestNative => "native,test".to_string(),
             EngineLauncher::TestDebugNative => "native,test,debug".to_string(),
             EngineLauncher::Shell => "shell".to_string(),
@@ -153,6 +163,11 @@ pub struct BuildConfigurationFlags {
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
     pub build_benchmarks: bool,
+    /// Whether the small JDK should be build with `jlink` before running
+    /// any tests.
+    pub build_small_jdk: bool,
+    /// If `build_small_jdk` is true, this is the directory where the small JDK will be placed.
+    pub small_jdk_dir: Option<PathBuf>,
     /// Whether the Enso-written benchmarks should be checked whether they compile.
     ///
     /// Note that this does not run benchmark, only ensures that they are buildable.
@@ -256,6 +271,10 @@ impl BuildConfigurationResolved {
             config.check_enso_benchmarks = false;
         }
 
+        if Self::should_run_enso_jmh_benchmarks(&config) {
+            config.build_native_runner = true;
+        }
+
         if config.test_java_generated_from_rust {
             config.generate_java_from_rust = true;
         }
@@ -266,6 +285,13 @@ impl BuildConfigurationResolved {
     fn should_run_enso_benchmarks(config: &BuildConfigurationFlags) -> bool {
         match &config.execute_benchmarks {
             Some(benchmark) => benchmark.bench_type == BenchmarkType::Enso,
+            None => false,
+        }
+    }
+
+    fn should_run_enso_jmh_benchmarks(config: &BuildConfigurationFlags) -> bool {
+        match &config.execute_benchmarks {
+            Some(benchmark) => benchmark.bench_type == BenchmarkType::EnsoJMH,
             None => false,
         }
     }
@@ -299,6 +325,8 @@ impl Default for BuildConfigurationFlags {
             test_jvm: false,
             test_standard_library: None,
             extra_engine_runner_args: None,
+            build_small_jdk: false,
+            small_jdk_dir: None,
             build_benchmarks: false,
             check_enso_benchmarks: false,
             execute_benchmarks: default(),
@@ -395,14 +423,14 @@ impl BuiltArtifacts {
 
 pub async fn deduce_graal(
     client: Octocrab,
-    build_sbt: &generated::RepoRootBuildSbt,
+    deps: &generated::RepoRootProjectDependenciesScala,
 ) -> Result<ide_ci::cache::goodie::graalvm::GraalVM> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     let graal_edition = env::GRAAL_EDITION.get().map_or(Edition::default(), |e| e);
 
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
-        graal_version: get_graal_version(&build_sbt_content)?,
+        graal_version: get_graal_version(&deps_content)?,
         edition: graal_edition,
         os: TARGET_OS,
         arch: TARGET_ARCH,
@@ -410,17 +438,19 @@ pub async fn deduce_graal(
 }
 
 pub async fn deduce_graal_bundle(
-    build_sbt: &generated::RepoRootBuildSbt,
+    deps: &generated::RepoRootProjectDependenciesScala,
 ) -> Result<GraalVmVersion> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     Ok(GraalVmVersion {
-        graal:    get_graal_version(&build_sbt_content)?,
-        packages: get_graal_packages_version(&build_sbt_content)?,
+        graal:    get_graal_version(&deps_content)?,
+        packages: get_graal_packages_version(&deps_content)?,
     })
 }
 
 /// Version of `flatc` (the FlatBuffers compiler) that Engine requires.
-pub async fn deduce_flatbuffers(build_sbt: &generated::RepoRootBuildSbt) -> Result<Version> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
-    get_flatbuffers_version(&build_sbt_content)
+pub async fn deduce_flatbuffers(
+    deps: &generated::RepoRootProjectDependenciesScala,
+) -> Result<Version> {
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
+    get_flatbuffers_version(&deps_content)
 }

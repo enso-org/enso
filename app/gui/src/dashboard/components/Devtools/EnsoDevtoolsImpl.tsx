@@ -1,72 +1,283 @@
 /** @file A list of toggles for paywall features. */
-import * as React from 'react'
-
-import * as reactQuery from '@tanstack/react-query'
-
-import { IS_DEV_MODE } from 'enso-common/src/detect'
-
 import CrossIcon from '#/assets/cross.svg'
-
-import { SETUP_PATH } from '#/appUtils'
-
-import * as billing from '#/hooks/billing'
-
-import * as authProvider from '#/providers/AuthProvider'
-import { UserSessionType } from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
-import {
-  useAnimationsDisabled,
-  useEnableVersionChecker,
-  usePaywallDevtools,
-  useSetAnimationsDisabled,
-  useSetEnableVersionChecker,
-  useToggleEnsoDevtools,
-} from './EnsoDevtoolsProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button, CopyButton, type ButtonProps } from '#/components/Button'
+import { Dialog, Popover, POPOVER_STYLES } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
 import Portal from '#/components/Portal'
-
-import {
-  Button,
-  Dialog,
-  Form,
-  Popover,
-  Radio,
-  RadioGroup,
-  Separator,
-  Text,
-  VisualTooltip,
-} from '#/components/AriaComponents'
-import {
-  FEATURE_FLAGS_SCHEMA,
-  useFeatureFlags,
-  useSetFeatureFlag,
-} from '#/providers/FeatureFlagsProvider'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
+import { Radio } from '#/components/Radio'
+import { Separator } from '#/components/Separator'
+import { Switch } from '#/components/Switch'
+import { Text } from '#/components/Text'
+import { Tooltip } from '#/components/Tooltip'
+import { Underlay } from '#/components/Underlay'
+import { VisualTooltip } from '#/components/VisualTooltip'
+import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
 import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
+import {
+  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+  DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
+  FEATURE_FLAGS_SCHEMA,
+} from '$/providers/featureFlags'
+import { useLocalStorage, useText } from '$/providers/react'
+import { useUserSession } from '$/providers/react/auth'
+import { useFeatureFlag, useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
+import { useQueryClient } from '@tanstack/react-query'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { motion } from 'framer-motion'
+import * as React from 'react'
 import { toast } from 'react-toastify'
+import { twJoin } from 'tailwind-merge'
+import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
+import {
+  useEnableVersionChecker,
+  usePaywallDevtools,
+  useSetAnimationsDisabled,
+  useSetEnableVersionChecker,
+  useShowEnsoDevtools,
+  useToggleEnsoDevtools,
+} from './EnsoDevtoolsProvider'
 
-/** A component that provides a UI for toggling paywall features. */
+/** Props for a {@link DeveloperOverrideEntry}. */
+interface DeveloperOverrideEntryProps {
+  readonly reset: ButtonProps['onPress']
+  readonly children: string
+}
+
+/** An entry in {@link EnsoDevStatus}. */
+function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
+  const { reset, children } = props
+
+  const { getText } = useText()
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="icon"
+        icon={CrossIcon}
+        aria-label={getText('reset')}
+        tooltipPlacement="right"
+        onPress={reset}
+      />
+      <Text>{children}</Text>
+    </div>
+  )
+}
+
+/** A display of current developer overrides. */
+export function EnsoDevStatus() {
+  const queryClient = useQueryClient()
+  const { getText } = useText()
+  const showEnsoDevtools = useShowEnsoDevtools()
+  const setAnimationsDisabled = useSetAnimationsDisabled()
+  const versionCheckerEnabled = useEnableVersionChecker() ?? false
+  const setVersionCheckerEnabled = useSetEnableVersionChecker()
+  const {
+    developerPlanOverride,
+    showDeveloperIds,
+    enableMultitabs,
+    enableAssetsTableBackgroundRefresh,
+    assetsTableBackgroundRefreshInterval,
+    enableCloudExecution,
+    enableAdvancedProjectExecutionOptions,
+    overrideProfilePicture,
+    multiplyUserList,
+    disableAnimations,
+    fileChunkUploadPoolSize,
+  } = useFeatureFlags()
+  const setFeatureFlag = useSetFeatureFlag()
+
+  const planName = (() => {
+    switch (developerPlanOverride) {
+      case backend.Plan.free: {
+        return getText('free')
+      }
+      case backend.Plan.solo: {
+        return getText('solo')
+      }
+      case backend.Plan.team: {
+        return getText('team')
+      }
+      case backend.Plan.enterprise: {
+        return getText('enterprise')
+      }
+      case undefined: {
+        return
+      }
+    }
+  })()
+
+  const isOverridden =
+    planName != null ||
+    versionCheckerEnabled ||
+    !enableAssetsTableBackgroundRefresh ||
+    assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
+    !enableCloudExecution ||
+    showDeveloperIds ||
+    overrideProfilePicture ||
+    multiplyUserList ||
+    disableAnimations ||
+    enableMultitabs ||
+    enableAdvancedProjectExecutionOptions ||
+    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
+
+  const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
+
+  if (!isOverridden) {
+    return null
+  }
+
+  return (
+    <Portal>
+      <motion.div
+        layout
+        className={styles.base({
+          className: twJoin('absolute left-3', showEnsoDevtools ? 'bottom-[4.25rem]' : 'bottom-3'),
+        })}
+      >
+        <div className={styles.dialog()}>
+          {planName != null && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('developerPlanOverride', undefined)
+              }}
+            >
+              {getText('planOverriddenToX', planName)}
+            </DeveloperOverrideEntry>
+          )}
+          {disableAnimations && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setAnimationsDisabled(false)
+              }}
+            >
+              {getText('animationsDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {versionCheckerEnabled && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setVersionCheckerEnabled(false)
+              }}
+            >
+              {getText('versionCheckerEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableAssetsTableBackgroundRefresh && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableAssetsTableBackgroundRefresh', true)
+              }}
+            >
+              {getText('assetsTableBackgroundRefreshDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag(
+                  'assetsTableBackgroundRefreshInterval',
+                  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+                )
+              }}
+            >
+              {getText(
+                'assetsTableBackgroundRefreshIntervalOverriddenToXMs',
+                assetsTableBackgroundRefreshInterval,
+              )}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableCloudExecution && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableCloudExecution', true)
+              }}
+            >
+              {getText('cloudExecutionDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {showDeveloperIds && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('showDeveloperIds', false)
+              }}
+            >
+              {getText('showingDeveloperIds')}
+            </DeveloperOverrideEntry>
+          )}
+          {overrideProfilePicture && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('overrideProfilePicture', false)
+              }}
+            >
+              {getText('overridingProfilePicture')}
+            </DeveloperOverrideEntry>
+          )}
+          {multiplyUserList && (
+            <DeveloperOverrideEntry
+              reset={async () => {
+                setFeatureFlag('multiplyUserList', false)
+                await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
+              }}
+            >
+              {getText('multiplyingUserList')}
+            </DeveloperOverrideEntry>
+          )}
+          {enableMultitabs && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableMultitabs', false)
+              }}
+            >
+              {getText('multitabsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {enableAdvancedProjectExecutionOptions && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableAdvancedProjectExecutionOptions', false)
+              }}
+            >
+              {getText('advancedProjectExecutionOptionsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('fileChunkUploadPoolSize', DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE)
+              }}
+            >
+              {getText('willUploadUpToXFileChunksAtOnce', fileChunkUploadPoolSize)}
+            </DeveloperOverrideEntry>
+          )}
+        </div>
+      </motion.div>
+    </Portal>
+  )
+}
+
+/** A UI for toggling paywall features. */
 export function EnsoDevtools() {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
-  const { authQueryKey, session } = authProvider.useAuth()
-  const queryClient = reactQuery.useQueryClient()
-  const { getFeature } = billing.usePaywallFeatures()
+  const queryClient = useQueryClient()
+  const session = useUserSession()
+  const { getFeature } = usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
 
   const { features, setFeature } = usePaywallDevtools()
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
 
-  const animationsDisabled = useAnimationsDisabled()
+  const animationsDisabled = useFeatureFlag('disableAnimations')
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const [localStorageState, setLocalStorageState] = React.useState<Partial<LocalStorageData>>({})
 
   // Re-render when localStorage changes.
@@ -77,9 +288,9 @@ export function EnsoDevtools() {
 
   return (
     <Portal>
-      <ariaComponents.DialogTrigger>
-        <ariaComponents.Underlay className="fixed bottom-3 left-3 z-50 rounded-full">
-          <ariaComponents.Button
+      <Dialog.Trigger>
+        <Underlay className="fixed bottom-3 left-3 z-50 rounded-full">
+          <Button
             icon="enso_logo"
             aria-label={getText('ensoDevtoolsButtonLabel')}
             variant="icon"
@@ -87,7 +298,7 @@ export function EnsoDevtools() {
             size="hero"
             data-ignore-click-outside
           />
-        </ariaComponents.Underlay>
+        </Underlay>
 
         <Popover shouldCloseOnInteractOutside={() => true}>
           <div className="flex items-center justify-between">
@@ -119,7 +330,7 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
-          {session?.type === UserSessionType.full && (
+          {session != null && (
             <>
               <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
 
@@ -128,53 +339,39 @@ export function EnsoDevtools() {
                 schema={(schema) => schema.object({ plan: schema.nativeEnum(backend.Plan) })}
                 defaultValues={{ plan: session.user.plan }}
               >
-                {({ form }) => (
-                  <>
-                    <RadioGroup
-                      name="plan"
-                      onChange={(value) => {
-                        queryClient.setQueryData(authQueryKey, {
-                          ...session,
-                          user: { ...session.user, plan: value },
-                        })
-                      }}
-                    >
-                      <Radio label={getText('free')} value={backend.Plan.free} />
-                      <Radio label={getText('solo')} value={backend.Plan.solo} />
-                      <Radio label={getText('team')} value={backend.Plan.team} />
-                      <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
-                    </RadioGroup>
+                <Radio.Group
+                  name="plan"
+                  onChange={(value) => {
+                    invariant(backend.isPlan(value), 'Invalid plan type')
+                    setFeatureFlag('developerPlanOverride', value)
+                  }}
+                >
+                  <Radio label={getText('free')} value={backend.Plan.free} />
+                  <Radio label={getText('solo')} value={backend.Plan.solo} />
+                  <Radio label={getText('team')} value={backend.Plan.team} />
+                  <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
+                </Radio.Group>
 
-                    <Button
-                      size="small"
-                      variant="outline"
-                      onPress={() =>
-                        queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
-                          form.reset()
-                        })
-                      }
-                    >
-                      {getText('reset')}
-                    </Button>
-                  </>
-                )}
+                <Button
+                  size="small"
+                  variant="outline"
+                  onPress={() => {
+                    setFeatureFlag('developerPlanOverride', undefined)
+                  }}
+                >
+                  {getText('reset')}
+                </Button>
               </Form>
-
-              <Separator orientation="horizontal" className="my-3" />
-
-              <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
-                Open setup page
-              </Button>
 
               <Separator orientation="horizontal" className="my-3" />
             </>
           )}
 
-          <ariaComponents.Text variant="subtitle" className="mb-2">
+          <Text variant="subtitle" className="mb-2">
             {getText('productionOnlyFeatures')}
-          </ariaComponents.Text>
+          </Text>
 
-          <ariaComponents.Form
+          <Form
             schema={(schema) =>
               schema.object({
                 enableVersionChecker: schema.boolean(),
@@ -188,7 +385,7 @@ export function EnsoDevtools() {
           >
             {({ form }) => (
               <>
-                <ariaComponents.Switch
+                <Switch
                   form={form}
                   name="disableAnimations"
                   label={getText('disableAnimations')}
@@ -198,7 +395,7 @@ export function EnsoDevtools() {
                   }}
                 />
 
-                <ariaComponents.Switch
+                <Switch
                   form={form}
                   name="enableVersionChecker"
                   label={getText('enableVersionChecker')}
@@ -209,14 +406,14 @@ export function EnsoDevtools() {
                 />
               </>
             )}
-          </ariaComponents.Form>
+          </Form>
 
-          <ariaComponents.Separator orientation="horizontal" className="my-3" />
+          <Separator orientation="horizontal" className="my-3" />
 
-          <ariaComponents.Text variant="subtitle" className="mb-2">
+          <Text variant="subtitle" className="mb-2">
             {getText('ensoDevtoolsFeatureFlags')}
 
-            <ariaComponents.Form
+            <Form
               gap="small"
               schema={FEATURE_FLAGS_SCHEMA}
               formOptions={{ mode: 'onChange' }}
@@ -227,7 +424,7 @@ export function EnsoDevtools() {
             >
               {(form) => (
                 <>
-                  <ariaComponents.Switch
+                  <Switch
                     form={form}
                     name="showDeveloperIds"
                     label={getText('ensoDevtoolsFeatureFlags.showDeveloperIds')}
@@ -236,7 +433,28 @@ export function EnsoDevtools() {
                       setFeatureFlag('showDeveloperIds', value)
                     }}
                   />
-                  <ariaComponents.Switch
+                  <Switch
+                    form={form}
+                    name="overrideProfilePicture"
+                    label={getText('ensoDevtoolsFeatureFlags.overrideProfilePicture')}
+                    description={getText(
+                      'ensoDevtoolsFeatureFlags.overrideProfilePictureDescription',
+                    )}
+                    onChange={(value) => {
+                      setFeatureFlag('overrideProfilePicture', value)
+                    }}
+                  />
+                  <Switch
+                    form={form}
+                    name="multiplyUserList"
+                    label={getText('ensoDevtoolsFeatureFlags.multiplyUserList')}
+                    description={getText('ensoDevtoolsFeatureFlags.multiplyUserListDescription')}
+                    onChange={async (value) => {
+                      setFeatureFlag('multiplyUserList', value)
+                      await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
+                    }}
+                  />
+                  <Switch
                     form={form}
                     name="enableMultitabs"
                     label={getText('ensoDevtoolsFeatureFlags.enableMultitabs')}
@@ -246,7 +464,7 @@ export function EnsoDevtools() {
                     }}
                   />
                   <div>
-                    <ariaComponents.Switch
+                    <Switch
                       form={form}
                       name="enableAssetsTableBackgroundRefresh"
                       label={getText('ensoDevtoolsFeatureFlags.enableAssetsTableBackgroundRefresh')}
@@ -257,7 +475,7 @@ export function EnsoDevtools() {
                         setFeatureFlag('enableAssetsTableBackgroundRefresh', value)
                       }}
                     />
-                    <ariaComponents.Input
+                    <Input
                       form={form}
                       type="number"
                       inputMode="numeric"
@@ -276,7 +494,7 @@ export function EnsoDevtools() {
                       }}
                     />
                   </div>
-                  <ariaComponents.Switch
+                  <Switch
                     form={form}
                     name="enableCloudExecution"
                     label="Enable Cloud Execution"
@@ -285,16 +503,7 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableCloudExecution', value)
                     }}
                   />
-                  <ariaComponents.Switch
-                    form={form}
-                    name="enableAsyncExecution"
-                    label="Enable Async Execution"
-                    description="Enable Async Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableAsyncExecution', value)
-                    }}
-                  />
-                  <ariaComponents.Switch
+                  <Switch
                     form={form}
                     name="enableAdvancedProjectExecutionOptions"
                     label="Enable Advanced Project Excecution Options"
@@ -303,27 +512,31 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
                     }}
                   />
-                  <ariaComponents.Switch
+                  <Input
                     form={form}
-                    name="enableHybridExecution"
-                    label="Enable Hybrid Execution"
-                    description="Enable Hybrid Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableHybridExecution', value)
+                    type="number"
+                    inputMode="numeric"
+                    name="fileChunkUploadPoolSize"
+                    label={getText('ensoDevtoolsFeatureFlags.fileChunkUploadPoolSize')}
+                    description={getText(
+                      'ensoDevtoolsFeatureFlags.fileChunkUploadPoolSizeDescription',
+                    )}
+                    onChange={(event) => {
+                      setFeatureFlag('fileChunkUploadPoolSize', event.target.valueAsNumber)
                     }}
                   />
                 </>
               )}
-            </ariaComponents.Form>
-          </ariaComponents.Text>
+            </Form>
+          </Text>
 
-          <ariaComponents.Separator orientation="horizontal" className="my-3" />
+          <Separator orientation="horizontal" className="my-3" />
 
-          <ariaComponents.Text variant="subtitle" className="mb-2">
+          <Text variant="subtitle" className="mb-2">
             {getText('ensoDevtoolsPaywallFeaturesToggles')}
-          </ariaComponents.Text>
+          </Text>
 
-          <ariaComponents.Form
+          <Form
             gap="small"
             schema={(schema) =>
               schema.object(
@@ -333,18 +546,18 @@ export function EnsoDevtools() {
             defaultValues={Object.fromEntries(
               Object.keys(features).map((feature) => {
                 // eslint-disable-next-line no-restricted-syntax
-                const featureName = feature as billing.PaywallFeatureName
+                const featureName = feature as PaywallFeatureName
                 return [featureName, features[featureName].isForceEnabled ?? true]
               }),
             )}
           >
             {Object.keys(features).map((feature) => {
               // eslint-disable-next-line no-restricted-syntax
-              const featureName = feature as billing.PaywallFeatureName
+              const featureName = feature as PaywallFeatureName
               const { label, descriptionTextId } = getFeature(featureName)
 
               return (
-                <ariaComponents.Switch
+                <Switch
                   key={feature}
                   name={featureName}
                   label={getText(label)}
@@ -355,25 +568,25 @@ export function EnsoDevtools() {
                 />
               )
             })}
-          </ariaComponents.Form>
+          </Form>
 
           <Separator orientation="horizontal" className="my-3" />
 
           <div className="mb-2 flex w-full items-center justify-between gap-3">
             <Text variant="subtitle">{getText('localStorage')}</Text>
 
-            <ariaComponents.TooltipTrigger>
-              <ariaComponents.CopyButton
+            <Tooltip.Trigger>
+              <CopyButton
                 className="ml-auto"
                 copyText={JSON.stringify(localStorageState, null, 2)}
               />
 
-              <ariaComponents.Tooltip>
-                <ariaComponents.Text>Copy everything to clipboard</ariaComponents.Text>
-              </ariaComponents.Tooltip>
-            </ariaComponents.TooltipTrigger>
+              <Tooltip>
+                <Text>Copy everything to clipboard</Text>
+              </Tooltip>
+            </Tooltip.Trigger>
 
-            <ariaComponents.TooltipTrigger>
+            <Tooltip.Trigger>
               <Button
                 variant="icon"
                 size="small"
@@ -385,8 +598,8 @@ export function EnsoDevtools() {
                 }}
               />
 
-              <ariaComponents.Tooltip>Paste state from clipboard</ariaComponents.Tooltip>
-            </ariaComponents.TooltipTrigger>
+              <Tooltip>Paste state from clipboard</Tooltip>
+            </Tooltip.Trigger>
 
             <Button
               aria-label={getText('deleteAll')}
@@ -415,7 +628,7 @@ export function EnsoDevtools() {
 
                     {metadata.isUserSpecific === true && (
                       <VisualTooltip tooltip="User specific storage item">
-                        <Icon icon="default_user" size="small" />
+                        <Icon icon="default_user" size="small" color="primary" />
                       </VisualTooltip>
                     )}
                   </div>
@@ -450,12 +663,14 @@ export function EnsoDevtools() {
                                 .pipe(metadata.schema),
                             })
                           }
-                          defaultValues={{ value: JSON.stringify(localStorageState[key], null, 2) }}
+                          defaultValues={{
+                            value: JSON.stringify(localStorageState[key], null, 2),
+                          }}
                           onSubmit={(data) => {
                             localStorage.set(key, data.value)
                           }}
                         >
-                          <ariaComponents.Input
+                          <Input
                             name="value"
                             label="Enter valid JSON"
                             addonStart={<Icon icon="braces" />}
@@ -482,7 +697,7 @@ export function EnsoDevtools() {
             })}
           </div>
         </Popover>
-      </ariaComponents.DialogTrigger>
+      </Dialog.Trigger>
     </Portal>
   )
 }

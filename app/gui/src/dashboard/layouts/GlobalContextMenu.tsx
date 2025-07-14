@@ -13,11 +13,11 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */
@@ -31,6 +31,7 @@ export interface GlobalContextMenuProps {
   readonly directoryId: DirectoryId | null
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
 /** A context menu available everywhere in the directory. */
@@ -48,10 +49,10 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     currentDirectoryId,
     event,
     doPaste,
+    bindingFocusScope,
   } = props
 
   const { getText } = useText()
-  const { setModal, unsetModal } = useSetModal()
   const isCloud = backend.type === BackendType.remote
 
   const driveStore = useDriveStore()
@@ -81,6 +82,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   const entries = (
     <>
       <ContextMenuEntry
+        bindingFocusScope={bindingFocusScope}
         hidden={hidden}
         action="uploadFiles"
         doAction={async () => {
@@ -89,6 +91,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         }}
       />
       <ContextMenuEntry
+        bindingFocusScope={bindingFocusScope}
         hidden={hidden}
         action="newProject"
         doAction={() => {
@@ -97,6 +100,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         }}
       />
       <ContextMenuEntry
+        bindingFocusScope={bindingFocusScope}
         hidden={hidden}
         action="newFolder"
         doAction={() => {
@@ -106,6 +110,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       />
       {isCloud && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="newSecret"
           doAction={() => {
@@ -123,6 +128,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       )}
       {isCloud && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="newCredential"
           doAction={() => {
@@ -140,6 +146,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       )}
       {isCloud && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="newDatalink"
           doAction={() => {
@@ -162,6 +169,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       )}
       {hasPasteData && directoryId == null && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="paste"
           doAction={() => {

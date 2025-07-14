@@ -1,28 +1,22 @@
 /** @file An entry in a menu. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-import type * as text from 'enso-common/src/text'
-
 import BlankIcon from '#/assets/blank.svg'
-
-import type * as inputBindings from '#/configurations/inputBindings'
-
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
 import * as aria from '#/components/aria'
-import type { TextProps } from '#/components/AriaComponents'
-import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
-import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import FocusRing from '#/components/styled/FocusRing'
-
+import { useDialogContext } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import FocusRing from '#/components/styled/FocusRing'
+import { Text, type TextProps } from '#/components/Text'
+import { useVisualTooltip } from '#/components/VisualTooltip'
+import type * as inputBindings from '#/configurations/inputBindings'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
+import * as detect from 'enso-common/src/detect'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
@@ -78,6 +72,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   selectAdditionalRange: 'selectAdditionalRangeShortcut',
   goBack: 'goBackShortcut',
   goForward: 'goForwardShortcut',
+  upgradePlan: 'upgradePlanShortcut',
   aboutThisApp: 'aboutThisAppShortcut',
   openInFileBrowser: 'openInFileBrowserShortcut',
   ensoDevtools: 'ensoDevtoolsShortcut',
@@ -97,6 +92,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly title?: string | undefined
   readonly doAction: () => void
   readonly color?: TextProps['color'] | undefined
+  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
 /** An item in a menu. */
@@ -111,10 +107,12 @@ export default function MenuEntry(props: MenuEntryProps) {
     icon,
     tooltip: tooltipValue,
     color,
+    bindingFocusScope,
     ...variantProps
   } = props
-  const { getText } = textProvider.useText()
-  const { unsetModal } = modalProvider.useSetModal()
+
+  const defaultBindingFocusScope = React.useRef(document.body)
+  const { getText } = useText()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
@@ -139,13 +137,17 @@ export default function MenuEntry(props: MenuEntryProps) {
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        [action]: () => {
-          if (isDisabledRef.current) return
-          doActionCallback()
+      inputBindings.attach(
+        bindingFocusScope?.current ?? defaultBindingFocusScope.current,
+        'keydown',
+        {
+          [action]: () => {
+            if (isDisabledRef.current) return
+            doActionCallback()
+          },
         },
-      }),
-    [inputBindings, action, doActionCallback, isDisabledRef],
+      ),
+    [inputBindings, action, doActionCallback, isDisabledRef, bindingFocusScope],
   )
 
   const { tooltip, targetProps } = useVisualTooltip({

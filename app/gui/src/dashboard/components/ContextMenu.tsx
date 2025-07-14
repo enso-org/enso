@@ -1,18 +1,16 @@
 /** @file A context menu. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
-import { Popover } from '#/components/AriaComponents'
+import { Popover } from '#/components/Dialog'
 import { unsetModal } from '#/providers/ModalProvider'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { isOnMacOS } from 'enso-common/src/detect'
+import type { MouseEvent, PropsWithChildren } from 'react'
 
 /** Props for a `ContextMenu`. */
-export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
+export interface ContextMenuProps extends Readonly<PropsWithChildren> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label': string
   readonly hidden?: boolean
-  readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly event: Pick<MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A context menu that opens at the current mouse position. */
@@ -34,9 +32,9 @@ export default function ContextMenu(props: ContextMenuProps) {
     >
       <div
         aria-label={props['aria-label']}
-        className={tailwindMerge.twMerge(
+        className={twMerge(
           'relative flex flex-col rounded-default',
-          detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
+          isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
         )}
       >
         {children}

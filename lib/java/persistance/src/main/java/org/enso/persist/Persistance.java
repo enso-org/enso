@@ -6,15 +6,17 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 /**
- * Central persistance class. Use static {@link Persistance#write write} method to turn a graph of
- * JVM objects into a {@code byte[]}. <br>
+ * Central persistance class. Use {@link Pool#write(java.lang.Object, java.util.function.Function)
+ * write} method to turn a graph of JVM objects into a {@code byte[]}. <br>
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
- * <p>Use sibling static {@link Persistance#read readO} method to read the byte buffer back into
- * their memory representation. <br>
+ * <p>Use sibling {@link Persistance.Pool#read read} method to read the byte buffer back into their
+ * memory representation. <br>
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Manual Persistance</h2>
@@ -38,9 +40,10 @@ public abstract class Persistance<T> implements Cloneable {
    * Constructor for subclasses to register persistance for certain {@code clazz}. Sample
    * registration: <br>
    * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
-   * Each persistance requires unique ID. A stream created by {@link #write(Object, Function<Object,
-   * Object>)} and read by {@link #read(byte[], Function<Object, Object>)} contains a header derived
-   * from the all the IDs present in the system. When versioning the protocol and implementation:
+   * Each persistance requires unique ID. A stream created by {@link Pool#write(Object,
+   * Function<Object, Object>)} and read by {@link Pool#read(byte[], Function<Object, Object>)}
+   * contains a header derived from the all the IDs present in the system. When versioning the
+   * protocol and implementation:
    *
    * <ul>
    *   <li>when you change something really core in the Persitance itself - change the header
@@ -57,7 +60,6 @@ public abstract class Persistance<T> implements Cloneable {
     this.clazz = clazz;
     this.includingSubclasses = includingSubclasses;
     this.id = id;
-    PerMap.registerPersistance(this);
   }
 
   final Persistance<?> newClone() {
@@ -167,47 +169,132 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /**
-   * Read object written down by {@link #write} from an array. <br>
-   * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
-   * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+   * A collection of {@link Persistance} instances able to serde an object graph of certain class
+   * types. Use {@link Persistable} annotation to generate instances of this class - no need to
+   * write them manually.
    *
-   * @param arr the stored bytes
-   * @param readResolve either {@code null} or function to call for each object being stored to
-   *     provide a replacement
-   * @return the read object
-   * @throws java.io.IOException when an I/O problem happens
+   * @see #merge
    */
-  public static Reference<?> read(byte[] arr, Function<Object, Object> readResolve)
-      throws IOException {
-    return read(ByteBuffer.wrap(arr), readResolve);
-  }
+  public abstract static class Pool {
+    private final String name;
+    private final Function<Object, Object> readResolve;
+    private final Function<Object, Object> writeReplace;
+    private final Persistance[] all;
 
-  /**
-   * Read object written down by {@link #write} from a byte buffer.
-   *
-   * @param buf the stored bytes
-   * @param readResolve either {@code null} or function to call for each object being stored to
-   *     provide a replacement
-   * @return the read object
-   * @throws java.io.IOException when an I/O problem happens
-   */
-  public static Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
-      throws IOException {
-    return PerInputImpl.readObject(buf, readResolve);
-  }
+    /**
+     * Constructor for subclasses to create a new pool with provided persistance instances. The IDs
+     * of those instances must be unique, otherwise an exception is throw.
+     *
+     * @param displayName human friendly display name
+     * @param instances the instances to register in this pool
+     * @exception IllegalStateException may be thrown at any moment when a clash in IDs of
+     *     persistance instances is detected
+     */
+    @SafeVarargs
+    protected Pool(String displayName, Persistance... instances) {
+      this(displayName, null, null, instances);
+    }
 
-  /**
-   * Writes down an object into an array of bytes. Use {@link #read} method to convert the array
-   * back to object.
-   *
-   * @param obj the object to persist
-   * @param writeReplace {@code null} or a function that allows to convert each object before
-   *     storing it down
-   * @return the array of bytes
-   * @throws IOException when an I/O problem happens
-   */
-  public static byte[] write(Object obj, Function<Object, Object> writeReplace) throws IOException {
-    return PerGenerator.writeObject(obj, writeReplace);
+    private Pool(
+        String displayName,
+        Function<Object, Object> readResolve,
+        Function<Object, Object> writeReplace,
+        Persistance... instances) {
+      this.name = displayName;
+      this.readResolve = readResolve;
+      this.writeReplace = writeReplace;
+      this.all = instances;
+    }
+
+    /**
+     * Merges instances in various pools into a single combined one.
+     *
+     * @param pools array of pools to merge together
+     * @return pool with all the provided instances
+     * @exception IllegalStateException may be thrown at any moment when a clash in IDs of
+     *     persistance instances is detected
+     */
+    public static Pool merge(Pool... pools) {
+      var sb = new StringBuilder();
+      var all = new ArrayList<Persistance>();
+      for (var p : pools) {
+        if (!sb.isEmpty()) {
+          sb.append("+");
+        }
+        sb.append(p.name);
+        all.addAll(List.of(p.all));
+      }
+      return new Pool(sb.toString(), all.toArray(new Persistance[0])) {};
+    }
+
+    /**
+     * Associates this pool with a read resolve function.
+     *
+     * @param readResolve function to call when an object is read to but before it is returned from
+     *     {@link Input#readObject()} or {@link Input#readInline} methods to provide the object's
+     *     replacement
+     * @return new pool which is internally unchanged except being associated with the provided read
+     *     resolve function
+     */
+    public Pool withReadResolve(Function<Object, Object> readResolve) {
+      return newWithResolveAndReplace(this, readResolve, this.writeReplace);
+    }
+
+    /**
+     * Associates this pool with a write replace function.
+     *
+     * @param writeReplace function to call when an object is about to be written via {@link
+     *     Output#writeObject} or {@link Output#writeInline} functions to provide the object's
+     *     replacement
+     * @return new pool which is internally unchanged except being associated with the provided
+     *     write replace function
+     */
+    public Pool withWriteReplace(Function<Object, Object> writeReplace) {
+      return newWithResolveAndReplace(this, this.readResolve, writeReplace);
+    }
+
+    private static Pool newWithResolveAndReplace(
+        Pool pool, Function<Object, Object> readResolve, Function<Object, Object> writeReplace) {
+      return new Pool(pool.name, readResolve, writeReplace, pool.all) {};
+    }
+
+    /**
+     * Read object written down by {@link #write} from an array. <br>
+     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
+     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+     *
+     * @param arr the stored bytes
+     * @return the read object
+     * @throws java.io.IOException when an I/O problem happens
+     */
+    public Reference<?> read(byte[] arr) throws IOException {
+      return read(ByteBuffer.wrap(arr));
+    }
+
+    /**
+     * Read object written down by {@link #write} from a byte buffer.
+     *
+     * @param buf the stored bytes
+     * @return the read object
+     * @throws java.io.IOException when an I/O problem happens
+     */
+    public Reference<?> read(ByteBuffer buf) throws IOException {
+      var map = new PerMap(all);
+      return PerInputImpl.readObject(map, buf, readResolve);
+    }
+
+    /**
+     * Writes down an object into an array of bytes. Use {@link #read} method to convert the array
+     * back to object.
+     *
+     * @param obj the object to persist
+     * @return the array of bytes
+     * @throws IOException when an I/O problem happens
+     */
+    public byte[] write(Object obj) throws IOException {
+      var map = new PerMap(all);
+      return PerGenerator.writeObject(map, obj, writeReplace);
+    }
   }
 
   /**

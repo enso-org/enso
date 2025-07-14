@@ -1,9 +1,11 @@
 /** @file A modal for creating and editing a credential. */
-import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
+import { Dialog } from '#/components/Dialog'
+import { Dropdown } from '#/components/Inputs/Dropdown'
+import { Text } from '#/components/Text'
 import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
-import { useText } from '#/providers/TextProvider'
 import type { CredentialConfig, SecretId } from '#/services/Backend'
+import { useText } from '$/providers/react'
 import { useState } from 'react'
 
 /** Props for a {@link CreateCredentialForm}. */
@@ -21,7 +23,7 @@ export function CreateCredentialForm(props: CreateCredentialFormProps) {
   const selectedItem = CREDENTIAL_INFOS[selectedChildIndex]
 
   return (
-    <div className="w-full">
+    <>
       <Dropdown
         aria-label={getText('credentialTypeLabel')}
         items={CREDENTIAL_INFOS}
@@ -34,7 +36,7 @@ export function CreateCredentialForm(props: CreateCredentialFormProps) {
         {({ item }) => <Text slot="label">{getText(item.nameId)}</Text>}
       </Dropdown>
       {selectedItem && <selectedItem.form createCredentials={createCredentialsHandler} />}
-    </div>
+    </>
   )
 }
 

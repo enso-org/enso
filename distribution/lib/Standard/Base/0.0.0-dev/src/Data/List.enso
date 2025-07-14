@@ -20,12 +20,11 @@ import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
-import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
+from project.Internal.Predicate_Helpers import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.List.List import Cons, Nil
 from project.Metadata import Display, Widget
 
@@ -40,7 +39,7 @@ type List
        Arguments:
        - x: The element at this position in the list.
        - xs: The rest of the list.
-    Cons x xs
+    Cons x xs:List
 
     ## GROUP Metadata
        ICON metadata
@@ -263,8 +262,6 @@ type List
     not_empty self = self.is_empty.not
 
     ## ALIAS where
-       GROUP Selections
-       ICON preparation
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -279,6 +276,8 @@ type List
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
        MACRO predicate filter=v->v==Nothing
+       GROUP Selections
+       ICON preparation
        Selects all elements of this list which satisfy a condition.
 
        Arguments:

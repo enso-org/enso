@@ -51,6 +51,7 @@ import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.data.TypeGraph;
 import org.enso.text.buffer.Rope;
+import org.slf4j.LoggerFactory;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
@@ -245,7 +246,7 @@ public final class Module extends EnsoObject {
    * @return true iff this module is private (project-private).
    */
   public boolean isPrivate() {
-    return ir.isPrivate();
+    return ir == null || isSynthetic() || ir.isPrivate();
   }
 
   /**
@@ -344,7 +345,9 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * Parses the module sources. The results of this operation are cached.
+   * Parses the module sources. The results of this operation are cached. If module needs to be
+   * compiled, an appropriate write compilation lock needs to be acquired before calling this
+   * method.
    *
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
@@ -357,6 +360,15 @@ public final class Module extends EnsoObject {
       }
     }
     return scopeBuilder.build();
+  }
+
+  /**
+   * Signals if this module requires compilation before its scope is ready for consumption.
+   *
+   * @return true if compilation is required, false otherwise
+   */
+  public boolean needsCompilation() {
+    return !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN);
   }
 
   /**
@@ -383,11 +395,14 @@ public final class Module extends EnsoObject {
    */
   @TruffleBoundary
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
-    var src = sources.source();
-    if (src == null) {
+    Source src;
+    try {
+      src = getSource();
+    } catch (IOException e) {
+      var logger = LoggerFactory.getLogger(Module.class);
+      logger.warn("Failed to retrieve sources of the module: {}", e.getMessage(), e);
       return null;
     }
-    allSources.put(src, this);
     var startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
     var endDelta =
         patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);

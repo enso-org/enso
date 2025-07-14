@@ -15,7 +15,10 @@ import { BodyBlock, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const astCode = computed(() => WidgetInput.valueRepr(props.input) ?? '')
+const astCode = computed(() => {
+  if (WidgetInput.isPlaceholder(props.input)) return '' // We display the value as placeholder.
+  return WidgetInput.valueRepr(props.input) ?? ''
+})
 
 function acceptValue(value: string): HandledUpdate {
   return props.onUpdate({
@@ -26,6 +29,11 @@ function acceptValue(value: string): HandledUpdate {
     directInteraction: true,
   })
 }
+
+const placeholder = computed(() => {
+  const input = props.input
+  return WidgetInput.isPlaceholder(input) ? (input.value ?? '') : ''
+})
 
 const moduleRoot = ref(BodyBlock.new([], MutableModule.Transient()))
 const extensions = [
@@ -38,15 +46,17 @@ const extensions = [
 export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpression')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [EnsoExpression]?: object
+    [EnsoExpression]?: {
+      weakMatch?: boolean
+    }
   }
 }
 
 export const widgetDefinition = defineWidget(
   EnsoExpression,
   {
-    priority: 1002,
-    score: Score.Perfect,
+    priority: 150,
+    score: (props) => (props.input[EnsoExpression].weakMatch === true ? Score.Weak : Score.Perfect),
   },
   import.meta.hot,
 )
@@ -58,6 +68,7 @@ export const widgetDefinition = defineWidget(
       v-model="astCode"
       :widgetTypeId="widgetTypeId"
       :input="input"
+      :placeholder="placeholder"
       :extensions="extensions"
       lineMode="single"
       :onAccepted="acceptValue"

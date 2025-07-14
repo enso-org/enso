@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useGraphStore } from '@/stores/graph'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
 import { computed, useTemplateRef, watch, type ComponentInstance, type DeepReadonly } from 'vue'
@@ -37,7 +37,7 @@ onUserAction(
       selection: Range.unsafeFromBounds(selection.from, selection.to),
     }),
 )
-watch(content, ({ text, selection }) => setText(text, selection))
+watch(content, ({ text, selection }) => setText(text, selection), { immediate: true })
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'
@@ -76,10 +76,17 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <template v-if="props.mode.mode === 'componentBrowsing'">
-      <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
-      <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
-    </template>
+    <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
+      <ComponentEditorLabel
+        testId="component-editor-label"
+        :typeInfo="
+          props.mode.filter.selfArg?.type === 'known' ?
+            props.mode.filter.selfArg.typeInfo
+          : undefined
+        "
+        :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
+      />
+    </div>
     <CodeMirrorRoot ref="editorRoot" />
   </div>
 </template>
@@ -114,7 +121,11 @@ const rootStyle = computed(() => {
   }
 }
 
-.selfArgInfoArrow {
-  margin: 0 -4px;
+.componentEditorLabel {
+  position: absolute;
+  top: 3px;
+  width: 100%;
+  padding-right: 20px;
+  text-align: right;
 }
 </style>

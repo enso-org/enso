@@ -2,55 +2,43 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
+import Page from '#/components/Page'
+import { usePaywall } from '#/hooks/billing'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
-import DriveProvider from '#/providers/DriveProvider'
-
-import * as backendProvider from '#/providers/BackendProvider'
+import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, {
-  useClearLaunchedProjects,
-  useLaunchedProjects,
-  usePage,
-  useSetPage,
-} from '#/providers/ProjectsProvider'
-
-import Page from '#/components/Page'
-
+import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
-
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import { useConfigInReact } from '$/providers/react'
+import AppContainerVue from '$/components/AppContainer.vue'
+import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import { usePrefetchQuery } from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 
-const TabView = React.lazy(() =>
-  import('$/components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
-)
+// This is a component, not a mere constant
+// eslint-disable-next-line no-restricted-syntax
+const AppContainer = vueComponent(AppContainerVue).default
 
 /** The component that contains the entire UI. */
 export default function Dashboard() {
   return (
-    /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
+    /* Ideally `DriveProvider` would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
     <DriveProvider>
-      {({ resetAssetTableState }) => (
-        <CategoriesProvider onCategoryChange={resetAssetTableState}>
-          <ProjectsProvider>
-            <DashboardInner />
-          </ProjectsProvider>
-        </CategoriesProvider>
-      )}
+      <CategoriesProvider>
+        <ProjectsProvider>
+          <DashboardInner />
+        </ProjectsProvider>
+      </CategoriesProvider>
     </DriveProvider>
   )
 }
@@ -76,16 +64,14 @@ function fileURLToPath(url: string): string | null {
 
 /** The component that contains the entire UI. */
 function DashboardInner() {
-  const localBackend = backendProvider.useLocalBackend()
+  const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const config = useConfigInReact()
-
-  const initialProjectNameRaw = config.params.startup.project
+  const config = useConfig()
+  const initialProjectNameRaw = useVueValue(
+    React.useCallback(() => config.params.startup.project, [config]),
+  )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
-
-  const categoriesAPI = useCategoriesAPI()
-
   const openProjectLocally = projectHooks.useOpenProjectLocally()
 
   usePrefetchQuery({
@@ -116,7 +102,7 @@ function DashboardInner() {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      categoriesAPI.setCategory('local')
+      setDriveLocation(null, 'local')
 
       const projectId = localBackendModule.newProjectId(
         projectManager.UUID(project.id),
@@ -136,7 +122,7 @@ function DashboardInner() {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openProjectLocally, categoriesAPI])
+  }, [openProjectLocally])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {
@@ -160,12 +146,11 @@ function DashboardInner() {
     [inputBindings],
   )
 
-  const page = usePage()
-  const setPage = useSetPage()
   const launchedProjects = useLaunchedProjects()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = useClearLaunchedProjects()
+  const { user } = useFullUserSession()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   return (
     <Page hideInfoBar>
@@ -176,14 +161,12 @@ function DashboardInner() {
           modalProvider.unsetModal()
         }}
       >
-        <TabView
+        <AppContainer
           initialProjectName={initialProjectName}
-          page={page}
-          setPage={setPage}
           launchedProjects={launchedProjects}
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
-          clearLaunchedProjects={clearLaunchedProjects}
+          isFeatureUnderPaywall={isFeatureUnderPaywall}
         />
       </div>
     </Page>

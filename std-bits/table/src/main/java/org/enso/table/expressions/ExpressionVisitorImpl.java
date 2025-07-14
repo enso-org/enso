@@ -53,44 +53,101 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
+  public static class TypeErrorException extends RuntimeException {
+    public TypeErrorException(String message) {
+      super(message);
+    }
+  }
+
   public interface MethodInterface {
     Value execute(Value[] args, Function<Object, Value> makeConstantColumn);
 
     Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
   }
 
-  public record Method(
-      Value ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
-      implements MethodInterface {
+  public record MethodResolver(
+      Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    public MethodResolver(
+        String moduleName,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
+      this(
+          Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
+          typeName,
+          isStaticMethod,
+          makeTypedColumn);
+    }
 
-    private static final Value STATICS_MODULE;
-    private static final Value STATICS_TYPE;
+    private MethodResolver(
+        Value module,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
+      this(module, module.invokeMember("get_type", typeName), isStaticMethod, makeTypedColumn);
+    }
 
-    static {
-      var context = Context.getCurrent().getBindings("enso");
-      STATICS_MODULE = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
-      STATICS_TYPE = STATICS_MODULE.invokeMember("get_type", "Expression_Statics");
+    public boolean canResolve(String methodName) {
+      return resolve(methodName).canExecute();
+    }
+
+    public Value resolve(String methodName) {
+      return module.invokeMember("get_method", type, methodName);
+    }
+  }
+
+  public static MethodResolver newMethodResolver(
+      String moduleName,
+      String typeName,
+      boolean isStaticMethod,
+      Function<Object, Value> makeTypedColumn) {
+    return new MethodResolver(moduleName, typeName, isStaticMethod, makeTypedColumn);
+  }
+
+  public static class Method implements MethodInterface {
+    protected final MethodResolver methodResolver;
+    protected final String name;
+
+    public Method(MethodResolver methodResolver, String name) {
+      this.methodResolver = methodResolver;
+      this.name = name;
     }
 
     public static Method create(
-        Value module, Value type, String name, boolean variableArgumentMethod) {
-      var staticMethod = STATICS_MODULE.invokeMember("get_method", STATICS_TYPE, name);
-      if (staticMethod.canExecute()) {
-        return new Method(staticMethod, variableArgumentMethod, true, name);
-      } else {
-        var instanceMethod = module.invokeMember("get_method", type, name);
-        if (!instanceMethod.canExecute()) {
-          throw new UnsupportedOperationException("Method not found: " + name);
+        Iterable<MethodResolver> methodResolvers,
+        String methodName,
+        boolean isVariableArgumentMethod) {
+      for (var resolver : methodResolvers) {
+        if (resolver.canResolve(methodName)) {
+          if (isVariableArgumentMethod) {
+            return new VariableArgumentMethod(resolver, methodName);
+          } else if (resolver.isStaticMethod) {
+            return new StaticArgumentMethod(resolver, methodName);
+          } else {
+            return new Method(resolver, methodName);
+          }
         }
-        return new Method(instanceMethod, variableArgumentMethod, false, name);
       }
+      throw new UnsupportedOperationException("Method not found: " + methodName);
     }
 
     @Override
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
-      Object[] objects = prepareArguments(args, makeConstantColumn);
+      Object[] objects;
       try {
-        var result = ensoMethod.execute(objects);
+        objects = prepareArguments(args, makeConstantColumn);
+      } catch (PolyglotException e) {
+        if (e.getMessage().startsWith("Type error: expected expression to be")) {
+          throw new TypeErrorException(
+              e.getMessage()
+                  .replace(
+                      "Type error: expected expression",
+                      "method '" + name + "' expected first argument"));
+        }
+        throw e;
+      }
+      try {
+        var result = methodResolver.resolve(this.name).execute(objects);
         if (result.canExecute()) {
           throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
         }
@@ -105,20 +162,36 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
-      Object[] objects;
-      if (isVariableArgumentMethod) {
-        objects = new Object[2];
-        objects[0] = makeConstantColumn.apply(args[0]);
+      Object[] objects = Arrays.copyOf(args, args.length, Object[].class);
+      objects[0] = this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
+      return objects;
+    }
+  }
 
-        objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-      } else if (isStaticMethod) {
-        objects = new Object[args.length + 1];
-        objects[0] = STATICS_TYPE;
-        System.arraycopy(args, 0, objects, 1, args.length);
-      } else {
-        objects = Arrays.copyOf(args, args.length, Object[].class);
-        objects[0] = makeConstantColumn.apply(args[0]);
-      }
+  public static class VariableArgumentMethod extends Method {
+    public VariableArgumentMethod(MethodResolver methodResolver, String name) {
+      super(methodResolver, name);
+    }
+
+    @Override
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      return new Object[] {
+        this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0])),
+        Arrays.copyOfRange(args, 1, args.length, Object[].class)
+      };
+    }
+  }
+
+  public static class StaticArgumentMethod extends Method {
+    public StaticArgumentMethod(MethodResolver methodResolver, String name) {
+      super(methodResolver, name);
+    }
+
+    @Override
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects = new Object[args.length + 1];
+      objects[0] = this.methodResolver.module;
+      System.arraycopy(args, 0, objects, 1, args.length);
       return objects;
     }
   }
@@ -128,19 +201,19 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       Function<Value, Boolean> isColumn,
-      String moduleName,
-      String typeName,
+      MethodResolver[] methodResolvers,
       String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
-    var context = Context.getCurrent().getBindings("enso");
-    final Value module = context.invokeMember("get_module", moduleName);
-    final Value type = module.invokeMember("get_type", typeName);
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
     Function<String, MethodInterface> getMethod =
-        name -> Method.create(module, type, name, setVariableArgumentFunctions.contains(name));
+        name ->
+            Method.create(
+                java.util.Arrays.stream(methodResolvers).toList(),
+                name,
+                setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
-        name -> module.invokeMember("eval_expression", ".." + name);
+        name -> methodResolvers[0].module.invokeMember("eval_expression", ".." + name);
 
     return evaluateImpl(
         expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);

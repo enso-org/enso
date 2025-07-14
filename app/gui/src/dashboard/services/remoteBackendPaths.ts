@@ -38,12 +38,8 @@ export const LIST_DIRECTORY_PATH = 'directories'
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
 export const UNDO_DELETE_ASSET_PATH = 'assets'
-/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
 export const CREATE_PROJECT_PATH = 'projects'
-/** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-export const LIST_FILES_PATH = 'files'
 /** Relative HTTP path to the "upload file start" endpoint of the Cloud backend API. */
 export const UPLOAD_FILE_START_PATH = 'files/upload/start'
 /** Relative HTTP path to the "upload file end" endpoint of the Cloud backend API. */
@@ -67,9 +63,7 @@ export const CREATE_USER_GROUP_PATH = 'usergroups'
 /** Relative HTTP path to the "list user groups" endpoint of the Cloud backend API. */
 export const LIST_USER_GROUPS_PATH = 'usergroups'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
-export const CREATE_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
-/** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
-const GET_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
+export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout/sessions'
 export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
@@ -194,10 +188,6 @@ export function deleteProjectExecutionPath(executionId: backend.ProjectExecution
 export function getFileDetailsPath(fileId: backend.FileId) {
   return `files/${fileId}`
 }
-/** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
-export function checkResourcesPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/resources`
-}
 /** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
 export function updateSecretPath(secretId: backend.SecretId) {
   return `secrets/${secretId}`
@@ -221,10 +211,6 @@ export function deleteTagPath(tagId: backend.TagId) {
 /** Relative HTTP path to the "delete user group" endpoint of the Cloud backend API. */
 export function deleteUserGroupPath(groupId: backend.UserGroupId) {
   return `usergroups/${groupId}`
-}
-/** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
-export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
-  return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
 }
 /** Relative HTTP path to the "get oauth callback" endpoint of the Cloud backend API. */
 export function getOauthCallbackPath(service: backend.CredentialInput['type']) {

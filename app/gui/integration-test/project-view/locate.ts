@@ -13,7 +13,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 
 /** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Show/Hide visualization')
+  return page.getByLabel(/(Show|Hide|Show\/Hide) visualization.*/).first()
 }
 
 /** Visualization Selector button */
@@ -82,6 +82,7 @@ export const codeEditor = componentLocator('.CodeEditor')
 export const anyVisualization = componentLocator('.GraphVisualization')
 export const loadingVisualization = componentLocator('.LoadingVisualization')
 export const componentMenu = componentLocator('.ComponentMenu')
+export const componentMenuMoreEntries = testIdLocator('component-menu-more-entries')
 export const addNewNodeButton = testIdLocator('add-component-button')
 export const componentBrowser = componentLocator('.ComponentBrowser')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
@@ -109,12 +110,7 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
 
 /** Right-docked panel */
 export function rightDock(page: Page) {
-  return page.getByTestId('rightDock')
-}
-
-/** rightDock, but also includes toggle button */
-export function rightDockRoot(page: Page) {
-  return page.getByTestId('rightDockRoot')
+  return page.getByTestId('right-panel')
 }
 
 /** Bottom-docked panel */

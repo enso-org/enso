@@ -1,43 +1,32 @@
 <script setup lang="ts">
+import {
+  useGraphStore,
+  useProjectNames,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
+import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
+import { FunctionInfoKey } from '@/components/GraphEditor/widgets/WidgetFunctionDef.vue'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
+import { Ast } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
+import { useYText } from '@/util/crdt'
 import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { useFocusWithin } from '@vueuse/core'
-import { computed, ref, watchEffect } from 'vue'
-import { FunctionDef } from 'ydoc-shared/ast'
-import type * as Y from 'yjs'
-import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
-import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
+import { computed, useTemplateRef } from 'vue'
 
 const suggestionDb = useSuggestionDbStore()
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 
-const { functionAst, markdownDocs, methodPointer } = defineProps<{
-  functionAst: FunctionDef
-  markdownDocs: Y.Text | undefined
+const { functionAst, methodPointer } = defineProps<{
+  functionAst: Ast.FunctionDef
   methodPointer: MethodPointer | undefined
 }>()
 
-const docsString = ref<string>()
-
-function updateDocs() {
-  docsString.value = markdownDocs?.toJSON()
-}
-
-watchEffect((onCleanup) => {
-  const localMarkdownDocs = markdownDocs
-  if (localMarkdownDocs != null) {
-    updateDocs()
-    localMarkdownDocs.observe(updateDocs)
-    onCleanup(() => localMarkdownDocs.unobserve(updateDocs))
-  }
-})
+const docsString = useYText(() => functionAst.mutableDocumentationMarkdown())
 
 const docsData = computed(() => {
   const definedIn = methodPointer?.module
@@ -50,8 +39,9 @@ const treeRootInput = computed((): WidgetInput => {
   return input
 })
 
-const rootElement = ref<HTMLElement>()
+const rootElement = useTemplateRef('rootElement')
 const { focused } = useFocusWithin(rootElement)
+providePopoverRoot(rootElement)
 
 const graph = useGraphStore()
 
@@ -106,7 +96,6 @@ const primaryApplication = emptyPrimaryApplication()
 
 <style scoped>
 .FunctionSignatureEditor {
-  margin: 4px 8px;
   padding: 4px;
 
   /*
@@ -117,6 +106,5 @@ const primaryApplication = emptyPrimaryApplication()
   border-radius: var(--node-border-radius);
   transition: background-color 0.2s ease;
   background-color: var(--color-node-background);
-  box-sizing: border-box;
 }
 </style>

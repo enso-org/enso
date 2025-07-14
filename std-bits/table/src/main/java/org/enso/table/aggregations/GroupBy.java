@@ -1,13 +1,13 @@
 package org.enso.table.aggregations;
 
 import java.util.List;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 /** Aggregate Column getting the grouping key. */
 public class GroupBy extends KnownTypeAggregator {
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
 
   public GroupBy(String name, Column column) {
     super(name, column.getStorage().getType());

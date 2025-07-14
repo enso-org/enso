@@ -1,40 +1,47 @@
 /** @file A list of previous versions of an asset. */
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
+import { Scroller } from '#/components/Scroller'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
-import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
+import { useBackends, useText } from '$/providers/react'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useAssetPanelCurrentItem } from '../AssetPanelState'
 import { ProjectSession } from './ProjectSession'
-import type { AssetPanelProps } from './types'
-
-/** Props for a {@link ProjectSessions}. */
-export interface ProjectSessionsProps extends AssetPanelProps {}
 
 /** A list of previous versions of an asset. */
-export function ProjectSessions(props: ProjectSessionsProps) {
-  const { backend } = props
+export function ProjectSessions() {
   const { getText } = useText()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
+  const { remoteBackend } = useBackends()
 
-  const item = useAssetPanelCurrentItem()
-
-  if (backend.type === BackendType.local) {
+  if (category?.backend !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
   }
 
-  if (item == null) {
+  if (focusedAsset == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
   }
 
-  if (item.type !== AssetType.project) {
+  if (focusedAsset.type !== AssetType.project) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
   }
 
-  return <AssetProjectSessionsInternal {...props} item={item} />
+  return (
+    <ErrorBoundary>
+      <AssetProjectSessionsInternal backend={remoteBackend} item={focusedAsset} />
+    </ErrorBoundary>
+  )
 }
 
 /** Props for a {@link AssetProjectSessionsInternal}. */
-interface AssetProjectSessionsInternalProps extends ProjectSessionsProps {
+interface AssetProjectSessionsInternalProps {
+  readonly backend: Backend
   readonly item: ProjectAsset
 }
 
@@ -53,15 +60,17 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
 
   return projectSessionsQuery.data.length === 0 ?
       <Result status="info" centered title={getText('assetProjectSessions.noSessions')} />
-    : <div className="flex w-full flex-col justify-start">
-        {projectSessionsQuery.data.map((session, i) => (
-          <ProjectSession
-            key={session.projectSessionId}
-            backend={backend}
-            project={item}
-            projectSession={session}
-            index={projectSessionsQuery.data.length - i}
-          />
-        ))}
+    : <div className="flex min-h-0 w-full flex-col justify-start">
+        <Scroller scrollbar orientation="vertical" background="white" className="h-full">
+          {projectSessionsQuery.data.map((session, i) => (
+            <ProjectSession
+              key={session.projectSessionId}
+              backend={backend}
+              project={item}
+              projectSession={session}
+              index={projectSessionsQuery.data.length - i}
+            />
+          ))}
+        </Scroller>
       </div>
 }

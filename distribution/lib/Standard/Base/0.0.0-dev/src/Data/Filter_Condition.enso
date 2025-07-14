@@ -6,18 +6,13 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Error
-import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Missing_Argument
-import project.Errors.Common.Type_Error
-import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Function.Function
-import project.Meta
+import project.Internal.Predicate_Helpers
 import project.Nothing.Nothing
-import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all
+import project.Meta
 from project.Metadata import Display, make_single_choice, Widget
 from project.Metadata.Choice import Option
 from project.Widget_Helpers import make_any_selector
@@ -164,6 +159,11 @@ type Filter_Condition
     Is_In values=[] keep_or_remove:Filter_Action=..Keep
 
     ## PRIVATE
+
+       Generic function based check. With a function that returns `True` or `False`.
+    Predicate (predicate:(Any -> Boolean) = (Missing_Argument.throw "predicate"))
+
+    ## PRIVATE
        The action to perform on the matched items.
     action : Filter_Action
     action self = case self of
@@ -179,13 +179,7 @@ type Filter_Condition
 
     ## PRIVATE
        Resolves a possibly auto-scoped value to a concrete value.
-    resolve_auto_scoped : Any -> Any
-    resolve_auto_scoped filter =
-        resolve filter:Filter_Condition = filter
-        case filter of
-            _ : Function -> Panic.catch Type_Error (resolve filter) _->filter
-            _ : Filter_Condition -> filter
-            _ -> Panic.throw (Illegal_Argument.Error "The filter condition can either be a Function or a Filter_Condition, but got: "+filter.to_display_text)
+    resolve_auto_scoped filter = Predicate_Helpers.resolve_auto_scoped filter
 
     ## ICON convert
        Converts a `Filter_Condition` condition into a predicate taking an
@@ -237,6 +231,7 @@ type Filter_Condition
                     _ -> Regex.compile regex
                 compiled_regex.matches
             Is_In values _ -> Hashset.from_vector values . contains
+            Predicate fn -> fn
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
     ## PRIVATE
@@ -273,6 +268,7 @@ type Filter_Condition
             Like sql_pattern _ -> "Like " + sql_pattern.to_display_text
             Regex_Match pattern _ -> "Regex_Match " + pattern.to_display_text
             Is_In values _ -> "is in " + values.to_display_text
+            Predicate p -> "predicated " + p.to_display_text
         "Filter Condition: " + condition + (if self.action == Filter_Action.Keep then "" else " (Remove)")
 
     ## PRIVATE
@@ -334,24 +330,6 @@ type Filter_Action
 sql_like_to_regex (sql_pattern : Text) =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
-
-## PRIVATE
-unify_condition_or_predicate : Filter_Condition | (Any -> Boolean) -> (Any -> Boolean)
-unify_condition_or_predicate (condition_or_predicate : Filter_Condition | (Any -> Boolean)) =
-    case Filter_Condition.resolve_auto_scoped condition_or_predicate of
-        condition : Filter_Condition -> condition.to_predicate
-        predicate -> predicate
-
-## PRIVATE
-unify_condition_predicate_or_element condition =
-    case condition of
-        condition : Filter_Condition -> condition.to_predicate
-        predicate : Function ->
-            resolved = Filter_Condition.resolve_auto_scoped predicate
-            case resolved of
-                condition : Filter_Condition -> condition.to_predicate
-                _ -> resolved
-        element -> (== element)
 
 ## PRIVATE
    Extends the provided predicate to handle `Nothing` values without error.

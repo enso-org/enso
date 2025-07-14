@@ -98,10 +98,6 @@ export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
 export type AssetId = IdType[keyof IdType]
 export const AssetId = newtype.newtypeConstructor<AssetId>()
 
-/** Unique identifier for a payment checkout session. */
-export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
-export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
-
 /** Unique identifier for a subscription. */
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
 export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
@@ -318,18 +314,6 @@ export interface CreatedProject extends BaseProject {
   readonly ensoPath?: EnsoPath
 }
 
-/** A `Project` returned by the `listProjects` endpoint. */
-export interface ListedProjectRaw extends CreatedProject {
-  readonly address?: Address
-}
-
-/** A `Project` returned by `listProjects`. */
-export interface ListedProject extends CreatedProject {
-  readonly binaryAddress: Address | null
-  readonly jsonAddress: Address | null
-  readonly ydocAddress: Address | null
-}
-
 /** A `Project` returned by `updateProject`. */
 export interface UpdatedProject {
   readonly organizationId: OrganizationId
@@ -340,7 +324,8 @@ export interface UpdatedProject {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends ListedProjectRaw {
+export interface ProjectRaw extends CreatedProject {
+  readonly address?: Address
   readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
@@ -348,7 +333,10 @@ export interface ProjectRaw extends ListedProjectRaw {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface Project extends ListedProject {
+export interface Project extends CreatedProject {
+  readonly binaryAddress: Address | null
+  readonly jsonAddress: Address | null
+  readonly ydocAddress: Address | null
   readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
@@ -368,6 +356,11 @@ export interface ProjectSession {
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly closedAt?: dateTime.Rfc3339DateTime
   readonly userEmail: EmailAddress
+}
+
+export interface ProjectSessionLogs {
+  readonly scrollId: string
+  readonly hits: readonly string[]
 }
 
 export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
@@ -591,30 +584,9 @@ export const PLANS = Object.values(Plan)
 
 export const isPlan = array.includesPredicate(PLANS)
 
-/** Metadata uniquely describing a payment checkout session. */
+/** Metadata for a payment checkout session. */
 export interface CheckoutSession {
-  /** ID of the checkout session, suffixed with a secret value. */
-  readonly clientSecret: string
-  /** ID of the checkout session. */
-  readonly id: CheckoutSessionId
-}
-
-/** Metadata describing the status of a payment checkout session. */
-export interface CheckoutSessionStatus {
-  /** Status of the payment for the checkout session. */
-  readonly paymentStatus: string
-  /** Status of the checkout session. */
-  readonly status: 'active' | 'trialing' | (string & NonNullable<unknown>)
-}
-
-/** Resource usage of a VM. */
-export interface ResourceUsage {
-  /** Percentage of memory used. */
-  readonly memory: number
-  /** Percentage of CPU time used since boot. */
-  readonly cpu: number
-  /** Percentage of disk space used. */
-  readonly storage: number
+  readonly url: HttpsUrl
 }
 
 /** Metadata for a subscription. */
@@ -852,6 +824,13 @@ export const COLORS = [
 
 export const FALLBACK_COLOR = COLORS[0]
 
+/** Returns true if the two colors are equal. */
+export function colorsAreEqual(a: LChColor, b: LChColor) {
+  return (
+    a.lightness === b.lightness && a.chroma === b.chroma && a.hue === b.hue && a.alpha === b.alpha
+  )
+}
+
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
   const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
@@ -876,12 +855,6 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
   return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
-export enum SpecialAssetType {
-  loading = 'specialLoading',
-  empty = 'specialEmpty',
-  error = 'specialError',
-}
-
 /** All possible types of directory entries. */
 export enum AssetType {
   project = 'project',
@@ -889,15 +862,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /**
-   * A special {@link AssetType} representing the unknown items of a directory, before the
-   * request to retrieve the items completes.
-   */
-  specialLoading = 'specialLoading',
-  /** A special {@link AssetType} representing a directory listing that is empty. */
-  specialEmpty = 'specialEmpty',
-  /** A special {@link AssetType} representing a directory listing that errored. */
-  specialError = 'specialError',
   /** A special {@link AssetType} representing a button that navigates to the parent directory. */
   specialUp = 'specialUp',
 }
@@ -907,9 +871,6 @@ export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
   [AssetType.project]: 'projectAssetType',
   [AssetType.file]: 'fileAssetType',
   [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialEmpty]: 'specialEmptyAssetType',
-  [AssetType.specialError]: 'specialErrorAssetType',
-  [AssetType.specialLoading]: 'specialLoadingAssetType',
   [AssetType.specialUp]: 'specialUpAssetType',
   [AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
@@ -948,9 +909,6 @@ export type RealAssetTypeId<Id extends RealAssetId> =
   : AssetType.directory
 
 export interface SpecialAssetIdType {
-  readonly [AssetType.specialLoading]: LoadingAssetId
-  readonly [AssetType.specialEmpty]: EmptyAssetId
-  readonly [AssetType.specialError]: ErrorAssetId
   readonly [AssetType.specialUp]: UpAssetId
 }
 
@@ -964,9 +922,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: 2,
   [AssetType.datalink]: 3,
   [AssetType.secret]: 4,
-  [AssetType.specialLoading]: 1000,
-  [AssetType.specialEmpty]: 1000,
-  [AssetType.specialError]: 1000,
   [AssetType.specialUp]: -1,
 }
 
@@ -1025,15 +980,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
-export type SpecialLoadingAsset = Asset<AssetType.specialLoading>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
-export type SpecialEmptyAsset = Asset<AssetType.specialEmpty>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
-export type SpecialErrorAsset = Asset<AssetType.specialError>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
 export type SpecialUpAsset = Asset<AssetType.specialUp>
@@ -1105,143 +1051,6 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
   }
 }
 
-/** Creates a {@link DirectoryAsset} using the given values. */
-export function createPlaceholderDirectoryAsset(
-  title: string,
-  parentId: DirectoryId,
-): DirectoryAsset {
-  return {
-    type: AssetType.directory,
-    id: DirectoryId(`directory-${createPlaceholderId()}` as const),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link SecretAsset} using the given values. */
-export function createPlaceholderSecretAsset(title: string, parentId: DirectoryId): SecretAsset {
-  return {
-    type: AssetType.secret,
-    id: SecretId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link DatalinkAsset} using the given values. */
-export function createPlaceholderDatalinkAsset(
-  title: string,
-  parentId: DirectoryId,
-): DatalinkAsset {
-  return {
-    type: AssetType.datalink,
-    id: DatalinkId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/**
- * Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
-  return {
-    type: AssetType.specialLoading,
-    title: '',
-    id: LoadingAssetId(createPlaceholderId(`${AssetType.specialLoading}-${directoryId}`)),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link LoadingAssetId}. */
-export function isLoadingAssetId(id: string): id is LoadingAssetId {
-  return id.startsWith(`${AssetType.specialLoading}-`)
-}
-
-/**
- * Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
-  return {
-    type: AssetType.specialEmpty,
-    title: '',
-    id: EmptyAssetId(`${AssetType.specialEmpty}-${directoryId}`),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link EmptyAssetId}. */
-export function isEmptyAssetId(id: string): id is EmptyAssetId {
-  return id.startsWith(`${AssetType.specialEmpty}-`)
-}
-
-/**
- * Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorAsset {
-  return {
-    type: AssetType.specialError,
-    title: '',
-    id: ErrorAssetId(`${AssetType.specialError}-${directoryId}`),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link ErrorAssetId}. */
-export function isErrorAssetId(id: string): id is ErrorAssetId {
-  return id.startsWith(`${AssetType.specialError}-`)
-}
-
-/** Whether a given {@link string} is a special frontend-only asset id. */
-export function isSpecialAssetId(id: string) {
-  return isLoadingAssetId(id) || isEmptyAssetId(id) || isErrorAssetId(id)
-}
-
 /** Any object with a `type` field matching the given `AssetType`. */
 interface HasType<Type extends AssetType> {
   readonly type: Type
@@ -1249,15 +1058,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  | DatalinkAsset
-  | DirectoryAsset
-  | FileAsset
-  | ProjectAsset
-  | SecretAsset
-  | SpecialEmptyAsset
-  | SpecialErrorAsset
-  | SpecialLoadingAsset
-  | SpecialUpAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
   HasType<Type>
 >
 
@@ -1306,18 +1107,6 @@ export function createPlaceholderAssetId<Type extends AssetType>(
     }
     case AssetType.secret: {
       result = SecretId(id)
-      break
-    }
-    case AssetType.specialLoading: {
-      result = LoadingAssetId(id)
-      break
-    }
-    case AssetType.specialEmpty: {
-      result = EmptyAssetId(id)
-      break
-    }
-    case AssetType.specialError: {
-      result = ErrorAssetId(id)
       break
     }
     case AssetType.specialUp: {
@@ -1570,17 +1359,20 @@ export interface CreateUserGroupRequestBody {
   readonly name: string
 }
 
+/** Valid plan intervals. */
+export type PlanBillingPeriod = 1 | 12
+
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
-  readonly plan: Plan
-  readonly paymentMethodId: string
+  readonly price: Plan
   readonly quantity: number
-  readonly interval: number
+  readonly interval: PlanBillingPeriod
 }
 
 /** URL query string parameters for the "get log events" endpoint. */
 export interface GetLogEventsRequestParams {
   readonly userEmail?: EmailAddress | null | undefined
+  readonly lambdaKind?: string | null | undefined
   readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
   readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
   /** Pagination offset */
@@ -1600,6 +1392,11 @@ export interface ListDirectoryRequestParams {
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
+}
+
+/** URL query string parameters for the "get project session logs" endpoint. */
+export interface GetProjectSessionLogsRequestParams {
+  readonly scrollId: string | null
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
@@ -1852,6 +1649,7 @@ export class NetworkError extends Error {
     super(message)
   }
 }
+
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
 
@@ -1868,7 +1666,7 @@ export default abstract class Backend {
     localRootDirectory: Path | null | undefined,
   ): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<readonly User[]>
+  abstract listUsers(): Promise<readonly Omit<User, 'groups'>[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
@@ -1938,8 +1736,6 @@ export default abstract class Backend {
   abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
-  /** Return a list of projects belonging to the current user. */
-  abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
@@ -1999,8 +1795,9 @@ export default abstract class Backend {
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
+    params: GetProjectSessionLogsRequestParams,
     title: string,
-  ): Promise<readonly string[]>
+  ): Promise<ProjectSessionLogs>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
@@ -2015,13 +1812,9 @@ export default abstract class Backend {
   ): Promise<UpdatedProject>
   /** Fetch the content of the `Main.enso` file of a project. */
   abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
-  /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
-  /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<readonly FileLocator[]>
   /** Begin uploading a large file. */
   abstract uploadFileStart(
-    body: UploadFileRequestParams,
+    params: UploadFileRequestParams,
     file: File,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
@@ -2076,8 +1869,6 @@ export default abstract class Backend {
   abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
-  /** Get the status of a payment checkout session. */
-  abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
   abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */

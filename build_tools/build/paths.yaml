@@ -104,6 +104,7 @@
     generated-java/:
     rust/:
     test-results/:
+    small-jdk/:
   test/:
     Benchmarks/:
   tools/:
@@ -121,6 +122,8 @@
   std-bits/:
     benchmarks/:
       bench-report.xml:
+  project/:
+    Dependencies.scala:
   build.sbt:
   run:
   CHANGELOG.md:

@@ -30,6 +30,17 @@
     <path fill-rule="evenodd" clip-rule="evenodd" d="M2.5 0H4.5V12H16V16H0V12H2.5V0ZM11.5 2H9.5V5H6.5V7H9.5V10H11.5V7H14.5V5H11.5V2Z" fill="currentColor"></path>
   </symbol>
 
+  <symbol id="apple_color" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <g clip-path="url(#clip0_1418_150)">
+      <path d="M14.1096 5.4544C14.0168 5.5264 12.3784 6.4496 12.3784 8.5024C12.3784 10.8768 14.4632 11.7168 14.5256 11.7376C14.516 11.7888 14.1944 12.888 13.4264 14.008C12.7416 14.9936 12.0264 15.9776 10.9384 15.9776C9.8504 15.9776 9.5704 15.3456 8.3144 15.3456C7.0904 15.3456 6.6552 15.9984 5.66 15.9984C4.6648 15.9984 3.9704 15.0864 3.172 13.9664C2.2472 12.6512 1.5 10.608 1.5 8.6688C1.5 5.5584 3.5224 3.9088 5.5128 3.9088C6.5704 3.9088 7.452 4.6032 8.116 4.6032C8.748 4.6032 9.7336 3.8672 10.9368 3.8672C11.3928 3.8672 13.0312 3.9088 14.1096 5.4544ZM10.3656 2.5504C10.8632 1.96 11.2152 1.1408 11.2152 0.3216C11.2152 0.208 11.2056 0.0928 11.1848 0C10.3752 0.0304 9.412 0.5392 8.8312 1.2128C8.3752 1.7312 7.9496 2.5504 7.9496 3.3808C7.9496 3.5056 7.9704 3.6304 7.98 3.6704C8.0312 3.68 8.1144 3.6912 8.1976 3.6912C8.924 3.6912 9.8376 3.2048 10.3656 2.5504Z" fill="black"></path>
+    </g>
+    <defs>
+      <clipPath id="clip0_1418_150">
+        <rect width="13.024" height="16" fill="white" transform="translate(1.5)"></rect>
+      </clipPath>
+    </defs>
+  </symbol>
+
   <symbol id="array_new" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <rect x="2" y="6" width="3" height="3" fill="currentColor"></rect>
     <rect opacity="0.8" x="6" y="6" width="3" height="3" fill="currentColor"></rect>
@@ -83,6 +94,35 @@
 
   <symbol id="auto_replay" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <path fill-rule="evenodd" clip-rule="evenodd" d="M13.9829 4L6.98291 0V3.00002C3.67706 3.00924 1 5.69199 1 9C1 9.85105 1.17719 10.6607 1.49669 11.3941L3.24597 10.3842C3.08688 9.95285 3 9.48657 3 9C3 6.79656 4.78163 5.00924 6.98291 5.00004V8L13.9829 4ZM14.3506 6.28229L12.6146 7.28463C12.8617 7.80448 13 8.38609 13 9C13 11.2091 11.2091 13 9 13H7C6.00325 13 5.09164 12.6354 4.39127 12.0323L2.59232 13.071C3.68848 14.2572 5.25749 15 7 15H9C12.3137 15 15 12.3137 15 9C15 8.02176 14.7659 7.0982 14.3506 6.28229Z" fill="currentColor"></path>
+  </symbol>
+
+  <symbol id="azure_color" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <g clip-path="url(#clip0_1344_152)">
+      <path d="M4.74213 1.22215C4.84191 0.92649 5.11917 0.72744 5.43121 0.72744H9.99998L5.25787 14.7782C5.15808 15.0739 4.88082 15.2729 4.56879 15.2729H1.01303C0.515475 15.2729 0.164835 14.7845 0.323942 14.3131L4.74213 1.22215Z" fill="url(#paint0_linear_1344_152)"></path>
+      <path d="M12.046 10.1819H4.84557C4.54303 10.1819 4.39696 10.5525 4.61813 10.7589L9.2449 15.0772C9.37956 15.2029 9.5569 15.2728 9.74107 15.2728H13.8181L12.046 10.1819Z" fill="#0078D4"></path>
+      <path d="M5.43121 0.72744C5.11917 0.72744 4.84191 0.92649 4.74213 1.22215L0.323942 14.3131C0.164835 14.7845 0.515475 15.2729 1.01303 15.2729H4.56879C4.88082 15.2729 5.15808 15.0739 5.25787 14.7782L6.13622 12.1757L9.24487 15.0771C9.37953 15.2029 9.55687 15.2727 9.74113 15.2727H13.8181L12.0459 10.1818H6.80915L9.99998 0.72744H5.43121Z" fill="url(#paint1_linear_1344_152)"></path>
+      <path d="M11.2578 1.22204C11.158 0.926385 10.8808 0.727333 10.5687 0.727333H5.45448H5.47781C5.78984 0.727333 6.06712 0.926385 6.16689 1.22204L10.5851 14.313C10.7442 14.7844 10.3935 15.2728 9.896 15.2728H9.81813H14.9869C15.4844 15.2728 15.8351 14.7844 15.676 14.313L11.2578 1.22204Z" fill="url(#paint2_linear_1344_152)"></path>
+    </g>
+    <defs>
+      <linearGradient id="paint0_linear_1344_152" x1="5.40008" y1="1.23091" x2="0.656134" y2="15.2457" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#114A8B"></stop>
+        <stop offset="1" stop-color="#0669BC"></stop>
+      </linearGradient>
+      <linearGradient id="paint1_linear_1344_152" x1="9.19127" y1="10.1835" x2="8.09509" y2="10.5541" gradientUnits="userSpaceOnUse">
+        <stop stop-opacity="0.3"></stop>
+        <stop offset="0.0711768" stop-opacity="0.2"></stop>
+        <stop offset="0.321031" stop-opacity="0.1"></stop>
+        <stop offset="0.623053" stop-opacity="0.05"></stop>
+        <stop offset="1" stop-opacity="0"></stop>
+      </linearGradient>
+      <linearGradient id="paint2_linear_1344_152" x1="8.40762" y1="1.23083" x2="13.6149" y2="15.1045" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#3CCBF4"></stop>
+        <stop offset="1" stop-color="#2892DF"></stop>
+      </linearGradient>
+      <clipPath id="clip0_1344_152">
+        <rect width="16" height="16" fill="white"></rect>
+      </clipPath>
+    </defs>
   </symbol>
 
   <symbol id="bell" viewBox="0 0 16 16" width="16" height="16" fill="none">
@@ -800,6 +840,14 @@
     <rect x="5" width="6" height="11" rx="3" fill="currentColor"></rect>
     <path d="M3 5.5C3 5.22386 3.22386 5 3.5 5V5C3.77614 5 4 5.22386 4 5.5V6H3V5.5ZM12 5.5C12 5.22386 12.2239 5 12.5 5V5C12.7761 5 13 5.22386 13 5.5V6H12V5.5Z" fill="currentColor"></path>
     <path fill-rule="evenodd" clip-rule="evenodd" d="M4 6H3V8C3 10.419 4.71776 12.4367 7 12.9V15H5.5C5.22386 15 5 15.2239 5 15.5C5 15.7761 5.22386 16 5.5 16H7H9H10.5C10.7761 16 11 15.7761 11 15.5C11 15.2239 10.7761 15 10.5 15H9V12.9C11.2822 12.4367 13 10.419 13 8V6H12V8C12 10.2091 10.2091 12 8 12C5.79086 12 4 10.2091 4 8V6Z" fill="currentColor"></path>
+  </symbol>
+
+  <symbol id="microsoft_color" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M0 0H16V16H0V0Z" fill="#F3F3F3"></path>
+    <path d="M0.695656 0.695656H7.65218V7.65218H0.695656V0.695656Z" fill="#F35325"></path>
+    <path d="M8.34782 0.695656H15.3043V7.65218H8.34782V0.695656Z" fill="#81BC06"></path>
+    <path d="M0.695656 8.34782H7.65218V15.3043H0.695656V8.34782Z" fill="#05A6F0"></path>
+    <path d="M8.34782 8.34782H15.3043V15.3043H8.34782V8.34782Z" fill="#FFBA08"></path>
   </symbol>
 
   <symbol id="minus" viewBox="0 0 16 16" width="16" height="16" fill="none">

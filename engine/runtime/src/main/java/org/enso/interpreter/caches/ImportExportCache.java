@@ -61,9 +61,8 @@ public final class ImportExportCache
 
   @Override
   public byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
-    var arr =
-        Persistance.write(
-            entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context(), false));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var arr = pool.write(entry.bindings());
     return arr;
   }
 
@@ -71,7 +70,8 @@ public final class ImportExportCache
   public CachedBindings deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var ref = pool.read(data);
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
   }
@@ -235,8 +235,8 @@ public final class ImportExportCache
       var imp = in.readInline(scala.collection.immutable.List.class);
       var sym = in.readInline(scala.collection.immutable.Map.class);
       var map = new BindingsMap(de, cm);
-      map.resolvedImports_$eq(imp);
-      map.exportedSymbols_$eq(sym);
+      map.resolvedImports(imp);
+      map.exportedSymbols(sym);
       return map;
     }
   }

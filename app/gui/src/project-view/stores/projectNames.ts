@@ -1,4 +1,3 @@
-import { createContextStore } from '@/providers'
 import { Ok, Result } from '@/util/data/result'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
@@ -6,23 +5,27 @@ import { type ToValue } from '@/util/reactivity'
 import { computed, readonly, ref, toRef, toValue } from 'vue'
 import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
 
-export type ProjectNameStore = ReturnType<typeof injectProjectNames>
+export type ProjectNameStore = ReturnType<typeof createProjectNameStore>
 
 /** Manages the state of the project's name. */
-function useProjectNameStore(
-  namespace: ToValue<string | undefined>,
-  initialName: string,
-  displayName: ToValue<string>,
-) {
+export function createProjectNameStore({
+  projectNamespace,
+  projectInitialName,
+  projectDisplayedName,
+}: {
+  projectNamespace: ToValue<string | undefined>
+  projectInitialName: string
+  projectDisplayedName: ToValue<string>
+}) {
   const ns = computed(() => {
-    if (import.meta.env.PROD && namespace == null) {
+    if (import.meta.env.PROD && projectNamespace == null) {
       console.warn(
         'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
       )
     }
-    return (toValue(namespace) ?? 'local') as Identifier
+    return (toValue(projectNamespace) ?? 'local') as Identifier
   })
-  const synchronizedName = ref(initialName as Identifier)
+  const synchronizedName = ref(projectInitialName as Identifier)
   const pendingName = ref<Identifier>()
 
   const inboundProject = computed(() => qnJoin(ns.value, synchronizedName.value))
@@ -91,7 +94,7 @@ function useProjectNameStore(
         pendingName.value = undefined
       }
     },
-    displayName: readonly(toRef(displayName)),
+    displayName: readonly(toRef(projectDisplayedName)),
   }
 }
 
@@ -101,10 +104,9 @@ export function mockProjectNameStore(
   initialName: string = 'Mock_Project',
   displayName: ToValue<string> = 'Mock Project',
 ) {
-  return useProjectNameStore(namespace, initialName, displayName)
+  return createProjectNameStore({
+    projectNamespace: namespace,
+    projectInitialName: initialName,
+    projectDisplayedName: displayName,
+  })
 }
-
-export const [provideProjectNames, injectProjectNames] = createContextStore(
-  'projectNames',
-  useProjectNameStore,
-)

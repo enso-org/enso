@@ -1,100 +1,116 @@
 <script setup lang="ts">
-import { documentationEditorBindings } from '@/bindings'
-import { useDocumentationImages } from '@/components/DocumentationEditor/images'
-import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
-import FullscreenButton from '@/components/FullscreenButton.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useBackends } from '$/providers/backends'
+import { useRightPanelData } from '$/providers/rightPanel'
+import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import { htmlToMarkdown } from '@/components/MarkdownEditor/htmlToMarkdown'
-import SvgButton from '@/components/SvgButton.vue'
-import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
-import { useGraphStore } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
-import { useProjectFiles } from '@/stores/projectFiles'
-import { ComponentInstance, ref, toRef, watch } from 'vue'
-import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
-import * as Y from 'yjs'
+import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
+import { Ast } from '@/util/ast'
+import { parseModule } from '@/util/ast/abstract'
+import { useYTextSync } from '@/util/codemirror'
+import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
+import { methodPointerEquals } from '@/util/methodPointer'
+import { ResultComponent } from '@/util/react'
+import { useQuery } from '@tanstack/vue-query'
+import { computed } from 'vue'
 
-const { yText } = defineProps<{
-  yText: Y.Text
-}>()
-const emit = defineEmits<{
-  'update:fullscreen': [boolean]
-}>()
+const rightPanel = useRightPanelData()
+const openedProject = useCurrentProject().ref
+const projectId = computed(() => rightPanel.focusedProject)
+const { backendForType } = useBackends()
+const backendForAsset = computed(() => {
+  if (rightPanel.context?.category == null) return null
+  return backendForType(rightPanel.context.category.backend)
+})
 
-const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
+const fileContentsFromCloud = useQuery({
+  queryKey: computed(
+    () =>
+      [
+        backendForAsset.value?.type,
+        {
+          method: 'getFileContent',
+          projectId: projectId.value,
+        },
+      ] as const,
+  ),
+  enabled: computed(
+    () => openedProject.value == null && backendForAsset.value != null && projectId.value != null,
+  ),
+  queryFn: ({ queryKey }) => {
+    const [, { projectId }] = queryKey
+    return projectId && backendForAsset.value?.getFileContent(projectId)
+  },
+})
 
-const graphStore = useGraphStore()
-const projectStore = useProjectStore()
-const { transformImageUrl, tryUploadPastedImage, tryUploadDroppedImage, tryUploadImageFile } =
-  useDocumentationImages(
-    () => (markdownEditor.value?.loaded ? markdownEditor.value : undefined),
-    toRef(graphStore, 'modulePath'),
-    useProjectFiles(projectStore),
-  )
+const currentMethodAst = computed(() => {
+  if (openedProject.value) {
+    return mapOk(openedProject.value.graph.currentMethod.ast, (ast) => ({ ast, readOnly: false }))
+  } else if (fileContentsFromCloud.data != null) {
+    if (fileContentsFromCloud.error.value) return Err(fileContentsFromCloud.error.value)
+    if (fileContentsFromCloud.isLoading.value) return Err('Loading documentation...')
+    const code = fileContentsFromCloud.data.value
+    if (code) {
+      const module = parseModule(code)
+      const statement = Ast.findModuleMethod(module, 'main')?.statement
+      if (statement) return Ok({ ast: statement, readOnly: true })
+    }
+  }
+  return Err('No documentation available')
+})
 
-const fullscreen = ref(false)
-const fullscreenAnimating = ref(false)
-
-watch(
-  () => fullscreen.value || fullscreenAnimating.value,
-  (fullscreenOrAnimating) => emit('update:fullscreen', fullscreenOrAnimating),
+const currentMethodPointer = computed(
+  () => openedProject.value && unwrapOr(openedProject.value.graph.currentMethod.pointer, undefined),
+)
+const displaySignatureEditor = computed(
+  () =>
+    currentMethodPointer.value &&
+    openedProject.value?.store.entryPoint &&
+    !methodPointerEquals(currentMethodPointer.value, openedProject.value.store.entryPoint),
 )
 
-function handlePaste(raw: boolean) {
-  window.navigator.clipboard.read().then(async (items) => {
-    if (!markdownEditor.value) return
-    for (const item of items) {
-      if (tryUploadPastedImage(item)) continue
-      const htmlType = item.types.find((type) => type === 'text/html')
-      if (htmlType) {
-        const blob = await item.getType(htmlType)
-        const html = await blob.text()
-        const markdown = prerenderMarkdown(await htmlToMarkdown(html))
-        markdownEditor.value.putText(markdown)
-        continue
-      }
-      const textType = item.types.find((type) => type === 'text/plain')
-      if (textType) {
-        const blob = await item.getType(textType)
-        const rawText = await blob.text()
-        markdownEditor.value.putText(raw ? rawText : transformPastedText(rawText))
-      }
-    }
-  })
-}
+const editorMarkdown = computed(() =>
+  mapOk(currentMethodAst.value, ({ ast }) => ast.mutableDocumentationMarkdown()),
+)
+const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
 
-const handler = documentationEditorBindings.handler({
-  paste: () => handlePaste(false),
-  pasteRaw: () => handlePaste(true),
+const { syncExt, connectSync } = useYTextSync(editorContent)
+
+provideDocumentationImages({
+  openedProject,
+  backend: backendForAsset,
+  projectId,
 })
 </script>
 
 <template>
-  <WithFullscreenMode :fullscreen="fullscreen" @update:animating="fullscreenAnimating = $event">
-    <div
-      class="DocumentationEditor"
-      @keydown="handler"
-      @dragover.prevent
-      @drop.prevent="tryUploadDroppedImage($event)"
+  <div class="DocumentationEditor">
+    <MarkdownEditor
+      v-if="currentMethodAst.ok"
+      :extensions="syncExt"
+      :readonly="currentMethodAst.value.readOnly"
+      contentTestId="documentation-editor-content"
+      scrollerTestId="documentation-editor-scroller"
+      @editorReady="connectSync"
     >
-      <MarkdownEditor
-        ref="markdownEditor"
-        :content="yText"
-        :transformImageUrl="transformImageUrl"
-        contentTestId="documentation-editor-content"
-      >
-        <template #toolbarLeft>
-          <FullscreenButton v-model="fullscreen" />
-        </template>
-        <template #toolbarRight>
-          <SvgButton name="image" title="Insert image" @activate="tryUploadImageFile()" />
-        </template>
-        <template #belowToolbar>
-          <slot name="belowToolbar" />
-        </template>
-      </MarkdownEditor>
-    </div>
-  </WithFullscreenMode>
+      <template #belowToolbar>
+        <FunctionSignatureEditor
+          v-if="displaySignatureEditor && currentMethodAst.ok && openedProject"
+          :projectId="openedProject.store.id"
+          :functionAst="currentMethodAst.value.ast"
+          :methodPointer="currentMethodPointer"
+        />
+      </template>
+    </MarkdownEditor>
+    <!-- Specifying `<ResultComponent ... centered /> does not work with React components
+      `="true"` must be there-->
+    <ResultComponent
+      v-else
+      status="info"
+      :title="currentMethodAst.error.message('')"
+      :centered="true"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -104,7 +120,7 @@ const handler = documentationEditorBindings.handler({
   background-color: #fff;
   height: 100%;
   width: 100%;
-  padding-left: 16px;
-  padding-right: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 </style>

@@ -32,7 +32,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@fast-check/vitest": "^0.0.8",
+    "@fast-check/vitest": "^0.2.1",
     "@types/debug": "^4.1.12",
     "@types/node": "^22.10.4",
     "@types/ws": "8.5.13",

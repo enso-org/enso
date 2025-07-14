@@ -221,15 +221,6 @@ jobs:
           compression-level: 0
           name: test-traces-macos-amd64
           path: app/ide-desktop/client/test-traces
-      - run: corepack pnpm -r --filter enso ide-build-chromatic
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Chromatic snapshots
-        uses: chromaui/action@v11
-        with:
-          projectToken: ${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}
-          storybookBuildDir: storybook-static
-          workingDir: app/ide-desktop/client
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:

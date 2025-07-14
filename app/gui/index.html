@@ -20,7 +20,7 @@
       http-equiv="Content-Security-Policy"
       content="
             default-src     'self';
-            frame-src       'self' data: https://js.stripe.com;
+            frame-src       'self' data: https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
             script-src      'self' 'unsafe-eval' data: https://*;
             script-src-elem 'self' 'unsafe-inline' https://*;
             style-src       'self' 'unsafe-inline' data: https://*;
@@ -48,7 +48,6 @@
   <body>
     <div id="enso-spotlight" class="enso-spotlight"></div>
     <div id="enso-app" class="enso-app"></div>
-    <div id="enso-chat" class="enso-chat"></div>
     <div id="enso-portal-root" class="enso-portal-root"></div>
 
     <script type="module" src="/src/config.ts"></script>
