@@ -76,9 +76,8 @@ public final class ContextUtils implements TestRule, AutoCloseable {
   }
 
   /**
-   * The created builder starts with the <emph>default</emph> context. The default context is
-   * roughly equivalent to the one that is created for standard command line execution via engine
-   * runner.
+   * The created builder starts with the <em>default</em> context. The default context is roughly
+   * equivalent to the one that is created for standard command line execution via engine runner.
    *
    * @param permittedLanguages List of languages that are allowed to be used in the context. If
    *     empty, all installed languages are enabled.

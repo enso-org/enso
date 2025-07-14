@@ -1,0 +1,84 @@
+package org.enso.jvm.interop.api;
+
+import com.oracle.truffle.api.interop.TruffleObject;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
+import org.enso.jvm.channel.Channel;
+import org.enso.jvm.channel.JVM;
+import org.enso.jvm.interop.impl.OtherJvmMessage;
+import org.enso.jvm.interop.impl.OtherJvmPool;
+import org.enso.jvm.interop.impl.OtherJvmResult;
+
+/**
+ * Class responsible for loading Java classes from <em>other JVM</em> connected via a {@link
+ * Channel}.
+ */
+public final class OtherJvmClassLoader {
+  private final Channel<OtherJvmPool> channel;
+
+  private OtherJvmClassLoader(Channel<OtherJvmPool> ch) {
+    this.channel = ch;
+  }
+
+  /**
+   * Creates instance of the class loader.
+   *
+   * @param otherJvm normally we run in AOT mode but for debugging purposes we can also emulate the
+   *     connection in a single JVM
+   * @return new instance of the class loader
+   * @throws IOException
+   * @throws URISyntaxException
+   */
+  public static OtherJvmClassLoader create(boolean otherJvm)
+      throws IOException, URISyntaxException {
+    var jvm = otherJvm ? initializeJvm() : null;
+    var ch = Channel.create(jvm, OtherJvmPool.class);
+    return new OtherJvmClassLoader(ch);
+  }
+
+  public final TruffleObject loadClass(String name) throws ClassNotFoundException {
+    var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
+    return result.value();
+  }
+
+  public final void addToClassPath(URL url) {
+    channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(url.toString()));
+  }
+
+  private static JVM initializeJvm() throws IOException, URISyntaxException {
+    var home = System.getProperty("java.home");
+    if (home == null) {
+      throw new IOException("No java.home specified");
+    }
+    var javaHome = new File(home);
+    if (!javaHome.exists()) {
+      throw new IOException("JVM doesn't exists: " + javaHome);
+    }
+    var loc = OtherJvmClassLoader.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    var commandAndArgs = new ArrayList<String>();
+    var assertsOn = false;
+    assert assertsOn = true;
+    if (assertsOn) {
+      commandAndArgs.add("-ea");
+    }
+    commandAndArgs.add("--sun-misc-unsafe-memory-access=allow");
+    commandAndArgs.add("-Dpolyglot.engine.WarnInterpreterOnly=false");
+    commandAndArgs.add("-Dtruffle.UseFallbackRuntime=true");
+    commandAndArgs.add("--enable-native-access=org.graalvm.truffle");
+    commandAndArgs.add("--enable-native-access=org.enso.jvm.channel");
+    commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+    if (!component.isDirectory()) {
+      throw new IOException("Cannot find " + component + " directory");
+    }
+    commandAndArgs.add("--module-path=" + component.getPath());
+    commandAndArgs.add("-Djdk.module.main=org.enso.jvm.interop");
+    return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+  }
+}

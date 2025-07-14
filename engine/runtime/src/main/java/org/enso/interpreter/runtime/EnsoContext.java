@@ -228,7 +228,7 @@ public final class EnsoContext {
 
     var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
-      var epb = environment.getInternalLanguages().get("epb");
+      var epb = findEpbLanguage();
       if (epb != null) {
         @SuppressWarnings("unchecked")
         var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
@@ -238,6 +238,10 @@ public final class EnsoContext {
       }
     }
   }
+
+    private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
+        return environment.getInternalLanguages().get("epb");
+    }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
   private void checkWorkingDirectory(Optional<TruffleFile> maybeProjectRoot) {

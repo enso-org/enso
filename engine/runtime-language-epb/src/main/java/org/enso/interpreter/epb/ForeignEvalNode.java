@@ -95,6 +95,7 @@ final class ForeignEvalNode extends RootNode {
                   id,
                   langAndCode.getName());
               yield switch (id) {
+                case "java" -> parseJava();
                 case "js" -> parseJs();
                 case "python" -> parseGeneric("python", PyForeignNode::new);
                 default -> parseGeneric(id, GenericForeignNode::new);
@@ -109,6 +110,10 @@ final class ForeignEvalNode extends RootNode {
     } catch (InteropException ex) {
       throw new ForeignParsingException(ex.getMessage(), this);
     }
+  }
+
+  private ForeignFunctionCallNode parseJava() {
+    throw new IllegalStateException();
   }
 
   private ForeignFunctionCallNode parseJs() {

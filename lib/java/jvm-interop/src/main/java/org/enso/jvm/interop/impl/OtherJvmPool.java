@@ -1,4 +1,4 @@
-package org.enso.jvm.interop;
+package org.enso.jvm.interop.impl;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.HashMap;

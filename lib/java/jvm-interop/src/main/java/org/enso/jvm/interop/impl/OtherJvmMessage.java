@@ -1,4 +1,4 @@
-package org.enso.jvm.interop;
+package org.enso.jvm.interop.impl;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -18,7 +18,7 @@ import org.enso.persist.Persistance;
 
 /** Sends a message to the other side with ReflectionLibrary-like arguments. */
 @Persistable(id = 81901)
-record OtherJvmMessage(long id, Message message, List<Object> args)
+public record OtherJvmMessage(long id, Message message, List<Object> args)
     implements Function<
         Channel<OtherJvmPool>, OtherJvmResult<? extends Object, ? extends Exception>> {
   @Persistable(id = 81908, allowInlining = false)
@@ -78,7 +78,7 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81905)
-  record LoadClass(String name)
+  public record LoadClass(String name)
       implements Function<
           Channel<OtherJvmPool>, OtherJvmResult<TruffleObject, ClassNotFoundException>> {
     @Override
@@ -94,7 +94,7 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81906)
-  record AddToClassPath(String url) implements Function<Channel<OtherJvmPool>, Void> {
+  public record AddToClassPath(String url) implements Function<Channel<OtherJvmPool>, Void> {
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
       t.getConfig().loader.addToClassPath(url);
