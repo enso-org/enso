@@ -590,7 +590,7 @@ importers:
         version: 4.0.0
       electron-dl-manager:
         specifier: 4.0.0
-        version: 4.0.0(electron@31.2.0)
+        version: 4.0.0(electron@37.2.1)
       electron-is-dev:
         specifier: ^2.0.0
         version: 2.0.0
@@ -650,8 +650,8 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       electron:
-        specifier: 31.2.0
-        version: 31.2.0
+        specifier: 37.2.1
+        version: 37.2.1
       electron-builder:
         specifier: ^24.13.3
         version: 24.13.3(electron-builder-squirrel-windows@24.13.3)
@@ -4318,8 +4318,8 @@ packages:
   electron-to-chromium@1.5.97:
     resolution: {integrity: sha512-HKLtaH02augM7ZOdYRuO19rWDeY+QSJ1VxnXFa/XDFLf07HvM90pALIJFgrO+UVaajI3+aJMMpojoUTLZyQ7JQ==}
 
-  electron@31.2.0:
-    resolution: {integrity: sha512-5w+kjOsGiTXytPSErBPNp/3znnuEMKc42RD41MqRoQkiYaR8x/Le2+qWk1cL60UwE/67oeKnOHnnol8xEuldGg==}
+  electron@37.2.1:
+    resolution: {integrity: sha512-ae2EbzRNqIAHlftfCHtbbt6EgJUW8+zxWLONqNnn2iSrLF0O/pbxbff3xcpZYPpmFBs4uqjoi+s4QS7DQ+zZ/w==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -12201,9 +12201,9 @@ snapshots:
       - electron-builder-squirrel-windows
       - supports-color
 
-  electron-dl-manager@4.0.0(electron@31.2.0):
+  electron-dl-manager@4.0.0(electron@37.2.1):
     dependencies:
-      electron: 31.2.0
+      electron: 37.2.1
       ext-name: 5.0.0
       unused-filename: 3.0.1
 
@@ -12229,10 +12229,10 @@ snapshots:
 
   electron-to-chromium@1.5.97: {}
 
-  electron@31.2.0:
+  electron@37.2.1:
     dependencies:
       '@electron/get': 2.0.3
-      '@types/node': 20.17.11
+      '@types/node': 22.10.4
       extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
