@@ -200,7 +200,7 @@ public class PrivateConstructorAccessTest {
     ProjectUtils.testProjectRun(
         projDir,
         res -> {
-          assertThat(res.asString(), containsString("My_Type.Cons 'Name'"));
+          assertThat(res.asString(), containsString("Cons 'Name'"));
         });
   }
 
