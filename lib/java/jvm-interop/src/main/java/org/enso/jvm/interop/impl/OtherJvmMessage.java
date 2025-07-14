@@ -94,10 +94,10 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81906)
-  public record AddToClassPath(String url) implements Function<Channel<OtherJvmPool>, Void> {
+  public record AddToClassPath(String path) implements Function<Channel<OtherJvmPool>, Void> {
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
-      t.getConfig().loader.addToClassPath(url);
+      t.getConfig().loader.addToClassPath(path);
       return null;
     }
   }

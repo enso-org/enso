@@ -4,9 +4,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.function.Supplier;
@@ -47,10 +46,10 @@ final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
     }
   }
 
-  void addToClassPath(String url) {
+  void addToClassPath(String file) {
     try {
-      addURL(new URI(url).toURL());
-    } catch (MalformedURLException | URISyntaxException ex) {
+      addURL(new File(file).toURI().toURL());
+    } catch (MalformedURLException ex) {
       ex.printStackTrace();
     }
   }

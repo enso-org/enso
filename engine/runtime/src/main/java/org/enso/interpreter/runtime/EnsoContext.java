@@ -86,7 +86,8 @@ public final class EnsoContext {
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticAnalysisEnabled;
   private final boolean isHostClassLoading;
-  private final boolean isResolverClassLoading;
+  private final boolean isGuestClassLoading;
+  private volatile Object guestJava = this;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -151,11 +152,11 @@ public final class EnsoContext {
         this.isHostClassLoading =
         switch (classLoading) {
             case "hosted", "all" -> true;
-            case "service" -> false;
+            case "guest" -> false;
             case null, default -> throw new IllegalStateException(classLoading);
         };
-        this.isResolverClassLoading = switch (classLoading) {
-            case "service", "all" -> true;
+        this.isGuestClassLoading = switch (classLoading) {
+            case "guest", "all" -> true;
             case "hosted" -> false;
             case null, default -> throw new IllegalStateException(classLoading);
         };
@@ -525,18 +526,15 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public void addToClassPath(TruffleFile file) {
-    if (findGuestJava() == null) {
+    if (isHostClassLoading) {
       try {
         var url = file.toUri().toURL();
         hostClassLoader.add(url);
-        if (isResolverClassLoading) {
-          // XXX
-          // PolyglotSymbolResolver.addToClassPath(url);
-        }
       } catch (MalformedURLException ex) {
         throw new IllegalStateException(ex);
       }
-    } else {
+    }
+    if (isGuestClassLoading) {
       try {
         var path = new File(file.toUri()).getAbsoluteFile();
         if (!path.exists()) {
@@ -654,25 +652,24 @@ public final class EnsoContext {
       var hostSymbol =
           ClassLookup.lookupJavaClass(
               className, // name to search for
-              this::lookupHostSymbol, // ask the classloader
+              (fqn) -> {
+                return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
+              },
               collectedExceptions // put here all exceptions
               );
       if (hostSymbol instanceof TruffleObject) {
         return (TruffleObject) hostSymbol;
       }
     }
-    if (isResolverClassLoading) {
+    if (isGuestClassLoading) {
         var javaHome = System.getProperty("java.home");
         logger.info(
             () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
         var hostSymbol =
             ClassLookup.lookupJavaClass(
                 className, // name to search for
-                (n) -> {
-                    var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
-                    var target = environment.parseInternal(src);
-                    var loader = target.call();
-                    var clazz = InteropLibrary.getUncached().readMember(loader, n);
+                (fqn) -> {
+                    var clazz = InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
                     return clazz;
                 }, // pluggable polyglot searches
                 collectedExceptions // collect exceptions
@@ -691,21 +688,6 @@ public final class EnsoContext {
     return getBuiltins().error().makeMissingPolyglotImportError(className);
   }
 
-  private Object lookupHostSymbol(String fqn)
-      throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
-    try {
-      if (findGuestJava() == null) {
-        return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
-      } else {
-        return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
-      }
-    } catch (Error e) {
-      throw new ClassNotFoundException("Error loading " + fqn, e);
-    }
-  }
-
-  private Object guestJava = this;
-
   @TruffleBoundary
   private Object findGuestJava() throws IllegalStateException {
     if (guestJava != this) {
@@ -714,6 +696,10 @@ public final class EnsoContext {
     guestJava = null;
     var envJava = System.getenv("ENSO_JAVA");
     if (envJava == null) {
+      logger.log(Level.SEVERE, "Using experimental OtherJvm support!");
+      var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
+      var target = environment.parseInternal(src);
+      guestJava = target.call();
       return guestJava;
     }
     if ("espresso".equals(envJava)) {

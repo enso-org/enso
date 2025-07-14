@@ -4,12 +4,12 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
@@ -56,6 +56,11 @@ public final class OtherJvmClassLoader implements TruffleObject {
   }
 
   @ExportMessage
+  boolean isMemberInvocable(String member) {
+    return "addPath".equals(member);
+  }
+
+  @ExportMessage
   final Object getMembers(boolean includeInternal) {
     return this;
   }
@@ -69,6 +74,18 @@ public final class OtherJvmClassLoader implements TruffleObject {
     }
   }
 
+  @ExportMessage
+  final TruffleObject invokeMember(String name, Object[] args)
+      throws UnknownIdentifierException, UnsupportedMessageException {
+    if (!"addPath".equals(name)) {
+      throw UnknownIdentifierException.create(name);
+    } else {
+      var path = InteropLibrary.getUncached().asString(args[0]);
+      addToClassPath(path);
+    }
+    return this;
+  }
+
   @CompilerDirectives.TruffleBoundary
   private final TruffleObject loadClass(String name) throws ClassNotFoundException {
     var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
@@ -76,8 +93,8 @@ public final class OtherJvmClassLoader implements TruffleObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public final void addToClassPath(URL url) {
-    channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(url.toString()));
+  private final void addToClassPath(String path) {
+    channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(path));
   }
 
   private static JVM initializeJvm() throws IOException, URISyntaxException {
