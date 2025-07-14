@@ -5,10 +5,11 @@ import { useAppTitle } from '$/composables/appTitle'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
+import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
-import { useEvent } from '@/composables/events'
+import { useEvent, useMounted } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
@@ -100,6 +101,8 @@ onMounted(() => {
   }
 })
 const fullscreenRoot = shallowRef<HTMLElement>()
+
+useMounted(appOpenCloseCallback)
 
 // Mock external context in Project View integration tests. Once both test projects will be merged,
 // this should be removed

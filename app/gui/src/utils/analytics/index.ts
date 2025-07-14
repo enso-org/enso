@@ -67,12 +67,10 @@ export const checkout = {
   after: () => gtag.event('checkout_success'),
 }
 
-/** Log when the app has been opened. */
-export function onAppOpen(): void {
+/** Log when the app is opened and closed. */
+export function appOpenCloseCallback(): () => void {
   gtag.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
-  gtag.event('open_app')
-  // NOTE: A corresponding 'close_app' event existed in dead code. I[KW] don't know if it has ever
-  // been used.
+  return gtag.openCloseCallback('open_app', 'close_app')
 }
 
 /** Log when a graph editor instance is opened and closed. */

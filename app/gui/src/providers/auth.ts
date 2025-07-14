@@ -199,8 +199,6 @@ function createAuthStore(
     }
   })
 
-  analytics.onAppOpen()
-
   const effectiveUserData = computed(() => {
     const intermediate =
       userData.value && planOverride.value != null ?
