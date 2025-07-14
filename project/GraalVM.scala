@@ -103,7 +103,7 @@ object GraalVM {
     private val linuxX64Release   = NativeImageSize(200, 490)
     private val macX64Release     = NativeImageSize(200, 457)
     private val macARM64Release   = NativeImageSize(200, 473)
-    private val testNISize        = NativeImageSize(100, 592)
+    private val testNISize        = NativeImageSize(100, 800)
   }
 
   /** Has the user requested to use Espresso for Java interop? */
