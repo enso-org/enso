@@ -4,7 +4,9 @@ import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
+import { Scroller } from '#/components/Scroller'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
+import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Text } from '#/components/Text'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
@@ -102,6 +104,7 @@ import {
   useState,
   type Dispatch,
   type DragEvent,
+  type HTMLAttributes,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -125,6 +128,7 @@ LocalStorage.registerKey('enabledColumns', {
   schema: z.nativeEnum(Column).array().readonly(),
 })
 
+const INITIAL_PAGE_PARAM = Symbol('initial page parameter')
 const LIST_DIRECTORY_DEFAULT_PAGE_SIZE = 10
 /**
  * The height of each row in the table body. MUST be identical to the value as set by the
@@ -263,23 +267,36 @@ function AssetsTable(props: AssetsTableProps) {
     ...directoryQueryOptions,
     queryFn: (context) =>
       directoryQueryOptions.queryFn(context, {
-        from: context.pageParam,
+        from: context.pageParam === INITIAL_PAGE_PARAM ? null : context.pageParam,
         pageSize: LIST_DIRECTORY_DEFAULT_PAGE_SIZE,
       }),
-    initialPageParam: ((): AssetId | null => null)(),
-    getNextPageParam: (lastPage) => lastPage[lastPage.length - 1]?.id ?? null,
+    // This is type-safe because `INITIAL_PAGE_PARAM` is of type `typeof INITIAL_PAGE_PARAM`.
+    // eslint-disable-next-line no-restricted-syntax
+    initialPageParam: INITIAL_PAGE_PARAM as AssetId | typeof INITIAL_PAGE_PARAM | null,
+    getNextPageParam: (lastPage) => lastPage.at(-1)?.id ?? null,
     retry: () => {
       setDriveLocation(null, category.id)
       return false
     },
+    meta: { persist: false },
   })
   const assets = useMemo(() => assetsPages.data?.pages.flat() ?? [], [assetsPages.data?.pages])
+  const fetchNextAssetPage = assetsPages.fetchNextPage
+  const isFetching = assetsPages.isFetching
+
+  useEffect(() => {
+    const scrollerEl = scrollerRef.current
+    if (!scrollerEl) return
+    if (scrollerEl.scrollTop + scrollerEl.clientHeight >= scrollerEl.scrollHeight) {
+      void fetchNextAssetPage()
+    }
+  }, [fetchNextAssetPage, assetsPages.data?.pages])
 
   const { visibleItems } = useAssetsTableItems({ parentId: currentDirectoryId, assets, sortInfo })
 
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const mainDropzoneRef = useRef<HTMLButtonElement | null>(null)
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
   const headerRowRef = useRef<HTMLTableRowElement>(null)
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
 
@@ -1150,8 +1167,24 @@ function AssetsTable(props: AssetsTableProps) {
     : null
 
   const table = (
-    <div className="flex flex-none flex-col">
-      <table className="isolate table-fixed border-collapse rounded-rows">
+    <Scroller
+      scrollbar
+      fullSize
+      orientation="vertical"
+      className="h-full flex-1"
+      shadowStartClassName="top-8"
+      ref={scrollerRef}
+      onScroll={(event) => {
+        if (isFetching) return
+        const element = event.currentTarget
+        if (element.scrollTop + element.clientHeight >= element.scrollHeight) {
+          void assetsPages.fetchNextPage()
+        }
+      }}
+    >
+      {/* The `max-w-[calc(100cqw_-_0.5rem)]` is necessary otherwise it shifts slightly
+       * when scrolling horizontally. */}
+      <table className="isolate max-w-[calc(100cqw_-_0.5rem)] table-fixed border-collapse rounded-rows">
         <thead className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
           {headerRow}
         </thead>
@@ -1169,12 +1202,22 @@ function AssetsTable(props: AssetsTableProps) {
               </Text>
             </td>
           </tr>
+          {isFetching && (
+            <tr className="h-row">
+              <td colSpan={columns.length} className="rounded-full bg-transparent">
+                <div className="flex justify-center">
+                  <StatelessSpinner size={32} phase="loading-medium" />
+                </div>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
-
       <AssetsTableAssetsUnselector asChild>
         <div
           data-testid="root-directory-dropzone"
+          // The `max-w-[calc(100cqw_-_0.5rem)]` is necessary otherwise it shifts slightly
+          // when scrolling horizontally.
           className={twMerge(
             'sticky left-1 grid max-w-[calc(100cqw_-_0.5rem)] grow place-items-center pb-40 pt-20',
             (category.type === 'recent' || category.type === 'trash') && 'hidden',
@@ -1198,7 +1241,6 @@ function AssetsTable(props: AssetsTableProps) {
             <Button
               size="custom"
               variant="custom"
-              ref={mainDropzoneRef}
               icon={DropFilesImage}
               className="rounded-2xl"
               contentClassName="h-[186px] flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
@@ -1208,7 +1250,7 @@ function AssetsTable(props: AssetsTableProps) {
           </FileTrigger>
         </div>
       </AssetsTableAssetsUnselector>
-    </div>
+    </Scroller>
   )
 
   if (!isCloud && didLoadingProjectManagerFail) {
@@ -1249,7 +1291,11 @@ function AssetsTable(props: AssetsTableProps) {
 
       <IsolateLayout className="isolate h-full w-full" useRAF>
         <div
-          className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
+          ref={rootRef}
+          className="h-full w-full overflow-auto container-size"
+          onDrop={(event) => {
+            onRowDrop(event, null)
+          }}
           onKeyDown={onKeyDown}
           onBlur={(event) => {
             if (
@@ -1259,46 +1305,33 @@ function AssetsTable(props: AssetsTableProps) {
               setKeyboardSelectedIndex(null)
             }
           }}
-          ref={rootRef}
+          onContextMenu={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setModal(
+              <AssetsTableContextMenu
+                rootRef={rootRef}
+                backend={backend}
+                category={category}
+                event={event}
+                doCopy={doCopy}
+                doCut={doCut}
+                currentDirectoryId={currentDirectoryId}
+                doPaste={doPaste}
+              />,
+            )
+          }}
         >
-          <SelectionBrush
-            targetRef={rootRef}
-            onDrag={onSelectionDrag}
-            onDragEnd={onSelectionDragEnd}
-            onDragCancel={onSelectionDragCancel}
-            preventDrag={preventSelection}
-          />
-          <div
-            className="flex h-max min-h-full w-max min-w-full flex-col"
-            onContextMenu={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              setModal(
-                <AssetsTableContextMenu
-                  rootRef={rootRef}
-                  backend={backend}
-                  category={category}
-                  event={event}
-                  doCopy={doCopy}
-                  doCut={doCut}
-                  currentDirectoryId={currentDirectoryId}
-                  doPaste={doPaste}
-                />,
-              )
-            }}
-          >
-            <div
-              className="flex h-full w-min min-w-full grow flex-col px-1"
-              onDrop={(event) => {
-                onRowDrop(event, null)
-              }}
-            >
-              {table}
-              <AssetsTableAssetsUnselector />
-            </div>
-          </div>
+          {table}
         </div>
       </IsolateLayout>
+      <SelectionBrush
+        targetRef={rootRef}
+        onDrag={onSelectionDrag}
+        onDragEnd={onSelectionDragEnd}
+        onDragCancel={onSelectionDragCancel}
+        preventDrag={preventSelection}
+      />
     </div>
   )
 }
@@ -1373,8 +1406,8 @@ export function AssetsTableAssetsUnselector(props: AssetsTableAssetsUnselectorPr
 
     return cloneElement(
       onlyChild,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, no-restricted-syntax
-      mergeProps<any>()(onlyChild.props as any, { onPointerDown }),
+      // eslint-disable-next-line no-restricted-syntax
+      mergeProps<HTMLAttributes<HTMLElement>>()(onlyChild.props as never, { onPointerDown }),
     )
   }
 

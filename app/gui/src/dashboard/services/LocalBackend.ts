@@ -280,11 +280,8 @@ export default class LocalBackend extends Backend {
         }
       }
     }
-    const index = Math.max(
-      0,
-      query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from),
-    )
-    return result.slice(index, query.pageSize ?? undefined)
+    const index = query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from) + 1
+    return result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
   }
 
   /**

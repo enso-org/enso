@@ -243,9 +243,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         className="min-h-0 flex-1"
         shadowStartClassName="top-8"
         onScroll={(event) => {
-          if (isFetching) {
-            return
-          }
+          if (isFetching) return
           const element = event.currentTarget
           if (element.scrollTop + element.clientHeight >= element.scrollHeight) {
             void logsPages.fetchNextPage()
