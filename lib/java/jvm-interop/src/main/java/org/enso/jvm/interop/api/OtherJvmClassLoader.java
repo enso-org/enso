@@ -1,6 +1,10 @@
 package org.enso.jvm.interop.api;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -16,7 +20,8 @@ import org.enso.jvm.interop.impl.OtherJvmResult;
  * Class responsible for loading Java classes from <em>other JVM</em> connected via a {@link
  * Channel}.
  */
-public final class OtherJvmClassLoader {
+@ExportLibrary(InteropLibrary.class)
+public final class OtherJvmClassLoader implements TruffleObject {
   private final Channel<OtherJvmPool> channel;
 
   private OtherJvmClassLoader(Channel<OtherJvmPool> ch) {
@@ -39,7 +44,31 @@ public final class OtherJvmClassLoader {
     return new OtherJvmClassLoader(ch);
   }
 
-  public final TruffleObject loadClass(String name) throws ClassNotFoundException {
+  @ExportMessage
+  final boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  boolean isMemberReadable(String member) {
+    return true;
+  }
+
+  @ExportMessage
+  final Object getMembers(boolean includeInternal) {
+    return this;
+  }
+
+  @ExportMessage
+  final TruffleObject readMember(String name) throws UnknownIdentifierException {
+    try {
+      return loadClass(name);
+    } catch (ClassNotFoundException ex) {
+      throw UnknownIdentifierException.create(name, ex);
+    }
+  }
+
+  private final TruffleObject loadClass(String name) throws ClassNotFoundException {
     var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
     return result.value();
   }

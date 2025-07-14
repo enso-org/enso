@@ -24,7 +24,7 @@ import org.junit.Test;
 
 public class EpbJvmObjectTest {
   private static Context ctx;
-  private static Value loader;
+  private static Value guestClassLoader;
 
   @BeforeClass
   public static void initializeCtx() {
@@ -33,14 +33,14 @@ public class EpbJvmObjectTest {
     ctx.enter();
     @SuppressWarnings("unchecked")
     BiFunction<String, String, Object> fn = epbParse.lookup(BiFunction.class);
-    loader = ctx.asValue(fn.apply("java:0#guest", "Guest JVM"));
+    guestClassLoader = ctx.asValue(fn.apply("java:0#guest", "Guest JVM"));
   }
 
   @AfterClass
   public static void closeCtx() {
+    guestClassLoader = null;
     ctx.close();
     ctx = null;
-    loader = null;
   }
 
   @Test
@@ -223,6 +223,6 @@ public class EpbJvmObjectTest {
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
-    return loader.getMember(name);
+    return guestClassLoader.getMember(name);
   }
 }
