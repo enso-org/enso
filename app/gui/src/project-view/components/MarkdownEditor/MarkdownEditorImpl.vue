@@ -55,9 +55,9 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     EditorView.lineWrapping,
     highlightStyle(useCssModule()),
     ensoMarkdown({
-      tryUploadPastedImage: () =>
-        images?.value &&
-        ((item: ClipboardItem) => images.value.tryUploadPastedImage(editorView, item)),
+      tryUploadPastedImage: (item) => images?.value.tryUploadPastedImage(editorView, item) ?? false,
+      tryUploadDroppedImage: (event) =>
+        images?.value.tryUploadDroppedImage(editorView, event) ?? false,
     }),
     extensions,
   ],
@@ -96,11 +96,7 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    class="MarkdownEditorRoot"
-    @dragover.prevent
-    @drop.prevent="images?.tryUploadDroppedImage?.(editorView, $event)"
-  >
+  <div class="MarkdownEditorRoot" @dragover.prevent>
     <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
       <ActionButton action="panel.fullscreen" />
       <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />

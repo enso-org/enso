@@ -105,12 +105,13 @@ export function useDocumentationImagesFromProjectFiles(
     },
   )
 
-  async function uploadImage(
+  async function uploadImageAndInsert(
     view: EditorView,
     name: string,
-    blobPromise: Promise<Blob>,
+    data: Blob | Promise<Blob>,
     position: UploadedImagePosition = { type: 'selection' },
   ) {
+    const blobPromise = Promise.resolve(data)
     try {
       const rootId = await projectFiles.projectRootId
       if (!rootId) {
@@ -150,20 +151,31 @@ export function useDocumentationImagesFromProjectFiles(
     }
   }
 
-  /** If the given drag event contains supported image(s), upload them and insert references into the editor. */
-  async function tryUploadDroppedImage(view: EditorView, event: DragEvent) {
-    if (!event.dataTransfer?.items) return
+  /**
+   * If the given drag event contains supported image(s), upload them and insert references into the
+   * editor.
+   */
+  function tryUploadDroppedImage(view: EditorView, event: DragEvent): boolean {
+    if (!event.dataTransfer?.items) return false
+    const uploads = []
     for (const item of event.dataTransfer.items) {
       if (item.kind !== 'file' || !Object.hasOwn(supportedImageTypes, item.type)) continue
       const file = item.getAsFile()
       if (!file) continue
       const clientPos = new Vec2(event.clientX, event.clientY)
-      event.stopPropagation()
+      uploads.push(
+        uploadImageAndInsert(view, file.name, file, {
+          type: 'coords',
+          coords: clientPos,
+        }),
+      )
+    }
+    if (uploads.length > 0) {
+      event.stopImmediatePropagation()
       event.preventDefault()
-      await uploadImage(view, file.name, Promise.resolve(file), {
-        type: 'coords',
-        coords: clientPos,
-      })
+      return true
+    } else {
+      return false
     }
   }
 
@@ -172,7 +184,7 @@ export function useDocumentationImagesFromProjectFiles(
     const imageType = item.types.find((type): type is MimeType => type in supportedImageTypes)
     if (imageType) {
       const ext = supportedImageTypes[imageType]?.extensions[0] ?? ''
-      uploadImage(view, `image.${ext}`, item.getType(imageType))
+      uploadImageAndInsert(view, `image.${ext}`, item.getType(imageType))
       return true
     } else {
       return false
@@ -194,7 +206,7 @@ export function useDocumentationImagesFromProjectFiles(
 
   async function tryUploadImageFile(view: EditorView) {
     for (const file of await selectFiles()) {
-      await uploadImage(view, file.name, Promise.resolve(file))
+      await uploadImageAndInsert(view, file.name, file)
     }
   }
 
