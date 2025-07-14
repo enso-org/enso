@@ -571,7 +571,7 @@ val generateRustParserLib =
       "unstable-options"
     ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
       Seq(
-        "--out-dir",
+        "--artifact-dir",
         (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
       )
     val envVars = target
