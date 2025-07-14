@@ -345,7 +345,9 @@ public class Main {
             .argName("log-level")
             .longOpt(LOG_LEVEL)
             .desc(
-                "Sets the runtime log level. Possible values are: " + getPossibleLogLevels() + ". Default: info.")
+                "Sets the runtime log level. Possible values are: "
+                    + getPossibleLogLevels()
+                    + ". Default: info.")
             .build();
     var loggerConnectOption =
         cliOptionBuilder()
