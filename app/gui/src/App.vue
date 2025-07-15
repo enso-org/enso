@@ -2,8 +2,12 @@
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { useAppTitle } from '$/composables/appTitle'
+import { useAuth } from '$/providers/auth'
+import { ensoPathToTabId, provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
+import { provideRightPanelData } from '$/providers/rightPanel'
+import { useText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
@@ -26,10 +30,6 @@ import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
-import { useAuth } from './providers/auth'
-import { provideContainerData } from './providers/container'
-import { provideRightPanelData } from './providers/rightPanel'
-import { useText } from './providers/text'
 
 const { projectViewOnly } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -108,7 +108,11 @@ if (projectViewOnly) {
   const openedProjects = provideOpenedProjects()
   provideAsyncResources(openedProjects)
   provideContainerData()
-  provideRightPanelData('local/mock/Mock Project', () => false, useText())
+  provideRightPanelData(
+    ensoPathToTabId(projectViewOnly.options.projectPath),
+    () => false,
+    useText(),
+  )
   provideFullscreenRoot(fullscreenRoot)
 }
 </script>
