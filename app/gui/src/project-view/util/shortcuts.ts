@@ -3,7 +3,7 @@ import { assert } from '@/util/assert'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
-const DEBUG_LOG = false
+const DEBUG_LOG = true
 
 // ======================
 // === Modifier flags ===

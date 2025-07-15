@@ -80,7 +80,7 @@ function closeSettingsTab() {
 }
 
 const actionHandlers = registerHandlers({
-  'container.closeTab': {
+  'app.closeTab': {
     action: () => {
       switch (tab.value) {
         case 'settings':
@@ -105,7 +105,7 @@ useEvent(
   appContainerBindings.handler(
     objects.mapEntries(
       appContainerBindings.bindings,
-      (actionName) => () => void actionHandlers[actionName].action(),
+      (actionName) => actionHandlers[actionName].action,
     ),
   ),
 )

@@ -149,7 +149,6 @@ class App {
             logger.error('Failed to initialize Electron.', error)
           },
         )
-        this.registerShortcuts()
       } else {
         logger.log('Another instance of the application is already running, exiting.')
         electron.app.quit()
@@ -419,7 +418,25 @@ class App {
           : {}),
         }
         const window = new electron.BrowserWindow(windowPreferences)
-        electron.Menu.setApplicationMenu(null)
+
+        const menu = electron.Menu.buildFromTemplate([
+          {
+            label: common.PRODUCT_NAME,
+            role: 'windowMenu',
+            submenu: electron.Menu.buildFromTemplate([
+              {
+                label: `About ${common.PRODUCT_NAME}`,
+                // role: 'close',
+                accelerator: 'Ctrl+W',
+                click: () => {
+                  window.webContents.send(ipc.Channel.showAboutModal)
+                },
+              },
+            ]),
+          },
+        ])
+        electron.Menu.setApplicationMenu(menu)
+        window.setMenu(menu)
 
         if (this.args.groups.debug.options.devTools.value) {
           window.webContents.openDevTools()
@@ -669,38 +686,6 @@ class App {
         console.log(`${indent}${line}`)
       }
     }
-  }
-
-  /** Register keyboard shortcuts. */
-  registerShortcuts() {
-    electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
-      webContents.on('before-input-event', (_beforeInputEvent, input) => {
-        const { code, alt, control, shift, meta, type } = input
-        if (type === 'keyDown') {
-          const focusedWindow = electron.BrowserWindow.getFocusedWindow()
-          if (focusedWindow) {
-            if (control && alt && shift && !meta && code === 'KeyI') {
-              focusedWindow.webContents.toggleDevTools()
-            }
-            if (control && alt && shift && !meta && code === 'KeyR') {
-              focusedWindow.reload()
-            }
-          }
-
-          const cmdQ = meta && !control && !alt && !shift && code === 'KeyQ'
-          const ctrlQ = !meta && control && !alt && !shift && code === 'KeyQ'
-          const altF4 = !meta && !control && alt && !shift && code === 'F4'
-          const ctrlW = !meta && control && !alt && !shift && code === 'KeyW'
-          const quitOnMac = process.platform === 'darwin' && (cmdQ || altF4)
-          const quitOnWin = process.platform === 'win32' && (altF4 || ctrlW)
-          const quitOnLinux = process.platform === 'linux' && (altF4 || ctrlQ || ctrlW)
-          const quit = quitOnMac || quitOnWin || quitOnLinux
-          if (quit) {
-            electron.app.quit()
-          }
-        }
-      })
-    })
   }
 }
 

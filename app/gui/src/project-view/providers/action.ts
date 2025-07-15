@@ -1,5 +1,5 @@
 import {
-  appContainerBindings,
+  appBindings,
   componentBrowserBindings,
   documentationEditorFormatBindings,
   graphBindings,
@@ -273,10 +273,14 @@ const displayableActions = {
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {
-  // === App Container ===
+  // === App ===
 
-  'container.closeTab': {
-    shortcut: appContainerBindings.bindings['container.closeTab'],
+  'app.cancel': {},
+  'app.close': {
+    shortcut: appBindings.bindings['app.close'],
+  },
+  'app.closeTab': {
+    shortcut: appBindings.bindings['app.closeTab'],
   },
 
   // === Component Browser ===
@@ -346,10 +350,6 @@ const undisplayableActions = {
   'textEditor.deleteBack': {},
   'textEditor.deleteForward': {},
   'textEditor.newline': {},
-
-  // === Interactions ===
-
-  'interaction.cancel': {},
 }
 export type UndisplayableActionName = keyof typeof undisplayableActions
 

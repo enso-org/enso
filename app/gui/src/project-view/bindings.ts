@@ -1,8 +1,13 @@
 import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
 
-export const appContainerBindings = defineKeybinds('app-container-bindings', {
-  'container.closeTab': ['Mod+W', ...(!isMacLike ? ['Mod+F4' as const] : [])],
+export const appBindings = defineKeybinds('app', {
+  'app.cancel': ['Escape'],
+  'app.close': ['Mod+Q'],
+})
+
+export const appContainerBindings = defineKeybinds('app-container', {
+  'app.closeTab': ['Mod+W', ...(!isMacLike ? ['Mod+F4' as const] : [])],
 })
 
 export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
@@ -34,10 +39,6 @@ export const listBindings = defineKeybinds('list', {
   'list.moveUp': ['ArrowUp'],
   'list.moveDown': ['ArrowDown'],
   'list.accept': ['Enter'],
-})
-
-export const interactionBindings = defineKeybinds('current-interaction', {
-  'interaction.cancel': ['Escape'],
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
