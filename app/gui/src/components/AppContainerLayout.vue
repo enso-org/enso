@@ -1,6 +1,6 @@
 <script lang="ts">
 import { SetupOrganizationModal as SetupOrganizationModalReact } from '#/modals/SetupOrganizationForm'
-import { TrialEndedModal as TrialEndedModalReact } from '#/modals/TrialEndedForm'
+import { TrialEndedModal as TrialEndedModalReact } from '#/modals/TrialEndedModal'
 import * as backendModule from '#/services/Backend'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'

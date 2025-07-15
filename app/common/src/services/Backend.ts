@@ -591,17 +591,17 @@ export interface CheckoutSession {
 
 /** Metadata for a single payment card. */
 export interface Card {
-  plan: Plan
-  period: PlanBillingPeriod
-  title: string
-  subtitle: string
-  pricing: string
-  features: string[]
+  readonly plan: Plan
+  readonly period: PlanBillingPeriod
+  readonly title: string
+  readonly subtitle: string
+  readonly pricing: string
+  readonly features: string[]
 }
 
 /** Metadata for a payment pricing page configuration. */
 export interface PaymentsConfig {
-  cards: Card[]
+  readonly cards: Card[]
 }
 
 /** Metadata for a subscription. */
