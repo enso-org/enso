@@ -17,12 +17,7 @@ import project.Value_Type.Value_Type
 from project.Internal.Table_Helpers import duplicate_rows
 
 find_files_list_in_table (that : Table) -> Many_Files_List =
-    found_column = if that.column_count == 1 then that.at 0 else
-        path_columns = that.select_columns "path" case_sensitivity=..Insensitive on_problems=..Report_Error
-        not_found = path_columns.is_error || (path_columns.column_count == 0)
-        if not_found then Error.throw (Illegal_Argument.Error "To use a Table as file list, it must be a single column or contain a `path` column (case insensitive).") else
-            if path_columns.column_count > 1 then Error.throw (Illegal_Argument.Error "Multiple 'paths' column candidates found: "+path_columns.column_names.to_display_text+".") else
-                path_columns.at 0
+    found_column = _find_path_column_in_table that
     ensure_column_type_valid_to_be_files_list found_column <|
         Many_Files_List.Value that found_column.to_vector
 
@@ -40,15 +35,18 @@ ensure_column_type_valid_to_be_files_list (column : Column) ~action =
 
 make_return (return_shape : Return_As_Table) (input : Many_Files_List) (objects : Vector (Any | Failed_To_Load)) (on_problems : Problem_Behavior) -> Table =
     base_table = _input_as_table input
+    path_column = _find_path_column_in_table base_table . map .to_text
+    typed_base_table = base_table.set path_column
+
     case return_shape of
         Return_As_Table.With_New_Column ->
             replaced = replace_with_nothing_and_propagate objects on_problems
-            _add_objects_column base_table replaced
+            _add_objects_column typed_base_table replaced
         Return_As_Table.As_Merged_Table columns_to_keep match_columns ->
             tables = input.paths_to_load.zip objects path-> object->
                 strategy = Read_Many_As_Merged_Table_Strategy.from object
                 strategy.into_table path columns_to_keep match_columns on_problems
-            _merge_input_and_tables base_table tables columns_to_keep match_columns on_problems
+            _merge_input_and_tables typed_base_table tables columns_to_keep match_columns on_problems
 
 _input_as_table (input : Many_Files_List) -> Table =
     case input.original_value of
@@ -112,6 +110,14 @@ _add_objects_column (base_table : Table) (objects : Vector Any) -> Table  =
     unique_naming.mark_used base_table.column_names
     objects_column_name = unique_naming.make_unique "Value"
     base_table.set (Column.from_vector objects_column_name objects) as=objects_column_name set_mode=..Add
+
+_find_path_column_in_table (that : Table) -> Column =
+    if that.column_count == 1 then that.at 0 else
+        path_columns = that.select_columns "path" case_sensitivity=..Insensitive on_problems=..Report_Error
+        not_found = path_columns.is_error || (path_columns.column_count == 0)
+        if not_found then Error.throw (Illegal_Argument.Error "To use a Table as file list, it must be a single column or contain a `path` column (case insensitive).") else
+            if path_columns.column_count > 1 then Error.throw (Illegal_Argument.Error "Multiple 'paths' column candidates found: "+path_columns.column_names.to_display_text+".") else
+                path_columns.at 0
 
 ## Workaround for bug https://github.com/enso-org/enso/issues/11570
    TODO: Remove workaround one #11570 is closed.

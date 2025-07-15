@@ -1,5 +1,5 @@
 /** @file Test the user settings tab. */
-import { expect, test } from '@playwright/test'
+import { expect, test } from 'playwright/test'
 
 import { INVALID_PASSWORD, TEXT, VALID_PASSWORD, mockAllAndLogin } from './actions'
 

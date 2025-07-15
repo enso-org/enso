@@ -356,19 +356,6 @@ type DB_Table_Implementation
             problem_builder.report_unique_name_strategy unique
             problem_builder.attach_problems_after on_problems new_table
 
-    evaluate_expression (this_table : Table & DB_Table) expression:(Text | Expression) on_problems:Problem_Behavior =
-        if expression.is_a Text then this_table.evaluate_expression (Expression.Value expression) on_problems else
-            get_column name = this_table.at name
-            make_constant_column value = case value of
-                _ : Column -> value
-                _ -> this_table.make_constant_column value
-            is_column value = value.is_a Column
-            new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column_Type_Helpers.var_args_functions
-            problems = Warning.get_all new_column . map .value
-            result = new_column.rename (this_table.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
-            on_problems.attach_problems_before problems <|
-                Warning.set result []
-
     make_table_from_dictionary (this_table : Table & DB_Table) dict key_column_name value_column_name =
         Feature.Make_Table_From.if_supported_else_throw this_table.connection.dialect "make_table_from_dictionary" <|
             total_size = dict.size * 2

@@ -5,16 +5,25 @@ import { useBlockTypeDropdown } from '@/components/MarkdownEditor/blockTypeDropd
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
 import type { BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
-import { useDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
+import { StartedUpload, useAsyncResources } from '@/providers/asyncResources'
+import { AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
+import { Vec2 } from '@/util/data/vec2'
+import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
+import { useCurrentProjectResourceContext } from '../../providers/asyncResources/context'
+import {
+  insertPlaceholder,
+  replaceablePlaceholders,
+  replacePlaceholder,
+} from './codemirror/placeholder'
 
 const {
   toolbar = true,
@@ -40,11 +49,57 @@ const {
    */
   onEditorReady?: ((view: EditorView) => void) | undefined
 }>()
-defineOptions({
-  inheritAttrs: false,
-})
+defineOptions({ inheritAttrs: false })
 
-const images = useDocumentationImages(true)
+const resourceContext = useCurrentProjectResourceContext()
+const res = useAsyncResources(true)
+
+async function selectAndUpload() {
+  const files = await selectResourceFiles()
+  if (files.ok) handleUpload(files.value)
+}
+
+const uploadErrorToast = useToast.error()
+
+function handleUpload(source: AnyUploadSource): boolean {
+  if (!res) return false
+  const uploads = res.uploadResources(source, resourceContext)
+  if (uploads.length == 0) return false
+
+  const coords = source instanceof DragEvent ? new Vec2(source.clientX, source.clientY) : undefined
+  insertStartedUploads(uploads, coords)
+  return true
+}
+
+async function insertStartedUploads(uploads: Promise<StartedUpload>[], coords: Vec2 | undefined) {
+  const selection = editorView.state.selection.main
+  let from = coords ? editorView.posAtCoords(coords, false) : selection.from
+  let to = coords ? from : selection.to
+
+  for (const upload of uploads) {
+    const placeholderText = `\n![]()\n`
+    const placeholder = insertPlaceholder(editorView, from, to, placeholderText)
+    // Set next placeholder insert position right after this one.
+    from = to = from + placeholderText.length
+
+    upload.then((result) => {
+      // Once the upload metadata is known, fill in the placeholder.
+      if (result.ok) {
+        const { filename, resourceUrl, complete } = result.value
+        const safeAltText = filename.replace(/\.([^.]+)$/, '').replace(/[[\]]/g, '_')
+
+        const uploadText = `\n![${safeAltText}](${resourceUrl}?uploading)\n`
+        const finalText = `\n![${safeAltText}](${resourceUrl})\n`
+
+        replacePlaceholder(editorView, placeholder, uploadText, false)
+        complete.then(() => replacePlaceholder(editorView, placeholder, finalText))
+      } else {
+        replacePlaceholder(editorView, placeholder, '')
+        uploadErrorToast.reportError(result.error)
+      }
+    })
+  }
+}
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
@@ -54,11 +109,8 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     EditorView.lineWrapping,
     highlightStyle(useCssModule()),
-    ensoMarkdown({
-      tryUploadPastedImage: (item) => images?.value.tryUploadPastedImage(editorView, item) ?? false,
-      tryUploadDroppedImage: (event) =>
-        images?.value.tryUploadDroppedImage(editorView, event) ?? false,
-    }),
+    ensoMarkdown({ customClipboardAction: handleUpload, customDropAction: handleUpload }),
+    replaceablePlaceholders,
     extensions,
   ],
   readonly: () => readonly,
@@ -78,7 +130,7 @@ const { actions, formatBindings } = useFormatActions({
   formatting,
   readonly,
   editing,
-  uploadImage: () => images?.value && (() => images.value.tryUploadImageFile(editorView)),
+  uploadImage: selectAndUpload,
 })
 setExtraExtensions([formatBindings])
 

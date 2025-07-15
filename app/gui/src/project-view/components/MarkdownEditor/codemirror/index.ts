@@ -8,10 +8,7 @@ import { ensoMarkdownSyntax } from '@/components/MarkdownEditor/markdown/syntax'
 import type { Extension } from '@codemirror/state'
 export { useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror/formatting'
 
-interface EnsoMarkdownOptions extends MarkdownClipboardOptions {
-  tryUploadPastedImage: (item: ClipboardItem) => boolean
-  tryUploadDroppedImage: (event: DragEvent) => boolean
-}
+export interface EnsoMarkdownOptions extends MarkdownClipboardOptions {}
 
 /**
  * CodeMirror Extension for the Enso Markdown dialect.

@@ -4,17 +4,15 @@ import FocusRing from '#/components/styled/FocusRing'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
 import { useText } from '$/providers/react'
+import FileBrowserWidgetVue from '@/components/widgets/FileBrowserWidget.vue'
 import { AnimatePresence, motion } from 'framer-motion'
-import { type CSSProperties, lazy, useRef, useState } from 'react'
+import { type CSSProperties, useRef, useState } from 'react'
 import { ROUNDED_INPUT_BASE_CLASSES } from './JSONSchemaInput'
 
 const ANIMATION_DURATION = 0.2
 
-const FileBrowserWidget = lazy(() =>
-  import('@/components/widgets/FileBrowserWidget.vue').then(({ default: vue }) =>
-    vueComponent(vue),
-  ),
-)
+// eslint-disable-next-line no-restricted-syntax
+const FileBrowserWidget = vueComponent(FileBrowserWidgetVue).default
 
 /** Props for {@link FilePathInput}. */
 export interface FilePathInputProps {
