@@ -8,12 +8,34 @@ import { DEFAULT_COLUMN_PREFIX, NOTHING_NAME } from './tableInputArgument'
 
 const toTable = computed(() => Pattern.parseExpression('Table.input __'))
 
+function escapeNonPrintable(str: string) {
+  // Replace all control characters (C0 and C1 control codes, except for printable whitespace)
+  // and unpaired surrogates with their Unicode escape sequences.
+  // C0: U+0000–U+001F, DEL: U+007F, C1: U+0080–U+009F
+  // Also handle unpaired surrogates (U+D800–U+DFFF)
+  return Array.from(str)
+    .map((char) => {
+      const code = char.codePointAt(0)!
+      // Control characters and DEL
+      if ((code >= 0x00 && code <= 0x1f) || code === 0x7f || (code >= 0x80 && code <= 0x9f)) {
+        return '\\x' + code.toString(16).padStart(2, '0')
+      }
+      // Unpaired surrogates
+      if (code >= 0xd800 && code <= 0xdfff) {
+        return '\\u{' + code.toString(16) + '}'
+      }
+      return char
+    })
+    .join('')
+}
+
 /**
  * Parse data in TSV format (according to RFC 4180).
  * @throws if the number of columns in each row is not the same.
  * @returns an array of rows, each row is an array of cells.
  */
 function parseTsvDataImpl(tsvData: string): string[][] {
+  console.log('Data: ', escapeNonPrintable(tsvData))
   const parseResult = Papa.parse(tsvData, { delimiter: '\t', header: false })
   for (const error of parseResult.errors) {
     // These errors not necessearily mean that the parsing failed.

@@ -111,6 +111,7 @@ async function decodeClipboard<T>(
   decoders: ClipboardDecoder<T>[],
 ): Promise<IterableIterator<T>> {
   const decodeItem = async (clipboardItem: ClipboardItem) => {
+    console.log('clipboardItem types: ', clipboardItem.types)
     for (const decoder of decoders) {
       if (clipboardItem.types.includes(decoder.mimeType)) {
         const blob = await clipboardItem.getType(decoder.mimeType)
@@ -128,12 +129,18 @@ const spreadsheetDecoder: ClipboardDecoder<CopiedNode[]> = {
   mimeType: 'text/html',
   decode: async (blob, item) => {
     const htmlContent = await blob.text()
+    console.log('Spreadsheet decoder. Html content: ', htmlContent)
+    console.log('Includes text/plain: ', item.types.includes('text/plain'))
     if (!item.types.includes('text/plain')) return
     if (isSpreadsheetTsv(htmlContent)) {
+      console.log('Is spreadsheet tsv')
       const textData = await item.getType('text/plain').then((blob) => blob.text())
+      console.log('Text data: ', textData)
       const rows = parseTsvData(textData)
+      console.log('Rows: ', rows)
       if (rows == null) return
       const expression = tableToEnsoExpression(rows)
+      console.log('Expression: ', expression)
       if (expression == null) return
       return [{ expression }]
     }
