@@ -778,6 +778,10 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-enso")).await?;
                 ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-out")).await?;
                 ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-bin")).await?;
+
+                enso_build::web::install(&ctx.repo_root).await?;
+                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean)
+                    .await?;
             }
 
             let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
@@ -787,10 +791,8 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 }
                 Result::Ok(())
             };
-            let bazel_clean =
-                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean);
 
-            try_join!(git_clean, clean_cache, bazel_clean)?;
+            try_join!(git_clean, clean_cache)?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
