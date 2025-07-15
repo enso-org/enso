@@ -1573,7 +1573,7 @@ type Table
                 | Paul | London        | 20200102 |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
-    @format (make_format_chooser include_number=True)
+    @format Widget_Helpers.make_format_chooser_for_selection
     format self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Date_Time_Format_Parse_Error | Illegal_Argument =
         self.implementation.format self.underlying columns format locale error_on_missing_columns on_problems
 

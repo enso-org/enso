@@ -1,6 +1,6 @@
 package org.enso.table.operations;
 
-import java.util.function.BiPredicate;
+import java.util.function.BiFunction;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -123,7 +123,7 @@ public class AddGroupNumber {
       Column column,
       long start,
       long step,
-      BiPredicate<Object, Object> predicate,
+      BiFunction<Object, Object, Boolean> predicate,
       boolean passPrevious,
       ProblemAggregator problemAggregator) {
     var builder = Builder.getForLong(IntegerType.INT_64, table.rowCount(), problemAggregator);
@@ -147,8 +147,8 @@ public class AddGroupNumber {
 
         boolean predicateResult =
             column == null
-                ? predicate.test(currentRow, newRow)
-                : predicate.test(column.getItem(currentRow.index()), column.getItem(i));
+                ? predicate.apply(currentRow, newRow)
+                : predicate.apply(column.getItem(currentRow.index()), column.getItem(i));
 
         if (predicateResult) {
           if (!passPrevious) {
