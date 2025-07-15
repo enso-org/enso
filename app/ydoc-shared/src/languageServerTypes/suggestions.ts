@@ -6,8 +6,8 @@ export type SuggestionId = number
 export interface SuggestionEntryArgument {
   /** The argument name. */
   name: string
-  /** The argument type. String 'Any' is used to specify generic types. */
-  reprType: string
+  /** The argument type. */
+  reprType: string[]
   /** Indicates whether the argument is lazy. */
   isSuspended: boolean
   /** Indicates whether the argument has default value. */
@@ -138,7 +138,7 @@ export namespace SuggestionEntry {
     selfType: string
 
     /** The return type of this method. */
-    returnType: string
+    returnType: string[]
 
     /** The flag indicating whether this method is static or instance. */
     isStatic: boolean
@@ -168,7 +168,7 @@ export namespace SuggestionEntry {
     arguments: SuggestionEntryArgument[]
 
     /** The function return type. */
-    returnType: string
+    returnType: string[]
 
     /** The scope where the function is defined. */
     scope: SuggestionEntryScope
@@ -189,7 +189,7 @@ export namespace SuggestionEntry {
     module: string
 
     /** The type of a value. */
-    returnType: string
+    returnType: string[]
 
     /** The scope where the value is defined. */
     scope: SuggestionEntryScope
@@ -247,7 +247,7 @@ export namespace SuggestionArgumentUpdate {
     name?: FieldUpdate<string>
 
     /** The argument type to update. */
-    reprType?: FieldUpdate<string>
+    reprType?: FieldUpdate<string[]>
 
     /** The isSuspended flag to update. */
     isSuspended?: FieldUpdate<boolean>
@@ -299,7 +299,7 @@ export namespace SuggestionsDatabaseUpdate {
     selfType?: FieldUpdate<string>
 
     /** The return type to update. */
-    returnType?: FieldUpdate<string>
+    returnType?: FieldUpdate<string[]>
 
     /** The documentation string to update. */
     documentation?: FieldUpdate<string>

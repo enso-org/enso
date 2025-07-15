@@ -314,7 +314,13 @@ class ConstructorSuggestionEntryImpl
   }
 
   override setLsReturnType(returnType: Typename, projectNames: ProjectNameStore) {
-    const parsed = projectNames.parseProjectPathRaw(returnType)
+    let projectPath
+    if (Array.isArray(returnType)) {
+      projectPath = returnType[0] as string
+    } else {
+      projectPath = returnType
+    }
+    const parsed = projectNames.parseProjectPathRaw(projectPath)
     if (!parsed.ok) return parsed
     this.memberOf = parsed.value
     return Ok()
@@ -529,8 +535,8 @@ function modifyArgument(
 ): Result<void> {
   const nameUpdate = applyPropertyUpdate('name', arg, update)
   if (!nameUpdate.ok) return nameUpdate
-  const typeUpdate = applyFieldUpdate('reprType', update, (type) => {
-    arg.reprType = type
+  const typeUpdate = applyFieldUpdate('reprType', update, (reprType: string[]) => {
+    arg.reprType = reprType
     return Ok()
   })
   if (!typeUpdate.ok) return typeUpdate
@@ -647,7 +653,7 @@ export class SuggestionUpdateProcessor {
     })
     if (!selfTypeUpdate.ok) return selfTypeUpdate
 
-    const returnTypeUpdate = applyFieldUpdate('returnType', update, (returnType) => {
+    const returnTypeUpdate = applyFieldUpdate('returnType', update, (returnType: string[]) => {
       return entry.setLsReturnType(returnType, this.projectNames)
     })
     if (!returnTypeUpdate.ok) return returnTypeUpdate

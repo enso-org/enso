@@ -27,7 +27,7 @@ export type {
  * It's not QualifiedName, because it may be a type with parameters, or
  * a type union.
  */
-export type Typename = string
+export type Typename = string | string[]
 
 // The kind of a suggestion.
 export enum SuggestionKind {
