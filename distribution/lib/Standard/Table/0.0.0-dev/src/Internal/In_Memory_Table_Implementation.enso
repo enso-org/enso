@@ -387,7 +387,7 @@ type In_Memory_Table_Implementation
             Predicate_Over.Index index -> In_Memory_Table_Implementation.at this_table index
 
         ## Resolve predicate
-        used_predicate = case resolved_column.is_nothing of
+        used_predicate = case Nothing == resolved_column of
             True ->
                 group->current-> predicate (Row.Value group) (Row.Value current)
             False ->

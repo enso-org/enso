@@ -2311,7 +2311,7 @@ type Table
        - name: The name of the new column. Defaults to "Group".
        - from: The starting value for the enumeration. Defaults to 0.
        - step: The amount to increment the enumeration by. Defaults to 1.
-    @over (t-> make_single_choice ([Option "<Row>" "..Row"] + t.column_names))
+    @over (t-> make_single_choice ([Option "<Row>" "..Row"] + t.column_names) display=..When_Modified)
     find_group_number self (predicate=Missing_Argument.throw "predicate") (over:Predicate_Over = ..Row) group_row:Group_Row=..First name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
         self.implementation.find_group_number self.underlying predicate over group_row name from step on_problems
 

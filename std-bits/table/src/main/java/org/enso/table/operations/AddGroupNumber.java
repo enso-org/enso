@@ -1,8 +1,6 @@
 package org.enso.table.operations;
 
-import java.util.Arrays;
 import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
