@@ -382,8 +382,8 @@ export class Cognito implements ISessionProvider {
   /**
    * Sign in via the Microsoft federated identity provider.
    *
-   * This function will open the GitHub authentication page in the user's browser. The user will
-   * be asked to log in to their GitHub account, and then to grant access to the application.
+   * This function will open the Microsoft authentication page in the user's browser. The user will
+   * be asked to log in to their Microsoft account, and then to grant access to the application.
    * After the user has granted access, the browser will be redirected to the application.
    */
   async signInWithMicrosoft() {
@@ -459,8 +459,9 @@ export class Cognito implements ISessionProvider {
     // When using Microsoft we need to first invalidate auth0 and windows live sessions before calling cognito.
     const session = await amplify.Auth.currentSession()
     const identities = session.getIdToken().decodePayload()['identities']
-    const providerName = identities?.length ? identities[0]['providerName'] : undefined
+    const providerName = identities?.[0]?.['providerName']
     if (providerName === MICROSOFT_PROVIDER) {
+      // NOTE [PB]: First we need to sign out from Auth0 / Microsoft account. Then we will hit `//auth/federated` deeplink handler where we call `amplify.Auth.signOut()` to terminate cognito session.
       window.open($config.MICROSOFT_SIGN_OUT_URL, '_blank')
     } else {
       try {
