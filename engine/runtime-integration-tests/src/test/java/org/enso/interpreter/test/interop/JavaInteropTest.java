@@ -119,7 +119,7 @@ public abstract class JavaInteropTest {
 
         main = check
         """;
-    var check = ctxRule.evalModule(code);
+    var check = ctx().evalModule(code);
 
     assertEquals("'no'", check.execute("Not FnIntrfc").toString());
 
@@ -138,7 +138,7 @@ public abstract class JavaInteropTest {
 
         main = My_Type.Value 1
         """;
-    var atom = ctxRule.evalModule(atomCode);
+    var atom = ctx().evalModule(atomCode);
     assertEquals(
         "atom is not Java interface at all " + "and it shouldn't pass the call:FnIntrfc check",
         "'no'",
