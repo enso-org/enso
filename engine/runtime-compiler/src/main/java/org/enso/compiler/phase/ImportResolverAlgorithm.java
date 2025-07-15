@@ -119,7 +119,10 @@ public abstract class ImportResolverAlgorithm<
     var parts = partsForImport(imp);
     if (parts.size() < 2) {
       throw new CompilerError(
-          "Imports should contain at least two segments after " + "desugaring.");
+          "Imports should contain at least two segments after desugaring. Was: "
+              + parts
+              + "\nat "
+              + imp);
     }
     var libraryName = new LibraryName(parts.get(0), parts.get(1));
     try {

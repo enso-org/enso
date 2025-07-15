@@ -305,7 +305,7 @@ class EnsureCompiledJob(
         val result = compiler.run(module.asCompilerModule())
 
         Right(
-          result.copy(compiledModules =
+          new CompilerResult(
             result.compiledModules.filter(_.getName != module.getName)
           )
         )

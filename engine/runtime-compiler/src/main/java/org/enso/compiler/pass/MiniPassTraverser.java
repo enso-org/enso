@@ -43,7 +43,7 @@ final class MiniPassTraverser {
             case Expression e -> miniPass.transformExpression(e);
             default -> throw new IllegalArgumentException("" + oldIr);
           };
-      if (oldIr != transformedIr) {
+      if (transformedIr != null && oldIr != transformedIr) {
         out.set(outIndex, transformedIr);
       }
       outIndex = -1;

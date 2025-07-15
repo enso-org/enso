@@ -145,4 +145,15 @@ public class ExecStrictCompilerTest {
         errors.isEmpty(),
         is(true));
   }
+
+  @Test
+  public void importAsAndRename() {
+    var code =
+        """
+              from Standard.Base.Error import Error as Throw_Error
+              main = Throw_Error.throw 'Hi'
+              """;
+    var res = ctxRule.evalModule(code);
+    assertTrue("Result is an error: " + res, res.isException());
+  }
 }

@@ -120,11 +120,7 @@ class Compiler(
     * @return a compiler result containing the list of compiled modules
     */
   def run(module: Module): CompilerResult = {
-    runInternal(
-      List(module),
-      generateCode              = true,
-      shouldCompileDependencies = true
-    )
+    CompilerUtils.runInternal(this, List(module), true, true, false)
   }
 
   /** Compiles the requested packages, writing the compiled IR to the library
@@ -181,10 +177,12 @@ class Compiler(
                 mod
             }.toList
 
-            runInternal(
+            CompilerUtils.runInternal(
+              this,
               packageModules,
-              generateCode = false,
-              shouldCompileDependencies
+              false,
+              shouldCompileDependencies,
+              false
             )
 
             if (shouldRemoveUnusedImports()) {
@@ -233,41 +231,7 @@ class Compiler(
     module
   }
 
-  /** Run the compiler on the list of modules.
-    *
-    * The compilation may load the libraries defining component groups. To ensure
-    * that the symbols defined by the component groups are also compiled, this
-    * method is called recursively.
-    */
-  private def runInternal(
-    modules: List[Module],
-    generateCode: Boolean,
-    shouldCompileDependencies: Boolean,
-    generateDocs: Boolean = false
-  ): CompilerResult = {
-    @scala.annotation.tailrec
-    def go(
-      modulesToCompile: List[Module],
-      compiledModules: List[Module]
-    ): CompilerResult =
-      if (modulesToCompile.isEmpty) CompilerResult(compiledModules)
-      else {
-        val newCompiled =
-          runCompilerPipeline(
-            modulesToCompile,
-            generateCode,
-            shouldCompileDependencies,
-            generateDocs
-          )
-        val pending =
-          packageRepository.getPendingModules.toList
-        go(pending, compiledModules ++ newCompiled)
-      }
-
-    go(modules, List())
-  }
-
-  private def runCompilerPipeline(
+  private[compiler] def runCompilerPipeline(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean,

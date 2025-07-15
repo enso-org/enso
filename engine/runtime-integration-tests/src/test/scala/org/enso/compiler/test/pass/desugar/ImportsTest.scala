@@ -19,7 +19,7 @@ class ImportsTest extends CompilerTest {
   val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(Imports).get
+    passes.getPrecursors(Imports.INSTANCE).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
@@ -38,7 +38,7 @@ class ImportsTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext) = {
-      Imports.runModule(ir, context)
+      Imports.INSTANCE.createForModuleCompilation(context).transformModule(ir)
     }
   }
 
