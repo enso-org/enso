@@ -1,6 +1,8 @@
 package org.enso.table.operations;
 
+import java.util.Arrays;
 import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -110,7 +112,9 @@ public class AddGroupNumber {
       public void visit(long row) {
         long group =
             Math.addExact(
-                parent().start, Math.multiplyExact(parent().step, (row / parent().groupSize)));
+                parent().start,
+                Math.multiplyExact(
+                    parent().step, (parent.builder.getCurrentSize() / parent().groupSize)));
         parent.builder.appendLong(group);
       }
     }

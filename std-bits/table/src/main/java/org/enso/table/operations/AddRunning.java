@@ -25,12 +25,12 @@ public class AddRunning {
     var runningStatistic =
         new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
     return GroupingOrderingVisitor.visit(
-            groupingColumns,
-            orderingColumns,
-            directions,
-            problemAggregator,
-            runningStatistic,
-            sourceColumn.getSize());
+        groupingColumns,
+        orderingColumns,
+        directions,
+        problemAggregator,
+        runningStatistic,
+        sourceColumn.getSize());
   }
 
   private static class RunningStatisticRowVisitorFactory implements RowVisitorFactory {

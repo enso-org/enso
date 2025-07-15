@@ -153,19 +153,19 @@ class NoGroupingOrderingRunning extends GroupingOrderingVisitor {
 
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
-    int idx = 0;
+    long idx = 0;
     var it = runningStatistic.getNewRowVisitor();
     for (var key : keys) {
       var i = key.getRowIndex();
       it.visit(i);
-      mask[Math.toIntExact(i)] = idx++;
+      mask[Math.toIntExact(i)] = idx++; // Store the original index in the mask
     }
     it.finalise();
   }
 
   @Override
   public long[] getMask() {
-    return mask;
+    return mask; // Return the mask containing the original indices
   }
 }
 
@@ -173,7 +173,6 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
 
   private final Column[] groupingColumns;
   private final int[] directions;
-  private final ColumnStorage<?>[] groupingStorages;
   private final ColumnStorage<?>[] orderingStorages;
   private final ProblemAggregator problemAggregator;
   private final long[] mask;
@@ -185,12 +184,15 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
       ProblemAggregator problemAggregator) {
     this.groupingColumns = groupingColumns;
     this.directions = directions;
-    groupingStorages =
+
+    var groupingStorages =
         Arrays.stream(groupingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
+
     orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     this.problemAggregator = problemAggregator;
+
     mask = new long[Builder.checkSize(orderingColumns[0].getSize())];
   }
 
