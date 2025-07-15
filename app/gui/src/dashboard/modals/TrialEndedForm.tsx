@@ -25,12 +25,6 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
     }),
   )
 
-  // const onCancel = useMutationCallback({
-  //   mutationFn: async (mutationData: CancelSubcriptionMutationParams) => {
-  //     await remoteBackend.cancelSubscription(mutationData.subscriptionId)
-  //   },
-  // })
-
   const onCancel = useMutation(backendMutationOptions(remoteBackend, 'cancelSubscription'))
 
   return (
