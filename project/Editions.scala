@@ -24,7 +24,7 @@ object Editions {
     "Standard.Snowflake",
     "Standard.Microsoft",
     "Standard.Tableau",
-    "Standard.Strava"
+    "Standard.Saas"
   )
 
   case class ContribLibrary(name: String, version: String)
