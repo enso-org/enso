@@ -15,7 +15,6 @@ import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 /** An implementation of the case expression specialised to working on polyglot types. */
 @NodeInfo(shortName = "PolyglotSymbolTypeMatch")
@@ -23,7 +22,6 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
 
   private final Object polyglotSymbol;
-  private @Child TypeOfNode typeOfNode = TypeOfNode.create();
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
   private final CountingConditionProfile profile = CountingConditionProfile.create();
 
@@ -51,19 +49,20 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
       Object state,
       Object target,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Object tpeOfTarget = typeOfNode.findTypeOrError(target);
-    boolean test = isSameObject.execute(polyglotSymbol, tpeOfTarget);
-    if (profile.profile(test)) {
-      accept(frame, state, new Object[] {target});
-    } else {
-      try {
-        if (interop.hasMetaParents(tpeOfTarget) && findPolyglotSymbolInTypeHierarchy(tpeOfTarget)) {
+    try {
+      if (interop.hasMetaObject(target)) {
+        var tpeOfTarget = interop.getMetaObject(target);
+        var test = isSameObject.execute(polyglotSymbol, tpeOfTarget);
+        if (!test && interop.hasMetaParents(tpeOfTarget)) {
+          test = findPolyglotSymbolInTypeHierarchy(tpeOfTarget);
+        }
+        if (profile.profile(test)) {
           accept(frame, state, new Object[] {target});
         }
-      } catch (InteropException e) {
-        Atom err = reportError(polyglotSymbol, target);
-        throw new PanicException(err, this);
       }
+    } catch (InteropException e) {
+      Atom err = reportError(polyglotSymbol, target);
+      throw new PanicException(err, this);
     }
   }
 
