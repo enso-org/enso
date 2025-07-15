@@ -22,15 +22,7 @@ export interface ContextualHelpProps
  * A contextual help component that displays a help message when the user hovers over an element.
  */
 export function ContextualHelp(props: ContextualHelpProps) {
-  const {
-    placement,
-    testId = 'contextual-help',
-    defaultOpen,
-    isOpen,
-    onOpenChange,
-    variant = 'help',
-    children,
-  } = props
+  const { placement, testId, defaultOpen, isOpen, onOpenChange, variant = 'help', children } = props
 
   const icon: SvgUseIcon = variant === 'help' ? 'help' : 'metadata'
 

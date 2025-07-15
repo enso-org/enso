@@ -9,7 +9,7 @@ test('Adding new node', async ({ page }) => {
 
   const nodesCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
-  await expect(page.getByTestId('component-editor-content')).toBeFocused()
+  await expect(locate.componentBrowserInput(page)).toBeFocused()
   await page.keyboard.insertText('foo')
   await page.keyboard.press(`${CONTROL_KEY}+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)

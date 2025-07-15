@@ -6,6 +6,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.List;
+import java.util.function.Function;
+import org.enso.example.TestClass;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -104,6 +106,57 @@ public class JavaInteropTest {
             IO.println <| to_string TestClass.InnerEnum.ENUM_VALUE_2
         """;
     checkPrint(code, List.of("one", "two"));
+  }
+
+  @Test
+  public void testCaseOnFunctionalInterface() {
+    var code =
+        """
+        from Standard.Base import IO
+        polyglot java import org.enso.example.TestClass
+        polyglot java import org.enso.example.TestClass.FnIntrfc
+
+        check x y=42 = case x of
+          call:FnIntrfc -> call.perform y
+          _ -> "no"
+
+        main = check
+        """;
+    var check = ctxRule.evalModule(code);
+
+    assertEquals("'no'", check.execute("Not FnIntrfc").toString());
+
+    Function<Object, Object> alien = (x) -> x;
+    assertEquals(
+        "Function isn't the right Java interface", "'no'", check.execute(alien).toString());
+
+    TestClass.FnIntrfc real = (x) -> x;
+    assertEquals(
+        "FnIntrfc is the right interface", "'good'", check.execute(real, "good").toString());
+
+    var atomCode =
+        """
+        type My_Type
+            Value x
+
+        main = My_Type.Value 1
+        """;
+    var atom = ctxRule.evalModule(atomCode);
+    assertEquals(
+        "atom is not Java interface at all " + "and it shouldn't pass the call:FnIntrfc check",
+        "'no'",
+        check.execute(atom).toString());
+
+    TestClass.FnIntrfc subclass = new TestClass.FnIntrfcSubclass();
+    assertEquals(
+        "FnIntrfcSubclass implements the right interface",
+        "'subclass'",
+        check.execute(subclass, "good").toString());
+
+    assertEquals(
+        "TestClass doesn't implement the interface",
+        "'no'",
+        check.execute(new TestClass(), "good").toString());
   }
 
   @Test

@@ -266,7 +266,7 @@ const isRecordingOverridden = computed({
       shouldOverride && !projectStore.isRecordingEnabled ?
         [Ast.TextLiteral.new(projectStore.executionMode, edit)]
       : undefined
-    prefixes.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
+    prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })

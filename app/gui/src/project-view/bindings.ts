@@ -12,10 +12,10 @@ export const documentationEditorFormatBindings = defineKeybinds('documentation-e
 })
 
 export const textEditorsCommonBindings = defineKeybinds('text-editors-common-bindings', {
-  'textEditor.moveLeft': ['ArrowLeft'],
-  'textEditor.moveRight': ['ArrowRight'],
-  'textEditor.deleteBack': ['Backspace'],
-  'textEditor.deleteForward': ['Delete'],
+  'textEditor.moveLeft': [{ key: 'ArrowLeft', allowRepeat: true }],
+  'textEditor.moveRight': [{ key: 'ArrowRight', allowRepeat: true }],
+  'textEditor.deleteBack': [{ key: 'Backspace', allowRepeat: true }],
+  'textEditor.deleteForward': [{ key: 'Delete', allowRepeat: true }],
   'textEditor.cut': ['Mod+X'],
   'textEditor.copy': ['Mod+C'],
   'textEditor.paste': ['Mod+V'],
@@ -27,8 +27,8 @@ export const textEditorsMultilineBindings = defineKeybinds('text-editors-multili
 })
 
 export const listBindings = defineKeybinds('list', {
-  'list.moveUp': ['ArrowUp'],
-  'list.moveDown': ['ArrowDown'],
+  'list.moveUp': [{ key: 'ArrowUp', allowRepeat: true }],
+  'list.moveDown': [{ key: 'ArrowDown', allowRepeat: true }],
   'list.accept': ['Enter'],
 })
 

@@ -1,11 +1,11 @@
 /** @file Commonly used functions for electron tests */
 /* eslint-disable no-empty-pattern */
 
-import { _electron, test as base, ElectronApplication, expect, type Page } from '@playwright/test'
 import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { _electron, test as base, ElectronApplication, expect, type Page } from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
@@ -84,7 +84,7 @@ export async function loginAsTestUser(page: Page) {
   }
   await page.getByRole('textbox', { name: 'email' }).fill(process.env.ENSO_TEST_USER)
   await page.getByRole('textbox', { name: 'password' }).fill(process.env.ENSO_TEST_USER_PASSWORD)
-  await page.getByTestId('form-submit-button').click()
+  await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
@@ -95,5 +95,5 @@ export async function loginAsTestUser(page: Page) {
     .getByText(TEXT.privacyPolicyCheckbox)
     .click()
 
-  await page.getByTestId('form-submit-button').click()
+  await page.getByRole('button', { name: TEXT.accept }).click()
 }

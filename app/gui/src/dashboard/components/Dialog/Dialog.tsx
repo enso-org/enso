@@ -123,7 +123,7 @@ function DialogContent(props: DialogContentProps) {
     padding: paddingRaw,
     fitContent,
     layout,
-    testId = 'dialog',
+    testId,
     title,
     children,
     isDismissable = true,

@@ -65,16 +65,14 @@ describe('QueryParams store', () => {
     ${''}                      | ${undefined} | ${undefined}
     ${'foo=1&bar=two'}         | ${'1'}       | ${'two'}
     ${'foo=1&bar=two&foo=one'} | ${'1'}       | ${'two'}
-  `(
-    'Read query params $query',
-    ({ query, expectedFoo, expectedBar }) =>
-      withSetup(() => {
-        const { queryParams } = useFixture(query)
+  `('Read query params $query', ({ query, expectedFoo, expectedBar }) =>
+    withSetup(() => {
+      const { queryParams } = useFixture(query)
 
-        expect(queryParams.get('foo')).toBe(expectedFoo)
-        expect(queryParams.get('bar')).toBe(expectedBar)
-        expect(queryParams.get('baz')).toBe(undefined)
-      })[0],
+      expect(queryParams.get('foo')).toBe(expectedFoo)
+      expect(queryParams.get('bar')).toBe(expectedBar)
+      expect(queryParams.get('baz')).toBe(undefined)
+    }),
   )
 
   test('Update single param', () =>
@@ -86,7 +84,7 @@ describe('QueryParams store', () => {
       await expectNavigation('push', { foo: 'test', bar: 'baz' }, nextTick)
       expect(queryParams.get('foo')).toBe('test')
       expect(queryParams.get('bar')).toBe('baz')
-    })[0])
+    }))
 
   test('Deduplicate on update param', () =>
     withSetup(async () => {
@@ -98,7 +96,7 @@ describe('QueryParams store', () => {
       await expectNavigation('push', { foo: 'test', bar: 'baz' }, nextTick)
       expect(queryParams.get('foo')).toBe('test')
       expect(queryParams.get('bar')).toBe('baz')
-    })[0])
+    }))
 
   test('Clear param', () =>
     withSetup(async () => {
@@ -109,7 +107,7 @@ describe('QueryParams store', () => {
       await expectNavigation('push', { bar: 'baz' }, nextTick)
       expect(queryParams.get('foo')).toBeUndefined()
       expect(queryParams.get('bar')).toBe('baz')
-    })[0])
+    }))
 
   test('Batch mutliple edits', () =>
     withSetup(async () => {
@@ -123,7 +121,7 @@ describe('QueryParams store', () => {
       expect(queryParams.get('foo')).toBeUndefined()
       expect(queryParams.get('bar')).toBe('test')
       expect(queryParams.get('baz')).toBe('test2')
-    })[0])
+    }))
 
   test('Mutliple edits but no change', () =>
     withSetup(async () => {
@@ -137,7 +135,7 @@ describe('QueryParams store', () => {
       })
       expect(queryParams.get('foo')).toBe('bar')
       expect(queryParams.get('bar')).toBe('baz')
-    })[0])
+    }))
 
   test('Replace history', () =>
     withSetup(async () => {
@@ -170,7 +168,7 @@ describe('QueryParams store', () => {
         })
         await expectNavigation('push', { foo: 'bar', bar: 'baz' }, nextTick)
       }
-    })[0])
+    }))
 
   test.each`
     query                                | expectedFoo  | expectedBar
@@ -180,20 +178,18 @@ describe('QueryParams store', () => {
     ${'foo=bar&bar=baz'}                 | ${'bar'}     | ${'baz'}
     ${'foo=bar&bar=two'}                 | ${'bar'}     | ${'two'}
     ${'foo=bar&bar=baz&foo=bar&bar=baz'} | ${'bar'}     | ${'baz'}
-  `(
-    'Handle external update $query',
-    ({ query, expectedFoo, expectedBar }) =>
-      withSetup(async () => {
-        const { queryParams, expectNoNavigation, route } = useFixture('foo=bar&bar=baz')
+  `('Handle external update $query', ({ query, expectedFoo, expectedBar }) =>
+    withSetup(async () => {
+      const { queryParams, expectNoNavigation, route } = useFixture('foo=bar&bar=baz')
 
-        await expectNoNavigation(async () => {
-          route.query = parseQuery(query)
-          await nextTick()
-        })
+      await expectNoNavigation(async () => {
+        route.query = parseQuery(query)
+        await nextTick()
+      })
 
-        expect(queryParams.get('foo')).toBe(expectedFoo)
-        expect(queryParams.get('bar')).toBe(expectedBar)
-        expect(queryParams.get('baz')).toBe(undefined)
-      })[0],
+      expect(queryParams.get('foo')).toBe(expectedFoo)
+      expect(queryParams.get('bar')).toBe(expectedBar)
+      expect(queryParams.get('baz')).toBe(undefined)
+    }),
   )
 })

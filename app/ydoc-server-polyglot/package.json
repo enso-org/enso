@@ -22,6 +22,6 @@
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
     "esbuild": "^0.25.0",
     "esbuild-plugin-wasm": "^1.1.0",
-    "typescript": "^5.7.2"
+    "typescript": "catalog:"
   }
 }
