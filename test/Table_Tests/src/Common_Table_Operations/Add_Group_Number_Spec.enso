@@ -258,7 +258,7 @@ add_group_number_specs suite_builder setup =
             g3.at 'Group' . to_vector . should_equal [0, 0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 8]
 
             g4 = t.find_group_number (grp->cur-> cur > grp) over="Who" group_row=..Previous
-            g4.at 'Group' . to_vector . should_equal [0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3]
+            g4.at 'Group' . to_vector . should_equal [0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5]
 
         group_builder.specify "should add group number by predicate over a column by index" <|
             t = table_builder [["Time", [10000,10019,10033,10089,10107,10142,10174,10229,10285,10293,10314,10365,10376,10415,10463,10466,10515,10541,10585,10604]], ["Who", ['A','A','B','A','A','B','B','C','C','C','A','A','A','D','D','B','B','C','C','C']]]
@@ -276,4 +276,4 @@ add_group_number_specs suite_builder setup =
             g3.at 'Group' . to_vector . should_equal [0, 0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 8]
 
             g4 = t.find_group_number (grp->cur-> cur > grp) over=-1 group_row=..Previous
-            g4.at 'Group' . to_vector . should_equal [0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3]
+            g4.at 'Group' . to_vector . should_equal [0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5]
