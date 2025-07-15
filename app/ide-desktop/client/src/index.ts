@@ -427,8 +427,6 @@ class App {
             submenu: electron.Menu.buildFromTemplate([
               {
                 label: `About ${common.PRODUCT_NAME}`,
-                // role: 'close',
-                accelerator: 'Ctrl+W',
                 click: () => {
                   window.webContents.send(ipc.Channel.showAboutModal)
                 },
