@@ -112,7 +112,7 @@ add_specs suite_builder =
             ws.column_names . should_equal (['A', 'B', 'C'])
             ws . should_equal (Table.new [['A', ['U', 'X']],['B', ['V', 'Y']],['C', [3, 'Z']]])
 
-    suite_builder.group "Google Sheets - Limit" group_builder->
+    suite_builder.group "Google Sheets - Limit Test" group_builder->
         group_builder.specify "should be able to limit rows returned with headers" <|
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
