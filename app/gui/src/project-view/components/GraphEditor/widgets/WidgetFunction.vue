@@ -40,7 +40,7 @@ const project = useProjectStore()
 const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
 const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
 
-const { methodCallInfo, application } = useWidgetFunctionCallInfo(
+const { methodCallInfo, application, subjectInfo } = useWidgetFunctionCallInfo(
   () => props.input,
   graph.db,
   project,
@@ -60,6 +60,7 @@ provideFunctionInfo(
     }),
     callInfo: methodCallInfo,
     outputType,
+    subjectInfo,
   }),
 )
 
