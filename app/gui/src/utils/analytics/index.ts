@@ -20,16 +20,7 @@ export const cloudSignOut = {
 export const cloudSignUp = {
   /** Log the initiation of a sign-up attempt. */
   before: () => gtag.event('cloud_sign_up'),
-  /** Email-address confirmation. */
-  confirm: {
-    /** Log an attempt to confirm sign-up. */
-    before: () => gtag.event('cloud_sign_up_confirm'),
-    /** Log a successfully confirmed sign-up. */
-    after: () => gtag.event('cloud_sign_up_confirm_success'),
-  },
 }
-
-export type AuthProvider = 'Email' | 'Apple' | 'Google' | 'GitHub'
 
 /**
  * Cloud sign-in.
@@ -43,7 +34,7 @@ export type AuthProvider = 'Email' | 'Apple' | 'Google' | 'GitHub'
  */
 export const signIn = {
   /** Log initiation of a sign-in attempt. */
-  before: (provider: AuthProvider) => gtag.event('cloud_sign_in', { provider }),
+  before: () => gtag.event('cloud_sign_in'),
   confirm: {
     /** Log when asking the user for a code to confirm sign-in. */
     expected: (challenge: string) => gtag.event('cloud_sign_in_confirm_expected', { challenge }),

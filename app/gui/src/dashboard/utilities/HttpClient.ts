@@ -1,10 +1,7 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
+import isNetworkError from 'is-network-error'
 import { markRaw } from 'vue'
-import { NetworkError, OfflineError, isNetworkError } from './error'
-
-export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
-export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
-export const OFFLINE_EVENT_NAME = 'offline'
+import { NetworkError, OfflineError } from './error'
 
 /** HTTP method variants that can be used in an HTTP request. */
 enum HttpMethod {
@@ -149,20 +146,16 @@ export default class HttpClient {
         ...(options.abort ? { signal: options.abort } : {}),
         ...(payload != null ? { body: payload } : {}),
       })) as ResponseWithTypedJson<T>
-      document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
       return response
     } catch (error) {
       // Even though the condition might seem always falsy,
-      // offline mode might happen during the request
-      // and this case need to be handled
+      // offline mode might happen during the request and this case needs to be handled.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!navigator.onLine) {
-        document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
         throw new OfflineError('User is offline', { cause: error })
       }
 
       if (isNetworkError(error)) {
-        document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
         throw new NetworkError(error.message, { cause: error })
       }
       throw error

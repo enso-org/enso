@@ -6,7 +6,6 @@ import { OfflineNotificationManager } from '#/components/OfflineNotificationMana
 import { Suspense } from '#/components/Suspense'
 import UIProviders from '#/components/UIProviders'
 import { useMount } from '#/hooks/mountHooks'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import LoggerProvider from '#/providers/LoggerProvider'
 import { useBackends } from '$/providers/backends'
 import { useSetFeatureFlag } from '$/providers/react/featureFlags'
@@ -47,7 +46,7 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <UIProviders locale="en-US" portalRoot={portalRoot} appRoot={appRoot}>
-            <Suspense fallback={<LoadingScreen />}>
+            <Suspense>
               <OfflineNotificationManager>
                 <LoggerProvider logger={console}>
                   <App>{children}</App>

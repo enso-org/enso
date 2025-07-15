@@ -1,12 +1,7 @@
 /** @file Rendering for an {@link SettingsInputData}. */
 import type { FieldPath, TSchema } from '#/components/Form'
 import { useText } from '$/providers/react'
-import {
-  SettingsAriaInput,
-  SettingsAriaInputEmail,
-  SettingsAriaInputPassword,
-  type SettingsAriaInputProps,
-} from './AriaInput'
+import { SettingsAriaInput, SettingsAriaInputEmail, type SettingsAriaInputProps } from './AriaInput'
 import type { SettingsContext, SettingsInputData, SettingsInputType } from './data'
 
 /** Props for a {@link SettingsInput}. */
@@ -55,6 +50,5 @@ const INPUT_TYPE_MAP: Record<
   React.ComponentType<SettingsAriaInputProps<TSchema, FieldPath<TSchema>>>
 > = {
   email: SettingsAriaInputEmail,
-  password: SettingsAriaInputPassword,
   text: SettingsAriaInput,
 }

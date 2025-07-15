@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+import LoadingScreenReact from '#/pages/LoadingScreen'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { useAppTitle } from '$/composables/appTitle'
 import { provideOpenedProjects } from '$/providers/openedProjects'

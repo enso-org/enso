@@ -1,12 +1,8 @@
-import Login from '#/pages/authentication/Login'
+import Login from '#/pages/Login'
 import {
-  CONFIRM_REGISTRATION_PATH,
   DASHBOARD_PATH,
-  FORGOT_PASSWORD_PATH,
   LOGIN_PATH,
   PAYMENTS_SUCCESS_PATH,
-  REGISTRATION_PATH,
-  RESET_PASSWORD_PATH,
   RESTORE_USER_PATH,
   SUBSCRIBE_PATH,
 } from '$/appUtils'
@@ -33,11 +29,6 @@ const routes = [
         component: reactComponent(Login),
       },
       {
-        path: REGISTRATION_PATH,
-        meta: { access: 'guest' },
-        component: withDataLoader(() => import('$/components/RegistrationPage.vue')),
-      },
-      {
         path: UNAVAILABLE_PATH,
         meta: { access: 'anyLoggedIn' },
         component: withDataLoader(() => import('$/components/AppContainerLayout.vue')),
@@ -59,9 +50,7 @@ const routes = [
         path: RESTORE_USER_PATH,
         meta: { access: 'deleted' },
         component: () =>
-          import('#/pages/authentication/RestoreAccount').then((mod) =>
-            reactComponent(mod.default),
-          ),
+          import('#/pages/RestoreAccount').then((mod) => reactComponent(mod.default)),
       },
       {
         path: '/',
@@ -83,23 +72,6 @@ const routes = [
   },
 
   /* Other pages are visible to unauthenticated and authenticated users. */
-  {
-    path: CONFIRM_REGISTRATION_PATH,
-    component: () =>
-      import('#/pages/authentication/ConfirmRegistration').then((mod) =>
-        reactComponent(mod.default),
-      ),
-  },
-  {
-    path: FORGOT_PASSWORD_PATH,
-    component: () =>
-      import('#/pages/authentication/ForgotPassword').then((mod) => reactComponent(mod.default)),
-  },
-  {
-    path: RESET_PASSWORD_PATH,
-    component: () =>
-      import('#/pages/authentication/ResetPassword').then((mod) => reactComponent(mod.default)),
-  },
   {
     path: '/:anyPath(.*)*',
     redirect: '/',

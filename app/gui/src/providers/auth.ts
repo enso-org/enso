@@ -1,7 +1,7 @@
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
-import type * as cognitoModule from '$/authentication/cognito'
+import type * as cognitoModule from '$/authentication/auth0'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import * as analytics from '$/utils/analytics'
 import { Opt } from '@/util/data/opt'
@@ -60,7 +60,7 @@ function createAuthStore(
   { getText } = useText(),
 ) {
   const session = toRef(sessionData, 'session')
-  const { organizationId, signOut } = sessionData
+  const { signOut } = sessionData
   const toastSuccess = useToast.success()
 
   const queryClient = vueQuery.useQueryClient()
@@ -95,7 +95,7 @@ function createAuthStore(
     if (userData.value != null) {
       await updateUserMutation.mutateAsync({ username })
     } else {
-      const orgId = await organizationId()
+      const orgId = session.value?.organizationId
       const email = session.value?.email ?? ''
 
       invariant(orgId == null || backendModule.isOrganizationId(orgId), 'Invalid organization ID')
@@ -129,17 +129,13 @@ function createAuthStore(
   const deleteUser = async () => {
     await deleteUserMutation.mutateAsync()
     await signOut()
-
     toastSuccess.show(getText('deleteUserSuccess'))
-
     return true
   }
 
   const restoreUser = async () => {
     await restoreUserMutation.mutateAsync()
-
     toastSuccess.show(getText('restoreUserSuccess'))
-
     return true
   }
 

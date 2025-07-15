@@ -112,10 +112,6 @@ export default defineConfig({
     },
   },
   envPrefix: 'ENSO_IDE_',
-  define: {
-    // Single hardcoded usage of `global` in aws-amplify.
-    'global.TYPED_ARRAY_SUPPORT': true,
-  },
   esbuild: {
     dropLabels: isDevMode ? [] : ['DEV'],
     supported: {

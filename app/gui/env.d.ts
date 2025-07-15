@@ -138,7 +138,7 @@ declare global {
 
   interface Window {
     readonly backendApi?: BackendApi
-    readonly authenticationApi: AuthenticationApi
+    readonly authenticationApi?: AuthenticationApi
     readonly navigationApi: NavigationApi
     readonly menuApi?: MenuApi
     readonly systemApi?: SystemApi

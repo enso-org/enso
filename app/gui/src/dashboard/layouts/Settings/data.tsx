@@ -6,7 +6,6 @@ import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
-import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import type Backend from '#/services/Backend'
 import {
   EmailAddress,
@@ -19,7 +18,6 @@ import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
-import { PASSWORD_REGEX } from '#/utilities/validation'
 import type { GetText } from '$/providers/text'
 import type { QueryClient } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
@@ -31,7 +29,6 @@ import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection
 import MembersSettingsSection from './MembersSettingsSection'
 import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
-import { SetupTwoFaForm } from './SetupTwoFaForm'
 import SettingsTabType from './TabType'
 import { UserGroupsSettingsSection } from './UserGroupsSettingsSection'
 
@@ -78,97 +75,6 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               { nameId: 'userTimeZoneSettingsInput', name: 'timeZone' },
             ],
           }),
-        ],
-      },
-      {
-        nameId: 'changePasswordSettingsSection',
-        entries: [
-          settingsFormEntryData({
-            type: 'form',
-            schema: ({ getText }) =>
-              z
-                .object({
-                  username: z.string().email(getText('invalidEmailValidationError')),
-                  // We don't want to validate the current password.
-                  currentPassword: z.string(),
-                  newPassword: passwordWithPatternSchema(getText),
-                  confirmNewPassword: z.string(),
-                })
-                .superRefine((object, context) => {
-                  if (
-                    PASSWORD_REGEX.test(object.newPassword) &&
-                    object.newPassword !== object.confirmNewPassword
-                  ) {
-                    context.addIssue({
-                      path: ['confirmNewPassword'],
-                      code: 'custom',
-                      message: getText('passwordMismatchError'),
-                    })
-                  }
-                }),
-            getValue: ({ user }) => ({
-              username: user.email,
-              currentPassword: '',
-              newPassword: '',
-              confirmNewPassword: '',
-            }),
-            onSubmit: async ({ changePassword }, { currentPassword, newPassword }) => {
-              await changePassword(currentPassword, newPassword)
-            },
-            inputs: [
-              {
-                nameId: 'userNameSettingsInput',
-                name: 'username',
-                autoComplete: 'username',
-                editable: false,
-                hidden: true,
-              },
-              {
-                nameId: 'userCurrentPasswordSettingsInput',
-                name: 'currentPassword',
-                autoComplete: 'current-assword',
-                type: 'password',
-              },
-              {
-                nameId: 'userNewPasswordSettingsInput',
-                name: 'newPassword',
-                autoComplete: 'new-password',
-                descriptionId: 'passwordValidationMessage',
-                type: 'password',
-              },
-              {
-                nameId: 'userConfirmNewPasswordSettingsInput',
-                name: 'confirmNewPassword',
-                autoComplete: 'new-password',
-                type: 'password',
-              },
-            ],
-            getVisible: (context) => {
-              // The shape of the JWT payload is statically known.
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const username: string | null =
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
-                JSON.parse(atob(context.accessToken.split('.')[1]!)).username
-              return username != null ? !/^Github_|^Google_/.test(username) : false
-            },
-          }),
-        ],
-      },
-      {
-        nameId: 'setup2FASettingsSection',
-        entries: [
-          {
-            type: 'custom',
-            render: SetupTwoFaForm,
-            getVisible: (context) => {
-              // The shape of the JWT payload is statically known.
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const username: string | null =
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
-                JSON.parse(atob(context.accessToken.split('.')[1]!)).username
-              return username != null ? !/^Github_|^Google_/.test(username) : false
-            },
-          },
         ],
       },
       {
@@ -481,17 +387,12 @@ export interface SettingsContext {
   readonly getText: GetText
   readonly queryClient: QueryClient
   readonly isMatch: (name: string) => boolean
-  readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly preferredTimeZone: string | undefined
   readonly setPreferredTimeZone: (preferredTimeZone: string | undefined) => void
 }
 
-/**
- * Possible values for the `type` property of {@link SettingsInputData}.
- *
- * TODO: Add support for other types.
- */
-export type SettingsInputType = Extract<HTMLInputTypeAttribute, 'email' | 'password' | 'text'>
+/** Possible values for the `type` property of {@link SettingsInputData}. */
+export type SettingsInputType = Extract<HTMLInputTypeAttribute, 'email' | 'text'>
 
 /** Metadata describing an input in a {@link SettingsFormEntryData}. */
 export interface SettingsInputData<T> {

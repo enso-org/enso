@@ -14,7 +14,7 @@ import SearchBar from '#/layouts/SearchBar'
 import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
-import { useBackends, useFullUserSession, useSession, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import {
@@ -40,7 +40,6 @@ export function Settings() {
     includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = useFullUserSession()
-  const { changePassword } = useSession()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
@@ -87,7 +86,6 @@ export function Settings() {
       getText,
       queryClient,
       isMatch,
-      changePassword,
       preferredTimeZone,
       setPreferredTimeZone,
     }),
@@ -105,7 +103,6 @@ export function Settings() {
       user,
       queryClient,
       isMatch,
-      changePassword,
       localRootDirectory,
       preferredTimeZone,
       setPreferredTimeZone,
