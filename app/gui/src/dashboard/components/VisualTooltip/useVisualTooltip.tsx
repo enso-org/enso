@@ -56,7 +56,7 @@ export function useVisualTooltip(props: VisualTooltipOptions): VisualTooltipRetu
     isDisabled = false,
     overlayPositionProps = {},
     display = 'always',
-    testId = 'visual-tooltip',
+    testId,
     rounded,
     variant,
     size,

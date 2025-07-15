@@ -1,6 +1,6 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import { PortId } from '@/providers/portInfo'
-import { newWidgetInstanceId, WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { WidgetEditHandler, WidgetInstanceId } from '@/providers/widgetRegistry/editHandler'
 import { useCurrentEdit } from '@/providers/widgetTree'
 import { proxyRefs } from '@/util/reactivity'
 import { CellPosition } from 'ag-grid-enterprise'
@@ -48,7 +48,7 @@ function fixture() {
 
   const composable = useTableEditHandler(gridApi, colDefs, (hooks) =>
     WidgetEditHandler.NewRaw(
-      newWidgetInstanceId,
+      () => 'widget-id' as WidgetInstanceId,
       () => 'port' as PortId,
       () => undefined,
       hooks,

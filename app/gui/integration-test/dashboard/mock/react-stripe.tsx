@@ -1,6 +1,5 @@
 /** @file Mock for `@stripe/react-stripe-js` */
 
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type {
   CardElementProps,
   ElementsConsumer as StripeElementConsumer,
@@ -70,8 +69,8 @@ export function ElementsConsumer(...[props]: Parameters<typeof StripeElementCons
 /** Card element for Stripe. */
 export function CardElement(props: CardElementProps) {
   const { onReady: onReadyRaw, onChange: onChangeRaw } = props
-  const onReady = useEventCallback(onReadyRaw ?? (() => {}))
-  const onChange = useEventCallback(onChangeRaw ?? (() => {}))
+  const onReady = onReadyRaw ?? (() => {})
+  const onChange = onChangeRaw ?? (() => {})
 
   useEffect(() => {
     onReady({

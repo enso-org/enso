@@ -1,5 +1,5 @@
 /** @file Available actions for the login page. */
-import { expect } from '@playwright/test'
+import { expect } from 'playwright/test'
 
 import { TEXT, VALID_EMAIL, VALID_PASSWORD, passAgreementsDialog } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'

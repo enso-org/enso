@@ -1,5 +1,5 @@
 /** @file Test the drive view. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import { COLORS } from 'enso-common/src/services/Backend'
 import { mockAllAndLogin } from './actions'

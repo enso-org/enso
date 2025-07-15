@@ -15,6 +15,7 @@ import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/backends'
 import { useText } from '$/providers/react'
+import * as analytics from '$/utils/analytics'
 import type { TextId } from 'enso-common/src/text'
 import * as React from 'react'
 
@@ -167,11 +168,13 @@ export function Card(props: CardProps) {
 
   const onSubmit = useMutationCallback({
     mutationFn: async (mutationData: CreateCheckoutSessionMutationParams) => {
-      const { url } = await remoteBackend.createCheckoutSession({
+      const planInfo = {
         price: mutationData.plan,
         quantity: mutationData.seats,
         interval: mutationData.period,
-      })
+      }
+      analytics.checkout.before(planInfo)
+      const { url } = await remoteBackend.createCheckoutSession(planInfo)
       window.open(url, '_blank')?.focus()
     },
   })

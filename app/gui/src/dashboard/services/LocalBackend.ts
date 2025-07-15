@@ -14,6 +14,7 @@ import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
+import { isUuid } from 'ydoc-shared/yjsModel'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
@@ -26,12 +27,23 @@ export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
-  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}` as const)
+  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}`)
 }
 
 /** Create a {@link backend.ProjectId} from a UUID. */
 export function newProjectId(uuid: projectManager.UUID, path: projectManager.Path) {
   return backend.ProjectId(`${PROJECT_ID_PREFIX}${uuid}-${path}`)
+}
+
+/** Check if given {@link backend.ProjectId} represents a local project. */
+export function isLocalProjectId(projectId: backend.ProjectId): boolean {
+  // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
+  const uuidLength = 36
+  return (
+    projectId.startsWith(PROJECT_ID_PREFIX) &&
+    projectId[PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
+    isUuid(projectId.substring(PROJECT_ID_PREFIX.length, PROJECT_ID_PREFIX.length + uuidLength))
+  )
 }
 
 /** Create a {@link backend.FileId} from a path. */
@@ -222,7 +234,6 @@ export default class LocalBackend extends Backend {
             parentsPath: backend.ParentsPath(parentsPath),
             virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
             ensoPath,
-            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
           } satisfies Partial<backend.DirectoryAsset>
 
           switch (entry.type) {
@@ -816,6 +827,14 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Resolve the data of a project asset relative to the project root directory. */
+  override async resolveProjectAssetData(
+    projectId: backend.ProjectId,
+    relativePath: string,
+  ): Promise<Response> {
+    return await this.projectManager.getFileContent(extractTypeAndId(projectId).id, relativePath)
+  }
+
   /** Download an asset. */
   override async download(
     id: backend.AssetId,
@@ -894,24 +913,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override syncProjectExecution() {
     return this.invalidOperation()
-  }
-
-  /**
-   * Get the content of a file.
-   *
-   * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
-   */
-  override getFileContent(projectId: backend.ProjectId) {
-    return this.projectManager.getFileContent(extractTypeAndId(projectId).id)
-  }
-
-  /**
-   * Resolve the path of a project asset relative to the project `src` directory.
-   */
-  override resolveProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
-    const projectPath = this.getProjectPath(projectId)
-
-    return Promise.resolve(`enso://${projectPath}/src/${relativePath.replace('./', '')}`)
   }
 
   /** Invalid operation. */

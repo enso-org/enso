@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { isPointer, pointerButtonToEventInfo, type BindingInfo } from '@/util/shortcuts'
-import { withSetup } from '@/util/testing'
+import { appWithSetup } from '@/util/testing'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 import { useKeyboard } from '../keyboard'
@@ -49,8 +49,8 @@ test.each`
   ${3}  | ${bindingRemove}  | ${[1, 2]}
   ${1}  | ${bindingInvert}  | ${[2]}
   ${3}  | ${bindingInvert}  | ${[1, 2, 3]}
-`('Selection by single click at $click', ({ click, binding, expected }) => {
-  const [, app] = withSetup(() => {
+`('Selection by single click at $click', async ({ click, binding, expected }) => {
+  const [, app] = await appWithSetup(() => {
     const { selection, mockDom } = selectionWithMockData()
     // Position is zero, because this method should not depend on click position
     selection.handleSelectionOf(
@@ -102,7 +102,7 @@ test.each`
   async ({ areaId, binding, expected }) => {
     const area = areas[areaId]!
     const dragCase = async (start: Vec2, stop: Vec2) => {
-      const [test, app] = withSetup(async () => {
+      const [test, app] = await appWithSetup(async () => {
         const { selection, mockDom } = selectionWithMockData()
         await nextTick()
         mockDom.dispatchEvent(mockPointerEvent('pointerdown', start, binding, mockDom))

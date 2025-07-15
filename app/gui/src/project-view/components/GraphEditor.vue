@@ -58,17 +58,7 @@ import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
-import {
-  computed,
-  onMounted,
-  onUnmounted,
-  ref,
-  toRaw,
-  toRef,
-  useTemplateRef,
-  watch,
-  watchEffect,
-} from 'vue'
+import { computed, onMounted, ref, toRaw, toRef, useTemplateRef, watch, watchEffect } from 'vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
@@ -87,9 +77,6 @@ onMounted(() => {
   if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
-})
-onUnmounted(() => {
-  projectStore.disposeYDocsProvider()
 })
 
 // === Navigator ===

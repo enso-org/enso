@@ -1081,15 +1081,15 @@ add_specs suite_builder =
                     r2.column_names . should_equal ["Path", "Sheet Name", "A", "B", "C"]
 
                     # We transform the Path to just file name for easier testing
-                    rows = (r2.set (r2.at "Path" . map .name) "Path").rows.map .to_vector
-                    rows.at 0 . should_equal ["1.tsv",      Nothing,   1,       3, Nothing]
-                    rows.at 1 . should_equal ["1.tsv",      Nothing,   2,       4, Nothing]
-                    rows.at 2 . should_equal ["2.xlsx", "EnsoSheet",  10,      30, Nothing]
-                    rows.at 3 . should_equal ["2.xlsx", "EnsoSheet",  20,      40, Nothing]
-                    rows.at 4 . should_equal ["3.xlsx",      "nr 1", 100,     200,     300]
-                    rows.at 5 . should_equal ["3.xlsx",      "nr 2", 400, Nothing, Nothing]
-                    rows.at 6 . should_equal ["3.xlsx",      "nr 2", 500, Nothing, Nothing]
-                    rows.at 7 . should_equal ["3.xlsx",      "nr 2", 600, Nothing, Nothing]
+                    rows = r2.rows.map .to_vector
+                    rows.at 0 . should_equal [(base_dir / "1.tsv") . path,      Nothing,   1,       3, Nothing]
+                    rows.at 1 . should_equal [(base_dir / "1.tsv") . path,      Nothing,   2,       4, Nothing]
+                    rows.at 2 . should_equal [(base_dir / "2.xlsx") . path, "EnsoSheet",  10,      30, Nothing]
+                    rows.at 3 . should_equal [(base_dir / "2.xlsx") . path, "EnsoSheet",  20,      40, Nothing]
+                    rows.at 4 . should_equal [(base_dir / "3.xlsx") . path,      "nr 1", 100,     200,     300]
+                    rows.at 5 . should_equal [(base_dir / "3.xlsx") . path,      "nr 2", 400, Nothing, Nothing]
+                    rows.at 6 . should_equal [(base_dir / "3.xlsx") . path,      "nr 2", 500, Nothing, Nothing]
+                    rows.at 7 . should_equal [(base_dir / "3.xlsx") . path,      "nr 2", 600, Nothing, Nothing]
 
                 # Test loading only Excel files and alternate matching mode to weed out edge cases
                 r3 = Data.read_many (Data.list base_dir name_filter="*.xlsx" . sort on=(.name)) return=..As_Merged_Table
@@ -1115,18 +1115,18 @@ add_specs suite_builder =
                 r1.should_be_a Table
                 within_table r1 <|
                     # We transform the Path to just file name for easier testing
-                    rows = (r1.set (r1.at "Path" . map .name) "Path").rows.map .to_vector
+                    rows = r1.rows.map .to_vector
 
                     # Each Sheet Name column comes out as separate: 1 - input, 2 - metadata, 3 - data
                     # The order of columns is as they appear in the input, and they are matched by name
                     r1.column_names . should_equal [  "Path", "Sheet Name", "Sheet Name 1",     "Z", "Sheet Name 2",     "X",     "Y"]
-                    rows.at 0 . should_equal       [ "1.tsv",    "input 1",        Nothing,       1,  "data column", Nothing, Nothing]
-                    rows.at 1 . should_equal       [ "1.tsv",    "input 1",        Nothing,       2,  "data column", Nothing, Nothing]
-                    rows.at 2 . should_equal       ["2.xlsx",    "input 2",    "EnsoSheet",      10,        Nothing,      20, Nothing]
-                    rows.at 3 . should_equal       ["3.xlsx",    "input 3",         "nr 1",     300,        Nothing,     100,     200]
-                    rows.at 4 . should_equal       ["3.xlsx",    "input 3",         "nr 2", Nothing,          "400", Nothing, Nothing]
-                    rows.at 5 . should_equal       ["3.xlsx",    "input 3",         "nr 2", Nothing,          "500", Nothing, Nothing]
-                    rows.at 6 . should_equal       ["3.xlsx",    "input 3",         "nr 2", Nothing,          "600", Nothing, Nothing]
+                    rows.at 0 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,       1,  "data column", Nothing, Nothing]
+                    rows.at 1 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,       2,  "data column", Nothing, Nothing]
+                    rows.at 2 . should_equal       [(base_dir / "2.xlsx").path,    "input 2",    "EnsoSheet",      10,        Nothing,      20, Nothing]
+                    rows.at 3 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 1",     300,        Nothing,     100,     200]
+                    rows.at 4 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", Nothing,          "400", Nothing, Nothing]
+                    rows.at 5 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", Nothing,          "500", Nothing, Nothing]
+                    rows.at 6 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", Nothing,          "600", Nothing, Nothing]
 
                     Problems.expect_warning Duplicate_Output_Column_Names r1
                     Problems.expect_warning No_Common_Type r1
@@ -1134,18 +1134,18 @@ add_specs suite_builder =
                 r2 = Data.read_many input return=(..As_Merged_Table match=..By_Position)
                 r2.should_be_a Table
                 within_table r2 <|
-                    rows = (r2.set (r2.at "Path" . map .name) "Path").rows.map .to_vector
+                    rows = r2.rows.map .to_vector
 
                     # Two Sheet Name column comes out as separate: 1 - input, 2 - metadata, the third one (data) gets renamed due to positional matching
                     # The column names come from the first table that had all the columns - in this case, first sheet of 3.xlsx
                     r2.column_names . should_equal [  "Path", "Sheet Name", "Sheet Name 1", "X",           "Y",     "Z"]
-                    rows.at 0 . should_equal       [ "1.tsv",    "input 1",        Nothing,   1, "data column", Nothing]
-                    rows.at 1 . should_equal       [ "1.tsv",    "input 1",        Nothing,   2, "data column", Nothing]
-                    rows.at 2 . should_equal       ["2.xlsx",    "input 2",    "EnsoSheet",  10,          "20", Nothing]
-                    rows.at 3 . should_equal       ["3.xlsx",    "input 3",         "nr 1", 100,         "200",     300]
-                    rows.at 4 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 400,       Nothing, Nothing]
-                    rows.at 5 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 500,       Nothing, Nothing]
-                    rows.at 6 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 600,       Nothing, Nothing]
+                    rows.at 0 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   1, "data column", Nothing]
+                    rows.at 1 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   2, "data column", Nothing]
+                    rows.at 2 . should_equal       [(base_dir / "2.xlsx").path,    "input 2",    "EnsoSheet",  10,          "20", Nothing]
+                    rows.at 3 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 1", 100,         "200",     300]
+                    rows.at 4 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 400,       Nothing, Nothing]
+                    rows.at 5 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 500,       Nothing, Nothing]
+                    rows.at 6 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 600,       Nothing, Nothing]
 
                     Problems.expect_warning Duplicate_Output_Column_Names r2
                     Problems.expect_warning No_Common_Type r2
@@ -1153,18 +1153,18 @@ add_specs suite_builder =
                 r3 = Data.read_many input return=(..As_Merged_Table columns_to_keep=..In_All match=..By_Position)
                 r3.should_be_a Table
                 within_table r3 <|
-                    rows = (r3.set (r3.at "Path" . map .name) "Path").rows.map .to_vector
+                    rows = r3.rows.map .to_vector
 
                     # Same as with `r2`, but now we keep only columns that are present in all tables, then the column names come from the first table (so we get column Z).
                     # But the `Sheet Name` metadata column is still kept, as its matching is independent of data.
                     r3.column_names . should_equal [  "Path", "Sheet Name", "Sheet Name 1", "Z"]
-                    rows.at 0 . should_equal       [ "1.tsv",    "input 1",        Nothing,   1]
-                    rows.at 1 . should_equal       [ "1.tsv",    "input 1",        Nothing,   2]
-                    rows.at 2 . should_equal       ["2.xlsx",    "input 2",    "EnsoSheet",  10]
-                    rows.at 3 . should_equal       ["3.xlsx",    "input 3",         "nr 1", 100]
-                    rows.at 4 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 400]
-                    rows.at 5 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 500]
-                    rows.at 6 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 600]
+                    rows.at 0 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   1]
+                    rows.at 1 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   2]
+                    rows.at 2 . should_equal       [(base_dir / "2.xlsx").path,    "input 2",    "EnsoSheet",  10]
+                    rows.at 3 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 1", 100]
+                    rows.at 4 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 400]
+                    rows.at 5 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 500]
+                    rows.at 6 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 600]
 
                     Problems.expect_warning Duplicate_Output_Column_Names r3
                     Problems.expect_warning Column_Count_Mismatch r3
@@ -1180,8 +1180,8 @@ add_specs suite_builder =
                 r.row_count . should_equal 2+25
                 r.column_names . should_equal ["Path", "Sheet Name", "A", "B", "Name", "Quantity", "Price", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
                 # First two rows come from TSV, the rest from Excel sheets
-                r.at "Path" . to_vector . map .name . should_equal <|
-                    (Vector.fill 2 tsv_file.name) + (Vector.fill 25 xls_file.name)
+                r.at "Path" . to_vector . should_equal <|
+                    (Vector.fill 2 tsv_file.path) + (Vector.fill 25 xls_file.path)
                 r.at "Sheet Name" . to_vector . should_equal <|
                     (Vector.fill 2 Nothing) + (Vector.fill 6 "Simple") + (Vector.fill 7 "Strange Dimensions") + (Vector.fill 6 "Dates") + (Vector.fill 6 "Duplicate Columns")
 
@@ -1203,7 +1203,7 @@ add_specs suite_builder =
                 # But when not expanding rows, the workbook with all-empty sheets is normally loaded into a cell
                 r3 = Data.read_many [tsv_file, empty_xls_file] return=..With_New_Column
                 r3.should_be_a Table
-                r3.at "Path" . to_vector . map .name . should_equal [tsv_file.name, empty_xls_file.name]
+                r3.at "Path" . to_vector . should_equal [tsv_file.path, empty_xls_file.path]
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
