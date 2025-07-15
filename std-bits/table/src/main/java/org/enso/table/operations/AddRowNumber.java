@@ -21,14 +21,13 @@ public class AddRowNumber {
     var sourceColumn = groupingColumns.length > 0 ? groupingColumns[0] : orderingColumns[0];
     var visitorFactory =
         new RowNumberRowVisitorFactory(start, step, sourceColumn.getSize(), problemAggregator);
-    GroupingOrderingVisitor.visit(
+    return GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
         visitorFactory,
         sourceColumn.getSize());
-    return visitorFactory.builder.seal();
   }
 
   private static class RowNumberRowVisitorFactory implements RowVisitorFactory {
@@ -46,6 +45,11 @@ public class AddRowNumber {
     @Override
     public GroupRowVisitor getNewRowVisitor() {
       return new RowNumberRowVisitor(this);
+    }
+
+    @Override
+    public ColumnStorage<?> seal() {
+      return builder.seal();
     }
 
     private static class RowNumberRowVisitor implements GroupRowVisitor {

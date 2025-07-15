@@ -23,9 +23,8 @@ public class AddGroupNumber {
     }
 
     var visitorFactory = new GroupNumberRowVisitorFactory(start, step, numRows, problemAggregator);
-    GroupingOrderingVisitor.visit(
+    return GroupingOrderingVisitor.visit(
         groupingColumns, new Column[0], new int[0], problemAggregator, visitorFactory, numRows);
-    return visitorFactory.builder.seal();
   }
 
   private static class GroupNumberRowVisitorFactory implements RowVisitorFactory {
@@ -47,6 +46,11 @@ public class AddGroupNumber {
       return new GroupNumberRowVisitor(nextGroupNumber, builder);
     }
 
+    @Override
+    public ColumnStorage<?> seal() {
+      return builder.seal();
+    }
+
     private record GroupNumberRowVisitor(long groupNumber, BuilderForLong builder)
         implements GroupRowVisitor {
       @Override
@@ -66,9 +70,8 @@ public class AddGroupNumber {
       ProblemAggregator problemAggregator) {
     var visitorFactory =
         new EqualCountRowVisitorFactory(start, step, numRows, groupCount, problemAggregator);
-    GroupingOrderingVisitor.visit(
+    return GroupingOrderingVisitor.visit(
         new Column[0], orderingColumns, directions, problemAggregator, visitorFactory, numRows);
-    return visitorFactory.builder.seal();
   }
 
   private static class EqualCountRowVisitorFactory implements RowVisitorFactory {
@@ -94,6 +97,11 @@ public class AddGroupNumber {
     @Override
     public GroupRowVisitor getNewRowVisitor() {
       return visitor;
+    }
+
+    @Override
+    public ColumnStorage<?> seal() {
+      return builder.seal();
     }
 
     private record EqualCountRowVisitor(EqualCountRowVisitorFactory parent)

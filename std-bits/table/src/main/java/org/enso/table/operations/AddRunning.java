@@ -24,14 +24,13 @@ public class AddRunning {
       ProblemAggregator problemAggregator) {
     var runningStatistic =
         new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
-    GroupingOrderingVisitor.visit(
-        groupingColumns,
-        orderingColumns,
-        directions,
-        problemAggregator,
-        runningStatistic,
-        sourceColumn.getSize());
-    return runningStatistic.runningStatistic.getResult();
+    return GroupingOrderingVisitor.visit(
+            groupingColumns,
+            orderingColumns,
+            directions,
+            problemAggregator,
+            runningStatistic,
+            sourceColumn.getSize());
   }
 
   private static class RunningStatisticRowVisitorFactory implements RowVisitorFactory {
@@ -45,6 +44,11 @@ public class AddRunning {
     @Override
     public GroupRowVisitor getNewRowVisitor() {
       return new RunningStatisticRowVisitor<>(runningStatistic);
+    }
+
+    @Override
+    public ColumnStorage<?> seal() {
+      return runningStatistic.getResult();
     }
 
     private static class RunningStatisticRowVisitor<T> implements GroupRowVisitor {
@@ -177,9 +181,9 @@ public class AddRunning {
       }
 
       Long lValue = NumericConverter.tryConvertingToLong(value);
-      if (lValue != null) {
+      if (lValue == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-            new IgnoredNaN(sourceColumn.getName(), (long) i));
+            new IgnoredNaN(sourceColumn.getName(), i));
         builder.append(it.currentValue());
       } else {
         builder.append(it.next(lValue));
