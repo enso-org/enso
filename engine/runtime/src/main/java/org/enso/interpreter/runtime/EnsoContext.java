@@ -247,7 +247,13 @@ public final class EnsoContext {
       var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
       try {
         if (!cwd.isSameFile(parent)) {
-          environment.setCurrentWorkingDirectory(parent);
+          var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
+          logger.log(
+              Level.WARNING,
+              "Initializing the context in a different working directory than the one containing"
+                  + " the project root. This may lead to relative paths not behaving as advertised"
+                  + " by `File.new`. Please run the engine inside of `{0}` directory.",
+              maskedPath);
         }
       } catch (IOException e) {
         logger.severe("Error checking working directory: " + e.getMessage());
