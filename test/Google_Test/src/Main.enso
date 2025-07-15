@@ -207,4 +207,5 @@ add_specs suite_builder =
             ws = wb.read 'Sheet1'
             c1 = ['Integers', [123, -5, 0, Nothing, 78]]
             c2 = ['Strings', ["Alea", "iacta", "est", Nothing, "after"]]
-            ws . should_equal (Table.new [c1, c2])
+            c3 = ['Decimals', [Decimal.new 12.34, Decimal.new -98.1, Decimal.new 0, Nothing, Decimal.new 7.8]]
+            ws . should_equal (Table.new [c1, c2, c3])
