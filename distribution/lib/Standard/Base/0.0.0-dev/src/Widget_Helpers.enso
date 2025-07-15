@@ -121,7 +121,7 @@ make_format_chooser include_number:Boolean=True include_date:Boolean=True includ
     custom_locale_format = if include_date_time.not && include_date.not then [] else
         patterns = date_time + date
         first = patterns.first
-        format = Date_Time_Formatter.from_simple_pattern first.first locale=Locale.france
+        format = Date_Time_Formatter.from_simple_pattern first.second locale=Locale.france
         label = '<Date/Time> - with Locale (e.g. ' + Date_Time.now.format format + ')'
         code = "(Date_Time_Formatter.from_simple_pattern " + first.second + " locale=Locale.france)"
         [Option label code [["pattern", make_single_choice patterns], ["locale", Locale.default_widget]]]
