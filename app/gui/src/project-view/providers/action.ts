@@ -1,5 +1,6 @@
 import {
   appBindings,
+  appContainerBindings,
   componentBrowserBindings,
   documentationEditorFormatBindings,
   graphBindings,
@@ -280,7 +281,7 @@ const undisplayableActions = {
     shortcut: appBindings.bindings['app.close'],
   },
   'app.closeTab': {
-    shortcut: appBindings.bindings['app.closeTab'],
+    shortcut: appContainerBindings.bindings['app.closeTab'],
   },
 
   // === Component Browser ===

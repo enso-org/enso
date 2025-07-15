@@ -1,6 +1,9 @@
 import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
 
+// Some debug shortcuts are also defined in electron
+// (Look for `registerShortcuts` method).
+
 export const appBindings = defineKeybinds('app', {
   'app.cancel': ['Escape'],
   'app.close': ['Mod+Q'],

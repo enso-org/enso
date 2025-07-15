@@ -149,6 +149,7 @@ class App {
             logger.error('Failed to initialize Electron.', error)
           },
         )
+        this.registerShortcuts()
       } else {
         logger.log('Another instance of the application is already running, exiting.')
         electron.app.quit()
@@ -436,7 +437,7 @@ class App {
           },
         ])
         electron.Menu.setApplicationMenu(menu)
-        window.setMenu(menu)
+        window.setMenuBarVisibility(false)
 
         if (this.args.groups.debug.options.devTools.value) {
           window.webContents.openDevTools()
@@ -686,6 +687,25 @@ class App {
         console.log(`${indent}${line}`)
       }
     }
+  }
+
+  registerShortcuts() {
+    electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
+      webContents.on('before-input-event', (_beforeInputEvent, input) => {
+        const { code, alt, control, shift, meta, type } = input
+        if (type === 'keyDown') {
+          const focusedWindow = electron.BrowserWindow.getFocusedWindow()
+          if (focusedWindow) {
+            if (control && alt && shift && !meta && code === 'KeyI') {
+              focusedWindow.webContents.toggleDevTools()
+            }
+            if (control && alt && shift && !meta && code === 'KeyR') {
+              focusedWindow.reload()
+            }
+          }
+        }
+      })
+    })
   }
 }
 
