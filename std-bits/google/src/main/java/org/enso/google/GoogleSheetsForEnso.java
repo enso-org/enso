@@ -1,18 +1,20 @@
 package org.enso.google;
 
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.services.sheets.v4.Sheets;
-import com.google.api.services.sheets.v4.SheetsScopes;
-import com.google.auth.http.HttpCredentialsAdapter;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptySheetException;
 import org.enso.table.problems.ProblemAggregator;
+
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.SheetsScopes;
+import com.google.auth.http.HttpCredentialsAdapter;
 
 public class GoogleSheetsForEnso {
 
@@ -73,10 +75,22 @@ public class GoogleSheetsForEnso {
           .skip(firstRowIndex)
           .skip(headerBuilder.getRowsUsed())
           .limit(resolved_row_limit)
+          .map(GoogleSheetsForEnso::fixTypes)
           .forEach(builder::append);
       columns[i] = new Column(headerBuilder.get(i), builder.seal());
     }
     return new Table(columns);
+  }
+
+  private static Object fixTypes(Object value) {
+    if (value instanceof String str && str.isEmpty()) {
+      return null;
+    }
+    if (value instanceof java.math.BigDecimal bd && bd.scale() <= 0) {
+      int intValue = bd.intValue();
+      return intValue;
+    }
+    return value;
   }
 
   private com.google.api.services.sheets.v4.model.Spreadsheet getSpreadsheet(String workbookId)

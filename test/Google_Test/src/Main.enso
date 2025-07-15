@@ -199,3 +199,12 @@ add_specs suite_builder =
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             wb.named_ranges . should_equal []
+
+    suite_builder.group "Google Sheets - Data Types" group_builder->
+        group_builder.specify "can read different data types correctly" <|
+            ## Test4
+            wb = Google_Sheets.read '1ggI7Kcs6W4E_zeMraHbHbnK9p5FL5YPXIB_be6R3jiw' (Enso_Secret.get 'GS')
+            ws = wb.read 'Sheet1'
+            c1 = ['Integers', [123, -5, 0, Nothing, 78]]
+            c2 = ['Strings', ["Alea", "iacta", "est", Nothing, "after"]]
+            ws . should_equal (Table.new [c1, c2])
