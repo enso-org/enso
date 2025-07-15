@@ -46,7 +46,7 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
         onCancel.mutate([subscriptionId])
       }}
     >
-      <Text className="relative">{getText('trialEndedExplenation')}</Text>
+      <Text className="relative">{getText('trialEndedExplanation')}</Text>
 
       <Alert variant="outline" icon="warning">
         {getText('trialEndedWarning')}

@@ -574,12 +574,12 @@ export interface Card {
   readonly title: string
   readonly subtitle: string
   readonly pricing: string
-  readonly features: string[]
+  readonly features: readonly string[]
 }
 
 /** Metadata for a payment pricing page configuration. */
 export interface PaymentsConfig {
-  readonly cards: Card[]
+  readonly cards: readonly Card[]
 }
 
 /** Metadata for a subscription. */
@@ -1934,9 +1934,6 @@ export default abstract class Backend {
    * @param returnUrl - The URL to redirect to after the customer visits the portal.
    */
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
-
-  /** Resolve the path of an asset relative to a project. */
-  abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
 }

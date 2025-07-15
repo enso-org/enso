@@ -35,7 +35,7 @@ export interface PlanSelectorDialogProps {
   readonly plan: Plan
   readonly period: PlanBillingPeriod
   readonly planName: string
-  readonly features: string[]
+  readonly features: readonly string[]
   readonly title: string
   readonly onSubmit: (seats: number) => Promise<void> | void
   /** Whether the user clicked on the trial button. */

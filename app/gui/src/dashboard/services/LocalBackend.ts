@@ -663,6 +663,11 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Do nothing. This function should never need to be called. */
+  override getPaymentsConfig() {
+    return this.invalidOperation()
+  }
+
   /** Create a directory. */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,

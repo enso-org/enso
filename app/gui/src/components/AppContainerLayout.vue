@@ -60,7 +60,7 @@ export const dataLoader: DataLoader<{
 <script setup lang="ts">
 defineProps<{
   shouldSetupOrganization?: boolean
-  trialEndedModalProps?: { subscriptionId?: backendModule.SubscriptionId }
+  trialEndedModalProps?: { subscriptionId: backendModule.SubscriptionId }
 }>()
 
 const { remoteBackend } = useBackends()

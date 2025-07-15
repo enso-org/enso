@@ -31,7 +31,10 @@ export interface PropsForPlan {
   readonly elevated?: boolean
 }
 
-const PROPS_FOR_PLAN = {
+const PROPS_FOR_PLAN: { readonly [PlanVariant in Plan]: PropsForPlan } = {
+  free: {
+    submitButton: (props) => <SubscribeButton {...props} isDisabled={true} />,
+  },
   [Plan.solo]: {
     submitButton: SubscribeButton,
   },
@@ -109,7 +112,7 @@ export interface Texts {
   readonly title: string
   readonly subtitle: string
   readonly pricing: string
-  readonly features: string[]
+  readonly features: readonly string[]
 }
 
 /** Props for {@link Card}. */
