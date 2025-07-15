@@ -1,4 +1,5 @@
 /** @file Dialog that shows the plan details, price, and the payment form. */
+import { Alert } from '#/components/Alert'
 import { Dialog } from '#/components/Dialog'
 import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
@@ -120,6 +121,10 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                 formatter={formatter}
                 isInvalid={form.formState.errors.seats != null}
               />
+
+              <Alert variant="outline" icon="warning">
+                {getText('stripeRedirectInfo')}
+              </Alert>
 
               <Form.Submit>
                 {isTrialing ? getText('startTrial') : getText('subscribeSubmit')}

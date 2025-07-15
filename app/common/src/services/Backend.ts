@@ -589,6 +589,21 @@ export interface CheckoutSession {
   readonly url: HttpsUrl
 }
 
+/** Metadata for a single payment card. */
+export interface Card {
+  plan: Plan
+  period: PlanBillingPeriod
+  title: string
+  subtitle: string
+  pricing: string
+  features: string[]
+}
+
+/** Metadata for a payment pricing page configuration. */
+export interface PaymentsConfig {
+  cards: Card[]
+}
+
 /** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
@@ -1363,18 +1378,11 @@ export interface CreateUserGroupRequestBody {
 /** Valid plan intervals. */
 export type PlanBillingPeriod = 1 | 12
 
-/** Types of supported billing portal flows. */
-export enum BillingPortalFlowType {
-  paymentMethodUpdate = 'payment_method_update',
-  subscriptionUpdateConfirm = 'subscription_update_confirm',
-}
-
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
   readonly price: Plan
   readonly quantity: number
   readonly interval: PlanBillingPeriod
-  readonly flowType: BillingPortalFlowType
 }
 
 /** URL query string parameters for the "get log events" endpoint. */
@@ -1904,6 +1912,8 @@ export default abstract class Backend {
 
   /** Resolve the path of an asset relative to a project. */
   abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
+  /** Delete the current user. */
+  abstract getPaymentsConfig(): Promise<PaymentsConfig>
 }
 
 /**

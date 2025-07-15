@@ -45,7 +45,6 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
             price: backend.Plan.solo,
             quantity: 1,
             interval: 1,
-            flowType: backend.BillingPortalFlowType.paymentMethodUpdate,
           },
         ])
       }}

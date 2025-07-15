@@ -1413,6 +1413,20 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
+   * Fetches a configuration for a payment pricing page.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+    const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
+
+    if (!response.ok) {
+      return await this.throw(response, 'getPaymentsConfigBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
    * Cancel given subscription.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */

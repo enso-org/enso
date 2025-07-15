@@ -68,6 +68,8 @@ export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout/sessions'
 export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
+/** Relative HTTP path to the "get payments config" endpoint of the Cloud backend API. */
+export const PAYMENTS_CONFIG_PATH = 'payments/config'
 
 /** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */
 export function cancelSubscriptionPath(subscriptionId: backend.SubscriptionId) {

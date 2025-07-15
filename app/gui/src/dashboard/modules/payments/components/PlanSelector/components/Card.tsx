@@ -8,13 +8,13 @@ import { Text } from '#/components/Text'
 import type { PaywallLevel } from '#/hooks/billing'
 import type { SubscribeButtonProps } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
 import { SubscribeButton } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
-import { PLAN_TO_TEXT_ID, PRICE_BY_PLAN } from '#/modules/payments/constants'
-import { BillingPortalFlowType, Plan, type PlanBillingPeriod } from '#/services/Backend'
+import { Plan, type PlanBillingPeriod } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import * as appUtils from '$/appUtils'
+import { getContactPage } from '$/appUtils'
 import { useBackends } from '$/providers/backends'
-import { useText } from '$/providers/react'
-import type { TextId } from 'enso-common/src/text'
+import { useRouter, useText } from '$/providers/react'
 import * as React from 'react'
 
 /** The mutation data for the `createCheckoutSession` mutation. */
@@ -24,61 +24,37 @@ interface CreateCheckoutSessionMutationParams {
   readonly period: PlanBillingPeriod
 }
 
-const TEXT_ID_FOR_BILLING_PERIOD: Record<PlanBillingPeriod, TextId & `billingPeriod${string}`> = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  1: 'billingPeriodMonthly',
-  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers
-  12: 'billingPeriodAnnually',
-}
-
 /** The component for a plan. */
-export interface PropsForPlan<PlanVariant extends Plan> {
-  readonly pricing: TextId & `${PlanVariant}PlanPricing`
-  readonly features: TextId & `${PlanVariant}PlanFeatures`
-  readonly title: TextId & `${PlanVariant}PlanName`
-  readonly subtitle: TextId & `${PlanVariant}PlanSubtitle`
+export interface PropsForPlan {
   readonly submitButton: (props: SubscribeButtonProps) => React.ReactNode
   readonly elevated?: boolean
 }
 
-const PROPS_FOR_PLAN: {
-  readonly [PlanVariant in Plan]: PropsForPlan<PlanVariant>
-} = {
-  free: {
-    pricing: 'freePlanPricing',
-    features: 'freePlanFeatures',
-    title: PLAN_TO_TEXT_ID['free'],
-    subtitle: 'freePlanSubtitle',
-    submitButton: (props) => <SubscribeButton {...props} isDisabled={true} />,
-  },
+const PROPS_FOR_PLAN = {
   [Plan.solo]: {
-    pricing: 'soloPlanPricing',
-    features: 'soloPlanFeatures',
-    subtitle: 'soloPlanSubtitle',
-    title: PLAN_TO_TEXT_ID['solo'],
     submitButton: SubscribeButton,
   },
   [Plan.team]: {
-    pricing: 'teamPlanPricing',
-    features: 'teamPlanFeatures',
-    title: PLAN_TO_TEXT_ID['team'],
-    subtitle: 'teamPlanSubtitle',
     elevated: true,
     submitButton: SubscribeButton,
   },
   [Plan.enterprise]: {
-    pricing: 'enterprisePlanPricing',
-    features: 'enterprisePlanFeatures',
-    title: PLAN_TO_TEXT_ID['enterprise'],
-    subtitle: 'enterprisePlanSubtitle',
     submitButton: () => {
       // False positive
       // eslint-disable-next-line react-hooks/rules-of-hooks
       const { getText } = useText()
 
       return (
-        <Button fullWidth isDisabled variant="outline" size="medium" rounded="full">
-          {getText('comingSoon')}
+        <Button
+          fullWidth
+          variant="outline"
+          size="medium"
+          rounded="full"
+          onPress={() => {
+            window.open(getContactPage(), '_blank')?.focus()
+          }}
+        >
+          {getText('contactUs')}
         </Button>
       )
     },
@@ -127,10 +103,19 @@ const CARD_STYLES = tv({
   },
 })
 
+/** Props for {@link Card}s texts. */
+export interface Texts {
+  readonly title: string
+  readonly subtitle: string
+  readonly pricing: string
+  readonly features: string[]
+}
+
 /** Props for {@link Card}. */
 export interface CardProps {
   readonly plan: Plan
   readonly period: PlanBillingPeriod
+  readonly texts: Texts
   readonly modalOpen: boolean
   readonly userHasSubscription: boolean
   readonly isOrganizationAdmin: boolean
@@ -145,6 +130,7 @@ export function Card(props: CardProps) {
   const {
     plan,
     period,
+    texts,
     modalOpen,
     userHasSubscription,
     isOrganizationAdmin,
@@ -154,14 +140,14 @@ export function Card(props: CardProps) {
     className,
   } = props
 
+  const { title, subtitle, pricing, features } = texts
+
   const { getText } = useText()
   const { remoteBackend } = useBackends()
+  const { router } = useRouter()
 
   const propsForPlan = PROPS_FOR_PLAN[plan]
-  const { title, subtitle, pricing } = propsForPlan
-  const features = getText(propsForPlan.features).split(';')
   const elevated = propsForPlan.elevated === true ? 'xxlarge' : 'none'
-
   const styles = CARD_STYLES({ elevated })
 
   const onSubmit = useMutationCallback({
@@ -170,30 +156,24 @@ export function Card(props: CardProps) {
         price: mutationData.plan,
         quantity: mutationData.seats,
         interval: mutationData.period,
-        flowType: BillingPortalFlowType.subscriptionUpdateConfirm,
       })
       window.open(url, '_blank')?.focus()
+      await router.push(`${appUtils.PAYMENTS_SUCCESS_PATH}`)
     },
   })
-
-  const titleTextBase = getText(title)
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  const shouldShowAnnualVariant = plan === Plan.solo && period === 12
-  const titleText =
-    shouldShowAnnualVariant ? getText('annualPlanVariant', titleTextBase) : titleTextBase
 
   return (
     <div className={styles.base({ className })}>
       <Text.Heading level={2} disableLineHeightCompensation>
-        {titleText}
+        {title}
       </Text.Heading>
 
       <Text elementType="p" variant="subtitle" weight="medium" disableLineHeightCompensation>
-        {getText(subtitle)}
+        {subtitle}
       </Text>
 
       <Text variant="body" weight="bold" disableLineHeightCompensation>
-        {getText(pricing, PRICE_BY_PLAN[plan], getText(TEXT_ID_FOR_BILLING_PERIOD[period]))}
+        {pricing}
       </Text>
 
       <div className="my-4">
