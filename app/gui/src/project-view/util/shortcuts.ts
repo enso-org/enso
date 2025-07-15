@@ -260,8 +260,10 @@ type AutocompleteKeybind<T extends string, Key extends string = never> =
   : Key
 
 type AutocompleteKeybinds<T extends KeybindDefinition[]> = {
-  [K in keyof T]: T[K] extends FullKeybindDefinition ? FullKeybindDefinition<AutocompleteKeybind<T[K]['key']>> :
-    T[K] extends string ? AutocompleteKeybind<T[K]> : never
+  [K in keyof T]: T[K] extends FullKeybindDefinition ?
+    FullKeybindDefinition<AutocompleteKeybind<T[K]['key']>>
+  : T[K] extends string ? AutocompleteKeybind<T[K]>
+  : never
 }
 
 /** Some keys have not human-friendly name, these are overwritten here for {@link BindingInfo}. */
