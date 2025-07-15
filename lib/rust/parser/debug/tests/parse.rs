@@ -997,9 +997,15 @@ fn import() {
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
              ((Ident import) (OprApp (OprApp (Ident Foo) (Ok ",") (Ident Bar)) (Ok ",") (Ident Baz)))
              () () ())]),
+        ("from Standard.Base.Error import Error as Throw_Error", block![
+            (Import ()
+             ((Ident from) (OprApp (OprApp (Ident Standard) (Ok ".") (Ident Base)) (Ok ".") (Ident Error)))
+             ((Ident import) (Ident Error)) () ((Ident as) (Ident Throw_Error))
+             ())]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
-    expect_invalid_node("from Standard.Base.Data.Array import new as array_new");
+    // this is now valid: expect_invalid_node("from Standard.Base.Data.Array import new as
+    // array_new");
 }
 
 #[test]
