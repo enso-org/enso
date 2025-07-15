@@ -244,7 +244,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       if (imported != null) {
         return imported;
       }
-      throw methodNotFound(symbol, self);
+      throw methodNotFound(this, onBoundary, symbol, self);
     }
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
     var shouldPrependSyntheticSelfArg =
@@ -297,12 +297,12 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  private PanicException methodNotFound(UnresolvedSymbol symbol, Object self)
-      throws PanicException {
+  static PanicException methodNotFound(
+      Node where, boolean onBoundary, UnresolvedSymbol symbol, Object self) throws PanicException {
     var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
-    var ctx = EnsoContext.get(this);
+    var ctx = EnsoContext.get(where);
     var payload = ctx.getBuiltins().error().makeNoSuchMethod(self, symbol);
-    throw new PanicException(ctx, payload, cause, this);
+    throw new PanicException(ctx, payload, cause, where);
   }
 
   @Specialization
@@ -326,7 +326,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
       return invokeFunctionNode.execute(fnAndType.getLeft(), frame, state, arguments);
     }
-    throw methodNotFound(symbol, self);
+    throw methodNotFound(this, onBoundary, symbol, self);
   }
 
   @Specialization

@@ -161,7 +161,7 @@ export interface SvgUseProps extends TestIdProps {
  * @internal
  */
 export function SvgUse(props: SvgUseProps) {
-  const { icon, testId = 'svg-use', className, alt = '' } = props
+  const { icon, testId, className, alt = '' } = props
 
   return (
     <svg

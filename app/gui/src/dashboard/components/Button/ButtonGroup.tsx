@@ -84,7 +84,7 @@ export const ButtonGroup = forwardRef(function ButtonGroup(
     variants = STYLES,
     verticalAlign,
     buttonVariants = {},
-    testId = 'button-group',
+    testId,
     ...passthrough
   } = props
 

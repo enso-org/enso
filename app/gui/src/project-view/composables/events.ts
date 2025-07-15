@@ -10,7 +10,9 @@ import { proxyRefs } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
 import {
   computed,
+  onMounted,
   onScopeDispose,
+  onUnmounted,
   ref,
   shallowRef,
   toValue,
@@ -656,4 +658,16 @@ export function useStateBeforePointerdown<T>(
      */
     stateBeforeClick,
   }
+}
+
+/** Calls the provide function on mount, and calls the function's return value on unmount. */
+export function useMounted(hook: () => (() => void) | undefined) {
+  let unmountedHook: (() => void) | undefined = undefined
+  onMounted(() => {
+    unmountedHook = hook()
+  })
+  onUnmounted(() => {
+    unmountedHook?.()
+    unmountedHook = undefined
+  })
 }

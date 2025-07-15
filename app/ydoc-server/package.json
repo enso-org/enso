@@ -32,12 +32,12 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@fast-check/vitest": "^0.2.1",
+    "@fast-check/vitest": "catalog:",
     "@types/debug": "^4.1.12",
     "@types/node": "^22.10.4",
     "@types/ws": "8.5.13",
-    "typescript": "^5.7.2",
+    "typescript": "catalog:",
     "vite-plugin-wasm": "^3.4.1",
-    "vitest": "3.0.5"
+    "vitest": "catalog:"
   }
 }

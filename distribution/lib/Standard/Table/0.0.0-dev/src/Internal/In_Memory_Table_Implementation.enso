@@ -2,7 +2,6 @@ private
 
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -349,10 +348,10 @@ type In_Memory_Table_Implementation
             mask filter_column = from_java_table (this_table.java_table.filter (filter_column:In_Memory_Column).java_column)
             filter_condition = Filter_Condition.resolve_auto_scoped filter
             case filter_condition of
+                Filter_Condition.Predicate p -> mask (column.map p)
                 _ : Filter_Condition ->
                     resolved = (this_table:Table_Ref).resolve_condition filter_condition
                     mask (make_filter_column column resolved on_problems)
-                _ : Function -> mask (column.map filter_condition)
         _ : Expression -> this_table.filter (this_table.evaluate_expression column on_problems) filter on_problems
         _ ->
             table_at = this_table.at column
@@ -411,18 +410,6 @@ type In_Memory_Table_Implementation
 
             problem_builder.report_unique_name_strategy unique
             problem_builder.attach_problems_after on_problems new_table
-
-    evaluate_expression (this_table : Table & In_Memory_Table) expression:(Text | Expression) on_problems:Problem_Behavior = if expression.is_a Text then this_table.evaluate_expression (Expression.Value expression) on_problems else
-        get_column name = this_table.at name
-        make_constant_column value = case value of
-            _ : Column -> value
-            _ -> this_table.make_constant_column value
-        is_column value = value.is_a Column
-        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column_Type_Helpers.var_args_functions
-        problems = Warning.get_all new_column . map .value
-        result = new_column.rename (this_table.column_naming_helper.sanitize_name expression.expression)
-        on_problems.attach_problems_before problems <|
-            Warning.set result []
 
     make_table_from_dictionary (this_table : Table & In_Memory_Table) dict key_column_name value_column_name =
         keys_and_values = dict.to_vector

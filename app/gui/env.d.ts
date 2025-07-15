@@ -181,3 +181,12 @@ declare module 'vite/client' {
     export default src
   }
 }
+
+declare global {
+  const URL: {
+    /**
+     *  @deprecated use {@link urlParse} to avoid issues during tests.
+     */
+    parse(url: string | URL, base?: string | URL): URL | null
+  }
+}

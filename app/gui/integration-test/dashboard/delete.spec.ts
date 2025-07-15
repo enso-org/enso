@@ -1,5 +1,5 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test } from '@playwright/test'
+import { expect, test } from 'playwright/test'
 
 import { modModifier } from 'integration-test/dashboard/actions/BaseActions'
 import { mockAllAndLogin, TEXT } from './actions'
