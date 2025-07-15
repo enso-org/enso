@@ -8,7 +8,7 @@ function setupProgressBackground(
   progress: WatchSource<number>,
   progressId: WatchSource<number> | undefined,
 ) {
-  const [progressBackground] = withSetup(() =>
+  const progressBackground = withSetup(() =>
     useProgressBackground(progress, {
       progressId,
     }),

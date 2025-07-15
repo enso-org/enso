@@ -15,6 +15,7 @@ import * as appUtils from '$/appUtils'
 import { getContactPage } from '$/appUtils'
 import { useBackends } from '$/providers/backends'
 import { useRouter, useText } from '$/providers/react'
+import * as analytics from '$/utils/analytics'
 import * as React from 'react'
 
 /** The mutation data for the `createCheckoutSession` mutation. */
@@ -152,11 +153,13 @@ export function Card(props: CardProps) {
 
   const onSubmit = useMutationCallback({
     mutationFn: async (mutationData: CreateCheckoutSessionMutationParams) => {
-      const { url } = await remoteBackend.createCheckoutSession({
+      const planInfo = {
         price: mutationData.plan,
         quantity: mutationData.seats,
         interval: mutationData.period,
-      })
+      }
+      analytics.checkout.before(planInfo)
+      const { url } = await remoteBackend.createCheckoutSession(planInfo)
       window.open(url, '_blank')?.focus()
       await router.push(`${appUtils.PAYMENTS_SUCCESS_PATH}`)
     },

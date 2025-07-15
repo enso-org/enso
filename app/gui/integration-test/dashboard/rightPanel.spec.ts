@@ -1,5 +1,5 @@
 /** @file Tests for the asset panel. */
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from 'playwright/test'
 
 import { EmailAddress, UserId } from '#/services/Backend'
 

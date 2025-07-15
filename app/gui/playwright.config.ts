@@ -6,10 +6,10 @@
  * - System validation dialogs are not reliable between computers, as they may have different
  * default fonts.
  */
-import { defineConfig } from '@playwright/test'
 import net from 'node:net'
 import path from 'node:path'
 import url from 'node:url'
+import { defineConfig } from 'playwright/test'
 import invariant from 'tiny-invariant'
 
 const UNSAFE_SKIP_BUILD = process.env.PW_UNSAFE_SKIP_BUILD === 'true'
@@ -63,7 +63,12 @@ const ports = {
       portsFromEnv.dashboard
     : await findFreePortInRange(4300, 4999),
 }
-console.log(`Selected playwright servers' ports: ${ports.projectView} and ${ports.dashboard}`)
+
+if (!Number.isFinite(portsFromEnv.projectView) || !Number.isFinite(portsFromEnv.dashboard)) {
+  // Avoid spamming this log in each worker thread.
+  console.log(`Selected playwright servers' ports: ${ports.projectView} and ${ports.dashboard}`)
+}
+
 // Make sure to set the env to actual port that is being used. This is necessary for workers to
 // pick up the same configuration.
 process.env.PLAYWRIGHT_PORT = `${ports.dashboard}`
@@ -76,14 +81,14 @@ export default defineConfig({
   reporter: isCI ? [['list'], ['blob']] : [['html']],
   retries: isCI ? 1 : 0,
   use: {
-    headless: !DEBUG,
     actionTimeout: 5000,
 
     trace: 'retain-on-failure',
-    ...(DEBUG ?
-      {}
-    : {
-        launchOptions: {
+    headless: !DEBUG,
+    launchOptions:
+      DEBUG ?
+        {}
+      : {
           ignoreDefaultArgs: ['--headless'],
           args: [
             // Much closer to headful Chromium than classic headless.
@@ -104,7 +109,6 @@ export default defineConfig({
             '--disable-lcd-text',
           ],
         },
-      }),
   },
   projects: [
     // Setup project

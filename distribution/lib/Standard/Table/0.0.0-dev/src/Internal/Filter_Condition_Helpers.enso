@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
 import project.Column.Column
@@ -78,6 +79,7 @@ make_filter_column source_column:Column filter_condition on_problems:Problem_Beh
         Is_In values _ ->
             warn_on_nothing_in_comparison_vector filter_condition values <|
                 source_column.is_in values
+        Predicate _ -> Error.throw (Illegal_State.Error "Predicate filter conditions need to be resolved before being used as a filter column.")
     if filter_condition.action == Filter_Action.Keep then base_column else
         ## We need to fill in the Nothing values and then negate the result.
         (base_column.fill_nothing False).not

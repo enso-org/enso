@@ -327,12 +327,17 @@ object DistributionPackage {
     }
   }
 
-  private def reduceArgs(
+  /** Helper method to execute project manager and enso using similar technique.
+    */
+  private def adjustArgsAndStart(
+    log: Logger,
     args: java.util.List[String],
     jvmOptName: String,
-    envToFill: java.util.Map[String, String]
-  ): Unit = {
-    var atEnv = args.indexOf("--env")
+    pb: java.lang.ProcessBuilder,
+    appendJvmOpts: String = "-ea"
+  ): java.lang.Process = {
+    val envToFill: java.util.Map[String, String] = pb.environment()
+    var atEnv                                    = args.indexOf("--env")
     while (atEnv >= 0) {
       var keyAndValue = args.get(atEnv + 1).split("=")
       envToFill.put(keyAndValue(0), keyAndValue(1))
@@ -343,20 +348,39 @@ object DistributionPackage {
 
     var prevValue = System.getenv(jvmOptName)
     if (prevValue == null) {
-      prevValue = "-ea";
+      prevValue = appendJvmOpts;
     } else {
-      prevValue = prevValue + " -ea"
+      prevValue = prevValue + " " + appendJvmOpts
     }
 
     val at = args.indexOf("--debug")
     if (at >= 0) {
       args.set(at, "--jvm=" + System.getProperty("java.home"))
-      val newValue =
+      val newValue = if (prevValue == "") {
+        WithDebugCommand.DEBUG_OPTION
+      } else {
         prevValue + " " + WithDebugCommand.DEBUG_OPTION
+      }
       envToFill.put(jvmOptName, newValue)
     } else {
       envToFill.put(jvmOptName, prevValue)
     }
+
+    pb.command(args)
+    pb.inheritIO()
+    log.info(
+      s"Executing ${args.stream.collect(java.util.stream.Collectors.joining(" "))}"
+    )
+    envToFill
+      .entrySet()
+      .forEach(entry => {
+        val name = entry.getKey
+        if (name.startsWith("ENSO_") || name == jvmOptName) {
+          log.info(s"  with ${name}=${entry.getValue}")
+        }
+      })
+    val process = pb.start()
+    process
   }
 
   def runEnginePackage(
@@ -380,14 +404,10 @@ object DistributionPackage {
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    reduceArgs(all, "JAVA_TOOL_OPTIONS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
-    pb.command(all)
-    pb.inheritIO()
-    log.info(s"Executing ${all.asScala.mkString(" ")}")
-    val p        = pb.start()
+    val p        = adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb)
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)
@@ -474,13 +494,11 @@ object DistributionPackage {
       all.add(projectManagerJar.getPath())
     }
     all.addAll(args.asJava)
-    pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
     pb.environment().put("ENSO_OPENSEARCH_APPENDER_ENABLED", "false")
-    reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
-    pb.inheritIO()
-    val p        = pb.start()
+    val p =
+      adjustArgsAndStart(log, all, "ENSO_JVM_OPTS", pb, appendJvmOpts = "")
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)

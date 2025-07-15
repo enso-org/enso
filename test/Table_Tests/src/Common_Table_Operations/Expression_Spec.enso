@@ -34,7 +34,8 @@ add_expression_specs suite_builder detailed setup =
         column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
         column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
         column_d = ["D", ["A/B", "C//D", "E\F", "", Nothing]]
-        table_builder [column_a_description, column_b, column_c, column_d, column_odd_description]
+        column_e = ["E", [1.0, -1.5, 2.5, -4, 6]]
+        table_builder [column_a_description, column_b, column_c, column_d, column_e, column_odd_description]
 
     pending_datetime = if (setup.flagged ..Date_Time).not then "Date/Time operations are not supported by this backend."
 
@@ -429,7 +430,16 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to call math constant static expression methods" group_builder expression_test->
             expression_test "pi()" Math.pi
             expression_test "e()" Math.e
-            
+        
+        specify_test "should be able to call numeric_column methods" group_builder expression_test->
+            expression_test "abs([E])" [1.0, 1.5, 2.5, 4.0, 6.0]
+
+        specify_test "should be able to call numeric_column methods on constants" group_builder expression_test->
+            expression_test "abs(-1)" 1
+
+        specify_test "should be able to call numeric_column methods on results of other methods" group_builder expression_test->
+            expression_test "abs(text_length([C]))" [5, 5, 12, 0, Nothing]
+
         specify_test "should be able to perform arithmetic and get integer results" group_builder expression_test->
             # This requires column offset which is not available in databases due to ordering
             if setup.is_database.not then
@@ -475,6 +485,11 @@ add_expression_specs suite_builder detailed setup =
 
         group_builder.specify "should fail with Argument_Mismatch if too many arguments" <|
             expect_error Expression_Error.Argument_Mismatch <| test_table.get.evaluate_expression "is_empty([C], 'Hello')"
+
+        group_builder.specify "calling numeric_column methods on non numeric column errors" <|
+            r = test_table.get.evaluate_expression "abs([C])"
+            r.catch.should_be_a Expression_Error.Type_Error
+            r.catch.to_display_text.should_equal "Expression.Type_Error: method 'abs' expected first argument to be Numeric_Column, but got Column."
             
         if setup.is_database.not then group_builder.specify "should fail with bad regex" <|
             ## Unclosed regex literal

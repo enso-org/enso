@@ -1,5 +1,5 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from 'playwright/test'
 
 import { TEXT, getText, mockAllAndLogin } from './actions'
 
