@@ -25,7 +25,7 @@ type Group_Row
     ## The row representing the group is the first row of the group.
     First
 
-    ## The row representing the group is the last row of the group.
+    ## The row representing the group is the previous row of the group.
     Previous
 
 ## Specify what the predicate is computed over.
