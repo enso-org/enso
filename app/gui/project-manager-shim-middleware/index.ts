@@ -293,9 +293,12 @@ export default function projectManagerShimMiddleware(
                 id: 0,
                 error: { code: 0, message, ...(data != null ? { data } : {}) },
               })
-            let result = toJSONRPCError(`Error running Project Manager command.`, {
-              command: cliArguments,
-            })
+            let result: string | fsSync.ReadStream = toJSONRPCError(
+              `Error running Project Manager command.`,
+              {
+                command: cliArguments,
+              },
+            )
             try {
               switch (cliArguments[0]) {
                 case '--filesystem-exists': {
@@ -399,6 +402,13 @@ export default function projectManagerShimMiddleware(
                   }
                   break
                 }
+                case '--filesystem-read-path': {
+                  const filePath = cliArguments[1]
+                  if (filePath != null) {
+                    result = await fsSync.createReadStream(filePath)
+                  }
+                  break
+                }
                 case '--filesystem-write-path': {
                   const filePath = cliArguments[1]
                   if (filePath != null) {
@@ -445,14 +455,23 @@ export default function projectManagerShimMiddleware(
             } catch {
               // Ignored. `result` retains its original value indicating an error.
             }
-            const buffer = Buffer.from(result)
-            response
-              .writeHead(HTTP_STATUS_OK, {
-                'Content-Length': String(buffer.byteLength),
-                'Content-Type': 'application/json',
+
+            const resultData = typeof result === 'string' ? Buffer.from(result) : result
+            if (resultData instanceof fsSync.ReadStream) {
+              const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+                'Content-Type': 'application/octet-stream',
                 ...COMMON_HEADERS,
               })
-              .end(buffer)
+              resultData.pipe(responseWithHead)
+            } else {
+              response
+                .writeHead(HTTP_STATUS_OK, {
+                  'Content-Length': String(resultData.byteLength),
+                  'Content-Type': 'application/json',
+                  ...COMMON_HEADERS,
+                })
+                .end(resultData)
+            }
           })()
         }
         break

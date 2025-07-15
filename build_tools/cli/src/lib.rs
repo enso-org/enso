@@ -60,7 +60,6 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
-use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
@@ -788,7 +787,10 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 }
                 Result::Ok(())
             };
-            try_join(git_clean, clean_cache).await?;
+            let bazel_clean =
+                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean);
+
+            try_join!(git_clean, clean_cache, bazel_clean)?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;

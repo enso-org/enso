@@ -40,7 +40,7 @@ const props = withDefaults(
     writeMode?: boolean
     choosenPath?: string
     type?: 'file' | 'secret' | 'directory'
-    fileTypes?: FileType[]
+    fileTypes?: FileType[] | undefined
     allowOverride?: boolean
   }>(),
   {

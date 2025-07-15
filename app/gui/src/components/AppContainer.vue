@@ -11,6 +11,7 @@ import { provideOpenedProjects } from '$/providers/openedProjects'
 import { RightPanelDataProviderForReact } from '$/providers/react/rightPanel'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
+import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, shallowRef, toRef, toRefs, watch } from 'vue'
@@ -31,7 +32,8 @@ const props = defineProps<{
 // with veaury's ref assignment implementation that runs during parent React component lifecycle.
 const fullscreenRoot = shallowRef<HTMLElement>()
 
-provideOpenedProjects()
+const openedProjectsStore = provideOpenedProjects()
+provideAsyncResources(openedProjectsStore)
 const { tab, openedProjects } = toRefs(provideContainerData(toRef(props, 'launchedProjects')))
 provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)

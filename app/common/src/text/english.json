@@ -183,6 +183,7 @@
   "duplicateLabelError": "This label already exists.",
   "emptyStringError": "This value must not be empty.",
   "resolveProjectAssetPathBackendError": "Could not get asset",
+  "resolveEnsoPathBackendError": "Could not resolve enso path",
   "directoryAssetType": "folder",
   "directoryDoesNotExistError": "Unable to find directory. Does it exist?",
   "cannotEditCredentialError": "Editing credentials is currently not supported. Please create a new one.",
