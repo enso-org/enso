@@ -1,11 +1,11 @@
 package org.enso.table.operations;
 
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.statistics.Statistic;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForDouble;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
@@ -15,7 +15,6 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 public class AddRunning {
-
   public static ColumnStorage<?> create_running(
       Statistic statistic,
       Column sourceColumn,
@@ -25,19 +24,17 @@ public class AddRunning {
       ProblemAggregator problemAggregator) {
     var runningStatistic =
         new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
-    GroupingOrderingVisitor.visit(
+    return GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
         runningStatistic,
         sourceColumn.getSize());
-    return runningStatistic.runningStatistic.getResult();
   }
 
   private static class RunningStatisticRowVisitorFactory implements RowVisitorFactory {
-
-    RunningStatisticBase<?> runningStatistic;
+    RunningStatistic<?> runningStatistic;
 
     RunningStatisticRowVisitorFactory(
         Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
@@ -49,11 +46,16 @@ public class AddRunning {
       return new RunningStatisticRowVisitor<>(runningStatistic);
     }
 
+    @Override
+    public ColumnStorage<?> seal() {
+      return runningStatistic.getResult();
+    }
+
     private static class RunningStatisticRowVisitor<T> implements GroupRowVisitor {
-      RunningStatisticBase<T> runningStatistic;
+      RunningStatistic<T> runningStatistic;
       RunningIterator<T> iterator;
 
-      RunningStatisticRowVisitor(RunningStatisticBase<T> runningStatistic) {
+      RunningStatisticRowVisitor(RunningStatistic<T> runningStatistic) {
         this.runningStatistic = runningStatistic;
         iterator = runningStatistic.getNewIterator();
       }
@@ -65,7 +67,7 @@ public class AddRunning {
     }
   }
 
-  private static RunningStatisticBase<?> createRunningStatistic(
+  private static RunningStatistic<?> createRunningStatistic(
       Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
     switch (statistic) {
       case Sum -> {
@@ -115,117 +117,82 @@ public class AddRunning {
     }
   }
 
-  private interface TypeHandler<T> {
+  private interface RunningStatistic<T> {
+    void calculateNextValue(int i, RunningIterator<T> it);
 
-    T tryConvertingToType(Object o);
+    ColumnStorage<?> getResult();
 
-    long typeToRawLongBits(T t);
-
-    ColumnStorage<T> createStorage(long[] result, int size, BitSet isNothing);
+    RunningIterator<T> getNewIterator();
   }
 
-  private static class DoubleHandler implements TypeHandler<Double> {
-    private final ProblemAggregator problemAggregator;
+  private abstract static class RunningStatisticDouble implements RunningStatistic<Double> {
+    BuilderForDouble builder;
+    ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
+    Column sourceColumn;
 
-    DoubleHandler(ProblemAggregator problemAggregator) {
-      this.problemAggregator = problemAggregator;
+    RunningStatisticDouble(Column sourceColumn, ProblemAggregator problemAggregator) {
+      columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+      this.sourceColumn = sourceColumn;
+      this.builder =
+          Builder.getForDouble(
+              FloatType.FLOAT_64, sourceColumn.getSize(), columnAggregatedProblemAggregator);
     }
 
-    @Override
-    public Double tryConvertingToType(Object o) {
-      return NumericConverter.tryConvertingToDouble(o);
-    }
-
-    @Override
-    public long typeToRawLongBits(Double d) {
-      return Double.doubleToRawLongBits(d);
-    }
-
-    @Override
-    public ColumnStorage<Double> createStorage(long[] result, int size, BitSet isNothing) {
-      // Have to convert the long[] to double[].
-      var builder = Builder.getForDouble(FloatType.FLOAT_64, size, problemAggregator);
-
-      for (int i = 0; i < size; i++) {
-        if (!isNothing.get(i)) {
-          builder.append(Double.longBitsToDouble(result[i]));
-        } else {
-          builder.appendNulls(1);
-        }
+    public void calculateNextValue(int i, RunningIterator<Double> it) {
+      Object value = sourceColumn.getStorage().getItemBoxed(i);
+      if (value == null) {
+        columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
+            new IgnoredNothing(sourceColumn.getName(), i));
       }
 
+      Double dValue = NumericConverter.tryConvertingToDouble(value);
+      if (dValue != null && dValue.equals(Double.NaN)) {
+        columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
+            new IgnoredNaN(sourceColumn.getName(), (long) i));
+        builder.append(it.currentValue());
+      } else {
+        builder.append(it.next(dValue));
+      }
+    }
+
+    public ColumnStorage<?> getResult() {
       return builder.seal();
     }
   }
 
-  private static class LongHandler implements TypeHandler<Long> {
-
-    IntegerType type;
-
-    LongHandler(IntegerType type) {
-      this.type = type;
-    }
-
-    @Override
-    public Long tryConvertingToType(Object o) {
-      return NumericConverter.tryConvertingToLong(o);
-    }
-
-    @Override
-    public long typeToRawLongBits(Long l) {
-      return l;
-    }
-
-    @Override
-    public ColumnStorage<Long> createStorage(long[] result, int size, BitSet isNothing) {
-      return new LongStorage(result, size, isNothing, type);
-    }
-  }
-
-  private abstract static class RunningStatisticBase<T> {
-
-    long[] result;
-    BitSet isNothing;
+  private abstract static class RunningStatisticLong implements RunningStatistic<Long> {
+    BuilderForLong builder;
     ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
     Column sourceColumn;
-    TypeHandler<T> typeHandler;
 
-    RunningStatisticBase(
-        Column sourceColumn, ProblemAggregator problemAggregator, TypeHandler<T> typeHandler) {
-      result = new long[sourceColumn.getSize()];
-      isNothing = new BitSet();
+    RunningStatisticLong(
+        Column sourceColumn, IntegerType type, ProblemAggregator problemAggregator) {
       columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
       this.sourceColumn = sourceColumn;
-      this.typeHandler = typeHandler;
+      this.builder =
+          Builder.getForLong(type, sourceColumn.getSize(), columnAggregatedProblemAggregator);
     }
 
-    public void calculateNextValue(int i, RunningIterator<T> it) {
+    public void calculateNextValue(int i, RunningIterator<Long> it) {
       Object value = sourceColumn.getStorage().getItemBoxed(i);
       if (value == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-            new IgnoredNothing(sourceColumn.getName(), (long) i));
+            new IgnoredNothing(sourceColumn.getName(), i));
       }
-      T dValue = typeHandler.tryConvertingToType(value);
-      T dNextValue;
-      if (dValue != null && dValue.equals(Double.NaN)) {
+
+      Long lValue = NumericConverter.tryConvertingToLong(value);
+      if (lValue == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-            new IgnoredNaN(sourceColumn.getName(), (long) i));
-        dNextValue = it.currentValue();
+            new IgnoredNaN(sourceColumn.getName(), i));
+        builder.append(it.currentValue());
       } else {
-        dNextValue = it.next(dValue);
-      }
-      if (dNextValue == null) {
-        isNothing.set(i);
-      } else {
-        result[i] = typeHandler.typeToRawLongBits(dNextValue);
+        builder.append(it.next(lValue));
       }
     }
 
-    public ColumnStorage<T> getResult() {
-      return typeHandler.createStorage(result, sourceColumn.getSize(), isNothing);
+    public ColumnStorage<?> getResult() {
+      return builder.seal();
     }
-
-    protected abstract RunningIterator<T> getNewIterator();
   }
 
   private abstract static class RunningIteratorBase implements RunningIterator<Double> {
@@ -262,10 +229,9 @@ public class AddRunning {
     }
   }
 
-  private static class RunningSumStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningSumStatistic extends RunningStatisticDouble {
     RunningSumStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
     }
 
     @Override
@@ -274,10 +240,9 @@ public class AddRunning {
     }
   }
 
-  private static class RunningMeanStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningMeanStatistic extends RunningStatisticDouble {
     RunningMeanStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
     }
 
     @Override
@@ -286,10 +251,9 @@ public class AddRunning {
     }
   }
 
-  private static class RunningProductStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningProductStatistic extends RunningStatisticDouble {
     RunningProductStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
     }
 
     @Override
@@ -298,13 +262,12 @@ public class AddRunning {
     }
   }
 
-  private static class RunningVarianceStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningVarianceStatistic extends RunningStatisticDouble {
     private final boolean isPopulationVariance;
 
     RunningVarianceStatistic(
         Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulationVariance) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
       this.isPopulationVariance = isPopulationVariance;
     }
 
@@ -314,13 +277,12 @@ public class AddRunning {
     }
   }
 
-  private static class RunningStandardDeviationStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningStandardDeviationStatistic extends RunningStatisticDouble {
     private final boolean isPopulation;
 
     RunningStandardDeviationStatistic(
         Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulation) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
       this.isPopulation = isPopulation;
     }
 
@@ -330,13 +292,12 @@ public class AddRunning {
     }
   }
 
-  private static class RunningSkewStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningSkewStatistic extends RunningStatisticDouble {
     private final boolean isPopulation;
 
     RunningSkewStatistic(
         Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulation) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
       this.isPopulation = isPopulation;
     }
 
@@ -346,10 +307,9 @@ public class AddRunning {
     }
   }
 
-  private static class RunningKurtosisStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningKurtosisStatistic extends RunningStatisticDouble {
     RunningKurtosisStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
     }
 
     @Override
@@ -359,7 +319,6 @@ public class AddRunning {
   }
 
   private static class RunningSumIterator extends RunningIteratorBase {
-
     protected double sum;
 
     @Override
@@ -380,7 +339,6 @@ public class AddRunning {
   }
 
   private static class RunningProductIterator extends RunningIteratorBase {
-
     @Override
     public void increment(double value) {
       current *= value;
@@ -388,7 +346,6 @@ public class AddRunning {
   }
 
   private static class RunningMeanIterator extends RunningSumIterator {
-
     protected int currentCount;
 
     @Override
@@ -410,7 +367,6 @@ public class AddRunning {
   }
 
   private static class RunningVarianceIterator extends RunningMeanIterator {
-
     protected double sumSquares;
     protected boolean isPopulation;
 
@@ -439,7 +395,6 @@ public class AddRunning {
   }
 
   private static class RunningStandardDeviationIterator extends RunningVarianceIterator {
-
     RunningStandardDeviationIterator(boolean isPopulation) {
       super(isPopulation);
     }
@@ -451,7 +406,6 @@ public class AddRunning {
   }
 
   private static class RunningSkewIterator extends RunningStandardDeviationIterator {
-
     protected double sumCubes;
 
     RunningSkewIterator(boolean isPopulation) {
@@ -488,7 +442,6 @@ public class AddRunning {
   }
 
   private static class RunningKurtosisIterator extends RunningVarianceIterator {
-
     private double sumCubes;
     private double sumQuads;
 
@@ -540,10 +493,9 @@ public class AddRunning {
     }
   }
 
-  private static class RunningMinStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningMinStatistic extends RunningStatisticDouble {
     RunningMinStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
     }
 
     @Override
@@ -560,31 +512,9 @@ public class AddRunning {
     }
   }
 
-  private static class RunningMinLongStatistic extends RunningStatisticBase<Long> {
-
-    RunningMinLongStatistic(
-        Column sourceColumn, ProblemAggregator problemAggregator, IntegerType type) {
-      super(sourceColumn, problemAggregator, new LongHandler(type));
-    }
-
-    @Override
-    public RunningIterator<Long> getNewIterator() {
-      return new RunningMinLongIterator();
-    }
-
-    private static class RunningMinLongIterator extends RunningIteratorLong {
-
-      @Override
-      public void increment(long value) {
-        current = Math.min(current, value);
-      }
-    }
-  }
-
-  private static class RunningMaxStatistic extends RunningStatisticBase<Double> {
-
+  private static class RunningMaxStatistic extends RunningStatisticDouble {
     RunningMaxStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
+      super(sourceColumn, problemAggregator);
     }
 
     @Override
@@ -601,11 +531,30 @@ public class AddRunning {
     }
   }
 
-  private static class RunningMaxLongStatistic extends RunningStatisticBase<Long> {
+  private static class RunningMinLongStatistic extends RunningStatisticLong {
+    RunningMinLongStatistic(
+        Column sourceColumn, ProblemAggregator problemAggregator, IntegerType type) {
+      super(sourceColumn, type, problemAggregator);
+    }
 
+    @Override
+    public RunningIterator<Long> getNewIterator() {
+      return new RunningMinLongIterator();
+    }
+
+    private static class RunningMinLongIterator extends RunningIteratorLong {
+
+      @Override
+      public void increment(long value) {
+        current = Math.min(current, value);
+      }
+    }
+  }
+
+  private static class RunningMaxLongStatistic extends RunningStatisticLong {
     RunningMaxLongStatistic(
         Column sourceColumn, ProblemAggregator problemAggregator, IntegerType type) {
-      super(sourceColumn, problemAggregator, new LongHandler(type));
+      super(sourceColumn, type, problemAggregator);
     }
 
     @Override
@@ -623,7 +572,6 @@ public class AddRunning {
   }
 
   private abstract static class RunningIteratorLong implements RunningIterator<Long> {
-
     protected long current;
     private boolean isInitialized = false;
 

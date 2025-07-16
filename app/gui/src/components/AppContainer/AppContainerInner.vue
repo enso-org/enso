@@ -112,6 +112,7 @@ const onSignOut = () => {
           :selected="true"
           icon="settings"
           label="Settings"
+          @close="tab = 'drive'"
         />
       </div>
       <div class="filler" />

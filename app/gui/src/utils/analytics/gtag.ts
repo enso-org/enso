@@ -1,11 +1,9 @@
-/** @file A hook that makes `gtag.event()` a no-op if the user is offline. */
+/** @file API for sending events to Google Analytics. */
+import { noop } from '#/utilities/functions'
 import * as load from 'enso-common/src/load'
-import * as React from 'react'
-import { noop } from '../utilities/functions'
 
 const GOOGLE_ANALYTICS_TAG = typeof $config !== 'undefined' && $config.GOOGLE_ANALYTICS_TAG
 
-// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 if (GOOGLE_ANALYTICS_TAG) {
   void load
     .loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`)
@@ -14,14 +12,12 @@ if (GOOGLE_ANALYTICS_TAG) {
 
 // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
 // anywhere else.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/strict-boolean-expressions
 window.dataLayer = window.dataLayer || []
 
 /** Google Analytics tag function. */
 export function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
   // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
   // anywhere else.
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
   window.dataLayer.push([action, ...args])
 }
 
@@ -31,21 +27,11 @@ export function event(name: string, params?: object) {
 }
 
 gtag('js', new Date())
-// eslint-disable-next-line camelcase, @typescript-eslint/naming-convention
+// eslint-disable-next-line camelcase
 gtag('set', 'linker', { accept_incoming: true })
 gtag('config', GOOGLE_ANALYTICS_TAG)
 if (GOOGLE_ANALYTICS_TAG === 'G-CLTBJ37MDM') {
   gtag('config', 'G-DH47F649JC')
-}
-
-/**
- * A hook that returns a no-op if the user is offline, otherwise it returns
- * a transparent wrapper around `gtag.event`.
- */
-export function useGtagEvent() {
-  return React.useCallback((name: string, params?: object) => {
-    event(name, params)
-  }, [])
 }
 
 /**
@@ -54,20 +40,16 @@ export function useGtagEvent() {
  *
  * Also sends the close event when the window is unloaded.
  */
-export function gtagOpenCloseCallback(
-  gtagEvent: ReturnType<typeof useGtagEvent>,
-  openEvent: string,
-  closeEvent: string,
-) {
-  gtagEvent(openEvent)
+export function openCloseCallback(openEvent: string, closeEvent: string) {
+  event(openEvent)
 
   const onBeforeUnload = () => {
-    gtagEvent(closeEvent)
+    event(closeEvent)
   }
   window.addEventListener('beforeunload', onBeforeUnload)
 
   return () => {
     window.removeEventListener('beforeunload', onBeforeUnload)
-    gtagEvent(closeEvent)
+    event(closeEvent)
   }
 }

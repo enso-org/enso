@@ -64,15 +64,21 @@ export const CREATE_USER_GROUP_PATH = 'usergroups'
 export const LIST_USER_GROUPS_PATH = 'usergroups'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
 export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout/sessions'
-export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
+/** Relative HTTP path to the "get payments config" endpoint of the Cloud backend API. */
+export const PAYMENTS_CONFIG_PATH = 'payments/config'
 /** Resolve an enso URL path. */
 export const RESOLVE_ENSO_PATH = 'path/resolve'
 /** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-sessions/create'
+
+/** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */
+export function cancelSubscriptionPath(subscriptionId: backend.SubscriptionId) {
+  return `payments/subscriptions/${subscriptionId}`
+}
 
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {
