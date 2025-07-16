@@ -109,11 +109,23 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
   }
 
   /** Immutable state of a binding map. */
-  static record State(
-      List<DefinedEntity> definedEntities,
-      ModuleReference currentModule,
-      List<ResolvedImport> resolvedImports,
-      Map<String, List<ResolvedName>> exportedSymbols) {
+  static final class State {
+    private final List<DefinedEntity> definedEntities;
+    private final ModuleReference currentModule;
+    private final List<ResolvedImport> resolvedImports;
+    private final Map<String, List<ResolvedName>> exportedSymbols;
+
+    State(
+        List<DefinedEntity> definedEntities,
+        ModuleReference currentModule,
+        List<ResolvedImport> resolvedImports,
+        Map<String, List<ResolvedName>> exportedSymbols) {
+      this.definedEntities = definedEntities;
+      this.currentModule = currentModule;
+      this.resolvedImports = resolvedImports;
+      this.exportedSymbols = exportedSymbols;
+    }
+
     State(List<DefinedEntity> definedEntities, ModuleReference currentModule) {
       this(definedEntities, currentModule, nil(), Map$.MODULE$.empty());
     }
@@ -128,6 +140,37 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
 
     final State withExportedSymbols(Map<String, List<ResolvedName>> newSymbols) {
       return new State(definedEntities, currentModule, resolvedImports, newSymbols);
+    }
+
+    public List<DefinedEntity> definedEntities() {
+      return definedEntities;
+    }
+
+    public ModuleReference currentModule() {
+      return currentModule;
+    }
+
+    public List<ResolvedImport> resolvedImports() {
+      return resolvedImports;
+    }
+
+    public Map<String, List<ResolvedName>> exportedSymbols() {
+      return exportedSymbols;
+    }
+
+    List<? extends ResolvedName> findQualifiedImportCandidates(String name) {
+      return resolvedImports
+          .filter(i -> importMatchesName(i, name) && !i.isSynthetic())
+          .flatMap(i -> i.targets());
+    }
+
+    private boolean importMatchesName(ResolvedImport imp, String name) {
+      return imp.importDef()
+          .onlyNames()
+          .map(n -> imp.importDef().rename().exists(e -> e.name().equals(name)))
+          .getOrElse(
+              () ->
+                  !imp.importDef().isAll() && imp.importDef().getSimpleName().name().equals(name));
     }
   }
 }

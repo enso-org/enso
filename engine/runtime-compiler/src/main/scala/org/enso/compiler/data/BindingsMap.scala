@@ -155,22 +155,6 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     } else { candidates }
   }
 
-  private def findQualifiedImportCandidates(
-    name: String
-  ): List[ResolvedName] = {
-    resolvedImports
-      .filter(i => importMatchesName(i, name) && !i.isSynthetic())
-      .flatMap(_.targets)
-  }
-
-  private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
-    imp.importDef.onlyNames
-      .map(_ => imp.importDef.rename.exists(_.name == name))
-      .getOrElse(
-        !imp.importDef.isAll && imp.importDef.getSimpleName.name == name
-      )
-  }
-
   private def findExportedCandidatesInImports(
     name: String
   ): List[ResolvedName] = {
@@ -208,7 +192,7 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     if (local.nonEmpty) {
       return BindingsMap.handleAmbiguity(local)
     }
-    val qualifiedImps = findQualifiedImportCandidates(name)
+    val qualifiedImps = getState().findQualifiedImportCandidates(name)
     if (qualifiedImps.nonEmpty) {
       return handleAmbiguity(qualifiedImps)
     }
