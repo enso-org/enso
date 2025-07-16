@@ -1,5 +1,4 @@
 /** @file A page for when a subscription payment succeeds. */
-
 import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
@@ -7,11 +6,12 @@ import { BackendType, Plan } from '#/services/Backend'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
 import { useRouter, useText, useUserSession } from '$/providers/react'
+import * as analytics from '$/utils/analytics'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 
 const USER_REFETCH_DELAY_MS = 3_000
-const USER_REFETCH_TIMEOUT_MS = 30_000
+const USER_REFETCH_TIMEOUT_MS = 60_000
 
 /** A page for when a subscription payment succeeds. */
 export function PaymentsSuccess() {
@@ -43,6 +43,7 @@ export function PaymentsSuccess() {
         } else {
           const timePassedMs = Number(new Date()) - startEpochMs
           if (timePassedMs > USER_REFETCH_TIMEOUT_MS) {
+            await router.push(DASHBOARD_PATH)
             throw new Error(
               'Timed out waiting for subscription, please contact support to continue.',
             )
@@ -53,6 +54,8 @@ export function PaymentsSuccess() {
           }
         }
       }
+
+      analytics.checkout.after()
     })()
 
     void toast.promise(promise, {

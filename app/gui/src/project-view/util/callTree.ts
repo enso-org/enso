@@ -218,6 +218,7 @@ interface CallInfo {
   suggestion?: CallableSuggestionEntry | undefined
   widgetCfg?: widgetCfg.FunctionCall | undefined
   subjectAsSelf?: boolean | undefined
+  suppressPlaceholders?: boolean | undefined
 }
 
 /** TODO: Add docs */
@@ -253,7 +254,8 @@ export class ArgumentApplication {
   }
 
   private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
-    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
+    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf, suppressPlaceholders } =
+      callInfo
 
     const knownArguments = suggestion?.arguments
     const allPossiblePrefixArguments = Array.from(knownArguments ?? [], (_, i) => i)
@@ -268,7 +270,9 @@ export class ArgumentApplication {
       allPossiblePrefixArguments.shift()
     }
 
-    const notAppliedOriginally = new Set(notAppliedArguments ?? allPossiblePrefixArguments)
+    const notAppliedOriginally = new Set(
+      suppressPlaceholders ? [] : (notAppliedArguments ?? allPossiblePrefixArguments),
+    )
     const argumentsLeftToMatch = allPossiblePrefixArguments.filter((i) =>
       notAppliedOriginally.has(i),
     )
@@ -501,7 +505,7 @@ const unknownArgInfoNamed = (name: string) => ({
 })
 
 /** TODO: Add docs */
-export function getAccessOprSubject(app: Ast.Expression): Ast.Expression | undefined {
+export function getAccessOprSubject(app: Ast.Expression | undefined): Ast.Expression | undefined {
   if (app instanceof Ast.PropertyAccess) return app.lhs
 }
 

@@ -1,5 +1,5 @@
 /** @file Test the user menu. */
-import { expect, test } from '@playwright/test'
+import { expect, test } from 'playwright/test'
 
 import { mockAllAndLogin, TEXT } from './actions'
 

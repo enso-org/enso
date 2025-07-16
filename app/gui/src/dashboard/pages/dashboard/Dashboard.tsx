@@ -6,8 +6,7 @@ import Page from '#/components/Page'
 import { usePaywall } from '#/hooks/billing'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
-import DriveProvider from '#/providers/DriveProvider'
+import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
@@ -32,16 +31,14 @@ const AppContainer = vueComponent(AppContainerVue).default
 /** The component that contains the entire UI. */
 export default function Dashboard() {
   return (
-    /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
+    /* Ideally `DriveProvider` would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
     <DriveProvider>
-      {({ resetAssetTableState }) => (
-        <CategoriesProvider onCategoryChange={resetAssetTableState}>
-          <ProjectsProvider>
-            <DashboardInner />
-          </ProjectsProvider>
-        </CategoriesProvider>
-      )}
+      <CategoriesProvider>
+        <ProjectsProvider>
+          <DashboardInner />
+        </ProjectsProvider>
+      </CategoriesProvider>
     </DriveProvider>
   )
 }
@@ -70,15 +67,11 @@ function DashboardInner() {
   const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
-
   const initialProjectNameRaw = useVueValue(
     React.useCallback(() => config.params.startup.project, [config]),
   )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
-
-  const categoriesAPI = useCategoriesAPI()
-
   const openProjectLocally = projectHooks.useOpenProjectLocally()
 
   usePrefetchQuery({
@@ -109,7 +102,7 @@ function DashboardInner() {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      categoriesAPI.setCategory('local')
+      setDriveLocation(null, 'local')
 
       const projectId = localBackendModule.newProjectId(
         projectManager.UUID(project.id),
@@ -129,7 +122,7 @@ function DashboardInner() {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openProjectLocally, categoriesAPI])
+  }, [openProjectLocally])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {

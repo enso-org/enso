@@ -6,6 +6,7 @@ import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Function.Function
 import project.Meta
+import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
@@ -63,23 +64,35 @@ type Type_Error
        - actual: The actual type at the error location.
        - comment: Description of the value that was being checked,
          e.g. function argument, result or an arbitrary expression.
-    Error expected actual comment
+    private Error expected actual comment
 
     ## PRIVATE
        Convert the Type_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self =
+        err_simple v = Meta.type_of v . to_text
+        err_with_args v missing_args =
+            fn_info = v.to_text
+            fn_info + case missing_args.length of
+                0 -> ""
+                1 -> ". Try to apply " + (missing_args.at 0) + " argument"
+                _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
+
         type_of_actual =
-           tpe = Meta.type_of self.actual
-           if tpe.is_error then self.actual.to_display_text else case self.actual of
-               fn:Function ->
-                    fn_info = fn.to_text
-                    missing_args = fn_info.split " " . filter (_.ends_with "=_") . map (_.split "=") . map (_.at 0)
-                    fn_info + case missing_args.length of
-                        0 -> ""
-                        1 -> ". Try to apply " + (missing_args.at 0) + " argument"
-                        _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
-               _ -> tpe.to_text
+            m = Meta.meta self.actual
+            case m of
+               e : Meta.Error -> e.to_display_text
+               fn : Meta.Function ->
+                  missing_args = fn . arguments pending=True
+                  err_with_args fn.value missing_args
+               _ : Meta.Constructor ->
+                  fn = self.actual
+                  missing_args = Meta_Helpers.get_argument_names_builtin fn True False False False
+                  err_with_args fn missing_args
+               u : Meta.Unresolved ->
+                  if u.is_constructor then ".."+u.name else
+                     err_simple self.actual
+               _ -> err_simple self.actual
 
         got = if type_of_actual.is_a Text then type_of_actual else "<ERR>"
         exp = self.expected.to_display_text

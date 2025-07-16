@@ -20,7 +20,7 @@ final class TypeCheckExpressionNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     var value = original.executeGeneric(frame);
-    var result = check.handleCheckOrConversion(frame, value, original);
+    var result = check.handleCheckOrConversion(frame, value);
     return result;
   }
 

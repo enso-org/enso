@@ -1,5 +1,5 @@
 /** @file Test the login flow. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import { TEXT, mockAll } from './actions'
 

@@ -22,11 +22,11 @@ export default function SearchBar(props: SearchBarProps) {
     <Label
       data-testid={props['data-testid']}
       className={twMerge(
-        'group relative flex h-row w-full items-center gap-asset-search-bar rounded-full border-0.5 border-primary/20 px-input-x text-primary -outline-offset-1 outline-primary transition-colors focus-within:outline focus-within:outline-2 sm:w-[512px]',
+        'group relative flex h-row w-full items-center gap-asset-search-bar rounded-full border-0.5 border-primary/50 px-input-x text-primary -outline-offset-1 outline-primary transition-colors focus-within:outline focus-within:outline-2 sm:w-[512px]',
         className,
       )}
     >
-      <Icon icon="find" className="text-primary/30" />
+      <Icon icon="find" className="text-primary" />
       <SearchField
         aria-label={label}
         className="relative grow"

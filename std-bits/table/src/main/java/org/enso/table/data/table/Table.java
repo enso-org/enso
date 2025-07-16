@@ -3,10 +3,13 @@ package org.enso.table.data.table;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.Text_Utils;
@@ -36,6 +39,7 @@ import org.graalvm.polyglot.Context;
 
 /** A representation of a table structure. */
 public class Table {
+  private final Map<String, Column> columnNameMap = new HashMap<>();
   private final Column[] columns;
   private String versionId;
 
@@ -113,18 +117,55 @@ public class Table {
   }
 
   /**
+   * Gets the value of a cell in the table by column name and row index. If the column does not
+   * exist, it calls the provided function with the column name.
+   *
+   * @param columnName the name of the column
+   * @param rowIndex the index of the row
+   * @param ifMissing a function to call if the column is missing
+   * @return the value of the cell, or the result of the function if the column is missing
+   */
+  public Object getValue(String columnName, long rowIndex, Function<String, Object> ifMissing) {
+    Column column = getColumnByName(columnName);
+    if (column == null) {
+      return ifMissing.apply(columnName);
+    }
+    return column.getItem(rowIndex);
+  }
+
+  /**
+   * Gets the value of a cell in the table by column index and row index. If the column does not
+   * exist, it calls the provided function with the column name.
+   *
+   * @param columnIndex the index of the column
+   * @param rowIndex the index of the row
+   * @param ifMissing a function to call if the column is missing
+   * @return the value of the cell, or the result of the function if the column is missing
+   */
+  public Object getValue(int columnIndex, long rowIndex, Function<Integer, Object> ifMissing) {
+    if (columnIndex < 0 || columnIndex >= columns.length) {
+      return ifMissing.apply(columnIndex);
+    }
+    return columns[columnIndex].getItem(rowIndex);
+  }
+
+  /**
    * Returns a column with the given name, or null if it doesn't exist.
    *
    * @param name the column name
    * @return a column with the given name
    */
   public Column getColumnByName(String name) {
-    for (Column column : columns) {
-      if (Text_Utils.equals(column.getName(), name)) {
-        return column;
-      }
-    }
-    return null;
+    return columnNameMap.computeIfAbsent(
+        name,
+        columnName -> {
+          for (Column column : columns) {
+            if (Text_Utils.equals(column.getName(), columnName)) {
+              return column;
+            }
+          }
+          return null;
+        });
   }
 
   /**

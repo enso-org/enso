@@ -5,7 +5,7 @@ from Standard.Table.Errors import all
 
 from Standard.Test import all
 
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import all
 
 from project.Common_Table_Operations.Util import run_default_backend

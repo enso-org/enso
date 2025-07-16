@@ -9,7 +9,7 @@ import { computed, markRaw, shallowRef, useId, watch, WatchSource, type ShallowR
 import { assertDefined } from 'ydoc-shared/util/assert'
 
 declare const widgetInstanceIdBrand: unique symbol
-type WidgetInstanceId = string & { [widgetInstanceIdBrand]: never }
+export type WidgetInstanceId = string & { [widgetInstanceIdBrand]: never }
 
 /** Create a new unique `WidgetInstanceId` value.  */
 export function newWidgetInstanceId(): WidgetInstanceId {

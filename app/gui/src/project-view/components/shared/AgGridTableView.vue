@@ -429,6 +429,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 .ag-theme-alpine {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;
+  --ag-foreground-color: var(--color-text);
   --ag-background-color: var(--color-visualization-bg);
   --ag-header-foreground-color: var(--color-ag-header-text);
   --ag-odd-row-background-color: color-mix(in srgb, var(--color-visualization-bg) 98%, black);
