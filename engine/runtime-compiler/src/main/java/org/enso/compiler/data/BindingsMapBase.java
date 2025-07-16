@@ -2,13 +2,18 @@ package org.enso.compiler.data;
 
 import static org.enso.scala.wrapper.ScalaConversions.nil;
 
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
+import org.enso.compiler.data.BindingsMap.ImportTarget;
 import org.enso.compiler.data.BindingsMap.ModuleReference;
 import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.IRPass;
+import org.enso.scala.wrapper.ScalaConversions;
+import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Map;
 import scala.collection.immutable.Map$;
@@ -113,6 +118,7 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
     private final List<DefinedEntity> definedEntities;
     private final ModuleReference currentModule;
     private final List<ResolvedImport> resolvedImports;
+    private java.util.Map<String, List<ImportTarget>> cacheImportsByName;
     private final Map<String, List<ResolvedName>> exportedSymbols;
 
     State(
@@ -158,7 +164,21 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
       return exportedSymbols;
     }
 
-    List<? extends ResolvedName> findQualifiedImportCandidates(String name) {
+    final List<? extends ResolvedName> findQualifiedImportCandidates(String name) {
+      if (cacheImportsByName == null) {
+        var ribn = new TreeMap<String, List<ImportTarget>>();
+        resolvedImports
+            .flatMap(i -> allNames(i))
+            .foreach(
+                (n) -> {
+                  return ribn.computeIfAbsent(n, this::findQualifiedImportCandidatesImpl);
+                });
+        cacheImportsByName = ribn;
+      }
+      return cacheImportsByName.getOrDefault(name, nil());
+    }
+
+    private List<ImportTarget> findQualifiedImportCandidatesImpl(String name) {
       return resolvedImports
           .filter(i -> importMatchesName(i, name) && !i.isSynthetic())
           .flatMap(i -> i.targets());
@@ -171,6 +191,14 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
           .getOrElse(
               () ->
                   !imp.importDef().isAll() && imp.importDef().getSimpleName().name().equals(name));
+    }
+
+    private List<String> allNames(ResolvedImport imp) {
+      var only = imp.importDef().onlyNames().getOrElse(ScalaConversions::nil);
+      var ren = imp.importDef().rename().toList();
+      var sn = Option.apply(imp.importDef().getSimpleName()).toList();
+      var all = (List<Name>) only.appendedAll(ren).appendedAll(sn);
+      return all.map(l -> l.name());
     }
   }
 }
