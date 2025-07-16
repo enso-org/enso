@@ -1,5 +1,4 @@
-import { test } from '@fast-check/vitest'
-import { expect } from 'vitest'
+import { expect, test } from 'vitest'
 import { SourceRange } from '../text'
 
 type RangeTestInput = { a: [from: number, to: number]; b: [from: number, to: number] }

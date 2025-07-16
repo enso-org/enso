@@ -6,14 +6,15 @@ import { AnimatePresence, motion } from 'motion-v'
 import { computed } from 'vue'
 import CloseButton from '../CloseButton.vue'
 
-const selected = defineModel<boolean>('selected')
 const {
+  selected,
   selectionLayoutId,
   label,
   tooltip,
   orientation = 'horizontal',
   enabled = true,
 } = defineProps<{
+  selected: boolean
   selectionLayoutId: string
   icon?: Icon | undefined
   label?: string | undefined
@@ -22,6 +23,9 @@ const {
   enabled?: boolean
   onClose?: (() => void) | undefined
 }>()
+// We don't use defineModel, because we want to let component user decide what to do on selection
+// change.
+const emit = defineEmits<{ 'update:selected': [value: boolean] }>()
 
 const tooltipPlacement = computed(() => (orientation === 'horizontal' ? 'top' : 'left'))
 const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always'))
@@ -35,7 +39,7 @@ const VARIANTS = {
 <template>
   <TooltipTrigger :placement="tooltipPlacement" :when="whenTooltip">
     <template #default="triggerProps">
-      <div class="SelectableTab" :class="orientation" @click="selected = !selected">
+      <div class="SelectableTab" :class="orientation" @click="emit('update:selected', !selected)">
         <AnimatePresence :initial="selected != null">
           <motion.div
             v-if="selected"

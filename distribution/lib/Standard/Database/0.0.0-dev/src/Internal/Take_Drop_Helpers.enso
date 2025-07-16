@@ -1,9 +1,12 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Index_Sub_Range import drop_helper, take_helper
-from Standard.Table import Table, Column, Set_Mode
+
+from Standard.Table import Column, Set_Mode, Table
 
 import project.DB_Table.DB_Table
 from project.Errors import Unsupported_Database_Operation
@@ -19,7 +22,7 @@ type Take_Drop
 ## PRIVATE
    Apply `take` or `drop` to a table, returning the specified by the selector.
 take_drop_helper : Take_Drop -> Table & DB_Table -> (Index_Sub_Range | Range | Integer) -> Table & DB_Table
-take_drop_helper take_drop table selector:(Index_Sub_Range | Range | Integer) =
+take_drop_helper take_drop:Take_Drop table selector:(Index_Sub_Range | Range | Integer) =
     check_supported selector <|
         length = table.row_count
         ranges = cleanup_ranges (collect_ranges take_drop length selector)
@@ -70,7 +73,7 @@ cleanup_ranges ranges:(Vector Range) =
 
 ## PRIVATE
    Filter a table with a single range. Returns only those rows whose row column fall within the range.
-generate_subquery : DB_Table -> Text -> Range -> Table & DB_Table
+generate_subquery : Table & DB_Table -> Text -> Range -> Table & DB_Table
 generate_subquery (table : Table & DB_Table) row_column_name range =
     case range.step of
         1 ->

@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table
 import Standard.Table.Internal.Table_Helpers
+from Standard.Table import Table
 
 import project.DB_Table.DB_Table
 

@@ -31,8 +31,6 @@ const isDropdownOpened = ref(false)
     @pointerleave="emit('update:hovered', false)"
   >
     <template v-if="!colorPickerOpened">
-      <ActionButton action="component.toggleVisualization" class="slotS" />
-      <ActionButton action="component.toggleDocPanel" class="slotSW" />
       <DropdownMenu
         v-model:open="isDropdownOpened"
         placement="bottom-start"
@@ -60,6 +58,8 @@ const isDropdownOpened = ref(false)
           />
         </template>
       </DropdownMenu>
+      <ActionButton action="component.toggleDocPanel" class="slotSW" />
+      <ActionButton action="component.toggleVisualization" class="slotS" />
     </template>
     <ColorRing
       v-else

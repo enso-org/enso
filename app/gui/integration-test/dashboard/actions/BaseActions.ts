@@ -1,5 +1,5 @@
 /** @file The base class from which all `Actions` classes are derived. */
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from 'playwright/test'
 
 import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
 

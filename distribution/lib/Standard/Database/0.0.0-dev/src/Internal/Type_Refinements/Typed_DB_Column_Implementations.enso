@@ -4,7 +4,7 @@ from Standard.Base import all
 
 from Standard.Table import Value_Type
 
-from project.Internal.DB_Column_Implementation import naming_helper, make_unary_op
+from project.Internal.DB_Column_Implementation import make_unary_op, naming_helper
 
 type DB_Numeric_Column_Implementation
     abs column =

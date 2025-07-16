@@ -86,7 +86,7 @@ function blurEditor() {
   editorView.contentDOM.blur()
 }
 
-function focusEditor() {
+function focusAndSelect() {
   editorView.dispatch({ selection: { anchor: 0, head: editorView.state.doc.length } })
   editorView.focus()
 }
@@ -125,9 +125,7 @@ function onEnter(event: KeyboardEvent) {
 }
 
 defineExpose({
-  focusEditor,
-  blurEditor,
-  setText,
+  focusAndSelect,
 })
 </script>
 

@@ -71,10 +71,16 @@ public final class UnresolvedConstructor extends EnsoObject {
     this.args = args;
   }
 
-  final String getName() {
+  /** Name of the constructor symbol to invoke - without initial {@code ..}. */
+  public final String getName() {
     return name;
   }
 
+  /**
+   * Textual representation of the symbol to invoke - prefixed by {@code ..}.
+   *
+   * @return {@code ".." + getName()}
+   */
   @Override
   @TruffleBoundary
   public String toString() {

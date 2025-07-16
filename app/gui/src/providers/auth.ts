@@ -1,16 +1,15 @@
-import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
 import { useFeatureFlag } from '$/providers/featureFlags'
+import * as analytics from '$/utils/analytics'
 import { Opt } from '@/util/data/opt'
 import { proxyRefs, ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { useBackends } from './backends'
@@ -66,10 +65,6 @@ function createAuthStore(
 
   const queryClient = vueQuery.useQueryClient()
 
-  // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
-  // defined by this component.
-  const gtagEvent = gtagHooks.event
-
   const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
   const planOverride = useFeatureFlag('developerPlanOverride')
@@ -77,6 +72,7 @@ function createAuthStore(
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
+    onSuccess: analytics.createUser.after,
     meta: { invalidates: [usersMeQueryKey], awaitInvalidates: true },
   })
 
@@ -109,7 +105,6 @@ function createAuthStore(
         userEmail: backendModule.EmailAddress(email),
         organizationId: orgId != null ? orgId : null,
       })
-      gtagEvent('cloud_user_created')
     }
     // Wait until the backend returns a value from `users/me`,
     // otherwise the rest of the steps are skipped.
@@ -203,9 +198,6 @@ function createAuthStore(
       onAuthenticated?.(userData.value.accessToken)
     }
   })
-
-  gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
-  gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
 
   const effectiveUserData = computed(() => {
     const intermediate =

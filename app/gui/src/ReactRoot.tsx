@@ -1,7 +1,6 @@
 /** @file A file containing setup for React part of application. */
 
 import App from '#/App.tsx'
-import { ReactQueryDevtools } from '#/components/Devtools'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
 import { Suspense } from '#/components/Suspense'
@@ -55,8 +54,6 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
                 </LoggerProvider>
               </OfflineNotificationManager>
             </Suspense>
-
-            <ReactQueryDevtools />
           </UIProviders>
         </ErrorBoundary>
       </QueryClientProvider>

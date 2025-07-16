@@ -58,7 +58,7 @@ export function Submit<
     loading = false,
     children = getText('submit'),
     variant = 'submit',
-    testId = 'form-submit-button',
+    testId,
     onPress,
     value,
     name,
@@ -70,7 +70,7 @@ export function Submit<
 
   return (
     <Button
-      type="button"
+      type="submit"
       variant={variant}
       size={size}
       isLoading={loading || formState.isSubmitting}

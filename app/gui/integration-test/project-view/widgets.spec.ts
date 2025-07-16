@@ -10,8 +10,8 @@ class DropDownLocator {
   readonly items: Locator
   readonly selectedItems: Locator
 
-  constructor(ancestor: Locator) {
-    this.rootWidget = ancestor.locator('.WidgetSelection').first()
+  constructor(ancestor: Locator, widget: string = 'WidgetSelection') {
+    this.rootWidget = ancestor.locator(`.${widget}`).first()
     const page = ancestor.page()
     // There can be only one open dropdown at a time on a page. We have to filter out the ones that
     // still have leaving animation running.
@@ -123,10 +123,9 @@ test.describe('Multi-selection widget', () => {
     const columnsArg = topLevelArgs.filter({ has: page.getByText('columns') })
 
     // Get the dropdown and corresponding vector; they both have 0 items.
-    const dropDown = new DropDownLocator(columnsArg)
+    const dropDown = new DropDownLocator(columnsArg, 'WidgetMultiSelection')
     await dropDown.clickWidget()
     await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
-    await expect(dropDown.rootWidget).toHaveClass(/multiSelect/)
     const vector = node.locator('.WidgetVector')
     const vectorItems = vector.getByTestId('list-item-content').getByTestId('widget-text-content')
     await expect(vector).toBeVisible()
@@ -374,7 +373,8 @@ test('Selection widget with text widget as input', async ({ page }) => {
   // Editing text input shows and filters drop down
   await pathArgInput.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
-  await page.keyboard.insertText('File 1')
+  // Using `type` instead of `inputText` here to catch keydown bugs like #13505.
+  await page.keyboard.type('File 1')
   await pathDropdown.expectVisibleWithOptions(['File 1'])
   // Clearing input should show all text literal options
   await pathArgInput.clear()

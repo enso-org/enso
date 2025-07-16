@@ -26,7 +26,7 @@ export function useAppTitle(userSession: ToValue<Opt<UserSession>>) {
   watch(shouldShowCommercialNotice, (shouldShow) => {
     if (shouldShow) {
       if (!document.title.includes(commercialUseNotice)) {
-        document.title = originalTitle + commercialUseNotice
+        document.title = commercialUseNotice
       }
     } else {
       document.title = originalTitle
