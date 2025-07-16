@@ -51,6 +51,7 @@ const visualizationSelector = useVisualizationSelector({
         <template v-for="(item, index) in visualizationDefinedToolbar" :key="index">
           <SvgButton
             v-if="isActionButton(item)"
+            :modelValue="undefined"
             :name="item.icon"
             :title="item.title"
             :disabled="item.disabled != null ? toValue(item.disabled) : false"
