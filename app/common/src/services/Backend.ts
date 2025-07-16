@@ -1536,40 +1536,23 @@ export function compareAssets(
   sortExpression ??= 'asset_discriminator_and_id'
   sortDirection ??= sortExpression == 'modified_at' ? 'descending' : 'ascending'
 
-  const undirectedDelta = (() => {
-    switch (sortExpression) {
-      case 'asset_discriminator_and_id': {
-        const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
-        if (relativeTypeOrder !== 0) {
-          return relativeTypeOrder
-        }
-        // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
-        return Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
+  const multiplier = sortDirection === 'ascending' ? 1 : -1
+  const modifiedAtDelta =
+    multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
+  switch (sortExpression) {
+    case 'asset_discriminator_and_id': {
+      const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+      if (relativeTypeOrder !== 0) {
+        return multiplier * relativeTypeOrder
       }
-      case 'modified_at': {
-        return Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
-      }
-      case 'title': {
-        return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
-      }
+      // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
+      return modifiedAtDelta
     }
-  })()
-  const delta = undirectedDelta * (sortDirection === 'ascending' ? 1 : -1)
-
-  if (delta !== 0) {
-    return delta
-  } else {
-    // Fallback to default sort order: modified date descending, then title ascending.
-
-    // Sort by modified date, because the running/recent projects should be at the top,
-    // but below the folders.
-    const modifiedDelta = Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
-
-    if (modifiedDelta !== 0) {
-      // Sort by date descending, rather than ascending.
-      return -modifiedDelta
-    } else {
-      return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
+    case 'modified_at': {
+      return modifiedAtDelta
+    }
+    case 'title': {
+      return multiplier * (a.title.toLowerCase().localeCompare(b.title.toLowerCase()))
     }
   }
 }
