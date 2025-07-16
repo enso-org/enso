@@ -188,7 +188,7 @@ public class PersistableProcessor extends AbstractProcessor {
           typeElem.getEnclosedElements().stream()
               .filter(
                   e ->
-                      e.getKind() == ElementKind.FIELD
+                      e.getKind().isField()
                           && e.getModifiers().contains(Modifier.STATIC)
                           && isVisibleFrom(e, orig))
               .filter(e -> tu.isSameType(e.asType(), typeElem.asType()))
