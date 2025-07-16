@@ -1552,7 +1552,7 @@ export function compareAssets(
       return modifiedAtDelta
     }
     case 'title': {
-      return multiplier * a.title.toLowerCase().localeCompare(b.title.toLowerCase())
+      return multiplier * a.title.localeCompare(b.title, undefined, { numeric: true })
     }
   }
 }
