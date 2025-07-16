@@ -176,11 +176,6 @@ interface PlaceholderOverrides {
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
 
-  readonly annualPlanVariant: [originalPlanName: string]
-  readonly freePlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly soloPlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly teamPlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly enterprisePlanPricing: [pricePerMonth: number, billingInterval: string]
   readonly xDaysLeftInTrial: [daysLeft: number]
   readonly xHoursLeftInTrial: [hoursLeft: number]
   readonly yourSubscriptionExpiresAtX: [endDate: string]

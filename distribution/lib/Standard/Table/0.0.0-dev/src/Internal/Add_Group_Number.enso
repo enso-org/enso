@@ -4,8 +4,11 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Column.Column
 import project.Grouping_Method.Grouping_Method
+import project.Grouping_Method.Group_Row
 import project.In_Memory_Column.In_Memory_Column
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
@@ -16,7 +19,27 @@ from project.Internal.Add_Row_Number import rename_columns_if_needed
 polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.table.operations.AddGroupNumber
 
-add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (from:Integer) (step:Integer) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (from:Integer) (step:Integer) (on_problems:Problem_Behavior) =
+    _with_java_problem_aggregator table on_problems problem_builder->java_problem_aggregator->
+        new_storage = case grouping_method of
+            Grouping_Method.Unique group_by ->
+                _illegal_if group_by.is_empty "..Unique requires a non-empty 'group_by'" <|
+                    grouping = _prepare_group_by table problem_builder group_by
+                    AddGroupNumber.numberGroupsUnique table.row_count from step grouping java_problem_aggregator
+            Grouping_Method.Equal_Count group_count order_by ->
+                _illegal_if (group_count < 1) "group_count must be at least 1" <|
+                    ordering = _prepare_ordering table problem_builder order_by
+                    AddGroupNumber.numberGroupsEqualCount table.row_count group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
+        In_Memory_Column.from_storage name new_storage
+
+add_flagged_group table:(Table & In_Memory_Table) column:(Nothing | Column & In_Memory_Column) predicate group_row (name:Text) (from:Integer) (step:Integer) (on_problems:Problem_Behavior) =
+    java_column = if Nothing == column then Nothing else column.java_column
+    _with_java_problem_aggregator table on_problems problem_builder->java_problem_aggregator->
+        _ = problem_builder
+        new_storage = AddGroupNumber.flaggedGroups table.java_table java_column from step predicate group_row==Group_Row.Previous java_problem_aggregator
+        In_Memory_Column.from_storage name new_storage
+
+_with_java_problem_aggregator table on_problems action =
     problem_builder = Problem_Builder.new error_on_missing_columns=True
 
     handle_arithmetic_exception _ =
@@ -24,19 +47,10 @@ add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (fr
 
     Panic.catch ArithmeticException handler=handle_arithmetic_exception <| Panic.catch Unsupported_Argument_Types handler=handle_arithmetic_exception <|
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-            new_storage = case grouping_method of
-                Grouping_Method.Unique group_by ->
-                    _illegal_if group_by.is_empty "..Unique requires a non-empty 'group_by'" <|
-                        grouping = _prepare_group_by table problem_builder group_by
-                        AddGroupNumber.numberGroupsUnique table.row_count from step grouping java_problem_aggregator
-                Grouping_Method.Equal_Count group_count order_by ->
-                    _illegal_if (group_count < 1) "group_count must be at least 1" <|
-                        ordering = _prepare_ordering table problem_builder order_by
-                        AddGroupNumber.numberGroupsEqualCount table.row_count group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
-            new_column = In_Memory_Column.from_storage name new_storage
-            renamed_table = rename_columns_if_needed table name on_problems Table.new
-            problem_builder.attach_problems_before on_problems <| 
-                renamed_table.set new_column name set_mode=Set_Mode.Add
+            new_column = action problem_builder java_problem_aggregator
+            renamed_table = rename_columns_if_needed table new_column.name on_problems Table.new
+            problem_builder.attach_problems_before on_problems <|
+                renamed_table.set new_column new_column.name set_mode=Set_Mode.Add
 
 _prepare_group_by table problem_builder group_by =
     table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder . map c->(c:In_Memory_Column).java_column

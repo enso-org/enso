@@ -4,7 +4,6 @@ import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
 import { useYTextSync } from '@/util/codemirror'
@@ -15,8 +14,8 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 
 const rightPanel = useRightPanelData()
-const openedProject = useCurrentProject().ref
-const projectId = computed(() => rightPanel.focusedProject)
+const currentProject = useCurrentProject()
+const projectId = computed(() => currentProject.id.value ?? rightPanel.focusedProject)
 const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
@@ -35,17 +34,21 @@ const fileContentsFromCloud = useQuery({
       ] as const,
   ),
   enabled: computed(
-    () => openedProject.value == null && backendForAsset.value != null && projectId.value != null,
+    () =>
+      currentProject.ref.value == null && backendForAsset.value != null && projectId.value != null,
   ),
   queryFn: ({ queryKey }) => {
     const [, { projectId }] = queryKey
-    return projectId && backendForAsset.value?.getFileContent(projectId)
+    return projectId && backendForAsset.value?.getMainFileContent(projectId)
   },
 })
 
 const currentMethodAst = computed(() => {
-  if (openedProject.value) {
-    return mapOk(openedProject.value.graph.currentMethod.ast, (ast) => ({ ast, readOnly: false }))
+  if (currentProject.ref.value) {
+    return mapOk(currentProject.ref.value.graph.currentMethod.ast, (ast) => ({
+      ast,
+      readOnly: false,
+    }))
   } else if (fileContentsFromCloud.data != null) {
     if (fileContentsFromCloud.error.value) return Err(fileContentsFromCloud.error.value)
     if (fileContentsFromCloud.isLoading.value) return Err('Loading documentation...')
@@ -60,13 +63,15 @@ const currentMethodAst = computed(() => {
 })
 
 const currentMethodPointer = computed(
-  () => openedProject.value && unwrapOr(openedProject.value.graph.currentMethod.pointer, undefined),
+  () =>
+    currentProject.ref.value &&
+    unwrapOr(currentProject.ref.value.graph.currentMethod.pointer, undefined),
 )
 const displaySignatureEditor = computed(
   () =>
     currentMethodPointer.value &&
-    openedProject.value?.store.entryPoint &&
-    !methodPointerEquals(currentMethodPointer.value, openedProject.value.store.entryPoint),
+    currentProject.ref.value?.store.entryPoint &&
+    !methodPointerEquals(currentMethodPointer.value, currentProject.ref.value.store.entryPoint),
 )
 
 const editorMarkdown = computed(() =>
@@ -75,12 +80,6 @@ const editorMarkdown = computed(() =>
 const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
 
 const { syncExt, connectSync } = useYTextSync(editorContent)
-
-provideDocumentationImages({
-  openedProject,
-  backend: backendForAsset,
-  projectId,
-})
 </script>
 
 <template>
@@ -95,8 +94,8 @@ provideDocumentationImages({
     >
       <template #belowToolbar>
         <FunctionSignatureEditor
-          v-if="displaySignatureEditor && currentMethodAst.ok && openedProject"
-          :projectId="openedProject.store.id"
+          v-if="displaySignatureEditor && currentMethodAst.ok"
+          :projectId="projectId"
           :functionAst="currentMethodAst.value.ast"
           :methodPointer="currentMethodPointer"
         />

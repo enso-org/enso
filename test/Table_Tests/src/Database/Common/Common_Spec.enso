@@ -9,7 +9,6 @@ import Standard.Table.In_Memory_Column.In_Memory_Column
 
 from Standard.Database import all
 from Standard.Database.Errors import all
-import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 
@@ -19,7 +18,7 @@ import Standard.Test.Suite.Suite_Builder
 import project.Database.Common.Default_Ordering_Spec
 import project.Database.Common.Names_Length_Limits_Spec
 import project.Database.Common.Single_Column_Table_Spec
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 import project.Util
 import project.Database.Helpers.Name_Generator

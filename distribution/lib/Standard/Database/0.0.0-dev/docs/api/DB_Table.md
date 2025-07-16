@@ -6,12 +6,12 @@
     - dialect_name self -> Standard.Base.Data.Text.Text
     - get_primary_key self -> Standard.Base.Any.Any
     - is_trivial_query self fail_if_not_found:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Boolean.Boolean!Standard.Database.Errors.Table_Not_Found
-    - limit self max_rows:Standard.Base.Data.Numbers.Integer= -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table)
-    - make_column self internal:Standard.Database.Internal.IR.Internal_Column.Internal_Column -> Standard.Table.Column.Column
+    - limit self max_rows:Standard.Base.Data.Numbers.Integer= -> (Standard.Base.Any.Any|Standard.Base.Any.Any)
+    - make_column self internal:Standard.Database.Internal.IR.Internal_Column.Internal_Column -> (Standard.Base.Any.Any|Standard.Base.Any.Any)
     - name self -> Standard.Base.Data.Text.Text
     - save_as_data_link self destination:Standard.Base.Any.Any on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
     - to_select_query self -> Standard.Base.Any.Any
-    - to_sql self -> Standard.Database.SQL_Statement.SQL_Statement
+    - to_sql self -> Standard.Database.SQL.SQL_Statement
     - updated_columns self internal_columns:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - updated_context self ctx:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - updated_context_and_columns self ctx:Standard.Base.Any.Any internal_columns:Standard.Base.Any.Any subquery:Standard.Base.Any.Any= -> Standard.Base.Any.Any

@@ -25,10 +25,6 @@ add_specs suite_builder =
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             wb.sheet_names.should_equal ['Sheet1']
             wb.read 'Sheet1' ..Has_Headers . should_equal (Table.new [['X', ['Y', 'Z']]])
-        group_builder.specify "can get a count of worksheets" <|
-            ## Test2
-            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
-            wb.sheet_count . should_equal 5
         group_builder.specify "can read a worksheet via sheet name or index" <|
             ## Test2
             wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
@@ -53,6 +49,11 @@ add_specs suite_builder =
             r0 = wb.read "BadName"
             r0.should_fail_with Google_Api_Error
             r0.catch.to_display_text . should_equal 'Unable to parse range: BadName'
+        group_builder.specify "can read a worksheet via named range" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            wb.read 'Range1' . should_equal (Table.new [['A', ['S1A']], ['B', ['S1B']]])
 
     suite_builder.group "Google Sheets - Headers" group_builder->
         group_builder.specify "should be able to read with no headers" <|
@@ -172,3 +173,29 @@ add_specs suite_builder =
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             wb.read 'Sheet1' ..Detect_Headers skip_rows=-1 . should_equal (Table.new [['A', ['X', 'Y', 'Z']]])
+
+    suite_builder.group "Google Sheets - Meta data" group_builder->
+        group_builder.specify "can get a count of worksheets" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_count . should_equal 5
+        group_builder.specify "can get a list of worksheets" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_names . should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+        group_builder.specify "can get a count of named ranges" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.named_ranges_count . should_equal 3
+        group_builder.specify "can get a list of named ranges" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.named_ranges . should_equal ['Range1', 'Range2', 'Range3']
+        group_builder.specify "can get a count of named ranges zero case" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.named_ranges_count . should_equal 0
+        group_builder.specify "can get a list of named ranges zero case" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.named_ranges . should_equal []

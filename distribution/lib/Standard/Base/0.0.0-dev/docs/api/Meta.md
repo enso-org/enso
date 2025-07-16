@@ -12,6 +12,9 @@
     - value self -> Standard.Base.Function.Function
 - type Error
     - value self -> Standard.Base.Any.Any
+- type Function
+    - arguments self pending:Standard.Base.Data.Boolean.Boolean= defaulted:Standard.Base.Data.Boolean.Boolean= preapplied:Standard.Base.Data.Boolean.Boolean= oversaturated:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - value self -> Standard.Base.Any.Any
 - type Language
     - Java
     - Unknown
@@ -26,9 +29,11 @@
     - methods self -> Standard.Base.Data.Vector.Vector
     - name self -> Standard.Base.Data.Text.Text
     - qualified_name self -> Standard.Base.Data.Text.Text
-- type Unresolved_Symbol
+- type Unresolved
+    - is_constructor self -> Standard.Base.Data.Boolean.Boolean
     - name self -> Standard.Base.Data.Text.Text
-    - rename self new_name:Standard.Base.Data.Text.Text -> Standard.Base.Meta.Unresolved_Symbol
+    - rename self new_name:Standard.Base.Data.Text.Text -> Standard.Base.Meta.Unresolved
+    - to_text self -> Standard.Base.Data.Text.Text
     - value self -> Standard.Base.Any.Any
 - atom_with_hole factory:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_annotation target:Standard.Base.Any.Any method:Standard.Base.Any.Any parameter_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -39,7 +44,7 @@
 - is_polyglot value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - is_same_object value_1:Standard.Base.Any.Any value_2:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - is_type value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
-- meta ~value:Standard.Base.Any.Any -> (Standard.Base.Meta.Atom|Standard.Base.Meta.Constructor|Standard.Base.Meta.Primitive|Standard.Base.Meta.Polyglot|Standard.Base.Meta.Unresolved_Symbol|Standard.Base.Meta.Error|Standard.Base.Meta.Type)!Standard.Base.Errors.Common.Private_Access
+- meta ~value:Standard.Base.Any.Any -> (Standard.Base.Meta.Atom|Standard.Base.Meta.Constructor|Standard.Base.Meta.Primitive|Standard.Base.Meta.Polyglot|Standard.Base.Meta.Unresolved|Standard.Base.Meta.Error|Standard.Base.Meta.Type|Standard.Base.Meta.Function)!Standard.Base.Errors.Common.Private_Access
 - type_of value:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Any.Any.is_a self typ:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - Standard.Base.Any.Any.is_same_object_as self value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean

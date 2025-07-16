@@ -18,6 +18,7 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
     primaryApplication: Ref<PrimaryApplication>,
   ) => {
     const { setCurrentEditRoot, currentEdit } = useCurrentEdit()
+
     return proxyRefs({
       externalId,
       rootElement,

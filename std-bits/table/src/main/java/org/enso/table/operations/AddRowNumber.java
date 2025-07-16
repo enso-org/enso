@@ -1,14 +1,14 @@
 package org.enso.table.operations;
 
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 public class AddRowNumber {
-
-  public static ColumnStorage<?> create_numbering(
+  public static ColumnStorage<?> createNumbering(
       long start,
       long step,
       Column[] groupingColumns,
@@ -19,64 +19,57 @@ public class AddRowNumber {
       throw new IllegalArgumentException("At least one grouping or ordering column is required.");
     }
     var sourceColumn = groupingColumns.length > 0 ? groupingColumns[0] : orderingColumns[0];
-    var rowNumberFactory =
+    var visitorFactory =
         new RowNumberRowVisitorFactory(start, step, sourceColumn.getSize(), problemAggregator);
-    GroupingOrderingVisitor.visit(
+    return GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
-        rowNumberFactory,
+        visitorFactory,
         sourceColumn.getSize());
-    return new LongStorage(rowNumberFactory.numbers, IntegerType.INT_64);
   }
 
   private static class RowNumberRowVisitorFactory implements RowVisitorFactory {
-
     private final long start;
     private final long step;
-    long[] numbers;
+    private final BuilderForLong builder;
 
     RowNumberRowVisitorFactory(
         long start, long step, int size, ProblemAggregator problemAggregator) {
       this.start = start;
       this.step = step;
-      numbers = new long[size];
+      this.builder = Builder.getForLong(IntegerType.INT_64, size, problemAggregator);
     }
 
     @Override
     public GroupRowVisitor getNewRowVisitor() {
-      return new RowNumberRowVisitor(start, step, numbers);
+      return new RowNumberRowVisitor(this);
+    }
+
+    @Override
+    public ColumnStorage<?> seal() {
+      return builder.seal();
     }
 
     private static class RowNumberRowVisitor implements GroupRowVisitor {
-
-      private final long start;
-      private final long step;
+      private final RowNumberRowVisitorFactory parent;
       private long current;
-      private boolean isFirst = true;
-      private final long[] numbers;
 
-      RowNumberRowVisitor(long start, long step, long[] numbers) {
-        this.start = start;
-        this.step = step;
-        this.numbers = numbers;
+      RowNumberRowVisitor(RowNumberRowVisitorFactory parent) {
+        this.parent = parent;
+        this.current = parent.start;
       }
 
       @Override
       public void visit(long row) {
-        numbers[Math.toIntExact(row)] = next();
+        parent.builder.appendLong(next());
       }
 
       public Long next() throws ArithmeticException {
-        if (isFirst) {
-          isFirst = false;
-          current = start;
-        } else {
-          current = Math.addExact(current, step);
-        }
-
-        return current;
+        long result = current;
+        current = Math.addExact(current, parent.step);
+        return result;
       }
     }
   }

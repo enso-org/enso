@@ -19,7 +19,6 @@ import type * as stream from 'node:stream'
 import * as tar from 'tar'
 
 import * as common from 'enso-common'
-import * as buildUtils from 'enso-common/src/buildUtils'
 
 import * as desktopEnvironment from '@/desktopEnvironment'
 
@@ -318,7 +317,7 @@ export function getMetadata(projectRoot: string): ProjectMetadata | null {
 export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
   const metadataPath = pathModule.join(projectRoot, PROJECT_METADATA_RELATIVE_PATH)
   fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
-  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, buildUtils.INDENT_SIZE))
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4))
 }
 
 /**
@@ -357,17 +356,22 @@ export function isProjectRoot(candidatePath: string): boolean {
  */
 export function prefixInBundle(bundlePath: string): string | null {
   // We need to look up the root directory among the tarball entries.
-  let commonPrefix: string | null = null
+  let commonPrefix: string | undefined
   tar.list({
     file: bundlePath,
     sync: true,
     onentry: (entry) => {
-      const path = entry.path
-      commonPrefix = commonPrefix == null ? path : buildUtils.getCommonPrefix(commonPrefix, path)
+      commonPrefix = commonPrefix == null ? entry.path : getCommonPrefix(commonPrefix, entry.path)
     },
   })
+  return commonPrefix || null
+}
 
-  return commonPrefix != null && commonPrefix !== '' ? commonPrefix : null
+function getCommonPrefix(a: string, b: string): string {
+  let i = 0
+  const length = Math.min(a.length, b.length)
+  while (i < length && a[i] === b[i]) ++i
+  return a.slice(0, i)
 }
 
 /**

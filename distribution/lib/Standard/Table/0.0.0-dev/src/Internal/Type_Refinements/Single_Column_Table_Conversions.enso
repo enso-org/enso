@@ -10,16 +10,15 @@ import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Table.Table
 from project.Internal.Type_Refinements.Single_Value_Column_Conversions import all
-from project.Internal.Type_Refinements.Table_Refinements import is_single_column
 
 ## This conversion is internal and should never be exported.
 In_Memory_Column.from (that : In_Memory_Table) -> In_Memory_Column =
-    Runtime.assert (is_single_column that)
+    Runtime.assert ((that:Table).column_count == 1)
     (that:Table).at 0
 
 ## This conversion is internal and should never be exported.
 Column.from (that : In_Memory_Table) -> Column =
-    Runtime.assert (is_single_column that)
+    Runtime.assert ((that:Table).column_count == 1)
     (that:Table).at 0
 
 ## This conversion is internal and should never be exported.

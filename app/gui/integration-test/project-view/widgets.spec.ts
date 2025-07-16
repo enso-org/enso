@@ -10,8 +10,8 @@ class DropDownLocator {
   readonly items: Locator
   readonly selectedItems: Locator
 
-  constructor(ancestor: Locator) {
-    this.rootWidget = ancestor.locator('.WidgetSelection').first()
+  constructor(ancestor: Locator, widget: string = 'WidgetSelection') {
+    this.rootWidget = ancestor.locator(`.${widget}`).first()
     const page = ancestor.page()
     // There can be only one open dropdown at a time on a page. We have to filter out the ones that
     // still have leaving animation running.
@@ -123,10 +123,9 @@ test.describe('Multi-selection widget', () => {
     const columnsArg = topLevelArgs.filter({ has: page.getByText('columns') })
 
     // Get the dropdown and corresponding vector; they both have 0 items.
-    const dropDown = new DropDownLocator(columnsArg)
+    const dropDown = new DropDownLocator(columnsArg, 'WidgetMultiSelection')
     await dropDown.clickWidget()
     await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
-    await expect(dropDown.rootWidget).toHaveClass(/multiSelect/)
     const vector = node.locator('.WidgetVector')
     const vectorItems = vector.getByTestId('list-item-content').getByTestId('widget-text-content')
     await expect(vector).toBeVisible()

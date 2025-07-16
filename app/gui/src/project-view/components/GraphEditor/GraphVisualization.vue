@@ -253,6 +253,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
         <VisualizationToolbar
           :currentVis="currentVisualization"
           :showControls="!isPreview"
+          :isFocused="isFocused"
           :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"

@@ -191,7 +191,6 @@ function useBindings() {
   })
   return {
     bindingsExt: EditorView.domEventHandlers({
-      keydown: (event, view) => bindingsHandler(extendCmEvent(view, event)),
       click: (event, view) => {
         const cmEvent = extendCmEvent(view, event)
         return bindingsHandler(cmEvent) || (view.state.readOnly && openLink(cmEvent))

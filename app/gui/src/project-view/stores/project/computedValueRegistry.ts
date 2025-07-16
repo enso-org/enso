@@ -160,8 +160,8 @@ export class ComputedValueRegistry {
   }
 
   /** TODO: Add docs */
-  getExpressionInfo(exprId: ExpressionId): ExpressionInfo | undefined {
-    return this.db.get(exprId)
+  getExpressionInfo(exprId: ExpressionId | undefined): ExpressionInfo | undefined {
+    return exprId == null ? undefined : this.db.get(exprId)
   }
 
   /** TODO: Add docs */

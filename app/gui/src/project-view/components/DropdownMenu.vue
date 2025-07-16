@@ -92,7 +92,7 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
   .DropdownMenu:has(.MenuButton:hover) &,
   &.visible {
     opacity: 0.8;
-    visibility: visible;
+    visibility: inherit;
   }
 }
 

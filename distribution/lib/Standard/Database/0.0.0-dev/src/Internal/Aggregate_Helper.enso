@@ -11,7 +11,7 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Output_Columns
 
 import project.DB_Table.DB_Table
-import project.Dialect.Dialect
+import project.Dialects.Dialect.Dialect
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.IR.Internal_Column.Internal_Column
