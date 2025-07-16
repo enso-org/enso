@@ -2130,6 +2130,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
       (`fansi-wrapper` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
+      (`jvm-channel` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value,
       (`runtime-suggestions` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value,
       (`runtime-compiler` / Compile / exportedModule).value,
