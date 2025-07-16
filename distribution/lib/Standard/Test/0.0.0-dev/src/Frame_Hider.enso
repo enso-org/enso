@@ -22,9 +22,17 @@
    ### Partial Application
    Partial application can prevent the `unhide*` methods from existing in the
    stack trace, so test callbacks should have explicit parameters:
-   # Do not use partial application:
-   tester = expect_column_names ["A", "B"] # Use explicit parameters:
-   tester t = expect_column_names ["A", "B"] t
+
+   Do not use partial application:
+
+   ```
+       tester = expect_column_names ["A", "B"]
+   ```
+
+   Use explicit parameters:
+   ```
+      tester t = expect_column_names ["A", "B"] t
+   ```
 
    ### Tail Calls
    Tail calls can result in changes to the stack that prevent
@@ -44,9 +52,14 @@ from Standard.Base import all
    private: true
    ---
    Hides the stack frames of the contained code from `get_top_stack_frame`.
-   > Example Wrap the body of a test utility to hide its stack frames.
-   Any.should_equal self that = Frame_Hider.hide <| ...
-   Error.throw ("Not equal at " + Frame_Hider.get_top_stack_frame)
+
+   ## Examples
+   ### Wrap the body of a test utility to hide its stack frames.
+
+   ```
+       Any.should_equal self that = Frame_Hider.hide <| ...
+       Error.throw ("Not equal at " + Frame_Hider.get_top_stack_frame)
+   ```
 hide ~action =
     action
 
@@ -55,9 +68,14 @@ hide ~action =
    ---
    Unhides the stack frames of the call to the user-supplied callback
    application.
-   > Example Wrap a callback invocation to unhide its stack frames.
-   test_utility test_predicate x = ...
-   Frame_Hider.unhide (test_predicate x)
+
+   ## Examples
+   ### Wrap a callback invocation to unhide its stack frames
+
+   ```
+       test_utility test_predicate x = ...
+       Frame_Hider.unhide (test_predicate x)
+   ```
 unhide ~action =
     action
 
@@ -67,9 +85,14 @@ unhide ~action =
    Unhides the stack frames of the call to the user-supplied callback
    application, uncurried for one argument.
    `unhide_1 f x` is Equivalent to `unhide (f x)`.
-   > Example Wrap a callback invocation to unhide its stack frames.
-   test_utility test_predicate x = ...
-   Frame_Hider.unhide_1 test_predicate x
+
+   ## Examples
+   ### Wrap a callback invocation to unhide its stack frames.
+
+   ```
+       test_utility test_predicate x = ...
+       Frame_Hider.unhide_1 test_predicate x
+   ```
 unhide_1 f x =
     f x
 
@@ -79,9 +102,14 @@ unhide_1 f x =
    Unhides the stack frames of the call to the user-supplied callback
    application, uncurried for two arguments.
    `unhide_1 f x y` is Equivalent to `unhide (f x y)`.
-   > Example Wrap a callback invocation to unhide its stack frames.
-   test_utility test_predicate x y = ...
-   Frame_Hider.unhide_2 test_predicate x y
+
+   ## Examples
+   ### Wrap a callback invocation to unhide its stack frames.
+
+   ```
+       test_utility test_predicate x y = ...
+       Frame_Hider.unhide_2 test_predicate x y
+   ```
 unhide_2 f x y =
     f x y
 
