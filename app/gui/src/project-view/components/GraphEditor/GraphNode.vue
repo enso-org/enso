@@ -192,11 +192,11 @@ const {
   emit,
 })
 
-watch(isVisualizationPreviewed, (newVal, oldVal) => {
-  if (!newVal) {
-    graph.nodeHovered.delete(nodeId.value)
-  } else if (newVal && !oldVal) {
+watch(isVisualizationPreviewed, (newVal) => {
+  if (newVal) {
     graph.db.moveNodeToTop(nodeId.value)
+  } else {
+    graph.nodeHovered.delete(nodeId.value)
   }
 })
 
