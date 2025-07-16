@@ -2,6 +2,7 @@ package org.enso.jvm.interop.impl;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
@@ -37,6 +38,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       kinds = new LinkedHashMap<>();
       kinds.put(ClassNotFoundException.class, 1);
       kinds.put(UnsupportedMessageException.class, 2);
+      kinds.put(UnknownIdentifierException.class, 3);
     }
 
     static <T, E extends Exception> ThrowException<T, E> create(E ex) {
@@ -50,6 +52,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       switch (kind) {
         case 1 -> throw (E) new ClassNotFoundException(msg());
         case 2 -> throw (E) UnsupportedMessageException.create();
+        case 3 -> throw (E) UnknownIdentifierException.create(msg());
         default -> throw new OtherJvmException(msg());
       }
     }

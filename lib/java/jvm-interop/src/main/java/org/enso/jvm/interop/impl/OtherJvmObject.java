@@ -18,6 +18,8 @@ final class OtherJvmObject implements TruffleObject {
   /** special message */
   private static final Message HAS_LANGUAGE = Message.resolve(InteropLibrary.class, "hasLanguage");
 
+  private static final Message GET_LANGUAGE = Message.resolve(InteropLibrary.class, "getLanguage");
+
   private static final Message IS_IDENTICAL_OR_UNDEFINED =
       Message.resolve(InteropLibrary.class, "isIdenticalOrUndefined");
   private static final Message IS_IDENTICAL = Message.resolve(InteropLibrary.class, "isIdentical");
@@ -51,6 +53,7 @@ final class OtherJvmObject implements TruffleObject {
     }
     if (message.getLibraryClass() != InteropLibrary.class
         || HAS_LANGUAGE == message
+        || GET_LANGUAGE == message
         || IS_IDENTICAL_OR_UNDEFINED == message) {
       // we need to invoke default implementation of library
       // to handle the message in a proper way
