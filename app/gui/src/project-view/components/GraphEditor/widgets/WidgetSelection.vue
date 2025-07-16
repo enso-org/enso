@@ -265,10 +265,9 @@ declare module '@/providers/widgetRegistry' {
 </script>
 
 <template>
-  <button
+  <div
     ref="widgetRoot"
     class="WidgetSelection clickable"
-    :tabindex="-1"
     @pointerdown.prevent
     @click.stop="toggleDropdownWidget"
     @keydown.enter.stop
@@ -300,7 +299,7 @@ declare module '@/providers/widgetRegistry' {
         </div>
       </Teleport>
     </OptionallyKeepAlive>
-  </button>
+  </div>
 </template>
 
 <style scoped>

@@ -185,10 +185,14 @@ export default class RemoteBackend extends Backend {
 
   /**
    * Delete a user.
-   * FIXME: Not implemented on backend yet.
    */
-  override async removeUser(): Promise<void> {
-    return await this.throw(null, 'removeUserBackendError')
+  override async removeUser(userId: backend.UserId): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.removeUserPath(userId))
+    if (!response.ok) {
+      return await this.throw(response, 'removeUserBackendError')
+    } else {
+      return
+    }
   }
 
   /** Invite a new user to the organization by email. */
@@ -1224,6 +1228,36 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'createCheckoutSessionBackendError', params.price)
     } else {
       return await response.json()
+    }
+  }
+
+  /**
+   * Fetches a configuration for a payment pricing page.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+    const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
+
+    if (!response.ok) {
+      return await this.throw(response, 'getPaymentsConfigBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Cancel given subscription.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async cancelSubscription(subscriptionId: backend.SubscriptionId): Promise<void> {
+    const response = await this.delete(
+      remoteBackendPaths.cancelSubscriptionPath(subscriptionId),
+      {},
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'cancelSubscriptionBackendError')
+    } else {
+      return
     }
   }
 
