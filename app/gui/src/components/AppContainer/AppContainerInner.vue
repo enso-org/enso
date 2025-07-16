@@ -1,13 +1,8 @@
 <script lang="ts">
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
-import { BackendType, type ProjectId } from '#/services/Backend'
-import {
-  ensoPathToTabId,
-  useContainerData,
-  type LaunchedProject,
-  type TabId,
-} from '$/providers/container'
+import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
+import { useContainerData, type LaunchedProject, type TabId } from '$/providers/container'
 import { RightPanelDataProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
@@ -19,13 +14,23 @@ import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
+
+/**
+ * A part of `AppContainer` which needs some hooks passed from react by `Dashboard.tsx`.
+ *
+ * Should be merged back to AppContainer once all needed features will be moved to Vue store.
+ */
+export default {}
 </script>
 
 <script setup lang="ts">
 const props = defineProps<{
-  closeProject(project: LaunchedProject): void
-  closeAllProjects(): void
   isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
+}>()
+
+const emit = defineEmits<{
+  closeProject: [project: LaunchedProject]
+  closeAllProjects: []
 }>()
 
 // NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
@@ -69,7 +74,7 @@ watch(openedProjects, (openedProjectsList) => {
 })
 
 const onSignOut = () => {
-  void props.closeAllProjects()
+  emit('closeAllProjects')
 }
 </script>
 
@@ -92,8 +97,8 @@ const onSignOut = () => {
           :selected="project.shown.value"
           :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
           :label="projectNames.get(project.id)"
-          @update:selected="$event && (tab = ensoPathToTabId(project.ensoPath))"
-          @close="closeProject(project)"
+          @update:selected="$event && (tab = EnsoPath(project.ensoPath))"
+          @close="emit('closeProject', project)"
         >
           <GrowingSpinner
             v-if="!readyProjects.has(project.id)"
@@ -126,7 +131,7 @@ const onSignOut = () => {
           <Editor
             :hidden="!project.shown.value"
             :project="project"
-            @readyUpdate="setProjectReady(project.id, ensoPathToTabId(project.ensoPath), $event)"
+            @readyUpdate="setProjectReady(project.id, EnsoPath(project.ensoPath), $event)"
             @nameUpdate="projectNames.set(project.id, $event)"
           />
         </div>

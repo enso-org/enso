@@ -12,9 +12,9 @@ import {
 } from '$/appUtils'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
+import { maybeRedirectToInitialProject } from '$/router/initialProject'
 import { reactComponent } from '@/util/react'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { maybeRedirectToInitialProject } from './initialProject'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 

@@ -1,7 +1,8 @@
-import { BackendType, DirectoryId, ProjectId } from '#/services/Backend'
+import { BackendType, DirectoryId, EnsoPath, ProjectId } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
+import { normalizeRouteParamToString } from '@/util/router'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'
@@ -50,20 +51,7 @@ LocalStorage.registerKey('launchedProjects', {
 })
 
 /** Tab identifier, equal to the path of the view's URL. */
-export type TabId = 'drive' | 'settings' | `local/${string}` | `cloud/${string}`
-
-/** Convert path of given project (value of project's asset's `ensoPath`) to {@link TabId} */
-export function ensoPathToTabId(path: string): TabId {
-  if (path.startsWith('enso://')) {
-    return `cloud/${path.slice('enso://'.length)}`
-  } else {
-    return `local/${path}`
-  }
-}
-
-function routeParamToTabName(routeParam: string | string[] | undefined) {
-  return routeParam instanceof Array ? routeParam.join('/') : routeParam
-}
+export type TabId = 'drive' | 'settings' | EnsoPath
 
 export type ContainerData = ReturnType<typeof useContainerData>
 export const [provideContainerData, useContainerData] = createContextStore('gui-container', () => {
@@ -75,18 +63,18 @@ export const [provideContainerData, useContainerData] = createContextStore('gui-
     () =>
       localStorage.get('launchedProjects')?.map((lp) => ({
         ...lp,
-        shown: computed(() => tab.value === ensoPathToTabId(lp.ensoPath)),
+        shown: computed(() => tab.value === lp.ensoPath),
       })) ?? [],
   )
 
   const isValidTab = (name: string | undefined): name is TabId =>
     name === 'drive' ||
     name === 'settings' ||
-    openedProjects.value.find((p) => ensoPathToTabId(p.ensoPath) === name) != null
+    openedProjects.value.find((p) => p.ensoPath === name) != null
 
   const tab = computed<TabId>({
     get: () => {
-      const name = routeParamToTabName(route.params.path)
+      const name = normalizeRouteParamToString(route.params.path)
       return isValidTab(name) ? name : 'drive'
     },
     set: (page) => {

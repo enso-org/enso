@@ -4,9 +4,8 @@ import RemoteBackend from '#/services/RemoteBackend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
-import { ensoPathToTabId } from '$/providers/container'
 import { injectGuiConfig } from '@/providers/guiConfig'
-import { RouteLocation } from 'vue-router'
+import { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
 export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started_Reading`
@@ -42,13 +41,18 @@ export async function initialProjectPath(
     }
   }
 
-  if (path) {
-    return ensoPathToTabId(path)
-  }
+  return path
 }
 
-/** A navigation guard for Dashboard page, which  */
-export async function maybeRedirectToInitialProject(to: RouteLocation) {
+/**
+ * A navigation guard for Dashboard page, which handles possible redirection to initial project
+ * if any should be opened.
+ *
+ * It may be a project specified in CLI arguments or the Welcome project on fresh installs.
+ */
+export async function maybeRedirectToInitialProject(
+  to: RouteLocation,
+): Promise<NavigationGuardReturn> {
   if (to.params.path) return
 
   const config = injectGuiConfig()
@@ -84,9 +88,7 @@ async function shouldOpenInitialProject(
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
-  return (
-    [...localHome, ...cloudHome].filter((asset) => {
-      return asset.type != AssetType.directory || asset.title != SAMPLES_DIRECTORY
-    }).length <= 0
-  )
+  return [...localHome, ...cloudHome].some((asset) => {
+    return asset.type != AssetType.directory || asset.title != SAMPLES_DIRECTORY
+  })
 }

@@ -131,6 +131,11 @@ export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>
 export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
 export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
 
+/** Check if this path points to an asset in cloud drive. */
+export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
+  return ensoPath.startsWith('enso://')
+}
+
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -658,7 +663,7 @@ export interface CreateCustomerPortalSessionResponse {
 /**
  * Response from the "path/resolve" endpoint.
  */
-export interface PathResolveResponse extends Omit<Asset, 'type'> {}
+export interface PathResolveResponse extends Omit<AnyRealAsset, 'type'> {}
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
@@ -1081,6 +1086,9 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
   HasType<Type>
 >
+
+/** A union of all {@link Asset} variants that can be retrieved from the backend. */
+export type AnyRealAsset = AnyAsset<RealAssetType>
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {

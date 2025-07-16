@@ -1,5 +1,5 @@
 import {
-  AnyAsset,
+  AnyRealAsset,
   AssetType,
   EmailAddress,
   OrganizationId,
@@ -21,8 +21,8 @@ import {
 const _ = container
 const CLOUD_ROOT_PATH = 'enso://Users/mock'
 const LOCAL_ROOT_PATH = '/home/user/Documents/enso-projects'
-const LOCAL_WELCOME_PROJECT = `local//home/user/Documents/enso-projects/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
-const CLOUD_WELCOME_PROJECT = `cloud/Users/mock/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`
+const LOCAL_WELCOME_PROJECT = `/home/user/Documents/enso-projects/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
+const CLOUD_WELCOME_PROJECT = `enso://Users/mock/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`
 const USER: User = {
   isEnabled: true,
   isOrganizationAdmin: false,
@@ -45,12 +45,12 @@ function mockBackends(plan: Plan, localHome: AssetEntry[] = [], cloudHome: Asset
   return {
     localBackend: {
       rootPath: () => Path(LOCAL_ROOT_PATH),
-      listDirectory: () => Promise.resolve(localHome as AnyAsset[]),
+      listDirectory: () => Promise.resolve(localHome as AnyRealAsset[]),
     },
     remoteBackend: {
       rootPath: () =>
         plan === Plan.free || plan === Plan.solo ? Path(CLOUD_ROOT_PATH) : Path('enso://'),
-      listDirectory: () => Promise.resolve(cloudHome as AnyAsset[]),
+      listDirectory: () => Promise.resolve(cloudHome as AnyRealAsset[]),
     },
   }
 }

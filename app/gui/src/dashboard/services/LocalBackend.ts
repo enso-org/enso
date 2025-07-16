@@ -177,13 +177,13 @@ export default class LocalBackend extends Backend {
    */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
-  ): Promise<readonly backend.AnyAsset[]> {
+  ): Promise<readonly backend.AnyRealAsset[]> {
     const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
     // Catch the case where the directory does not exist.
-    let result: backend.AnyAsset[] = []
+    let result: backend.AnyRealAsset[] = []
     try {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
@@ -815,7 +815,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
-  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
+  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
     // eslint-disable-next-line no-restricted-syntax
     const { directoryPath } = getDirectoryAndName(projectManager.Path(path as string))
     return this.findAsset(directoryPath, 'ensoPath', path)

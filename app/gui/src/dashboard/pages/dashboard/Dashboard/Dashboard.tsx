@@ -176,8 +176,8 @@ function DashboardInner(props: DashboardProps) {
         }}
       >
         <AppContainerInner
-          closeProject={closeProject}
-          closeAllProjects={closeAllProjects}
+          onCloseProject={closeProject}
+          onCloseAllProjects={closeAllProjects}
           isFeatureUnderPaywall={isFeatureUnderPaywall}
         />
       </div>
