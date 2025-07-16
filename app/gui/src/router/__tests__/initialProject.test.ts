@@ -59,7 +59,7 @@ test.each([Plan.free, Plan.solo, Plan.team, Plan.enterprise])(
   'Initial project from configuration with %s plan',
   async (plan) => {
     const resultFromName = await initialProjectPath('Name', { ...USER, plan }, mockBackends(plan))
-    expect(resultFromName).toBe('local//home/user/Documents/enso-projects/Name')
+    expect(resultFromName).toBe(`${LOCAL_ROOT_PATH}/Name`)
     const resultFromURL = await initialProjectPath(
       'file:///home/user/Name.enso-project',
       { ...USER, plan },
@@ -138,7 +138,7 @@ test.each([
     if (shouldOpen) {
       expect(result).toBe(CLOUD_WELCOME_PROJECT)
     } else {
-      expect(result).toBeUndefined()
+      expect(result).toBeFalsy()
     }
   },
 )

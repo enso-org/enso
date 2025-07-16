@@ -35,7 +35,7 @@ export const dataLoader: DataLoader<DashboardProps> = {
       backendQueryOptions('getAssetDetails', [resolvedPath.id], backend),
     )
     if (asset?.type === AssetType.project) {
-      return Ok({ projectToOpen: { asset, backend: backend.type } })
+      return Ok({ projectToOpen: { asset: { ...asset, ensoPath: path }, backend: backend.type } })
     } else {
       return Ok({})
     }

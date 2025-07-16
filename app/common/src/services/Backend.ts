@@ -660,10 +660,14 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
-/**
- * Response from the "path/resolve" endpoint.
- */
-export interface PathResolveResponse extends Omit<AnyRealAsset, 'type'> {}
+/** Response from the "path/resolve" endpoint. */
+export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
+
+/** Response from "assets/${assetId}" endpoint. */
+export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
+  Asset<RealAssetTypeId<Id>>,
+  'ensoPath'
+>
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
@@ -1814,11 +1818,7 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<
-    Id extends RealAssetId,
-    ReturnType extends Id extends DirectoryId ? Asset<AssetType.directory> | null
-    : Asset<RealAssetTypeId<Id>>,
-  >(assetId: Id): Promise<ReturnType>
+  abstract getAssetDetails<Id extends RealAssetId>(assetId: Id): Promise<AssetDetailsResponse<Id>>
 
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+import { EnsoPath } from '#/services/Backend'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { useAppTitle } from '$/composables/appTitle'
 import { useAuth } from '$/providers/auth'
-import { ensoPathToTabId, provideContainerData } from '$/providers/container'
+import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import { provideRightPanelData } from '$/providers/rightPanel'
@@ -108,11 +109,7 @@ if (projectViewOnly) {
   const openedProjects = provideOpenedProjects()
   provideAsyncResources(openedProjects)
   provideContainerData()
-  provideRightPanelData(
-    ensoPathToTabId(projectViewOnly.options.projectPath),
-    () => false,
-    useText(),
-  )
+  provideRightPanelData(EnsoPath(projectViewOnly.options.projectPath), () => false, useText())
   provideFullscreenRoot(fullscreenRoot)
 }
 </script>

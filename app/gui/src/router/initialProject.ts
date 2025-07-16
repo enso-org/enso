@@ -88,7 +88,7 @@ async function shouldOpenInitialProject(
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
-  return [...localHome, ...cloudHome].some((asset) => {
+  return ![...localHome, ...cloudHome].some((asset) => {
     return asset.type != AssetType.directory || asset.title != SAMPLES_DIRECTORY
   })
 }

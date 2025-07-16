@@ -353,13 +353,9 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override getAssetDetails<
-    Id extends backend.RealAssetId,
-    Type extends backend.RealAssetTypeId<Id>,
-    ReturnType extends Id extends backend.DirectoryId ?
-      backend.Asset<backend.AssetType.directory> | null
-    : backend.Asset<Type>,
-  >(assetId: Id): Promise<ReturnType> {
+  override getAssetDetails<Id extends backend.RealAssetId>(
+    assetId: Id,
+  ): Promise<backend.AssetDetailsResponse<Id>> {
     const extracted = extractTypeAndId(assetId)
 
     const parentPath = extracted.directory
