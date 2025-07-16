@@ -156,4 +156,26 @@ public class ExecStrictCompilerTest {
     var res = ctxRule.evalModule(code);
     assertTrue("Result is an error: " + res, res.isException());
   }
+
+  @Test
+  public void symbolImportWithoutRename() {
+    var code =
+        """
+              from Standard.Base.Error.Error import throw
+              main = throw 'Hi'
+              """;
+    var res = ctxRule.evalModule(code);
+    assertTrue("Result is an error: " + res, res.isException());
+  }
+
+  @Test
+  public void symbolImportAndRename() {
+    var code =
+        """
+              from Standard.Base.Error.Error import throw as error_throw
+              main = error_throw 'Hi'
+              """;
+    var res = ctxRule.evalModule(code);
+    assertTrue("Result is an error: " + res, res.isException());
+  }
 }
