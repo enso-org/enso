@@ -4,8 +4,8 @@ import { CacheManager } from '@auth0/auth0-spa-js/dist/typings/cache'
 import { isOnElectron } from 'enso-common/src/detect'
 import { toRfc3339, type Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 
-const SCOPE = 'profile email offline_access'
-const AUDIENCE = 'default'
+const AUTH0_SCOPE = 'profile email offline_access'
+const AUTH0_AUDIENCE = 'default'
 
 /** User's session, provides information for identifying and authenticating the user. */
 export interface UserSession {
@@ -54,13 +54,15 @@ export interface SessionProvider {
 
 /** Create a session provider backed by Auth0. */
 export function createAuth0SessionProvider(): SessionProvider {
-  const clientId = '<AUTH0_CLIENT_ID>'
+  const clientId = $config.AUTH0_CLIENT_ID ?? ''
   const client = new Auth0Client({
-    domain: '<AUTH0_DOMAIN>',
+    domain: $config.AUTH0_DOMAIN ?? '',
     clientId,
     authorizationParams: {
       // eslint-disable-next-line camelcase
-      redirect_uri: isOnElectron() ? 'enso://auth' : location.href,
+      redirect_uri: isOnElectron() ? 'enso://login' : location.href,
+      scope: AUTH0_SCOPE,
+      audience: AUTH0_AUDIENCE,
     },
   })
   const ready = client.checkSession()
@@ -71,7 +73,7 @@ export function createAuth0SessionProvider(): SessionProvider {
       client.getUser<User>(),
       client.getIdTokenClaims(),
       client.getTokenSilently({ detailedResponse: true }),
-      cacheManager.get(new CacheKey({ scope: SCOPE, audience: AUDIENCE, clientId })),
+      cacheManager.get(new CacheKey({ scope: AUTH0_SCOPE, audience: AUTH0_AUDIENCE, clientId })),
     ])
     return !user || !claims ?
         null
@@ -92,8 +94,8 @@ export function createAuth0SessionProvider(): SessionProvider {
     refreshUserSession: () => client.checkSession({ cacheMode: 'off' }).then(computeUserSession),
     signUp: () =>
       // eslint-disable-next-line camelcase
-      client.loginWithPopup({ authorizationParams: { screen_hint: 'signup', scope: SCOPE } }),
-    signIn: () => client.loginWithPopup({ authorizationParams: { scope: SCOPE } }),
-    signOut: () => client.logout(),
+      client.loginWithPopup({ authorizationParams: { screen_hint: 'signup' } }),
+    signIn: () => client.loginWithPopup(),
+    signOut: () => client.logout({ logoutParams: { returnTo: 'enso://logout' } }),
   }
 }

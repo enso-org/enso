@@ -33,14 +33,12 @@ window.authenticationApi?.setDeepLinkHandler((urlString: string) => {
   // Remove the trailing slash in the pathname - it is present on Windows but not on macOS.
   const pathname = url.pathname.replace(/\/$/, '')
   switch (pathname) {
-    case '//auth': {
-      if (url.search === '') {
-        // Signing out.
-        void router.push(appUtils.LOGIN_PATH)
-      } else {
-        // Signing in.
-        void router.push(appUtils.DASHBOARD_PATH)
-      }
+    case '//logout': {
+      void router.push(`${appUtils.LOGIN_PATH}${url.search}`)
+      break
+    }
+    case '//login': {
+      void router.push(`${appUtils.DASHBOARD_PATH}${url.search}`)
       break
     }
     case '//payments/success': {
