@@ -96,6 +96,9 @@ export function createAuth0SessionProvider(): SessionProvider {
       // eslint-disable-next-line camelcase
       client.loginWithPopup({ authorizationParams: { screen_hint: 'signup' } }),
     signIn: () => client.loginWithPopup(),
-    signOut: () => client.logout({ logoutParams: { returnTo: 'enso://logout' } }),
+    signOut: () =>
+      client.logout({
+        logoutParams: { returnTo: isOnElectron() ? 'enso://logout' : location.href },
+      }),
   }
 }
