@@ -1,6 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Google.Google_Sheets_Workbook
-- type Google_Api_Error
+- type Google_API_Error
     - Error details:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Google_Sheets_Workbook

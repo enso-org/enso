@@ -4,8 +4,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Runtime.Context
 
-from Standard.Table import Join_Kind, Table
 import Standard.Table.In_Memory_Table.In_Memory_Table
+from Standard.Table import Join_Kind, Table
 
 import project.DB_Table.DB_Table
 import project.Internal.DDL_Transaction

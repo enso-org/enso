@@ -1,7 +1,7 @@
 private
 
-from Standard.Table.Internal.Table_Type_Helpers import table_from_implementation
 from Standard.Table import Table
+from Standard.Table.Internal.Table_Type_Helpers import table_from_implementation
 
 import project.DB_Table.DB_Table
 import project.Internal.DB_Table_Implementation.DB_Table_Implementation

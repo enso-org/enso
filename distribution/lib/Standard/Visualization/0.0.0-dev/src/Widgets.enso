@@ -6,9 +6,10 @@ from Standard.Table import all
 
 from Standard.Database import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Basic preprocessor for widgets metadata visualization.
-
    Returns full annotation data for all requested arguments.
 get_widget_json : Any -> Any -> Vector Text -> Text -> Text
 get_widget_json value call_name argument_names uuids="{}" =

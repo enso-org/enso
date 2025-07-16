@@ -174,13 +174,9 @@ interface PlaceholderOverrides {
   readonly planOverriddenToX: [planName: string]
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
+  readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
 
-  readonly annualPlanVariant: [originalPlanName: string]
-  readonly freePlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly soloPlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly teamPlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly enterprisePlanPricing: [pricePerMonth: number, billingInterval: string]
   readonly commercialUseNotice: [originalTitle: string]
 }
 

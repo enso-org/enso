@@ -4,6 +4,7 @@ import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
 import { Pattern } from '@/util/ast/match'
+import { partition } from '@/util/data/array'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
@@ -576,7 +577,7 @@ watchPostEffect(() =>
     .call(d3.axisLeft(yScale.value).ticks(yTicks.value)),
 )
 
-function getPlotData(data: Data) {
+function getPlotData(data: Data): Point[] {
   const axis = data.axis
   if (data.is_multi_series) {
     const series = Object.keys(axis).filter((s) => s != 'x')
@@ -584,7 +585,7 @@ function getPlotData(data: Data) {
       data.data.map((d) => ({
         ...d,
         x: d.x,
-        y: d[s as keyof Point],
+        y: d[s as keyof Point] as number,
         series: s,
       })),
     )
@@ -712,14 +713,12 @@ watchPostEffect(() => {
   const xScale_ = data.value.isTimeSeries ? xScaleTime.value : xScale.value
   const yScale_ = yScale.value
 
-  const allPlotData = getPlotData(data.value) as Point[]
-  const circleData = allPlotData.filter((p) => (p.shape || 'circle') === 'circle')
-  const symbolData = allPlotData.filter((p) => (p.shape || 'circle') !== 'circle')
+  const allPlotData = getPlotData(data.value)
+  const [circleData, symbolData] = partition(allPlotData, (p) => (p.shape || 'circle') === 'circle')
   const labelsData =
     data.value.points.labels === VISIBLE_POINTS ?
       []
     : allPlotData.filter((d) => d.label != null && d.label !== '')
-  console.log(allPlotData, circleData, symbolData, labelsData)
 
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
   const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
