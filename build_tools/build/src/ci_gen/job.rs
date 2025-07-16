@@ -602,6 +602,7 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 pub struct SnowflakeTests {
     pub graal_edition:   graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
+    pub jvm_mode:        bool,
 }
 
 const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
@@ -612,9 +613,19 @@ impl JobArchetype for SnowflakeTests {
             panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
         let job_name = "Snowflake Tests";
+        let job_name = if self.jvm_mode {
+            format!("{job_name} (JVM)")
+        } else {
+            format!("{job_name} (Native)")
+        };
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
-        let mut job = RunStepsBuilder::new("backend test std-snowflake")
+        let run_command = if self.jvm_mode {
+            "backend test std-snowflake-jvm"
+        } else {
+            "backend test std-snowflake"
+        };
+        let mut job = RunStepsBuilder::new(run_command)
             .customize(move |step| {
                 let main_step = step
                     .with_secret_exposed_as(
@@ -669,7 +680,11 @@ impl JobArchetype for SnowflakeTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!("{}-{os}-{arch}", self.id_key_base())
+        if self.jvm_mode {
+            format!("{}-jvm-{os}-{arch}", self.id_key_base())
+        } else {
+            format!("{}-native-{os}-{arch}", self.id_key_base())
+        }
     }
 }
 

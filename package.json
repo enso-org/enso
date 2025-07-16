@@ -18,13 +18,12 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
-    "prettier-plugin-tailwindcss": "^0.5.14",
-    "vitest": "3.0.5"
+    "prettier-plugin-tailwindcss": "^0.5.14"
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
     "tslib": "^2.8.1",
-    "typescript": "^5.7.2"
+    "typescript": "catalog:"
   },
   "name": "root",
   "scripts": {
@@ -43,6 +42,7 @@
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
+    "bazel-clean": "bazel clean --expunge_async",
     "postinstall": "bazel run //:write_all --verbose_failures"
   },
   "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
@@ -55,7 +55,6 @@
     ],
     "overrides": {
       "tslib": "$tslib",
-      "jsdom": "^26.0.0",
       "@types/react": "^18.3.1",
       "ws": "^8.18.0",
       "esbuild": "^0.25.0"

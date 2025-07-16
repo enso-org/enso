@@ -22,7 +22,7 @@ type TestData
         vector1 = Data.list json_dir '{*.json}'
         files = Data.read_many vector1 ..Plain_Text
         values = files.at 'Value' . map x->(x.parse_json.to_text)
-        keys = files.at 'Path' . map x->(x.name.split '.' . at 0)
+        keys = files.at 'Path' . map x->((File.new x).name.split '.' . at 0)
         Dictionary.from_keys_and_values keys values
 
     check_equal self vis filename =

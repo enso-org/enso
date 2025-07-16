@@ -1,5 +1,4 @@
 /** @file A page for when a subscription payment succeeds. */
-
 import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
@@ -7,6 +6,7 @@ import { BackendType, Plan } from '#/services/Backend'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
 import { useRouter, useText, useUserSession } from '$/providers/react'
+import * as analytics from '$/utils/analytics'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 
@@ -53,6 +53,8 @@ export function PaymentsSuccess() {
           }
         }
       }
+
+      analytics.checkout.after()
     })()
 
     void toast.promise(promise, {

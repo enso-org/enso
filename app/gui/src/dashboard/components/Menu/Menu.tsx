@@ -96,7 +96,7 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
     children,
     variants = MENU_STYLES,
     placement,
-    testId = 'menu',
+    testId,
     ...menuProps
   } = props
 
@@ -140,7 +140,7 @@ function MenuSection<T extends object>(props: MenuSectionProps<T>) {
     items,
     children,
     variants = MENU_SECTION_STYLES,
-    testId = 'menu-section',
+    testId,
     ...sectionProps
   } = props
 
@@ -177,12 +177,7 @@ export interface MenuSectionHeaderProps
 export const MenuSectionHeader = createLeafComponent(
   'header',
   function MenuSectionHeader(props: MenuSectionHeaderProps) {
-    const {
-      className,
-      title,
-      variants = MENU_SECTION_STYLES,
-      testId = 'menu-section-header',
-    } = props
+    const { className, title, variants = MENU_SECTION_STYLES, testId } = props
 
     const styles = variants()
 
