@@ -1,0 +1,58 @@
+#!/bin/zsh
+
+# Get current branch name (assumed to be the original working branch)
+original_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ $? -ne 0 ]]; then
+  echo "❌ Not inside a Git repo or failed to get current branch."
+  exit 1
+fi
+
+# Derive the merge branch name
+merge_branch="${original_branch}-mr"
+
+echo "📌 Original branch: $original_branch"
+echo "📌 Merge branch: $merge_branch"
+
+# Fetch latest refs
+echo "📦 Fetching latest from origin..."
+git fetch origin
+git fetch
+
+# Ensure both branches exist locally
+if ! git show-ref --quiet refs/heads/"$merge_branch"; then
+  echo "❌ Merge branch '$merge_branch' does not exist locally. Please run createMR first."
+  exit 1
+fi
+
+# Get list of commits in original branch not in merge branch
+commits_to_cherry_pick=($(git rev-list --reverse "$merge_branch".."$original_branch"))
+
+if [[ ${#commits_to_cherry_pick[@]} -eq 0 ]]; then
+  echo "✅ No new commits to cherry-pick."
+  exit 0
+fi
+
+echo "📋 Found ${#commits_to_cherry_pick[@]} new commit(s) to cherry-pick."
+
+# Switch to merge branch
+git checkout "$merge_branch"
+
+# Cherry-pick each commit
+for commit in $commits_to_cherry_pick; do
+  echo "🍒 Cherry-picking commit: $commit"
+  if ! git cherry-pick "$commit"; then
+    echo "❌ Cherry-pick failed. Resolve conflicts, then run: git cherry-pick --continue"
+    echo "🔁 After resolving, rerun this script to pick remaining commits."
+    exit 1
+  fi
+done
+
+# Push updated merge branch
+echo "🚀 Pushing updated $merge_branch..."
+if git push; then
+  echo "✅ Merge branch updated and pushed."
+else
+  echo "❌ Push failed."
+  exit 1
+fi
