@@ -49,6 +49,7 @@ interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton 
 
 export interface RefreshButtonOptions {
   refreshGrid: () => void
+  isButtonDisabled: ToValue<boolean>
 }
 
 export interface Options extends NewNodeOptions, FormatMenuOptions, RefreshButtonOptions {}
@@ -319,10 +320,11 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
   }
 }
 
-function createRefreshMenu({ refreshGrid }: RefreshButtonOptions): ToolbarItem {
+function createRefreshMenu({ refreshGrid, isButtonDisabled }: RefreshButtonOptions): ToolbarItem {
   return {
     title: 'Reset any sort, filter or column changes made to the table',
-    icon: 'refresh',
+    icon: 'undo',
+    disabled: isButtonDisabled,
     onClick: refreshGrid,
   }
 }

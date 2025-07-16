@@ -918,7 +918,7 @@ function useScatterplotVizToolbar() {
       onClick: zoomToSelected,
     },
     {
-      icon: 'refresh',
+      icon: 'show_all',
       title: 'Reset scatterplot view',
       onClick: () => zoomToSelected(false),
     },
