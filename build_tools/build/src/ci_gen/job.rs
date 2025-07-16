@@ -139,26 +139,17 @@ pub fn expose_gui_vars(step: Step) -> Step {
     .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
     .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
     .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide::web::env::ENSO_IDE_SENTRY_DSN)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide::web::env::ENSO_IDE_STRIPE_KEY)
     .with_variable_exposed_as(
         variables::ENSO_CLOUD_AUTH_ENDPOINT,
         ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
     )
     .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
-        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
+        variables::ENSO_CLOUD_AUTH0_CLIENT_ID,
+        ide::web::env::ENSO_IDE_AUTH0_CLIENT_ID,
     )
     .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_DOMAIN,
-        ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_REGION,
-        ide::web::env::ENSO_IDE_COGNITO_REGION,
+        variables::ENSO_CLOUD_AUTH0_DOMAIN,
+        ide::web::env::ENSO_IDE_AUTH0_DOMAIN,
     )
     .with_variable_exposed_as(
         variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
@@ -171,10 +162,6 @@ pub fn expose_gui_vars(step: Step) -> Step {
     .with_variable_exposed_as(
         variables::ENSO_MAPBOX_API_TOKEN,
         ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
-    )
-    .with_secret_exposed_as(
-        secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-        ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
     )
 }
 

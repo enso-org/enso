@@ -70,17 +70,11 @@ pub mod env {
         // Endpoint used for proxying username/password based authentication.
         ENSO_IDE_AUTH_ENDPOINT, String;
 
-        /// The ID of the Amplify user pool for authentication.
-        ENSO_IDE_COGNITO_USER_POOL_ID, String;
+        /// The client-side key for the Auth0 integration.
+        ENSO_IDE_AUTH0_CLIENT_ID, String;
 
-        /// The client-side key for the Amplify user pool.
-        ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID, String;
-
-        /// The domain for Amplify requests.
-        ENSO_IDE_COGNITO_DOMAIN, String;
-
-        /// The AWS region for Amplify configuration, matching the domain region.
-        ENSO_IDE_COGNITO_REGION, String;
+        /// The domain for Auth0 authentication.
+        ENSO_IDE_AUTH0_DOMAIN, String;
 
         /// The Google Analytics tag to which Google Analytics events should be sent.
         ENSO_IDE_GOOGLE_ANALYTICS_TAG, String;
@@ -90,9 +84,6 @@ pub mod env {
 
         /// The Mapbox API token for the GeoMap visualization.
         ENSO_IDE_MAPBOX_API_TOKEN, String;
-
-        /// The client ID for the Google OAuth integration used for Google Credentials.
-        ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID, String;
 
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
