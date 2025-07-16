@@ -64,6 +64,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const usersByEmail = new Map(users.map((user) => [user.email, user]))
   const isDescending = sortInfo?.direction === 'descending'
 
+  const scrollerRef = React.useRef<HTMLDivElement | null>(null)
   const lambdaKindsByName = new Map(
     SELECTABLE_LAMBDA_KINDS.map((kind) => [getText(EVENT_TYPE_NAME_ID[kind]), kind]),
   )
@@ -100,7 +101,16 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     meta: { persist: false },
   })
   const logs = logsPages.data?.pages.flat()
-  const isFetching = logsPages.isFetching
+  const fetchNextLogsPage = logsPages.fetchNextPage
+  const isFetching = logsPages.isLoading || logsPages.isFetchingNextPage
+
+  React.useEffect(() => {
+    const scrollerEl = scrollerRef.current
+    if (!scrollerEl) return
+    if (scrollerEl.scrollTop + scrollerEl.clientHeight >= scrollerEl.scrollHeight) {
+      void fetchNextLogsPage()
+    }
+  }, [fetchNextLogsPage, logsPages.data?.pages])
 
   const sortedLogs = (() => {
     const filteredLogs = logs?.filter((log) => {
@@ -235,6 +245,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         </div>
       </Form>
       <Scroller
+        ref={scrollerRef}
         scrollbar
         orientation="vertical"
         className="min-h-0 flex-1"

@@ -311,7 +311,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
   const assets = useMemo(() => assetsPages.data?.pages.flat() ?? [], [assetsPages.data?.pages])
   const fetchNextAssetPage = assetsPages.fetchNextPage
-  const isFetching = assetsPages.isFetching
+  const isFetching = assetsPages.isLoading || assetsPages.isFetchingNextPage
 
   useEffect(() => {
     const scrollerEl = scrollerRef.current
@@ -1219,12 +1219,12 @@ function AssetsTable(props: AssetsTableProps) {
 
   const table = (
     <Scroller
+      ref={scrollerRef}
       scrollbar
       fullSize
       orientation="vertical"
       className="h-full flex-1"
       shadowStartClassName="top-8"
-      ref={scrollerRef}
       onScroll={(event) => {
         if (isFetching) return
         const element = event.currentTarget
