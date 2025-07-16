@@ -1,0 +1,47 @@
+#!/bin/zsh
+
+# Get current branch name
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+# Check for errors
+if [[ $? -ne 0 ]]; then
+  echo "❌ Not inside a Git repo or failed to get current branch."
+  exit 1
+fi
+
+# Define merge branch name
+merge_branch="${current_branch}-mr"
+
+# Create the backup branch
+git checkout -b "$merge_branch"
+
+# Confirm success
+if [[ $? -eq 0 ]]; then
+  echo "✅ Merge branch created: $merge_branch"
+else
+  echo "❌ Failed to create merge branch."
+fi
+
+echo "📦 Fetching latest changes from upstream..."
+if git fetch upstream; then
+  echo "✅ Successfully fetched upstream."
+else
+  echo "❌ Failed to fetch from upstream."
+  exit 1
+fi
+
+echo "🔀 Rebasing $merge_branch onto upstream/develop..."
+if git rebase --onto upstream/develop origin/develop; then
+  echo "✅ Successfully rebased onto upstream/develop."
+else
+  echo "❌ Rebase failed. Resolve conflicts and try again."
+  exit 1
+fi
+
+echo "🚀 Pushing $merge_branch to upstream..."
+if git push --set-upstream upstream "$merge_branch"; then
+  echo "✅ Branch pushed to upstream: $merge_branch"
+else
+  echo "❌ Failed to push branch to upstream."
+  exit 1
+fi
