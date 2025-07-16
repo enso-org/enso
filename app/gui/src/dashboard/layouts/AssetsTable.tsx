@@ -73,7 +73,7 @@ import {
   LabelName,
   type AnyAsset,
 } from '#/services/Backend'
-import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend'
+import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
@@ -94,6 +94,7 @@ import {
   useText,
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -132,7 +133,6 @@ LocalStorage.registerKey('enabledColumns', {
 })
 
 const INITIAL_PAGE_PARAM = Symbol('initial page parameter')
-const LIST_DIRECTORY_DEFAULT_PAGE_SIZE = 10
 /**
  * The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling.
@@ -291,12 +291,13 @@ function AssetsTable(props: AssetsTableProps) {
         sortExpression: sortInfo?.field ?? null,
         sortDirection: sortInfo?.direction ?? null,
       })
+  const pageSize = useFeatureFlag('listDirectoryPageSize')
   const assetsPages = useInfiniteQuery({
     ...directoryQueryOptions,
     queryFn: (context) =>
       directoryQueryOptions.queryFn(context, {
         from: context.pageParam === INITIAL_PAGE_PARAM ? null : context.pageParam,
-        pageSize: LIST_DIRECTORY_DEFAULT_PAGE_SIZE,
+        pageSize,
       }),
     // This is type-safe because `INITIAL_PAGE_PARAM` is of type `typeof INITIAL_PAGE_PARAM`.
     // eslint-disable-next-line no-restricted-syntax

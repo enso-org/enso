@@ -16,6 +16,7 @@ import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { MINUTE_MS, toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
@@ -30,8 +31,6 @@ import {
   SELECTABLE_LAMBDA_KINDS,
 } from './lambdaKinds'
 
-const GET_LOG_EVENTS_DEFAULT_PAGE_SIZE = 100
-
 /** Create the schema for this form. */
 function createActivityLogSchema() {
   return z.object({
@@ -39,7 +38,6 @@ function createActivityLogSchema() {
     type: z.string().optional(),
     startDate: z.instanceof(ZonedDateTime).optional(),
     endDate: z.instanceof(ZonedDateTime).optional(),
-    pageSize: z.number().int(),
   })
 }
 
@@ -71,16 +69,15 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   )
   const endpointNames = [...lambdaKindsByName.keys()].sort((a, b) => a.localeCompare(b))
 
+  const pageSize = useFeatureFlag('getLogEventsPageSize')
   const form = Form.useForm({
     schema: createActivityLogSchema(),
-    defaultValues: { pageSize: GET_LOG_EVENTS_DEFAULT_PAGE_SIZE },
   })
   const typeRaw = form.watch('type')
   const lambdaKind = typeRaw != null ? lambdaKindsByName.get(typeRaw) : null
   const userEmail = form.watch('userEmail')
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
-  const pageSize = form.watch('pageSize')
   const maxDate = today(getLocalTimeZone())
 
   const getLogEventsArgs = [
