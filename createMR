@@ -45,3 +45,11 @@ else
   echo "❌ Failed to push branch to upstream."
   exit 1
 fi
+
+echo "🔄 Switching back to original branch: $current_branch"
+if git checkout "$current_branch"; then
+  echo "✅ Switched back to $current_branch"
+else
+  echo "❌ Failed to switch back to $current_branch"
+  exit 1
+fi
