@@ -9,6 +9,9 @@ import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -396,6 +399,73 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     }
   }
 
-  @Persistable.Group({@Persistable(id = 121, clazz = ExceptionType.class)})
+  @Persistable(id = 121, clazz = ExceptionType.class)
   static final class OtherMessages {}
+
+  @Persistable(id = 122)
+  static final class PersistLocalDate extends Persistance<LocalDate> {
+
+    public PersistLocalDate() {
+      super(LocalDate.class, false, 122);
+    }
+
+    @Override
+    protected void writeObject(LocalDate obj, Output out) throws IOException {
+      out.writeInt(obj.getYear());
+      out.writeByte(obj.getMonthValue());
+      out.writeByte(obj.getDayOfMonth());
+    }
+
+    @Override
+    protected LocalDate readObject(Input in) throws IOException, ClassNotFoundException {
+      var year = in.readInt();
+      var month = in.readByte();
+      var day = in.readByte();
+      return LocalDate.of(year, month, day);
+    }
+  }
+
+  @Persistable(id = 123)
+  static final class PersistLocalTime extends Persistance<LocalTime> {
+
+    public PersistLocalTime() {
+      super(LocalTime.class, false, 123);
+    }
+
+    @Override
+    protected void writeObject(LocalTime obj, Output out) throws IOException {
+      out.writeByte(obj.getHour());
+      out.writeByte(obj.getMinute());
+      out.writeByte(obj.getSecond());
+      out.writeInt(obj.getNano());
+    }
+
+    @Override
+    protected LocalTime readObject(Input in) throws IOException, ClassNotFoundException {
+      var hour = in.readByte();
+      var minute = in.readByte();
+      var second = in.readByte();
+      var nano = in.readInt();
+      return LocalTime.of(hour, minute, second, nano);
+    }
+  }
+
+  @Persistable(id = 124)
+  static final class PersistZoneId extends Persistance<ZoneId> {
+
+    public PersistZoneId() {
+      super(ZoneId.class, true, 124);
+    }
+
+    @Override
+    protected void writeObject(ZoneId obj, Output out) throws IOException {
+      out.writeUTF(obj.getId());
+    }
+
+    @Override
+    protected ZoneId readObject(Input in) throws IOException, ClassNotFoundException {
+      var id = in.readUTF();
+      return ZoneId.of(id);
+    }
+  }
 }
