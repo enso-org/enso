@@ -278,14 +278,25 @@ write_table_selector =
     Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
 ## PRIVATE
+   Make a format chooser for a selection of columns.
+make_format_chooser_for_selection table cache =
+    columns = cache.if_not_nothing <| cache "columns"
+    types = if columns.is_nothing then [Value_Type.Mixed] else
+        ##  (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) (error_on_empty:Boolean=True) =
+        real_columns = table.columns_helper.select_columns columns case_sensitivity=..Sensitive reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False
+        if real_columns.length == 0 then [Value_Type.Mixed] else real_columns.map .value_type
+    make_format_chooser_for_type types
+
+## PRIVATE
    Make format selector based off value type
-make_format_chooser_for_type : Value_Type -> Widget
-make_format_chooser_for_type value_type =
-    include_number = value_type.is_numeric || value_type==Value_Type.Mixed
-    include_date = value_type==Value_Type.Date || value_type==Value_Type.Mixed
-    include_date_time = value_type.is_date_time || value_type==Value_Type.Mixed
-    include_time = value_type==Value_Type.Time || value_type==Value_Type.Mixed
-    include_boolean = value_type.is_boolean || value_type==Value_Type.Mixed
+make_format_chooser_for_type : Value_Type | Vector -> Widget
+make_format_chooser_for_type value_types =
+    vector = Vector.unify_vector_or_element value_types
+    include_number    = vector.any value_type-> value_type.is_numeric || value_type==Value_Type.Mixed
+    include_date      = vector.any value_type-> value_type==Value_Type.Date || value_type==Value_Type.Mixed
+    include_date_time = vector.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed
+    include_time      = vector.any value_type-> value_type==Value_Type.Time || value_type==Value_Type.Mixed
+    include_boolean   = vector.any value_type-> value_type.is_boolean || value_type==Value_Type.Mixed
     make_format_chooser include_number include_date include_date_time include_time include_boolean
 
 ## PRIVATE

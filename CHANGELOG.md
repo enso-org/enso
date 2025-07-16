@@ -72,6 +72,7 @@
 - [`Meta.Unresolved_Symbol` renamed to `Meta.Unresolved`][13443]
 - [Remane Google_Api library to Google][13436]
 - [Data.read_many now returns the read path as a char field][13475]
+- [Add prototype `find_group_number` function to Table][13487]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -85,13 +86,15 @@
 [13415]: https://github.com/enso-org/enso/pull/13415
 [13415]: https://github.com/enso-org/enso/pull/13443
 [13436]: https://github.com/enso-org/enso/pull/13436
+[13443]: https://github.com/enso-org/enso/pull/13443
 [13475]: https://github.com/enso-org/enso/pull/13475
+[13487]: https://github.com/enso-org/enso/pull/13487
 
 #### Enso Language & Runtime
 
 - [Allow optional path for `--jvm` option of `project-manager`][13225]
 - [Prevent `Meta` access to private constructors and private fields][12905]
-- [Encapsulating Private_Access constructor][#12976]
+- [Encapsulating Private_Access constructor][12976]
 - [Upgrading Truffle][12500] (including its
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
