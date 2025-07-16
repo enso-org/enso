@@ -117,19 +117,19 @@ object StdBits {
                   )
                 )
             if (outdatedArtifact) {
-              logger.info(
+              logger.debug(
                 s"Removing outdated std-bits dependency ${existing.getName}."
               )
               IO.delete(existing)
             } else {
-              logger.info(
+              logger.debug(
                 s"Keeping target ${existing.getName} jar as a dependency. Still up-to-date"
               )
             }
           }
         }
         for (changed <- report.modified -- report.removed) {
-          logger.info(
+          logger.debug(
             s"Updating changed std-bits dependency ${changed.getName}."
           )
           updateDependency(changed, destination, logger)
@@ -137,7 +137,7 @@ object StdBits {
         for (file <- report.unmodified) {
           val dest = destination / file.getName
           if (!dest.exists()) {
-            logger.info(s"Adding missing std-bits dependency ${file.getName}.")
+            logger.debug(s"Adding missing std-bits dependency ${file.getName}.")
             updateDependency(file, destination, logger)
           }
         }
