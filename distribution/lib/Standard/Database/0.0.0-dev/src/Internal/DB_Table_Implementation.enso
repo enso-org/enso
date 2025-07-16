@@ -315,6 +315,10 @@ type DB_Table_Implementation
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
 
+    find_group_number (this_table : Table & DB_Table) predicate over group_row name:Text from:Integer step:Integer on_problems:Problem_Behavior =
+        _ = [this_table, predicate, over, group_row, name, from, step, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "find_group_number")
+
     set (this_table : Table & DB_Table) (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new
         unique = this_table.column_naming_helper.create_unique_name_strategy

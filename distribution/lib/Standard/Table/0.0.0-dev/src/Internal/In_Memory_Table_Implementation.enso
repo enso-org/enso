@@ -31,6 +31,8 @@ import project.Expression.Expression
 import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
 import project.Grouping_Method.Grouping_Method
+import project.Grouping_Method.Group_Row
+import project.Grouping_Method.Predicate_Over
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Add_Group_Number
@@ -375,6 +377,23 @@ type In_Memory_Table_Implementation
 
     add_group_number (this_table : Table & In_Memory_Table) (grouping_method : Grouping_Method) name:Text from:Integer step:Integer on_problems:Problem_Behavior =
         Incomparable_Values.handle_errors <| Add_Group_Number.add_group_number this_table grouping_method name from step on_problems
+
+    find_group_number (this_table : Table & In_Memory_Table) predicate over:Predicate_Over group_row:Group_Row name:Text from:Integer step:Integer on_problems:Problem_Behavior =
+        ## Resolve over
+        resolved_column = case over of
+            Predicate_Over.Row -> Nothing
+            Predicate_Over.Name column_name -> In_Memory_Table_Implementation.at this_table column_name
+            Predicate_Over.Index index -> In_Memory_Table_Implementation.at this_table index
+
+        ## Resolve predicate
+        used_predicate = case Nothing == resolved_column of
+            True ->
+                group->current-> predicate (Row.Value group) (Row.Value current)
+            False ->
+                group->current-> predicate (java_to_enso group) (java_to_enso current)
+
+        ## Construct Group
+        Add_Group_Number.add_flagged_group this_table resolved_column used_predicate group_row name from step on_problems
 
     set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new

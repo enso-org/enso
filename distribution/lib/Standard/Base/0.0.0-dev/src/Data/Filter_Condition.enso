@@ -291,7 +291,7 @@ type Filter_Condition
                 builder.append (Option "..Equal_Ignore_Case" "..Equal_Ignore_Case" [["to", Widget.Text_Input]])
                 builder.append (Option "..Starts_With" "..Starts_With" [["prefix", Widget.Text_Input]])
                 builder.append (Option "..Ends_With" "..Ends_With" [["suffix", Widget.Text_Input]])
-                builder.append (Option "..Ends_With" "..Ends_With" [["substring", Widget.Text_Input]])
+                builder.append (Option "..Contains" "..Contains" [["substring", Widget.Text_Input]])
                 builder.append (Option "..Like" "..Like" [["pattern", Widget.Text_Input]])
                 builder.append (Option "..Regex_Match" "..Regex_Match" [["pattern", Widget.Text_Input]])
 

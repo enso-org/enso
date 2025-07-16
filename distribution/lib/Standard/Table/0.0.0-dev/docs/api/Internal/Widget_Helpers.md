@@ -16,7 +16,8 @@
 - make_column_ref_by_name_selector_for_type table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= value_type:Standard.Table.Value_Type.Value_Type add_nothing:Standard.Base.Data.Boolean.Boolean= if_value_type_numeric_include_all_numeric:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_fill_default_value_selector column_source:Standard.Base.Any.Any= display:Standard.Base.Metadata.Display= value_types:Standard.Base.Any.Any= add_nothing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_filter_condition_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-- make_format_chooser_for_type value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_format_chooser_for_selection table:Standard.Base.Any.Any cache:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_format_chooser_for_type value_types:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_grouping_method_selector table:Standard.Table.Table.Table display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
 - make_join_condition_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_keep_unmatched_selector -> Standard.Base.Any.Any

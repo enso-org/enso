@@ -1227,6 +1227,36 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /**
+   * Fetches a configuration for a payment pricing page.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+    const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
+
+    if (!response.ok) {
+      return await this.throw(response, 'getPaymentsConfigBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Cancel given subscription.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async cancelSubscription(subscriptionId: backend.SubscriptionId): Promise<void> {
+    const response = await this.delete(
+      remoteBackendPaths.cancelSubscriptionPath(subscriptionId),
+      {},
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'cancelSubscriptionBackendError')
+    } else {
+      return
+    }
+  }
+
   /** List events in the organization's audit log. */
   override async getLogEvents(
     params: backend.GetLogEventsRequestParams,

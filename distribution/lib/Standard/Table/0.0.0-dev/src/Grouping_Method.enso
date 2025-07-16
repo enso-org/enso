@@ -19,3 +19,28 @@ type Grouping_Method
          the ordering of the output rows. Defaults to the order of the rows in
          the table.
     Equal_Count (group_count:Integer=5) (order_by:(Vector | Text)=[])
+
+## Specifies the row representing a group.
+type Group_Row
+    ## The row representing the group is the first row of the group.
+    First
+
+    ## The row representing the group is the previous row of the group.
+    Previous
+
+## Specify what the predicate is computed over.
+type Predicate_Over
+    ## The predicate is computed over a Row object.
+    Row
+
+    ## The predicate is computed over a column value specified by name.
+    Name column:Text
+
+    ## The predicate is computed over a column value specified by index.
+    Index index:Integer
+
+## PRIVATE
+Predicate_Over.from (that:Text) = Predicate_Over.Name that
+
+## PRIVATE
+Predicate_Over.from (that:Integer) = Predicate_Over.Index that

@@ -567,12 +567,28 @@ export interface CheckoutSession {
   readonly url: HttpsUrl
 }
 
+/** Metadata for a single payment card. */
+export interface Card {
+  readonly plan: Plan
+  readonly period: PlanBillingPeriod
+  readonly title: string
+  readonly subtitle: string
+  readonly pricing: string
+  readonly features: readonly string[]
+}
+
+/** Metadata for a payment pricing page configuration. */
+export interface PaymentsConfig {
+  readonly cards: readonly Card[]
+}
+
 /** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
   readonly plan?: Plan
   readonly trialStart?: dateTime.Rfc3339DateTime | null
   readonly trialEnd?: dateTime.Rfc3339DateTime | null
+  readonly isPaused?: boolean | null
 }
 
 /** Metadata for an organization. */
@@ -1894,6 +1910,8 @@ export default abstract class Backend {
   abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
+  /** Cancel subscription. */
+  abstract cancelSubscription(subscriptionId: SubscriptionId): Promise<void>
   /** List events in the organization's audit log. */
   abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
@@ -1916,6 +1934,8 @@ export default abstract class Backend {
    * @param returnUrl - The URL to redirect to after the customer visits the portal.
    */
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
+  /** Fetches pricing page configuration. */
+  abstract getPaymentsConfig(): Promise<PaymentsConfig>
 }
 
 /**
