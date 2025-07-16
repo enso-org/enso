@@ -186,98 +186,96 @@ export default class LocalBackend extends Backend {
     let result: backend.AnyAsset[] = []
     try {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
-      result = entries
-        .map((entry) => {
-          const virtualParentsPath = (() => {
-            let path = entry.path.replace(rootPath, '')
+      result = entries.map((entry) => {
+        const virtualParentsPath = (() => {
+          let path = entry.path.replace(rootPath, '')
 
-            if (path.startsWith('/')) {
-              path = path.slice(1)
-            }
-
-            if (path.endsWith('/')) {
-              path = path.slice(0, -1)
-            }
-
-            return path
-          })()
-
-          const parentsPath = (() => {
-            const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
-            const splitPath = virtualParentsPath.split('/')
-
-            let previousPath = ''
-
-            for (const directory of splitPath) {
-              if (directory === '') {
-                continue
-              }
-
-              previousPath = backend.Path(previousPath + '/' + directory)
-
-              if (previousPath.endsWith('/')) {
-                previousPath = previousPath.slice(0, -1)
-              }
-
-              parentsPathArray.push(newDirectoryId(backend.Path(rootPath + previousPath)))
-            }
-
-            return parentsPathArray.slice(0, -1).join('/')
-          })()
-
-          const ensoPathRaw = normalizePath(entry.path)
-          const ensoPath = backend.EnsoPath(ensoPathRaw)
-          const shared = {
-            permissions: [],
-            projectState: null,
-            extension: null,
-            parentsPath: backend.ParentsPath(parentsPath),
-            virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
-            ensoPath,
-          } satisfies Partial<backend.DirectoryAsset>
-
-          switch (entry.type) {
-            case 'DirectoryEntry': {
-              const id = newDirectoryId(entry.path)
-
-              return {
-                ...shared,
-                id,
-                type: backend.AssetType.directory,
-                modifiedAt: entry.attributes.lastModifiedTime,
-                parentId,
-                title: getFileName(entry.path),
-              } satisfies backend.DirectoryAsset
-            }
-            case 'ProjectEntry': {
-              return {
-                ...shared,
-                type: backend.AssetType.project,
-                id: newProjectId(entry.metadata.id, extractTypeAndId(parentId).id),
-                title: entry.metadata.name,
-                modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
-                parentId,
-                projectState: {
-                  type:
-                    this.projectManager.projects.get(entry.metadata.id)?.state ??
-                    backend.ProjectState.closed,
-                },
-              } satisfies backend.ProjectAsset
-            }
-            case 'FileEntry': {
-              return {
-                ...shared,
-                type: backend.AssetType.file,
-                id: newFileId(entry.path),
-                title: getFileName(entry.path),
-                modifiedAt: entry.attributes.lastModifiedTime,
-                parentId,
-                extension: fileExtension(entry.path),
-              } satisfies backend.FileAsset
-            }
+          if (path.startsWith('/')) {
+            path = path.slice(1)
           }
-        })
-        .sort(backend.compareAssets)
+
+          if (path.endsWith('/')) {
+            path = path.slice(0, -1)
+          }
+
+          return path
+        })()
+
+        const parentsPath = (() => {
+          const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+          const splitPath = virtualParentsPath.split('/')
+
+          let previousPath = ''
+
+          for (const directory of splitPath) {
+            if (directory === '') {
+              continue
+            }
+
+            previousPath = backend.Path(previousPath + '/' + directory)
+
+            if (previousPath.endsWith('/')) {
+              previousPath = previousPath.slice(0, -1)
+            }
+
+            parentsPathArray.push(newDirectoryId(backend.Path(rootPath + previousPath)))
+          }
+
+          return parentsPathArray.slice(0, -1).join('/')
+        })()
+
+        const ensoPathRaw = normalizePath(entry.path)
+        const ensoPath = backend.EnsoPath(ensoPathRaw)
+        const shared = {
+          permissions: [],
+          projectState: null,
+          extension: null,
+          parentsPath: backend.ParentsPath(parentsPath),
+          virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
+          ensoPath,
+        } satisfies Partial<backend.DirectoryAsset>
+
+        switch (entry.type) {
+          case 'DirectoryEntry': {
+            const id = newDirectoryId(entry.path)
+
+            return {
+              ...shared,
+              id,
+              type: backend.AssetType.directory,
+              modifiedAt: entry.attributes.lastModifiedTime,
+              parentId,
+              title: getFileName(entry.path),
+            } satisfies backend.DirectoryAsset
+          }
+          case 'ProjectEntry': {
+            return {
+              ...shared,
+              type: backend.AssetType.project,
+              id: newProjectId(entry.metadata.id, extractTypeAndId(parentId).id),
+              title: entry.metadata.name,
+              modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+              parentId,
+              projectState: {
+                type:
+                  this.projectManager.projects.get(entry.metadata.id)?.state ??
+                  backend.ProjectState.closed,
+              },
+            } satisfies backend.ProjectAsset
+          }
+          case 'FileEntry': {
+            return {
+              ...shared,
+              type: backend.AssetType.file,
+              id: newFileId(entry.path),
+              title: getFileName(entry.path),
+              modifiedAt: entry.attributes.lastModifiedTime,
+              parentId,
+              extension: fileExtension(entry.path),
+            } satisfies backend.FileAsset
+          }
+        }
+      })
     } catch {
       // Failed so check if exists
       if (!(await this.projectManager.exists(parentIdRaw))) {
@@ -291,6 +289,7 @@ export default class LocalBackend extends Backend {
         }
       }
     }
+    result.sort((a, b) => backend.compareAssets(a, b, query.sortExpression, query.sortDirection))
     const index = query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from) + 1
     return result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
   }

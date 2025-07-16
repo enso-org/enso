@@ -1527,30 +1527,49 @@ export function getAssetTypeFromId(id: AssetId) {
 }
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
-export function compareAssets(a: AnyAsset, b: AnyAsset) {
-  const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+export function compareAssets(
+  a: AnyAsset,
+  b: AnyAsset,
+  sortExpression?: AssetSortExpression | null,
+  sortDirection?: AssetSortDirection | null,
+) {
+  sortExpression ??= 'asset_discriminator_and_id'
+  sortDirection ??= sortExpression == 'modified_at' ? 'descending' : 'ascending'
 
-  if (relativeTypeOrder !== 0) {
-    return relativeTypeOrder
+  const undirectedDelta = (() => {
+    switch (sortExpression) {
+      case 'asset_discriminator_and_id': {
+        const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+        if (relativeTypeOrder !== 0) {
+          return relativeTypeOrder
+        }
+        // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
+        return Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
+      }
+      case 'modified_at': {
+        return Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
+      }
+      case 'title': {
+        return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
+      }
+    }
+  })()
+  const delta = undirectedDelta * (sortDirection === 'ascending' ? 1 : -1)
+
+  if (delta !== 0) {
+    return delta
   } else {
-    // We sort by modified date, because the running/recent projects should be at the top,
-    // but below the folders.
-    const aModified = Number(new Date(a.modifiedAt))
-    const bModified = Number(new Date(b.modifiedAt))
-    const modifiedDelta = aModified - bModified
+    // Fallback to default sort order: modified date descending, then title ascending.
 
-    const aTitle = a.title.toLowerCase()
-    const bTitle = b.title.toLowerCase()
+    // Sort by modified date, because the running/recent projects should be at the top,
+    // but below the folders.
+    const modifiedDelta = Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt))
 
     if (modifiedDelta !== 0) {
       // Sort by date descending, rather than ascending.
       return -modifiedDelta
     } else {
-      return (
-        aTitle > bTitle ? 1
-        : aTitle < bTitle ? -1
-        : 0
-      )
+      return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
     }
   }
 }
