@@ -28,7 +28,7 @@ type Snowflake_Details
         - `warehouse`: The name of the warehouse to use.
     @account (Text_Input display=..Always)
     @credentials Widgets.password_or_keypair_widget
-    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
+    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="*" warehouse:Text=""
 
     ## ---
        private: true

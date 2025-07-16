@@ -1,5 +1,5 @@
-import { expect, type Locator, type Page } from '@playwright/test'
 import assert from 'assert'
+import { expect, type Locator, type Page } from 'playwright/test'
 
 // ================
 // === Locators ===
@@ -13,7 +13,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 
 /** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Show/Hide visualization')
+  return page.getByLabel(/(Show|Hide|Show\/Hide) visualization.*/).first()
 }
 
 /** Visualization Selector button */
@@ -85,6 +85,7 @@ export const componentMenu = componentLocator('.ComponentMenu')
 export const componentMenuMoreEntries = testIdLocator('component-menu-more-entries')
 export const addNewNodeButton = testIdLocator('add-component-button')
 export const componentBrowser = componentLocator('.ComponentBrowser')
+export const componentBrowserInput = testIdLocator('component-editor-content')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
 export const nodeComment = componentLocator('.GraphNodeComment')
 export const nodeCommentContent = testIdLocator('graph-node-comment-content')

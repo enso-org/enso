@@ -4,7 +4,7 @@ from Standard.Table import Table
 
 from Standard.Test import Test
 
-import Standard.Database.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 
 import project.Common_Table_Operations
 

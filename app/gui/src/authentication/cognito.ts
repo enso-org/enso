@@ -203,6 +203,7 @@ export interface ISessionProvider {
     email: string,
     code: string,
   ) => Promise<results.Err<ConfirmSignUpError> | results.Ok<unknown>>
+  readonly signInWithApple: () => Promise<void>
   readonly signInWithGoogle: () => Promise<void>
   readonly signInWithGitHub: () => Promise<void>
   readonly signInWithPassword: (
@@ -323,6 +324,22 @@ export class Cognito implements ISessionProvider {
       await amplify.Auth.confirmSignUp(email, code)
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow)
+  }
+
+  /**
+   * Sign in via the Apple federated identity provider.
+   *
+   * This function will open the Apple authentication page in the user's browser. The user will
+   * be asked to log in to their Apple ID account, and then to grant access to the application.
+   * After the user has granted access, the browser will be redirected to the application.
+   */
+  async signInWithApple() {
+    const customState = this.customState()
+    const provider = amplify.CognitoHostedUIIdentityProvider.Apple
+    await amplify.Auth.federatedSignIn({
+      provider,
+      ...(customState != null ? { customState } : {}),
+    })
   }
 
   /**

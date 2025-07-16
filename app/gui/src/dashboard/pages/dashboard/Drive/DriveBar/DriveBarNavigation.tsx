@@ -12,44 +12,32 @@ import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
-import { useDriveStore } from '#/providers/DriveProvider'
+import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
 import { AssetDoesNotExistError, BackendType, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
+import { NetworkError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
-/** Props for a {@link DriveBarNavigation}. */
-export interface DriveBarNavigationProps {
-  readonly setCategoryId: (categoryId: Category['id']) => void
-}
-
 /**
- * Displays the current directory path and permissions, upload and download buttons,
+ * Display the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher.
  */
-export function DriveBarNavigation(props: DriveBarNavigationProps) {
-  const { setCategoryId } = props
-
+export function DriveBarNavigation() {
   const { getText } = useText()
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
   const localRootDirectory = useLocalRootDirectory() ?? undefined
-
-  const { rootDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
-    category,
-  })
+  const { rootDirectoryId, currentDirectoryId } = useDirectoryIds({ category })
   const currentDirectoryIdRef = useSyncRef(currentDirectoryId)
-
   const rightPanel = useRightPanelData()
-
   const driveStore = useDriveStore()
 
   const moveAssetsMutation = useMutationCallback({
@@ -80,9 +68,9 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
       ),
     meta: { persist: false },
     retry: (count, error) => {
-      if (error instanceof AssetDoesNotExistError) {
+      if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
         if (currentDirectoryId === currentDirectoryIdRef.current) {
-          setCurrentDirectoryId(null)
+          setDriveLocation(null, null)
         }
         return false
       }
@@ -154,11 +142,9 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
   const canNavigateUp = parentId >= 0
 
   const navigateToDirectory = useEventCallback((id: React.Key) => {
-    if (!isDirectoryId(id)) {
-      return
+    if (isDirectoryId(id)) {
+      setDriveLocation(id, category.id)
     }
-
-    setCurrentDirectoryId(id)
   })
 
   const onDrop = useEventCallback<OnDrop>(async (id) => {
@@ -214,15 +200,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
                 </Button>
                 <Popover size="auto">
                   {({ close }) => {
-                    return (
-                      <CategorySwitcher
-                        category={category}
-                        setCategoryId={(id) => {
-                          setCategoryId(id)
-                          close()
-                        }}
-                      />
-                    )
+                    return <CategorySwitcher onChange={close} />
                   }}
                 </Popover>
               </Menu.Trigger>

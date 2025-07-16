@@ -59,7 +59,7 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
  * Return the entries of an object. UNSAFE only when it is possible for an object to have
  * extra keys.
  */
-export function unsafeKeys<T extends object>(object: T): (keyof T)[] {
+export function unsafeKeys<const T extends object>(object: T): (keyof T)[] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.keys(object)
 }

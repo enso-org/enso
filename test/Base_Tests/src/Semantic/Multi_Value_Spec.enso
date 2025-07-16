@@ -178,18 +178,6 @@ add_specs suite_builder =
             Test.expect_panic Type_Error <|
                 a : C
 
-        group_builder.specify "can be debugged via Meta" <|
-            a = A
-            Meta.Multi_Type.get a . to_text . should_equal "A"
-            abx = a : (A & B & X)
-            Meta.Multi_Type.get abx . to_text . should_equal "A & B & X"
-
-            hidden_1 = abx : B
-            Meta.Multi_Type.get hidden_1 . to_text . should_equal "B & hidden (A & X)"
-
-            hidden_2 = abx : (X & B)
-            Meta.Multi_Type.get hidden_2 . to_text . should_equal "X & B & hidden (A)"
-
 Any.confuse_me self = self
 
 main filter=Nothing =

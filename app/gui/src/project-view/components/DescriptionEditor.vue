@@ -3,7 +3,6 @@ import { AnyAsset } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import { backendMutationOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
 import { useStringSync } from '@/util/codemirror'
@@ -83,12 +82,6 @@ function onEditorReady(view: EditorView) {
     })
   })
 }
-
-provideDocumentationImages({
-  openedProject: () => null,
-  backend: backendForAsset,
-  projectId: null,
-})
 </script>
 
 <template>

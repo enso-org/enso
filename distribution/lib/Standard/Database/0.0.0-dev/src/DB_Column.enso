@@ -11,7 +11,7 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Type_Refinements.DB_Column_Refinements
-import project.SQL_Statement.SQL_Statement
+import project.SQL.SQL_Statement
 
 type DB_Column
     ## PRIVATE

@@ -31,6 +31,7 @@ import {
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
+import { isUuid } from 'ydoc-shared/yjsModel'
 
 const LOCAL_API_URL = '/api/'
 
@@ -51,6 +52,17 @@ export function newDirectoryId(path: projectManager.Path) {
 /** Create a {@link backend.ProjectId} from a path. */
 export function newProjectId(path: projectManager.Path) {
   return backend.ProjectId(`${PROJECT_ID_PREFIX}${encodeURIComponent(path)}`)
+}
+
+/** Check if given {@link backend.ProjectId} represents a local project. */
+export function isLocalProjectId(projectId: backend.ProjectId): boolean {
+  // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
+  const uuidLength = 36
+  return (
+    projectId.startsWith(PROJECT_ID_PREFIX) &&
+    projectId[PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
+    isUuid(projectId.substring(PROJECT_ID_PREFIX.length, PROJECT_ID_PREFIX.length + uuidLength))
+  )
 }
 
 /** Create a {@link backend.FileId} from a path. */
@@ -150,14 +162,15 @@ export default class LocalBackend extends Backend {
               parentsPath: backend.ParentsPath(parentsPath),
               virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
               ensoPath,
-              ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
             } satisfies Partial<backend.DirectoryAsset>
 
             switch (entry.type) {
               case 'DirectoryEntry': {
+                const id = newDirectoryId(entry.path)
+
                 return {
                   ...shared,
-                  id: newDirectoryId(entry.path),
+                  id,
                   type: backend.AssetType.directory,
                   modifiedAt: entry.attributes.lastModifiedTime,
                   parentId,
@@ -556,6 +569,11 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Do nothing. This function should never need to be called. */
+  override getPaymentsConfig() {
+    return this.invalidOperation()
+  }
+
   /** Create a directory. */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,
@@ -704,6 +722,17 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Resolve the data of a project asset relative to the project root directory. */
+  override async resolveProjectAssetData(
+    projectId: backend.ProjectId,
+    relativePath: string,
+  ): Promise<Response> {
+    return await this.projectManager.getFileContent(
+      backend.extractTypeAndPath(projectId).path,
+      relativePath,
+    )
+  }
+
   /** Download an asset. */
   override async download(
     id: backend.AssetId,
@@ -830,15 +859,6 @@ export default class LocalBackend extends Backend {
   }
 
   /**
-   * Get the content of a file.
-   *
-   * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
-   */
-  override getFileContent(projectId: backend.ProjectId) {
-    return this.projectManager.getFileContent(backend.extractTypeAndPath(projectId).path)
-  }
-
-  /**
    * Resolve the path of a project asset relative to the project `src` directory.
    */
   override resolveProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
@@ -917,6 +937,11 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override createCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override cancelSubscription() {
     return this.invalidOperation()
   }
 

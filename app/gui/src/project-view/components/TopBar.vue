@@ -46,8 +46,10 @@ const selection = injectGraphSelection()
   margin-left: 11px;
   margin-right: 11px;
   pointer-events: none;
+  align-items: flex-start;
   > * {
     pointer-events: all;
+    min-height: 32px;
   }
 }
 

@@ -1,6 +1,9 @@
 package org.enso.table.operations;
 
-public interface RowVisitorFactory {
+import org.enso.table.data.column.storage.ColumnStorage;
 
+public interface RowVisitorFactory {
   GroupRowVisitor getNewRowVisitor();
+
+  ColumnStorage<?> seal();
 }

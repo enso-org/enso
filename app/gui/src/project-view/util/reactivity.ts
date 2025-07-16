@@ -13,6 +13,7 @@ import type {
   ReactiveEffectOptions,
   ReactiveEffectRunner,
   Ref,
+  ShallowRef,
   ShallowUnwrapRef,
   WatchSource,
   WatchStopHandle,
@@ -245,8 +246,20 @@ export function syncSetDiff<T>(
   for (const newKey of newState) if (!oldState.has(newKey as any)) target.add(newKey)
 }
 
-/** Type of the parameter of `toValue`. */
-export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+/**
+ * Type of the parameter of `toValue`.
+ *
+ * When used with a function type, prevents raw function from being used directly, because calling
+ * `toValue` would evaluate that function instead of returning it..
+ */
+export type ToValue<T> =
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  | (T extends Function ? never : T)
+  | Ref<T>
+  | ShallowRef<T>
+  | WritableComputedRef<T>
+  | ComputedRef<T>
+  | (() => T)
 
 /** Transforms an array to an array of refs. */
 export type MaybeRefOrGetterArray<K extends [...any[]]> = {

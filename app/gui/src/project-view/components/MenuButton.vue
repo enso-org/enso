@@ -50,6 +50,8 @@ function onActivate() {
         :style="style"
         :disabled="disabled ?? false"
         v-bind="triggerProps"
+        type="button"
+        @pointerdown.prevent
         @click.stop="onActivate"
         @keydown.enter.stop
       >
@@ -86,7 +88,7 @@ function onActivate() {
   }
   &.disabled {
     cursor: default;
-    opacity: 0.4;
+    opacity: 0.2;
     &:hover {
       background-color: unset;
     }

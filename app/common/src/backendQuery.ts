@@ -19,6 +19,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'changeUserGroup'
   | 'closeProject'
   | 'copyAsset'
+  | 'cancelSubscription'
   | 'createCheckoutSession'
   | 'createCredential'
   | 'createDatalink'

@@ -161,6 +161,12 @@ export class GraphDb {
     }
   }
 
+  /** @returns True if the identified expression is the destination of a graph connection. */
+  isNodeUsage(id: AstId | undefined): boolean {
+    if (!id) return false
+    return this.connections.reverseLookup(id).size != 0
+  }
+
   /** TODO: Add docs */
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
     return exprId && set.first(this.nodeIdToExprIds.reverseLookup(exprId))
@@ -180,7 +186,7 @@ export class GraphDb {
   /** TODO: Add docs */
   getExpressionInfo(id: AstId | ExternalId | undefined): ExpressionInfo | undefined {
     const externalId = isUuid(id) ? id : this.idToExternal(id)
-    return externalId && this.valuesRegistry.getExpressionInfo(externalId)
+    return this.valuesRegistry.getExpressionInfo(externalId)
   }
 
   /** TODO: Add docs */

@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.LongStream;
 import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.masks.IndexMapper;
+import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.OrderedMultiValueKey;
@@ -15,6 +18,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
+import org.enso.table.util.ProgressHandler;
 
 /**
  * Abstract class GroupingOrderingVisitor
@@ -41,9 +45,10 @@ abstract class GroupingOrderingVisitor {
    * @param visitorFactory The factory which we call getNewRowVisitor on.
    * @param numRows Number of rows in the datset. Must be the same as any columns used for grouping
    *     and ordering.
+   * @return A ColumnStorage containing the results of the visit operation.
    * @throws IllegalArgumentException if the length of orderingColumns and directions do not match.
    */
-  public static void visit(
+  public static ColumnStorage<?> visit(
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
@@ -54,6 +59,7 @@ abstract class GroupingOrderingVisitor {
       throw new IllegalArgumentException(
           "The number of ordering columns and directions must be the same.");
     }
+
     GroupingOrderingVisitor visitMethod;
     if (groupingColumns.length > 0 && orderingColumns.length > 0) {
       visitMethod =
@@ -67,28 +73,37 @@ abstract class GroupingOrderingVisitor {
       visitMethod = new NoGroupingNoOrderingRunning();
     }
     visitMethod.visitImpl(visitorFactory, numRows);
+
+    var rawResult = visitorFactory.seal();
+    var mask = visitMethod.getMask();
+    return mask == null || rawResult == null
+        ? rawResult
+        : MaskOperation.getSlicedStorage(rawResult, new IndexMapper.ArrayMapping(mask));
   }
 
   // interface for the different implementations
   public abstract void visitImpl(RowVisitorFactory runningStatistic, long numRows);
+
+  public long[] getMask() {
+    return null; // Default implementation returns null, can be overridden if needed
+  }
 }
 
 class NoGroupingNoOrderingRunning extends GroupingOrderingVisitor {
-
-  NoGroupingNoOrderingRunning() {}
-
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     var it = runningStatistic.getNewRowVisitor();
-    for (long i = 0; i < numRows; i++) {
-      it.visit(i);
+    try (var progressHandle = ProgressHandler.init("running", numRows)) {
+      for (long i = 0; i < numRows; i++) {
+        it.visit(i);
+        progressHandle.advance();
+      }
+      it.finalise();
     }
-    it.finalise();
   }
 }
 
 class GroupingNoOrderingRunning extends GroupingOrderingVisitor {
-
   private final Column[] groupingColumns;
   private final ColumnStorage<?>[] groupingStorages;
   private final ColumnAggregatedProblemAggregator groupingProblemAggregator;
@@ -119,9 +134,9 @@ class GroupingNoOrderingRunning extends GroupingOrderingVisitor {
 }
 
 class NoGroupingOrderingRunning extends GroupingOrderingVisitor {
-
   private final ColumnStorage<?>[] orderingStorages;
   private final List<OrderedMultiValueKey> keys;
+  private final long[] mask;
 
   public NoGroupingOrderingRunning(Column[] orderingColumns, int[] directions) {
     long n = orderingColumns[0].getSize();
@@ -133,16 +148,24 @@ class NoGroupingOrderingRunning extends GroupingOrderingVisitor {
                 .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
                 .toList());
     keys.sort(null);
+    mask = new long[Builder.checkSize(n)];
   }
 
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
+    long idx = 0;
     var it = runningStatistic.getNewRowVisitor();
     for (var key : keys) {
       var i = key.getRowIndex();
       it.visit(i);
+      mask[Math.toIntExact(i)] = idx++; // Store the original index in the mask
     }
     it.finalise();
+  }
+
+  @Override
+  public long[] getMask() {
+    return mask; // Return the mask containing the original indices
   }
 }
 
@@ -150,9 +173,9 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
 
   private final Column[] groupingColumns;
   private final int[] directions;
-  private final ColumnStorage<?>[] groupingStorages;
   private final ColumnStorage<?>[] orderingStorages;
   private final ProblemAggregator problemAggregator;
+  private final long[] mask;
 
   public GroupingOrderingRunning(
       Column[] groupingColumns,
@@ -161,16 +184,21 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
       ProblemAggregator problemAggregator) {
     this.groupingColumns = groupingColumns;
     this.directions = directions;
-    groupingStorages =
+
+    var groupingStorages =
         Arrays.stream(groupingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
+
     orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     this.problemAggregator = problemAggregator;
+
+    mask = new long[Builder.checkSize(orderingColumns[0].getSize())];
   }
 
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
+    int idx = 0;
     var groupIndex =
         MultiValueIndex.makeUnorderedIndex(
             groupingColumns, numRows, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
@@ -186,8 +214,14 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
       for (OrderedMultiValueKey key : orderingKeys) {
         var i = key.getRowIndex();
         it.visit(i);
+        mask[Math.toIntExact(i)] = idx++;
       }
       it.finalise();
     }
+  }
+
+  @Override
+  public long[] getMask() {
+    return mask;
   }
 }

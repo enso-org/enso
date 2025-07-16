@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
@@ -42,6 +44,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
   private final Consumer<ExpressionValue> onProgressCallbackOrNull;
   private ExecutionProgressObserver progressObserver;
+  private final Map<UUID, Object> savedNodeExecutionEnvironment;
 
   /**
    * Creates callbacks instance.
@@ -81,6 +84,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.functionCallCallback = functionCallCallback;
     this.onExecutedVisualizationCallback = onExecutedVisualizationCallback;
     this.onProgressCallbackOrNull = onProgressCallbackOrNull;
+    this.savedNodeExecutionEnvironment = new HashMap<>();
   }
 
   @Override
@@ -211,6 +215,21 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @CompilerDirectives.TruffleBoundary
   public Object getExecutionEnvironment(IdExecutionService.Info info) {
     return expressionExecutionState.getExecutionEnvironment(info.getId());
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public void updateLocalExecutionEnvironment(
+      UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onTestSuccess) {
+    var v = savedNodeExecutionEnvironment.get(uuid);
+    if (shouldUpdate.test(v)) {
+      var replacement = onTestSuccess.apply(v);
+      if (replacement == null) {
+        savedNodeExecutionEnvironment.remove(uuid);
+      } else {
+        savedNodeExecutionEnvironment.put(uuid, replacement);
+      }
+    }
   }
 
   @CompilerDirectives.TruffleBoundary

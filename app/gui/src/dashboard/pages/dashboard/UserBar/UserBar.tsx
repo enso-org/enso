@@ -72,7 +72,7 @@ export function UserBar(props: UserBarProps) {
 
   return (
     <div className="pt-0.5">
-      <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-2">
+      <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x">
         <AnimatePresence initial={false}>
           {isOffline && (
             <motion.div
@@ -131,6 +131,7 @@ export function UserBar(props: UserBarProps) {
             size="custom"
             variant="icon"
             icon={<ProfilePicture picture={user.profilePicture} name={user.name} />}
+            className="ml-2"
             aria-label={getText('userMenuLabel')}
           />
 
@@ -186,26 +187,6 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
                 </Menu>
               </Menu.Trigger>
             </Button.GroupJoin>
-          )
-        }
-
-        if (item.menu != null) {
-          return (
-            <Menu.Trigger key={item.name}>
-              <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
-
-              <Menu placement="bottom right">
-                {item.menu.map((menuItem) => (
-                  <Menu.Item
-                    key={menuItem.name}
-                    href={menuItem.url}
-                    {...getSafetyProps(menuItem.url)}
-                  >
-                    {getText(menuItem.name)}
-                  </Menu.Item>
-                ))}
-              </Menu>
-            </Menu.Trigger>
           )
         }
 

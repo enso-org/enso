@@ -5,20 +5,13 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API.
  */
-import * as detect from 'enso-common/src/detect'
-
 import Backend, * as backend from '#/services/Backend'
-import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
-
-import { DirectoryId } from '#/services/Backend'
-import {
-  directoryIdToUserGroupId,
-  directoryIdToUserId,
-  extractIdFromDirectoryId,
-} from '#/services/RemoteBackend/types'
+import { extractIdFromDirectoryId, organizationIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
 import * as objects from '#/utilities/object'
+import * as detect from 'enso-common/src/detect'
+import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
@@ -32,54 +25,6 @@ const STATUS_NOT_ALLOWED = 403
 const EXPORT_STATUS_INTERVAL_MS = 5_000
 /** The interval between checks for the import status. */
 const IMPORT_STATUS_INTERVAL_MS = 5_000
-
-/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
-export function parentsPathsToPath(
-  parentsPath: backend.ParentsPath,
-  virtualParentsPath: backend.VirtualParentsPath,
-  users: readonly backend.UserInfo[],
-  userGroups: readonly backend.UserGroupInfo[],
-) {
-  const virtualParentsPathWithPrefix = virtualParentsPath === '' ? '' : `/${virtualParentsPath}`
-  // This is SAFE as `parentsPath` is guaranteed to be composed only of valid path segments.
-  // eslint-disable-next-line no-restricted-syntax
-  const firstPathSegment = DirectoryId(parentsPath.split('/')[0] as never)
-  const possibleUserId = directoryIdToUserId(firstPathSegment)
-  const user = users.find((otherUser) => otherUser.userId === possibleUserId)
-  if (user) {
-    return `enso://Users/${user.name}${virtualParentsPathWithPrefix}`
-  }
-  const possibleUserGroupId = directoryIdToUserGroupId(firstPathSegment)
-  const userGroup = userGroups.find((otherUserGroup) => otherUserGroup.id === possibleUserGroupId)
-  if (userGroup) {
-    return `enso://Teams/${userGroup.groupName}${virtualParentsPathWithPrefix}`
-  }
-}
-
-/** HTTP response body for the "list users" endpoint. */
-export interface ListUsersResponseBody {
-  readonly users: readonly backend.User[]
-}
-
-/** HTTP response body for the "list projects" endpoint. */
-export interface ListDirectoryResponseBody {
-  readonly assets: readonly backend.AnyAsset[]
-}
-
-/** HTTP response body for the "list files" endpoint. */
-export interface ListFilesResponseBody {
-  readonly files: readonly backend.FileLocator[]
-}
-
-/** HTTP response body for the "list secrets" endpoint. */
-export interface ListSecretsResponseBody {
-  readonly secrets: readonly backend.SecretInfo[]
-}
-
-/** HTTP response body for the "list tag" endpoint. */
-export interface ListTagsResponseBody {
-  readonly tags: readonly backend.Label[]
-}
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
@@ -114,11 +59,7 @@ export default class RemoteBackend extends Backend {
       }
       case backend.Plan.team:
       case backend.Plan.enterprise: {
-        return organization == null ? null : (
-            backend.DirectoryId(
-              `directory-${organization.id.replace(/^organization-/, '')}` as const,
-            )
-          )
+        return organization == null ? null : organizationIdToDirectoryId(organization.id)
       }
     }
   }
@@ -126,7 +67,7 @@ export default class RemoteBackend extends Backend {
   /** Return a list of all users in the same organization. */
   override async listUsers(): Promise<readonly Omit<backend.User, 'groups'>[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
-    const response = await this.get<ListUsersResponseBody>(path)
+    const response = await this.get<backend.ListUsersResponseBody>(path)
     if (response.status === STATUS_NOT_ALLOWED) {
       return []
     } else if (!response.ok) {
@@ -398,7 +339,7 @@ export default class RemoteBackend extends Backend {
     title: string,
   ): Promise<readonly backend.AnyAsset[]> {
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH
-    const response = await this.get<ListDirectoryResponseBody>(
+    const response = await this.get<backend.ListDirectoryResponseBody>(
       path +
         '?' +
         new URLSearchParams(
@@ -430,9 +371,6 @@ export default class RemoteBackend extends Backend {
         .map((asset) =>
           objects.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
-            ...(asset.ensoPath != null ?
-              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
-            : {}),
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))
@@ -491,21 +429,6 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'listAssetVersionsBackendError')
     } else {
       return await response.json()
-    }
-  }
-
-  /** Fetch the content of the `Main.enso` file of a project. */
-  override async getFileContent(
-    projectId: backend.ProjectId,
-    versionId?: backend.S3ObjectVersionId,
-  ): Promise<string> {
-    const path = remoteBackendPaths.getProjectContentPath(projectId, versionId)
-    const response = await this.get<string>(path)
-
-    if (!response.ok) {
-      return this.throw(response, 'getFileContentsBackendError')
-    } else {
-      return await response.text()
     }
   }
 
@@ -849,11 +772,11 @@ export default class RemoteBackend extends Backend {
     params: backend.GetProjectSessionLogsRequestParams,
     title: string,
   ): Promise<backend.ProjectSessionLogs> {
-    const queryString = new URLSearchParams({
+    const queryParams = new URLSearchParams({
       ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
-    }).toString()
-    const path = `${remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)}?${queryString}`
-    const response = await this.get<backend.ProjectSessionLogs>(path)
+    })
+    const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
+    const response = await this.get<backend.ProjectSessionLogs>(path, queryParams)
     if (!response.ok) {
       return await this.throw(response, 'getProjectLogsBackendError', title)
     } else {
@@ -1105,7 +1028,7 @@ export default class RemoteBackend extends Backend {
    */
   override async listSecrets(): Promise<readonly backend.SecretInfo[]> {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
-    const response = await this.get<ListSecretsResponseBody>(path)
+    const response = await this.get<backend.ListSecretsResponseBody>(path)
     if (!response.ok) {
       return await this.throw(response, 'listSecretsBackendError')
     } else {
@@ -1133,7 +1056,7 @@ export default class RemoteBackend extends Backend {
    */
   override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
-    const response = await this.get<ListTagsResponseBody>(path)
+    const response = await this.get<backend.ListTagsResponseBody>(path)
     if (!response.ok) {
       return await this.throw(response, 'listLabelsBackendError')
     } else {
@@ -1151,7 +1074,7 @@ export default class RemoteBackend extends Backend {
     title: string,
   ) {
     const path = remoteBackendPaths.associateTagPath(assetId)
-    const response = await this.patch<ListTagsResponseBody>(path, { labels })
+    const response = await this.patch<backend.ListTagsResponseBody>(path, { labels })
     if (!response.ok) {
       return await this.throw(response, 'associateLabelsBackendError', title)
     } else {
@@ -1231,6 +1154,36 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /**
+   * Fetches a configuration for a payment pricing page.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+    const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
+
+    if (!response.ok) {
+      return await this.throw(response, 'getPaymentsConfigBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Cancel given subscription.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async cancelSubscription(subscriptionId: backend.SubscriptionId): Promise<void> {
+    const response = await this.delete(
+      remoteBackendPaths.cancelSubscriptionPath(subscriptionId),
+      {},
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'cancelSubscriptionBackendError')
+    } else {
+      return
+    }
+  }
+
   /** List events in the organization's audit log. */
   override async getLogEvents(
     params: backend.GetLogEventsRequestParams,
@@ -1305,10 +1258,7 @@ export default class RemoteBackend extends Backend {
         await download.download({
           url: details.url,
           name: `${title}.enso-project`,
-          electronOptions: {
-            shouldUnpackProject,
-            path: targetPath,
-          },
+          electronOptions: { shouldUnpackProject, path: targetPath },
         })
         break
       }
@@ -1318,26 +1268,27 @@ export default class RemoteBackend extends Backend {
         await download.download({
           url: details.url,
           name: details.file.fileName ?? '',
-          electronOptions: {
-            path: targetPath,
-          },
+          electronOptions: { path: targetPath },
         })
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        await download.download({
-          url: URL.createObjectURL(
-            new File([JSON.stringify(value)], fileName, {
-              type: 'application/json+x-enso-data-link',
-            }),
-          ),
-          name: fileName,
-          electronOptions: {
-            path: targetPath,
-          },
-        })
+        const fileObjectUrl = URL.createObjectURL(
+          new File([JSON.stringify(value)], fileName, {
+            type: 'application/json+x-enso-data-link',
+          }),
+        )
+        try {
+          await download.download({
+            url: fileObjectUrl,
+            name: fileName,
+            electronOptions: { path: targetPath },
+          })
+        } finally {
+          URL.revokeObjectURL(fileObjectUrl)
+        }
         break
       }
       case backend.AssetType.secret:
@@ -1378,8 +1329,8 @@ export default class RemoteBackend extends Backend {
     const responseBody = await response.json()
 
     return {
-      targetId: DirectoryId(`directory-${responseBody.targetDirectory}` as const),
-      parentId: DirectoryId(`directory-${responseBody.parentDirectory}` as const),
+      targetId: backend.DirectoryId(`directory-${responseBody.targetDirectory}`),
+      parentId: backend.DirectoryId(`directory-${responseBody.parentDirectory}`),
     }
   }
 
@@ -1404,7 +1355,7 @@ export default class RemoteBackend extends Backend {
   /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
     const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
-      remoteBackendPaths.getCustomerPortalSessionPath(),
+      remoteBackendPaths.CUSTOMER_PORTAL_SESSION_CREATE_PATH,
       {},
     )
 
@@ -1415,23 +1366,35 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Resolve asset metadata from an enso path. */
+  async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    const response = await this.get<backend.Asset>(remoteBackendPaths.RESOLVE_ENSO_PATH, { path })
+
+    if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
+    return await response.json()
+  }
+
   /**
-   * Resolve the path of a project asset relative to the project `src` directory.
+   * Resolve the data of a project asset relative to the project root directory.
    */
-  override async resolveProjectAssetPath(
+  override async resolveProjectAssetData(
     projectId: backend.ProjectId,
     relativePath: string,
-  ): Promise<string> {
-    const response = await this.get<Blob>(
-      remoteBackendPaths.getProjectAssetPath(projectId, relativePath),
-    )
-
-    if (!response.ok) {
-      return await this.throw(response, 'resolveProjectAssetPathBackendError')
-    } else {
-      const blob = await response.blob()
-      return URL.createObjectURL(blob)
+    versionId?: backend.S3ObjectVersionId,
+    abort?: AbortSignal,
+  ): Promise<Response> {
+    const searchParams = new URLSearchParams()
+    if (versionId != null) {
+      searchParams.set('versionId', versionId)
     }
+
+    const response = await this.get(
+      remoteBackendPaths.getProjectAssetPath(projectId, relativePath),
+      searchParams,
+      abort,
+    )
+    if (!response.ok) return this.throw(response, 'getFileContentsBackendError')
+    return response
   }
 
   /** Set state of the project running in Hybrid mode as open in progress. */

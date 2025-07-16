@@ -19,7 +19,6 @@ import * as electron from 'electron'
 import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
-import * as buildUtils from 'enso-common/src/buildUtils'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import * as authentication from '@/authentication'
@@ -674,7 +673,7 @@ class App {
 
   /** Print the version of the frontend and the backend. */
   async printVersion(): Promise<void> {
-    const indent = ' '.repeat(buildUtils.INDENT_SIZE)
+    const indent = '    '
     let maxNameLen = 0
     for (const name in debug.VERSION_INFO) {
       maxNameLen = Math.max(maxNameLen, name.length)

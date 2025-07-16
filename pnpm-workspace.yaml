@@ -1,5 +1,6 @@
 packages:
-  - app/ide-desktop/*
+  - app/ide-desktop/client
+  - app/ide-desktop/icons
   - app/common
   - app/gui
   - app/lang-markdown
@@ -11,3 +12,9 @@ packages:
   - app/ydoc-server-nodejs
   - app/ydoc-server-polyglot
   - lib/js/runner
+catalog:
+  typescript: ^5.7.2
+  vite: ^6.2.4
+  vitest: ^3.2.4
+  playwright: 1.50.1
+  "@fast-check/vitest": ^0.2.1

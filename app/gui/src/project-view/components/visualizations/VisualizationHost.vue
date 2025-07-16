@@ -88,13 +88,13 @@ initializeActions()
 
 /* Base style for visualizations. */
 :host {
-  --color-text: rgb(118 118 118);
   --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
     BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
     'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'DejaVu Sans Mono', /* System monospace font stack */ ui-monospace, Menlo, Monaco,
     'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
     'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  --color-text: rgba(0, 0, 0, 0.9);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-weight: 500;

@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 
@@ -23,7 +22,7 @@ final class MetaTypeCheckNode extends AbstractTypeCheckNode {
   }
 
   @Override
-  Object executeConversion(VirtualFrame frame, Object value, ExpressionNode ignore) {
+  Object executeConversion(VirtualFrame frame, Object value) {
     return null;
   }
 

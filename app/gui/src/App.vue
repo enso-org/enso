@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
+import { useAppTitle } from '$/composables/appTitle'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
+import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
-import { useEvent } from '@/composables/events'
+import { useEvent, useMounted } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
+import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -22,8 +25,9 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { onMounted, shallowRef } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { useAuth } from './providers/auth'
 import { provideContainerData } from './providers/container'
 import { provideRightPanelData } from './providers/rightPanel'
 import { useText } from './providers/text'
@@ -42,6 +46,11 @@ const appTooltips = provideTooltipRegistry()
 
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
+
+const auth = useAuth()
+const userSession = computed(() => auth.session)
+
+useAppTitle(userSession)
 
 provideKeyboard()
 const interaction = provideInteractionHandler()
@@ -94,10 +103,13 @@ onMounted(() => {
 })
 const fullscreenRoot = shallowRef<HTMLElement>()
 
+useMounted(appOpenCloseCallback)
+
 // Mock external context in Project View integration tests. Once both test projects will be merged,
 // this should be removed
 if (projectViewOnly) {
-  provideOpenedProjects()
+  const openedProjects = provideOpenedProjects()
+  provideAsyncResources(openedProjects)
   provideContainerData([])
   provideRightPanelData(projectViewOnly.options.projectId, () => false, useText())
   provideFullscreenRoot(fullscreenRoot)

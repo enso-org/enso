@@ -9,6 +9,7 @@ import project.Comparator_Spec
 import project.Decimal_Constructor_Spec
 import project.Grapheme_Spec
 import project.Github_Annotations_Spec
+import project.Meta_Helpers_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
@@ -19,5 +20,6 @@ main filter=Nothing =
         Input_Output_Spec.add_specs suite_builder
         Instrumentor_Spec.add_specs suite_builder
         Github_Annotations_Spec.add_specs suite_builder
+        Meta_Helpers_Spec.add_spec suite_builder
 
     suite.run_with_filter filter

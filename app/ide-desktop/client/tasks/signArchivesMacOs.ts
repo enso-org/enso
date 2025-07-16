@@ -126,11 +126,11 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
     [
-      'lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar',
+      'lib/Standard/Google/*/polyglot/java/grpc-netty-shaded-*.jar',
       ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
     [
-      'lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
+      'lib/Standard/Google/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
       ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
     ],
     ['lib/Standard/Microsoft/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],

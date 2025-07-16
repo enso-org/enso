@@ -25,6 +25,7 @@ export interface HttpClientRequestOptions<Method extends HttpMethod> {
   readonly payload?: BodyInit | null
   readonly mimetype?: string
   readonly keepalive?: boolean
+  readonly abort?: AbortSignal | undefined
 }
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
@@ -41,8 +42,8 @@ export class HttpClient {
   ) {}
 
   /** Send an HTTP GET request to the specified URL. */
-  get<T = void>(url: string) {
-    return this.request<'GET', T>({ method: 'GET', url })
+  get<T = void>(url: string, abort?: AbortSignal) {
+    return this.request<'GET', T>({ method: 'GET', url, abort })
   }
 
   /** Send a JSON HTTP POST request to the specified URL. */
@@ -138,6 +139,7 @@ export class HttpClient {
         method: options.method,
         headers,
         keepalive: options.keepalive ?? false,
+        ...(options.abort ? { signal: options.abort } : {}),
         ...(payload != null ? { body: payload } : {}),
       })) as ResponseWithTypedJson<T> & {
         readonly body: Method extends 'GET' | 'HEAD' ? null : NonNullable<Response['body']>

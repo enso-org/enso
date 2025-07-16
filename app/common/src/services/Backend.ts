@@ -23,7 +23,6 @@ import {
   type AssetId,
   type CredentialInput,
   type EmailAddress,
-  type EnsoPathValue,
   type HttpsUrl,
   type LabelName,
   type OrganizationId,
@@ -38,7 +37,7 @@ import {
   type UserId,
   type UserPermissionIdentifier,
 } from './Backend/types.js'
-import { HttpClient, ResponseWithTypedJson } from './HttpClient.js'
+import { HttpClient, HttpClientPostOptions, ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types.js'
@@ -99,11 +98,6 @@ export interface Logger {
 }
 
 type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
-
-/** Options for {@link Backend.post} private method. */
-interface BackendPostOptions {
-  readonly keepalive?: boolean
-}
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -523,12 +517,28 @@ export interface CheckoutSession {
   readonly url: HttpsUrl
 }
 
+/** Metadata for a single payment card. */
+export interface Card {
+  readonly plan: Plan
+  readonly period: PlanBillingPeriod
+  readonly title: string
+  readonly subtitle: string
+  readonly pricing: string
+  readonly features: readonly string[]
+}
+
+/** Metadata for a payment pricing page configuration. */
+export interface PaymentsConfig {
+  readonly cards: readonly Card[]
+}
+
 /** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
   readonly plan?: Plan
   readonly trialStart?: dateTime.Rfc3339DateTime | null
   readonly trialEnd?: dateTime.Rfc3339DateTime | null
+  readonly isPaused?: boolean | null
 }
 
 /** Metadata for an organization. */
@@ -564,6 +574,39 @@ export interface UserGroupPermission {
 /** User permission for a specific user or user group. */
 export type AssetPermission = UserGroupPermission | UserPermission
 
+/** The format of all errors returned by the backend. */
+export interface RemoteBackendError {
+  readonly type: string
+  readonly code: string
+  readonly message: string
+  readonly param: string
+}
+
+/** HTTP response body for the "list users" endpoint. */
+export interface ListUsersResponseBody {
+  readonly users: readonly User[]
+}
+
+/** HTTP response body for the "list projects" endpoint. */
+export interface ListDirectoryResponseBody {
+  readonly assets: readonly AnyAsset[]
+}
+
+/** HTTP response body for the "list files" endpoint. */
+export interface ListFilesResponseBody {
+  readonly files: readonly FileLocator[]
+}
+
+/** HTTP response body for the "list secrets" endpoint. */
+export interface ListSecretsResponseBody {
+  readonly secrets: readonly SecretInfo[]
+}
+
+/** HTTP response body for the "list tag" endpoint. */
+export interface ListTagsResponseBody {
+  readonly tags: readonly Label[]
+}
+
 /**
  * Response from the "create customer portal session" endpoint.
  * Returns a URL that the user can use to access the customer portal and manage their subscription.
@@ -571,6 +614,11 @@ export type AssetPermission = UserGroupPermission | UserPermission
 export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
+
+/**
+ * Response from the "path/resolve" endpoint.
+ */
+export interface PathResolveResponse extends Omit<Asset, 'type'> {}
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
@@ -896,8 +944,6 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
   readonly ensoPath?: EnsoPath | undefined
-  /** The actual path (URL encoded when on the Remote backend). */
-  readonly ensoPathValue?: EnsoPathValue | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1029,7 +1075,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
   let result: AssetId
   switch (assetType) {
     case AssetType.directory: {
-      result = DirectoryId(`directory-${id}` as const)
+      result = DirectoryId(`directory-${id}`)
       break
     }
     case AssetType.project: {
@@ -1793,8 +1839,19 @@ export default abstract class Backend {
     body: UpdateProjectRequestBody,
     title: string,
   ): Promise<UpdatedProject>
+
   /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
+  async getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId) {
+    return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
+  }
+  /** Resolve the data of a project asset relative to the project root directory. */
+  abstract resolveProjectAssetData(
+    projectId: ProjectId,
+    relativePath: string,
+    versionId?: S3ObjectVersionId,
+    abort?: AbortSignal,
+  ): Promise<Response>
+
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     params: UploadFileRequestParams,
@@ -1868,6 +1925,8 @@ export default abstract class Backend {
   abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
+  /** Cancel subscription. */
+  abstract cancelSubscription(subscriptionId: SubscriptionId): Promise<void>
   /** List events in the organization's audit log. */
   abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
@@ -1885,16 +1944,14 @@ export default abstract class Backend {
   ): Promise<void>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
-
   /**
    * Get the URL for the customer portal.
    * @see https://stripe.com/docs/billing/subscriptions/integrating-customer-portal
    * @param returnUrl - The URL to redirect to after the customer visits the portal.
    */
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
-
-  /** Resolve the path of an asset relative to a project. */
-  abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
+  /** Fetches pricing page configuration. */
+  abstract getPaymentsConfig(): Promise<PaymentsConfig>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(
@@ -1917,12 +1974,20 @@ export default abstract class Backend {
   }
 
   /** Send an HTTP GET request to the given path. */
-  protected get<T = void>(path: string) {
-    return this.checkForAuthenticationError(() => this.client.get<T>(this.resolvePath(path)))
+  protected get<T = void>(
+    path: string,
+    queryParams?: Record<string, string> | URLSearchParams,
+    abort?: AbortSignal,
+  ) {
+    const paramsString = queryParams != null ? new URLSearchParams(queryParams).toString() : ''
+    const query = paramsString ? '?' + paramsString : ''
+    return this.checkForAuthenticationError(() =>
+      this.client.get<T>(this.resolvePath(`${path}${query}`), abort),
+    )
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  protected post<T = void>(path: string, payload: object, options?: BackendPostOptions) {
+  protected post<T = void>(path: string, payload: object, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.post<T>(this.resolvePath(path), payload, options),
     )
