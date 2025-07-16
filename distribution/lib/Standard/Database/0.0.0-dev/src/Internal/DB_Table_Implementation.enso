@@ -1,7 +1,8 @@
 private
 
 ## This conversion allows us to convert the 'unsafe' raw DB_Table instance
-   (lacking `& Table`, that we get from `Table.underlying`) back to a well-behaved `Table & DB_Table`.
+   (lacking `& Table`, that we get from `Table.underlying`) back to a
+   well-behaved `Table & DB_Table`.
 
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
@@ -691,11 +692,15 @@ type DB_Table_Implementation
             type_mapping.sql_type_to_value_type col.sql_type_reference.get
         Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     columns_helper (this_table : Table & DB_Table) =
         Table_Helpers.Table_Column_Helper.Value this_table.columns this_table.internal_columns this_table.make_column this_table .read
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     column_naming_helper (this_table : Table & DB_Table) = this_table.connection.base_connection.column_naming_helper
 
     to_text (this_table : Table & DB_Table) = "(Database Table "+this_table.name.to_text+")"
@@ -759,7 +764,9 @@ type DB_Table_Implementation
         _ = [this_table, over, as, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "generate_rows")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =
     grouping_columns = columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
     grouping_columns.each column->
@@ -767,7 +774,9 @@ private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Ve
             problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
     grouping_columns
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _resolve_order_descriptors table ordering operation_name:Text =
     Ordering_Helpers.require_ordering table operation_name ordering=ordering <|
         dialect = table.connection.dialect

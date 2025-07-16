@@ -28,14 +28,19 @@ polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type JDBC_Connection
-    ## PRIVATE
-       Arguments:
-       - connection_resource: a `Managed_Resource` containing the Java
-         Connection instance.
-       - operation_synchronizer: a helper for synchronizing access to the underlying Connection.
+    ## ---
+       private: true
+       ---
+       ## Arguments
+        - `connection_resource`: a `Managed_Resource` containing the Java
+          Connection instance.
+        - `operation_synchronizer`: a helper for synchronizing access to the
+          underlying Connection.
     Value connection_resource operation_synchronizer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Runs the provided action ensuring that no other thread is working with
        this Connection concurrently.
     synchronized self ~action =
@@ -44,24 +49,28 @@ type JDBC_Connection
         self.operation_synchronizer.enterSynchronizedAction
         Panic.with_finalizer self.operation_synchronizer.exitSynchronizedAction action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
-
        The connection is not usable afterwards.
     close : Nothing
     close self = self.synchronized <|
         self.connection_resource . finalize
 
-    ## PRIVATE
-
-       Open the connection to the database, then run the action wrapping any
-       SQL errors.
+    ## ---
+       private: true
+       ---
+       Open the connection to the database, then run the action wrapping any SQL
+       errors.
     with_connection : (Connection -> Any) -> Any
     with_connection self action = self.synchronized <|
         self.connection_resource.with action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Runs the provided callback only if no thread is currently inside a
        `synchronized` critical section (including the current thread).
     run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
@@ -72,8 +81,9 @@ type JDBC_Connection
                 callback x
         self.operation_synchronizer.runMaintenanceActionIfPossible wrapped_callback
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Open the connection to the database, then run the action passing the
        database's metadata wrapping any SQL errors.
     with_metadata : (DatabaseMetaData -> Any) -> Any
@@ -81,21 +91,22 @@ type JDBC_Connection
         metadata = connection.getMetaData
         action metadata
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Runs the provided action with a prepared statement, adding contextual
        information to any thrown SQL errors.
 
-       Arguments:
-       - query: The query to prepare. It may be either a raw SQL statement or a
-         `SQL_Statement`.
-       - statement_setter: A strategy for filling holes in the prepared
-         statement.
-       - action: The action to run with the prepared statement.
-       - skip_log: If `True`, the query will not be logged even with logging
-         enabled. This is used to avoid logging a query that is not really run
-         (e.g. `ensure_query_has_no_holes` which prepares a statement but does
-         not execute it).
+       ## Arguments
+        - `query`: The query to prepare. It may be either a raw SQL statement or
+          a `SQL_Statement`.
+        - `statement_setter`: A strategy for filling holes in the prepared
+          statement.
+        - `action`: The action to run with the prepared statement.
+        - `skip_log`: If `True`, the query will not be logged even with logging
+          enabled. This is used to avoid logging a query that is not really run
+          (e.g. `ensure_query_has_no_holes` which prepares a statement but does
+          not execute it).
     with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Boolean -> Any
     with_prepared_statement self query statement_setter action skip_log=False = self.synchronized <| profile_sql_if_enabled self query.to_text <|
         prepare template values = self.with_connection java_connection->
@@ -122,11 +133,14 @@ type JDBC_Connection
                 compiled = query.prepare
                 go compiled.first compiled.second
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Executes the provided SQL.
-       Typically this shouldn't be used and with_prepared_statement should be preferred.
-       It is needed for SQLServer temp table creation where we need to execute a raw SQL statement
-       outside of a stored procedure.
+       Typically this shouldn't be used and with_prepared_statement should be
+       preferred.
+       It is needed for SQLServer temp table creation where we need to execute a
+       raw SQL statement outside of a stored procedure.
     execute : Text | SQL_Statement -> Any
     execute self query:(Text | SQL_Statement) = self.synchronized <| profile_sql_if_enabled self query.to_text <|
         compiled_query = case query of
@@ -145,9 +159,11 @@ type JDBC_Connection
             result.if_not_error <|
                 [result, stmt]
 
-    ## PRIVATE
-       Given a prepared statement, gets the column names and types for the
-       result set.
+    ## ---
+       private: true
+       ---
+       Given a prepared statement, gets the column names and types for the result
+       set.
     raw_fetch_columns : Text | SQL_Statement -> Boolean -> Statement_Setter -> Any
     raw_fetch_columns self statement execute_query statement_setter =
         self.with_prepared_statement statement statement_setter stmt->
@@ -168,10 +184,11 @@ type JDBC_Connection
             SQL_Warning_Helper.process_warnings stmt <|
                 columns
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Reads a raw SQL statement, using a very simple dialect-agnostic type
        mapping.
-
        It may be used for accessing simple database metadata. It should never be
        used for proper queries.
     raw_read_statement : Text -> Table
@@ -184,7 +201,9 @@ type JDBC_Connection
             SQL_Warning_Helper.process_warnings stmt <|
                 table
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks that the query has no holes, and if it does, throws an error.
     ensure_query_has_no_holes : Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self raw_sql =
@@ -198,13 +217,14 @@ type JDBC_Connection
             if expected_parameter_count != 0 then
                 Error.throw <| Illegal_Argument.Error 'The provided raw SQL query should not contain any holes ("?").'
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Runs the following action with auto-commit turned off on this connection
        and returns the result.
-
        Afterwards, the auto-commit setting is reverted to the state before
-       running this function (so if it was off before, this method may not
-       change anything).
+       running this function (so if it was off before, this method may not change
+       anything).
     run_without_autocommit : Any -> Any
     run_without_autocommit self ~action = handle_sql_errors <|
         # The whole block is already `synchronized` by `with_connection`.
@@ -213,7 +233,9 @@ type JDBC_Connection
             Managed_Resource.bracket (java_connection.setAutoCommit False) (_ -> java_connection.setAutoCommit default_autocommit) _->
                 action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Performs the given action within a transaction.
        Once the action is completed, the transaction is committed.
        If a panic or dataflow error escapes from the action, the transaction is
@@ -236,10 +258,11 @@ type JDBC_Connection
                     False -> java_connection.commit
                 result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Insert rows from an in-memory table using a prepared query template in
        batches for efficiency.
-
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
     batch_insert : Text -> Statement_Setter -> Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
@@ -265,20 +288,22 @@ type JDBC_Connection
                     if (row_id+1) % batch_size == 0 then check_rows stmt.executeBatch batch_size
                 if num_rows % batch_size != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
 
-## PRIVATE
+## ---
+   private: true
+   ---
+   Creates a JDBC connection based on a URL and optionally username and password.
 
-   Creates a JDBC connection based on a URL and optionally username and
-   password.
-
-   Arguments:
-   - url: The URL to connect to.
-   - properties: A vector of properties for the connection.
+   ## Arguments
+    - `url`: The URL to connect to.
+    - `properties`: A vector of properties for the connection.
 create : Text -> Vector -> JDBC_Connection
 create url properties = handle_sql_errors <|
     java_connection = JDBCProxy.getConnection url (properties_as_java_props properties)
     from_java java_connection
 
-## PRIVATE
+## ---
+   private: true
+   ---
 properties_as_java_props properties =
     properties.map pair->
         # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
@@ -287,31 +312,37 @@ properties_as_java_props properties =
             as_hideable_value value
         Java_Pair.create pair.first java_value
 
-## PRIVATE
-   A special method used by dialects that construct a Java JDBC connection using some custom logic.
+## ---
+   private: true
+   ---
+   A special method used by dialects that construct a Java JDBC connection using
+   some custom logic.
 from_java java_jdbc_connection =
     resource = Managed_Resource.register java_jdbc_connection close_connection
     synchronizer = OperationSynchronizer.new
     JDBC_Connection.Value resource synchronizer
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    This cannot be a closure due to limitations of Managed_Resource.
 
-   Arguments:
-   - connection: The connection to close.
+   ## Arguments
+    - `connection`: The connection to close.
 close_connection : Connection -> Nothing
 close_connection connection =
     connection.close
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Executes `action` and returns its result, catching any panics and if they are
    coming from JDBC, wraps them with our own error types and returns as regular
    data-flow errors.
 
-   Arguments:
-   - action: The computation to execute. This computation may throw SQL errors.
+   ## Arguments
+    - `action`: The computation to execute. This computation may throw SQL
+      errors.
 handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
 handle_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
@@ -319,10 +350,11 @@ handle_sql_errors ~action related_query=Nothing =
             exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
             exc -> Error.throw (SQL_Error.Error exc related_query)
 
-## PRIVATE
-   Uses the provided `Statement_Setter` strategy to fill holes in a
-   provided `PreparedStatement`.
-
+## ---
+   private: true
+   ---
+   Uses the provided `Statement_Setter` strategy to fill holes in a provided
+   `PreparedStatement`.
    A list of expected value types can be passed as `expected_type_hints` to add
    these hints to the `Statement_Setter` to customize the behaviour for some
    specific target value types.
@@ -334,7 +366,9 @@ set_statement_values stmt statement_setter values expected_type_hints=Nothing =
             hints : Vector -> hints.at ix
         statement_setter.fill_hole stmt (ix + 1) type_hint value
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that logs performed SQL queries/statements to a file, if an
    environment variable is set.
 log_sql_if_enabled : JDBC_Connection -> Text -> Nothing
@@ -349,7 +383,9 @@ log_sql_if_enabled jdbc_connection ~query_text =
             Context.Output.with_enabled <|
                 log_line.write path on_existing_file=Existing_File_Behavior.Append
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that logs performed SQL queries/statements run-time to a profiling
    file, if an environment variable is set.
 profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text : Text) ~action =
@@ -374,7 +410,9 @@ profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text : Text) 
                     log_line.write path on_existing_file=Existing_File_Behavior.Append
                 result
 
-## PRIVATE
+## ---
+   private: true
+   ---
 get_pragma_value : JDBC_Connection -> Text -> Any
 get_pragma_value jdbc_connection sql =
     table = jdbc_connection.raw_read_statement sql
