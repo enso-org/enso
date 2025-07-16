@@ -55,7 +55,10 @@ type Dialect_Flag
        ---
        Specifies if the backend supports natural ordering operations.
     Supports_Sort_Digits_As_Numbers
-    ## PRIAVTE Specifies if the backend supports case insensitive ordering.
+    ## ---
+       private: true
+       --- 
+       Specifies if the backend supports case insensitive ordering.
     Supports_Case_Insensitive_Ordering
     ## ---
        private: true
@@ -95,7 +98,10 @@ type Dialect_Flag
        Specifies if NaN value is treated as greater than all numbers. If `False`,
        `NaN` is expected to yield False to both < and > comparisons.
     NaN_Non_Comparable
-    ## PRIAVTE If `order_by` was applied before, the distinct operation will
+    ## ---
+       private: true
+       --- 
+       If `order_by` was applied before, the distinct operation will
        return the first row from each group. Guaranteed in the in-memory backend,
        but may not be supported by all databases.
     Distinct_Returns_First_Row_From_Group_If_Ordered

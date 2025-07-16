@@ -38,8 +38,6 @@ type Dialect_Operations
        ---
        Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
-       # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] ->
-       Dialect_Operations
     extend_with : Vector Any -> Dialect_Operations
     extend_with self mappings =
         new_dict = mappings.fold self.operations_dict (m -> el -> m.insert (el.at 0) (el.at 1))

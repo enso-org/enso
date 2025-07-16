@@ -151,8 +151,7 @@ Table.update_rows self (source_table : Table) (update_action : Update_Action = .
       many rows.
 
    ## Examples
-   ### 
-     Remove students that have graduated from the `students` table.
+   ### Remove students that have graduated from the `students` table.
 
    ```
          students.delete_rows graduated_students key_columns=["student_id"]
