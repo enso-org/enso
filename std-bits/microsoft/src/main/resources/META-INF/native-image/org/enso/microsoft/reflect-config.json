@@ -61,5 +61,509 @@
   },
   {
     "name" : "org.enso.microsoft.azure.AzureCredential.BlobStorageSASToken"
+  },
+  {
+    "name": "com.azure.identity.implementation.RegionalAuthority",
+    "methods": [
+      {
+        "name" : "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.exception.ClientAuthenticationException"
+  },
+  {
+    "name": "com.azure.core.http.HttpHeaderName",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.http.netty.NettyAsyncHttpClientProvider"
+  },
+  {
+    "name": "com.azure.core.http.netty.implementation.AzureSdkHandler",
+    "methods": [
+      {
+        "name": "channelRead",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+      },
+      {
+        "name": "channelReadComplete",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+      },
+      {
+        "name": "write",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object", "io.netty.channel.ChannelPromise"]
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.http.rest.ResponseBase",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.azure.core.http.HttpRequest",
+          "int",
+          "com.azure.core.http.HttpHeaders",
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.util.Header",
+    "fields": [
+      {
+        "name": "cachedStringValue"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.util.QueryParameter",
+    "fields": [
+      {
+        "name": "cachedStringValue"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.azure.core.http.HttpHeaders"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.azure.core.http.HttpHeaders"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
+    "methods": [
+      {
+        "name": "fromXml",
+        "parameterTypes": [
+          "com.azure.xml.XmlReader"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.azure.storage.blob.models.AccessTier",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.EmitterProcessor",
+    "fields": [
+      {
+        "name": "error"
+      },
+      {
+        "name": "s"
+      },
+      {
+        "name": "subscribers"
+      },
+      {
+        "name": "upstreamDisposable"
+      },
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.FluxConcatMap$ConcatMapImmediate",
+    "fields": [
+      {
+        "name": "error"
+      },
+      {
+        "name": "guard"
+      },
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.FluxDoFinally$DoFinallySubscriber",
+    "fields": [
+      {
+        "name": "once"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.FluxFirstWithSignal$RaceCoordinator",
+    "fields": [
+      {
+        "name": "winner"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.FluxPublish$PubSubInner",
+    "fields": [
+      {
+        "name": "requested"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.FluxPublish$PublishSubscriber",
+    "fields": [
+      {
+        "name": "connected"
+      },
+      {
+        "name": "error"
+      },
+      {
+        "name": "s"
+      },
+      {
+        "name": "subscribers"
+      },
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber",
+    "fields": [
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.LambdaMonoSubscriber",
+    "fields": [
+      {
+        "name": "subscription"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.MonoCreate$DefaultMonoSink",
+    "fields": [
+      {
+        "name": "disposable"
+      },
+      {
+        "name": "requestConsumer"
+      },
+      {
+        "name": "state"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.MonoFlatMap$FlatMapInner",
+    "fields": [
+      {
+        "name": "s"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.MonoFlatMap$FlatMapMain",
+    "fields": [
+      {
+        "name": "s"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain",
+    "fields": [
+      {
+        "name": "inner"
+      },
+      {
+        "name": "requested"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.MonoUsing$MonoUsingSubscriber",
+    "fields": [
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.Operators$DeferredSubscription",
+    "fields": [
+      {
+        "name": "requested"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.Operators$MonoInnerProducerBase",
+    "fields": [
+      {
+        "name": "state"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.Operators$MonoSubscriber",
+    "fields": [
+      {
+        "name": "state"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.Operators$MultiSubscriptionSubscriber",
+    "fields": [
+      {
+        "name": "missedProduced"
+      },
+      {
+        "name": "missedRequested"
+      },
+      {
+        "name": "missedSubscription"
+      },
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.Operators$ScalarSubscription",
+    "fields": [
+      {
+        "name": "once"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.SinkEmptyMulticast",
+    "fields": [
+      {
+        "name": "subscribers"
+      }
+    ]
+  },
+  {
+    "name": "reactor.core.publisher.SinksSpecs$AbstractSerializedSink",
+    "fields": [
+      {
+        "name": "lockedAt"
+      },
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.channel.ChannelOperations",
+    "fields": [
+      {
+        "name": "outboundSubscription"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.channel.ChannelOperationsHandler",
+    "methods": [
+      {
+        "name": "channelInactive",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+      },
+      {
+        "name": "channelActive",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+      },
+      {
+        "name": "channelRead",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+      },
+      {
+        "name": "channelWritabilityChanged",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+      },
+      {
+        "name": "userEventTriggered",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+      },
+      {
+        "name": "exceptionCaught",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Throwable"]
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.channel.FluxReceive",
+    "fields": [
+      {
+        "name": "receiverCancel"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.http.Cookies",
+    "fields": [
+      {
+        "name": "state"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.http.HttpOperations",
+    "fields": [
+      {
+        "name": "statusAndHeadersSent"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.internal.shaded.reactor.pool.AbstractPool$AbstractPooledRef",
+    "fields": [
+      {
+        "name": "state"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.internal.shaded.reactor.pool.AllocationStrategies$SizeBasedAllocationStrategy",
+    "fields": [
+      {
+        "name": "permits"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.internal.shaded.reactor.pool.SimpleDequePool",
+    "fields": [
+      {
+        "name": "acquired"
+      },
+      {
+        "name": "idleResources"
+      },
+      {
+        "name": "idleSize"
+      },
+      {
+        "name": "pending"
+      },
+      {
+        "name": "pendingSize"
+      },
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.internal.shaded.reactor.pool.SimpleDequePool$QueuePoolRecyclerInner",
+    "fields": [
+      {
+        "name": "once"
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer"
+  },
+  {
+    "name": "reactor.netty.tcp.SslProvider$SslReadHandler",
+    "methods": [
+      {
+        "name": "channelReadComplete",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+      },
+      {
+        "name": "channelActive",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+      },
+      {
+        "name": "userEventTriggered",
+        "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "reactor.netty.transport.TransportConfig$TransportChannelInitializer"
+  },
+  {
+    "name": "reactor.netty.transport.TransportConnector$MonoChannelPromise",
+    "fields": [
+      {
+        "name": "result"
+      }
+    ]
+  },
+  {
+    "name": "reactor.util.concurrent.SpscArrayQueueConsumer",
+    "fields": [
+      {
+        "name": "consumerIndex"
+      }
+    ]
+  },
+  {
+    "name": "reactor.util.concurrent.SpscArrayQueueProducer",
+    "fields": [
+      {
+        "name": "producerIndex"
+      }
+    ]
+  },
+  {
+    "name": "reactor.util.concurrent.SpscLinkedArrayQueue",
+    "fields": [
+      {
+        "name": "consumerIndex"
+      },
+      {
+        "name": "producerIndex"
+      }
+    ]
+  },
+  {
+    "name": "io.netty.channel.epoll.LinuxSocket",
+    "methods": [
+      {
+        "name": "setIpBindAddressNoPort",
+        "parameterTypes": ["boolean"]
+      },
+      {
+        "name": "setIpBindAddressNoPort",
+        "parameterTypes": ["int", "int"]
+      }
+    ]
   }
 ]

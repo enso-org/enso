@@ -345,8 +345,9 @@ public class Main {
             .argName("log-level")
             .longOpt(LOG_LEVEL)
             .desc(
-                "Sets the runtime log level. Possible values are: OFF, ERROR, "
-                    + "WARNING, INFO, DEBUG and TRACE. Default: INFO.")
+                "Sets the runtime log level. Possible values are: "
+                    + getPossibleLogLevels()
+                    + ". Default: info.")
             .build();
     var loggerConnectOption =
         cliOptionBuilder()
@@ -1065,14 +1066,16 @@ public class Main {
     var found =
         Stream.of(Level.values()).filter(x -> name.equals(x.name().toLowerCase())).findFirst();
     if (found.isEmpty()) {
-      var possible =
-          Stream.of(Level.values())
-              .map(x -> x.toString().toLowerCase())
-              .collect(Collectors.joining(", "));
-      throw exitFail("Invalid log level. Possible values are " + possible + ".");
+      throw exitFail("Invalid log level. Possible values are " + getPossibleLogLevels() + ".");
     } else {
       return found.get();
     }
+  }
+
+  private static String getPossibleLogLevels() {
+    return Stream.of(Level.values())
+        .map(x -> x.toString().toLowerCase())
+        .collect(Collectors.joining(", "));
   }
 
   /** Parses an URI that specifies the logging service connection. */

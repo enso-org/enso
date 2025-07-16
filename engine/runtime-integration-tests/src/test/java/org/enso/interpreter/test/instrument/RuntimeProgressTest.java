@@ -101,7 +101,8 @@ public class RuntimeProgressTest {
                 new Runtime$Api$StackItem$ExplicitCall(
                     new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
                     Option.empty(),
-                    new Vector1<>(new String[] {"0"})))));
+                    new Vector1<>(new String[] {"0"})),
+                true)));
 
     var reply1 = context.receiveNIgnoreStdLib(9, 60);
     assertEquals(9, reply1.size());
@@ -171,7 +172,8 @@ public class RuntimeProgressTest {
                 new Runtime$Api$StackItem$ExplicitCall(
                     new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
                     Option.empty(),
-                    new Vector1<>(new String[] {"0"})))));
+                    new Vector1<>(new String[] {"0"})),
+                true)));
 
     var reply1 = context.receiveNIgnoreStdLib(11, 60);
     assertEquals(11, reply1.size());

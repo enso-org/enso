@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
@@ -60,7 +61,10 @@ type Simple_Expression
             Simple_Calculation.Text_Length -> input_column.text_length
             Simple_Calculation.Format format -> input_column.format format
             Simple_Calculation.If condition true_value false_value ->
-                condition_column =  make_filter_column input_column (table.resolve_condition condition) on_problems
+                condition_column = case condition of
+                    Filter_Condition.Predicate _ ->
+                        Error.throw (Illegal_Argument.Error "Predicate filter conditions cannot be used in expressions.")
+                    _ -> make_filter_column input_column (table.resolve_condition condition) on_problems
                 condition_column.iif (table.resolve true_value) (table.resolve false_value)
         if use_input_name then derived.rename input_column.name else derived
 

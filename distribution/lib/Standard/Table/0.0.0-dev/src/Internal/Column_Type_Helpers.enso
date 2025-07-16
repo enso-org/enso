@@ -11,7 +11,3 @@ column_from_implementation value implementation =
    Extracts the underlying value from a generic Column - e.g. In_Memory_Column or DB_Column.
    It should only be used by implementations to access their implementation details.
 get_underlying_from_column value:Column = value.underlying
-
-## PRIVATE
-   Helper for the expression to tell it which functions needs a Vector.
-var_args_functions = ['is_in', 'coalesce', 'min', 'max']

@@ -1,5 +1,5 @@
 /** @file Actions for the "account" form in settings. */
-import type { Locator, Page } from '@playwright/test'
+import type { Locator, Page } from 'playwright/test'
 import { TEXT } from '.'
 import type { BaseActionsClass } from './BaseActions'
 import PageActions from './PageActions'

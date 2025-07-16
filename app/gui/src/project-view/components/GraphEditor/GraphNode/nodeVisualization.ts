@@ -1,10 +1,10 @@
 import type GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { type RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { injectKeyboard } from '@/providers/keyboard'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
-import { type ProjectPath } from '@/util/projectPath'
 import { type ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 import { type ComponentProps } from 'vue-component-type-helpers'
@@ -25,7 +25,7 @@ interface NodeVisualizationOptions {
   nodeRect: ToValue<Rect>
   scale: ToValue<number>
   isFocused: ToValue<boolean>
-  typename: ToValue<Opt<ProjectPath>>
+  typeinfo: ToValue<Opt<TypeInfo>>
   dataSource: ToValue<Opt<VisualizationDataSource | RawDataSource>>
   emit: Emit
 }
@@ -37,7 +37,7 @@ export function useNodeVisualization({
   nodeRect,
   scale,
   isFocused,
-  typename,
+  typeinfo,
   dataSource,
   emit,
 }: NodeVisualizationOptions) {
@@ -83,7 +83,8 @@ export function useNodeVisualization({
       nodePosition,
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
-      typename: toValue(typename) ?? undefined,
+      typename: toValue(typeinfo)?.primaryType ?? undefined,
+      typeinfo: toValue(typeinfo) ?? undefined,
       height: visualizationHeight.value,
       isFocused: toValue(isFocused),
       isPreview: isVisualizationPreviewed.value,

@@ -143,10 +143,6 @@ const RESTRICTED_SYNTAXES = [
     message: 'Use arrow functions for nested functions',
   },
   {
-    selector: 'IfStatement > ExpressionStatement',
-    message: 'Wrap `if` branches in `{}`',
-  },
-  {
     selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
     message: 'Use `while (true)` instead of `for (;;)`',
   },
@@ -237,6 +233,18 @@ const config = [
         {
           varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'vue',
+              importNames: ['proxyRefs'],
+              message: 'Use more type-safe alternative in @/util/reactivity',
+            },
+          ],
         },
       ],
       'no-restricted-properties': [
@@ -356,7 +364,9 @@ const config = [
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
       'no-restricted-imports': [
         'error',
-        { paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+        {
+          paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }],
+        },
       ],
       'no-restricted-properties': [
         'error',
@@ -445,7 +455,10 @@ const config = [
           },
         },
       ],
-      '@typescript-eslint/no-confusing-void-expression': 'error',
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreVoidReturningFunctions: true },
+      ],
       '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-extraneous-class': 'error',
       '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],

@@ -2,26 +2,17 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
+import Page from '#/components/Page'
+import { usePaywall } from '#/hooks/billing'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
-import DriveProvider from '#/providers/DriveProvider'
-
+import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
-
-import Page from '#/components/Page'
-
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
-
-import { usePaywall } from '#/hooks/billing'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -29,8 +20,9 @@ import { vueComponent } from '#/utilities/vue'
 import AppContainerVue from '$/components/AppContainer.vue'
 import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { usePrefetchQuery } from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
@@ -39,16 +31,14 @@ const AppContainer = vueComponent(AppContainerVue).default
 /** The component that contains the entire UI. */
 export default function Dashboard() {
   return (
-    /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
+    /* Ideally `DriveProvider` would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
     <DriveProvider>
-      {({ resetAssetTableState }) => (
-        <CategoriesProvider onCategoryChange={resetAssetTableState}>
-          <ProjectsProvider>
-            <DashboardInner />
-          </ProjectsProvider>
-        </CategoriesProvider>
-      )}
+      <CategoriesProvider>
+        <ProjectsProvider>
+          <DashboardInner />
+        </ProjectsProvider>
+      </CategoriesProvider>
     </DriveProvider>
   )
 }
@@ -77,15 +67,11 @@ function DashboardInner() {
   const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
-
   const initialProjectNameRaw = useVueValue(
     React.useCallback(() => config.params.startup.project, [config]),
   )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
-
-  const categoriesAPI = useCategoriesAPI()
-
   const openProjectLocally = projectHooks.useOpenProjectLocally()
 
   usePrefetchQuery({
@@ -116,7 +102,7 @@ function DashboardInner() {
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      categoriesAPI.setCategory('local')
+      setDriveLocation(null, 'local')
 
       const projectId = localBackendModule.newProjectId(
         projectManager.UUID(project.id),
@@ -136,7 +122,7 @@ function DashboardInner() {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openProjectLocally, categoriesAPI])
+  }, [openProjectLocally])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {
@@ -165,7 +151,6 @@ function DashboardInner() {
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const { user } = useFullUserSession()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
-  const enableScheduledExecution = useFeatureFlag('enableScheduledExecution')
 
   return (
     <Page hideInfoBar>
@@ -182,7 +167,6 @@ function DashboardInner() {
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
           isFeatureUnderPaywall={isFeatureUnderPaywall}
-          enableScheduledExecution={enableScheduledExecution}
         />
       </div>
     </Page>

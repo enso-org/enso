@@ -4,7 +4,6 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Table import Join_Condition, Join_Kind, Table
 
 from Standard.Database import all
-import Standard.Database.DB_Column.DB_Column
 
 from Standard.Test import all
 import Standard.Test.Suite.Suite_Builder

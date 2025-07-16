@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.operation.masks.IndexMapper;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
@@ -82,7 +83,6 @@ public class Offset {
   }
 
   private static class OffsetRowVisitorFactory implements RowVisitorFactory {
-
     long[] rowMask;
     int n;
     FillWith fillWith;
@@ -96,6 +96,11 @@ public class Offset {
     @Override
     public OffsetRowVisitor getNewRowVisitor() {
       return new OffsetRowVisitor(n, fillWith, rowMask);
+    }
+
+    @Override
+    public ColumnStorage<?> seal() {
+      return null;
     }
   }
 

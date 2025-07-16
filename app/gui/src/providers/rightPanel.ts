@@ -1,15 +1,15 @@
 import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
-import { Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-import { AnyAsset, AssetType, ProjectId } from '#/services/Backend'
+import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import { type AnyAsset, AssetType, type ProjectId } from '#/services/Backend'
 import { createContextStore } from '@/providers'
-import { Err, Ok, Result } from '@/util/data/result'
-import { Icon } from '@/util/iconMetadata/iconName'
-import { ToValue } from '@/util/reactivity'
+import { Err, Ok, type Result } from '@/util/data/result'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useLocalStorage } from '@vueuse/core'
-import { computed, proxyRefs, reactive, readonly, Ref, ref, toRef, toValue } from 'vue'
-import { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { TabId } from './container'
-import { TextStore, useText } from './text'
+import { computed, reactive, readonly, type Ref, ref, toRef, toValue } from 'vue'
+import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
+import { type TabId } from './container'
+import { type TextStore, useText } from './text'
 
 /** Information about content of "Help" panel. */
 export interface DisplayedHelp {
@@ -54,7 +54,6 @@ function useRightPanelTabs(
   currentTab: ToValue<TabId>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
-  enableScheduledExecution: ToValue<boolean>,
   { textRef, getText }: TextStore,
 ) {
   const isDriveView = computed(() => toValue(currentTab) === 'drive')
@@ -112,7 +111,6 @@ function useRightPanelTabs(
             return Err(getText('assetProjectExecutionsCalendar.teamPlanOnly'))
           return Ok()
         }),
-        hidden: computed(() => !toValue(enableScheduledExecution)),
         title: textRef('executionsCalendar'),
       },
     ],
@@ -146,18 +144,11 @@ export type RightPanelData = ReturnType<typeof useRightPanel>
 function useRightPanel(
   containerTab: ToValue<TabId>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
-  enableScheduledExecution: ToValue<boolean>,
   textStore: TextStore = useText(),
 ) {
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
-  const allTabs = useRightPanelTabs(
-    containerTab,
-    context,
-    isFeatureUnderPaywall,
-    enableScheduledExecution,
-    textStore,
-  )
+  const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
 

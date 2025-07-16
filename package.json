@@ -18,13 +18,12 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
-    "prettier-plugin-tailwindcss": "^0.5.14",
-    "vitest": "3.0.5"
+    "prettier-plugin-tailwindcss": "^0.5.14"
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
     "tslib": "^2.8.1",
-    "typescript": "^5.7.2"
+    "typescript": "catalog:"
   },
   "name": "root",
   "scripts": {
@@ -43,8 +42,7 @@
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
-    "ci:chromatic:react": "corepack pnpm run -r --filter enso-gui chromatic:react",
-    "ci:chromatic:vue": "corepack pnpm run -r --filter enso-gui chromatic:vue",
+    "bazel-clean": "bazel clean --expunge_async",
     "postinstall": "bazel run //:write_all --verbose_failures"
   },
   "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
@@ -57,7 +55,6 @@
     ],
     "overrides": {
       "tslib": "$tslib",
-      "jsdom": "^26.0.0",
       "@types/react": "^18.3.1",
       "ws": "^8.18.0",
       "esbuild": "^0.25.0"
@@ -155,12 +152,6 @@
           "@vue/server-renderer": "*"
         }
       },
-      "@storybook/core": {
-        "dependencies": {
-          "@storybook/react-vite": "*",
-          "@storybook/vue3-vite": "*"
-        }
-      },
       "modern-isomorphic-ws": {
         "peerDependencies": {
           "@types/ws": "*"
@@ -171,9 +162,6 @@
           "vue": "*"
         }
       }
-    },
-    "patchedDependencies": {
-      "@chromatic-com/playwright": "patches/@chromatic-com__playwright.patch"
     }
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"

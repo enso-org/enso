@@ -219,7 +219,7 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
         } else {
           // Otherwise, we need to navigate to the setup page, because user is already confirmed.
           // but the redirect link navigates to the confirmation page, for some reason.
-          redirectUrl = `${appUtils.SETUP_PATH}${url.search}`
+          redirectUrl = `${appUtils.DASHBOARD_PATH}${url.search}`
         }
         navigate(redirectUrl)
 
@@ -261,6 +261,10 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       }
       case '//auth/registration': {
         navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
+        break
+      }
+      case '//payments/success': {
+        navigate(`${appUtils.PAYMENTS_SUCCESS_PATH}${url.search}`)
         break
       }
       // If the user is being redirected from a password reset email, navigate to the password

@@ -23,8 +23,12 @@
 - [Allow marking grouped component arguments as required or providing a default
   value.][13254]
 - [New Right Panel Tab with Markdown Description Editor][13347]
+- [Panic on unresolved type checks in the IDE][13467]
 - [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
   resulting in an Error page without option of returning back to Local.][13366]
+- ["Grouped Components" are renamed to "User Defined Components"][13389]
+- [Allow displaying cloud images using enso:// url in documentation][13419]
+- [File Browser Widget is used when editing file paths to datalinks][13439]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -43,7 +47,11 @@
 [13266]: https://github.com/enso-org/enso/pull/13266
 [13254]: https://github.com/enso-org/enso/pull/13254
 [13347]: https://github.com/enso-org/enso/pull/13347
+[13467]: https://github.com/enso-org/enso/pull/13467
 [13366]: https://github.com/enso-org/enso/pull/13366
+[13389]: https://github.com/enso-org/enso/pull/13389
+[13419]: https://github.com/enso-org/enso/pull/13419
+[13439]: https://github.com/enso-org/enso/pull/13439
 
 #### Enso Standard Library
 
@@ -55,9 +63,16 @@
 - [Column inference for fixed-width files.][13240]
 - [Specify fixed-width file layout with a `Vector` or `Column` of
   widths.][13240]
+- [Use `Filter_Condition.Predicate` to provide custom condition.][13460]
 - [Support `skip_rows` and `on_empty_field` for fixed-width files.][13240]
 - [Add Google_Sheets.read][13307]
 - [Align the Generic JDBC Connection with the main Connection type][13365]
+- [Add `execute_query` to the `Connection` types.][13415]
+- [`Meta.meta` recognizes functions as `Meta.Function`][13443]
+- [`Meta.Unresolved_Symbol` renamed to `Meta.Unresolved`][13443]
+- [Remane Google_Api library to Google][13436]
+- [Data.read_many now returns the read path as a char field][13475]
+- [Add prototype `find_group_number` function to Table][13487]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -66,13 +81,20 @@
 [13144]: https://github.com/enso-org/enso/pull/13144
 [13240]: https://github.com/enso-org/enso/pull/13240
 [13307]: https://github.com/enso-org/enso/pull/13307
+[13460]: https://github.com/enso-org/enso/pull/13460
 [13365]: https://github.com/enso-org/enso/pull/13365
+[13415]: https://github.com/enso-org/enso/pull/13415
+[13415]: https://github.com/enso-org/enso/pull/13443
+[13436]: https://github.com/enso-org/enso/pull/13436
+[13443]: https://github.com/enso-org/enso/pull/13443
+[13475]: https://github.com/enso-org/enso/pull/13475
+[13487]: https://github.com/enso-org/enso/pull/13487
 
 #### Enso Language & Runtime
 
 - [Allow optional path for `--jvm` option of `project-manager`][13225]
 - [Prevent `Meta` access to private constructors and private fields][12905]
-- [Encapsulating Private_Access constructor][#12976]
+- [Encapsulating Private_Access constructor][12976]
 - [Upgrading Truffle][12500] (including its
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.

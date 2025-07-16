@@ -1,4 +1,3 @@
-import * as gtag from '#/hooks/gtagHooks'
 import { unsetModal } from '#/providers/ModalProvider'
 import { NotAuthorizedError } from '#/services/Backend'
 import { unreachable } from '#/utilities/error'
@@ -8,12 +7,15 @@ import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent, ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
+import { LOGOUT_EVENT } from '$/providers/session/constants'
+import * as analytics from '$/utils/analytics'
 import { Err } from '@/util/data/result'
+import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import { computed, onScopeDispose, proxyRefs, ref, toRaw, watchEffect } from 'vue'
+import { computed, onScopeDispose, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
 
@@ -22,9 +24,6 @@ export function createSessionQuery(authService: cognito.ISessionProvider) {
   return vueQuery.queryOptions({
     queryKey: ['userSession'],
     queryFn: async () => authService.userSession().catch(() => null),
-    meta: {
-      persist: false,
-    },
   })
 }
 
@@ -61,7 +60,6 @@ export function createSessionStore(
       if (data) {
         httpClient.setSessionToken(data.accessToken)
       }
-      return queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     },
     onError: (error) => {
       // Something went wrong with the refresh token, so we need to sign the user out.
@@ -69,15 +67,19 @@ export function createSessionStore(
       queryClient.setQueryData(sessionQueryOptions.queryKey, null)
       return logoutMutation.mutate()
     },
+    meta: {
+      invalidates: [sessionQueryOptions.queryKey],
+      awaitInvalidates: true,
+    },
   })
 
   const logoutMutation = vueQuery.useMutation({
     mutationKey: computed(() => ['session', 'logout', session.data.value?.clientId] as const),
     mutationFn: async () => {
       isLoggingOut.value = true
+      document.dispatchEvent(new Event(LOGOUT_EVENT))
       await authService.signOut()
 
-      gtag.event('cloud_sign_out')
       const parentDomain = location.hostname.replace(/^[^.]*\./, '')
       document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
 
@@ -87,6 +89,7 @@ export function createSessionStore(
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
     onMutate: unsetModal,
     onSuccess: async () => {
+      analytics.cloudSignOut.after()
       localStorage.clearUserSpecificEntries()
       sentry.setUser(null)
       successToast.show(getText('signOutSuccess'))
@@ -96,7 +99,7 @@ export function createSessionStore(
   })
 
   const signUp = async (username: string, password: string, organizationId: string | null) => {
-    gtag.event('cloud_sign_up')
+    analytics.cloudSignUp.before()
     const result = await authService.signUp(username, password, organizationId)
 
     if (result.err) {
@@ -106,8 +109,8 @@ export function createSessionStore(
     }
   }
 
-  const confirmSignUp = async (email: string, code: string) => {
-    gtag.event('cloud_confirm_sign_up')
+  const confirmSignUp = async (email: string, code: string): Promise<void> => {
+    analytics.cloudSignUp.confirm.before()
     const result = await authService.confirmSignUp(email, code)
 
     if (result.err) {
@@ -121,50 +124,68 @@ export function createSessionStore(
         }
       }
     }
+    analytics.cloudSignUp.confirm.after()
   }
 
-  const signInWithPassword = async (email: string, password: string) => {
-    gtag.event('cloud_sign_in', { provider: 'Email' })
-
-    const result = await authService.signInWithPassword(email, password)
-
-    if (result.ok) {
-      const user = result.unwrap()
-
-      const challenge = user.challengeName ?? 'NO_CHALLENGE'
-
-      if (['SMS_MFA', 'SOFTWARE_TOKEN_MFA'].includes(challenge)) {
-        return { challenge, user } as const
+  function challengeStepRequired(
+    user: cognito.CognitoUser,
+  ): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
+    switch (user.challengeName) {
+      case 'SMS_MFA':
+      case 'SOFTWARE_TOKEN_MFA': {
+        return user.challengeName
       }
-
-      return queryClient
-        .invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
-        .then(() => ({ challenge, user }) as const)
-    } else {
-      throw new Error(result.val.message)
+      case undefined:
+      case 'CUSTOM_CHALLENGE':
+      case 'MFA_SETUP':
+      case 'NEW_PASSWORD_REQUIRED':
+      case 'SELECT_MFA_TYPE':
+      default: {
+        return null
+      }
     }
   }
 
-  const signInWithGoogle = () => {
-    gtag.event('cloud_sign_in', { provider: 'Google' })
-
-    return authService.signInWithGoogle().then(
-      () => true,
-      () => false,
-    )
+  const signInWithPassword = async (
+    email: string,
+    password: string,
+  ): Promise<{ user: cognito.CognitoUser; challenge: boolean }> => {
+    analytics.signIn.before('Email')
+    const result = await authService.signInWithPassword(email, password)
+    const user = result.unwrap()
+    const challengeType = challengeStepRequired(user)
+    if (challengeType) {
+      analytics.signIn.confirm.expected(challengeType)
+    } else {
+      await queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
+    }
+    return { user, challenge: challengeType != null }
   }
 
-  const signInWithGitHub = () => {
-    gtag.event('cloud_sign_in', { provider: 'GitHub' })
+  function useSignIn(
+    signIn: () => Promise<void>,
+    provider: analytics.AuthProvider,
+  ): () => Promise<boolean> {
+    analytics.signIn.before(provider)
 
-    return authService.signInWithGitHub().then(
-      () => true,
-      () => false,
-    )
+    return () =>
+      signIn().then(
+        () => true,
+        () => false,
+      )
   }
 
-  const confirmSignIn = (user: cognito.CognitoUser, otp: string) =>
-    authService.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+  const signInWithApple = useSignIn(() => authService.signInWithApple(), 'Apple')
+  const signInWithGoogle = useSignIn(() => authService.signInWithGoogle(), 'Google')
+  const signInWithGitHub = useSignIn(() => authService.signInWithGitHub(), 'GitHub')
+
+  const confirmSignIn = async (
+    user: cognito.CognitoUser,
+    otp: string,
+  ): cognito.ConfirmSignInReturn => {
+    analytics.signIn.confirm.before()
+    return authService.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+  }
 
   const forgotPassword = async (email: string) => {
     const result = await authService.forgotPassword(email)
@@ -211,9 +232,11 @@ export function createSessionStore(
   // means the login screen (which is a child of this provider) should render.
   const unregister = registerAuthEventListener((event) => {
     switch (event) {
-      case AuthEvent.signIn:
+      case AuthEvent.signIn: {
+        analytics.signIn.after()
+        break
+      }
       case AuthEvent.signOut: {
-        void queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
         break
       }
       case AuthEvent.customOAuthState:
@@ -224,13 +247,13 @@ export function createSessionStore(
         // will not work.
         // See https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
         history.replaceState({}, '', mainPageUrl)
-        void queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
         break
       }
       default: {
         unreachable(event)
       }
     }
+    void queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
   })
   onScopeDispose(unregister)
 
@@ -297,12 +320,13 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    waitForSession: () => queryClient.ensureQueryData(sessionQueryOptions),
+    waitForSession: session.suspense,
     isLoggingOut,
     confirmSignUp,
     signInWithPassword,
     signInWithGitHub,
     signInWithGoogle,
+    signInWithApple,
     confirmSignIn,
     forgotPassword,
     resetPassword,

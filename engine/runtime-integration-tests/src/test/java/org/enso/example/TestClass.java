@@ -101,4 +101,19 @@ public class TestClass {
     ENUM_VALUE_1,
     ENUM_VALUE_2
   }
+
+  public interface FnIntrfc {
+    Object perform(Object obj);
+  }
+
+  public static FnIntrfc identityFnIntrfc() {
+    return x -> x;
+  }
+
+  public static final class FnIntrfcSubclass implements FnIntrfc {
+    @Override
+    public Object perform(Object obj) {
+      return "subclass";
+    }
+  }
 }

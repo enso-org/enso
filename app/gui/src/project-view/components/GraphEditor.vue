@@ -7,7 +7,7 @@ import {
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
-import { graphBindings, panelsBindings, undoBindings } from '@/bindings'
+import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
@@ -28,7 +28,7 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, unrefElement, useEvent } from '@/composables/events'
+import { unrefElement, useEvent } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
@@ -58,17 +58,7 @@ import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
-import {
-  computed,
-  onMounted,
-  onUnmounted,
-  ref,
-  toRaw,
-  toRef,
-  useTemplateRef,
-  watch,
-  watchEffect,
-} from 'vue'
+import { computed, onMounted, ref, toRaw, toRef, useTemplateRef, watch, watchEffect } from 'vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
@@ -87,9 +77,6 @@ onMounted(() => {
   if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
-})
-onUnmounted(() => {
-  projectStore.disposeYDocsProvider()
 })
 
 // === Navigator ===
@@ -243,11 +230,11 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
-    enabled: graphStore.undoManager.canUndo,
+    enabled: () => graphStore.undoManager.canUndo,
     action: () => graphStore.undoManager.undo(),
   },
   'graph.redo': {
-    enabled: graphStore.undoManager.canRedo,
+    enabled: () => graphStore.undoManager.canRedo,
     action: () => graphStore.undoManager.redo(),
   },
   'graph.fitAll': {
@@ -332,19 +319,14 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-// See also https://github.com/enso-org/enso/issues/10414
 useEvent(
   window,
   'keydown',
-  (event) =>
-    panelsHandler(event) ||
-    (!keyboardBusy() && undoBindingsHandler(event)) ||
-    (!keyboardBusy() && graphBindingsHandler(event)) ||
-    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
+  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
 )
 
 function tryGetSelectionDocUrl() {
-  const selected = nodeSelection.tryGetSoleSelection()
+  const selected = nodeSelection.tryGetSingleSelectedNode()
   if (!selected.ok) return selected
   const suggestion = graphStore.db.getNodeMainSuggestion(selected.value)
   const documentation = suggestion && suggestionDocumentationUrl(suggestion)
@@ -365,10 +347,6 @@ const { handleClick } = useDoubleClick(
 
 // === Keyboard/Mouse bindings ===
 
-const undoBindingsHandler = undoBindings.handler(
-  objects.mapEntries(undoBindings.bindings, (actionName) => actionHandlers[actionName].action),
-)
-
 const graphBindingsHandler = graphBindings.handler(
   objects.mapEntries(
     graphBindings.bindings,
@@ -376,18 +354,12 @@ const graphBindingsHandler = graphBindings.handler(
   ),
 )
 
-// === Code Editor ===
-
-const panelsHandler = panelsBindings.handler(
-  objects.mapEntries(panelsBindings.bindings, (actionName) => actionHandlers[actionName].action),
-)
-
 // === Documentation Editor ===
 
 const overrideDisplayedDocs = ref<SuggestionId>()
 const aiMode = ref<boolean>(false)
 const docsForSelection = computed(() => {
-  const selected = nodeSelection.tryGetSoleSelection()
+  const selected = nodeSelection.tryGetSingleSelectedNode()
   if (!selected.ok) return Err('Select a single component to display help')
   const suggestionId = graphStore.db.nodeMainSuggestionId.lookup(selected.value)
   if (suggestionId == null) return Err('No documentation available for selected component')
@@ -406,7 +378,7 @@ watchEffect(() => {
 })
 
 function toggleRightDockHelpPanel() {
-  rightPanel.tab = 'help'
+  rightPanel.setTab('help')
 }
 
 // === Component Browser ===
@@ -545,7 +517,9 @@ function collapseNodes(nodes: Node[]) {
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)
     if (!info.ok) {
-      toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
+      toasts.userActionFailed.show(
+        `Unable to create User Defined Component: ${info.error.payload}.`,
+      )
       return
     }
     const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
@@ -554,7 +528,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const topLevel = graphStore.moduleRoot
     if (!topLevel) {
-      bail('BUG: no top level, collapsing not possible.')
+      bail('BUG: no top level, creating User Defined Component not possible.')
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
@@ -576,7 +550,7 @@ function collapseNodes(nodes: Node[]) {
       }
     })
   } catch (err) {
-    console.error('Error while collapsing, this is not normal.', err)
+    console.error('Error while creating User Defined Component, this is not normal.', err)
   }
 }
 

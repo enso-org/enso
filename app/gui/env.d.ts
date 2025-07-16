@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
+import type { FeatureFlags } from '$/providers/featureFlags'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
@@ -158,7 +159,7 @@ declare global {
      * Feature flags that override the default or stored feature flags.
      * This is used by integration tests to set feature flags.
      */
-    readonly overrideFeatureFlags: Partial<FeatureFlags>
+    readonly overrideFeatureFlags?: Partial<FeatureFlags>
   }
 
   interface Document {
@@ -178,5 +179,14 @@ declare module 'vite/client' {
      */
     const src: string
     export default src
+  }
+}
+
+declare global {
+  const URL: {
+    /**
+     *  @deprecated use {@link urlParse} to avoid issues during tests.
+     */
+    parse(url: string | URL, base?: string | URL): URL | null
   }
 }
