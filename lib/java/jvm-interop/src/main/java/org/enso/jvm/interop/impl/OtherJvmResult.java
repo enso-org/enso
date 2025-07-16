@@ -7,7 +7,9 @@ package org.enso.jvm.interop.impl;
  * @param <E> the type of exception when the operation fails
  */
 public sealed interface OtherJvmResult<R, E extends Exception> // Either R or E
-    permits OtherJvmMessage.ReturnValue, OtherJvmMessage.ThrowException {
+    permits OtherJvmMessage.ReturnValue,
+        OtherJvmMessage.ThrowValue,
+        OtherJvmMessage.ThrowException {
   /**
    * Either returns the computed result or throws exception.
    *
