@@ -115,12 +115,18 @@ final class ForeignEvalNode extends RootNode {
   }
 
   private ForeignFunctionCallNode parseJava() {
-    var code = foreignSource(langAndCode);
-    return switch (code) {
-      case "guest" -> ForeignJavaNode.create();
-      default -> new GenericForeignNode(
-          RootNode.createConstantNode("Cannot evaluate script in inner context!").getCallTarget());
-    };
+    var context = EpbContext.get(this);
+    var inner = context.getInnerContext();
+    if (inner != null) {
+      var code = foreignSource(langAndCode);
+      if ("guest".equals(code)) {
+        var source = Source.newBuilder("epb", "java:0#host", "inner.java").build();
+        var res = inner.evalInternal(this, source);
+        var constant = RootNode.createConstantNode(res);
+        return new GenericForeignNode(constant.getCallTarget());
+      }
+    }
+    return ForeignJavaNode.create();
   }
 
   private ForeignFunctionCallNode parseJs() {
