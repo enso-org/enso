@@ -2,6 +2,7 @@ import { fc, test as fctest } from '@fast-check/vitest'
 import { expect, test } from 'vitest'
 import { computed, reactive, ref, shallowRef, toRaw, unref } from 'vue'
 import { cloneDeepUnref } from '../reactive'
+import { setsIntersect } from '../set'
 
 class MappedSet<T, U> {
   private readonly set: Set<U> = new Set()
@@ -34,16 +35,9 @@ const primitiveValues = [
   BigInt(123),
 ]
 
-function isDisjoint(a: Pick<Set<unknown>, 'keys'>, b: Pick<Set<unknown>, 'has'>) {
-  for (const key of a.keys()) {
-    if (b.has(key)) return false
-  }
-  return true
-}
-
 /** Tests that the given sets don't contain any of the same keys. */
 function expectDisjoint(a: Pick<Set<unknown>, 'keys'>, b: Pick<Set<unknown>, 'has'>) {
-  expect(isDisjoint(a, b)).toBe(true)
+  expect(setsIntersect(a, b)).toBe(false)
 }
 
 function checkUnrefEqualCollectingObjects(input: unknown, copy: unknown) {
@@ -123,7 +117,7 @@ test.each([
   const equalResult = checkUnrefEqualCollectingObjects(input, copyWithAliasing)
   expect(equalResult).not.toBeNull()
   const { inputObjects, copyObjects } = equalResult!
-  expect(isDisjoint(inputObjects, copyObjects)).toBe(false)
+  expect(setsIntersect(inputObjects, copyObjects)).toBe(true)
 })
 
 function getter<T>(value: T): () => T {

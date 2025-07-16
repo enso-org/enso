@@ -1,5 +1,6 @@
 package org.enso.compiler.test;
 
+import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -257,7 +258,9 @@ public class ExecCompilerTest {
   public void inlineReturnSignature() {
     var module =
         ctxRule.eval(
-            LanguageInfo.ID, """
+            LanguageInfo.ID,
+            """
+    import Standard.Base.Data.Numbers.Integer
     foo (x : Integer) (y : Integer) -> Integer = 10*x + y
     """);
     var foo = module.invokeMember("eval_expression", "foo");
@@ -272,6 +275,7 @@ public class ExecCompilerTest {
             LanguageInfo.ID,
             """
             import Standard.Base.Data.Numbers
+            import Standard.Base.Data.Numbers.Integer
             type My_Type
                 Value x
 
@@ -309,6 +313,7 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
+    import Standard.Base.Data.Numbers.Integer
     foo x y =
         inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
         a = 3
@@ -322,7 +327,11 @@ public class ExecCompilerTest {
 
   @Test
   public void inlineReturnSignatureWithoutArguments() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+    import Standard.Base.Data.Numbers.Integer
     the_number -> Integer = 23
     """);
     var result = module.invokeMember("eval_expression", "the_number");
@@ -544,6 +553,27 @@ public class ExecCompilerTest {
       var typeError = ex.getGuestObject();
       assertEquals("Expected type", "First_Type", typeError.getMember("expected").asString());
       assertEquals("Got wrong value", 42, typeError.getMember("actual").asInt());
+    }
+  }
+
+  @Test
+  public void castToUnresolvedType() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn f = (f : Unknown).to_text
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute(0);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("expected unresolved symbol Unknown"),
+              containsString("to be resolved to a type")));
     }
   }
 }

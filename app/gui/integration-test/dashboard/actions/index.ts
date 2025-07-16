@@ -5,7 +5,7 @@ import { TEXTS, getText as baseGetText, type Replacements, type TextId } from 'e
 import path from 'node:path'
 import url from 'node:url'
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import {
   INITIAL_LOCAL_CALLS_OBJECT,

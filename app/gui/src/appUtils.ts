@@ -4,7 +4,7 @@ export const ORGANIZATION_NAME_MIN_LENGTH = 3
 export const ORGANIZATION_NAME_MAX_LENGTH = 64
 export const USER_GROUP_NAME_MAX_LENGTH = 64
 
-export const OPEN_IDE_DEEPLINK = 'enso://'
+export const OPEN_IDE_DEEPLINK = `enso://`
 
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = '/'
@@ -44,6 +44,11 @@ export const SUPPORT_EMAIL_URL = `mailto:${SUPPORT_EMAIL}`
 /** Build a Subscription URL for a given plan. */
 export function getUpgradeURL(plan: string): string {
   return SUBSCRIBE_PATH + '?plan=' + plan
+}
+
+/** Return url address of Enso Analytics contact page. */
+export function getContactPage(): string {
+  return 'https://ensoanalytics.com/contact'
 }
 
 /** Return the mailto URL for contacting sales. */

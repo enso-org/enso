@@ -78,7 +78,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
-  const path = asset.ensoPathValue
+  const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
@@ -238,11 +238,11 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             },
           },
         !isCloud &&
-          path != null &&
+          encodedEnsoPath != null &&
           systemApi && {
             action: 'openInFileBrowser',
             doAction: () => {
-              systemApi.showItemInFolder(path)
+              systemApi.showItemInFolder(encodedEnsoPath)
             },
           },
         asset.type === backendModule.AssetType.project &&
@@ -342,10 +342,10 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           },
         },
         { action: 'copy', doAction: doCopy },
-        path != null && {
+        encodedEnsoPath != null && {
           action: 'copyAsPath',
           doAction: () => {
-            void copyMutation.mutateAsync(path)
+            void copyMutation.mutateAsync(encodedEnsoPath)
           },
         },
         !isRunningProject && !isOtherUserUsingProject && { action: 'cut', doAction: doCut },

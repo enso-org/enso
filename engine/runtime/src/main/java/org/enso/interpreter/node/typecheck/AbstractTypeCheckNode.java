@@ -13,7 +13,11 @@ import org.enso.interpreter.runtime.data.text.Text;
  * detail. The API to perform the check or conversion is in {@link TypeCheckValueNode}.
  */
 abstract sealed class AbstractTypeCheckNode extends Node
-    permits OneOfTypesCheckNode, AllOfTypesCheckNode, SingleTypeCheckNode, MetaTypeCheckNode {
+    permits OneOfTypesCheckNode,
+        AllOfTypesCheckNode,
+        SingleTypeCheckNode,
+        MetaTypeCheckNode,
+        FailCheckNode {
   private final String comment;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 

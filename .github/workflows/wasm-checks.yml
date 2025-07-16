@@ -49,7 +49,7 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean before
         run: ./run git-clean
         env:
@@ -57,7 +57,7 @@ jobs:
       - run: ./run wasm test --no-wasm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
         env:
@@ -96,7 +96,7 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean before
         run: ./run git-clean
         env:
@@ -104,7 +104,7 @@ jobs:
       - run: ./run wasm lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
         env:
@@ -143,7 +143,7 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean before
         run: ./run git-clean
         env:
@@ -156,7 +156,7 @@ jobs:
       - run: ./run wasm test --no-native
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
         env:

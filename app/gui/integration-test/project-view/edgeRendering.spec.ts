@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test'
+import { test, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'

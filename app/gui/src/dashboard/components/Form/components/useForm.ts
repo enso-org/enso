@@ -303,5 +303,5 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 function getArgsType<Schema extends types.TSchema, SubmitResult = void>(
   args: types.UseFormOptions<Schema, SubmitResult>,
 ) {
-  return 'formState' in args ? ('formInstance' as const) : ('formOptions' as const)
+  return 'formState' in args ? 'formInstance' : 'formOptions'
 }
