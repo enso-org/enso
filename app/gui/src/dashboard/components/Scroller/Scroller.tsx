@@ -130,7 +130,7 @@ export const Scroller = forwardRef(function Scroller(
     variants = SCROLLER_STYLES,
     orientation = 'horizontal',
     showShadows = true,
-    testId = 'scroller',
+    testId,
     onScroll,
     background = 'primary',
     fullSize,

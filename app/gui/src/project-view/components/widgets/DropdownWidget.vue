@@ -38,21 +38,6 @@ const sortedValues = computed<Entry[]>(() => {
   }
 })
 
-const ICON_LOOKUP: Record<SortDirection, Icon> = {
-  none: 'sort',
-  ascending: 'sort_ascending',
-  descending: 'sort_descending',
-}
-
-const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
-  none: 'ascending',
-  ascending: 'descending',
-  descending: 'none',
-}
-
-// Currently unused.
-const enableSortButton = ref(false)
-
 const styleVars = computed(() => {
   return {
     '--dropdown-fg': props.color,
@@ -80,27 +65,19 @@ export interface DropdownEntry {
 <template>
   <div class="DropdownWidget" :style="styleVars">
     <ul class="list scrollable" @wheel.stop.passive @scroll="emit('scroll')">
-      <li
-        v-for="entry in sortedValues"
-        :key="entry.key ?? entry.value"
-        :class="{ selected: entry.selected }"
-        class="item clickable"
-        @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
-      >
-        <div class="item-inner">
+      <li v-for="entry in sortedValues" :key="entry.key ?? entry.value">
+        <button
+          :class="{ selected: entry.selected }"
+          class="item clickable"
+          @pointerdown.prevent
+          @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
+          @keydown.enter.stop
+        >
           <SvgIcon v-if="entry.icon" :name="entry.icon" class="menu-icon" />
-          <div class="itemContent" v-text="entry.value"></div>
-        </div>
+          <span class="itemContent" v-text="entry.value"></span>
+        </button>
       </li>
     </ul>
-    <div v-if="enableSortButton" class="sort">
-      <div class="sort-background"></div>
-      <SvgIcon
-        :name="ICON_LOOKUP[sortDirection]"
-        class="clickable"
-        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
-      />
-    </div>
   </div>
 </template>
 
@@ -161,6 +138,8 @@ export interface DropdownEntry {
   text-align: left;
   max-width: 100%;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 
   &:hover {
     background-color: color-mix(in oklab, var(--dropdown-bg) 50%, white 50%);
@@ -196,11 +175,6 @@ export interface DropdownEntry {
   margin: 3px 0;
   text-wrap: nowrap;
   text-overflow: ellipsis;
-}
-
-.item-inner {
-  display: flex;
-  align-items: center;
 }
 
 .menu-icon {

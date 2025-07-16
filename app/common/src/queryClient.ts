@@ -10,6 +10,7 @@ import { experimental_createPersister as createPersister } from '@tanstack/query
 import * as vueQuery from '@tanstack/vue-query'
 import { toRaw } from 'vue'
 import { ConditionVariable } from './utilities/ConditionVariable'
+import { useCallbackRegistry } from './utilities/data/callbacks'
 import { cloneDeepUnref } from './utilities/data/reactive'
 
 /** An enumeration of all mutation pool ids. */
@@ -113,14 +114,6 @@ type OnMutationSettled = MutationCacheConfig['onSettled']
 type OnMutationSuccess = MutationCacheConfig['onSuccess']
 type OnMutationError = MutationCacheConfig['onError']
 
-function callbackRegistry<Args extends unknown[]>() {
-  const callbacks: ((...args: Args) => void)[] = []
-  return {
-    run: (...args: Args) => callbacks.forEach((callback) => callback(...args)),
-    register: (callback: (...args: Args) => void) => void callbacks.push(callback),
-  }
-}
-
 interface QueryHooks {
   onSuccess: (callback: OnQuerySuccess) => void
   onSettled: (callback: OnQuerySettled) => void
@@ -130,9 +123,9 @@ function useQueryCache(): {
   queryCache: queryCore.QueryCache
   queryHooks: QueryHooks
 } {
-  const onSettled = callbackRegistry<Parameters<OnQuerySettled>>()
-  const onSuccess = callbackRegistry<Parameters<OnQuerySuccess>>()
-  const onError = callbackRegistry<Parameters<OnQueryError>>()
+  const onSettled = useCallbackRegistry<Parameters<OnQuerySettled>>()
+  const onSuccess = useCallbackRegistry<Parameters<OnQuerySuccess>>()
+  const onError = useCallbackRegistry<Parameters<OnQueryError>>()
   const config = {
     onSettled: onSettled.run,
     onSuccess: onSuccess.run,
@@ -158,10 +151,10 @@ function useMutationCache(): {
   mutationCache: queryCore.MutationCache
   mutationHooks: MutationHooks
 } {
-  const onMutate = callbackRegistry<Parameters<OnMutate>>()
-  const onSettled = callbackRegistry<Parameters<OnMutationSettled>>()
-  const onSuccess = callbackRegistry<Parameters<OnMutationSuccess>>()
-  const onError = callbackRegistry<Parameters<OnMutationError>>()
+  const onMutate = useCallbackRegistry<Parameters<OnMutate>>()
+  const onSettled = useCallbackRegistry<Parameters<OnMutationSettled>>()
+  const onSuccess = useCallbackRegistry<Parameters<OnMutationSuccess>>()
+  const onError = useCallbackRegistry<Parameters<OnMutationError>>()
   const config = {
     onMutate: onMutate.run,
     onSettled: onSettled.run,

@@ -8,10 +8,9 @@ import Standard.Base.Runtime.Context
 from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
 
-import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Internal.Replace_Params.Replace_Params
-import Standard.Database.Feature.Feature
 from Standard.Database import all
+import Standard.Database.Internal.Replace_Params.Replace_Params
+import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Type
 
 from Standard.Test import all

@@ -1,13 +1,18 @@
 import type { NodeDataFromAst } from '@/stores/graph'
-import { emptyPrimaryApplication, PrimaryApplication } from '@/stores/graph/graphDatabase'
+import { emptyPrimaryApplication, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
+import { computed } from 'vue'
 import * as Y from 'yjs'
 
-export const prefixes = Prefixes.FromLines({
-  enableRecording:
-    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-})
+// Computed used here intentionally to delay initialization until first use. Otherwise we get issues
+// related to module load order or calling wasm parser too early.
+export const prefixes = computed(() =>
+  Prefixes.FromLines({
+    enableRecording:
+      'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  }),
+)
 
 /** Given a node's outer expression, find the root expression and any statements wrapping it. */
 export function nodeRootExpr(ast: Ast.Statement | Ast.Expression): {
@@ -44,7 +49,7 @@ export function inputNodeFromAst(ast: Ast.Expression, argIndex: number): NodeDat
 export function nodeFromAst(ast: Ast.Statement, isOutput: boolean): NodeDataFromAst | undefined {
   const { root, assignment } = nodeRootExpr(ast)
   if (!root) return
-  const { innerExpr, matches } = prefixes.extractMatches(root)
+  const { innerExpr, matches } = prefixes.value.extractMatches(root)
   const primaryApp = primaryApplication(innerExpr)
   return {
     type: assignment == null && isOutput ? 'output' : 'component',

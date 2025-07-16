@@ -143,10 +143,6 @@ const RESTRICTED_SYNTAXES = [
     message: 'Use arrow functions for nested functions',
   },
   {
-    selector: 'IfStatement > ExpressionStatement',
-    message: 'Wrap `if` branches in `{}`',
-  },
-  {
     selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
     message: 'Use `while (true)` instead of `for (;;)`',
   },
@@ -459,7 +455,10 @@ const config = [
           },
         },
       ],
-      '@typescript-eslint/no-confusing-void-expression': 'error',
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreVoidReturningFunctions: true },
+      ],
       '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-extraneous-class': 'error',
       '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],

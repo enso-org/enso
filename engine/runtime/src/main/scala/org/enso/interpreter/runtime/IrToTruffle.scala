@@ -833,6 +833,8 @@ class IrToTruffle(
     case typeInContext: Tpe.Context =>
       // Type contexts aren't currently really used. But we should still check the base type.
       extractAscribedType(comment, typeInContext.typed)
+    case err: errors.Resolution =>
+      TypeCheckValueNode.fail("unresolved symbol " + err.originalName.name)
     case t => {
       val res = t.getMetadata(TypeNames)
       res match {

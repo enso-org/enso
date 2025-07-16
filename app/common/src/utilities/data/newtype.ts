@@ -10,14 +10,6 @@ type NewtypeVariant<TypeName extends string> = {
 }
 
 /**
- * An interface specifying the variant of a newtype, where the discriminator is mutable.
- * This is safe, as the discriminator should be a string literal type anyway.
- */
-type MutableNewtypeVariant<TypeName extends string> = {
-  _$type: TypeName
-}
-
-/**
  * Used to create a "branded type",
  * which contains a property that only exists at compile time.
  *
@@ -39,11 +31,7 @@ export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
  * Its only use is in {@link newtypeConstructor}.
  */
 type UnNewtype<T extends Newtype<unknown, string>> =
-  T extends infer U & NewtypeVariant<T['_$type']> ?
-    U extends infer V & MutableNewtypeVariant<T['_$type']> ?
-      V
-    : U
-  : NotNewtype & Omit<T, '_$type'>
+  T extends infer U & NewtypeVariant<T['_$type']> ? U : NotNewtype & Omit<T, '_$type'>
 
 /** An interface that matches a type if and only if it is not a newtype. */
 type NotNewtype = {
@@ -57,10 +45,10 @@ type NotNewtype = {
  */
 export function newtypeConstructor<T extends Newtype<unknown, string>>() {
   // This cast is unsafe.
-  // `T` has an extra property `_$type` which is used purely for typechecking
+  // `T` has an extra property `[$type]` which is used purely for typechecking
   // and does not exist at runtime.
   //
   // The property name is specifically chosen to trigger eslint's `naming-convention` lint,
   // so it should not be possible to accidentally create a value with such a type.
-  return (s: NotNewtype & UnNewtype<T>) => s as unknown as T
+  return <const S extends NotNewtype & UnNewtype<T>>(s: S) => s as unknown as T
 }

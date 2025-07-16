@@ -686,6 +686,56 @@ add_specs suite_builder =
             meta_type = Meta.meta Standard.Base.Network
             meta_type.catch . should_equal (Private_Access.Error Nothing Nothing 'meta' 'No Meta.meta for private objects')
 
+        group_builder.specify "function with argument" <|
+            plus x by=1 = x+by
+
+            case Meta.meta plus of
+                fn : Meta.Function ->
+                    fn.arguments . should_equal ["x"]
+                    fn.arguments defaulted=True . should_equal ["x", "by"]
+                    fn.arguments defaulted=True pending=False . should_equal [ "by" ]
+                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
+        group_builder.specify "oversaturated function" <|
+            mul_or_add mul =
+                op = if mul then (*) else (+)
+                \by -> op by
+
+            by_one = mul_or_add by=1
+
+            # verify it increments
+            by_one mul=False 41 . should_equal 42
+
+            case Meta.meta by_one of
+                fn : Meta.Function ->
+                    fn.arguments . should_equal ["mul"]
+                    fn.arguments defaulted=True . should_equal ["mul"]
+                    fn.arguments pending=False oversaturated=True . should_equal ["by"]
+                    fn.arguments defaulted=True pending=False . should_equal []
+                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
+
+        group_builder.specify "function without an argument" <|
+            case Meta.meta glob_means_fn... of
+                p : Meta.Primitive ->
+                    p.value . should_equal 42
+                unknown -> Test.fail "Expecting Meta.Primitive, but was: "+unknown.to_text
+
+        group_builder.specify "unresolved symbol" <|
+            case Meta.meta .nic of
+                s : Meta.Unresolved ->
+                    s.is_constructor . should_be_false
+                unknown -> Test.fail "Expecting Meta.Unresolved, but was: "+unknown.to_text
+
+        group_builder.specify "unresolved constructor" <|
+            case Meta.meta ..Maybe of
+                s : Meta.Unresolved ->
+                    s.is_constructor . should_be_true
+                unknown -> Test.fail "Expecting Meta.Unresolved, but was: "+unknown.to_text
+
+glob_means_fn =
+    42
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

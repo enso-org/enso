@@ -111,7 +111,7 @@ Nothing.to_js_object self = self
 Array.to_js_object : Vector
 Array.to_js_object self =
     stripped = Warning.clear self
-    proxy = Array_Proxy.new stripped.length i-> stripped.at i .to_js_object
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
 ## PRIVATE

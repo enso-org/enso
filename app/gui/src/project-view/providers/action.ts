@@ -3,8 +3,6 @@ import {
   documentationEditorFormatBindings,
   graphBindings,
   nodeEditBindings,
-  panelsBindings,
-  undoBindings,
   visualizationBindings,
 } from '@/bindings'
 import { createContextStore } from '@/providers'
@@ -138,12 +136,12 @@ const displayableActions = {
   'graph.toggleCodeEditor': {
     icon: 'bottom_panel',
     description: 'Code Editor',
-    shortcut: panelsBindings.bindings['graph.toggleCodeEditor'],
+    shortcut: graphBindings.bindings['graph.toggleCodeEditor'],
   },
   'graph.toggleDocumentationEditor': {
     icon: 'right_panel',
     description: 'Documentation Editor',
-    shortcut: panelsBindings.bindings['graph.toggleDocumentationEditor'],
+    shortcut: graphBindings.bindings['graph.toggleDocumentationEditor'],
   },
   'graph.renameProject': {
     icon: 'edit',
@@ -160,12 +158,12 @@ const displayableActions = {
   'graph.undo': {
     icon: 'undo',
     description: 'Undo',
-    shortcut: undoBindings.bindings['graph.undo'],
+    shortcut: graphBindings.bindings['graph.undo'],
   },
   'graph.redo': {
     icon: 'redo',
     description: 'Redo',
-    shortcut: undoBindings.bindings['graph.redo'],
+    shortcut: graphBindings.bindings['graph.redo'],
   },
   'graph.fitAll': {
     icon: 'show_all',
@@ -357,7 +355,7 @@ export type UndisplayableActionName = keyof typeof undisplayableActions
 export type ActionName = DisplayableActionName | UndisplayableActionName
 type DisplayableActions = Record<DisplayableActionName, DisplayableAction>
 type UndisplayableActions = Record<UndisplayableActionName, Action>
-type Actions = DisplayableActions & UndisplayableActions
+export type Actions = DisplayableActions & UndisplayableActions
 
 const [provideActions, injectActions] = createContextStore('Actions', identity<Actions>)
 

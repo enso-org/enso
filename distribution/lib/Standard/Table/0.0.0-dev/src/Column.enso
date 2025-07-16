@@ -139,7 +139,7 @@ type Column
              import Standard.Examples
 
              example_eq = Examples.integer_column == 1
-    == self (other : Column | Any) -> Column =
+    == self (other : Column | Any) -> Column | Any =
         self.implementation.equals self other
 
     ## GROUP Standard.Base.Logical
@@ -190,7 +190,7 @@ type Column
              import Standard.Examples
 
              example_neq = Examples.integer_column != 1
-    != self (other : Column | Any) -> Column =
+    != self (other : Column | Any) -> Column | Any =
         self.implementation.not_equals self other
 
     ## ALIAS greater than or equal
@@ -219,7 +219,7 @@ type Column
              import Standard.Examples
 
              example_geq = Examples.integer_column >= 1
-    >= self (other : Column | Any) -> Column =
+    >= self (other : Column | Any) -> Column | Any =
         self.implementation.greater_than_eq self other
 
     ## ALIAS less than or equal
@@ -248,7 +248,7 @@ type Column
              import Standard.Examples
 
              example_leq = Examples.integer_column <= 1
-    <= self (other : Column | Any) -> Column =
+    <= self (other : Column | Any) -> Column | Any =
         self.implementation.less_than_eq self other
 
     ## ALIAS greater than
@@ -277,7 +277,7 @@ type Column
              import Standard.Examples
 
              example_gt = Examples.integer_column > 1
-    > self (other : Column | Any) -> Column =
+    > self (other : Column | Any) -> Column | Any =
         self.implementation.greater_than self other
 
     ## ALIAS less than
@@ -306,7 +306,7 @@ type Column
              import Standard.Examples
 
              example_lt = Examples.integer_column < 1
-    < self (other : Column | Any) -> Column =
+    < self (other : Column | Any) -> Column | Any =
         self.implementation.less_than self other
 
     ## GROUP Standard.Base.Logical
@@ -361,7 +361,7 @@ type Column
              import Standard.Examples
 
              example_plus = Examples.integer_column + 10
-    + self (other : Column | Any) -> Column =
+    + self (other : Column | Any) -> Column | Any =
         self.implementation.add self other
 
     ## ALIAS minus, subtract, time difference
@@ -400,7 +400,7 @@ type Column
              import Standard.Examples
 
              example_minus = Examples.integer_column - 10
-    - self (other : Column | Any) -> Column =
+    - self (other : Column | Any) -> Column | Any =
         self.implementation.minus self other
 
     ## ALIAS multiply, product, times
@@ -438,7 +438,7 @@ type Column
              import Standard.Examples
 
              example_mul = Examples.integer_column * 10
-    * self (other : Column | Any) -> Column =
+    * self (other : Column | Any) -> Column | Any =
         self.implementation.multiply self other
 
     ## ALIAS divide
@@ -481,7 +481,7 @@ type Column
              import Standard.Examples
 
              example_div = Examples.integer_column / 10
-    / self (other : Column | Any) -> Column =
+    / self (other : Column | Any) -> Column | Any =
         self.implementation.divide self other
 
     ## ALIAS modulo, modulus
@@ -515,7 +515,7 @@ type Column
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
-    % self (other : Column | Any) -> Column =
+    % self (other : Column | Any) -> Column | Any =
         self.implementation.modulus self other
 
     ## ALIAS power
@@ -553,7 +553,7 @@ type Column
              import Standard.Examples
 
              example_div = Examples.decimal_column ^ Examples.integer_column
-    ^ self (other : Column | Any) -> Column =
+    ^ self (other : Column | Any) -> Column | Any =
         self.implementation.power self other
 
     ## ALIAS and
@@ -583,7 +583,7 @@ type Column
              import Standard.Examples
 
              example_and = Examples.bool_column_1 && True
-    && self (other : Column | Any) -> Column =
+    && self (other : Column | Any) -> Column | Any =
         self.implementation.and self other
 
     ## ALIAS or
@@ -614,7 +614,7 @@ type Column
              import Standard.Examples
 
              example_or = Examples.bool_column_1 || True
-    || self (other : Column | Any) -> Column =
+    || self (other : Column | Any) -> Column | Any =
         self.implementation.or self other
 
     ## ALIAS not
@@ -1998,7 +1998,7 @@ type Column
        Returns a Table describing this column's contents and type.
 
        The table behaves like `Table.column_info.
-    info self -> Table =
+    info self -> Table | Any =
         self.implementation.info self
 
     ## ALIAS order_by
@@ -2092,7 +2092,7 @@ type Column
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
-    slice : Integer -> Integer -> Column
+    slice : Integer -> Integer -> Column | Any
     slice self start end =
         self.implementation.slice self start end
 
@@ -2181,7 +2181,7 @@ type Column
 
        Arguments:
        - statistics: Set of statistics to calculate.
-    compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table =
+    compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table | Any =
         self.implementation.compute_bulk self statistics
 
     ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
