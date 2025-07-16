@@ -20,11 +20,12 @@ import Standard.Table.Internal.Replace_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table import Table, Column
+from Standard.Table import Column, Table
 from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
+import project.Errors.Table_Not_Found
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
@@ -47,7 +48,6 @@ import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
 import project.SQL_Query.SQL_Query
-from project.Errors import Table_Not_Found
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID

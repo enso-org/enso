@@ -1,5 +1,8 @@
 private
 
+## This conversion allows us to convert the 'unsafe' raw DB_Table instance
+   (lacking `& Table`, that we get from `Table.underlying`) back to a well-behaved `Table & DB_Table`.
+
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
@@ -43,7 +46,6 @@ from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
 import project.DB_Column.DB_Column
-from project.DB_Table import DB_Table, MAX_LITERAL_ELEMENT_COUNT, make_literal_table
 import project.Dialects.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
@@ -66,10 +68,8 @@ import project.Internal.Take_Drop_Helpers
 import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL.SQL_Type
+from project.DB_Table import DB_Table, make_literal_table, MAX_LITERAL_ELEMENT_COUNT
 from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
-
-## This conversion allows us to convert the 'unsafe' raw DB_Table instance
-   (lacking `& Table`, that we get from `Table.underlying`) back to a well-behaved `Table & DB_Table`.
 from project.Internal.Type_Refinements.DB_Table_Conversions import all
 
 polyglot java import java.sql.JDBCType
