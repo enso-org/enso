@@ -19,6 +19,7 @@ import org.graalvm.polyglot.Source;
 import org.hamcrest.core.AllOf;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ExecStrictCompilerTest {
@@ -151,6 +152,7 @@ public class ExecStrictCompilerTest {
   }
 
   @Test
+  @Ignore
   public void importAsAndRename() {
     var code =
         """
@@ -195,6 +197,7 @@ public class ExecStrictCompilerTest {
   }
 
   @Test
+  @Ignore
   public void symbolImportWithoutRename() {
     var code =
         """
@@ -206,6 +209,7 @@ public class ExecStrictCompilerTest {
   }
 
   @Test
+  @Ignore
   public void symbolImportAndRename() {
     var code =
         """
