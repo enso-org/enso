@@ -8,8 +8,8 @@ from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz
 
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Table, Headers
-from Standard.Table.Errors import Invalid_Location, Empty_Sheet
+from Standard.Table import Headers, Table
+from Standard.Table.Errors import Empty_Sheet, Invalid_Location
 from Standard.Table.In_Memory_Table import from_java_table
 
 import project.Internal.Telemetry
@@ -19,7 +19,11 @@ polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.GoogleSheetsHeaders
 polyglot java import org.enso.google.WrappedGoogleCredentials
 
+## Type representing a Google Sheets workbook.
 type Google_Sheets_Workbook
+    ## ---
+       private: true
+       ---
     Value workbook_id:Text java_service
 
     ## ---
@@ -111,18 +115,22 @@ Table_Viz_Data.from (that:Google_Sheets_Workbook) =
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "worksheets" "worksheet" "read"] [that.sheet_names.to_vector]
 
 ## Error occurred when calling the Google Sheets API
-type Google_Api_Error
+type Google_API_Error
     ## ---
        private: true
        ---
     Error details
 
+    ## ---
+       private: true
+       ---
+       Render the error to text.
     to_display_text self =
         self.details.at 'message'
 
 private _handle_exceptions ~action = Empty_Sheet.handle_java_exception <|
     Panic.catch GoogleJsonResponseException action caught_panic->
-        Error.throw (Google_Api_Error.Error caught_panic.payload.getContent.parse_json)
+        Error.throw (Google_API_Error.Error caught_panic.payload.getContent.parse_json)
 
 private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
     case credential of
