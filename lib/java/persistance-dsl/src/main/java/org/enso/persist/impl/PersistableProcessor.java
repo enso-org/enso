@@ -321,7 +321,7 @@ public class PersistableProcessor extends AbstractProcessor {
                     + singleton.getSimpleName()
                     + ";\n");
           }
-          w.append("      default -> throw new IllegalArgumentException();\n");
+          w.append("      default -> throw new IOException();\n");
           w.append("    };\n");
         }
       }
