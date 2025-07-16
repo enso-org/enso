@@ -1167,6 +1167,19 @@
     <path fill-rule="evenodd" clip-rule="evenodd" d="M5 14L8 10H6V3H4V10H2L5 14Z" fill="currentColor"></path>
   </symbol>
 
+  <symbol id="sort_filter_reset" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <g clip-path="url(#clip0_1445_186)">
+      <path d="M0.5 0.4375L3.125 3.0625V5.6875L4.875 7V3.0625L7.5 0.4375V0H0.5V0.4375Z" fill="currentColor"></path>
+    </g>
+    <path d="M6 9 8 11.5459 6.66699 11.5459 6.66699 16 5.33301 16 5.33301 11.5459 4 11.5459 6 9ZM2 16 0 13.4541 1.33301 13.4541 1.33301 9 2.66699 9 2.66699 13.4541 4 13.4541 2 16ZM10 5.75003 15.25 11 16 10.25 10.75 5.00003 10 5.75003Z" fill="currentColor"></path>
+    <path d="M15.2499 4.99997L9.99997 10.2499L10.75 10.9999L15.9999 5.74996L15.2499 4.99997Z" fill="currentColor"></path>
+    <defs>
+      <clipPath id="clip0_1445_186">
+        <rect width="7" height="7" fill="white" transform="translate(0.5)"></rect>
+      </clipPath>
+    </defs>
+  </symbol>
+
   <symbol id="split" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <path fill-rule="evenodd" clip-rule="evenodd" d="M8.00001 1.33333C8.3682 1.33333 8.66668 1.63181 8.66668 2V14C8.66668 14.3682 8.3682 14.6667 8.00001 14.6667C7.63182 14.6667 7.33334 14.3682 7.33334 14V1.99999C7.33334 1.63181 7.63182 1.33333 8.00001 1.33333ZM1.33334 3.33333C1.33334 2.96514 1.63182 2.66666 2.00001 2.66666H6.00001V13.3333H2.00001C1.63182 13.3333 1.33334 13.0349 1.33334 12.6667V3.33333ZM10 2.66666H14C14.3682 2.66666 14.6667 2.96514 14.6667 3.33333V12.6667C14.6667 13.0349 14.3682 13.3333 14 13.3333H10V2.66666Z" fill="currentColor"></path>
   </symbol>
