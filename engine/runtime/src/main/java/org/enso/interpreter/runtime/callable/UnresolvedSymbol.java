@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Bind;
@@ -87,7 +88,9 @@ public final class UnresolvedSymbol extends EnsoObject {
   }
 
   private void ensureIsAccessible(Node node, Function function) throws PanicException {
-    if (function.getSchema().isProjectPrivate()) {
+    var isPrivateCheckDisabled = EnsoContext.get(node).isPrivateCheckDisabled();
+    CompilerAsserts.compilationConstant(isPrivateCheckDisabled);
+    if (!isPrivateCheckDisabled && function.getSchema().isProjectPrivate()) {
       var nodePkg = getPackage(node);
       var typePkg = getFunctionProject(function);
       if (nodePkg != typePkg) {
