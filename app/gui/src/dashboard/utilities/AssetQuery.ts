@@ -104,7 +104,7 @@ export default class AssetQuery {
     const tagSegment = term.tag == null ? '' : term.tag + ':'
     const valueSegment = term.values
       .map((value) => (AssetQuery.plainValueRegex.test(value) ? value : JSON.stringify(value)))
-      .join(',')
+      .join(' ')
     return tagSegment + valueSegment
   }
 
