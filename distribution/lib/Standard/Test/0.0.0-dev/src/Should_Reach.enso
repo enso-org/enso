@@ -8,7 +8,9 @@ from project.Extensions import all
 
 ## Test class for checking if a certain point in the code has been reached.
 type Should_Reach
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value (reached_ref : Ref Boolean)
 
     ## Creates a new Should_Reach test object.
