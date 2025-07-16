@@ -11,7 +11,6 @@ import project.Value_Type.Value_Type
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 
-
 type In_Memory_Numeric_Column_Implementation
     abs (column : Column & In_Memory_Column) =
         Value_Type.expect_numeric column <|

@@ -4,8 +4,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import Table
 import Standard.Table.In_Memory_Table.In_Memory_Table
+from Standard.Table import Table
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection

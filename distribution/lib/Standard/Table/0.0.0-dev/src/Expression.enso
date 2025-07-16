@@ -1,10 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 from Standard.Base.Metadata import Widget
 
 import project.Column.Column
-import project.Table.Table
 import project.Refined_Types.Numeric_Column.Numeric_Column
-import Standard.Base.Errors.Common.Type_Error
+import project.Table.Table
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException

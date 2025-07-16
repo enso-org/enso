@@ -547,7 +547,7 @@ adapt_unified_column (column : Column & DB_Column) expected_type =
     DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
 
-make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
+make_op : Column & DB_Column -> Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
 make_op this_column op_kind operands new_name metadata=Nothing =
     checked_support = if this_column.connection.dialect.is_operation_supported op_kind then True else
         Error.throw (Unsupported_Database_Operation.Error op_kind)
@@ -570,19 +570,19 @@ make_op this_column op_kind operands new_name metadata=Nothing =
         new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
         DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
-make_binary_op : Text -> Text -> (Text | Nothing) -> Column
+make_binary_op : Column & DB_Column -> Text -> Text -> (Text | Nothing) -> Column
 make_binary_op this_column op_kind operand new_name=Nothing =
     effective_new_name = new_name.if_nothing <|
         (naming_helper this_column).binary_operation_name op_kind this_column operand
     make_op (this_column : Column & DB_Column) op_kind [operand] effective_new_name
 
-make_unary_op : Text -> Text|Nothing -> Column
+make_unary_op : Column & DB_Column -> Text -> Text|Nothing -> Column
 make_unary_op this_column op_kind new_name=Nothing =
     effective_new_name = new_name.if_nothing <|
         (naming_helper this_column).function_name op_kind [this_column]
     make_op (this_column : Column & DB_Column) op_kind [] effective_new_name
 
-internal_do_cast : Value_Type -> Problem_Behavior -> Column
+internal_do_cast : Column & DB_Column -> Value_Type -> Problem_Behavior -> Column
 internal_do_cast this_column value_type on_problems:Problem_Behavior =
     dialect = this_column.connection.dialect
     type_mapping = dialect.get_type_mapping
@@ -593,7 +593,7 @@ internal_do_cast this_column value_type on_problems:Problem_Behavior =
         new_column = dialect.make_cast (Internal_Column.from this_column) target_sql_type infer_from_database
         DB_Column.new new_column.name this_column.connection new_column.sql_type_reference new_column.expression this_column.context
 
-should_use_builtin_round : Integer -> Boolean -> Boolean
+should_use_builtin_round : Column & DB_Column -> Integer -> Boolean -> Boolean
 should_use_builtin_round this_column decimal_places rounding_mode =
     # Don't use for banker's rounding (unless the dialect has a builtin for it)
     bankers_ok = this_column.connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
@@ -603,7 +603,7 @@ should_use_builtin_round this_column decimal_places rounding_mode =
     dp_param_ok = decimal_places == 0 || this_column.value_type.is_floating_point.not || this_column.connection.dialect.flagged ..Supports_Float_Decimal_Places
     bankers_ok && negative_dp_ok && dp_param_ok
 
-round_builtin : Integer -> Boolean -> Column
+round_builtin : Column & DB_Column -> Integer -> Boolean -> Column
 round_builtin this_column decimal_places rounding_mode =
     new_name = (naming_helper this_column).function_name "round" [this_column]
     case rounding_mode of
@@ -616,7 +616,7 @@ round_builtin this_column decimal_places rounding_mode =
                 False ->
                     make_binary_op this_column "ROUND" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
 
-round_float : Integer -> Boolean -> Column
+round_float : Column & DB_Column -> Integer -> Boolean -> Column
 round_float this_column decimal_places rounding_mode =
     new_name = (naming_helper this_column).function_name "round" [this_column]
     scale = 10 ^ decimal_places
@@ -636,7 +636,7 @@ round_float this_column decimal_places rounding_mode =
                     result = (do_round_up:DB_Column).let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                     result.rename new_name
 
-round_decimal : Integer -> Boolean -> Column
+round_decimal : Column & DB_Column -> Integer -> Boolean -> Column
 round_decimal this_column decimal_places rounding_mode =
     # Construct a constant Decimal column.
     k x = this_column.const x . cast Value_Type.Decimal

@@ -171,7 +171,6 @@ type Function
        ADVANCED
 
        The function associated with the Meta object.
-
     value self = self.impl
 
     ## PRIVATE
@@ -192,13 +191,13 @@ type Function
             fn = Meta.meta (\x -> x+1)
             if fn . arguments . is_empty then fn.value else
                 Error.throw "Missing "+fn.arguments.length+" arguments"
-
     arguments self pending:Boolean=True defaulted:Boolean=False preapplied:Boolean=False oversaturated:Boolean=False -> Vector Text =
         Meta_Helpers.get_argument_names_builtin self.impl pending defaulted preapplied oversaturated
 
 
 type Unresolved
     private Symbol impl
+
     private Cons impl
 
     ## PRIVATE
@@ -232,7 +231,6 @@ type Unresolved
        ICON metadata
 
        Does this symbol represents an autoscoped constructor?
-
     is_constructor self -> Boolean = case self of
         Unresolved.Cons _ -> True
         _ -> False
@@ -243,7 +241,6 @@ type Unresolved
        ICON metadata
 
        Textual representation of the symbol
-
     to_text self -> Text = case self of
         Unresolved.Symbol _ -> "(Unresolved.Symbol "+self.name+")"
         Unresolved.Cons _ -> "(Unresolved.Cons "+self.name+")"

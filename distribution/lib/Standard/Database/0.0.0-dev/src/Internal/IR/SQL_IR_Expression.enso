@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-
 ## PRIVATE
 
    The internal representation of an SQL expression which can be a column

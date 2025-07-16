@@ -45,3 +45,4 @@
              path = enso_project.data / example_csv_output.csv
              Examples.inventory_table.write path
    ```
+

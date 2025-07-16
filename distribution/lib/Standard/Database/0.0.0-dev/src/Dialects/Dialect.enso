@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Aggregate_Column, Value_Type, Table
+from Standard.Table import Aggregate_Column, Table, Value_Type
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column

@@ -2,7 +2,7 @@ from Standard.Base import all
 from Standard.Google import all
 
 from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet, Not_All_Rows_Downloaded
-from Standard.Google.Google_Sheets_Workbook import Google_Api_Error
+import Standard.Google.Google_Sheets_Workbook.Google_API_Error
 
 from Standard.Test import all
 from Standard.Table import Table
@@ -47,7 +47,7 @@ add_specs suite_builder =
             wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
             wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
             r0 = wb.read "BadName"
-            r0.should_fail_with Google_Api_Error
+            r0.should_fail_with Google_API_Error
             r0.catch.to_display_text . should_equal 'Unable to parse range: BadName'
         group_builder.specify "can read a worksheet via named range" <|
             ## Test2

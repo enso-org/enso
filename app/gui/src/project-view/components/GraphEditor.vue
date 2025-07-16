@@ -230,11 +230,11 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
-    enabled: graphStore.undoManager.canUndo,
+    enabled: () => graphStore.undoManager.canUndo,
     action: () => graphStore.undoManager.undo(),
   },
   'graph.redo': {
-    enabled: graphStore.undoManager.canRedo,
+    enabled: () => graphStore.undoManager.canRedo,
     action: () => graphStore.undoManager.redo(),
   },
   'graph.fitAll': {
