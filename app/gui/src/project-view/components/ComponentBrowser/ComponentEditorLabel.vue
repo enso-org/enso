@@ -42,7 +42,7 @@ const label = computed(() => {
 
 <template>
   <div v-if="label" :data-testid="props.testId" class="componentEditorLabel">
-    <TooltipTrigger v-if="additionalTypes.length + hiddenTypes.length > 1">
+    <TooltipTrigger v-if="additionalTypes.length + hiddenTypes.length > 1" :showOnClick="true">
       <template #default="triggerProps">
         <span
           class="additionalTypesPlaceholder"
