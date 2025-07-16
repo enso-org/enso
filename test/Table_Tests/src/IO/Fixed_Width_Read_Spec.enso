@@ -450,15 +450,17 @@ add_direct_specs suite_builder =
                 table.at 'y' . to_vector . should_equal ['b', 'e', '2']
                 table.at 'z' . to_vector . should_equal ['c', 'f', '3']
 
-        group_builder.specify "should handle differen line endings" <|
+        group_builder.specify "should handle different line endings" <|
                 test_with_line_endings '\r\n' Infer
                 test_with_line_endings '\r\n' Line_Ending_Style.Windows
                 test_with_line_endings '\n' Infer
                 test_with_line_endings '\n' Line_Ending_Style.Unix
                 test_with_line_endings '\r' Infer
                 test_with_line_endings '\r' Line_Ending_Style.Mac_Legacy
-                test_with_line_endings 'é' (Custom_Line_Ending.Value 'é')
-                test_with_line_endings '5é.' (Custom_Line_Ending.Value '5é.')
+                test_with_line_endings '5q.' (Custom_Line_Ending.Value '5q.')
+                test_with_line_endings 'q' (Custom_Line_Ending.Value 'q')
+                test_with_line_endings 'bq.' (Custom_Line_Ending.Value 'bq.')
+                test_with_line_endings 'bc.' (Custom_Line_Ending.Value 'bc.')
                 test_with_line_endings '' (Custom_Line_Ending.Value '')
                 test_with_line_endings '' No_Line_Ending
 
