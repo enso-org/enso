@@ -9,7 +9,7 @@ import * as devtools from '#/components/Devtools'
 
 import type * as backend from '#/services/Backend'
 
-import React from 'react'
+import * as React from 'react'
 import * as paywallConfiguration from './FeaturesConfiguration'
 import * as paywallFeatures from './paywallFeaturesHooks'
 
