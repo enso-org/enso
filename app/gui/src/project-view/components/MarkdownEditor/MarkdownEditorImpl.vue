@@ -178,6 +178,7 @@ defineExpose({
   height: 100%;
   width: 100%;
   gap: 8px;
+  isolation: isolate;
 }
 
 .toolbar {
@@ -191,6 +192,9 @@ defineExpose({
 
 /*noinspection CssUnusedSymbol*/
 .CodeMirrorRoot {
+  /* Below popovers from the `belowToolbar` slot. */
+  z-index: -1;
+
   /*noinspection CssUnusedSymbol*/
   & :deep(.cm-content) {
     /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/

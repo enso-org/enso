@@ -3,12 +3,18 @@ from Standard.Base import all
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Order_Descriptor
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (expression : SQL_IR_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     reverse self -> Order_Descriptor =
         new_direction = case self.direction of
             Sort_Direction.Ascending -> Sort_Direction.Descending
@@ -19,7 +25,9 @@ type Order_Descriptor
             Nulls_Order.Last -> Nulls_Order.First
         Order_Descriptor.Value self.expression new_direction new_nulls_order self.collation
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.

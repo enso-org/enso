@@ -7,29 +7,35 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 type Internal_Column
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        An internal column structure.
 
-       Arguments:
-       - name: The column name.
-       - sql_type_reference: Lazily computed SQL type of the column.
-       - expression: An expression for applying to the column.
+       ## Arguments
+        - `name`: The column name.
+        - `sql_type_reference`: Lazily computed SQL type of the column.
+        - `expression`: An expression for applying to the column.
     Value name:Text sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Rename the internal column.
 
-       Arguments:
-       - new_name: The new name for the column.
+       ## Arguments
+        - `new_name`: The new name for the column.
     rename : Text -> Internal_Column
     rename self new_name = Internal_Column.Value new_name self.sql_type_reference self.expression
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Internal_Column.from (that : DB_Column) =
     Internal_Column.Value (that:Column).name that.sql_type_reference that.expression
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Internal_Column.from (that : Column) =
     Internal_Column.from (that : DB_Column)
