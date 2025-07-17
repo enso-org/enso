@@ -526,7 +526,7 @@ export function useNewProject(backend: Backend, category: Category) {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-            ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
+            ensoPath: createdProject.ensoPath,
           } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
             if (canRunProjects.locally[backend.type]) {

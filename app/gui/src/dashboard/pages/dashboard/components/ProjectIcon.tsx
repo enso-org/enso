@@ -7,7 +7,6 @@ import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinn
 import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useStore } from '#/hooks/storeHooks'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import { projectsStore } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
 import {
@@ -19,6 +18,7 @@ import {
   type ProjectId,
 } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
+import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useText } from '$/providers/react'
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -35,9 +35,11 @@ const REMOTE_SPINNER_STATE: Readonly<Record<ProjectState, SpinnerState>> = {
   [ProjectState.new]: 'loading-slow',
   [ProjectState.placeholder]: 'loading-slow',
   [ProjectState.openInProgress]: 'loading-slow',
+  [ProjectState.hybridOpenInProgress]: 'loading-slow',
   [ProjectState.provisioned]: 'loading-slow',
   [ProjectState.scheduled]: 'loading-slow',
   [ProjectState.opened]: 'done',
+  [ProjectState.hybridOpened]: 'done',
 }
 /**
  * The corresponding {@link SpinnerState} for each {@link ProjectState},
@@ -50,9 +52,11 @@ const LOCAL_SPINNER_STATE: Readonly<Record<ProjectState, SpinnerState>> = {
   [ProjectState.new]: 'loading-slow',
   [ProjectState.placeholder]: 'loading-medium',
   [ProjectState.openInProgress]: 'loading-slow',
+  [ProjectState.hybridOpenInProgress]: 'loading-slow',
   [ProjectState.provisioned]: 'loading-medium',
   [ProjectState.scheduled]: 'loading-medium',
   [ProjectState.opened]: 'done',
+  [ProjectState.hybridOpened]: 'done',
 }
 
 /** Props for a {@link ProjectIcon}. */

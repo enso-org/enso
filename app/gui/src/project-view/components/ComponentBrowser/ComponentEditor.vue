@@ -76,18 +76,20 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
-      <ComponentEditorLabel
-        testId="component-editor-label"
-        :typeInfo="
-          props.mode.filter.selfArg?.type === 'known' ?
-            props.mode.filter.selfArg.typeInfo
-          : undefined
-        "
-        :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
-      />
+    <div class="componentEditorContent">
+      <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
+      <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
+        <ComponentEditorLabel
+          testId="component-editor-label"
+          :typeInfo="
+            props.mode.filter.selfArg?.type === 'known' ?
+              props.mode.filter.selfArg.typeInfo
+            : undefined
+          "
+          :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
+        />
+      </div>
     </div>
-    <CodeMirrorRoot ref="editorRoot" />
   </div>
 </template>
 
@@ -121,11 +123,18 @@ const rootStyle = computed(() => {
   }
 }
 
-.componentEditorLabel {
-  position: absolute;
-  top: 3px;
+.componentEditorContent {
+  display: flex;
   width: 100%;
-  padding-right: 20px;
-  text-align: right;
+  flex-direction: row;
+  align-items: center;
+}
+
+.componentEditorInput {
+  flex-grow: 1;
+}
+
+.componentEditorLabel {
+  margin: 0 4px;
 }
 </style>
