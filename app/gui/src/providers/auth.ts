@@ -26,7 +26,11 @@ export function createUsersMeQueryKey(
   session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
 ) {
-  return [remoteBackend.type, 'usersMe', () => toValue(session)?.clientId ?? null] as const
+  return [
+    remoteBackend.type,
+    'usersMe',
+    computed(() => toValue(session)?.clientId ?? null),
+  ] as const
 }
 
 /** Query to fetch the user's session data from the backend. */
