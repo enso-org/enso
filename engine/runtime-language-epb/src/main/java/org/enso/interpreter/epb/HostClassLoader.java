@@ -2,6 +2,7 @@ package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -40,6 +41,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   // polyglotClassLoader will be used only iff `org.enso.runtime` module is not in the
   // boot module layer.
   private static final boolean isRuntimeModInBootLayer;
+  private Object findLibraries;
 
   public HostClassLoader() {
     super(new URL[0]);
@@ -119,15 +121,16 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
    */
   @Override
   protected String findLibrary(String libname) {
-    /*
-        var pkgRepo = EnsoContext.get(null).getPackageRepository();
-         for (var pkg : pkgRepo.getLoadedPackagesJava()) {
-          var libPath = NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
-          if (libPath != null) {
-            return libPath;
-          }
+    if (findLibraries != null) {
+      try {
+        var res = InteropLibrary.getUncached().execute(findLibraries, libname);
+        if (res instanceof String s) {
+          return s;
         }
-    */
+      } catch (InteropException ex) {
+        logger.log(Logger.Level.WARNING, "Cannot find " + libname, ex);
+      }
+    }
     logger.log(Logger.Level.WARNING, "Native library {0} not found in any package", libname);
     return null;
   }
@@ -153,6 +156,16 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
           } catch (MalformedURLException ex) {
             throw UnsupportedTypeException.create(args, "Cannot convert to URL", ex);
           }
+        } else {
+          throw UnsupportedTypeException.create(args);
+        }
+      }
+      case "findLibraries" -> {
+        if (args.length != 1) {
+          throw ArityException.create(1, 1, args.length);
+        }
+        if (InteropLibrary.getUncached().isExecutable(args[0])) {
+          this.findLibraries = args[0];
         } else {
           throw UnsupportedTypeException.create(args);
         }

@@ -2,22 +2,29 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.interpreter.runtime.util.TruffleFileSystem;
+import org.enso.pkg.NativeLibraryFinder;
 
 /**
  * Handles a polyglot Java system for loading classes from a single source. <em>Single source</em>
  * is a collection of Java modules/libraries/JARs that belong together.
  */
 final class EnsoPolyglotJava {
+
   private static final System.Logger logger = System.getLogger(EnsoPolyglotJava.class.getName());
   private final TruffleLanguage.Env environment;
   private final boolean isHostClassLoading;
@@ -41,6 +48,12 @@ final class EnsoPolyglotJava {
     polyglotJava = createPolyglotJava();
     while (!pendingPath.isEmpty()) {
       addToClassPath(pendingPath.remove(0));
+    }
+    try {
+      InteropLibrary.getUncached()
+          .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
+    } catch (InteropException ex) {
+      logger.log(Level.WARNING, "Cannot register findLibraries", ex);
     }
     return polyglotJava;
   }
@@ -118,5 +131,33 @@ final class EnsoPolyglotJava {
       throws UnsupportedMessageException, UnknownIdentifierException, InteropException {
     var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
     return (TruffleObject) raw;
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class LibraryResolver implements TruffleObject {
+
+    @ExportMessage
+    @CompilerDirectives.TruffleBoundary
+    Object execute(Object[] args) throws ArityException, UnsupportedTypeException {
+      if (args.length != 1) {
+        throw ArityException.create(1, 1, args.length);
+      }
+      if (args[0] instanceof String libname) {
+        var pkgRepo = EnsoContext.get(null).getPackageRepository();
+        for (var pkg : pkgRepo.getLoadedPackagesJava()) {
+          var libPath =
+              NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
+          if (libPath != null) {
+            return libPath;
+          }
+        }
+      }
+      throw UnsupportedTypeException.create(args);
+    }
+
+    @ExportMessage
+    boolean isExecutable() {
+      return true;
+    }
   }
 }
