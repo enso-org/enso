@@ -2,6 +2,13 @@ package org.enso.table.data.column.operation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.util.Collections;
+import java.util.function.Function;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
@@ -14,14 +21,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-import java.util.Collections;
-import java.util.function.Function;
 
 public class JsonOperation {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -47,7 +46,8 @@ public class JsonOperation {
       if (i > 0) {
         builder.append(",");
       }
-      builder.append(doubleStorage.isNothing(i) ? "null" : toJson(doubleStorage.getItemAsDouble(i)));
+      builder.append(
+          doubleStorage.isNothing(i) ? "null" : toJson(doubleStorage.getItemAsDouble(i)));
       context.safepoint();
     }
     builder.append("]");
@@ -79,14 +79,16 @@ public class JsonOperation {
       if (i > 0) {
         builder.append(",");
       }
-      builder.append(booleanStorage.isNothing(i) ? "null" : toJson(booleanStorage.getItemAsBoolean(i)));
+      builder.append(
+          booleanStorage.isNothing(i) ? "null" : toJson(booleanStorage.getItemAsBoolean(i)));
       context.safepoint();
     }
     builder.append("]");
     return builder.toString();
   }
 
-  private static String createObjectJson(ColumnStorage<?> storage, Function<Object, String> ensoJsonCallback) {
+  private static String createObjectJson(
+      ColumnStorage<?> storage, Function<Object, String> ensoJsonCallback) {
     long size = storage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
@@ -149,7 +151,13 @@ public class JsonOperation {
   }
 
   private static String toJson(BigDecimal value) {
-    return "{\"type\":\"Decimal\",\"value\":\"" + value + "\",\"scale\":" + value.scale() + ",\"precision\":" + value.precision() + "}";
+    return "{\"type\":\"Decimal\",\"value\":\""
+        + value
+        + "\",\"scale\":"
+        + value.scale()
+        + ",\"precision\":"
+        + value.precision()
+        + "}";
   }
 
   private static String toJson(String value) {
@@ -161,14 +169,48 @@ public class JsonOperation {
   }
 
   private static String toJson(LocalDate date) {
-    return "{\"type\":\"Date\",\"constructor\":\"new\",\"day\":" + date.getDayOfMonth() + ",\"month\":" + date.getMonthValue() + ",\"year\":" + date.getYear() + "}";
+    return "{\"type\":\"Date\",\"constructor\":\"new\",\"day\":"
+        + date.getDayOfMonth()
+        + ",\"month\":"
+        + date.getMonthValue()
+        + ",\"year\":"
+        + date.getYear()
+        + "}";
   }
 
   private static String toJson(LocalTime time) {
-    return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\",\"hour\":" + time.getHour() + ",\"minute\":" + time.getMinute() + ",\"second\":" + time.getSecond() + ",\"nanosecond\":" + time.getNano() + "}";
+    return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\",\"hour\":"
+        + time.getHour()
+        + ",\"minute\":"
+        + time.getMinute()
+        + ",\"second\":"
+        + time.getSecond()
+        + ",\"nanosecond\":"
+        + time.getNano()
+        + "}";
   }
 
   private static String toJson(ZonedDateTime datetime) {
-    return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\",\"hour\":" + time.getHour() + ",\"minute\":" + time.getMinute() + ",\"second\":" + time.getSecond() + ",\"nanosecond\":" + time.getNano() + "}";
+    var zone_json =
+        "{\"type\":\"Time_Zone\",\"constructor\":\"parse\",\"id\":\""
+            + datetime.getZone().getId()
+            + "\"}";
+    return "{\"type\":\"Date_Time\",\"constructor\":\"new\",\"year\":"
+        + datetime.getYear()
+        + ",\"month\":"
+        + datetime.getMonthValue()
+        + ",\"day\":"
+        + datetime.getDayOfMonth()
+        + ",\"hour\":"
+        + datetime.getHour()
+        + ",\"minute\":"
+        + datetime.getMinute()
+        + ",\"second\":"
+        + datetime.getSecond()
+        + ",\"nanosecond\":"
+        + datetime.getNano()
+        + ",\"zone\":"
+        + zone_json
+        + "}";
   }
 }

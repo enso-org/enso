@@ -220,17 +220,15 @@ private _make_json_for_db_table t max_rows is_column =
       only a fragment is displayed.
 make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
 make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
-    act_max = if max_rows < all_rows_count then max_rows else all_rows_count
-    get_vector c               = Warning.set (Vector.new act_max i-> _make_json_for_value (c.get i)) []
-    columns                    = dataframe.columns
+    columns = dataframe.take max_rows . columns
+    column_vis_helpers         = dataframe.columns.map (c -> c:Visualization_Helpers)
 
-    column_vis_helpers         = columns.map (c -> c:Visualization_Helpers)
     make_data_quality_entry name:Text method displayType:Text =
         if column_vis_helpers.all v-> (method v . is_nothing) then [] else
             values = column_vis_helpers.map method
             [JS_Object.from_pairs [["name", name], ["values", values], ["type", displayType]]]
 
-    header                     = ["header", columns.map .name]
+    header                     = ["header", dataframe.column_names]
     value_type                 = ["value_type", columns.map .value_type]
     all_rows                   = ["all_rows_count", all_rows_count]
     has_index_col              = ["has_index_col", True]
@@ -239,7 +237,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     enable_create_node         = ["enable_create_node", if is_column then False else True]
     child_label                = ["child_label", "row"]
     is_using_server_model      = if is_db_table then False else all_rows_count > 1000
-    data                       = if is_using_server_model.not then columns.map get_vector else Nothing
+    data                       = if is_using_server_model.not then columns.map .to_json_data else Nothing
     requires_number_formatting = ["requires_number_format", column_vis_helpers.map .requires_numeric_formatter_check]
     is_using_multi_filter      = ["is_using_multi_filter", column_vis_helpers.map .check_distinct_values]
     table_version_hash_val     = if is_using_server_model then dataframe.table_version_hash else Nothing
