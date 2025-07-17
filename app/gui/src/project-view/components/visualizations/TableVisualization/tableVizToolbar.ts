@@ -281,7 +281,7 @@ function useSortFilterNodesButton({
   const createNodesButton: ToolbarItem = {
     icon: 'add_to_graph_editor',
     title: "Create new component(s) with the current grid's state applied to the workflow",
-    disabled: tableFilteredOrSorted,
+    disabled: !tableFilteredOrSorted,
     onClick: createNewNodes,
   }
 
@@ -327,7 +327,7 @@ function createRefreshMenu({
   return {
     title: 'Reset any sort, filter or column changes made to the table',
     icon: 'undo',
-    disabled: tableFilteredOrSorted,
+    disabled: !tableFilteredOrSorted,
     onClick: refreshGrid,
   }
 }
