@@ -354,6 +354,15 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     }
   }
 
+  /** Expect editor is opened due to external causes (like auto opening Welcome project). */
+  expectProjectEditorOpened(name: string) {
+    return this.step('Expect Editor is opened', async (page) => {
+      const projectTab = page.getByRole('tab', { name })
+      await expect(projectTab).toBeVisible()
+      await expect(projectTab).toHaveClass(/selected/)
+    }).into(EditorPageActions<Context>)
+  }
+
   /** Clear trash. */
   clearTrash() {
     return this.step('Clear trash', async (page) => {

@@ -7,16 +7,16 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.SQL.SQL_Type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQL_Type_Reference
     ## Refers to the SQL type of a given column, as computed by the Database
        itself.
-
        Since fetching this type requires querying the database, it is computed
        lazily and cached.
-
-       We are not using a lazy field, because we also want to be able to
-       manually set cached type - see `cache_computed_type`.
+       We are not using a lazy field, because we also want to be able to manually
+       set cached type - see `cache_computed_type`.
     Computed_By_Database (ref : Ref (SQL_Type_Recipe | SQL_Type))
 
     ## Refers to an SQL type that is overridden by the dialect's type system.
@@ -27,9 +27,10 @@ type SQL_Type_Reference
        to not rely on the type.
     Null
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the stored SQL type.
-
        This may perform a database query on first access.
     get : SQL_Type
     get self = case self of
@@ -38,34 +39,40 @@ type SQL_Type_Reference
         SQL_Type_Reference.Null ->
             Panic.throw (Illegal_State.Error "Getting the SQL_Type from SQL_Type_Reference.Null is not allowed. This indicates a bug in the Database library.")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates an `SQL_Type_Reference` from a known constant.
-
        This is useful when the type is already known (for example in
-       `Database.make_table`, because the column types were already fetched) or when
-       the type is overridden (for example when pretending that SQLite has a boolean
-       type).
+       `Database.make_table`, because the column types were already fetched) or
+       when the type is overridden (for example when pretending that SQLite has a
+       boolean type).
     from_constant : SQL_Type -> SQL_Type_Reference
     from_constant sql_type = SQL_Type_Reference.Overridden sql_type
 
-    ## PRIVATE
-       Creates a new `SQL_Type_Reference` from a given SQL expression evaluated in a
-       provided context. The connection is used to ask the database engine what the
-       expected type will be.
+    ## ---
+       private: true
+       ---
+       Creates a new `SQL_Type_Reference` from a given SQL expression evaluated
+       in a provided context. The connection is used to ask the database engine
+       what the expected type will be.
     new : Connection -> SQL_IR_Source -> SQL_IR_Expression -> SQL_Type_Reference
     new connection context expression =
         SQL_Type_Reference.Computed_By_Database (Ref.new (SQL_Type_Recipe.Value connection context expression))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a new `SQL_Type_Reference` that should never be used.
        This is used by some internal methods which need to construct an internal
        column, but we can guarantee that its SQL Type will never be checked.
     null : SQL_Type_Reference
     null = SQL_Type_Reference.Null
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Turns this reference into a type override.
-
        If the type is computed by the database, this will return `Nothing`,
        allowing the fetch method to read the type from query metadata. However,
        if it was overridden, it will return that override to be used instead of
@@ -75,15 +82,15 @@ type SQL_Type_Reference
         SQL_Type_Reference.Overridden sql_type -> sql_type
         _ -> Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        If this ref was `Computed_By_Database` that was not yet computed, it will
        save the computed type in its cache. Otherwise, it will do nothing.
-
        This can be used by queries to fill-in an already computed type, so that
        it no longer has to be fetched.
-
-       The `sql_type` argument is suspended, so that it will be processed only
-       if it is used.
+       The `sql_type` argument is suspended, so that it will be processed only if
+       it is used.
     cache_computed_type self (~sql_type : SQL_Type) = case self of
         SQL_Type_Reference.Computed_By_Database ref -> case ref.get of
             _ : SQL_Type_Recipe ->
@@ -92,18 +99,23 @@ type SQL_Type_Reference
             _ -> Nothing
         _ -> Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQL_Type_Recipe
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A recipe for computing the SQL type.
     Value connection:Connection context:SQL_IR_Source expression:SQL_IR_Expression
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns the SQL type represented by the given reference, computing it if
    necessary.
-
-   The computed type is saved back into the Ref, so that future accesses can
-   rely on the cached value.
+   The computed type is saved back into the Ref, so that future accesses can rely
+   on the cached value.
 get_or_compute (ref : Ref (SQL_Type_Recipe | SQL_Type)) -> SQL_Type =
     case ref.get of
         computed : SQL_Type -> computed

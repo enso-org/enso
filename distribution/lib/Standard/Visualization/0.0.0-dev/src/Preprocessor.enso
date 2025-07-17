@@ -2,7 +2,9 @@ from Standard.Base import all
 
 import project.Helpers
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Default visualization preprocessor.
 default_preprocessor x =
     result = x.to_default_visualization_data
@@ -11,13 +13,16 @@ default_preprocessor x =
         False -> result
 
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Lazy visualization preprocessor.
 lazy_preprocessor x = x.to_lazy_visualization_data
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Error visualization preprocessor.
 error_preprocessor x =
     ok = JS_Object.from_pairs [['message', '']] . to_json

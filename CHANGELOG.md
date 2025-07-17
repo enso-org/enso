@@ -30,6 +30,7 @@
 - [Allow displaying cloud images using enso:// url in documentation][13419]
 - [File Browser Widget is used when editing file paths to datalinks][13439]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
+- ["Welcome Project" is automatically opened for new users][13479]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -54,6 +55,7 @@
 [13419]: https://github.com/enso-org/enso/pull/13419
 [13439]: https://github.com/enso-org/enso/pull/13439
 [13522]: https://github.com/enso-org/enso/pull/13522
+[13479]: https://github.com/enso-org/enso/pull/13479
 
 #### Enso Standard Library
 

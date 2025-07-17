@@ -3,7 +3,9 @@ import Standard.Base.Runtime.Context
 
 import project.Test.Test
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Runs the action twice, once with the Output context enabled and once with it
    disabled, to check that the behaviour is the same regardless of context.
 run_with_and_without_output ~action =

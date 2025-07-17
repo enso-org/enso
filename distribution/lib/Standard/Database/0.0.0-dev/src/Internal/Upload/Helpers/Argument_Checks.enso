@@ -12,7 +12,9 @@ from Standard.Table.Errors import Column_Type_Mismatch, Inexact_Type_Coercion, M
 import project.DB_Table.DB_Table
 import project.Update_Action.Update_Action
 
-## PRIVATE
+## ---
+   private: true
+   ---
 check_delete_rows_arguments target_table:Table key_values_to_delete key_columns ~continuation =
     check_target_table_for_update target_table <|
         if key_columns.is_empty then
@@ -29,14 +31,18 @@ check_delete_rows_arguments target_table:Table key_values_to_delete key_columns 
 
         continuation
 
-## PRIVATE
+## ---
+   private: true
+   ---
 check_target_table_for_update target_table ~action = case target_table of
     _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
     db_table : DB_Table -> if db_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
         action
     _ -> Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.Multi_Type.get target_table . to_text)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Ensures that provided primary key columns are present in the table and that
    there are no duplicates.
 resolve_primary_key structure primary_key = case primary_key of
@@ -51,9 +57,10 @@ resolve_primary_key structure primary_key = case primary_key of
             if missing_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector) else
                 primary_key
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This helper ensures that all arguments are valid.
-
    The `action` is run only if the input invariants are satisfied:
    - all columns in `source_table` have a corresponding column in `target_table`
      (with the same name),

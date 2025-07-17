@@ -1,30 +1,57 @@
-import test from 'playwright/test'
+import test, { type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
+async function createNode(page: Page, expression: string) {
+  const nodesCount = await locate.graphNode(page).count()
+  const newNodesCount = nodesCount + 1
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowserInput(page)).toBeFocused()
+  await page.keyboard.insertText(expression)
+  await page.keyboard.press(`${CONTROL_KEY}+Enter`)
+  await expectNodeCreated(page, newNodesCount, expression)
+  return newNodesCount
+}
+
+async function expectNodeCreated(page: Page, expectedNodesCount: number, expression: string) {
+  await expect(locate.graphNode(page)).toHaveCount(expectedNodesCount)
+  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([expression])
+  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
+}
+
+test('Undo/redo buttons work', async ({ page }) => {
+  await actions.goToGraph(page)
+  const undoButton = page.getByTestId('action:graph.undo')
+  const redoButton = page.getByTestId('action:graph.redo')
+
+  const nodesCount = await createNode(page, 'foo')
+
+  await undoButton.click()
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
+  await expect(
+    locate.graphNode(page).locator('.WidgetToken').filter({ hasText: 'foo' }),
+  ).toHaveCount(0)
+
+  await redoButton.click()
+  await expectNodeCreated(page, nodesCount, 'foo')
+})
+
 test('Adding new node', async ({ page }) => {
   await actions.goToGraph(page)
 
-  const nodesCount = await locate.graphNode(page).count()
-  await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowserInput(page)).toBeFocused()
-  await page.keyboard.insertText('foo')
-  await page.keyboard.press(`${CONTROL_KEY}+Enter`)
-  await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(['foo'])
-  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
+  const nodesCount = await createNode(page, 'foo')
   const newNodeBBox = await locate.graphNode(page).last().boundingBox()
 
   await page.keyboard.press(`${CONTROL_KEY}+Z`)
-  await expect(locate.graphNode(page)).toHaveCount(nodesCount)
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
   await expect(
     locate.graphNode(page).locator('.WidgetToken').filter({ hasText: 'foo' }),
   ).toHaveCount(0)
 
   await page.keyboard.press(`${CONTROL_KEY}+Shift+Z`)
-  await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount)
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(['foo'])
   const restoredBox = await locate.graphNode(page).last().boundingBox()
   expect(restoredBox).toEqual(newNodeBBox)

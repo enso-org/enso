@@ -10,19 +10,30 @@ import project.Connection.Credentials.Credentials
 import project.SQL.SQL_Statement
 from project.Connection.Connection import make_table_from_query
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Data_Link_Setup
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Available create_data_link_structure:Enso_File->JS_Object
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Unavailable cause:Text
 
-    ## PRIVATE
-       Returns an unavailable setup with reason being the connection was alraedy a data link.
+    ## ---
+       private: true
+       ---
+       Returns an unavailable setup with reason being the connection was alraedy
+       a data link.
     already_a_data_link -> Data_Link_Setup = Data_Link_Setup.Unavailable "Saving connections established through a Data Link is not allowed. Please copy the Data Link instead."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     save_as_data_link self destination on_existing_file:Existing_File_Behavior link_type:DB_Data_Link_Type=..Database = case self of
         Data_Link_Setup.Available create_fn -> Context.Output.if_enabled disabled_message="As writing is disabled, cannot save to a Data Link. Press the Write button ▶ to perform the operation." panic=False <|
             case destination of
@@ -46,7 +57,9 @@ type Data_Link_Setup
                 DB_Data_Link_Type.SQL_Statement _ -> "query"
             Error.throw (Illegal_Argument.Error "Cannot save "+word+" as Data Link: "+cause)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     save_credentials_for_data_link data_link_location:Enso_File credentials:Credentials -> JS_Object =
         # A plain text is automatically promoted to a secret.
         secret_password = save_password_for_data_link data_link_location credentials.password
@@ -54,21 +67,33 @@ type Data_Link_Setup
         # But we keep the username as-is - if it was in plain text, it will stay in plain text.
         JS_Object.from_pairs [["username", secure_value_to_json credentials.username], ["password", secure_value_to_json secret_password]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type DB_Data_Link_Type
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Database
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Table name:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Query query:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     SQL_Statement sql_statement:SQL_Statement
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Alters the connection description JSON, adding information dependent on
        the data link type (table name or query to fetch, when applicable).
     add_to_data_link_description self connection_description:JS_Object -> JS_Object =
@@ -76,7 +101,9 @@ type DB_Data_Link_Type
         if as_js_object.is_nothing then connection_description else
             connection_description.set_value "table" as_js_object
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Serializes this data link type to an appropriate JSON representation that
        can be assigned to the `table` field in a data link.
     to_js_object self = case self of
@@ -94,9 +121,11 @@ type DB_Data_Link_Type
                    more friendly for the data link modal in the dashboard.
                 JS_Object.from_pairs [["sql_statement", serialized.to_json]]
 
-    ## PRIVATE
-       Parse the `table` field of a data link JSON, returning the appropriate link type.
-
+    ## ---
+       private: true
+       ---
+       Parse the `table` field of a data link JSON, returning the appropriate
+       link type.
        This is the inverse to `to_js_object`.
     from_js value:Any -> DB_Data_Link_Type ! Illegal_Argument = case value of
         Nothing ->
@@ -118,7 +147,9 @@ type DB_Data_Link_Type
                     Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected exactly one field: `query` or `sql_statement`, but got: "+obj.to_display_text)
         _ -> Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected Text or object but got: "+value.to_display_text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Interprets this data link setup according to its type.
        The `Database` link will return the connection as-is, whereas the other
        types will return a `DB_Table` for the specific table/query.

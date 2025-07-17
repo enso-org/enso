@@ -25,7 +25,10 @@ type Table_Viz_Data
             Table_Viz_Data.GenericGrid _ _ -> _make_json_for_generic_grid self.headers self.data
 
 type Table_Viz_Header
+    ## Column with links to create child nodes.
     Link name tooltip action
+
+    ## Column with a label.
     Label name
 
 private _make_json_for_generic_grid headers data =

@@ -32,18 +32,18 @@ import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Errors import Invalid_Value_Type
+from project.In_Memory_Table import from_java_table
 from project.Internal.Column_Format import all
 from project.Internal.Column_Type_Helpers import get_underlying_from_column
 from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
-from project.In_Memory_Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
 polyglot java import org.enso.table.data.column.operation.binary.FillMissingOperation
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
-polyglot java import org.enso.table.data.column.operation.BinaryOperation
 polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
+polyglot java import org.enso.table.data.column.operation.BinaryOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.IfOperation
