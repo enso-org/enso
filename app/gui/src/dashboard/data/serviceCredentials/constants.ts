@@ -20,7 +20,7 @@ export const CREDENTIAL_INFOS: readonly [CredentialInfo, ...CredentialInfo[]] = 
   {
     icon: undefined,
     nameId: 'stravaCredentialType',
-    credentialType: 'google',
+    credentialType: 'strava',
     form: StravaCredentialsForm,
   },
 ]
