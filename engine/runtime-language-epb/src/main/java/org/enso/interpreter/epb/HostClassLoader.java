@@ -1,5 +1,6 @@
 package org.enso.interpreter.epb;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -57,11 +58,13 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   }
 
   @Override
+  @CompilerDirectives.TruffleBoundary
   public Class<?> loadClass(String name) throws ClassNotFoundException {
     return loadClass(name, false);
   }
 
   @Override
+  @CompilerDirectives.TruffleBoundary
   protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
     logger.log(Logger.Level.TRACE, "Loading class {0}", name);
     var l = loadedClasses.get(name);
@@ -118,7 +121,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   protected String findLibrary(String libname) {
     /*
         var pkgRepo = EnsoContext.get(null).getPackageRepository();
-        for (var pkg : pkgRepo.getLoadedPackagesJava()) {
+         for (var pkg : pkgRepo.getLoadedPackagesJava()) {
           var libPath = NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
           if (libPath != null) {
             return libPath;
@@ -135,6 +138,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final Object invokeMember(String name, Object[] args)
       throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
     switch (name) {
@@ -177,6 +181,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
     try {
       var clazz = loadClass(member);
