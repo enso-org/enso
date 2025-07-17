@@ -346,6 +346,29 @@ public abstract class JavaInteropTest {
   }
 
   @Test
+  public void throwsParsingError() {
+    var code =
+        """
+              from Standard.Base import Panic
+              polyglot java import java.lang.Integer as Num
+              polyglot java import java.lang.NumberFormatException as Ex
+
+              main =
+                Panic.catch Ex (Num.parseInt "NotAnInt") .payload
+              """;
+
+    var res = ctx().evalModule(code);
+    assertTrue("Got an exception back", res.isException());
+    var typeEx = res.getMetaObject();
+    assertEquals("java.lang.NumberFormatException", typeEx.getMetaQualifiedName());
+    try {
+      throw res.throwException();
+    } catch (PolyglotException ex) {
+      assertEquals("For input string: \"NotAnInt\"", ex.getMessage());
+    }
+  }
+
+  @Test
   public void testInterfaceProxyFailuresA() {
     var payload = evalInterfaceProxyFailures("a");
     assertEquals("My_Exc", payload.getMetaObject().getMetaSimpleName());
