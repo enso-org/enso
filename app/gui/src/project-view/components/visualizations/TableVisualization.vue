@@ -1155,7 +1155,7 @@ config.setToolbar(
     textFormatterSelected,
     filterModel,
     sortModel,
-    tableFilteredOrSorted: () => isTableFilteredOrSorted.value,
+    tableFilteredOrSorted: () => !isTableFilteredOrSorted.value,
     isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
