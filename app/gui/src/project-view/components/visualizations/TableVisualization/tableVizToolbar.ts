@@ -44,12 +44,12 @@ export interface ColumnNodeButton {
 }
 
 interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {
-  isButtonDisabled: ToValue<boolean>
+  tableFilteredOrSorted: ToValue<boolean>
 }
 
 export interface RefreshButtonOptions {
   refreshGrid: () => void
-  isButtonDisabled: ToValue<boolean>
+  tableFilteredOrSorted: ToValue<boolean>
 }
 
 export interface Options extends NewNodeOptions, FormatMenuOptions, RefreshButtonOptions {}
@@ -63,7 +63,7 @@ type ConstructivePattern = (
  *
  * @param {FilterModel} options.filterModel - The current filter model applied to the table.
  * @param {SortModel} options.sortModel - The current sort model applied to the table.
- * @param {boolean} options.isButtonDisabled - Whether the button should be disabled, the button will be disabled if there are no changes to the table viz.
+ * @param {boolean} options.tableFilteredOrSorted - Are there changes to the table viz sorting or filtering. Used to enable/disable buttons 
  * @param {boolean} options.isCreateNewNodeEnabled - Whether the functionality to create new nodes is enabled, only enabled for tables (i.e not rows, vectors).
  * @param options.createNodes - Function to trigger creation of new nodes.
  * @param {(columnId: string, value: unknown) => EnsoValue} options.getColumnValueToEnso - Function to convert column values to a format compatible with Enso.
@@ -76,7 +76,7 @@ type ConstructivePattern = (
 function useSortFilterNodesButton({
   filterModel,
   sortModel,
-  isButtonDisabled,
+  tableFilteredOrSorted,
   isCreateNewNodeEnabled,
   createNodes,
   getColumnValueToEnso,
@@ -281,7 +281,7 @@ function useSortFilterNodesButton({
   const createNodesButton: ToolbarItem = {
     icon: 'add_to_graph_editor',
     title: "Create new component(s) with the current grid's state applied to the workflow",
-    disabled: isButtonDisabled,
+    disabled: tableFilteredOrSorted,
     onClick: createNewNodes,
   }
 
@@ -320,11 +320,11 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
   }
 }
 
-function createRefreshMenu({ refreshGrid, isButtonDisabled }: RefreshButtonOptions): ToolbarItem {
+function createRefreshMenu({ refreshGrid, tableFilteredOrSorted }: RefreshButtonOptions): ToolbarItem {
   return {
     title: 'Reset any sort, filter or column changes made to the table',
     icon: 'undo',
-    disabled: isButtonDisabled,
+    disabled: tableFilteredOrSorted,
     onClick: refreshGrid,
   }
 }
