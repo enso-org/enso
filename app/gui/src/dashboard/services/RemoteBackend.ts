@@ -444,7 +444,7 @@ export default class RemoteBackend extends Backend {
       ...(query.pageSize != null ? [['pageSize', String(query.pageSize)]] : []),
     ]).toString()
     const path = `${remoteBackendPaths.SEARCH_DIRECTORY_PATH}?${paramsString}`
-    const response = await this.post<backend.ListDirectoryResponseBody>(path, {})
+    const response = await this.get<backend.ListDirectoryResponseBody>(path)
     if (!response.ok) {
       return await this.throw(response, 'searchFolderBackendError')
     } else {
@@ -1511,17 +1511,14 @@ export default class RemoteBackend extends Backend {
     response: backend.ListDirectoryResponseBody,
     parentId: backend.DirectoryId | null,
   ): readonly backend.AnyAsset[] {
-    return response.assets
-      .map((asset) =>
-        objects.merge(asset, {
-          type: backend.getAssetTypeFromId(asset.id),
-          // `Users` and `Teams` folders are virtual, so their children incorrectly have
-          // the organization root id as their parent id.
-          parentId: parentId ?? asset.parentId,
-          permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
-        }),
-      )
-      .sort(backend.compareAssets)
+    return response.assets.map((asset) =>
+      objects.merge(asset, {
+        type: backend.getAssetTypeFromId(asset.id),
+        // `Users` and `Teams` folders are virtual, so their children incorrectly have
+        // the organization root id as their parent id.
+        parentId: parentId ?? asset.parentId,
+      }),
+    )
   }
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */

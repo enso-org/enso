@@ -20,6 +20,7 @@ import {
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
+import { useDerivedDebouncedState } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
@@ -132,7 +133,6 @@ LocalStorage.registerKey('enabledColumns', {
   schema: z.nativeEnum(Column).array().readonly(),
 })
 
-const INITIAL_PAGE_PARAM = Symbol('initial page parameter')
 /**
  * The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling.
@@ -268,26 +268,32 @@ function AssetsTable(props: AssetsTableProps) {
     return queryDirectoryIdRaw
   })()
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
+  const debouncedQueryDelayMs = useFeatureFlag('dataCatalogQueryDebounceDelay')
+  const debouncedQuery = useDerivedDebouncedState(query, debouncedQueryDelayMs)
   const directoryQueryOptions =
-    query.query === '' ?
+    debouncedQuery.query === '' ?
       listDirectoryQueryOptions({
         backend,
         parentId: queryDirectoryId,
         category,
         refetchInterval: listDirectoryRefetchInterval,
-        labels: query.labels.length !== 0 ? query.labels.map(LabelName) : null,
+        labels: debouncedQuery.labels.length !== 0 ? debouncedQuery.labels.map(LabelName) : null,
         sortExpression: sortInfo?.field ?? null,
         sortDirection: sortInfo?.direction ?? null,
       })
     : searchDirectoryQueryOptions({
         backend,
         parentId: queryDirectoryId,
-        query: query.keywords[0] != null ? query.keywords.join(' ') : null,
-        title: query.names[0] ?? null,
-        extension: query.extensions[0] ?? null,
-        description: query.descriptions[0] ?? null,
-        type: query.types[0] ?? null,
-        labels: query.labels.length !== 0 ? query.labels.map(LabelName) : null,
+        // The `query` parameter is not supported.
+        query: null,
+        title:
+          debouncedQuery.keywords[0] != null ?
+            debouncedQuery.keywords.join(' ')
+          : (debouncedQuery.names[0] ?? null),
+        extension: debouncedQuery.extensions[0] ?? null,
+        description: debouncedQuery.descriptions[0] ?? null,
+        type: debouncedQuery.types[0] ?? null,
+        labels: debouncedQuery.labels.length !== 0 ? debouncedQuery.labels.map(LabelName) : null,
         sortExpression: sortInfo?.field ?? null,
         sortDirection: sortInfo?.direction ?? null,
       })
@@ -296,12 +302,10 @@ function AssetsTable(props: AssetsTableProps) {
     ...directoryQueryOptions,
     queryFn: (context) =>
       directoryQueryOptions.queryFn(context, {
-        from: context.pageParam === INITIAL_PAGE_PARAM ? null : context.pageParam,
+        from: context.pageParam,
         pageSize,
       }),
-    // This is type-safe because `INITIAL_PAGE_PARAM` is of type `typeof INITIAL_PAGE_PARAM`.
-    // eslint-disable-next-line no-restricted-syntax
-    initialPageParam: INITIAL_PAGE_PARAM as AssetId | typeof INITIAL_PAGE_PARAM | null,
+    initialPageParam: ((): AssetId | null => null)(),
     getNextPageParam: (lastPage) => lastPage.at(-1)?.id ?? null,
     retry: () => {
       setDriveLocation(null, category.id)
