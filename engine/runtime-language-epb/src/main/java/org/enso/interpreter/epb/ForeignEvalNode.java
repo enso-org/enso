@@ -125,8 +125,11 @@ final class ForeignEvalNode extends RootNode {
         var constant = RootNode.createConstantNode(res);
         return new GenericForeignNode(constant.getCallTarget());
       }
+      if ("hosted".equals(code)) {
+        return JavaPolyglotNode.createHosted(context);
+      }
     }
-    return ForeignJavaNode.create();
+    return JavaPolyglotNode.create();
   }
 
   private ForeignFunctionCallNode parseJs() {

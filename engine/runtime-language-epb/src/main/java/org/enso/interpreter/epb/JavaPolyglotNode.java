@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
 
-final class ForeignJavaNode {
+final class JavaPolyglotNode {
   static GenericForeignNode create() {
     try {
       var isAot = TruffleOptions.AOT;
@@ -16,5 +16,11 @@ final class ForeignJavaNode {
     } catch (URISyntaxException | IOException ex) {
       throw new IllegalStateException(ex);
     }
+  }
+
+  static ForeignFunctionCallNode createHosted(EpbContext context) {
+    var loader = new HostClassLoader();
+    var target = RootNode.createConstantNode(loader).getCallTarget();
+    return new GenericForeignNode(target);
   }
 }

@@ -10,11 +10,13 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ValueProfile;
@@ -81,13 +83,12 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
-  private final HostClassLoader hostClassLoader = new HostClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticAnalysisEnabled;
   private final boolean isHostClassLoading;
   private final boolean isGuestClassLoading;
-  private volatile Object guestJava = this;
+  private volatile Object polyglotJava = this;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -341,9 +342,17 @@ public final class EnsoContext {
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
     packageRepository.shutdown();
-    guestJava = null;
     topScope = null;
-    hostClassLoader.close();
+    if (polyglotJava instanceof TruffleObject closeJava) {
+      polyglotJava = null;
+      try {
+        InteropLibrary.getUncached().invokeMember(closeJava, "close");
+      } catch (InteropException ex) {
+        logger.log(Level.SEVERE, "Cannot close " + closeJava, ex);
+      }
+    } else {
+      polyglotJava = null;
+    }
     EnsoParser.freeAll();
   }
 
@@ -526,25 +535,15 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public void addToClassPath(TruffleFile file) {
-    if (isHostClassLoading) {
-      try {
-        var url = file.toUri().toURL();
-        hostClassLoader.add(url);
-      } catch (MalformedURLException ex) {
-        throw new IllegalStateException(ex);
-      }
-    }
-    if (isGuestClassLoading) {
       try {
         var path = new File(file.toUri()).getAbsoluteFile();
         if (!path.exists()) {
           throw new IllegalStateException("File not found " + path);
         }
-        InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
+        InteropLibrary.getUncached().invokeMember(findPolyglotJava(), "addPath", path.getPath());
       } catch (InteropException ex) {
-        throw new IllegalStateException(ex);
+        throw raiseAssertionPanic(null, null, ex);
       }
-    }
   }
 
   /**
@@ -647,36 +646,17 @@ public final class EnsoContext {
   @TruffleBoundary
   public TruffleObject lookupJavaClass(String className) {
     var collectedExceptions = new ArrayList<Exception>();
-
-    if (isHostClassLoading) {
-      var hostSymbol =
-          ClassLookup.lookupJavaClass(
-              className, // name to search for
-              (fqn) -> {
-                return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
-              },
-              collectedExceptions // put here all exceptions
-              );
-      if (hostSymbol instanceof TruffleObject) {
-        return (TruffleObject) hostSymbol;
-      }
-    }
-    if (isGuestClassLoading) {
-        var javaHome = System.getProperty("java.home");
-        logger.info(
-            () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
-        var hostSymbol =
-            ClassLookup.lookupJavaClass(
-                className, // name to search for
-                (fqn) -> {
-                    var clazz = InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
-                    return clazz;
-                }, // pluggable polyglot searches
-                collectedExceptions // collect exceptions
-                );
-        if (hostSymbol instanceof TruffleObject) {
-          return (TruffleObject) hostSymbol;
-        }
+    var hostSymbol =
+        ClassLookup.lookupJavaClass(
+            className, // name to search for
+            (fqn) -> {
+                var clazz = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
+                return clazz;
+            }, // pluggable polyglot searches
+            collectedExceptions // collect exceptions
+            );
+    if (hostSymbol instanceof TruffleObject) {
+      return (TruffleObject) hostSymbol;
     }
     var level = Level.WARNING;
     for (var ex : collectedExceptions) {
@@ -689,42 +669,50 @@ public final class EnsoContext {
   }
 
   @TruffleBoundary
-  private Object findGuestJava() throws IllegalStateException {
-    if (guestJava != this) {
-      return guestJava;
+  private Object findPolyglotJava() throws IllegalStateException {
+    if (polyglotJava != this) {
+      return polyglotJava;
     }
-    guestJava = null;
-    var envJava = System.getenv("ENSO_JAVA");
-    if (envJava == null) {
-      logger.log(Level.SEVERE, "Using experimental OtherJvm support!");
-      var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
-      var target = environment.parseInternal(src);
-      guestJava = target.call();
-      return guestJava;
+    polyglotJava = null;
+    if (isHostClassLoading) {
+          var src = Source.newBuilder("epb", "java:0#hosted", "<Bindings>").build();
+          var target = environment.parseInternal(src);
+          polyglotJava = target.call();
+          return polyglotJava;
     }
-    if ("espresso".equals(envJava)) {
-      var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
-      try {
-        guestJava = environment.parsePublic(src).call();
-        logger.log(Level.SEVERE, "Using experimental Espresso support!");
-      } catch (Exception ex) {
-        if (ex.getMessage().contains("No language for id java found.")) {
-          logger.log(
-              Level.SEVERE,
-              "Environment variable ENSO_JAVA=" + envJava + ", but " + ex.getMessage());
-          logger.log(Level.SEVERE, "Copy missing libraries to components directory");
-          logger.log(Level.SEVERE, "Continuing in regular Java mode");
-        } else {
-          var ise = new IllegalStateException(ex.getMessage());
-          ise.setStackTrace(ex.getStackTrace());
-          throw ise;
+    if (isGuestClassLoading) {
+        var envJava = System.getenv("ENSO_JAVA");
+        if (envJava == null) {
+          logger.log(Level.SEVERE, "Using experimental OtherJvm support!");
+          var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
+          var target = environment.parseInternal(src);
+          polyglotJava = target.call();
+          return polyglotJava;
         }
-      }
-    } else {
-      throw new IllegalStateException(
-          "Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
+        if ("espresso".equals(envJava)) {
+          var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
+          try {
+            polyglotJava = environment.parsePublic(src).call();
+            logger.log(Level.SEVERE, "Using experimental Espresso support!");
+          } catch (Exception ex) {
+            if (ex.getMessage().contains("No language for id java found.")) {
+              logger.log(
+                  Level.SEVERE,
+                  "Environment variable ENSO_JAVA=" + envJava + ", but " + ex.getMessage());
+              logger.log(Level.SEVERE, "Copy missing libraries to components directory");
+              logger.log(Level.SEVERE, "Continuing in regular Java mode");
+            } else {
+              var ise = new IllegalStateException(ex.getMessage());
+              ise.setStackTrace(ex.getStackTrace());
+              throw ise;
+            }
+          }
+        } else {
+          throw new IllegalStateException(
+              "Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
+        }
     }
-    return guestJava;
+    return polyglotJava;
   }
 
   /**
