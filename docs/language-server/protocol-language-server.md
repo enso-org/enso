@@ -372,7 +372,7 @@ interface ExpressionUpdate {
    *
    *  Possible values:
    *  - empty array indicates no type information for this expression
-   *  - array with a single value contains a value of this expression
+   *  - array with a single value contains a qualified type name of this expression
    *  - array with multiple values represents an intersetion type
    */
   type: string[];
@@ -501,6 +501,14 @@ The language construct that can be returned as a suggestion.
 #### Format
 
 ```typescript
+/**
+ * Type representation.
+ *
+ * - For a simple type it contains a qualified type name
+ * - For complex types it contains a text representation of this type (i.e. how it is defined in the code)
+ */
+type Typename = string;
+
 // The definition scope
 interface SuggestionEntryScope {
   // The start position of the definition scope
@@ -555,7 +563,7 @@ interface Type {
   params: SuggestionEntryArgument[];
 
   /** Qualified name of the parent type. */
-  parentType?: string;
+  parentType?: Typename;
 
   /** The fully qualified module name re-exporting this type.
    *
@@ -584,7 +592,7 @@ interface Constructor {
   arguments: SuggestionEntryArgument[];
 
   /** The type of the constructor. */
-  returnType: string;
+  returnType: Typename;
 
   /** The fully qualified module name re-exporting this constructor.
    *
@@ -616,10 +624,10 @@ interface Method {
   arguments: SuggestionEntryArgument[];
 
   /** The method self type. */
-  selfType: string;
+  selfType: Typename;
 
   /** The return type of this method. */
-  returnType: string;
+  returnType: Typename;
 
   /** The flag indicating whether this method is static or instance. */
   isStatic: boolean;
@@ -654,7 +662,7 @@ interface Function {
   arguments: SuggestionEntryArgument[];
 
   /** The function return type. */
-  returnType: string;
+  returnType: Typename;
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
@@ -674,7 +682,7 @@ interface Local {
   module: string;
 
   /** The type of a value. */
-  returnType: string;
+  returnType: Typename;
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
