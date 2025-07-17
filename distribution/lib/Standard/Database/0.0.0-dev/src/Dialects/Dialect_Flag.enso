@@ -1,124 +1,183 @@
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Dialect_Flag
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Supports_Negative_Decimal_Places
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Supports_Float_Decimal_Places
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Use_Builtin_Bankers
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Primary_Key_Allows_Nulls
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies if the Database distinguishes a separate `NaN` value for
-       floating point columns. Some databases will not be able to distinguish
-       NaN from NULL.
+       floating point columns. Some databases will not be able to distinguish NaN
+       from NULL.
     Supports_Separate_NaN
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies if the Database backend supports WITH clauses in nested queries.
     Supports_Nested_With_Clause
-    ## PRIVATE
-       Specifies if the backend supports case-sensitive column names. If `False`, the backend will
-       match column names in a case insensitive way, so that "Foo" and "foo" will refer to the
-       same column.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports case-sensitive column names. If `False`,
+       the backend will match column names in a case insensitive way, so that
+       "Foo" and "foo" will refer to the same column.
     Supports_Case_Sensitive_Columns
-    ## PRIVATE
-       Specifies if the backend supports the `Infinity` value for floating point columns.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports the `Infinity` value for floating point
+       columns.
     Supports_Infinity
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies text comparisons are case sensitive by default.
     Case_Sensitive_Text_Comparison
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies if the backend supports natural ordering operations.
     Supports_Sort_Digits_As_Numbers
-    ## PRIAVTE
+    ## ---
+       private: true
+       --- 
        Specifies if the backend supports case insensitive ordering.
     Supports_Case_Insensitive_Ordering
-    ## PRIVATE
-       Specifies if the backend uses case insensitive sort in its default ordering.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend uses case insensitive sort in its default
+       ordering.
     Case_Insensitive_Ordering_By_Default
-    ## PRIVATE
-       Specifies if the backend uses unicode normalization in its default ordering.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend uses unicode normalization in its default
+       ordering.
     Order_By_Unicode_Normalization_By_Default
-    ## PRIVATE
-       Specifies if the backend uses unicode normalization when doing case insentive ordering.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend uses unicode normalization when doing case
+       insentive ordering.
     Order_By_Unicode_Normalization_When_Case_Insensitive
-    ## PRIVATE
-       Specifies if mixed operations comparing
-       mixed types are allowed by a given backend. Some backends will allow
-       such comparisons, when mixed type storage is allowed or by coercing to
-       the target type; others will fail with a type error.
+    ## ---
+       private: true
+       ---
+       Specifies if mixed operations comparing mixed types are allowed by a given
+       backend. Some backends will allow such comparisons, when mixed type
+       storage is allowed or by coercing to the target type; others will fail
+       with a type error.
     Allows_Mixed_Type_Comparisons
-    ## PRIVATE
-       Specifies if the backend compares
-       strings taking Unicode Normalization into account, i.e. whether
-       's\u0301' is considered equal to 'ś'.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend compares strings taking Unicode Normalization
+       into account, i.e. whether 's\u0301' is considered equal to 'ś'.
     Supports_Unicode_Normalization
-    ## PRIVATE
-       Specifies if NaN value is
-       treated as greater than all numbers. If `False`, `NaN` is expected to
-       yield False to both < and > comparisons.
+    ## ---
+       private: true
+       ---
+       Specifies if NaN value is treated as greater than all numbers. If `False`,
+       `NaN` is expected to yield False to both < and > comparisons.
     NaN_Non_Comparable
-    ## PRIAVTE
-       If `order_by` was
-       applied before, the distinct operation will return the first row from
-       each group. Guaranteed in the in-memory backend, but may not be
-       supported by all databases.
+    ## ---
+       private: true
+       --- 
+       If `order_by` was applied before, the distinct operation will
+       return the first row from each group. Guaranteed in the in-memory backend,
+       but may not be supported by all databases.
     Distinct_Returns_First_Row_From_Group_If_Ordered
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies if the backend supports date/time operations.
     Date_Time
-    ## PRIVATE
-       Specifies if the backend supports setting
-       a length limit on text columns.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports setting a length limit on text columns.
     Text_Length_Limited_Columns
-    ## PRIVATE
-       Specifies if the backend supports fixed
-       length text columns.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports fixed length text columns.
     Fixed_Length_Text_Columns
-    ## PRIVATE
-       Specifies if the backend supports
-       length restrictions for text columns.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports length restrictions for text columns.
     Length_Restricted_Text_Columns
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        if SELECT concat('X', CAST(CAST('   ' AS CHAR(3)) AS VARCHAR(3)), 'X')
        returns XX then this should be set to True
     Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar
-    ## PRIVATE
-       Specifies how the max size of the char
-       type behaves after text_left/text_right.
+    ## ---
+       private: true
+       ---
+       Specifies how the max size of the char type behaves after
+       text_left/text_right.
        If True the orginal size is kept, if False the size is reset.
     Char_Max_Size_After_Substring_Kept
-    ## PRIVATE
-       Specifies if the backend supports
-       integer types of various sizes, like 16-bit or 32-bit integers.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports integer types of various sizes, like
+       16-bit or 32-bit integers.
     Different_Size_Integer_Types
-    ## PRIVATE
-       Specifies if the backend supports 8-bit
-       integers.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports 8-bit integers.
     Supports_8bit_Integer
-    ## PRIVATE
-       Specifies if the backend supports the `Decimal`
-       high-precision type.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports the `Decimal` high-precision type.
     Supports_Decimal_Type
-    ## PRIVATE
-       Specifies if the backend supports a
-       `Duration`/`Period` type.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports a `Duration`/`Period` type.
     Supports_Time_Duration
-    ## PRIVATE
-       Specifies if the backend supports
-       nanosecond precision in time values.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports nanosecond precision in time values.
     Supports_Nanoseconds_In_Time
-    ## PRIVATE
-       Specifies if the backend supports mixed-type
-       columns.
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports mixed-type columns.
     Supports_Mixed_Columns
-    ## PRIVATE
-       Specifies if the backend supports
-       date/time operations without a timezone (true for most Database backends).
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports date/time operations without a timezone
+       (true for most Database backends).
        Defaults to `.is_integer`.
     Supports_Date_Time_Without_Timezone
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Can perform a regular expression match
     Supports_Regex_Match

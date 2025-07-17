@@ -10,7 +10,9 @@ import project.Dialects.Dialect.Temp_Table_Style
 import project.Internal.Data_Link_Setup.DB_Data_Link_Type
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 
-## PRIVATE
+## ---
+   private: true
+   ---
 data_link_connection_parameters (source : Data_Link_Source_Metadata) -> Connection_Options =
     related_asset_id = case source of
         Data_Link_Source_Metadata.Cloud_Asset id -> id
@@ -19,7 +21,9 @@ data_link_connection_parameters (source : Data_Link_Source_Metadata) -> Connecti
     options_vector = [["enso.internal.audit", audit_mode]] + (if related_asset_id.is_nothing then [] else [["enso.internal.relatedAssetId", related_asset_id]])
     Connection_Options.Value options_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
 save_table_as_data_link table destination on_existing_file:Existing_File_Behavior =
     data_link_setup = table.connection.data_link_setup.if_nothing <|
         Error.throw (Illegal_Argument.Error "Saving a Table as data link is currently not supported in this backend.")
@@ -39,9 +43,10 @@ save_table_as_data_link table destination on_existing_file:Existing_File_Behavio
         Warning.attach warning result
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if the query refers to any tables that are temporary.
-
    Note that this is a heuristic and it may potentially lead to false positives
    if aliasing table names exist across schemas. Supporting tables with clashing
    names across schemas is something that may need to be revised overall in the

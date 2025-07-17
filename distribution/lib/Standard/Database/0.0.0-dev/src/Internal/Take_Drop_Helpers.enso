@@ -11,15 +11,23 @@ from Standard.Table import Column, Set_Mode, Table
 import project.DB_Table.DB_Table
 from project.Errors import Unsupported_Database_Operation
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Take_Drop
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Take
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Drop
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Apply `take` or `drop` to a table, returning the specified by the selector.
 take_drop_helper : Take_Drop -> Table & DB_Table -> (Index_Sub_Range | Range | Integer) -> Table & DB_Table
 take_drop_helper take_drop:Take_Drop table selector:(Index_Sub_Range | Range | Integer) =
@@ -37,7 +45,9 @@ take_drop_helper take_drop:Take_Drop table selector:(Index_Sub_Range | Range | I
             combined = subqueries.reduce (a-> b-> a.union b)
             combined.remove_columns row_column_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Turn the selector into a vector of ranges
 collect_ranges : Take_Drop -> Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
 collect_ranges take_drop length selector:(Index_Sub_Range | Range | Integer) =
@@ -53,8 +63,11 @@ collect_ranges take_drop length selector:(Index_Sub_Range | Range | Integer) =
         Take_Drop.Drop -> drop_helper
     helper length at single_slice slice_ranges selector
 
-## PRIVATE
-   Throw Unsupported_Database_Operation for selectors that are not supported by database backends.
+## ---
+   private: true
+   ---
+   Throw Unsupported_Database_Operation for selectors that are not supported by
+   database backends.
 check_supported : (Index_Sub_Range | Range | Integer) -> Any -> Any | Unsupported_Database_Operation
 check_supported selector:(Index_Sub_Range | Range | Integer) ~cont =
     err =
@@ -65,14 +78,19 @@ check_supported selector:(Index_Sub_Range | Range | Integer) ~cont =
         Index_Sub_Range.Sample _ _ -> err
         _ -> cont
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Remove empty ranges.
 cleanup_ranges : Vector Range -> Vector Range
 cleanup_ranges ranges:(Vector Range) =
     ranges.filter (range-> range.end > range.start)
 
-## PRIVATE
-   Filter a table with a single range. Returns only those rows whose row column fall within the range.
+## ---
+   private: true
+   ---
+   Filter a table with a single range. Returns only those rows whose row column
+   fall within the range.
 generate_subquery : Table & DB_Table -> Text -> Range -> Table & DB_Table
 generate_subquery (table : Table & DB_Table) row_column_name range =
     case range.step of
