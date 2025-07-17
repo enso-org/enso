@@ -85,7 +85,7 @@ export function useEnsoPaths(
       (path.root === toValue(files?.rootDirectoryId) ? toValue(files?.rootPath) : undefined) ??
       'enso://'
     // Sometimes rootPath ends with /, and sometimes not.
-    if (!rootPath.endsWith('/')) rootPath = rootPath + '/'
+    if (!rootPath.endsWith('/') && path.segments.length) rootPath = rootPath + '/'
     return `${rootPath}${path.segments.join('/')}`
   }
 
