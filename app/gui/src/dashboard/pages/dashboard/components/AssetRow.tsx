@@ -161,7 +161,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const contextMenuRef = React.useRef<ContextMenuApi>(null)
   const [isNavigating, startNavigation] = useTransition()
 
-  const [contextMenuPosition, setContextMenuPosition] = React.useState<Pick<
+  const [initialContextMenuPosition, setInitialContextMenuPosition] = React.useState<Pick<
     MouseEvent,
     'pageX' | 'pageY'
   > | null>(null)
@@ -186,10 +186,14 @@ export function RealAssetRow(props: RealAssetRowProps) {
   )
 
   React.useEffect(() => {
-    if (contextMenuPosition != null) {
-      setContextMenuPosition(null)
+    // If `initialContextMenuPosition` is not null, that means the context menu is being opened
+    // during this render. Set the position to `null` since it the position is no longer needed.
+    // If it is not set to `null`, then the next time the row is focused, the context menu will be
+    // open by default.
+    if (initialContextMenuPosition != null) {
+      setInitialContextMenuPosition(null)
     }
-  }, [contextMenuPosition])
+  }, [initialContextMenuPosition])
 
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
@@ -388,7 +392,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               if (!isSelected) {
                 select(item)
-                setContextMenuPosition(event)
+                setInitialContextMenuPosition(event)
               } else {
                 contextMenuRef.current?.open(event)
               }
@@ -475,7 +479,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               doCut={doCut}
               doPaste={doPaste}
               rightPanel={rightPanel}
-              initialPosition={contextMenuPosition}
+              initialPosition={initialContextMenuPosition}
             />
           )}
         </>

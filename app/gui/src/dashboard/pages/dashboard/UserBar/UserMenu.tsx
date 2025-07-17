@@ -11,11 +11,9 @@ import { unsetModal } from '#/providers/ModalProvider'
 import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import type { ModalApi } from '#/utilities/modal'
 import { SUBSCRIBE_PATH } from '$/appUtils'
 import { useBackends, useFullUserSession, useRouter, useSession, useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
-import { useRef } from 'react'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
@@ -34,7 +32,6 @@ export function UserMenu(props: UserMenuProps) {
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
-  const aboutModalRef = useRef<ModalApi>(null)
 
   const entries = useMenuEntries([
     localBackend == null && {
@@ -54,7 +51,7 @@ export function UserMenu(props: UserMenuProps) {
     {
       action: 'aboutThisApp',
       doAction: () => {
-        aboutModalRef.current?.open()
+        AboutModal.open()
       },
     },
     user.isEnsoTeamMember &&
@@ -101,7 +98,6 @@ export function UserMenu(props: UserMenuProps) {
           })}
         </div>
       </Popover>
-      <AboutModal ref={aboutModalRef} />
     </>
   )
 }

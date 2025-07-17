@@ -4,11 +4,9 @@ import { Icon } from '#/components/Icon'
 import MenuEntry from '#/components/MenuEntry'
 import { Text } from '#/components/Text'
 import { AboutModal } from '#/modals/AboutModal'
-import { type ModalApi } from '#/utilities/modal'
 import { LOGIN_PATH } from '$/appUtils'
 import { useAuth, useRouter, useSession, useText } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
-import { useRef } from 'react'
 
 /** A menu containing info about the app. */
 export function InfoMenu() {
@@ -16,7 +14,6 @@ export function InfoMenu() {
   const { signOut } = useSession()
   const { session } = useAuth()
   const { getText } = useText()
-  const aboutModalRef = useRef<ModalApi>(null)
 
   return (
     <>
@@ -29,7 +26,7 @@ export function InfoMenu() {
           <MenuEntry
             action="aboutThisApp"
             doAction={() => {
-              aboutModalRef.current?.open()
+              AboutModal.open()
             }}
           />
           {session && (
@@ -40,7 +37,6 @@ export function InfoMenu() {
           )}
         </div>
       </Popover>
-      <AboutModal ref={aboutModalRef} />
     </>
   )
 }
