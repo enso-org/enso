@@ -99,9 +99,7 @@ public class Text_Utils {
     return str.codePoints().toArray();
   }
 
-  /**
-   * Returns true if all characters are ASCII, i.e. < 128.
-   */
+  /** Returns true if all characters are ASCII, i.e. < 128. */
   public static boolean is_ascii(String str) {
     return str.isEmpty() || str.codePoints().allMatch(c -> c < 128);
   }

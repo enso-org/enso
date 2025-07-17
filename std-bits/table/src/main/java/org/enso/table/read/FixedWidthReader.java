@@ -8,8 +8,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -92,7 +90,9 @@ public class FixedWidthReader {
     }
 
     if (layoutEntries == null && lineEnding != null && lineEnding.isEmpty()) {
-      throw new IllegalArgumentException("If the line ending is the empty string, the layout must be specified and cannot be inferred.");
+      throw new IllegalArgumentException(
+          "If the line ending is the empty string, the layout must be specified and cannot be"
+              + " inferred.");
     }
   }
 
@@ -192,11 +192,11 @@ public class FixedWidthReader {
   }
 
   /**
-   * Reads a line into the buffer. The line's end is specified by the layout
-   * width, and there are no line endings in the data. Returns the actual length
-   * of the entire line, even if that is not equal to `layoutWidth`.
+   * Reads a line into the buffer. The line's end is specified by the layout width, and there are no
+   * line endings in the data. Returns the actual length of the entire line, even if that is not
+   * equal to `layoutWidth`.
    *
-   * Returns -1 if the first read attempt is EOF.
+   * <p>Returns -1 if the first read attempt is EOF.
    */
   private int readLineByLength(PushbackInputStream inputStream) throws IOException {
     Context context = Context.getCurrent();
@@ -223,11 +223,11 @@ public class FixedWidthReader {
   }
 
   /**
-   * Reads a line into the buffer. The line's end is specified by a predefined
-   * or inferreed line ending. Returns the actual length of the entire line, even
-   * if that is not equal to `layoutWidth`.
-
-   * Returns -1 if the first read attempt is EOF.
+   * Reads a line into the buffer. The line's end is specified by a predefined or inferreed line
+   * ending. Returns the actual length of the entire line, even if that is not equal to
+   * `layoutWidth`.
+   *
+   * <p>Returns -1 if the first read attempt is EOF.
    */
   private int readLineByEnding(PushbackInputStream inputStream) throws IOException {
     Context context = Context.getCurrent();
@@ -243,7 +243,9 @@ public class FixedWidthReader {
         } else {
           break;
         }
-      } else if (lineEnding != null && lineEnding.isEmpty() && currentLineLength == lineLength - 1) {
+      } else if (lineEnding != null
+          && lineEnding.isEmpty()
+          && currentLineLength == lineLength - 1) {
         readBuffer[currentLineLength++] = (byte) c;
         break;
       } else if (isLineEnding((byte) c, inputStream)) {
@@ -289,7 +291,8 @@ public class FixedWidthReader {
     } else {
       // We have a fixed string.
 
-      assert lineEnding.length() > 0 : "Internal error: should not try to detect the zero-length line ending";
+      assert lineEnding.length() > 0
+          : "Internal error: should not try to detect the zero-length line ending";
 
       if (c != lineEnding.charAt(0)) {
         return false;
@@ -306,7 +309,7 @@ public class FixedWidthReader {
             inputStream.unread(c2);
           }
 
-          for (int j = i-1; j > 0; --j) {
+          for (int j = i - 1; j > 0; --j) {
             inputStream.unread(lineEnding.charAt(j));
           }
           return false;
