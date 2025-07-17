@@ -194,6 +194,7 @@ defineExpose({
 .CodeMirrorRoot {
   /* Below popovers from the `belowToolbar` slot. */
   z-index: -1;
+  min-height: 0;
 
   /*noinspection CssUnusedSymbol*/
   & :deep(.cm-content) {
