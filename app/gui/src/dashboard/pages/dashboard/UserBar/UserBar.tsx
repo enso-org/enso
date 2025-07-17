@@ -16,6 +16,7 @@ import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { Plan } from '#/services/Backend'
+import { rfc3339DurationProgress } from '#/utilities/time'
 import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
@@ -26,13 +27,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
 import UserMenu from './UserMenu'
-
-/** The number of milliseconds in an hour. */
-const HOUR_MS = 3_600_000
-/** The number of hours in a day. */
-const DAY_HOUR = 24
-/** The number of milliseconds in a day. */
-const DAY_MS = DAY_HOUR * HOUR_MS
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
@@ -88,31 +82,16 @@ export function UserBar(props: UserBarProps) {
       enabled: user.isOrganizationAdmin,
     }),
   )
-  const trialEndDate =
-    user.isOrganizationAdmin && organization?.subscription?.trialEnd != null ?
-      new Date(organization.subscription.trialEnd)
-    : null
-  const trialStartDate =
-    user.isOrganizationAdmin && organization?.subscription?.trialStart != null ?
-      new Date(organization.subscription.trialStart)
-    : null
-  const msToTrialEnd = Number(trialEndDate) - Number(new Date())
-  const trialDaysLeft = trialEndDate ? Math.max(0, Math.floor(msToTrialEnd / DAY_MS)) : null
-  const trialHoursLeft =
-    trialDaysLeft != null && trialDaysLeft < 1 ?
-      Math.max(0, Math.floor(msToTrialEnd / HOUR_MS))
-    : null
+  const subscription = user.isOrganizationAdmin ? organization?.subscription : null
   const trialProgress =
-    trialStartDate != null && trialEndDate != null ?
-      1 - msToTrialEnd / (Number(trialEndDate) - Number(trialStartDate))
+    subscription?.trialEnd != null && subscription.trialStart != null ?
+      rfc3339DurationProgress(subscription.trialStart, subscription.trialEnd)
     : null
   const trialText =
-    trialDaysLeft == null ? null
-    : trialHoursLeft != null ?
-      trialHoursLeft > 0 ?
-        getText('xDaysLeftInTrial', trialHoursLeft)
-      : getText('lessThanOneHourLeftInTrial')
-    : getText('xDaysLeftInTrial', trialDaysLeft)
+    trialProgress == null ? null
+    : trialProgress.daysLeft > 0 ? getText('xDaysLeftInTrial', trialProgress.daysLeft)
+    : trialProgress.hoursLeft > 0 ? getText('xHoursLeftInTrial', trialProgress.hoursLeft)
+    : getText('lessThanOneHourLeftInTrial')
 
   const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
 
@@ -155,14 +134,17 @@ export function UserBar(props: UserBarProps) {
           </Popover.Trigger>
         </div>
 
-        {trialDaysLeft != null && trialProgress != null && trialEndDate && (
+        {trialProgress && subscription?.trialEnd != null && (
           <VisualTooltip
             className="relative px-2"
-            tooltip={getText('yourSubscriptionExpiresAtX', toReadableIsoString(trialEndDate))}
+            tooltip={getText(
+              'yourSubscriptionExpiresAtX',
+              toReadableIsoString(new Date(subscription.trialEnd)),
+            )}
           >
             <Text className="opacity-0">{trialText}</Text>
             <ProgressBar
-              progress={trialProgress}
+              progress={trialProgress.fraction}
               variant="clipped"
               className="absolute inset-0"
               progressBarClassName="bg-accent/50"
