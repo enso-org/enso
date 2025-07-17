@@ -84,7 +84,11 @@ export function UserBar(props: UserBarProps) {
   )
   const subscription = user.isOrganizationAdmin ? organization?.subscription : null
   const trialProgress =
-    subscription?.trialEnd != null && subscription.trialStart != null ?
+    (
+      subscription?.trialEnd != null &&
+      new Date(subscription.trialEnd) > new Date() &&
+      subscription.trialStart != null
+    ) ?
       rfc3339DurationProgress(subscription.trialStart, subscription.trialEnd)
     : null
   const trialText =
