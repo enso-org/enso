@@ -381,6 +381,7 @@ export function useCloseProjectMutation() {
 /** Mutation to rename a project. */
 export function useRenameProjectMutation() {
   const updateLaunchedProjects = useUpdateLaunchedProjects()
+  const client = reactQuery.useQueryClient()
 
   return useMutationCallback({
     mutationKey: ['renameProject'],
@@ -396,6 +397,40 @@ export function useRenameProjectMutation() {
       const { id, title } = project
 
       return backend.updateProject(id, { projectName: newName }, title)
+    },
+    onMutate: async ({ newName, project }) => {
+      const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
+      await client.cancelQueries({
+        queryKey,
+      })
+      // Optimistically update the project name.
+      const previousProjectDetails = client.getQueryData<backendModule.Project>(queryKey)
+      if (previousProjectDetails) {
+        client.setQueryData<backendModule.Project>(queryKey, {
+          ...previousProjectDetails,
+          name: newName,
+        })
+      }
+
+      return { queryKey }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.queryKey) {
+        const toInvalidate = [
+          {
+            predicate: (query: reactQuery.Query) =>
+              reactQuery.matchQuery({ queryKey: ['listDirectory'] }, query),
+          },
+          {
+            predicate: (query: reactQuery.Query) =>
+              reactQuery.matchQuery({ queryKey: ['getAssetDetails'] }, query),
+          },
+          {
+            queryKey: context.queryKey,
+          },
+        ]
+        return Promise.all(toInvalidate.map((invalidate) => client.invalidateQueries(invalidate)))
+      }
     },
     onSuccess: (_, { newName, project }) => {
       updateLaunchedProjects((projects) =>

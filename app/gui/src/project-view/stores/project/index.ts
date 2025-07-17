@@ -17,7 +17,7 @@ import { type MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
-import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import {
@@ -357,11 +357,7 @@ export function createProjectStore(
   function renameProject(newDisplayedName: string) {
     try {
       renameProjectBackend(newDisplayedName)
-      if (isIdentifier(newDisplayedName)) {
-        projectNames.onProjectRenameRequested(newDisplayedName)
-      } else {
-        console.error(`Renaming project: Not a valid identifier: ${newDisplayedName}`)
-      }
+      projectNames.onProjectRenameRequested(newDisplayedName)
       return Ok()
     } catch (err) {
       return Err(err)
