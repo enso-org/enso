@@ -546,11 +546,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
               PointerButtonFlags(event.buttons)
             : buttonToPointerButtonFlags(event.button)
           ]?.[eventModifierFlags]
-      let handle = handlers[DEFAULT_HANDLER]
       const isTextInputFocused = eventModule.isElementTextInput(document.activeElement)
       const isTextInputEvent =
         'key' in event && (eventModule.isTextInputEvent(event) || event.key === 'Enter')
       const shouldIgnoreEvent = isTextInputFocused && isTextInputEvent
+      let handle = shouldIgnoreEvent ? null : handlers[DEFAULT_HANDLER]
       if (matchingBindings != null && !shouldIgnoreEvent) {
         for (const bindingNameRaw in handlers) {
           // This is SAFE, because `handlers` is an object with identical keys to `T`,
