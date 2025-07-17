@@ -369,6 +369,38 @@ public abstract class JavaInteropTest {
   }
 
   @Test
+  public void throwsParsingErrorIndirect() {
+    var code =
+        """
+              from Standard.Base import Panic
+              polyglot java import java.lang.Integer as Num
+              polyglot java import java.lang.NumberFormatException as Ex
+              polyglot java import org.enso.example.TestClass
+
+              type En
+                Err msg
+
+              main =
+                e = TestClass.newDirectExecutor
+                e.execute
+                    Panic.catch Ex (Num.parseInt "NotAnInt") ex->
+                        Panic.throw (En.Err ex.payload.to_text)
+              """;
+
+    try {
+      var res = ctx().evalModule(code);
+      fail("Expecting an exception: " + res);
+    } catch (PolyglotException ex) {
+      var exObj = ex.getGuestObject();
+      var typeEx = exObj.getMetaObject();
+      assertEquals("Standard.Base.Panic.Panic", typeEx.getMetaQualifiedName());
+      assertEquals(
+          "java.lang.NumberFormatException: For input string: \"NotAnInt\"",
+          exObj.getMember("msg").asString());
+    }
+  }
+
+  @Test
   public void testInterfaceProxyFailuresA() {
     var payload = evalInterfaceProxyFailures("a");
     assertEquals("My_Exc", payload.getMetaObject().getMetaSimpleName());
