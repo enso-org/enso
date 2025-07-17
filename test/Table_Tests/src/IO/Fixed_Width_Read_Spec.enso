@@ -368,15 +368,6 @@ add_direct_specs suite_builder =
             err . should_fail_with No_Column_Names_Found
             err.catch.to_display_text . should_equal "No column names were found in the header line."
 
-        group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
-            descs = []
-                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
-                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
-            layout = Fixed_Width_Layout.from_descriptions descs
-            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout)
-            t.at "Column 1" . to Vector . should_equal [Nothing, 678]
-            t.at "Column 2" . to Vector . should_equal [98765, Nothing]
-
         group_builder.specify "Should treat empty fields as the empty string" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width 5 3]

@@ -97,7 +97,7 @@ public class FixedWidthReader {
   }
 
   public Table read(InputStream inputStream) throws IOException {
-    var pushbackInputStream = new PushbackInputStream(inputStream);
+    var pushbackInputStream = allocatePushbackStream(inputStream);
     for (int i = 0; i < skipRows; ++i) {
       readLine(pushbackInputStream);
     }
@@ -183,13 +183,53 @@ public class FixedWidthReader {
     return reportingStreamDecoder.readAllIntoMemory();
   }
 
-  /*
-   * Reads up to `layoutWidth` bytes into the buffer. Returns the actual
-   * length of the entire line, even if that is not equal to
-   * `layoutWidth`.
+  private int readLine(PushbackInputStream inputStream) throws IOException {
+    if (lineEnding != null && lineEnding.isEmpty()) {
+      return readLineByLength(inputStream);
+    } else {
+      return readLineByEnding(inputStream);
+    }
+  }
+
+  /**
+   * Reads a line into the buffer. The line's end is specified by the layout
+   * width, and there are no line endings in the data. Returns the actual length
+   * of the entire line, even if that is not equal to `layoutWidth`.
+   *
    * Returns -1 if the first read attempt is EOF.
    */
-  private int readLine(PushbackInputStream inputStream) throws IOException {
+  private int readLineByLength(PushbackInputStream inputStream) throws IOException {
+    Context context = Context.getCurrent();
+
+    assert layoutWidth > 0 : "Layout width must be specified for reading by length";
+
+    for (int i = 0; i < layoutWidth; ++i) {
+      int c = inputStream.read();
+      if (c == -1) {
+        if (i == 0) {
+          // First attempt was EOF, so return -1 to signify that the stream is done.
+          return -1;
+        } else {
+          // We read some data, but it was not enough to fill the line.
+          return i;
+        }
+      }
+      readBuffer[i] = (byte) c;
+
+      context.safepoint();
+    }
+
+    return layoutWidth;
+  }
+
+  /**
+   * Reads a line into the buffer. The line's end is specified by a predefined
+   * or inferreed line ending. Returns the actual length of the entire line, even
+   * if that is not equal to `layoutWidth`.
+
+   * Returns -1 if the first read attempt is EOF.
+   */
+  private int readLineByEnding(PushbackInputStream inputStream) throws IOException {
     Context context = Context.getCurrent();
 
     int currentLineLength = 0;
@@ -274,6 +314,15 @@ public class FixedWidthReader {
       }
       return true;
     }
+  }
+
+  private PushbackInputStream allocatePushbackStream(InputStream inputStream) {
+    // We need to be able to push back at least the length of the longest line
+    // ending. If the line ending is empty, we still allocate a pushback stream
+    // so we don't have to duplicate code, but we don't push any values back.
+    // The buffer must be at least 1, though.
+    int pushbackSize = lineEnding == null ? 2 : Math.max(1, lineEnding.length());
+    return new PushbackInputStream(inputStream, pushbackSize);
   }
 
   private Table makeFinalTable() {
