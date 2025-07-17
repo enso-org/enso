@@ -3,9 +3,9 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { AnyAsset, AssetId, BackendType, Label, ProjectId } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
+import type { LaunchedProject } from '$/providers/container'
 import type { SortableColumn } from './columnUtils'
 import { Column } from './columnUtils'
 import {

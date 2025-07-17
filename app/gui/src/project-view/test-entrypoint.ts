@@ -33,6 +33,7 @@ const app = createApp(App, {
       projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
       projectInitialName: 'Mock_Project',
       projectDisplayedName: 'Mock Project',
+      projectPath: 'enso://User/mock/Mock Project',
       projectNamespace: 'local',
       engine: {
         rpcUrl: 'mock://engine',

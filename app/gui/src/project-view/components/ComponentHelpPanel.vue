@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useConainerData } from '$/providers/container'
+import { useContainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
 import ComponentHelp from '@/components/ComponentHelp.vue'
 import { Err, Ok } from '@/util/data/result'
 import { ResultComponent } from '@/util/react'
 import { computed } from 'vue'
 
-const container = useConainerData()
+const container = useContainerData()
 const rightPanel = useRightPanelData()
 const displayedId = computed({
   get: () =>

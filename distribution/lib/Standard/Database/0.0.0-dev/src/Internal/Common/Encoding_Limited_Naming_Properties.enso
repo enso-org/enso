@@ -5,21 +5,29 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table.Errors import Name_Too_Long
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A `Naming_Properties` implementation which sets the size limit based on the
    size of a string encoded in a particular encoding, in bytes.
 type Encoding_Limited_Naming_Properties
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Instance (encoding : Encoding) (limit : Integer) (is_case_sensitive : Boolean = True)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     encoded_size : Text -> Integer
     encoded_size self name =
         r = name.bytes encoding=self.encoding on_problems=Problem_Behavior.Report_Error . length
         r.catch Encoding_Error error->
             Panic.throw (Illegal_Argument.Error "The name ["+name.to_display_text+"] contains characters that could not be encoded in the database server-size encoding "+self.encoding.to_display_text+"." cause=error)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     truncate : Text -> Integer -> Text
     truncate self name size =
         ## I assume that `self.encoded_size` is a homomorphism
@@ -41,11 +49,15 @@ type Encoding_Limited_Naming_Properties
                         Panic.throw (Illegal_State.Error "Unexpected: The encoding size behaves unexpectedly. This is a bug in the Database library.")
                     truncated
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     size_limit : Integer | Nothing
     size_limit self = self.limit
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     raise_name_too_long_error : Text -> Text -> Nothing ! Name_Too_Long
     raise_name_too_long_error self entity_kind name =
         grapheme_length = name.length

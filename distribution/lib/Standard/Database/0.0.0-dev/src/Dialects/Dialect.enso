@@ -31,19 +31,23 @@ import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
 from project.Internal.Result_Set import result_set_to_table
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Represents a specific SQL dialect.
-
    It encapsulates dialect-specific code generation details allowing us to
    support differing SQL dialects.
 type Dialect
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Name of the dialect.
     name : Text
     name self = Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : SQL_IR_Statement -> SQL_Statement
@@ -51,93 +55,109 @@ type Dialect
         _ = [query]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generates SQL to truncate a table.
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
          _ = [table_name]
          Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
-       Generates SQL modifier for limiting the number of rows and its position in the query
+    ## ---
+       private: true
+       ---
+       Generates SQL modifier for limiting the number of rows and its position in
+       the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
          _ = [limit]
          Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
-       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
+    ## ---
+       private: true
+       ---
+       Returns an ordering of SQL_Part's that determine what order each part gets
+       written in for the final SQL output If you add extensions using
+       SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         _ = [part]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares an ordering descriptor.
-
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
 
-       Arguments:
-       - internal_column: the column to order by.
-       - sort_direction: the direction of the ordering.
-       - text_ordering: If provided, specifies that the column should be treated
-         as text values according to the provided ordering. For non-text types,
-         it should be set to `Nothing`.
+       ## Arguments
+        - `internal_column`: the column to order by.
+        - `sort_direction`: the direction of the ordering.
+        - `text_ordering`: If provided, specifies that the column should be
+          treated as text values according to the provided ordering. For non-text
+          types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         _ = [internal_column, sort_direction, text_ordering]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         _ = [table, key_columns, case_sensitivity, problem_builder]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self =
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a helper object that handles the logic of setting values in a
        prepared statement.
-
        This object may provide custom logic for handling dialect-specific
        handling of some types.
     get_statement_setter : Statement_Setter
     get_statement_setter self =
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Builds an SQL expression that casts the given expression to the given
        target type.
 
-       Arguments:
-       - column: the input column to transform.
-       - target_type: the target type.
-       - infer_result_type_from_database_callback: A callback that can be used
-         to infer the type of the newly built expression from the Database. It
-         should be used by default, unless an override is chosen.
+       ## Arguments
+        - `column`: the input column to transform.
+        - `target_type`: the target type.
+        - `infer_result_type_from_database_callback`: A callback that can be used
+          to infer the type of the newly built expression from the Database. It
+          should be used by default, unless an override is chosen.
     make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         _ = [column, target_type, infer_result_type_from_database_callback]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies if the `fetch_columns` operation needs to execute the query to
        get the column types.
-
-       In most backends, the `getMetaData` may be called on a
-       `PreparedStatement` directly, to infer column types without actually
-       executing the query. In some however, like SQLite, this is insufficient
-       and will yield incorrect results, so the query needs to be executed (even
-       though the full results may not need to be streamed).
-
+       In most backends, the `getMetaData` may be called on a `PreparedStatement`
+       directly, to infer column types without actually executing the query. In
+       some however, like SQLite, this is insufficient and will yield incorrect
+       results, so the query needs to be executed (even though the full results
+       may not need to be streamed).
        The function takes the statement as an argument which can be used in
        heuristics telling whether the execute is needed.
     needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
@@ -145,112 +165,134 @@ type Dialect
         _ = statement
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self =
          Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Performs any transformations on a column resulting from unifying other
        columns.
-
-       These transformations depend on the dialect. They can be used to align
-       the result types, for example.
+       These transformations depend on the dialect. They can be used to align the
+       result types, for example.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [column, approximate_result_type, infer_result_type_from_database_callback]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares a query that can be used to fetch the type of an expression in
        the provided context.
-
        This method may modify the context to optimize the query while preserving
-       the types. For example, in most databases, it is fine to add
-       `WHERE FALSE` to the query - ensuring that the engine will not do any
-       actual work, but the resulting type will still be the same. There are
-       exceptions though, like SQLite, where the best we can do is add
-       `LIMIT 1`.
+       the types. For example, in most databases, it is fine to add `WHERE FALSE`
+       to the query - ensuring that the engine will not do any actual work, but
+       the resulting type will still be the same. There are exceptions though,
+       like SQLite, where the best we can do is add `LIMIT 1`.
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         _ = [expression, context]
         Unimplemented.throw "This is an interface only."
 
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     generate_collate self collation_name:Text -> Text = 
          _ = collation_name
          Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if the given aggregate is supported.
-
        Should raise an appropriate dataflow error if not, or just return `True`.
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
         _ = aggregate
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
         _ = operation
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
         _ = feature
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks a dialect flag
     flagged self flag:Dialect_Flag -> Boolean =
         _ = flag
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a helper for mapping database-specific SQL errors into our common
        error types.
     get_error_mapper : Error_Mapper
     get_error_mapper self =
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The dialect-dependent strategy to get the Primary Key for a given table.
-
        Returns `Nothing` if the key is not defined.
     fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
         _ = [connection, table_name]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
-       Prepares metadata for an operation taking a date/time period and checks
-       if the given period is supported.
+    ## ---
+       private: true
+       ---
+       Prepares metadata for an operation taking a date/time period and checks if
+       the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         _ = [period, operation_input_type]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
         _ = [replace_params, action]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Determines the value type to use when uploading the given column to the
        Database.
-
        This will usually just be `column.value_type`, but it allows the database
        to do custom fallback handling for datatypes that are not supported.
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
@@ -258,21 +300,24 @@ type Dialect
         _ = column
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An optional method. It only needs to be implemented if
-       `DDL_Transaction.Support_Level` of this connection is different than `Allowed`.
-
+       `DDL_Transaction.Support_Level` of this connection is different than
+       `Allowed`.
        It specifies if the table integrity should be checked at the beginning of
        the transaction - to check if there were no unexpected modifications
-       between the table was created (outside of transaction) and the
-       transaction was entered. Some dialects may decide to opt-out of
-       this check for performance reasons.
+       between the table was created (outside of transaction) and the transaction
+       was entered. Some dialects may decide to opt-out of this check for
+       performance reasons.
     should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An optional method adding custom handling for the `aggregate` operation.
-
        This method may be left undefined, in which case the default
        implementation defined in `Aggregate_Helper.default_build_aggregate` will
        be used. The method should be defined only if the dialect requires custom
@@ -281,33 +326,41 @@ type Dialect
         _ = [base_table, key_columns, resolved_aggregates, problem_builder]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
-       Generates a expression for use in the SELECT OR WHERE clause. 
-       Used for databases where the expression syntax is different in the SELECT clause 
+    ## ---
+       private: true
+       ---
+       Generates a expression for use in the SELECT OR WHERE clause.  Used for
+       databases where the expression syntax is different in the SELECT clause
        to the syntax in the WHERE clause
     generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = [base_gen, expr, for_select]
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes jdbc:JDBC_Connection raw_sql:Text =
         _ = [jdbc, raw_sql]
         Unimplemented.throw "This is an interface only."
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    The dialect of SQLite databases.
 sqlite : Dialect
 sqlite = SQLite_Dialect.sqlite
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres = Postgres_Dialect.postgres
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Default implementation relying on DatabaseMetaData.
 default_fetch_primary_key connection table_name =
     connection.jdbc_connection.with_metadata metadata->
@@ -318,12 +371,18 @@ default_fetch_primary_key connection table_name =
         key_column_names = selected.sort 1 . at 0 . to_vector
         if key_column_names.is_empty then Nothing else key_column_names
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Temp_Table_Style
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The temporary table is created using a create table statement.
     Temporary_Table
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The temporary table is created using a # table name.
     Hash_Prefix

@@ -6,13 +6,14 @@ from Standard.Table import Table
 
 import project.DB_Table.DB_Table
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Throws an error if the table does not have an explicit or implicit ordering.
-
    Arguments
    - table: The table that may or may not have an ordering
-   - operation_name: The name of the operation that requries an ordering, for
-     the error message.
+   - operation_name: The name of the operation that requries an ordering, for the
+     error message.
    - ordering: (optional) a resolved ordering, if one is already available. A
      resolved ordering might include an explicit `order_by` that was supplied to
      the operation. If no ordering has already been computed, this method will

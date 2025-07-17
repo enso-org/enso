@@ -504,7 +504,9 @@ type DB_Column_Implementation
 
 naming_helper this_column = (this_column:DB_Column).connection.base_connection.column_naming_helper
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
     result = Value_Type.expect_text left <| Value_Type.expect_text other <| case case_sensitivity of
@@ -521,7 +523,9 @@ make_text_case_op left op other case_sensitivity new_name =
             make_binary_op (fold_case left) op ci_other
     result.rename new_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_equality_check_with_floating_point_handling column other op =
     other_name = case other of
         other_column : Column -> "["+other_column.name+"]"
@@ -691,16 +695,16 @@ short_circuit_special_floating_point (this_column : Column & DB_Column) exp =
     if this_column.value_type.is_floating_point.not then exp else
         (this_column.is_finite.not.iif this_column exp).rename exp.name
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This conversion is defined in a `private` module and is never exported.
-   It is only available inside of this implementation to allow the
-   `(this_column : Column & DB_Column)` type refinement to work.
-
+   It is only available inside of this implementation to allow the `(this_column
+   : Column & DB_Column)` type refinement to work.
    It will always succeed, because `DB_Column_Implementation` is only called on
    `DB_Column` columns.
-
    It is needed, because the base API in `Column` calls this implementation with
-   `self` and the `self` loses all the intersection types - so it becomes
-   a 'raw' `Column`, losing the `& DB_Column` part. This hidden conversion
-   allows to 'regain' that part.
+   `self` and the `self` loses all the intersection types - so it becomes a 'raw'
+   `Column`, losing the `& DB_Column` part. This hidden conversion allows to
+   'regain' that part.
 DB_Column.from (that : Column) = get_underlying_from_column that
