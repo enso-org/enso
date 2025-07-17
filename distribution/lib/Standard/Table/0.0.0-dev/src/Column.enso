@@ -1515,7 +1515,7 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
-    @format (make_format_chooser include_number=False)
+    @format Widget_Helpers.make_format_chooser_for_parse
     parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column | Any =
         self.implementation.parse self type format on_problems
 
