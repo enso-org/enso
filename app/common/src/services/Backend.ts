@@ -1539,20 +1539,24 @@ export function compareAssets(
   const multiplier = sortDirection === 'ascending' ? 1 : -1
   const modifiedAtDelta =
     multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
+  const titleDelta = multiplier * a.title.localeCompare(b.title, undefined, { numeric: true })
   switch (sortExpression) {
     case 'asset_discriminator_and_id': {
       const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
       if (relativeTypeOrder !== 0) {
         return multiplier * relativeTypeOrder
       }
-      // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
-      return modifiedAtDelta
+      if (modifiedAtDelta !== 0) {
+        // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
+        return modifiedAtDelta
+      }
+      return titleDelta
     }
     case 'modified_at': {
       return modifiedAtDelta
     }
     case 'title': {
-      return multiplier * a.title.localeCompare(b.title, undefined, { numeric: true })
+      return titleDelta
     }
   }
 }
