@@ -455,6 +455,12 @@ add_direct_specs suite_builder =
                 test_with_line_endings '' (Custom_Line_Ending.Value '')
                 test_with_line_endings '' No_Line_Ending
 
+        group_builder.specify "cannot infer line endings with an empty line ending" <|
+            format = Fixed_Width_Format.Fixed_Width Infer_Layout.Left line_endings=No_Line_Ending
+            err = Data.read fixed_file format ..Report_Error
+            err . should_fail_with Illegal_Argument
+            err . catch . message . should_contain "the layout must be specified and cannot be inferred"
+
         group_builder.specify "Should report row and column for bad characters" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width 8 3]
