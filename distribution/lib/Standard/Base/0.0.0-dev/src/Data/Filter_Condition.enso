@@ -8,11 +8,11 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
 import project.Internal.Predicate_Helpers
+import project.Meta
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all
-import project.Meta
 from project.Metadata import Display, make_single_choice, Widget
 from project.Metadata.Choice import Option
 from project.Widget_Helpers import make_any_selector

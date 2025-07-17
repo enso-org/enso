@@ -37,9 +37,5 @@ const emit = defineEmits<{ activate: [] }>()
   &.disabled {
     opacity: 0.2;
   }
-
-  &.toggledOn {
-    background-color: var(--color-menu-entry-selected-bg);
-  }
 }
 </style>

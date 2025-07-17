@@ -82,6 +82,7 @@ type Unicode_BOM
         Unicode_BOM.UTF_16_LE -> [-1, -2]
         Unicode_BOM.UTF_16_BE -> [-2, -1]
 
+    ## PRIVATE
     corresponding_encoding self -> Encoding = case self of
         Unicode_BOM.UTF_8 -> Encoding.utf_8
         Unicode_BOM.UTF_16_LE -> Encoding.utf_16_le

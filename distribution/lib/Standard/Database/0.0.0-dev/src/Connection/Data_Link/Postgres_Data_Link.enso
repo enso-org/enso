@@ -10,12 +10,18 @@ import project.Connection.Postgres.Postgres
 import project.Internal.Data_Link_Setup.DB_Data_Link_Type
 import project.Internal.DB_Data_Link_Helpers
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Postgres_Data_Link
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value details:Postgres source:Data_Link_Source_Metadata link_type:DB_Data_Link_Type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse json source:Data_Link_Source_Metadata -> Postgres_Data_Link =
         host = get_required_field "host" json expected_type=Text
         port = get_required_field "port" json expected_type=Integer
@@ -32,7 +38,9 @@ type Postgres_Data_Link
         link_type = DB_Data_Link_Type.from_js (get_optional_field "table" json)
         Postgres_Data_Link.Value details source link_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
         if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only Auto_Detect can be used with a Postgres Data Link, as it points to a database.") else

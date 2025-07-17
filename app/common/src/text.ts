@@ -174,6 +174,7 @@ interface PlaceholderOverrides {
   readonly planOverriddenToX: [planName: string]
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
+  readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
 
   readonly commercialUseNotice: [originalTitle: string]

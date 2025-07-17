@@ -288,6 +288,13 @@ make_format_chooser_for_selection table cache =
     make_format_chooser_for_type types
 
 ## PRIVATE
+   Make a format chooser for a parse function.
+make_format_chooser_for_parse table cache =
+    _ = table
+    value_type = cache.if_not_nothing <| cache "type"
+    make_format_chooser_for_type (value_type.if_nothing Value_Type.Mixed)
+
+## PRIVATE
    Make format selector based off value type
 make_format_chooser_for_type : Value_Type | Vector -> Widget
 make_format_chooser_for_type value_types =

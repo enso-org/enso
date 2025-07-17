@@ -1,13 +1,13 @@
 from Standard.Base import all
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Default preprocessor for the warnings visualization.
-
    Generates JSON text describing the warnings visualization.
 
-   Arguments:
-   - value: the value to be visualized.
+   ## Arguments
+    - `value`: the value to be visualized.
 process_to_json_text : Any -> Text
 process_to_json_text value =
     warnings = Warning.get_all value wrap_errors=True

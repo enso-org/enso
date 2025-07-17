@@ -21,7 +21,7 @@ type TestData
     setup = TestData.Value <|
         vector1 = Data.list json_dir '{*.json}'
         files = Data.read_many vector1 ..Plain_Text
-        values = files.at 'Value' . map x->(x.parse_json.to_text)
+        values = files.at 'Value' . map x->(x.parse_json)
         keys = files.at 'Path' . map x->((File.new x).name.split '.' . at 0)
         Dictionary.from_keys_and_values keys values
 
@@ -49,7 +49,7 @@ add_specs suite_builder =
 
 _get_vis_data table =
     table.columns.each c-> (c:Visualization_Helpers).await_metrics
-    Visualization.prepare_visualization table
+    Visualization.prepare_visualization table . parse_json
 
 main filter=Nothing =
     suite = Test.build suite_builder->

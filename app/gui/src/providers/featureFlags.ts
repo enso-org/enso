@@ -26,7 +26,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableCloudExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
   showDeveloperIds: z.boolean(),
-  developerPlanOverride: z.nativeEnum(Plan).or(z.undefined()),
+  developerPlanOverride: z.nativeEnum(Plan).optional(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
   disableAnimations: z.boolean(),

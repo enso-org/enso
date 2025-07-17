@@ -7,37 +7,45 @@ import project.Connection.SQLite_Connection.SQLite_Connection
 type SQLite
     ## Connect to a SQLite DB File.
 
-       Arguments:
-       - location: Location of the SQLite database to connect to.
+       ## Arguments
+        - `location`: Location of the SQLite database to connect to.
     From_File (location:File=(Missing_Argument.throw "location"))
 
     ## Connect to a SQLite In Memory.
     In_Memory
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Attempt to resolve the constructor.
     resolve : Function -> SQLite | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:SQLite) _->Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Build the Connection resource.
 
-       Arguments:
-       - options: Overrides for the connection properties.
+       ## Arguments
+        - `options`: Overrides for the connection properties.
     connect : Connection_Options -> SQLite_Connection
     connect self options =
         properties = options.merge self.jdbc_properties
         SQLite_Connection.create self.jdbc_url properties
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self = case self of
         SQLite.From_File _ -> "jdbc:sqlite:" + (self.location.absolute.path.replace '\\' '/')
         SQLite.In_Memory -> "jdbc:sqlite::memory:"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the properties for the connection.
     jdbc_properties : Vector
     jdbc_properties self = []

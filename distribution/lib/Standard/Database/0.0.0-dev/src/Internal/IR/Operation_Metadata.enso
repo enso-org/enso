@@ -2,12 +2,20 @@ from Standard.Base import all
 
 from Standard.Table import Value_Type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Row_Number_Metadata
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value groupings_count:Integer
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Date_Period_Metadata
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (period : Date_Period | Time_Period) (input_value_type : Value_Type)

@@ -17,21 +17,22 @@ from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
 
-## PRIVATE
-   Mapping from Value_Type to SQLite is done by finding the closest matching
-   type corresponding to one of the 4 supported affinities: INTEGER, REAL,
-   NUMERIC, TEXT, BLOB. Thus many value types will end up being approximated by
-   a close but inexact type. Apart from that, a fourth artificial affinity is
-   introduced: BOOLEAN. Normally, SQLite does not have a dedicated boolean type
-   and uses INTEGER instead. However, it is useful for our users to distinguish
-   the boolean columns. We do this by manually overriding the type of columns
+## ---
+   private: true
+   ---
+   Mapping from Value_Type to SQLite is done by finding the closest matching type
+   corresponding to one of the 4 supported affinities: INTEGER, REAL, NUMERIC,
+   TEXT, BLOB. Thus many value types will end up being approximated by a close
+   but inexact type. Apart from that, a fourth artificial affinity is introduced:
+   BOOLEAN. Normally, SQLite does not have a dedicated boolean type and uses
+   INTEGER instead. However, it is useful for our users to distinguish the
+   boolean columns. We do this by manually overriding the type of columns
    detected as boolean or returned from our boolean operations. The JDBC
    automatically handles translating between the underlying INTEGER storage and
    Java Booleans, so it is all seamless - only our type logic needs to be aware
    that it cannot rely on the JDBC metadata as the type reported for boolean
    operations will be INTEGER - so we need to carefully ensure there is the
    override.
-
    While the JDBC driver tries to approximate more precise types based on the
    type name, these approximations are not fully true as the underlying SQLite
    storage is still only one of the supported affinities. So to avoid suggesting
@@ -41,11 +42,12 @@ polyglot java import java.sql.Types
    actually be stored in the given column to match its affinity. While SQLite
    allows to store any data in a column, we restrict the data to only what can
    match the column's affinity to be aligned with our other backends.
-
    See `JDBC3ResultSet::getColumnType` method in the `org.xerial.sqlite-jdbc`
    module for the logic JDBC is using to map the SQLite types.
 type SQLite_Type_Mapping
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems:Problem_Behavior =
         result = case value_type of
@@ -75,7 +77,9 @@ type SQLite_Type_Mapping
         problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
         on_not_found =
@@ -84,11 +88,15 @@ type SQLite_Type_Mapping
             simple_types_map.get sql_type.typeid if_missing=on_not_found
         name_based_workarounds.get sql_type.name if_missing=do_simple_mapping
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The SQL type mapping uses the same logic as the in-memory backend, just
        simplified to only the types that it supports. It does not rely on the
        Database to tell the expected types, because it has been found to be
@@ -100,7 +108,9 @@ type SQLite_Type_Mapping
         sql_type = handler arguments
         SQL_Type_Reference.from_constant sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        SQLite `ResultSet` metadata may differ row-by-row, so we cannot rely on
        this metadata. Instead, we get the types inferred for each colum,
        regardless if it was initially overridden or not.
@@ -109,7 +119,9 @@ type SQLite_Type_Mapping
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .get
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a `Column_Fetcher` used to fetch data from a result set and build
        an in-memory column from it, based on the given column type.
     make_column_fetcher : SQL_Type -> Column_Fetcher
@@ -117,31 +129,39 @@ type SQLite_Type_Mapping
         value_type = self.sql_type_to_value_type sql_type
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
         # Currently, we do not have any implicit conversions.
         _ = [source_type, target_type]
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
         SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
 
-## PRIVATE
-   The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
-   SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,
-   TIMESTAMP, CHAR, VARCHAR, BINARY, BLOB, CLOB.
-
+## ---
+   private: true
+   ---
+   The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT, SMALLINT,
+   BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE, TIMESTAMP, CHAR,
+   VARCHAR, BINARY, BLOB, CLOB.
    We map the types to how they are actually stored, with the exception of
    boolean which is mapped as boolean type as explained above.
-
    For types like dates - we map them to unsupported type, because date
    operations in SQLite are currently not supported due to their weird storage.
 simple_types_map = Dictionary.from_vector <|
@@ -154,15 +174,19 @@ simple_types_map = Dictionary.from_vector <|
     special_types = [[Types.BOOLEAN, Value_Type.Boolean], [Types.NULL, Value_Type.Null]]
     ints + floats + numerics + strings + blobs + special_types
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The SQLite JDBC mapping relies on slightly modified version of the rules from
-   https://www.sqlite.org/datatype3.html#affinity_name_examples
-   However, with this the date-time columns will be mapped to the numeric type.
+   https://www.sqlite.org/datatype3.html#affinity_name_examples However, with
+   this the date-time columns will be mapped to the numeric type.
    Instead, we want to treat such columns as Text, so we override the mapping.
 name_based_workarounds = Dictionary.from_vector <|
     ["TIME", "DATE", "DATETIME", "TIMESTAMP"] . map x-> [x, default_text]
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Maps operation names to functions that infer its result type.
 operations_dict : Dictionary Text (Vector -> SQL_Type)
 operations_dict =
@@ -225,39 +249,63 @@ operations_dict =
         v7 = same_as_first.map [_, same_as_first_argument]
         v1 + v2 + v3 + v4 + v5 + v6 + v7 + others
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQLite_Types
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     text = SQL_Type.Value Types.VARCHAR "TEXT"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     integer = SQL_Type.Value Types.INTEGER "INTEGER"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     real = SQL_Type.Value Types.REAL "REAL"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     blob = SQL_Type.Value Types.BLOB "BLOB"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The artificial 6th affinity that is used to distinguish boolean columns.
     boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     null = SQL_Type.Value Types.NULL "NULL"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_text = Value_Type.Char size=Nothing variable_length=True
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_float = Value_Type.Float Bits.Bits_64
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_integer = Value_Type.Integer Bits.Bits_64
 
-## PRIVATE
+## ---
+   private: true
+   ---
 unsupported_date_time =
     Error.throw (Unsupported_Database_Type.Error "Date/time" "SQLite")
