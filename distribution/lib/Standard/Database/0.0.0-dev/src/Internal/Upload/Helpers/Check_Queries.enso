@@ -7,14 +7,19 @@ from Standard.Table.Errors import Null_Values_In_Key_Columns
 
 from project.Errors import Multiple_Target_Rows_Matched_For_Update
 
-## PRIVATE
+## ---
+   private: true
+   ---
 check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_duplicate_matches ~continuation =
     if allow_duplicate_matches then continuation else
         check_multiple_rows_match target_table tmp_table key_columns <|
             continuation
 
-## PRIVATE
-   Checks if any rows identified by `key_columns` have more than one match between two tables.
+## ---
+   private: true
+   ---
+   Checks if any rows identified by `key_columns` have more than one match
+   between two tables.
 check_multiple_rows_match left_table:Table right_table:Table key_columns ~continuation =
     joined = left_table.join right_table on=key_columns join_kind=Join_Kind.Inner
     counted = joined.aggregate key_columns [Aggregate_Column.Count]
@@ -28,7 +33,9 @@ check_multiple_rows_match left_table:Table right_table:Table key_columns ~contin
             count = row.last
             Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 check_for_null_keys table key_columns ~continuation =
     keys = table.select_columns key_columns
     is_any_key_blank = keys.columns.map (_.is_nothing) . reduce (||)
@@ -40,7 +47,9 @@ check_for_null_keys table key_columns ~continuation =
             example_key = example.first_row.to_vector
             Error.throw (Null_Values_In_Key_Columns.Error example_key add_sql_suffix=True)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 check_for_null_keys_if_any_keys_set table key_columns ~continuation =
     if key_columns.is_empty then continuation else
         check_for_null_keys table key_columns continuation
