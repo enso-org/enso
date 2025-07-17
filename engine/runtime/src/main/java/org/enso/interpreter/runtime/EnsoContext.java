@@ -6,6 +6,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
@@ -674,11 +675,21 @@ public final class EnsoContext {
       return polyglotJava;
     }
     polyglotJava = null;
+    var tc = environment.getContext();
+    var prev = tc.enter(null);
+    try {
+        polyglotJava = createPolyglotJava();
+    } finally {
+        tc.leave(null, prev);
+    }
+    return polyglotJava;
+  }
+
+  private Object createPolyglotJava() throws IllegalStateException {
     if (isHostClassLoading) {
           var src = Source.newBuilder("epb", "java:0#hosted", "<Bindings>").build();
           var target = environment.parseInternal(src);
-          polyglotJava = target.call();
-          return polyglotJava;
+          return target.call();
     }
     if (isGuestClassLoading) {
         var envJava = System.getenv("ENSO_JAVA");
@@ -686,14 +697,14 @@ public final class EnsoContext {
           logger.log(Level.SEVERE, "Using experimental OtherJvm support!");
           var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
           var target = environment.parseInternal(src);
-          polyglotJava = target.call();
-          return polyglotJava;
+          return target.call();
         }
         if ("espresso".equals(envJava)) {
           var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
           try {
-            polyglotJava = environment.parsePublic(src).call();
+            var java = environment.parsePublic(src).call();
             logger.log(Level.SEVERE, "Using experimental Espresso support!");
+            return java;
           } catch (Exception ex) {
             if (ex.getMessage().contains("No language for id java found.")) {
               logger.log(
@@ -712,7 +723,7 @@ public final class EnsoContext {
               "Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
         }
     }
-    return polyglotJava;
+    return null;
   }
 
   /**
