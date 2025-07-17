@@ -23,6 +23,10 @@ final class OtherJvmObject implements TruffleObject {
   private static final Message IS_IDENTICAL_OR_UNDEFINED =
       Message.resolve(InteropLibrary.class, "isIdenticalOrUndefined");
   private static final Message IS_IDENTICAL = Message.resolve(InteropLibrary.class, "isIdentical");
+  private static final Message HAS_SOURCE_LOCATION =
+      Message.resolve(InteropLibrary.class, "hasSourceLocation");
+  private static final Message GET_SOURCE_LOCATION =
+      Message.resolve(InteropLibrary.class, "getSourceLocation");
 
   private final Channel<OtherJvmPool> channel;
   private final long id;
@@ -54,6 +58,8 @@ final class OtherJvmObject implements TruffleObject {
     if (message.getLibraryClass() != InteropLibrary.class
         || HAS_LANGUAGE == message
         || GET_LANGUAGE == message
+        || HAS_SOURCE_LOCATION == message
+        || GET_SOURCE_LOCATION == message
         || IS_IDENTICAL_OR_UNDEFINED == message) {
       // we need to invoke default implementation of library
       // to handle the message in a proper way
