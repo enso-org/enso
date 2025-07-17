@@ -249,7 +249,7 @@ public final class EnsoContext {
         if (!cwd.isSameFile(parent)) {
           var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
           logger.log(
-              Level.FINE,
+              Level.WARNING,
               "Initializing the context in a different working directory than the one containing"
                   + " the project root. This may lead to relative paths not behaving as advertised"
                   + " by `File.new`. Please run the engine inside of `{0}` directory.",
