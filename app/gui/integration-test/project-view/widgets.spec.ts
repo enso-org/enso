@@ -380,6 +380,13 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await pathArgInput.clear()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
 
+  // When a filter doesn't match any entries, the dropdown is hidden.
+  await page.keyboard.insertText('No such entry')
+  await pathDropdown.expectNotVisible()
+  // If the text is changed so that the entries list is no longer empty, the dropdown returns.
+  await pathArgInput.clear()
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
+
   // Esc should cancel editing and close drop down
   await page.keyboard.press('Escape')
   await expect(pathArgInput).not.toBeFocused()
