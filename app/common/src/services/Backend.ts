@@ -683,7 +683,7 @@ export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPa
 export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
   Asset<RealAssetTypeId<Id>>,
   'ensoPath'
->
+> | null
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
@@ -1008,7 +1008,9 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  readonly ensoPath: EnsoPath
+  // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
+  //  to retrieve directory path easily.
+  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */

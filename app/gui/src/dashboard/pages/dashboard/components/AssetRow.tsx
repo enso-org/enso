@@ -292,7 +292,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
           // Assume the parent is the root directory.
           return true
         }
-        if (isTeamPath(parent.ensoPath)) {
+        if (parent.ensoPath != null && isTeamPath(parent.ensoPath)) {
           return true
         }
         // Assume user path; check permissions

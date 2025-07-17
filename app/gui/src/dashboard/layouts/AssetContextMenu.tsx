@@ -95,7 +95,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
-  const encodedEnsoPath = encodeURI(asset.ensoPath)
+  const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
@@ -263,7 +263,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => openProjectNatively(asset, backend.type)}
           />
         )}
-        {!isCloud && systemApi && (
+        {!isCloud && encodedEnsoPath != null && systemApi && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
             hidden={hidden}
@@ -413,12 +413,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={doCopy}
           />
         }
-        <ContextMenuEntry
-          bindingFocusScope={rootRef}
-          hidden={hidden}
-          action="copyAsPath"
-          doAction={() => copyMutation.mutateAsync(encodedEnsoPath)}
-        />
+        {encodedEnsoPath != null && (
+          <ContextMenuEntry
+            bindingFocusScope={rootRef}
+            hidden={hidden}
+            action="copyAsPath"
+            doAction={() => copyMutation.mutateAsync(encodedEnsoPath)}
+          />
+        )}
         {!isRunningProject && !isOtherUserUsingProject && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
