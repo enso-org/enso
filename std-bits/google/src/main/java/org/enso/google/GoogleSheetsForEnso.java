@@ -3,6 +3,7 @@ package org.enso.google;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
@@ -71,11 +72,11 @@ public class GoogleSheetsForEnso {
     for (int i = 0; i < rawData.size(); i++) {
       var column = rawData.get(i);
       var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
-      column.stream()
+      IntStream.range(0, column.size())
           .skip(firstRowIndex)
           .skip(headerBuilder.getRowsUsed())
           .limit(resolved_row_limit)
-          .map(GoogleSheetsForEnso::fixTypes)
+          .mapToObj(rowIdx -> fixTypes(column.get(rowIdx)))
           .forEach(builder::append);
       columns[i] = new Column(headerBuilder.get(i), builder.seal());
     }
@@ -95,7 +96,7 @@ public class GoogleSheetsForEnso {
 
   private com.google.api.services.sheets.v4.model.Spreadsheet getSpreadsheet(String workbookId)
       throws IOException {
-    return service.spreadsheets().get(workbookId).setIncludeGridData(false).execute();
+    return service.spreadsheets().get(workbookId).setIncludeGridData(true).execute();
   }
 
   public int getNumberOfSheets(String workbookId) throws IOException {
