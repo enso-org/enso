@@ -244,8 +244,8 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
             const replaceState = history.replaceState
             history.replaceState = () => false
             try {
-              // @ts-expect-error `_handleAuthResponse` is a private method without typings.
-              await amplify.Auth._handleAuthResponse(url.toString())
+              // `_handleAuthResponse` is a private method without typings.
+              await amplify.Auth['_handleAuthResponse'](urlString)
 
               navigate(appUtils.DASHBOARD_PATH)
             } finally {
