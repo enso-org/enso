@@ -32,7 +32,7 @@ export const dataLoader: DataLoader<DashboardProps> = {
     const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
     if (resolvedPath == null) return Ok({})
     const asset = await queryClient.fetchQuery(
-      backendQueryOptions('getAssetDetails', [resolvedPath.id], backend),
+      backendQueryOptions('getAssetDetails', [resolvedPath.id, undefined], backend),
     )
     if (asset?.type === AssetType.project) {
       return Ok({ projectToOpen: { asset: { ...asset, ensoPath: path }, backend: backend.type } })
