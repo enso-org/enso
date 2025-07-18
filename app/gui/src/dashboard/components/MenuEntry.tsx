@@ -75,6 +75,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   goForward: 'goForwardShortcut',
   upgradePlan: 'upgradePlanShortcut',
   aboutThisApp: 'aboutThisAppShortcut',
+  toggleCommandPalette: 'toggleCommandPaletteShortcut',
   openInFileBrowser: 'openInFileBrowserShortcut',
   ensoDevtools: 'ensoDevtoolsShortcut',
   copyId: 'copyIdShortcut',

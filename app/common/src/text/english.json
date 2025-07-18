@@ -863,6 +863,7 @@
   "goForwardShortcut": "Go Forward",
   "upgradePlanShortcut": "Upgrade Plan",
   "aboutThisAppShortcut": "About Enso",
+  "toggleCommandPaletteShortcut": "Toggle Command Palette",
   "moveToTrashShortcut": "Move To Trash",
   "moveAllToTrashShortcut": "Move All To Trash",
   "deleteForeverShortcut": "Delete Forever",

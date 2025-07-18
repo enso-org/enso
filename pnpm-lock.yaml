@@ -269,6 +269,9 @@ importers:
       framer-motion:
         specifier: 11.3.0
         version: 11.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      fuzzysort:
+        specifier: 3.1.0
+        version: 3.1.0
       hash-sum:
         specifier: ^2.0.0
         version: 2.0.0
@@ -4786,6 +4789,9 @@ packages:
   functions-have-names@1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
 
+  fuzzysort@3.1.0:
+    resolution: {integrity: sha512-sR9BNCjBg6LNgwvxlBd0sBABvQitkLzoVY9MYYROQVX/FvfJ4Mai9LsGhDgd8qYdds0bY77VzYd5iuB+v5rwQQ==}
+
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
@@ -8592,7 +8598,7 @@ snapshots:
   '@fast-check/vitest@0.2.1(vitest@3.2.4)':
     dependencies:
       fast-check: 3.23.2
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.17.11)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.10.4)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
 
   '@floating-ui/core@1.6.8':
     dependencies:
@@ -12775,6 +12781,8 @@ snapshots:
       is-callable: 1.2.7
 
   functions-have-names@1.2.3: {}
+
+  fuzzysort@3.1.0: {}
 
   gensync@1.0.0-beta.2: {}
 
