@@ -133,10 +133,11 @@ public class JsonOperation {
 
   private static long MAX_JSON_LONG = 9007199254740991L;
   private static BigInteger MAX_JSON_LONG_BIGINT = BigInteger.valueOf(MAX_JSON_LONG);
+
   private static DateTimeFormatter TIME_SHORT_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
   private static DateTimeFormatter TIME_LONG_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
   private static DateTimeFormatter DATE_TIME_SHORT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-  private static DateTimeFormatter DATE_TIME_LONG_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.sss");
+  private static DateTimeFormatter DATE_TIME_LONG_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.ggg");
   private static DateTimeFormatter ZONE_FORMAT = DateTimeFormatter.ofPattern("'['zz']'");
 
   private static String toJson(long value) {
@@ -184,7 +185,7 @@ public class JsonOperation {
         + date.getMonthValue()
         + ",\"year\":"
         + date.getYear()
-        + ",`\"}";
+        + "}";
   }
 
   private static String toJson(LocalTime time) {
