@@ -1,6 +1,5 @@
 import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
-import { isOnElectron } from 'enso-common/src/detect'
 
 // Some debug shortcuts are also defined in electron
 // (Look for `registerShortcuts` method).
@@ -13,7 +12,7 @@ export const appBindings = defineKeybinds('app', {
 export const appContainerBindings = defineKeybinds('app-container', {
   'app.closeTab':
     // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
-    isOnElectron() ? ['Mod+W', ...(!isMacLike ? ['Mod+F4' as const] : [])] : ['Mod+Alt+W'],
+    ['Mod+W', 'Mod+Alt+W', ...(!isMacLike ? ['Mod+F4' as const] : [])],
 })
 
 export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
