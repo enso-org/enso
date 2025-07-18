@@ -8,7 +8,7 @@ import { useInReactFunction } from './common'
 
 export { useAuth, useFullUserSession, useUser, useUserSession } from '$/providers/react/auth'
 export { useBackends } from '$/providers/react/backends'
-export { useRightPanelData } from '$/providers/react/rightPanel'
+export { useRightPanelData } from '$/providers/react/container'
 export { useRouter } from '$/providers/react/router'
 
 export const ConfigContext = react.createContext<GuiConfig | null>(null)

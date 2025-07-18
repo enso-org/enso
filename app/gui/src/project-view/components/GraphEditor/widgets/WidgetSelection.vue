@@ -71,10 +71,12 @@ function makeExpressionFilter(pattern: Ast.Ast | string | undefined): Expression
   if (!pattern) return undefined
   const editedAst = typeof pattern === 'string' ? Ast.parseExpression(pattern) : pattern
   if (editedAst instanceof Ast.TextLiteral) {
+    const text = editedAst.rawTextContent
+    if (!text) return undefined
     return (tag: ExpressionTag) =>
       (tag.expressionAst instanceof Ast.TextLiteral &&
-        tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)) ||
-      (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedAst.rawTextContent))
+        tag.expressionAst.rawTextContent.startsWith(text)) ||
+      (tag.explicitLabel != null && tag.explicitLabel.startsWith(text))
   }
   const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
@@ -279,7 +281,7 @@ declare module '@/providers/widgetRegistry' {
     <SelectionSubmenu
       ref="submenuRef"
       :floatReference="floatReference"
-      :show="dropDownInteraction.isActive() && activity == null"
+      :show="dropDownInteraction.isActive() && activity == null && entries.length > 0"
       :entries="entries"
       :topLevel="true"
       :extendUpwards="allowExtendingUpwards"

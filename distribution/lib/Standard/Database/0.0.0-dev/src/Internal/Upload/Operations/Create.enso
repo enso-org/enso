@@ -8,19 +8,21 @@ import project.SQL_Query.SQL_Query
 from project.Errors import Table_Already_Exists
 from project.Internal.Upload.Operations.Upload_Table import create_table_structure, resolve_temp_table_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Creates a new database table with the provided structure and returns the name
    of the created table.
-
    The user-facing function that handles the dry-run logic.
 
-   ? Transactionality
+   ## Remarks
 
-     The create operation itself is just one CREATE statement, so it does not
-     need to be done inside of a transaction.
-     The only edge case to handle is - if the table already exists, we want to
-     customize the behaviour based on `allow_existing`. This is achieved by
-     intercepting the 'already exists' error.
+   ### Transactionality
+   The create operation itself is just one CREATE statement, so it does not need
+   to be done inside of a transaction.
+   The only edge case to handle is - if the table already exists, we want to
+   customize the behaviour based on `allow_existing`. This is achieved by
+   intercepting the 'already exists' error.
 create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
     resolved_table_name = resolve_temp_table_name connection temporary table_name

@@ -128,10 +128,14 @@ export default class RemoteBackend extends Backend {
 
   /**
    * Delete a user.
-   * FIXME: Not implemented on backend yet.
    */
-  override async removeUser(): Promise<void> {
-    return await this.throw(null, 'removeUserBackendError')
+  override async removeUser(userId: backend.UserId): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.removeUserPath(userId))
+    if (!response.ok) {
+      return await this.throw(response, 'removeUserBackendError')
+    } else {
+      return
+    }
   }
 
   /** Invite a new user to the organization by email. */
@@ -738,15 +742,9 @@ export default class RemoteBackend extends Backend {
    * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
-  override async getAssetDetails<
-    Id extends backend.RealAssetId,
-    Type extends backend.RealAssetTypeId<Id>,
-    ReturnType extends Id extends backend.DirectoryId ?
-      backend.Asset<backend.AssetType.directory> | null
-    : backend.Asset<Type>,
-  >(assetId: Id): Promise<ReturnType> {
+  override async getAssetDetails<Id extends backend.RealAssetId>(assetId: Id) {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
-    const response = await this.get<backend.Asset<Type> | null>(path)
+    const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
     if (!response.ok) {
       if (response.status === STATUS_NOT_FOUND) {
@@ -761,7 +759,7 @@ export default class RemoteBackend extends Backend {
     }
 
     // eslint-disable-next-line no-restricted-syntax
-    return (await response.json()) as ReturnType
+    return (await response.json()) as never
   }
   /**
    * Return Language Server logs for a project session.
@@ -1367,8 +1365,11 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Resolve asset metadata from an enso path. */
-  async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    const response = await this.get<backend.Asset>(remoteBackendPaths.RESOLVE_ENSO_PATH, { path })
+  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    const response = await this.get<backend.Asset<backend.RealAssetType>>(
+      remoteBackendPaths.RESOLVE_ENSO_PATH,
+      { path },
+    )
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
     return await response.json()

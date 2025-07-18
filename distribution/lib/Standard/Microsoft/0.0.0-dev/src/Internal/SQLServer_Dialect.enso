@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Aggregate_Column, Column, Value_Type, Table
+from Standard.Table import Aggregate_Column, Column, Table, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
@@ -484,14 +484,20 @@ type SQLServer_Dialect
 ## Returns a pair of a SQL_Builder for the given expression and a vector of
    columns that have been used in the expression and need to be checked for
    nulls.
+
+   ## Remarks
+
+   ### Boolean Columns in SQL Server
    SQL Server needs special handling compared to their databases as it does not
    have a boolean data type.
    This means that you can write:
-       `SELECT * FROM MyTable WHERE [Column1] > [Column2]`
+   - `SELECT * FROM MyTable WHERE [Column1] > [Column2]`
    but you cannot write:
-       `SELECT [Column1] > [Column2] FROM MyTable`
+   - `SELECT [Column1] > [Column2] FROM MyTable`
    to write the second query you need to write:
-       `SELECT CASE WHEN [Column1] IS NULL OR [Column2] IS NULL WHEN [Column1] > [Column2] THEN 1 ELSE 0 END FROM MyTable`
+   - `SELECT CASE WHEN [Column1] IS NULL OR [Column2] IS NULL WHEN [Column1] >
+   [Column2] THEN 1 ELSE 0 END FROM MyTable`
+
    The below function collects all of the fields which are needed to be checked
    for nulls returning them in a vector as the second element of the pair.
    The first element of the pair is the SQL_Builder for the expression.

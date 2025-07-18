@@ -120,7 +120,7 @@ export default class LocalBackend extends Backend {
    */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
-  ): Promise<readonly backend.AnyAsset[]> {
+  ): Promise<readonly backend.AnyRealAsset[]> {
     if (query.filterBy != null && query.filterBy !== backend.FilterBy.active) {
       return []
     }
@@ -130,7 +130,7 @@ export default class LocalBackend extends Backend {
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
     // Catch the case where the directory does not exist.
-    let result: backend.AnyAsset[] = []
+    let result: backend.AnyRealAsset[] = []
     try {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = (
@@ -231,12 +231,12 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.CreatedProject> {
     const projectsDirectory =
       body.parentDirectoryId == null ?
-        null
+        this.projectManager.rootDirectory
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const project = await this.projectManager.createProject({
       name: projectManager.ProjectName(body.projectName),
       missingComponentAction: projectManager.MissingComponentAction.install,
-      ...(projectsDirectory == null ? {} : { projectsDirectory }),
+      projectsDirectory,
     })
     return {
       name: project.projectName,
@@ -244,6 +244,7 @@ export default class LocalBackend extends Backend {
       projectId: newProjectId(project.projectPath),
       packageName: project.projectName,
       state: { type: backend.ProjectState.closed, volumeId: '' },
+      ensoPath: backend.EnsoPath(`${projectsDirectory}/${project.projectNormalizedName}`),
     }
   }
 
@@ -269,14 +270,13 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async getAssetDetails<
-    Id extends backend.RealAssetId,
-    Type extends backend.RealAssetTypeId<Id>,
-    ReturnType extends Id extends backend.DirectoryId ?
-      backend.Asset<backend.AssetType.directory> | null
-    : backend.Asset<Type>,
-  >(assetId: Id): Promise<ReturnType> {
+  override async getAssetDetails<Id extends backend.RealAssetId>(assetId: Id) {
     const { path } = backend.extractTypeAndPath(assetId)
+    // Consider the root directory as a virtual directory.
+    if (path === this.rootPath()) {
+      // eslint-disable-next-line no-restricted-syntax
+      return null as never
+    }
     const { directoryPath } = getDirectoryAndName(path)
     const directoryContents = await this.listDirectory({
       parentId: newDirectoryId(directoryPath),
@@ -319,6 +319,8 @@ export default class LocalBackend extends Backend {
       if (project == null) {
         throw new Error(`Could not get details of project.`)
       } else {
+        const ensoPathRaw = normalizePath(path)
+        const ensoPath = backend.EnsoPath(ensoPathRaw)
         return {
           name: project.name,
           jsonAddress: null,
@@ -329,6 +331,7 @@ export default class LocalBackend extends Backend {
           projectId,
           state: { type: backend.ProjectState.closed, volumeId: '' },
           url: backend.HttpsUrl(this.resolvePath(downloadProjectPath(projectId))),
+          ensoPath,
         }
       }
     } else {
@@ -346,6 +349,7 @@ export default class LocalBackend extends Backend {
           volumeId: '',
         },
         url: backend.HttpsUrl(this.resolvePath(downloadProjectPath(projectId))),
+        ensoPath: backend.EnsoPath(`${directoryPath}/${cachedProject.projectNormalizedName}`),
       }
     }
   }
@@ -423,6 +427,7 @@ export default class LocalBackend extends Backend {
       packageName: project.projectNormalizedName,
       organizationId: backend.OrganizationId('organization-'),
       state: { type: backend.ProjectState.closed, volumeId: '' },
+      ensoPath: backend.EnsoPath(`${path}/${project.projectNormalizedName}`),
     }
   }
 
@@ -722,6 +727,13 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
+  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    // eslint-disable-next-line no-restricted-syntax
+    const { directoryPath } = getDirectoryAndName(projectManager.Path(path as string))
+    return this.findAsset(directoryPath, 'ensoPath', path)
+  }
+
   /** Resolve the data of a project asset relative to the project root directory. */
   override async resolveProjectAssetData(
     projectId: backend.ProjectId,
@@ -858,15 +870,6 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /**
-   * Resolve the path of a project asset relative to the project `src` directory.
-   */
-  override resolveProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
-    const { path: projectPath } = backend.extractTypeAndPath(projectId)
-
-    return Promise.resolve(`enso://${projectPath}/src/${relativePath.replace('./', '')}`)
-  }
-
   /** Invalid operation. */
   override createDatalink() {
     return this.invalidOperation()
@@ -993,6 +996,33 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override createCustomerPortalSession() {
     return this.invalidOperation()
+  }
+
+  /** Find asset details using directory listing. */
+  private async findAsset<Key extends keyof backend.AnyAsset>(
+    directory: projectManager.Path,
+    key: Key,
+    value: backend.AnyAsset[Key],
+  ) {
+    const directoryContents = await this.listDirectory({
+      parentId: newDirectoryId(directory),
+      filterBy: null,
+      labels: null,
+      recentProjects: false,
+    })
+
+    const entry = directoryContents.find((content) => content[key] === value)
+
+    if (entry == null) {
+      if (backend.isDirectoryId(value)) {
+        throw new backend.DirectoryDoesNotExistError()
+      }
+
+      throw new backend.AssetDoesNotExistError()
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    return entry as never
   }
 }
 

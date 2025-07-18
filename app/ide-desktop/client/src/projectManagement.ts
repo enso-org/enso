@@ -45,7 +45,7 @@ const SAMPLES_DIRECTORY_NAME = 'Samples'
 export interface ProjectInfo {
   readonly id: UUID
   readonly name: string
-  readonly path: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
@@ -223,7 +223,7 @@ export function importDirectory(
       return {
         id,
         name: getPackageName(rootPath) ?? '',
-        path: Path(rootPath),
+        projectRoot: Path(rootPath),
         parentDirectory: directory,
       }
     } else {
@@ -516,7 +516,7 @@ export function bumpMetadata(
     id: generateId(),
     lastOpened: toRfc3339(new Date()),
   })).id
-  return { id, name, path: Path(projectRoot), parentDirectory }
+  return { id, name, projectRoot: Path(projectRoot), parentDirectory }
 }
 
 /** Download project templates GitHub repo into the Samples directory if one not exists. */

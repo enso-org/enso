@@ -3,16 +3,20 @@ from Standard.Base import all
 type Client_Certificate
     ## Creates a new Client_Certificate object.
 
-       Arguments:
-       - cert_file: path to the client certificate file.
-       - key_file: path to the client key file.
-       - key_password: password for the client key file.
+       ## Arguments
+        - `cert_file`: path to the client certificate file.
+        - `key_file`: path to the client key file.
+        - `key_password`: password for the client key file.
     Value cert_file:File key_file:File (key_password:Text='')
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates the JDBC properties for the client certificate.
 
-       ? JDBC Properties
+       ## Remarks
+
+       ### JDBC Properties
        - sslcert: points to the client certificate file.
        - sslkey: points to the client key file.
        - sslpass: password for the client key file.

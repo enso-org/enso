@@ -76,10 +76,10 @@ interface SystemApi {
 }
 
 /** Metadata for a newly imported project. */
-interface ProjectInfo {
+export interface ProjectInfo {
   readonly id: string
   readonly name: string
-  readonly path: Path
+  readonly projectRoot: Path
   readonly parentDirectory: string
 }
 

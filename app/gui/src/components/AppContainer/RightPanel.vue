@@ -119,6 +119,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   min-width: 312px;
   width: 400px;
   padding: 1.25rem 1rem;
+  overflow: auto;
 }
 
 /* React panels rely on being inside columned flex. */

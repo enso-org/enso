@@ -178,6 +178,7 @@ defineExpose({
   height: 100%;
   width: 100%;
   gap: 8px;
+  isolation: isolate;
 }
 
 .toolbar {
@@ -191,6 +192,10 @@ defineExpose({
 
 /*noinspection CssUnusedSymbol*/
 .CodeMirrorRoot {
+  /* Below popovers from the `belowToolbar` slot. */
+  z-index: -1;
+  min-height: 0;
+
   /*noinspection CssUnusedSymbol*/
   & :deep(.cm-content) {
     /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
@@ -304,9 +309,9 @@ defineExpose({
       list-style-type: circle;
     }
     list-style-position: outside;
-    text-indent: -0.3em;
+    text-indent: -0.4em;
     /*noinspection CssUnresolvedCustomProperty*/
-    margin-left: calc(var(--cm-list-depth) * 0.57em + 1em);
+    margin-left: calc(var(--cm-list-depth) * 0.57em + 1.1em);
   }
 
   :global(.cm-OrderedList-item) {

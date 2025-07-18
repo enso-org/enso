@@ -31,6 +31,62 @@ add_specs suite_builder =
             t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
             t.at 'baz' . to_vector . should_equal [False, True, False]
 
+    suite_builder.group 'JSON Columns' group_builder->
+        data = Data.setup
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Text)' <|
+            name_column = data.clothes.at 'Name'
+            name_column.to_json_data . should_equal name_column.to_vector.to_json
+
+            odd_text = ['hello', 'world', 'with tabs\tand newlines\n', 'and \'quotes\' "', 'and backslashes \\', 'and unicode \u1234', 'and emojis 🚧🐞🍔🕰️⏱️']
+            odd_text_column = Table.new [['Odd Text', odd_text]] . at 'Odd Text'
+            odd_text_column.to_json_data . should_equal odd_text.to_json
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Integer)' <|
+            name_column = data.clothes.at 'Quantity'
+            name_column.to_json_data . should_equal name_column.to_vector.to_json
+
+            big_ints = [0, 1, -1, 1000, -1000, 1234567890123456789, -1234567890123456789]
+            big_ints_column = Table.new [['Big Ints', big_ints]] . at 'Big Ints'
+            big_ints_column.to_json_data . should_equal big_ints.to_json
+
+            really_big_ints = [9223372036854775807, -9223372036854775808, 2^65, -2^65, 2^100, -2^100]
+            really_big_ints_column = Table.new [['Really Big Ints', really_big_ints]] . at 'Really Big Ints'
+            really_big_ints_column.to_json_data . should_equal really_big_ints.to_json
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Double)' <|
+            name_column = data.clothes.at 'Price'
+            name_column.to_json_data . should_equal name_column.to_vector.to_json
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Decimal)' <|
+            decimals = [dec "0.0", dec "1.0", dec "-1.0", dec "1000.0", dec "-1000.0", dec "1234567890123456789.1234567890123456789", dec "-1234567890123456789.1234567890123456789"]
+            decimals_column = Table.new [['Decimals', decimals]] . at 'Decimals'
+            decimals_column.to_json_data . should_equal decimals.to_json
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Boolean)' <|
+            bools = [True, False, True, False, True, False]
+            bools_column = Table.new [['Bools', bools]] . at 'Bools'
+            bools_column.to_json_data . should_equal bools.to_json
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Date)' <|
+            date txt = txt.parse_date
+            dates = [date "2020-01-01", date "2021-02-02", date "2022-03-03"]
+            dates_column = Table.new [['Dates', dates]] . at 'Dates'
+            dates_column.to_json_data . should_equal dates.to_json
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Time_Of_Day)' <|
+            time_of_day txt = txt.parse_time_of_day
+            times_of_day = [time_of_day "00:00:00", time_of_day "12:34:56", time_of_day "23:59:59"]
+            times_of_day_column = Table.new [['TimesOfDay', times_of_day]] . at 'TimesOfDay'
+            times_of_day_column.to_json_data . should_equal times_of_day.to_json
+
+        group_builder.specify 'should convert columns to JSON using to_json_data (Date_Time)' <|
+            date_time txt = txt.parse_date_time
+            date_times = [date_time "2020-01-01T00:00:00Z", date_time "2021-02-02T12:34:56Z", date_time "2022-03-03T23:59:59Z"]
+            date_times_column = Table.new [['DateTimes', date_times]] . at 'DateTimes'
+            date_times_column.to_json_data . should_equal date_times.to_json
+
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
