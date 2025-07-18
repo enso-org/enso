@@ -270,6 +270,7 @@ export function useNavigator(
       minScale,
       maxScale,
     )
+    // Rect position should be centered inside viewport (they may have different aspect ratio).
     const w = viewportElem.value.clientWidth / targetScale.value
     const h = viewportElem.value.clientHeight / targetScale.value
     targetLeftTop.value = rect
