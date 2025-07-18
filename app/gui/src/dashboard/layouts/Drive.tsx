@@ -11,7 +11,7 @@ import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import { setDriveLocation } from '#/providers/DriveProvider'
+import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import { BackendType, DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
@@ -26,7 +26,16 @@ import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-function Drive() {
+export const Drive = React.memo(function Drive() {
+  return (
+    <DriveProvider>
+      <DriveInner />
+    </DriveProvider>
+  )
+})
+
+/** Contains directory path and directory contents (projects, folders, secrets and files). */
+function DriveInner() {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
@@ -198,5 +207,3 @@ function OfflineMessage(props: OfflineMessageProps) {
     </result.Result>
   )
 }
-
-export default React.memo(Drive)
