@@ -85,6 +85,7 @@ function closeSettingsTab() {
 const actionHandlers = registerHandlers({
   'app.closeTab': {
     action: () => {
+      console.debug('ACTION')
       switch (tab.value) {
         case 'settings':
           closeSettingsTab()
@@ -93,7 +94,7 @@ const actionHandlers = registerHandlers({
           break
         default: {
           // project id
-          const project = openedProjects.value.find((proj) => proj.id === tab.value)
+          const project = openedProjects.value.find((proj) => proj.ensoPath === tab.value)
           if (project) emit('closeProject', project)
           break
         }
