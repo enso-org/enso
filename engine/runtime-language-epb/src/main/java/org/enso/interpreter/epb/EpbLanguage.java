@@ -4,7 +4,29 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.TruffleLanguage;
 import java.util.function.Consumer;
 
-/** An internal language that serves as a bridge between Enso and other supported languages. */
+/**
+ * <em>Enso Polyglot Bindings</em> language is an internal language that serves as a bridge between
+ * Enso and other supported languages. See <a
+ * href="https://github.com/enso-org/enso/blob/develop/docs/polyglot/README.md">polyglot docs</a>
+ * for a high level overview of intended behavior. Technical details are provided in this Javadoc
+ * and of course in this package code.
+ *
+ * <h3>Generic <code>foreign</code> Support</h3>
+ *
+ * TBD
+ *
+ * <h3><code>foreign js</code> Support</h3>
+ *
+ * TBD
+ *
+ * <h3><code>foreign python</code> Support</h3>
+ *
+ * TBD
+ *
+ * <h3><code>polyglot java</code> Support</h3>
+ *
+ * TBD
+ */
 @TruffleLanguage.Registration(
     id = EpbLanguage.ID,
     name = "Enso Polyglot Bridge",

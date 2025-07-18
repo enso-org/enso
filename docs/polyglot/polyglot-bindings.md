@@ -8,25 +8,10 @@ order: 1
 
 # Polyglot Bindings
 
-This document deals with the specification and design for the polyglot interop
-system provided in the Enso runtime. This system allows users to connect Enso to
-other supported programming languages, to both provide access to a wealth of
-libraries, and to integrate Enso into existing systems.
-
-## Impedance Mismatch
-
-Polyglot interoperation in Enso has a significant impedance mismatch. In
-essence, this means that there is a mismatch between Enso's language semantics
-and the semantics of the foreign languages that are being worked with.
-
-- Enso is designed as a functional programming language
-  - relies on referrential transparency
-  - relies on minimal side effects of computations
-- foreign languages aren't designed that way
-
-Some of thes mismatches can be worked around by manually wrapping the foreign
-constructs in Enso, however some just cannot. Care must be taken when dealing
-with other languages and especially their side-effects.
+Enso provides [robust interoperability](./README.md) with other programming
+languages. This document describes how users can connect Enso to other supported
+programming languages to gain access to a wealth of libraries, as well as to
+integrate Enso into existing systems.
 
 ## `polyglot import`
 
@@ -67,22 +52,23 @@ main =
 
 With a polyglot object in scope, the user is free to call methods on it
 directly. These polyglot objects are inherently dynamically typed, meaning that
-they have `Any` type - e.g. any operation may _fail_ at runtime.
+they have `Any` type. As such there is no _static type checking_ when invoking
+methods on such types and potential errors are only detected during runtime and
+result in a runtime _failure_ (a typical behavior of Python or JavaScript
+programs).
 
 Enso implements a generic variadic syntax for calling polyglot functions using
 vectors of arguments. In essence, this is necessary due to the significant
-impedance mismatch between Enso's runtime semantics (let alone the type system)
-and the runtime semantics of many of the polyglot languages.
+impedance mismatch between Enso's runtime semantics and the runtime semantics of
+many of the polyglot languages. Such a solution:
 
-We went the way of the variadic call for multiple reasons:
+- allows Enso to match up with a wide range of language semantics
+  - for example Java's subtyping and overloading
+- it is flexible and easy to expand in the future.
+- allows building a more Enso-feeling interface on top of it.
 
-- It allows us to match up with a wide range of language semantics (such as
-  subtyping and overloading).
-- It is flexible and easy to expand in the future.
-- We can easily build a more Enso-feeling interface on top of it.
-
-By way of illustrative example, Java supports method overloading and subtyping,
-two things which have no real equivalent in the Enso type system.
+Thanks to the generic variadic syntax, it is possible to smoothly invoke Java
+overloaded and overriden methods.
 
 ### Finding Polyglot Bindings
 
@@ -99,28 +85,45 @@ the language-specific documentation for details.
 
 It is possible to define new code snippets of foreign languages directly in
 `.enso` source files using _"Embedded Syntax"_. Such a handy support provides a
-truly smooth user experience. A `foreign` function block is introduced as
-follows:
-
-- The `foreign` keyword starts a block.
-- This must be followed by a language identifier (e.g. `python` or `js`).
-- After the language identifier, the remaining syntax behaves like it is an Enso
-  function definition until the `=`.
-- After the `=`, the user may write their foreign code as a string.
+truly smooth user experience:
 
 ```ruby
-foreign python concat a b = """
-  def join(a, b):
-    str(a) + str(b)
-  join
+foreign python concat x y = """
+    def join(a, b):
+        return str(a) + str(b)
+    return join(x, y)
+
+main u="Hello" s=" " w="World!" =
+    concat (concat u s) w
 ```
 
-In the above example, this defines an Enso function `concat` that takes two
-arguments `a` and `b`, implemented in Python.
+The previous example defines an Enso function `concat` that takes two arguments
+`a` and `b`. The function is implemented in Python. The Python code defines a
+local function `join` and uses it to compute and return result of `concat`. Then
+the `concat` function is invoked from a `main` Enso function to concatenate
+typical _Hello World!_ message.
 
 - [**Python:**](./python.md) Details on Python polyglot bindings.
 
 Similar syntax can be used for `js` and other dynamic languages. Certain
 languages require/have special support, but in general this mechanism is reusing
 polyglot capabilities of GraalVM Truffle framework and works with any language
-that implements its `InteropLibrary` and _parse in a context_ protocols. s
+that implements its `InteropLibrary` and _"parse in a context"_ protocols.
+
+## Impedance Mismatch
+
+Enso is designed as a functional programming language and as such it assumes
+_mininal side effects_ when performing operation. Especially the _live
+programming_ environment provided by the Enso visual editor relies on operations
+being idempotent and having no side effects. Enso semantic enforces such _no
+side effects_ behavior for programs written in Enso.
+
+This is not a typical behavior of other programming languages and certainly it
+is not enforced in languages like JavaScript, Python or Java. Polyglot
+interoperation in Enso has a significant impedance mismatch. In essence, this
+means that there is a mismatch between Enso's language semantics and the
+semantics of the foreign languages that are being worked with.
+
+Some of thes mismatches can be worked around by manually wrapping the foreign
+constructs in Enso, however some just cannot. Care must be taken when dealing
+with other languages and especially their side-effects.

@@ -36,15 +36,15 @@ objects. For example one can find out whether an object `hasArrayElements`. Such
 objects are then recognized as _array like structures_.
 
 Enso distinguishes between its own _array like structures_ and foreign ones.
-While Enso `Vector` is immutable, there is no guarantee _array like foreign
-objects_ never mutate. To address that Enso offers two types:
+While Enso `Vector` is immutable, _array like foreign objects_ may potentially
+mutate. To address that Enso offers two types:
 
 - `Vector` - guaranteed (by those who create it) to be immutable
 - `Array` - an _array like structure_ which may potentially change
 - both these types follow the same interface and offer the same methods
 
 There is no way in Enso to modify objects of type `Array` (neither `Vector`). A
-**JavaScript** or **Python** allocated `Array` can mutate over time. Should one
-need to guarantee immutability, one can convert `Array` to `Vector` with
-`array_like_foreign_object . to Vector` conversion. Such a conversion creates
-read-only snapshot of the original _array like object_.
+**JavaScript** or **Python** allocated `Array` can mutate during execution of
+the program. Should one need to guarantee immutability, one can convert `Array`
+to `Vector` with `array_like_foreign_object . to Vector` conversion. Such a
+conversion creates read-only snapshot of the original _array like object_.
