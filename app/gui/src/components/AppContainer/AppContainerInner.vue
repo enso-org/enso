@@ -85,7 +85,6 @@ function closeSettingsTab() {
 const actionHandlers = registerHandlers({
   'app.closeTab': {
     action: () => {
-      console.debug('ACTION')
       switch (tab.value) {
         case 'settings':
           closeSettingsTab()
