@@ -18,7 +18,6 @@ import type * as stream from 'node:stream'
 import * as tar from 'tar'
 
 import { PRODUCT_NAME } from 'enso-common'
-import { getCommonPrefix } from 'enso-common/src/buildUtils'
 import { Path, UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as desktopEnvironment from './desktopEnvironment'
@@ -202,6 +201,13 @@ function updateMetadata(
   const updatedMetadata = updater(metadata ?? createMetadata())
   writeMetadata(projectRoot, updatedMetadata)
   return updatedMetadata
+}
+
+function getCommonPrefix(a: string, b: string): string {
+  let i = 0
+  const length = Math.min(a.length, b.length)
+  while (i < length && a[i] === b[i]) ++i
+  return a.slice(0, i)
 }
 
 /**
