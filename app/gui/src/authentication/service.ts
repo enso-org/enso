@@ -8,6 +8,7 @@ import * as appUtils from '$/appUtils'
 import * as cognitoModule from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
+import { parseEnsoDeeplink } from '@/util/url'
 import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
@@ -200,33 +201,35 @@ function loadAmplifyConfig(
  */
 function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
   window.authenticationApi.setDeepLinkHandler((urlString: string) => {
-    const url = new URL(urlString)
-    logger.log(`Parsed pathname: ${url.pathname}`)
-    // Remove the trailing slash in the pathname - it is present on Windows but not on macOS.
-    const pathname = url.pathname.replace(/\/$/, '')
-    switch (pathname) {
+    const result = parseEnsoDeeplink(urlString)
+    if (!result.ok) {
+      logger.log(result.error.message())
+      return
+    }
+    const deeplink = result.value
+    switch (deeplink.pathname) {
       // If the user is being redirected after clicking the registration confirmation link in their
       // email, then the URL will be for the confirmation page path.
-      case '//auth/confirmation': {
-        const verificationCode = url.searchParams.get('verification_code')
+      case 'auth/confirmation': {
+        const verificationCode = deeplink.searchParams.get('verification_code')
 
         let redirectUrl = ''
 
         // In case if the verifaction code is present, then we need to navigate to the confirmation
         // page, because the URL is a deep link for confirmation page and user is not yet confirmed.
         if (verificationCode != null) {
-          redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${url.search}`
+          redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${deeplink.search}`
         } else {
           // Otherwise, we need to navigate to the setup page, because user is already confirmed.
           // but the redirect link navigates to the confirmation page, for some reason.
-          redirectUrl = `${appUtils.DASHBOARD_PATH}${url.search}`
+          redirectUrl = `${appUtils.DASHBOARD_PATH}${deeplink.search}`
         }
         navigate(redirectUrl)
 
         break
       }
-      case '//auth': {
-        if (url.search === '') {
+      case 'auth': {
+        if (deeplink.search === '') {
           // Signing out.
           navigate(appUtils.LOGIN_PATH)
         } else {
@@ -241,8 +244,8 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
             const replaceState = history.replaceState
             history.replaceState = () => false
             try {
-              // @ts-expect-error `_handleAuthResponse` is a private method without typings.
-              await amplify.Auth._handleAuthResponse(url.toString())
+              // `_handleAuthResponse` is a private method without typings.
+              await amplify.Auth['_handleAuthResponse'](urlString)
 
               navigate(appUtils.DASHBOARD_PATH)
             } finally {
@@ -255,26 +258,26 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       }
       // If the user is being redirected after finishing the password reset flow, then the URL will
       // be for the login page.
-      case '//auth/login': {
+      case 'auth/login': {
         navigate(appUtils.LOGIN_PATH)
         break
       }
-      case '//auth/registration': {
-        navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
+      case 'auth/registration': {
+        navigate(`${appUtils.REGISTRATION_PATH}${deeplink.search}`)
         break
       }
-      case '//payments/success': {
-        navigate(`${appUtils.PAYMENTS_SUCCESS_PATH}${url.search}`)
+      case 'payments/success': {
+        navigate(`${appUtils.PAYMENTS_SUCCESS_PATH}${deeplink.search}`)
         break
       }
       // If the user is being redirected from a password reset email, navigate to the password
       // reset page, with the verification code and email prefilled.
-      case appUtils.RESET_PASSWORD_PATH: {
-        navigate(`${appUtils.RESET_PASSWORD_PATH}${url.search}`)
+      case 'password-reset': {
+        navigate(`${appUtils.RESET_PASSWORD_PATH}${deeplink.search}`)
         break
       }
       default: {
-        navigate(pathname.slice(1))
+        navigate(`/${deeplink.pathname}`)
         break
       }
     }

@@ -24,7 +24,6 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
@@ -38,6 +37,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
+import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useRightPanelData } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
