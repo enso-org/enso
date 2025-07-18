@@ -1539,7 +1539,7 @@ export function compareAssets(
   const multiplier = sortDirection === 'ascending' ? 1 : -1
   const modifiedAtDelta =
     multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
-  const titleDelta = multiplier * a.title.localeCompare(b.title, undefined, { numeric: true })
+  const titleDelta = multiplier * a.title.localeCompare(b.title, 'en-US', { numeric: true })
   switch (sortExpression) {
     case 'asset_discriminator_and_id': {
       const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
