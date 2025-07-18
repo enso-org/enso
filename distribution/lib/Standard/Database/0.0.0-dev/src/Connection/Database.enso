@@ -12,18 +12,21 @@ from project.Errors import SQL_Error
 
 polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 
-## MACRO postgres details=Postgres.Server
-   MACRO sqlite details=SQLite.From_File
-   MACRO sql_server details=..SQLServer
-   MACRO snowflake details=..Snowflake
-   GROUP Standard.Base.Database
-   ICON drive
-   SUGGESTED 5
+## ---
+   macros:
+    - postgres: details=Postgres.Server
+    - sqlite: details=SQLite.From_File
+    - sql_server: details=..SQLServer
+    - snowflake: details=..Snowflake
+   group: Standard.Base.Database
+   icon: drive
+   suggested: 5
+   ---
    Tries to connect to the database.
 
-   Arguments:
-   - details: `Connection_Details` specifying the database to connect to.
-   - options: Additional custom connection options for the JDBC connection.
+   ## Arguments
+    - `details`: `Connection_Details` specifying the database to connect to.
+    - `options`: Additional custom connection options for the JDBC connection.
 @details connection_details_widget
 @options Connection_Options.default_widget
 connect : Connection_Details -> Connection_Options -> Connection ! SQL_Error
@@ -35,7 +38,9 @@ connect details options:Connection_Options=..Value =
         Telemetry.log "Database.connect" "Database connection opened: connection_type={}" [result.to Meta.Type . name]
         result
 
-## PRIVATE
+## ---
+   private: true
+   ---
 connection_details_widget : Widget
 connection_details_widget =
     default_constructors = Vector.from_polyglot_array <|
@@ -46,7 +51,9 @@ connection_details_widget =
         Option name code
     Single_Choice display=Display.Always values=choices
 
-## PRIVATE
+## ---
+   private: true
+   ---
 resolve_constructor : Function -> Any
 resolve_constructor constructor =
     types = Vector.from_polyglot_array (DatabaseConnectionDetailsSPI.get_types False)

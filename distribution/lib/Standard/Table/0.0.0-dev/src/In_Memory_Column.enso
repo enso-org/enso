@@ -19,6 +19,7 @@ from project.Internal.Storage import enso_to_java
 
 polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
+polyglot java import org.enso.table.data.column.operation.JsonOperation
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
@@ -47,6 +48,11 @@ type In_Memory_Column
     ## PRIVATE
     to_text self -> Text =
         "In_Memory_Column " + (self:Column).name
+
+    ## PRIVATE
+       Specialised implementation of to_json for a Column.
+    to_json_data self -> Text =
+        JsonOperation.apply self.java_column v->v.to_json
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.

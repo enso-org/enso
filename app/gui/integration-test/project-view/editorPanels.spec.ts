@@ -143,14 +143,16 @@ test('Link in documentation is rendered and interactive', async ({ page, context
   await expect(docsContent.locator('a')).toHaveAccessibleDescription(
     /Click to edit.*Click to open link/,
   )
+
   await expect(docsContent.locator('a')).toHaveText('https://example.com')
   await docsContent.locator('a').click()
-  await expect(rightDock.locator('.LinkEditPopup')).toExist()
+  await expect(rightDock.locator('.LinkEditPopup')).toBeVisible()
   await locate.graphEditor(page).click()
-  await expect(rightDock.locator('.LinkEditPopup')).not.toBeVisible()
-  const newPagePromise = new Promise<true>((resolve) => context.once('page', () => resolve(true)))
+  await expect(rightDock.locator('.LinkEditPopup')).toBeHidden()
+  context.route('https://example.com', (route) => route.fulfill({ status: 200, body: 'YAY' }))
+  const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
   await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
-  await expect(() => newPagePromise).toPass({ timeout: 5000 })
+  await expect(newPagePromise).resolves.toHaveURL('https://example.com')
 })
 
 test('Insert link button inserts link and focuses editor', async ({ page }) => {

@@ -6,94 +6,101 @@ import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.SQL.SQL_Statement
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Used as part of the context, specifies the sources of the query.
 type SQL_IR_From_Part
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
+       A query source that takes data directly from a table in the database.
 
-       A query source that takes data directly from a table in the
-       database.
-
-       Arguments:
-       - table_name: the full name identifying the table in the database.
-       - alias: the name upon which the table can be referred to in other
-         parts of the query, this is especially useful for example in
-         self-joins, allowing to differentiate between different instances of
-         the same table.
-       - internal_temporary_keep_alive_reference: a reference that can be used
-         to track the lifetime of a temporary dry-run table. Once this context
-         is garbage collected, the temporary table may be dropped.
-         See `Hidden_Table_Registry` for more details.
+       ## Arguments
+        - `table_name`: the full name identifying the table in the database.
+        - `alias`: the name upon which the table can be referred to in other
+          parts of the query, this is especially useful for example in
+          self-joins, allowing to differentiate between different instances of
+          the same table.
+        - `internal_temporary_keep_alive_reference`: a reference that can be used
+          to track the lifetime of a temporary dry-run table. Once this context
+          is garbage collected, the temporary table may be dropped. See
+          `Hidden_Table_Registry` for more details.
     Table (table_name : Text) (alias : Text) internal_temporary_keep_alive_reference=Nothing
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A query source that holds a raw SQL statement.
 
-       Arguments:
-       - raw_sql: the raw SQL code of a query used as a source for this table,
-         or a SQL_Statement representing SQL code with interpolated values.
-       - alias: the name upon which the table can be referred to in other
-         parts of the query, this is especially useful for example in
-         self-joins, allowing to differentiate between different instances of
-         the same table.
+       ## Arguments
+        - `raw_sql`: the raw SQL code of a query used as a source for this table,
+          or a SQL_Statement representing SQL code with interpolated values.
+        - `alias`: the name upon which the table can be referred to in other
+          parts of the query, this is especially useful for example in
+          self-joins, allowing to differentiate between different instances of
+          the same table.
     Query (raw_sql : Text | SQL_Statement) (alias : Text)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A query source consisting of a literal VALUES clause.
 
-       Arguments:
-       - column_vectors: the contents of the literal table's columns.
-       - column_names: the names of the literal table's columns,
-       - alias: the name by which the table can be referred to in other parts of
-         the query.
+       ## Arguments
+        - `column_vectors`: the contents of the literal table's columns.
+        - `column_names`: the names of the literal table's columns,
+        - `alias`: the name by which the table can be referred to in other parts
+          of the query.
     Literal_Values (column_vectors : Vector (Vector Any)) (column_names : Vector Text) (alias : Text)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A query source that performs a join operation on two sources.
 
-       Arguments:
-       - kind: the kind of the join.
-       - left_spec: the left data source to be joined
-       - right_spec: the right data source to be joined
-       - on: a list of expressions that will be used as join conditions, these
-         are usually be equalities between expressions from the left and right
-         sources.
+       ## Arguments
+        - `kind`: the kind of the join.
+        - `left_spec`: the left data source to be joined
+        - `right_spec`: the right data source to be joined
+        - `on`: a list of expressions that will be used as join conditions, these
+          are usually be equalities between expressions from the left and right
+          sources.
     Join (kind : SQL_Join_Kind) (left_spec : SQL_IR_From_Part) (right_spec : SQL_IR_From_Part) (on : Vector SQL_IR_Expression)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A query source that performs a union operation on multiple sources.
-
        This maps to the SQL operation `UNION ALL`, keeping any duplicate rows.
 
-       Arguments:
-       - queries: the list of queries to be unioned. Eachn query shold have the
-         same number of columns, as these will be merged by position. Ideally,
-         corresponding columns should have the same names too, as the outer
-         query will be referring to columns of the union by names of the columns
-         from the first query.
-       - alias: the name for the consolidated query, to be used by column
-         references, referring to columns of the union.
+       ## Arguments
+        - `queries`: the list of queries to be unioned. Eachn query shold have
+          the same number of columns, as these will be merged by position.
+          Ideally, corresponding columns should have the same names too, as the
+          outer query will be referring to columns of the union by names of the
+          columns from the first query.
+        - `alias`: the name for the consolidated query, to be used by column
+          references, referring to columns of the union.
     Union (queries : Vector SQL_IR_Statement) (alias : Text)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A query source consisting of a sub-query.
 
-       Arguments:
-       - columns: a list of pairs; each first element is the alias for the
-         column created in the sub-query and the second element is the
-         expression to be computed.
-       - context: the context for the sub-query.
-       - alias: the name upon which the results of this sub-query can be
-         referred to in other parts of the query.
+       ## Arguments
+        - `columns`: a list of pairs; each first element is the alias for the
+          column created in the sub-query and the second element is the
+          expression to be computed.
+        - `context`: the context for the sub-query.
+        - `alias`: the name upon which the results of this sub-query can be
+          referred to in other parts of the query.
     Sub_Query (columns : Vector (Pair Text SQL_IR_Expression)) (context : SQL_IR_Source) (alias : Text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
@@ -114,9 +121,13 @@ type SQL_IR_From_Part
                 SQL_IR_From_Part.Sub_Query (do_name_exps columns) (rec context) alias
         f new_from_spec
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQL_IR_From_Part_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Special handling to ignore the alias and internal temporary keep alive
        reference when comparing two `SQL_IR_From_Part.Table` values.
     compare x y = case x of
@@ -129,11 +140,15 @@ type SQL_IR_From_Part_Comparator
                 Nothing 
         _ -> Ordering.compare x y
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash x = case x of
         SQL_IR_From_Part.Table table_name _ _ ->
             Ordering.hash table_name
         _ -> Ordering.hash x
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that : SQL_IR_From_Part) = Comparable.new that SQL_IR_From_Part_Comparator
