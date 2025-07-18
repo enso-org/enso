@@ -35,15 +35,12 @@ export default function FilePathInput(props: FilePathInputProps) {
   const roundedInputClassName = (roundBottom: boolean) =>
     twMerge(ROUNDED_INPUT_BASE_CLASSES, roundBottom ? 'rounded-input' : 'rounded-t-input')
 
-  // We want the selection submenu to be below the file browser.
-  const selectionSubmenuZIndex = 0
   const fileBrowserZIndex = 1
 
   /* eslint-disable @typescript-eslint/naming-convention */
   /* eslint-disable-next-line no-restricted-syntax */
   const fileBrowserStyles = {
     '--file-browser-min-width': '280px',
-    '--z-index-selection-submenu': selectionSubmenuZIndex,
     '--z-index-file-browser': fileBrowserZIndex,
     '--selection-submenu-color': 'black',
     '--selection-submenu-background-color': 'var(--color-dashboard-background)',

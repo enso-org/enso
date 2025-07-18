@@ -403,10 +403,16 @@ export function useEditorFocus(view: EditorView) {
       if (event.target instanceof Node && view.contentDOM.contains(event.target))
         focused.value = true
     },
-    focusout: () => {
-      // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
-      // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
-      focused.value = false
+    focusout: (event: FocusEvent) => {
+      if (
+        !(event.currentTarget instanceof Node) ||
+        !(event.relatedTarget instanceof Node) ||
+        !event.currentTarget?.contains(event.relatedTarget)
+      ) {
+        // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
+        // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
+        focused.value = false
+      }
     },
   }
   return { focused, focusHandlers }
