@@ -316,7 +316,7 @@ const statusBar = computed(() => ({
     : [],
 }))
 
-const isCreateNodeButtonEnabled = computed(
+const isTableFilteredOrSorted = computed(
   () =>
     sortModel.value.length > 0 ||
     filterModel.value.length > 0 ||
@@ -1155,7 +1155,7 @@ config.setToolbar(
     textFormatterSelected,
     filterModel,
     sortModel,
-    isButtonDisabled: () => !isCreateNodeButtonEnabled.value,
+    tableFilteredOrSorted: isTableFilteredOrSorted,
     isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,

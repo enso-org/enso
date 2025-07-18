@@ -292,7 +292,7 @@ declare module '@/providers/widgetRegistry' {
       <Teleport v-if="dropDownInteraction.isActive() && activity" :to="popoverRoot">
         <div
           ref="activityElement"
-          class="activityElement widgetOutOfLayout floatingElement"
+          class="activityElement widgetOutOfLayout"
           :style="activityStyles"
         >
           <SizeTransition height :duration="100">
@@ -313,12 +313,8 @@ declare module '@/providers/widgetRegistry' {
   min-height: var(--node-port-height);
 }
 
-.floatingElement {
-  z-index: 21;
-}
-
 .activityElement {
-  /* Above the circular menu. */
-  z-index: 26;
+  z-index: calc(var(--z-index-component-menu) + 1);
+  --z-index-file-browser: calc(var(--z-index-component-menu) + 1);
 }
 </style>

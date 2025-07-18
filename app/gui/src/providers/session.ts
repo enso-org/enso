@@ -152,6 +152,10 @@ export function createSessionStore(
   ): Promise<{ user: cognito.CognitoUser; challenge: boolean }> => {
     analytics.signIn.before('Email')
     const result = await authService.signInWithPassword(email, password)
+    if (!result.ok) {
+      throw new Error(result.val.message)
+    }
+
     const user = result.unwrap()
     const challengeType = challengeStepRequired(user)
     if (challengeType) {

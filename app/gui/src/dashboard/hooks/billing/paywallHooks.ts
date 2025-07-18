@@ -9,6 +9,7 @@ import * as devtools from '#/components/Devtools'
 
 import type * as backend from '#/services/Backend'
 
+import * as React from 'react'
 import * as paywallConfiguration from './FeaturesConfiguration'
 import * as paywallFeatures from './paywallFeaturesHooks'
 
@@ -29,10 +30,10 @@ export function usePaywall(props: UsePaywallProps) {
     paywallConfiguration.mapPlanOnPaywall(specifiedPlan),
   )
 
-  const isFeatureUnderPaywall = eventCallbackHooks.useEventCallback(
-    (feature: paywallConfiguration.PaywallFeatureName) => {
+  const isFeatureUnderPaywall = React.useCallback(
+    (feature: paywallConfiguration.PaywallFeatureName, ignoreForceEnabled = false) => {
       const featureConfig = getFeature(feature)
-      const { isForceEnabled } = features[feature]
+      const isForceEnabled = ignoreForceEnabled ? null : features[feature].isForceEnabled
       const { level } = featureConfig
 
       if (isForceEnabled == null) {
@@ -41,6 +42,7 @@ export function usePaywall(props: UsePaywallProps) {
         return !isForceEnabled
       }
     },
+    [paywallLevel, getFeature, features],
   )
 
   return {
