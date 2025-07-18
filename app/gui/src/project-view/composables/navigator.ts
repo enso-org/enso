@@ -54,8 +54,6 @@ export function useNavigator(
 ) {
   const predicate = options.predicate ?? ((_) => true)
   const size = useResizeObserver(viewportNode)
-  // const targetCenter = shallowRef<Vec2>(Vec2.Zero)
-  // const center = useApproachVec(targetCenter, 100, 0.02)
   const targetLeftTop = shallowRef<Vec2>(Vec2.Zero)
   const leftTop = useApproachVec(targetLeftTop, 100, 0.2)
 

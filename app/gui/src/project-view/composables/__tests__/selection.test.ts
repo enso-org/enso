@@ -20,7 +20,7 @@ function selectionWithMockData() {
   const mockDom = document.createElement('div')
   mockDom.style.width = '500px'
   mockDom.style.height = '300px'
-  vi.spyOn(mockDom, 'getBoundingClientRect').mockReturnValue(new DOMRect(-250, -150, 500, 300))
+  vi.spyOn(mockDom, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 500, 300))
 
   const navigator = useNavigator(ref(mockDom), useKeyboard())
 
