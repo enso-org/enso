@@ -51,8 +51,8 @@ type In_Memory_Column
 
     ## PRIVATE
        Specialised implementation of to_json for a Column.
-    to_json_data self -> Text =
-        JsonOperation.apply self.java_column v->v.to_json
+    to_json_data self fallback=(v->v.to_json) -> Text =
+        JsonOperation.apply self.java_column fallback
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.

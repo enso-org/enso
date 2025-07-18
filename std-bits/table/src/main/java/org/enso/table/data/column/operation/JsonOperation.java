@@ -6,7 +6,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.function.Function;
 import org.enso.table.data.column.builder.Builder;
@@ -131,6 +133,11 @@ public class JsonOperation {
 
   private static long MAX_JSON_LONG = 9007199254740991L;
   private static BigInteger MAX_JSON_LONG_BIGINT = BigInteger.valueOf(MAX_JSON_LONG);
+  private static DateTimeFormatter TIME_SHORT_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
+  private static DateTimeFormatter TIME_LONG_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
+  private static DateTimeFormatter DATE_TIME_SHORT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  private static DateTimeFormatter DATE_TIME_LONG_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.sss");
+  private static DateTimeFormatter ZONE_FORMAT = DateTimeFormatter.ofPattern("'['zz']'");
 
   private static String toJson(long value) {
     if (value < -MAX_JSON_LONG || value > MAX_JSON_LONG) {
@@ -169,17 +176,22 @@ public class JsonOperation {
   }
 
   private static String toJson(LocalDate date) {
-    return "{\"type\":\"Date\",\"constructor\":\"new\",\"day\":"
+    return "{\"type\":\"Date\",\"constructor\":\"new\",\"_display_text_\":\""
+        + date.toString()
+        + "\",\"day\":"
         + date.getDayOfMonth()
         + ",\"month\":"
         + date.getMonthValue()
         + ",\"year\":"
         + date.getYear()
-        + "}";
+        + ",`\"}";
   }
 
   private static String toJson(LocalTime time) {
-    return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\",\"hour\":"
+    var timeString = time.format(time.getNano() == 0 ? TIME_SHORT_FORMAT : TIME_LONG_FORMAT);
+    return "{\"type\":\"Time_Of_Day\",\"constructor\":\"new\",\"_display_text_\":\""
+        + timeString
+        + "\",\"hour\":"
         + time.getHour()
         + ",\"minute\":"
         + time.getMinute()
@@ -191,11 +203,16 @@ public class JsonOperation {
   }
 
   private static String toJson(ZonedDateTime datetime) {
+    var datetimeString = datetime.format(
+        datetime.getNano() == 0 ? DATE_TIME_SHORT_FORMAT : DATE_TIME_LONG_FORMAT);
+    var zoneString = datetime.getZone() == ZoneId.systemDefault() ? "" : datetime.format(ZONE_FORMAT);
     var zone_json =
         "{\"type\":\"Time_Zone\",\"constructor\":\"parse\",\"id\":\""
             + datetime.getZone().getId()
             + "\"}";
-    return "{\"type\":\"Date_Time\",\"constructor\":\"new\",\"year\":"
+    return "{\"type\":\"Date_Time\",\"constructor\":\"new\",\"_display_text_\":\""
+        + datetimeString + zoneString
+        + "\",\"year\":"
         + datetime.getYear()
         + ",\"month\":"
         + datetime.getMonthValue()
