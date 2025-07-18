@@ -3722,6 +3722,7 @@ lazy val `engine-runner` = project
               "com.amazonaws",
               "com.google",
               "io.grpc",
+              "io.netty",
               "io.opencensus",
               "net.snowflake.client",
               "com.sun.jna",
