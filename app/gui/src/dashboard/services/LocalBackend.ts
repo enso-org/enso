@@ -124,7 +124,7 @@ export default class LocalBackend extends Backend {
     if (query.filterBy != null && query.filterBy !== backend.FilterBy.active) {
       return []
     }
-    const rootPath = this.rootPath()
+    const { rootPath = this.rootPath() } = query
     const parentIdRaw =
       query.parentId == null ? null : backend.extractTypeAndPath(query.parentId).path
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
@@ -270,19 +270,18 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(assetId: Id) {
+  override async getAssetDetails<Id extends backend.RealAssetId>(
+    assetId: Id,
+    rootPath: backend.Path | undefined,
+  ) {
     const { path } = backend.extractTypeAndPath(assetId)
-    // Consider the root directory as a virtual directory.
-    if (path === this.rootPath()) {
-      // eslint-disable-next-line no-restricted-syntax
-      return null as never
-    }
     const { directoryPath } = getDirectoryAndName(path)
     const directoryContents = await this.listDirectory({
       parentId: newDirectoryId(directoryPath),
       filterBy: null,
       labels: null,
       recentProjects: false,
+      rootPath: rootPath ?? this.rootPath(),
     })
     const entry = directoryContents.find((content) => content.id === assetId)
     if (entry == null) {

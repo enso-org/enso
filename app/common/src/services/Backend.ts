@@ -105,6 +105,11 @@ export enum BackendType {
   remote = 'remote',
 }
 
+/** Check if this path points to an asset in cloud drive. */
+export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
+  return ensoPath.startsWith('enso://')
+}
+
 /** Metadata uniquely identifying a user inside an organization. */
 export interface UserInfo {
   /**
@@ -1365,6 +1370,12 @@ export interface ListDirectoryRequestParams {
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
   readonly recentProjects: boolean
+  /**
+   * The root path of the directory to list.
+   * This is used to list a subdirectory of a local root directory,
+   * because a root could be any local folder on the machine.
+   */
+  readonly rootPath?: Path | undefined
 }
 
 /** URL query string parameters for the "get project session logs" endpoint. */
@@ -1830,7 +1841,10 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<Id extends RealAssetId>(assetId: Id): Promise<AssetDetailsResponse<Id>>
+  abstract getAssetDetails<Id extends RealAssetId>(
+    assetId: Id,
+    rootPath: Path | undefined,
+  ): Promise<AssetDetailsResponse<Id>>
 
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(

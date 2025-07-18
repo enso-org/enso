@@ -97,7 +97,7 @@ export function cancelSubscriptionPath(subscriptionId: SubscriptionId) {
 }
 
 /** Relative HTTP path to the "delete user" endpoint of the Cloud backend API. */
-export function removeUserPath(userId: backend.UserId) {
+export function removeUserPath(userId: UserId) {
   return `users/${userId}`
 }
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
