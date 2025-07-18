@@ -1,7 +1,7 @@
 /** @file Metadata for rendering each settings section. */
 import ComputerIcon from '#/assets/computer.svg'
 import { Button } from '#/components/Button'
-import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import { actionToTextId } from '#/components/MenuEntry'
 import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
@@ -62,7 +62,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             schema: z.object({
               name: z.string().min(1),
               email: z.string().email().or(z.literal('')),
-              timeZone: z.string().or(z.undefined()),
+              timeZone: z.string().optional(),
             }),
             getValue: (context) => ({
               ...pick(context.user, 'name', 'email'),
@@ -401,7 +401,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 if (v.rebindable === false) {
                   return []
                 } else {
-                  return ACTION_TO_TEXT_ID[k]
+                  return actionToTextId(k)
                 }
               })
               return rebindableBindings.map((binding) => context.getText(binding))

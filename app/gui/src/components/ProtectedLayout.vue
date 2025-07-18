@@ -178,7 +178,7 @@ const shouldDisplayAgreementsModal = computed(
     v-if="allowed && agreementsModalProps && shouldDisplayAgreementsModal"
     v-bind="agreementsModalProps"
   />
-  <RouterView v-else-if="allowed" />
+  <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
 
   <EnsoDevtools v-if="displayDevTools" />
 </template>

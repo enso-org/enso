@@ -25,9 +25,8 @@ import project.Helpers
 prepare_visualization : Any -> Integer -> Text
 prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error y.catch).to_text else
     x = Warning.set y []
-
-    result = case x of
-        v : Vector -> make_json_for_vector v max_rows
+    case x of
+        v : Vector -> make_json_for_vector v max_rows . to_text
         v : Array -> prepare_visualization v.to_vector max_rows
         v : Dictionary -> make_json_for_dictionary v max_rows
         v : JS_Object -> make_json_for_js_object v max_rows
@@ -43,14 +42,12 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         f : Function ->
             pairs = [['_display_text_', '[Function '+f.to_text+']']]
             value = JS_Object.from_pairs pairs
-            JS_Object.from_pairs [["json", value]]
+            JS_Object.from_pairs [["json", value]] . to_text
         v : Number ->
-            JS_Object.from_pairs [["json", _make_json_for_value v]]
+            JS_Object.from_pairs [["json", _make_json_for_value v]] . to_text
         v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
         v : XML_Element -> make_json_for_xml_element v max_rows
-        _ -> (Table_Viz_Data.from x).get_json
-
-    result.to_text
+        _ -> (Table_Viz_Data.from x).get_js_object.to_text
 
 ## ---
    private: true
@@ -62,15 +59,15 @@ max_columns = 250
    private: true
    ---
    Render Error to JSON
-make_json_for_error : Any -> JS_Object
+make_json_for_error : Any -> Text
 make_json_for_error error =
-    (Table_Viz_Data.Error error.to_display_text).get_json
+    (Table_Viz_Data.Error error.to_display_text).get_js_object.to_text
 
 ## ---
    private: true
    ---
    Render Vector to JSON
-make_json_for_row : Row -> JS_Object
+make_json_for_row : Row -> Text
 make_json_for_row row =
     header = ["header", ["column", "value"]]
     all_rows = ["all_rows_count", row.length]
@@ -79,7 +76,7 @@ make_json_for_row row =
     data = ["data", [column_names, values]]
     links = ["get_child_node_action", "at"]
     get_child_node_action_link_name = ["get_child_node_link_name", "column"]
-    JS_Object.from_pairs [header, all_rows, data, links, get_child_node_action_link_name, ["type", "Map"]]
+    JS_Object.from_pairs [header, all_rows, data, links, get_child_node_action_link_name, ["type", "Map"]] . to_text
 
 ## ---
    private: true
@@ -148,7 +145,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
    private: true
    ---
    Render Dictionary to JSON
-make_json_for_dictionary : Dictionary -> Integer -> JS_Object
+make_json_for_dictionary : Dictionary -> Integer -> Text
 make_json_for_dictionary dict max_items =
     header = ["header", ["key", "value"]]
     all_rows = ["all_rows_count", dict.size]
@@ -157,13 +154,13 @@ make_json_for_dictionary dict max_items =
     data = ["data", [mapped.map .first, mapped.map .second]]
     links = ["get_child_node_action", "at {{#key}}"]
     get_child_node_action_link_name = ["get_child_node_link_name", "key"]
-    JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"], ["child_label", "value"]]
+    JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"], ["child_label", "value"]] . to_text
 
 ## ---
    private: true
    ---
    Render JS_Object to JSON
-make_json_for_js_object : JS_Object -> Integer -> JS_Object
+make_json_for_js_object : JS_Object -> Integer -> Text
 make_json_for_js_object js_object max_items =
     fields = js_object.field_names
     header = ["header", ["key", "value"]]
@@ -171,13 +168,13 @@ make_json_for_js_object js_object max_items =
     map_vector = Warning.clear (fields.take max_items)
     mapped = map_vector . map p-> [p, _make_json_for_value (js_object.get p)]
     data = ["data", [mapped.map .first, mapped.map .second]]
-    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
+    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]] . to_text
 
 ## ---
    private: true
    ---
    Render XML_Element to JSON
-make_json_for_xml_element : XML_Element -> Integer -> Text -> JS_Object
+make_json_for_xml_element : XML_Element -> Integer -> Text -> Text
 make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     header = ["header", ["key", "type", "value"]]
     all_rows = ["all_rows_count", xml_element.attributes.length + xml_element.children.length]
@@ -197,7 +194,7 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     data = ["data", [map_vector.map .first, map_vector.map .second, map_vector.map i-> i.at 2]]
     child_node_action = if type == "XML_Element" then "get" else "get_child_element"
     get_child_node_fields = [["get_child_node_action", child_node_action + " {{#key}}"], ["get_child_node_link_name", "key"]]
-    JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields
+    JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields . to_text
 
 private _make_json_for_db_table t max_rows is_column =
     dataframe = t.read (..First max_rows)
@@ -218,19 +215,17 @@ private _make_json_for_db_table t max_rows is_column =
       data to display.
     - `all_rows_count`: the number of all rows in the underlying data, useful if
       only a fragment is displayed.
-make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
+make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> Text
 make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
-    act_max = if max_rows < all_rows_count then max_rows else all_rows_count
-    get_vector c               = Warning.set (Vector.new act_max i-> _make_json_for_value (c.get i)) []
-    columns                    = dataframe.columns
+    columns = dataframe.take max_rows . columns
+    column_vis_helpers         = dataframe.columns.map (c -> c:Visualization_Helpers)
 
-    column_vis_helpers         = columns.map (c -> c:Visualization_Helpers)
     make_data_quality_entry name:Text method displayType:Text =
         if column_vis_helpers.all v-> (method v . is_nothing) then [] else
             values = column_vis_helpers.map method
             [JS_Object.from_pairs [["name", name], ["values", values], ["type", displayType]]]
 
-    header                     = ["header", columns.map .name]
+    header                     = ["header", dataframe.column_names]
     value_type                 = ["value_type", columns.map .value_type]
     all_rows                   = ["all_rows_count", all_rows_count]
     has_index_col              = ["has_index_col", True]
@@ -239,7 +234,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     enable_create_node         = ["enable_create_node", if is_column then False else True]
     child_label                = ["child_label", "row"]
     is_using_server_model      = if is_db_table then False else all_rows_count > 1000
-    data                       = if is_using_server_model.not then columns.map get_vector else Nothing
+    data                       = if is_using_server_model.not then columns.map .to_json_data . join "," else Nothing
     requires_number_formatting = ["requires_number_format", column_vis_helpers.map .requires_numeric_formatter_check]
     is_using_multi_filter      = ["is_using_multi_filter", column_vis_helpers.map .check_distinct_values]
     table_version_hash_val     = if is_using_server_model then dataframe.table_version_hash else Nothing
@@ -255,8 +250,9 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
         number_untrimmed       = make_data_quality_entry ("% untrimmed" + sampled_label) .count_untrimmed "Percentage"
         number_non_trivial     = make_data_quality_entry ("% with odd whitespace" + sampled_label) .count_non_trivial_whitespace "Percentage"
         incomplete + range + distinct_count + number_nothing + type_record + number_empty + number_untrimmed + number_non_trivial
-    pairs                      = [header, value_type, ["data", data], all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash, is_using_multi_filter]
-    JS_Object.from_pairs pairs
+    pairs                      = [header, value_type, all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash, is_using_multi_filter]
+    all_except_data = JS_Object.from_pairs pairs . to_text
+    all_except_data . drop (..Last 1) + (if is_using_server_model then ',"data":null}' else ',"data":[' + data + ']}')
 
 ## ---
    private: true
@@ -336,13 +332,8 @@ get_rows_for_table table_or_column start_number sort_col_index_list=Nothing sort
     table_with_index_ordered = table_with_index.reorder_columns [col_name] ..Before_Other_Columns
     filtered_table = if filter_col.is_nothing then table_with_index_ordered else apply_filter_to_table table_with_index_ordered 0 filter_col filter_condition True
     sorted_table = if sort_col_index_list.is_nothing then filtered_table else apply_sort_to_table filtered_table sort_col_index_list sort_direction_list
-    all_rows_count = filtered_table.row_count
-    bucket_size = if all_rows_count > start_number + max_rows then max_rows else (all_rows_count - (start_number))
-    get_vector c         = Warning.set (Vector.new bucket_size i-> _make_json_for_value (c.get (i + start_number))) []
-    columns              = sorted_table.columns
-    rows = columns.map get_vector
-    result = JS_Object.from_pairs [["rows", rows], ["row_count", all_rows_count]]
-    result.to_text
+    sliced_json = sorted_table.drop start_number . take max_rows . columns . map .to_json_data
+    '{"rows":[' + (sliced_json.join ",") + '], "row_count":' + filtered_table.row_count.to_text + '}'
 
 ## ---
    private: true

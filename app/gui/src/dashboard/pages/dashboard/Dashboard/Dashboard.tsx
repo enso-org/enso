@@ -9,7 +9,6 @@ import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
@@ -17,27 +16,27 @@ import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import AppContainerVue from '$/components/AppContainer.vue'
+import AppContainerInnerVue from '$/components/AppContainer/AppContainerInner.vue'
 import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
+import { useLaunchedProjects } from '$/providers/react/container'
 import { usePrefetchQuery } from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
+import type { DashboardProps } from './types'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
-const AppContainer = vueComponent(AppContainerVue).default
+const AppContainerInner = vueComponent(AppContainerInnerVue).default
 
 /** The component that contains the entire UI. */
-export default function Dashboard() {
+export default function Dashboard(props: DashboardProps) {
   return (
     /* Ideally `DriveProvider` would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
     <DriveProvider>
       <CategoriesProvider>
-        <ProjectsProvider>
-          <DashboardInner />
-        </ProjectsProvider>
+        <DashboardInner {...props} />
       </CategoriesProvider>
     </DriveProvider>
   )
@@ -63,7 +62,7 @@ function fileURLToPath(url: string): string | null {
 }
 
 /** The component that contains the entire UI. */
-function DashboardInner() {
+function DashboardInner(props: DashboardProps) {
   const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
@@ -71,17 +70,32 @@ function DashboardInner() {
     React.useCallback(() => config.params.startup.project, [config]),
   )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
-  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
+  const launchedProjects = useLaunchedProjects()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
+  const initialAlreadyLaunchedProject = launchedProjects.find(
+    (lp) => lp.id === props.projectToOpen?.asset.id,
+  )
+  const initialAlreadyLaunchedHybridProject = launchedProjects.find(
+    (lp) => lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
+  )
 
   usePrefetchQuery({
-    queryKey: ['loadInitialLocalProject'],
+    queryKey: ['loadInitialProject'],
     networkMode: 'always',
     ...STATIC_QUERY_OPTIONS,
     queryFn: async () => {
-      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+      if (props.projectToOpen) {
+        if (
+          // If project is already on launched list, then the Editor.tsx will handle opening it.
+          !initialAlreadyLaunchedProject &&
+          !initialAlreadyLaunchedHybridProject &&
+          !projectHooks.BUSY_PROJECT_STATES.has(props.projectToOpen.asset.projectState.type)
+        ) {
+          await openProjectLocally(props.projectToOpen.asset, props.projectToOpen.backend)
+        }
+      } else if (initialLocalProjectPath != null && window.backendApi && localBackend) {
         const projectName = baseName(initialLocalProjectPath)
-        const { id } = await window.backendApi.importProjectFromPath(
+        const { id, projectRoot } = await window.backendApi.importProjectFromPath(
           initialLocalProjectPath,
           localBackend.rootPath(),
           projectName,
@@ -91,13 +105,13 @@ function DashboardInner() {
             id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
             title: projectName,
             parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+            ensoPath: backendModule.EnsoPath(projectRoot),
           },
           backendModule.BackendType.local,
         )
       }
       return null
     },
-    staleTime: Infinity,
   })
 
   React.useEffect(() => {
@@ -114,6 +128,7 @@ function DashboardInner() {
           id: projectId,
           title: project.name,
           parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+          ensoPath: backendModule.EnsoPath(project.projectRoot),
         },
         backendModule.BackendType.local,
       )
@@ -146,7 +161,6 @@ function DashboardInner() {
     [inputBindings],
   )
 
-  const launchedProjects = useLaunchedProjects()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const { user } = useFullUserSession()
@@ -161,11 +175,9 @@ function DashboardInner() {
           modalProvider.unsetModal()
         }}
       >
-        <AppContainer
-          initialProjectName={initialProjectName}
-          launchedProjects={launchedProjects}
-          closeProject={closeProject}
-          closeAllProjects={closeAllProjects}
+        <AppContainerInner
+          onCloseProject={closeProject}
+          onCloseAllProjects={closeAllProjects}
           isFeatureUnderPaywall={isFeatureUnderPaywall}
         />
       </div>

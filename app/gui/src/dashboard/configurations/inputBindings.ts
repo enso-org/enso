@@ -16,8 +16,6 @@ export function createBindings() {
 
 export const BINDINGS = inputBindings.defineBindings({
   settings: { bindings: ['Mod+,'], icon: 'settings' },
-  // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
-  closeTab: { bindings: ['Mod+W', 'Mod+Alt+W'], icon: 'close' },
   open: { bindings: ['Enter'], icon: 'open' },
   run: { bindings: ['Shift+Enter'], icon: 'workflow_play' },
   close: { bindings: [], icon: 'close' },

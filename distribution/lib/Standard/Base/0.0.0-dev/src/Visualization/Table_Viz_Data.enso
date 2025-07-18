@@ -1,6 +1,6 @@
 from project.Data.Json import JS_Object
 
-## Type for generating the visulaisation data for the "Table" visualisation
+## Type for generating the visualisation data for the "Table" visualisation
 
    IMPORTANT - The types here must be kept in sync with those in TableVisualisationTypes.ts
 
@@ -9,7 +9,7 @@ from project.Data.Json import JS_Object
               Table_Viz_Data.from (that:MyType) =
 type Table_Viz_Data
     ## Temporary constructor for viz types that have not yet moved to this model
-    Value json:JS_Object
+    Value js_object:JS_Object
 
     ## Table Viz for errors
     Error error_display_text
@@ -17,12 +17,12 @@ type Table_Viz_Data
     ## Table Viz for a generic grid
     GenericGrid headers data
 
-    ## produces the json to send across to the ts visualisation code
-    get_json self -> JS_Object =
+    ## produces the JS Object to send across to the ts visualisation code
+    get_js_object self -> JS_Object =
         case self of    
-            Table_Viz_Data.Value _ -> self.json
-            Table_Viz_Data.Error _ -> _make_json_for_error self.error_display_text
-            Table_Viz_Data.GenericGrid _ _ -> _make_json_for_generic_grid self.headers self.data
+            Table_Viz_Data.Value _ -> self.js_object
+            Table_Viz_Data.Error _ -> _make_js_object_for_error self.error_display_text
+            Table_Viz_Data.GenericGrid _ _ -> _make_js_object_for_generic_grid self.headers self.data
 
 type Table_Viz_Header
     ## Column with links to create child nodes.
@@ -31,13 +31,13 @@ type Table_Viz_Header
     ## Column with a label.
     Label name
 
-private _make_json_for_generic_grid headers data =
-    JS_Object.from_pairs [["type", "Generic_Grid"], ["data", data], ["headers", headers.map _make_json_for_header]]
+private _make_js_object_for_generic_grid headers data =
+    JS_Object.from_pairs [["type", "Generic_Grid"], ["data", data], ["headers", headers.map _make_js_object_for_header]]
 
-private _make_json_for_header header = case header of
+private _make_js_object_for_header header = case header of
     Table_Viz_Header.Label _ -> JS_Object.from_pairs [["visualization_header", header.name]]
     Table_Viz_Header.Link _ _ _ -> JS_Object.from_pairs [["visualization_header", header.name], ["child_label", header.tooltip], ["get_child_node_action", header.action]]
 
-private _make_json_for_error error_display_text =
+private _make_js_object_for_error error_display_text =
     pairs = [["type", "Error"], ["error", error_display_text]]
     JS_Object.from_pairs pairs

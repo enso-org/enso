@@ -44,6 +44,7 @@ const SAMPLES_DIRECTORY_NAME = 'Samples'
 export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
@@ -222,7 +223,12 @@ export function importDirectory(
     logger.log(`Project already installed at '${rootPath}'.`)
     const id = getProjectId(rootPath)
     if (id != null) {
-      return { id, name: getPackageName(rootPath) ?? '', parentDirectory: directory }
+      return {
+        id,
+        name: getPackageName(rootPath) ?? '',
+        parentDirectory: directory,
+        projectRoot: rootPath,
+      }
     } else {
       throw new Error(`Project already installed, but missing metadata.`)
     }
@@ -521,7 +527,7 @@ export function bumpMetadata(
     id: generateId(),
     lastOpened: new Date().toISOString(),
   })).id
-  return { id, name, parentDirectory }
+  return { id, name, projectRoot, parentDirectory }
 }
 
 /** Download project templates GitHub repo into the Samples directory if one not exists. */

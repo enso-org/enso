@@ -12,11 +12,6 @@ defineExpose({ highlightClasses })
 </template>
 
 <style scoped>
-.CodeMirrorRoot {
-  width: 100%;
-  height: 100%;
-}
-
 .CodeMirrorRoot :deep(.cm-content) {
   cursor: text;
 }
