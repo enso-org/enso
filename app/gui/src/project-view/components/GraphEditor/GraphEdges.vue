@@ -157,6 +157,7 @@ function onNewNodeClick(id: NodeId) {
       />
       <template v-for="id in nodeIdsWithOutputPorts" :key="id">
         <GraphNodeOutputPorts
+          v-show="id !== graph.editedNodeInfo?.id"
           :nodeId="id"
           @newNodeClick="onNewNodeClick(id)"
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"

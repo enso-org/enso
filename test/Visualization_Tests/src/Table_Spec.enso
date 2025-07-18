@@ -71,7 +71,7 @@ add_specs suite_builder =
         p_number_of_untrimmed_whitespace_sampled = if number_of_untrimmed_whitespace_sampled.is_nothing then [] else [JS_Object.from_pairs [["name", "% untrimmed (sampled)"], ["values", number_of_untrimmed_whitespace_sampled], ["type", "Percentage"]]]
         p_number_non_trivial_ws_sampled = if number_non_trivial_ws_sampled.is_nothing then [] else [JS_Object.from_pairs [["name", "% with odd whitespace (sampled)"], ["values", number_non_trivial_ws_sampled], ["type", "Percentage"]]]
         data_quality_metrics = p_range + p_number_of_distinct + p_number_of_nothing + p_number_of_empty + p_number_of_empty_sampled + p_number_of_untrimmed_whitespace + p_number_of_untrimmed_whitespace_sampled + p_number_non_trivial_ws + p_number_non_trivial_ws_sampled
-        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, p_use_bottom_status_bar, p_enable_create_node, ["data_quality_metrics", data_quality_metrics], ["type", "EnsoTableOrColumn"], ["child_label", "row"], p_is_ssrm, p_requires_number_format, p_table_version_hash, p_is_using_multi_filter]
+        pairs    = [p_header, p_value_type, p_all_rows, p_has_index_col, p_get_child_node, p_use_bottom_status_bar, p_enable_create_node, ["data_quality_metrics", data_quality_metrics], ["type", "EnsoTableOrColumn"], ["child_label", "row"], p_is_ssrm, p_requires_number_format, p_table_version_hash, p_is_using_multi_filter, p_data]
         JS_Object.from_pairs pairs . to_text
     
     suite_builder.group "Table Visualization" group_builder->
