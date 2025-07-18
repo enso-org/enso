@@ -15,6 +15,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
+import com.google.api.services.sheets.v4.model.RowData;
 import com.google.auth.http.HttpCredentialsAdapter;
 
 public class GoogleSheetsForEnso {
@@ -61,9 +62,19 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
+    var rowData = service
+      .spreadsheets()
+      .get(sheetId)
+      .setRanges(List.of(range))
+      .setIncludeGridData(true)
+      .execute()
+      .getSheets().get(0)
+      .getData().get(0)
+      .getRowData();
+
     final int firstRowIndex = Math.max(0, skip_rows);
-    List<Object> firstRow = getDataRow(rawData, firstRowIndex);
-    List<Object> secondRow = getDataRow(rawData, firstRowIndex + 1);
+    var firstRow = getDataRow(rowData, firstRowIndex);
+    var secondRow = getDataRow(rowData, firstRowIndex + 1);
     GoogleSheetsHeaders headerBuilder =
         new GoogleSheetsHeaders(headerBehavior, firstRow, secondRow, problemAggregator);
 
@@ -96,7 +107,7 @@ public class GoogleSheetsForEnso {
 
   private com.google.api.services.sheets.v4.model.Spreadsheet getSpreadsheet(String workbookId)
       throws IOException {
-    return service.spreadsheets().get(workbookId).setIncludeGridData(true).execute();
+    return service.spreadsheets().get(workbookId).setIncludeGridData(false).execute();
   }
 
   public int getNumberOfSheets(String workbookId) throws IOException {
@@ -121,9 +132,9 @@ public class GoogleSheetsForEnso {
         : namedRanges.stream().map(range -> range.getName()).toList();
   }
 
-  private static List<Object> getDataRow(List<List<Object>> rawData, int rowIndex) {
-    if (rawData.stream().anyMatch(col -> col.size() > rowIndex)) {
-      return rawData.stream().map(col -> col.size() > rowIndex ? col.get(rowIndex) : null).toList();
+  private static RowData getDataRow(List<RowData> rowData, int rowIndex) {
+    if (rowData.size()>rowIndex) {
+      return rowData.get(rowIndex);
     }
     return null;
   }
