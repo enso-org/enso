@@ -20,7 +20,6 @@ import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
@@ -59,11 +58,9 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
 import {
-  assetIsProject,
   AssetType,
   BackendType,
   getAssetPermissionName,
@@ -93,6 +90,7 @@ import {
   useText,
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
+import { useLaunchedProjects } from '$/providers/react/container'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -173,13 +171,11 @@ export interface AssetRowState {
 export interface AssetsTableProps {
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
-  readonly initialProjectName: string | null
 }
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery } = props
-  const { initialProjectName } = props
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
@@ -524,26 +520,6 @@ function AssetsTable(props: AssetsTableProps) {
       }),
     [driveStore, isCloud, assets, setCanDownload],
   )
-
-  const initialProjectNameDeps = useSyncRef({
-    items: assets,
-    openProjectLocally,
-    toastAndLog,
-  })
-
-  useEffect(() => {
-    const deps = initialProjectNameDeps.current
-    // The project name here might also be a string with project id, e.g. when opening
-    // a project file from explorer on Windows.
-    const isInitialProject = (asset: AnyAsset) =>
-      asset.title === initialProjectName || asset.id === initialProjectName
-    const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
-    if (projectToLoad != null) {
-      void deps.openProjectLocally(projectToLoad, BackendType.local)
-    } else if (initialProjectName != null && initialProjectName !== '') {
-      deps.toastAndLog('findProjectError', null, initialProjectName)
-    }
-  }, [initialProjectName, initialProjectNameDeps])
 
   useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')

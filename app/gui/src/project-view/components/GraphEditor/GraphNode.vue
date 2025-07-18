@@ -44,7 +44,7 @@ import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { ComponentInstance, computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { ComponentInstance, computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -189,14 +189,15 @@ const {
   isFocused: extended,
   typeinfo: () => expressionInfo.value?.typeInfo,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
+  hidden: toRef(props, 'edited'),
   emit,
 })
 
-watch(isVisualizationPreviewed, (newVal, oldVal) => {
-  if (!newVal) {
-    graph.nodeHovered.delete(nodeId.value)
-  } else if (newVal && !oldVal) {
+watch(isVisualizationPreviewed, (newVal) => {
+  if (newVal) {
     graph.db.moveNodeToTop(nodeId.value)
+  } else {
+    graph.nodeHovered.delete(nodeId.value)
   }
 })
 

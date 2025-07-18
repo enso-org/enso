@@ -6,9 +6,9 @@ import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
+import type { LaunchedProject } from '$/providers/container'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import * as analytics from '$/utils/analytics'
@@ -34,7 +34,8 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
-  const { preventAutoReopen = false } = project
+  const preventAutoReopen =
+    project.type !== backendModule.BackendType.local || project.hybrid == null
   const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
@@ -71,10 +72,13 @@ export default function Editor(props: EditorProps) {
       assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
       backend: isHybrid ? remoteBackend : backend,
     }),
-    select: (projectDetails) => ({
-      name: projectDetails.name,
-      isHybridOpened: isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
-    }),
+    select: (projectDetails) => {
+      return {
+        name: projectDetails.name,
+        isHybridOpened:
+          isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
+      }
+    },
   })
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
@@ -242,6 +246,7 @@ function EditorInternal(props: EditorInternalProps) {
       projectId: openedProject.projectId,
       projectInitialName: openedProject.packageName,
       projectDisplayedName: projectName,
+      projectPath: openedProject.ensoPath,
       engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
       renameProject: onRenameProject,
       projectBackend,

@@ -12,19 +12,24 @@ polyglot java import org.enso.base.polyglot.NumericConverter
 polyglot java import org.enso.database.JDBCUtils
 
 type Statement_Setter
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Encapsulates the logic for filling a hole in a prepared statement.
     Value (fill_hole : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The default setter that is handling simple commonly supported types.
     default : Statement_Setter
     default = Statement_Setter.Value fill_hole_default
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Used internally to mark statements that do not expect to have any values
        to set.
-
        It will panic if called.
     null : Statement_Setter
     null =
@@ -32,7 +37,9 @@ type Statement_Setter
             Panic.throw (Illegal_State.Error "The associated statement does not expect any values to be set. This is a bug in the Database library.")
         Statement_Setter.Value fill_hole_unexpected
 
-## PRIVATE
+## ---
+   private: true
+   ---
 fill_hole_default : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing
 fill_hole_default stmt i type_hint value = case value of
     Nothing       -> stmt.setNull i Java_Types.NULL

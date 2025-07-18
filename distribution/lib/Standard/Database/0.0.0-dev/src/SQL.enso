@@ -11,73 +11,87 @@ import project.SQL.SQL_Type
 polyglot java import java.sql.ResultSetMetaData
 polyglot java import java.sql.Types
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A fragment of a SQL query.
-
    It can either be a SQL_Fragment.Code_Part that represents raw SQL code or
    SQL_Fragment.Interpolation which represents an object that will be
    interpolated into the query.
 type SQL_Fragment
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A SQL fragment that represents raw SQL code.
 
-       Arguments:
-       - code: A fragment of SQL code.
+       ## Arguments
+        - `code`: A fragment of SQL code.
     private Code_Part code:Text
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A SQL fragment that represents an object which will be interpolated into
        the query.
 
-       Arguments:
-       - object: A value that will be interpolated into the query.
+       ## Arguments
+        - `object`: A value that will be interpolated into the query.
     private Interpolation object:Any
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQL_Builder
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a SQL_Builder representing and empty code fragment.
     empty : SQL_Builder
     empty = SQL_Builder.Value (Vector_Builder.empty)
 
-    ## PRIVATE
-       ADVANCED
-       Creates a SQL_Builder representing a code fragment containing the specified raw
-       code.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a SQL_Builder representing a code fragment containing the
+       specified raw code.
 
-       Arguments:
-       - text: The raw SQL code.
+       ## Arguments
+        - `text`: The raw SQL code.
     code : Text -> SQL_Builder
     code text =
         vec = if text.is_empty then [] else [SQL_Fragment.Code_Part text]
         SQL_Builder.from_fragments vec
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a SQL_Builder representing an interpolation of the given object.
 
-       Arguments:
-       - object: The object to be interpolated into the query as if it has the type
-         given by `sql_type`.
+       ## Arguments
+        - `object`: The object to be interpolated into the query as if it has the
+          type given by `sql_type`.
     interpolation : Any -> SQL_Builder
     interpolation object = SQL_Builder.from_fragments [SQL_Fragment.Interpolation object]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates an SQL_Builder from a list of fragments.
     from_fragments : Vector SQL_Fragment -> SQL_Builder
     from_fragments fragments = SQL_Builder.Value (Vector_Builder.from_vector fragments)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Joins a vector of code fragments with the provided separator.
 
-       Arguments:
-       - separator: The separator to use when joining the code fragments.
-       - statements: The SQL statements to join using `separator`.
+       ## Arguments
+        - `separator`: The separator to use when joining the code fragments.
+        - `statements`: The SQL statements to join using `separator`.
     join : SQL_Builder | Text -> Vector SQL_Builder -> SQL_Builder
     join separator statements =
         sep = case separator of
@@ -87,37 +101,43 @@ type SQL_Builder
         if statements.length == 0 then SQL_Builder.empty else
             (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A SQL_Builder for SQL queries.
-
-       Arguments:
-       - fragments: A builder that contains fragments of SQL code.
 
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
+
+       ## Arguments
+        - `fragments`: A builder that contains fragments of SQL code.
     private Value (fragments:(Vector_Builder SQL_Fragment))
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Concatenates two code fragments.
 
-       Arguments:
-       - other: The code fragment to append to `self`.
+       ## Arguments
+        - `other`: The code fragment to append to `self`.
     ++ : SQL_Builder -> SQL_Builder
     ++ self other = case other of
         text : Text -> if text == "" then self else SQL_Builder.Value (self.fragments ++ (SQL_Builder.code text).fragments)
         _ -> SQL_Builder.Value (self.fragments ++ other.fragments)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Checks if the SQL_Builder represents an empty code fragment.
     is_empty : Boolean
     is_empty self = self.fragments.is_empty
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Checks if a code fragment is a constant.
     is_constant : Boolean
     is_constant self =
@@ -128,35 +148,43 @@ type SQL_Builder
                     _ -> False
                 _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Extracts the interpolated constant from the builder.
        This can only be called if `is_constant` returns `True`.
     extract_constant self =
         if self.is_constant.not then Panic.throw (Illegal_State.Error "`SQL_Builder.extract_constant called on a builder that is not a constant.") else
             self.fragments.vec.first.object
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Builds a SQL statement.
     build : SQL_Statement
     build self =
         fragments = optimize_fragments self.fragments.build
         SQL_Statement.Value fragments
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Wraps the code fragment in parentheses.
     paren : SQL_Builder
     paren self = SQL_Builder.code "(" ++ self ++ ")"
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        If the fragment is non empty, prepends the specified prefix to it.
 
-       Arguments:
-       - prefix: The prefix to append if the fragment is present.
-
        Empty fragments are unaffected.
+
+       ## Arguments
+        - `prefix`: The prefix to append if the fragment is present.
     prefix_if_present : Text | SQL_Builder -> SQL_Builder
     prefix_if_present self prefix =
         pref = case prefix of
@@ -164,13 +192,14 @@ type SQL_Builder
             _ -> SQL_Builder.code prefix
         if self.is_empty then self else pref++self
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Merges neighboring code fragments to create a more compact representation of
    the same code.
 
-   Arguments:
-   - fragments: The fragments to be merged together.
+   ## Arguments
+    - `fragments`: The fragments to be merged together.
 optimize_fragments : Vector SQL_Fragment -> Vector SQL_Fragment
 optimize_fragments fragments =
     Vector.build builder->
@@ -196,23 +225,27 @@ optimize_fragments fragments =
                 Nothing -> Nothing
                 SQL_Fragment.Code_Part _ -> builder.append last_part
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQL_Statement
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Represents a built SQL statement.
-
-       Arguments:
-       - internal_fragments: A vector of SQL code fragments.
 
        The statement consists of SQL code with parameters and values that will be
        interpolated for these parameters.
+
+       ## Arguments
+        - `internal_fragments`: A vector of SQL code fragments.
     private Value (internal_fragments:(Vector SQL_Fragment))
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        A vector of code fragments.
-
        Consists of two types of values:
        - SQL_Fragment.Code_Part, representing parts of raw SQL code and
        - SQL_Fragment.Interpolation, representing objects that will be
@@ -220,16 +253,16 @@ type SQL_Statement
     fragments : Vector SQL_Fragment
     fragments self = self.internal_fragments
 
-    ## PRIVATE
-       ADVANCED
-       UNSAFE
+    ## ---
+       private: true
+       advanced: true
+       unsafe: true
+       ---
        This function returns a raw SQL string for the query, manually handling
        the interpolation that is normally handled by the database engine itself.
-
        It should be used EXTREMELY carefully - the returned SQL code should
        always be read by a human to ensure that it does what is expected before
        executing it in any REPLs or other database interfaces.
-
        It should NEVER be used in production code.
     unsafe_to_raw_sql : Text
     unsafe_to_raw_sql self =
@@ -243,10 +276,12 @@ type SQL_Statement
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""
 
-    ## PRIVATE
-       ADVANCED
-       Returns a pair consisting of the SQL code with holes for values and
-       a list for values that should be substituted.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Returns a pair consisting of the SQL code with holes for values and a list
+       for values that should be substituted.
     prepare self =
         to_code fragment = case fragment of
             SQL_Fragment.Code_Part code -> code
@@ -258,19 +293,23 @@ type SQL_Statement
         substitutions = self.fragments.flat_map to_subst
         [sql, substitutions]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a JS_Object representation of the statement.
     to_js_object : JS_Object
     to_js_object self =
         self.serialize ensure_roundtrip=False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Serializes this SQL statement to JSON.
 
-       Arguments:
-       - ensure_roundtrip: If true, interpolated objects will be checked if they
-         can be deserialized back. If any object cannot make a round-trip, an
-         error will be thrown. If false, no checks are performed.
+       ## Arguments
+        - `ensure_roundtrip`: If true, interpolated objects will be checked if
+          they can be deserialized back. If any object cannot make a round-trip,
+          an error will be thrown. If false, no checks are performed.
     serialize self (ensure_roundtrip : Boolean) -> JS_Object ! Unable_To_Serialize_SQL_Statement = Panic.recover Unable_To_Serialize_SQL_Statement <|
         jsonify fragment = case fragment of
             SQL_Fragment.Code_Part code ->
@@ -291,7 +330,9 @@ type SQL_Statement
                 Runtime.assert (SQL_Statement.deserialize result == self) "SQL_Fragment serialization does not round-trip as expected: "+result.to_display_text+" did not deserialize back."
             result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     deserialize (json : Text | JS_Object) -> SQL_Statement ! Illegal_Argument =
         parsed_json = case json of
             _ : JS_Object -> json
@@ -310,37 +351,47 @@ type SQL_Statement
                 _ -> Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: expected `sql_code` or `sql_interpolation` object, but got:"+fragment.to_display_text+".")
             SQL_Statement.Value (fragments.map parse_fragment)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self -> Text =
         prepared = self.prepare
         "SQL_Statement " + prepared.first + " with values " + prepared.second.to_text
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Represents an internal SQL data-type.
 type SQL_Type
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Represents an internal SQL data-type.
 
-       Arguments:
-       - typeid: a numerical type id, as defined in `java.sql.Types`.
-       - name: a database-specific type name, used for pretty printing.
-       - precision: For character types, specifies their length.
-         See `ResultSetMetaData.getPrecision`.
-       - scale: The scale for fixed precision numeric types. Not applicable for
-         other types, so it's value is undefined.
-         See `ResultSetMetaData.getScale`.
-       - nullable: Specifies if the given column is nullable. May be `Nothing`
-         if that is unknown / irrelevant for the type.
-         ToDo: the precise meaning of this will be revised with #5872.
+       ## Arguments
+        - `typeid`: a numerical type id, as defined in `java.sql.Types`.
+        - `name`: a database-specific type name, used for pretty printing.
+        - `precision`: For character types, specifies their length. See
+          `ResultSetMetaData.getPrecision`.
+        - `scale`: The scale for fixed precision numeric types. Not applicable
+          for other types, so it's value is undefined. See
+          `ResultSetMetaData.getScale`.
+        - `nullable`: Specifies if the given column is nullable. May be `Nothing`
+          if that is unknown / irrelevant for the type. ToDo: the precise meaning
+          of this will be revised with #5872.
     Value (typeid : Integer) (name : Text) (precision : Nothing | Integer = Nothing) (scale : Nothing | Integer = Nothing) (nullable : Boolean | Nothing = Nothing)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        The SQL type representing a null value.
     null : SQL_Type
     null = SQL_Type.Value Types.NULL "NULL"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Constructs a `SQL_Type` from a `ResultSetMetaData` object.
     from_metadata metadata ix =
         typeid = metadata.getColumnType ix
@@ -356,12 +407,18 @@ type SQL_Type
                 Nothing
         SQL_Type.Value typeid typename precision effective_scale nullable
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Unable_To_Serialize_SQL_Statement
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error obj
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text self =
         "Unable to serialize an SQL statement, because it contains an interpolated object [" + self.obj.to_display_text + " (" + (Meta.type_of self.obj).to_text + ")] that cannot be deserialized back."
 
