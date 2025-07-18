@@ -4,10 +4,12 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Popover } from '#/components/Dialog'
 import type { MenuEntryProps } from '#/components/MenuEntry'
 import { usePortalContext } from '#/components/Portal'
+import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isOnMacOS } from 'enso-common/src/detect'
 import {
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useState,
   type ForwardedRef,
@@ -35,6 +37,7 @@ export const ContextMenu = forwardRef(function ContextMenu(
 ) {
   const { entries, initialPosition } = props
 
+  const inputBindings = useInputBindings()
   const root = usePortalContext()
   const [isOpen, setIsOpen] = useState(initialPosition != null)
   const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
@@ -53,6 +56,15 @@ export const ContextMenu = forwardRef(function ContextMenu(
       setIsOpen(false)
     },
   }))
+
+  useEffect(() => {
+    if (!isOpen) return
+    return inputBindings.attach(document.body, 'keydown', {
+      closeModal: () => {
+        setIsOpen(false)
+      },
+    })
+  }, [inputBindings, isOpen])
 
   return (
     <Popover.Trigger>
