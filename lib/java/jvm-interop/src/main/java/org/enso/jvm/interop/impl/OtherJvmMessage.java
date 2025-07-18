@@ -93,6 +93,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
     try {
+      t.getConfig().loader.ctx().enter();
       var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;
       if (message == IS_IDENTICAL) {
@@ -102,6 +103,8 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
+    } finally {
+      t.getConfig().loader.ctx().leave();
     }
   }
 
