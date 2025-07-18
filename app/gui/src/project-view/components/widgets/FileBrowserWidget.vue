@@ -274,6 +274,11 @@ registerHandlers({
 </template>
 
 <style scoped>
+.FileBrowserWidgetWrapper {
+  --z-index: var(--z-index-file-browser, 0);
+  --z-index-selection-submenu: calc(var(--z-index) - 1);
+}
+
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
@@ -289,7 +294,7 @@ registerHandlers({
   flex-direction: column;
   contain: layout;
   position: relative;
-  z-index: var(--z-index-file-browser, 0);
+  z-index: var(--z-index);
 }
 
 .browserContents {
