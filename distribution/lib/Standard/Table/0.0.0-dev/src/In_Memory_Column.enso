@@ -25,19 +25,26 @@ polyglot java import org.enso.table.error.ValueTypeMismatchException
 
 ## A column whose data is stored in memory.
 type In_Memory_Column
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Internal constructor that should not be used directly.
        Please use `from_java_column` instead.
 
-       Arguments:
-       - internal_java_column: The internal representation of the column.
+       ## Arguments
+        - `internal_java_column`: The internal representation of the column.
     private Value internal_java_column
 
-    ## PRIVATE
-       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    ## ---
+       private: true
+       ---
+       A getter that is a workaround for bug
+       https://github.com/enso-org/enso/issues/12180
     private java_column self = self.internal_java_column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     pretty : Text
     pretty self =
         as_column = self:Column
@@ -45,23 +52,31 @@ type In_Memory_Column
         data = as_column.to_vector.pretty
         "Column.from_vector " + name + " " + data
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self -> Text =
         "In_Memory_Column " + (self:Column).name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specialised implementation of to_json for a Column.
     to_json_data self -> Text =
         JsonOperation.apply self.java_column v->v.to_json
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a new column given a name and an internal Java storage.
     private from_storage name:Text storage =
         Invalid_Column_Names.handle_java_exception <|
             java_column = Java_Column.new name storage
             In_Memory_Column.from_java_column java_column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a new column given a Java Column object.
     private from_java_column java_column:Java_Column =
         ## Trigger data quality metrics computation (conditionally on Output context).
@@ -70,7 +85,9 @@ type In_Memory_Column
         column = In_Memory_Column.Value java_column
         In_Memory_Column_Refinements.refine_column column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implementation fro `Column.from_vector`.
     private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
@@ -112,23 +129,31 @@ type In_Memory_Column
                     if error.example_values.is_empty then result else
                         raise_invalid_value_type_error error.example_values.first
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private from_repeated_item name:Text item:Any repeats:Integer =
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
             java_column = Java_Column.fromRepeatedItem name item repeats
             In_Memory_Column.from_java_column java_column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the maximum precision of decimal values in the column.
     max_precision self = Illegal_Argument.handle_java_exception <|
         CastOperation.maxPrecisionStored self.java_column
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Creates the Column type class instance for the In_Memory_Column.
 Column.from (that : In_Memory_Column) =
     column_from_implementation that In_Memory_Column_Implementation
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Gets the Visualization helpers for the column.
 Visualization_Helpers.from (that : In_Memory_Column) =
     Visualization_Helpers.Value that In_Memory_Visualization_Helpers

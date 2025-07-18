@@ -4,6 +4,5 @@ type Match_Columns
     By_Name
 
     ## Columns are matched by Position.
-
        Note: column names are not compared.
     By_Position

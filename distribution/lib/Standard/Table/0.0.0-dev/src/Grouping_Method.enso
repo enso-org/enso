@@ -4,14 +4,13 @@ from Standard.Base import all
 type Grouping_Method
     ## Group rows by the specified columns.
 
-       Arguments:
-       - on: Rows that have the same values for these columns will be grouped
-         together. At least one column must be specified.
+       ## Arguments
+        - `on`: Rows that have the same values for these columns will be grouped
+          together. At least one column must be specified.
     Unique (on:(Vector | Text | Integer | Regex)=(Missing_Argument.throw "on"))
 
-    ## Create the specified number of groups with the same number of rows in
-       each group (except possibly the last one).
-
+    ## Create the specified number of groups with the same number of rows in each
+       group (except possibly the last one).
        Arguments
        - group_count: The number of groups to divide the table into.
        - order_by: (Optional.) Specifies the order in which rows should be
@@ -39,8 +38,12 @@ type Predicate_Over
     ## The predicate is computed over a column value specified by index.
     Index index:Integer
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Predicate_Over.from (that:Text) = Predicate_Over.Name that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Predicate_Over.from (that:Integer) = Predicate_Over.Index that
