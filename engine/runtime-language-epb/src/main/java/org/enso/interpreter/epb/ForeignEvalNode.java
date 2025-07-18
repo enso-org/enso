@@ -115,21 +115,13 @@ final class ForeignEvalNode extends RootNode {
   }
 
   private ForeignFunctionCallNode parseJava() {
+    var code = foreignSource(langAndCode);
     var context = EpbContext.get(this);
-    var inner = context.getInnerContext();
-    if (inner != null) {
-      var code = foreignSource(langAndCode);
-      if ("guest".equals(code)) {
-        var source = Source.newBuilder("epb", "java:0#host", "inner.java").build();
-        var res = inner.evalInternal(this, source);
-        var constant = RootNode.createConstantNode(res);
-        return new GenericForeignNode(constant.getCallTarget());
-      }
-      if ("hosted".equals(code)) {
-        return JavaPolyglotNode.createHosted(context);
-      }
+    if ("hosted".equals(code)) {
+      return JavaPolyglotNode.createHosted(context);
+    } else {
+      return JavaPolyglotNode.create();
     }
-    return JavaPolyglotNode.create();
   }
 
   private ForeignFunctionCallNode parseJs() {

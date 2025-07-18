@@ -1,5 +1,6 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -39,8 +40,13 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @Override
     @SuppressWarnings("unchecked")
     public T value() throws E {
-      assert InteropLibrary.getUncached().isException(exception());
-      throw new OtherJvmException(msg(), exception());
+      var ex = exception();
+      assert InteropLibrary.getUncached().isException(ex);
+      if (ex instanceof AbstractTruffleException truffleEx) {
+        throw truffleEx;
+      } else {
+        throw new OtherJvmTruffleException(msg(), ex);
+      }
     }
   }
 
@@ -57,14 +63,16 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     }
 
     @SuppressWarnings("unchecked")
-    static <T, E extends Exception> OtherJvmResult<T, E> create(E exception) {
-      assert exception != null;
-      var ex = exception instanceof OtherJvmException other ? other.delegate : exception;
-      if (InteropLibrary.getUncached().isException(ex) && ex instanceof TruffleObject truffleEx) {
-        return new ThrowValue<>(exception.getMessage(), truffleEx);
+    static <T, E extends Exception> OtherJvmResult<T, E> create(E ex) {
+      if (ex instanceof OtherJvmTruffleException truffleEx) {
+        var original = truffleEx.delegate;
+        return new ThrowValue<>(ex.getMessage(), original);
+      } else if (InteropLibrary.getUncached().isException(ex)
+          && ex instanceof TruffleObject truffleEx) {
+        return new ThrowValue<>(ex.getMessage(), truffleEx);
       } else {
         var kind = kinds.getOrDefault(ex.getClass(), 0);
-        return new ThrowException<>(kind, exception.getMessage());
+        return new ThrowException<>(kind, ex.getMessage());
       }
     }
 
@@ -75,7 +83,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
         case 1 -> throw (E) new ClassNotFoundException(msg());
         case 2 -> throw (E) UnsupportedMessageException.create();
         case 3 -> throw (E) UnknownIdentifierException.create(msg());
-        default -> throw new OtherJvmException(msg(), null);
+        default -> throw new OtherJvmException(msg());
       }
     }
   }
