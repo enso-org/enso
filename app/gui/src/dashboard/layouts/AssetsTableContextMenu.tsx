@@ -53,8 +53,6 @@ export interface AssetsTableContextMenuProps {
  * are selected.
  */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  // eslint-disable-next-line react-compiler/react-compiler
-  'use no memo'
   const {
     hidden = false,
     backend,

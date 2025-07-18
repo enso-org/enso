@@ -36,10 +36,6 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContextMenuProps) {
-  // For some reason, applying the ReactCompiler for this component breaks the copy-paste functionality
-  // eslint-disable-next-line react-compiler/react-compiler
-  'use no memo'
-
   const {
     noWrapper = false,
     hidden = false,
