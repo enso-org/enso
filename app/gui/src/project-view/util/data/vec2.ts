@@ -70,7 +70,7 @@ export class Vec2 {
     return Number.isFinite(this.x) && Number.isFinite(this.y)
   }
 
-  /** Change Inf values in vector to 0. */
+  /** Change non-finite values in vector to 0. */
   finiteOrZero(): Vec2 {
     return new Vec2(Number.isFinite(this.x) ? this.x : 0, Number.isFinite(this.y) ? this.y : 0)
   }
