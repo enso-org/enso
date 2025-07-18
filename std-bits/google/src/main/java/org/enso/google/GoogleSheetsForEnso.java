@@ -78,10 +78,11 @@ public class GoogleSheetsForEnso {
     GoogleSheetsHeaders headerBuilder =
         new GoogleSheetsHeaders(headerBehavior, firstRow, secondRow, problemAggregator);
 
-    Column[] columns = new Column[rawData.size()];
+    var numberOfColumns = firstRow.getValues().size();
+    Column[] columns = new Column[numberOfColumns];
     var resolved_row_limit = row_limit == null ? Long.MAX_VALUE : (row_limit < 0 ? 0 : row_limit);
-    for (int i = 0; i < rawData.size(); i++) {
-      var column = rawData.get(i);
+    for (int colIdx = 0; colIdx < numberOfColumns; colIdx++) {
+      var column = rawData.get(colIdx);
       var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
       IntStream.range(0, column.size())
           .skip(firstRowIndex)
@@ -89,7 +90,7 @@ public class GoogleSheetsForEnso {
           .limit(resolved_row_limit)
           .mapToObj(rowIdx -> fixTypes(column.get(rowIdx)))
           .forEach(builder::append);
-      columns[i] = new Column(headerBuilder.get(i), builder.seal());
+      columns[colIdx] = new Column(headerBuilder.get(colIdx), builder.seal());
     }
     return new Table(columns);
   }
