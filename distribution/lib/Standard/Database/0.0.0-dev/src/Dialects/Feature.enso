@@ -2,86 +2,131 @@ from Standard.Base import all
 
 from project.Errors import Unsupported_Database_Operation
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Feature
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        select, remove, reorder, and rename columns.
     Select_Columns
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        filter rows in a table.
     Filter
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        aggregate values in a table.
     Aggregate
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        sort rows in a table.
     Sort
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        join tables.
     Join
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        combine the results of two queries.
     Union
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        remove duplicate rows from a table.
     Distinct
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        cleanse text data.
     Text_Cleanse
 
-    ## PRIVATE
-       Catch all for tests that haven't yet been categorized correctly or use multiple features.
+    ## ---
+       private: true
+       ---
+       Catch all for tests that haven't yet been categorized correctly or use
+       multiple features.
     Integration_Tests
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        add a group number column to a table.
     Add_Group_Number
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        add a row number column to a table.
     Add_Row_Number
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        create a table from a dictionary or vectors.
     Make_Table_From
 
-    ## PRIVATE
-       currently blocks getting a DB_Column from a DB_Table, but will soon refine to operations on DB_Column.
+    ## ---
+       private: true
+       ---
+       currently blocks getting a DB_Column from a DB_Table, but will soon refine
+       to operations on DB_Column.
     Column_Operations
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        get_row, take, drop, limit
     Sample
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        replace values in a table.
     Replace
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        merge two tables.
     Merge
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        cross join two tables.
     Cross_Join
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        offset one or more columns
     Offset
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        generate rows from a range
     Generate_Rows
 
-    ## PRIVATE
-       Check if a feature is supported by a dialect, and throw an error if it is not.
+    ## ---
+       private: true
+       ---
+       Check if a feature is supported by a dialect, and throw an error if it is
+       not.
     if_supported_else_throw self dialect:Any error_name:Text ~action = 
         if dialect.is_feature_supported self then action else
             Error.throw (Unsupported_Database_Operation.Error error_name)

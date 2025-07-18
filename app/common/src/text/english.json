@@ -57,6 +57,8 @@
   "changeUserGroupsError": "Could not set user groups",
   "deleteUserGroupError": "Could not delete user group '$0'",
   "deleteUserError": "Could not delete user '$0'",
+  "deleteUserConfirmation": "permanently delete user: '$0 ($1)'",
+  "deleteUserAlert": "We will transfer all belonging assets to the organization admin account.",
   "anotherProjectIsBeingOpenedError": "Another project is currently being opened",
   "localBackendNotDetectedError": "Could not detect the local backend",
   "invalidInput": "Invalid input",

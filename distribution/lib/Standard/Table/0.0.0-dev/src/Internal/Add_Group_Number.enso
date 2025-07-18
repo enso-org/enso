@@ -5,8 +5,8 @@ import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
-import project.Grouping_Method.Grouping_Method
 import project.Grouping_Method.Group_Row
+import project.Grouping_Method.Grouping_Method
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Java_Problems

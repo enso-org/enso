@@ -4,9 +4,14 @@ import { usePropagateScopesToAllRoots } from '@/util/patching'
 import { Placement } from '@floating-ui/vue'
 import { toRef } from 'vue'
 
-const { placement = 'top', when = 'always' } = defineProps<{
+const {
+  placement = 'top',
+  when = 'always',
+  showOnClick = false,
+} = defineProps<{
   placement?: Placement
   when?: TooltipDisplayStrategy
+  showOnClick?: boolean
 }>()
 
 usePropagateScopesToAllRoots()
@@ -31,6 +36,12 @@ function onLeave(e: PointerEvent) {
   }
 }
 
+function onClick(e: MouseEvent) {
+  if (showOnClick && e.target instanceof HTMLElement && tooltipSlot.value != null) {
+    registered.forceShow(e.target)
+  }
+}
+
 defineExpose({
   hideTooltip() {
     registered.forceHide()
@@ -39,5 +50,5 @@ defineExpose({
 </script>
 
 <template>
-  <slot v-bind="{ ...$attrs }" @pointerenter="onEnter" @pointerleave="onLeave" />
+  <slot v-bind="{ ...$attrs }" @pointerenter="onEnter" @pointerleave="onLeave" @click="onClick" />
 </template>

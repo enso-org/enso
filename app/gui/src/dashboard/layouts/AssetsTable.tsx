@@ -24,7 +24,6 @@ import { useDerivedDebouncedState } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
@@ -61,11 +60,9 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, AssetSortExpression, DirectoryId, ProjectId } from '#/services/Backend'
 import {
-  assetIsProject,
   AssetType,
   BackendType,
   IS_OPENING_OR_OPENED,
@@ -95,6 +92,7 @@ import {
   useText,
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
+import { useLaunchedProjects } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
@@ -172,13 +170,11 @@ export interface AssetRowState {
 export interface AssetsTableProps {
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
-  readonly initialProjectName: string | null
 }
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery } = props
-  const { initialProjectName } = props
 
   const { category, associatedBackend: backend } = useCategoriesAPI()
   const openedProjects = useLaunchedProjects()
@@ -532,26 +528,6 @@ function AssetsTable(props: AssetsTableProps) {
       }),
     [driveStore, isCloud, assets, setCanDownload],
   )
-
-  const initialProjectNameDeps = useSyncRef({
-    items: assets,
-    openProjectLocally,
-    toastAndLog,
-  })
-
-  useEffect(() => {
-    const deps = initialProjectNameDeps.current
-    // The project name here might also be a string with project id, e.g. when opening
-    // a project file from explorer on Windows.
-    const isInitialProject = (asset: AnyAsset) =>
-      asset.title === initialProjectName || asset.id === initialProjectName
-    const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
-    if (projectToLoad != null) {
-      void deps.openProjectLocally(projectToLoad, BackendType.local)
-    } else if (initialProjectName != null && initialProjectName !== '') {
-      deps.toastAndLog('findProjectError', null, initialProjectName)
-    }
-  }, [initialProjectName, initialProjectNameDeps])
 
   useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')

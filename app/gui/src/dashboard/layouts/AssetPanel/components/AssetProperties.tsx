@@ -30,11 +30,11 @@ import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import { useFeatureFlags } from '$/providers/react/featureFlags'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
-} from '$/providers/react/rightPanel'
+} from '$/providers/react/container'
+import { useFeatureFlags } from '$/providers/react/featureFlags'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'

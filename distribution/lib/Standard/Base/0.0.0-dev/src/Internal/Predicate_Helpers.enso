@@ -1,9 +1,9 @@
 private
 
-from project.Function import Function
 from project.Data.Filter_Condition import Filter_Condition
+from project.Function import Function
 
-# this is a private conversion used only in this module
+## this is a private conversion used only in this module
 Filter_Condition.from (that:Function) = Filter_Condition.Predicate that 
 
 resolve_auto_scoped c:Filter_Condition = c

@@ -4033,7 +4033,6 @@ lazy val `os-environment` =
         "commons-io"           % "commons-io"  % commonsIoVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "com.typesafe"         % "config"      % typesafeConfigVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(

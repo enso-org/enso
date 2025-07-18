@@ -5,19 +5,19 @@ import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Prepares the database table for visualization.
-
-   Arguments:
-   - table: The database table to prepare for visualization.
 
    For each interpolation it provides its value, its actual type name, its
    expected SQL type name and if it was possible to infer it, its expected Enso
    typename.
+   Expected Enso types are inferred based on known SQL types and their mapping to
+   Enso types.
 
-   Expected Enso types are inferred based on known SQL types and their mapping
-   to Enso types.
+   ## Arguments
+    - `table`: The database table to prepare for visualization.
 prepare_visualization : DB_Table -> Text
 prepare_visualization table =
     prepared = (table:DB_Table|DB_Column).to_sql.prepare

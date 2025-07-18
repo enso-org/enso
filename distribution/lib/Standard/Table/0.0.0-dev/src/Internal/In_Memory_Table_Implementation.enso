@@ -30,8 +30,8 @@ import project.Data_Formatter.Data_Formatter
 import project.Expression.Expression
 import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
-import project.Grouping_Method.Grouping_Method
 import project.Grouping_Method.Group_Row
+import project.Grouping_Method.Grouping_Method
 import project.Grouping_Method.Predicate_Over
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
@@ -72,11 +72,11 @@ import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import all
 from project.Extensions.Table_Conversions import all
+from project.In_Memory_Table import from_java_table
 from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Storage import java_to_enso
-from project.In_Memory_Table import from_java_table
 
 polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.index.MultiValueIndex
@@ -434,7 +434,8 @@ type In_Memory_Table_Implementation
         keys_and_values = dict.to_vector
         this_table.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
-    make_table_from_vectors _ column_vectors column_names =
+    make_table_from_vectors (this_table : Table & In_Memory_Table) column_vectors column_names =
+        _ = this_table
         # Assume the columns are all the same length; if not, it will be an error anyway.
         if column_vectors.is_empty then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
             Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
@@ -745,7 +746,9 @@ type In_Memory_Table_Implementation
         range_col = over.get_range_column this_table on_problems
         renamed_table.set range_col as=resolved_as . expand_to_rows resolved_as
 
-    column_naming_helper _ = Column_Naming_Helper.in_memory
+    column_naming_helper (this_table : Table & In_Memory_Table) =
+        _ = this_table
+        Column_Naming_Helper.in_memory
 
     pretty_implementation (this_table : Table & In_Memory_Table) =
         data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
