@@ -532,6 +532,8 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  --z-index-component-menu: 20;
+  --z-index-selection-submenu: calc(var(--z-index-component-menu) + 1);
 }
 
 .nodeBackground {
@@ -584,7 +586,7 @@ const nodeName = computed(() => props.node.pattern?.code())
 }
 
 .ComponentMenu {
-  z-index: 20;
+  z-index: var(--z-index-component-menu);
   &.partial {
     z-index: 1;
   }

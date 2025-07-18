@@ -40,11 +40,12 @@ const selection = injectGraphSelection()
   position: absolute;
   display: flex;
   gap: 8px;
-  top: 8px;
+  top: 1.25rem;
   left: 0;
   right: 0;
-  margin-left: 11px;
-  margin-right: 11px;
+  margin-top: -3px;
+  margin-left: 13px;
+  margin-right: 13px;
   pointer-events: none;
   align-items: flex-start;
   > * {

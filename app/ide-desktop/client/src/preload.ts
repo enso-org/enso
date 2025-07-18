@@ -203,6 +203,9 @@ exposeInMainWorld(SYSTEM_API_KEY, {
   showItemInFolder: (fullPath: string) => {
     electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
   },
+  getFilePath: (item: File) => {
+    return electron.webUtils.getPathForFile(item)
+  },
 })
 
 // ====================
