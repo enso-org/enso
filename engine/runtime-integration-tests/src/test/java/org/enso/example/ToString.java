@@ -11,8 +11,12 @@ public class ToString {
   }
 
   public static String callFoo(Fooable f) {
-    long x = f.foo();
-    return "Fooable.foo() = " + x;
+    try {
+      long x = f.foo();
+      return "Fooable.foo() = " + x;
+    } catch (Throwable t) {
+      throw t;
+    }
   }
 
   public static String showObject(Object obj) {
