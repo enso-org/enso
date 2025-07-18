@@ -4,7 +4,6 @@ import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
-import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
@@ -71,15 +70,9 @@ export function UserBar(props: UserBarProps) {
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const { isOffline } = useOffline()
 
+  const shouldShowInviteButton = !isFeatureUnderPaywall('inviteUser')
   const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
-
   const upgradeButtonVariant = user.plan === Plan.free ? 'primary' : 'outline'
-  // eslint-disable-next-line no-restricted-syntax
-  const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
-  const shouldShowInviteButton =
-    // eslint-disable-next-line no-restricted-syntax
-    (false as boolean) && !shouldShowPaywallButton
-
   const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
 
   return (
@@ -114,15 +107,9 @@ export function UserBar(props: UserBarProps) {
 
         <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
 
-        {shouldShowPaywallButton && (
-          <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
-            {getText('invite')}
-          </PaywallDialogButton>
-        )}
-
         {shouldShowInviteButton && (
           <Dialog.Trigger>
-            <Button size="medium" variant="accent">
+            <Button size="medium" variant="outline">
               {getText('invite')}
             </Button>
 
