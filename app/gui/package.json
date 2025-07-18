@@ -77,7 +77,6 @@
     "ag-grid-enterprise": "^32.3.3",
     "ajv": "^8.17.1",
     "amazon-cognito-identity-js": "6.3.6",
-    "babel-plugin-react-compiler": "19.0.0-beta-63e3235-20250105",
     "codemirror": "^6.0.1",
     "culori": "^3.3.0",
     "dotenv": "^16.4.7",
@@ -104,7 +103,6 @@
     "react": "^18.3.1",
     "react-aria": "3.37.0",
     "react-aria-components": "1.6.0",
-    "react-compiler-runtime": "19.0.0-beta-decd7b8-20250118",
     "react-dom": "^18.3.1",
     "react-error-boundary": "4.0.13",
     "react-hook-form": "^7.54.2",
@@ -130,7 +128,6 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
-    "@babel/plugin-syntax-import-attributes": "^7.26.0",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@danmarshall/deckgl-typings": "^4.9.28",
     "@fast-check/vitest": "catalog:",
