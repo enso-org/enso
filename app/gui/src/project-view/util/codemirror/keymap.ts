@@ -79,6 +79,7 @@ const baseKeymap: KeyBinding[] = [
       }),
       'textEditor.copy': stopEvent,
       'textEditor.cut': stopEvent,
+      'textEditor.paste': stopEvent,
     }),
     true,
   ),

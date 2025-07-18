@@ -4,16 +4,21 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.JDBC_Connection
 from project.Errors import Unsupported_Database_Encoding
 
-## PRIVATE
+## ---
+   private: true
+   ---
 get_encoding_name : JDBC_Connection.JDBC_Connection -> Text
 get_encoding_name jdbc_connection =
     server_encoding = JDBC_Connection.get_pragma_value jdbc_connection "SHOW server_encoding"
     if server_encoding != "SQL_ASCII" then server_encoding else
         JDBC_Connection.get_pragma_value jdbc_connection "SHOW client_encoding"
 
-## PRIVATE
-   Translates names of encodings from https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE
-   into their Java counterparts.
+## ---
+   private: true
+   ---
+   Translates names of encodings from
+   https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE into
+   their Java counterparts.
 parse_postgres_encoding : Text -> Encoding
 parse_postgres_encoding encoding_name =
     resolved_by_jvm = Encoding.from_name encoding_name

@@ -767,6 +767,12 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             }
 
             if !dry_run {
+                enso_build::web::install(&ctx.repo_root).await?;
+                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean)
+                    .await?;
+            }
+
+            if !dry_run {
                 // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
                 // Unfortunately, Git for Windows treats those as hard links. That then leads to
                 // `git clean` recursing into those linked directories, happily deleting sources of
@@ -787,10 +793,8 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 }
                 Result::Ok(())
             };
-            let bazel_clean =
-                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean);
 
-            try_join!(git_clean, clean_cache, bazel_clean)?;
+            try_join!(git_clean, clean_cache)?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;

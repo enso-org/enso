@@ -45,6 +45,7 @@ Global / onLoad := {
 ThisBuild / organization := "org.enso"
 ThisBuild / scalaVersion := scalacVersion
 ThisBuild / publish / skip := true
+ThisBuild / assembly / logLevel := Level.Warn
 
 /* Tag limiting the concurrent access to tools/simple-library-server in tests.
  */
@@ -571,7 +572,7 @@ val generateRustParserLib =
       "unstable-options"
     ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
       Seq(
-        "--out-dir",
+        "--artifact-dir",
         (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
       )
     val envVars = target
@@ -4032,7 +4033,6 @@ lazy val `os-environment` =
         "commons-io"           % "commons-io"  % commonsIoVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "com.typesafe"         % "config"      % typesafeConfigVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(

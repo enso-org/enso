@@ -8,11 +8,11 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
 import project.Internal.Predicate_Helpers
+import project.Meta
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all
-import project.Meta
 from project.Metadata import Display, make_single_choice, Widget
 from project.Metadata.Choice import Option
 from project.Widget_Helpers import make_any_selector
@@ -291,7 +291,7 @@ type Filter_Condition
                 builder.append (Option "..Equal_Ignore_Case" "..Equal_Ignore_Case" [["to", Widget.Text_Input]])
                 builder.append (Option "..Starts_With" "..Starts_With" [["prefix", Widget.Text_Input]])
                 builder.append (Option "..Ends_With" "..Ends_With" [["suffix", Widget.Text_Input]])
-                builder.append (Option "..Ends_With" "..Ends_With" [["substring", Widget.Text_Input]])
+                builder.append (Option "..Contains" "..Contains" [["substring", Widget.Text_Input]])
                 builder.append (Option "..Like" "..Like" [["pattern", Widget.Text_Input]])
                 builder.append (Option "..Regex_Match" "..Regex_Match" [["pattern", Widget.Text_Input]])
 

@@ -373,11 +373,19 @@ test('Selection widget with text widget as input', async ({ page }) => {
   // Editing text input shows and filters drop down
   await pathArgInput.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
-  await page.keyboard.insertText('File 1')
+  // Using `type` instead of `inputText` here to catch keydown bugs like #13505.
+  await page.keyboard.type('File 1')
   await pathDropdown.expectVisibleWithOptions(['File 1'])
-  // Clearing input should show all text literal options
+  // Clearing input should show all options
   await pathArgInput.clear()
-  await pathDropdown.expectVisibleWithOptions(['File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
+
+  // When a filter doesn't match any entries, the dropdown is hidden.
+  await page.keyboard.insertText('No such entry')
+  await pathDropdown.expectNotVisible()
+  // If the text is changed so that the entries list is no longer empty, the dropdown returns.
+  await pathArgInput.clear()
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
 
   // Esc should cancel editing and close drop down
   await page.keyboard.press('Escape')

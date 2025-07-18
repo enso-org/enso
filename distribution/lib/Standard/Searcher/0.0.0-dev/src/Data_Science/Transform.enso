@@ -43,3 +43,4 @@
 
          example_plus = Examples.decimal_column + Examples.integer_column
    ```
+

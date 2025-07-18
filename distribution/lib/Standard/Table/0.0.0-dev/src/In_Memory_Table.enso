@@ -12,15 +12,15 @@ import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Delimited_Writer
-import project.Table.Table
-import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.In_Memory_Table_Implementation.In_Memory_Table_Implementation
+import project.Internal.Type_Refinements.Table_Refinements
+import project.Table.Table
 from project.Internal.Table_Type_Helpers import table_from_implementation
 
 polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.table.Table as Java_Table
 
-# A table whose data is stored in memory.
+## A table whose data is stored in memory.
 type In_Memory_Table
     ## PRIVATE
        Internal constructor that should not be used directly.

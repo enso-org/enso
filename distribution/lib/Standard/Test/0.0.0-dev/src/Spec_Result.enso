@@ -7,15 +7,16 @@ type Spec_Result
 
     ## Represents a failing behavioral test.
 
-       Arguments:
-       - message: The reason why the test failed.
-       - details: Additional context of the error, for example the stack trace.
+       ## Arguments
+        - `message`: The reason why the test failed.
+        - `details`: Additional context of the error, for example the stack
+          trace.
     Failure message details=Nothing
 
     ## Represents a pending behavioral test.
 
-       Arguments:
-       - reason: Text describing why the test is pending.
+       ## Arguments
+        - `reason`: Text describing why the test is pending.
     Pending reason
 
     ## Checks if the Spec_Result is pending.
@@ -36,7 +37,9 @@ type Spec_Result
         Spec_Result.Success -> True
         _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = case self of
         Spec_Result.Success -> "Success"

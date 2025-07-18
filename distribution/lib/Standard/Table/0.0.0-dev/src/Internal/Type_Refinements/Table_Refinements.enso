@@ -3,9 +3,9 @@ private
 from Standard.Base import all
 
 import project.Column.Column
-import project.Internal.Value_Type_Helpers
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
+import project.Internal.Value_Type_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Table.Table
 import project.Value_Type.Value_Type
