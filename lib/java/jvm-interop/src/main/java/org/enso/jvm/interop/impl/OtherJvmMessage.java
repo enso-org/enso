@@ -92,19 +92,20 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
+    var node = ReflectionLibrary.getUncached();
+    var prev = t.getConfig().enter(t.isMaster(), node);
     try {
-      t.getConfig().loader.ctx().enter();
       var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;
       if (message == IS_IDENTICAL) {
         args.set(1, InteropLibrary.getUncached());
       }
-      var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
+      var res = node.send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
     } finally {
-      t.getConfig().loader.ctx().leave();
+      t.getConfig().leave(t.isMaster(), node, prev);
     }
   }
 
@@ -116,7 +117,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel<OtherJvmPool> t) {
       assert !t.isMaster() : "Class loading only works on the slave side!";
       try {
-        var clazzRaw = t.getConfig().loader.loadClassObject(name);
+        var clazzRaw = t.getConfig().loadClassObject(t.isMaster(), name);
         return ReturnValue.create(clazzRaw);
       } catch (ClassNotFoundException ex) {
         return ThrowException.create(ex);
@@ -128,7 +129,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   public record AddToClassPath(String path) implements Function<Channel<OtherJvmPool>, Void> {
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
-      t.getConfig().loader.addToClassPath(path);
+      t.getConfig().addToClassPath(t.isMaster(), path);
       return null;
     }
   }

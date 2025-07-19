@@ -33,6 +33,16 @@ public class OtherJvmObjectTest {
   @BeforeClass
   public static void initializeChannel() {
     CHANNEL = Channel.create(null, OtherJvmPool.class);
+    CHANNEL
+        .getConfig()
+        .onEnterLeave(
+            (__) -> {
+              ctx.context().enter();
+              return null;
+            },
+            (__, ___) -> {
+              ctx.context().leave();
+            });
   }
 
   @Test
@@ -208,7 +218,7 @@ public class OtherJvmObjectTest {
   }
 
   @Test
-  public void callback() throws Exception {
+  public void testCallback() throws Exception {
     class MockProxy implements ProxyExecutable {
       private Value last;
 
@@ -232,10 +242,11 @@ public class OtherJvmObjectTest {
     var mockValue = ctx.asValue(mock);
 
     var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+
     localClass.invokeMember("callback", mockValue, "Real");
     mock.assertArgs("Called with Real", ctx.asValue("Real"));
 
-    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
     otherClass.invokeMember("callback", mockValue, "RealOther");
     mock.assertArgs("Called with Real", ctx.asValue("RealOther"));
   }

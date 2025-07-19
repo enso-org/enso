@@ -120,7 +120,7 @@ final class ForeignEvalNode extends RootNode {
     if ("hosted".equals(code)) {
       return JavaPolyglotNode.createHosted(context);
     } else {
-      return JavaPolyglotNode.create();
+      return JavaPolyglotNode.create(context);
     }
   }
 

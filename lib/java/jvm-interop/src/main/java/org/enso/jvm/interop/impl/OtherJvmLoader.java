@@ -11,24 +11,19 @@ import java.net.URLClassLoader;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 
+/** Handles classloading in the "slave" JVM. */
 @ExportLibrary(value = InteropLibrary.class)
-final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
-  private Context ctx;
+final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
+  final Context ctx;
   private Object value;
 
-  TruffleClassLoader() {
+  OtherJvmLoader() {
     super(new URL[0]);
-  }
-
-  final synchronized Context ctx() {
-    if (ctx == null) {
-      ctx =
-          Context.newBuilder("host") // no dynamic languages needed
-              .allowHostAccess(HostAccess.ALL) // all public members
-              .allowExperimentalOptions(true) // to survive any -Dpolyglot options
-              .build();
-    }
-    return ctx;
+    ctx =
+        Context.newBuilder("host") // no dynamic languages needed
+            .allowHostAccess(HostAccess.ALL) // all public members
+            .allowExperimentalOptions(true) // to survive any -Dpolyglot options
+            .build();
   }
 
   void addToClassPath(String file) {
@@ -41,9 +36,9 @@ final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
 
   final TruffleObject loadClassObject(String className) throws ClassNotFoundException {
     var clazz = loadClass(className);
-    var clazzValue1 = ctx().asValue(clazz);
+    var clazzValue1 = ctx.asValue(clazz);
     var clazzValue2 = clazzValue1.getMember("static");
-    ctx().asValue(this).execute(clazzValue2);
+    ctx.asValue(this).execute(clazzValue2);
     return (TruffleObject) value;
   }
 
