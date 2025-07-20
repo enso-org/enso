@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
@@ -35,23 +36,24 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81909, allowInlining = false)
-  record ThrowValue<T, E extends Exception>(String msg, TruffleObject exception)
+  record ThrowValue<T, E extends Exception>(Optional<String> msg, TruffleObject exception)
       implements OtherJvmResult<T, E> {
     @Override
     @SuppressWarnings("unchecked")
     public T value() throws E {
       var ex = exception();
+      var msg = msg().isPresent() ? msg().get() : null;
       assert InteropLibrary.getUncached().isException(ex);
       if (ex instanceof AbstractTruffleException truffleEx) {
         throw truffleEx;
       } else {
-        throw new OtherJvmTruffleException(msg(), ex);
+        throw new OtherJvmTruffleException(msg, ex);
       }
     }
   }
 
   @Persistable(id = 81910, allowInlining = false)
-  record ThrowException<V, E extends Exception>(int kind, String msg)
+  record ThrowException<V, E extends Exception>(int kind, Optional<String> msg)
       implements OtherJvmResult<V, E> {
     private static final Map<Class<? extends Throwable>, Integer> kinds;
 
@@ -64,26 +66,28 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
     @SuppressWarnings("unchecked")
     static <T, E extends Exception> OtherJvmResult<T, E> create(E ex) {
+      var msg = Optional.ofNullable(ex.getMessage());
       if (ex instanceof OtherJvmTruffleException truffleEx) {
         var original = truffleEx.delegate;
-        return new ThrowValue<>(ex.getMessage(), original);
+        return new ThrowValue<>(msg, original);
       } else if (InteropLibrary.getUncached().isException(ex)
           && ex instanceof TruffleObject truffleEx) {
-        return new ThrowValue<>(ex.getMessage(), truffleEx);
+        return new ThrowValue<>(msg, truffleEx);
       } else {
         var kind = kinds.getOrDefault(ex.getClass(), 0);
-        return new ThrowException<>(kind, ex.getMessage());
+        return new ThrowException<>(kind, msg);
       }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public V value() throws E {
+      var msg = msg().isPresent() ? msg().get() : null;
       switch (kind) {
-        case 1 -> throw (E) new ClassNotFoundException(msg());
+        case 1 -> throw (E) new ClassNotFoundException(msg);
         case 2 -> throw (E) UnsupportedMessageException.create();
-        case 3 -> throw (E) UnknownIdentifierException.create(msg());
-        default -> throw new OtherJvmException(msg());
+        case 3 -> throw (E) UnknownIdentifierException.create(msg);
+        default -> throw new OtherJvmException(msg);
       }
     }
   }
@@ -478,6 +482,36 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     protected ZoneId readObject(Input in) throws IOException, ClassNotFoundException {
       var id = in.readUTF();
       return ZoneId.of(id);
+    }
+  }
+
+  @Persistable(id = 125)
+  static final class PersistOptional extends Persistance<Optional> {
+
+    public PersistOptional() {
+      super(Optional.class, true, 125);
+    }
+
+    @Override
+    protected void writeObject(Optional obj, Output out) throws IOException {
+      if (obj.isEmpty()) {
+        out.writeBoolean(false);
+      } else {
+        out.writeBoolean(true);
+        out.writeObject(obj.get());
+      }
+    }
+
+    @Override
+    protected Optional readObject(Input in) throws IOException, ClassNotFoundException {
+      var is = in.readBoolean();
+      if (is) {
+        var obj = in.readObject();
+        assert obj != null;
+        return Optional.of(obj);
+      } else {
+        return Optional.empty();
+      }
     }
   }
 }

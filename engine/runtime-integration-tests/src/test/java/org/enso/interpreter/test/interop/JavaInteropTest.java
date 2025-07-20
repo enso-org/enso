@@ -477,5 +477,44 @@ public abstract class JavaInteropTest {
     return ctx().evalModule(code + "\nmain = " + methodToEval);
   }
 
+  @Test
+  public void catchCheckedExceptionValueIsReturned() {
+    var result = checkedException(0);
+    assertEquals(result.asInt(), 10);
+  }
+
+  @Test
+  public void catchCheckedExceptionThrownInEnso() {
+    var result = checkedException(1);
+    assertEquals(result.asInt(), -1);
+  }
+
+  @Test
+  public void catchCheckedExceptionThrownInJava() {
+    var result = checkedException(2);
+    assertEquals(result.asInt(), -1);
+  }
+
+  private Value checkedException(int t) {
+    var code =
+        """
+    polyglot java import org.enso.example.TestException
+    from Standard.Base import Panic
+
+    handle_errors ~action  =
+        Panic.catch TestException action caught_panic->
+          -1
+
+    run t = case t of
+      0 -> handle_errors 10
+      1 -> handle_errors (Panic.throw TestException.new)
+      2 -> handle_errors (TestException.throwMe)
+
+    main = run
+    """;
+    var result = ctx().evalModule(code);
+    return result.execute(t);
+  }
+
   protected abstract ContextUtils ctx();
 }
