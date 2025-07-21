@@ -1,6 +1,7 @@
 import sbt.*
 import sbt.util.CacheStoreFactory
 
+import java.io.File
 import scala.collection.mutable.ListBuffer
 import scala.jdk.javaapi.CollectionConverters.asJava
 import scala.sys.process.ProcessLogger
@@ -60,8 +61,7 @@ object LibraryManifestGenerator {
     env: Map[String, String] = Map.empty
   ): Unit = {
     val canonicalPath = projectPath.getCanonicalFile
-    val javaCommand =
-      ProcessHandle.current().info().command().asScala.getOrElse("java")
+    val javaCommand = javaExecutable()
     val command = Seq(
       javaCommand
     ) ++ javaOpts ++ Seq(
@@ -96,6 +96,19 @@ object LibraryManifestGenerator {
       log.error(message)
       log.error(processOutLines.mkString("\n"))
       throw new RuntimeException(message)
+    }
+  }
+
+  private def javaExecutable(): String = {
+    val jHome = System.getProperty("java.home")
+    if (jHome != null) {
+      if (Platform.isWindows) {
+        jHome + File.separator + "bin" + File.separator + "java.exe"
+      } else {
+        jHome + File.separator + "bin" + File.separator + "java"
+      }
+    } else {
+      ProcessHandle.current().info().command().asScala.getOrElse("java")
     }
   }
 
