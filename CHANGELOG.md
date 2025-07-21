@@ -29,6 +29,7 @@
 - ["Grouped Components" are renamed to "User Defined Components"][13389]
 - [Allow displaying cloud images using enso:// url in documentation][13419]
 - [File Browser Widget is used when editing file paths to datalinks][13439]
+- [Graph is not moved when showing/resizing side panels.][13557]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
 - ["Welcome Project" is automatically opened for new users][13479]
 
@@ -54,6 +55,7 @@
 [13389]: https://github.com/enso-org/enso/pull/13389
 [13419]: https://github.com/enso-org/enso/pull/13419
 [13439]: https://github.com/enso-org/enso/pull/13439
+[13557]: https://github.com/enso-org/enso/pull/13557
 [13522]: https://github.com/enso-org/enso/pull/13522
 [13479]: https://github.com/enso-org/enso/pull/13479
 

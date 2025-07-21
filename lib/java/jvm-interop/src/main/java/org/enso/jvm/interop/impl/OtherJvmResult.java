@@ -1,4 +1,4 @@
-package org.enso.jvm.interop;
+package org.enso.jvm.interop.impl;
 
 /**
  * Interface describing a possible reply from the other JVM.
@@ -6,8 +6,10 @@ package org.enso.jvm.interop;
  * @param <R> the type of result, when the operation succeeds
  * @param <E> the type of exception when the operation fails
  */
-sealed interface OtherJvmResult<R, E extends Exception> // Either R or E
-    permits OtherJvmMessage.ReturnValue, OtherJvmMessage.ThrowException {
+public sealed interface OtherJvmResult<R, E extends Exception> // Either R or E
+    permits OtherJvmMessage.ReturnValue,
+        OtherJvmMessage.ThrowValue,
+        OtherJvmMessage.ThrowException {
   /**
    * Either returns the computed result or throws exception.
    *

@@ -20,7 +20,9 @@ polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Convert Headers to the correct HeaderBehavior
 make_java_headers : Headers -> Any
 make_java_headers headers:Headers = case headers of
@@ -28,7 +30,9 @@ make_java_headers headers:Headers = case headers of
     Headers.Detect_Headers -> ExcelHeaders.HeaderBehavior.INFER
     Headers.No_Headers -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Handle and map the Java errors when reading an Excel file
 handle_reader : File -> (Java_File -> (Table | Vector)) -> (Table | Vector)
 handle_reader file reader =
@@ -38,18 +42,20 @@ handle_reader file reader =
             java_file = Java_File.new file.path
             reader java_file
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads an input Excel file according to the provided section.
 
-   Arguments:
-   - file: The File object to read.
-   - section: The part of the Excel document to read.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-   - xls_format: If `True` then the file is read in using Excel 95-2003 format
-     otherwise reads in Excel 2007+ format.
+   ## Arguments
+    - `file`: The File object to read.
+    - `section`: The part of the Excel document to read.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
+    - `xls_format`: If `True` then the file is read in using Excel 95-2003 format
+      otherwise reads in Excel 2007+ format.
 read_file : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_file file section on_problems:Problem_Behavior xls_format=False =
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
@@ -71,7 +77,9 @@ read_file file section on_problems:Problem_Behavior xls_format=False =
 
     handle_reader file reader
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that handles the Java exceptions reported when a malformed XLS file
    is opened.
 handle_bad_format file ~action =
@@ -79,7 +87,9 @@ handle_bad_format file ~action =
         Error.throw (File_Error.Corrupted_Format file caught_panic.payload.getMessage caught_panic.payload)
     handle_bad_format_with_handler bad_format action
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that handles the Java exceptions reported when a malformed XLS file
    is opened.
 handle_bad_format_with_handler handler ~action =
@@ -87,7 +97,9 @@ handle_bad_format_with_handler handler ~action =
         Panic.catch NotOLE2FileException handler=handler <|
             action
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that handles the Java exceptions reported when a sheet, range or
    address is invalid.
 handle_invalid_location ~action =

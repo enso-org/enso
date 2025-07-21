@@ -26,7 +26,6 @@ import project.Table.Table
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
     ## Read delimited files such as CSVs into a Table.
-
        When reading this format, the following problems may occur:
        - If a row does not match the first row's column count, the function
          raises an `Invalid_Row`.
@@ -34,48 +33,53 @@ type Delimited_Format
        - If a quote is opened and never closed, a `File_Error.Corrupted_Format`
          error is raised.
 
-       Arguments:
-       - delimiter: The delimiter character to split the file into columns. An
-         `Illegal_Argument` error is returned if this is an empty string.
-       - encoding: The encoding to use when reading the file.
-       - skip_rows: The number of rows to skip from the top of the file.
-       - row_limit: The maximum number of rows to read from the file. This count
-         does not include the header row (if applicable).
-       - quote_style: Specifies the style of quotes used for reading and
-         writing.
-       - headers: Specifies if the first row contains the  column names. If set
-         to `Detect_Headers`, the process tries to infer if headers are
-         present. If the column names are not unique, numeric suffixes will be
-         appended to disambiguate them.
-       - value_formatter: Formatter to parse text values into numbers, dates,
-         times, etc. If `Nothing` values are left as Text.
-       - on_invalid_rows: Specifies how to handle rows that have less or more
-         columns than the first row.
-       - line_endings: Sets the line ending style to use. Defaults to `Infer` -
-         when reading a file or appending to an existing file, the line endings
-         are detected from file contents; when writing a new file in `Infer`
-         mode the `Unix` line endings are used.
-       - comment_character: Sets the character which indicates the start of a
-         comment within a delimited file. Any line that begins with the comment
-         character is skipped. The comment character is treated as any other
-         character if it anywhere else than at the beginning of the line. This
-         option is only applicable for read mode and does not affect writing. It
-         defaults to `Nothing` which means that comments are disabled.
+       ## Arguments
+        - `delimiter`: The delimiter character to split the file into columns. An
+          `Illegal_Argument` error is returned if this is an empty string.
+        - `encoding`: The encoding to use when reading the file.
+        - `skip_rows`: The number of rows to skip from the top of the file.
+        - `row_limit`: The maximum number of rows to read from the file. This
+          count does not include the header row (if applicable).
+        - `quote_style`: Specifies the style of quotes used for reading and
+          writing.
+        - `headers`: Specifies if the first row contains the  column names. If
+          set to `Detect_Headers`, the process tries to infer if headers are
+          present. If the column names are not unique, numeric suffixes will be
+          appended to disambiguate them.
+        - `value_formatter`: Formatter to parse text values into numbers, dates,
+          times, etc. If `Nothing` values are left as Text.
+        - `on_invalid_rows`: Specifies how to handle rows that have less or more
+          columns than the first row.
+        - `line_endings`: Sets the line ending style to use. Defaults to `Infer`
+          - when reading a file or appending to an existing file, the line
+          endings are detected from file contents; when writing a new file in
+          `Infer` mode the `Unix` line endings are used.
+        - `comment_character`: Sets the character which indicates the start of a
+          comment within a delimited file. Any line that begins with the comment
+          character is skipped. The comment character is treated as any other
+          character if it anywhere else than at the beginning of the line. This
+          option is only applicable for read mode and does not affect writing. It
+          defaults to `Nothing` which means that comments are disabled.
     @delimiter make_file_read_delimiter_selector
     @encoding Encoding.default_widget
     @row_limit Rows_To_Read.default_widget
     Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=..With_Quotes) (headers:Headers=..Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (on_invalid_rows:Invalid_Rows=..Add_Extra_Columns) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Delimited_Format | Nothing
     resolve constructor =
         _catch_compatibility_changes <|
             Panic.catch Type_Error (constructor:Delimited_Format) _->Nothing
 
-    ## PRIVATE
-       ADVANCED
-       If the File_Format supports reading from the file, return a configured instance.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
     for_read : File_Format_Metadata -> Delimited_Format | Nothing
     for_read file:File_Format_Metadata =
         content_type = file.interpret_content_type
@@ -92,21 +96,30 @@ type Delimited_Format
                 ".tsv" -> Delimited_Format.Delimited '\t'
                 _ -> Nothing
 
-    ## PRIVATE
-       If this File_Format should be used for writing to that file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
     for_file_write : Writable_File -> Delimited_Format | Nothing
     for_file_write file = Delimited_Format.for_read file
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "Delimited" "..Delimited"]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_name_patterns -> Vector File_Name_Pattern =
         [File_Name_Pattern.Value "CSV" ["*.csv"], File_Name_Pattern.Value "Tab Delimited" ["*.tsv", "*.tab"], File_Name_Pattern.Value "Delimited Flat Files" ["*.csv", "*.tsv", "*.tab"]]
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
@@ -115,83 +128,108 @@ type Delimited_Format
             Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Delimited_Format", "Table", result.row_count, result.column_count]
             result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
         Delimited_Reader.read_stream self stream on_problems=..Report_Warning
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
         Delimited_Writer.write_file (table : Table & In_Memory_Table) self file on_existing_file match_columns on_problems
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Clone the instance with some properties overridden.
     clone : Encoding -> Quote_Style -> Headers -> (Data_Formatter|Nothing) -> Invalid_Rows -> (Line_Ending_Style|Infer) -> (Text|Nothing) -> Delimited_Format
     clone self (encoding:Encoding = self.encoding) (quote_style:Quote_Style=self.quote_style) (headers:Headers=self.headers) (value_formatter=self.value_formatter) (on_invalid_rows:Invalid_Rows=self.on_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited_Format.Delimited self.delimiter encoding self.skip_rows self.row_limit quote_style headers value_formatter on_invalid_rows line_endings comment_character
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a clone of this with specified quoting settings.
     with_quotes : Text -> Text -> Boolean -> Delimited_Format
     with_quotes self quote='"' quote_escape=quote always_quote=False =
         quote_style = if always_quote then Quote_Style.Always_Quote quote quote_escape else Quote_Style.With_Quotes  quote quote_escape
         self.clone quote_style=quote_style
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a clone of this with specified quoting settings.
     without_quotes : Delimited_Format
     without_quotes self =
         self.clone quote_style=Quote_Style.No_Quotes
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a clone of this with first row treated as header.
     with_headers : Delimited_Format
     with_headers self = self.clone headers=Headers.Has_Headers
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a clone of this where the first row is treated as data, not a
        header.
     without_headers : Delimited_Format
     without_headers self = self.clone headers=Headers.No_Headers
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a clone of this with value parsing.
-
        A custom `Data_Formatter` can be provided to customize parser options.
     with_parsing : Data_Formatter -> Delimited_Format
     with_parsing self (value_formatter=Data_Formatter.Value) =
         self.clone value_formatter=value_formatter
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a clone of this without value parsing.
     without_parsing : Delimited_Format
     without_parsing self =
         self.clone value_formatter=Nothing
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Creates a clone of this with a changed line ending style.
     with_line_endings : Line_Ending_Style | Infer -> Delimited_Format
     with_line_endings self (line_endings : Line_Ending_Style | Infer = Infer) =
         self.clone line_endings=line_endings
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Creates a clone of this with comment parsing enabled.
     with_comments : Text -> Delimited_Format
     with_comments self comment_character='#' =
         self.clone comment_character=comment_character
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Creates a clone of this with comment parsing disabled.
     without_comments : Delimited_Format
     without_comments self =
         self.clone comment_character=Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Constructs a `Delimited` instance from JSON.
 Delimited_Format.from (that : JS_Object) =
     delimiter = that.get "delimiter" if_missing=(Error.throw (Illegal_Argument.Error "The `delimiter` field is required."))
