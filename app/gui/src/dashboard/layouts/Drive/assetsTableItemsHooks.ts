@@ -1,18 +1,14 @@
 /** @file A hook to return the items in the assets table. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
 import type { DirectoryId } from '#/services/ProjectManager'
-import type { SortInfo } from '#/utilities/sorting'
 import { createStore, useStore } from '#/utilities/zustand.ts'
-import { useText } from '$/providers/react'
-import type { AnyAsset, AssetId, AssetSortExpression } from 'enso-common/src/services/Backend'
+import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
 import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */
 export interface UseAssetsTableOptions {
   readonly parentId: DirectoryId
   readonly assets: readonly AnyAsset[]
-  readonly sortInfo: SortInfo<AssetSortExpression> | null
 }
 
 export const ASSET_ITEMS_STORE = createStore<{
@@ -51,8 +47,7 @@ export function useGetAssetChildren() {
 
 /** A hook to return the items in the assets table. */
 export function useAssetsTableItems(options: UseAssetsTableOptions) {
-  const { parentId, assets: items, sortInfo } = options
-  const { locale } = useText()
+  const { parentId, assets: items } = options
   const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems, {
     unsafeEnableTransition: true,
   })
@@ -61,7 +56,6 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
       setAssetItems(parentId, items)
     })
   }, [items, parentId, setAssetItems])
-  const compare = sortInfo ? assetCompareFunction(sortInfo, locale) : null
-  const visibleItems = compare ? [...items].sort(compare) : items
+  const visibleItems = items
   return { visibleItems } as const
 }
