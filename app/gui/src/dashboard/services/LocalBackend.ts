@@ -732,26 +732,17 @@ export default class LocalBackend extends Backend {
     } else {
       const title = backend.stripProjectExtension(body.fileName)
       let id: string
-      if (
-        'backendApi' in window &&
-        // This non-standard property is defined in Electron.
-        'path' in file &&
-        typeof file.path === 'string' &&
-        file.path !== ''
-      ) {
-        const projectInfo = await window.backendApi.importProjectFromPath(
-          file.path,
-          parentPath,
-          title,
-        )
+      const path = window.systemApi?.getFilePath(file)
+      if ('backendApi' in window && path != null) {
+        const projectInfo = await window.backendApi.importProjectFromPath(path, parentPath, title)
         id = projectInfo.id
       } else {
         const searchParams = new URLSearchParams({
           directory: parentPath,
           name: title,
         }).toString()
-        const path = `/api/upload-project?${searchParams}`
-        const response = await fetch(path, { method: 'POST', body: file })
+        const url = `/api/upload-project?${searchParams}`
+        const response = await fetch(url, { method: 'POST', body: file })
         id = await response.text()
       }
       const projectId = newProjectId(projectManager.UUID(id), parentPath)

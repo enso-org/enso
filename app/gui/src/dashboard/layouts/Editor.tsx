@@ -35,7 +35,7 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
   const preventAutoReopen =
-    project.type !== backendModule.BackendType.local || project.hybrid == null
+    project.type !== backendModule.BackendType.local || project.hybrid != null
   const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
