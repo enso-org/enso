@@ -451,5 +451,5 @@ Table_Viz_Data.from (that:Snowflake_Connection) =
       "*" ->
         schemas = tables.at "Schema" . to_vector
         (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Schema" "Schema" "set_schema {{@Schema}}", Table_Viz_Header.Label "Name", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [schemas, names, types, descriptions])
-      _ -> (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Name" "Name" "read {{@Name}}", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [names, types, descriptions])
+      _ -> (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Name" "Name" "query {{@Name}}", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [names, types, descriptions])
 

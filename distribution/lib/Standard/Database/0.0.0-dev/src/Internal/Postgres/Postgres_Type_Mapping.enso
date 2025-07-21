@@ -15,9 +15,13 @@ from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Postgres_Type_Mapping
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems:Problem_Behavior =
         result = case value_type of
@@ -77,7 +81,9 @@ type Postgres_Type_Mapping
         problems = if approximated_value_type == value_type then [] else [Inexact_Type_Coercion.Warning value_type approximated_value_type]
         on_problems.attach_problems_before problems result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
         simple_type = simple_types_map.get sql_type.typeid Nothing
@@ -89,7 +95,9 @@ type Postgres_Type_Mapping
                 Nothing -> on_unknown_type sql_type
                 builder -> builder sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type =
         if sql_type.name == "bool" then "bool" else
@@ -102,7 +110,9 @@ type Postgres_Type_Mapping
                 True -> sql_type.name
                 False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The Postgres type mapping always relies on the return type determined by
        the database backend.
     infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
@@ -110,16 +120,20 @@ type Postgres_Type_Mapping
         _ = [op_name, arguments]
         infer_from_database_callback expression
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        We want to respect any overriding references, but references that rely on
-       computing the type by the database are resolved to Nothing to just rely
-       on the `ResultSet` metadata and decrease overhead.
+       computing the type by the database are resolved to Nothing to just rely on
+       the `ResultSet` metadata and decrease overhead.
     prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
     prepare_type_overrides column_type_suggestions = case column_type_suggestions of
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .to_type_override
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a `Column_Fetcher` used to fetch data from a result set and build
        an in-memory column from it, based on the given column type.
     make_column_fetcher : SQL_Type -> Column_Fetcher
@@ -127,31 +141,43 @@ type Postgres_Type_Mapping
         value_type = self.sql_type_to_value_type sql_type
         Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
         # Currently, we do not have any implicit conversions.
         _ = [source_type, target_type]
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
         SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
 
-## PRIVATE
+## ---
+   private: true
+   ---
 simple_types_map = Dictionary.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
     other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.NULL, Value_Type.Null]]
     ints + floats + other
 
-## PRIVATE
+## ---
+   private: true
+   ---
 complex_types_map = Dictionary.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
@@ -177,11 +203,15 @@ complex_types_map = Dictionary.from_vector <|
     others = [[Types.TIMESTAMP, handle_timestamp]]
     numerics + strings + binaries + others
 
-## PRIVATE
+## ---
+   private: true
+   ---
 on_unknown_type sql_type =
     Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This is the maximum size that JDBC driver reports for 'unbounded' types in
    Postgres.
 max_precision = 2147483647

@@ -10,15 +10,18 @@ import project.Value_Type.Value_Type
 from project.Errors import Missing_Input_Columns, No_Such_Column
 
 type Join_Condition_Resolver
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value left_at right_at make_equals make_equals_ignore_case make_between
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolves the columns in the provided join conditions, handling any errors
        and capturing redundant columns.
-
-       Resolution errors are aggregated from all conditions (all found errors
-       are reported instead of only the first one). If there were any errors,
+       Resolution errors are aggregated from all conditions (all found errors are
+       reported instead of only the first one). If there were any errors,
        `Nothing` will be returned as the conditions indicating that state.
        Besides, a list of redundant columns from equality joins is aggregated
        which can be used to deduplicate them.
@@ -81,7 +84,11 @@ type Join_Condition_Resolver
             if converted.contains Nothing then Panic.throw (Illegal_State.Error "Impossible: unresolved columns remaining in the join resolution. This should have raised a dataflow error. This is a bug in the Table library.") else
                 Join_Condition_Resolution.Result converted redundant_names.to_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Join_Condition_Resolution
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Result (conditions : Vector Any) (redundant_column_names : Vector Text)

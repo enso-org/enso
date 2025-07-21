@@ -25,13 +25,8 @@ import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 
-/** Props for a {@link Drive}. */
-export interface DriveProps {
-  readonly initialProjectName: string | null
-}
-
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-function Drive(props: DriveProps) {
+function Drive() {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
@@ -112,7 +107,7 @@ function Drive(props: DriveProps) {
           }}
         >
           <Suspense>
-            <DriveAssetsView {...props} />
+            <DriveAssetsView />
           </Suspense>
         </ErrorBoundary>
       )
@@ -121,9 +116,7 @@ function Drive(props: DriveProps) {
 }
 
 /** The assets view of the Drive. */
-function DriveAssetsView(props: DriveProps) {
-  const { initialProjectName } = props
-
+function DriveAssetsView() {
   const { getText } = useText()
   const { isOffline } = offlineHooks.useOffline()
   const { associatedBackend } = useCategoriesAPI()
@@ -156,11 +149,7 @@ function DriveAssetsView(props: DriveProps) {
             {!isInaccessible && (
               <Suspense>
                 <ErrorBoundary>
-                  <AssetsTable
-                    query={query}
-                    setQuery={setQuery}
-                    initialProjectName={initialProjectName}
-                  />
+                  <AssetsTable query={query} setQuery={setQuery} />
                 </ErrorBoundary>
               </Suspense>
             )}

@@ -13,7 +13,9 @@ import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
 from project.Errors import Unsupported_Database_Type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_batched_insert_template : Connection -> Text -> Vector (Vector Text) -> SQL_Query
 make_batched_insert_template connection table_name column_names =
     # We add Nothing as placeholders, they will be replaced with the actual values later.
@@ -22,13 +24,14 @@ make_batched_insert_template connection table_name column_names =
     template = query.prepare.first
     template
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Creates a statement that will create a table with structure determined by the
    provided columns.
-
    The `primary_key` columns must be present in `columns`, but it is the
-   responsibility of the caller to ensure that, otherwise the generated
-   statement will be invalid.
+   responsibility of the caller to ensure that, otherwise the generated statement
+   will be invalid.
 prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
 prepare_create_table_statement connection table_name columns primary_key temporary on_problems:Problem_Behavior =
     type_mapping = connection.dialect.get_type_mapping

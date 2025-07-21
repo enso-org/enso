@@ -81,10 +81,12 @@ export function useEnsoPaths(
 
   function printEnsoPath(path: EnsoPath) {
     const files = toValue(userFiles)
-    const rootPath =
+    let rootPath =
       (path.root === toValue(files?.rootDirectoryId) ? toValue(files?.rootPath) : undefined) ??
-      'enso:/'
-    return [rootPath, ...path.segments].join('/')
+      'enso://'
+    // Sometimes rootPath ends with /, and sometimes not.
+    if (!rootPath.endsWith('/') && path.segments.length) rootPath = rootPath + '/'
+    return `${rootPath}${path.segments.join('/')}`
   }
 
   return {

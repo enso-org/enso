@@ -56,73 +56,77 @@ type DB_Table
     ## Internal constructor that should not be used directly.
        Please use `DB_Table.new` instead.
 
-       Arguments:
-       - internal_name: The name of the table.
-       - connection: The connection with which the table is associated.
-       - internal_columns: The internal representation of the table columns.
-       - context: The context associated with this table.
+       ## Arguments
+        - `internal_name`: The name of the table.
+        - `connection`: The connection with which the table is associated.
+        - `internal_columns`: The internal representation of the table columns.
+        - `context`: The context associated with this table.
     private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:SQL_IR_Source
 
     ## The internal constructor used to construct a DB_Table instance.
-
-       It can perform some additional operations, like refining the type,
-       so it should always be preferred over calling `DB_Table.Value` directly.
+       It can perform some additional operations, like refining the type, so it
+       should always be preferred over calling `DB_Table.Value` directly.
     private new (internal_name:Text) connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:SQL_IR_Source =
         DB_Table_Refinements.refine_table <|
             DB_Table.Value internal_name connection internal_columns context
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        The name of the table.
     name self -> Text = self.internal_name
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        The name of the SQL Dialect used by the table.
     dialect_name self -> Text = self.connection.dialect.name
 
-    ## GROUP Standard.Base.Selections
-       ICON select_row
-
+    ## ---
+       group: Standard.Base.Selections
+       icon: select_row
+       ---
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.
-
-       Arguments:
-       - max_rows: The maximum number of rows to get from the table.
 
        Since this Table is backed by an SQL database, the Table returned by the
        `limit` method is deterministic only if the Table has been ordered (using
        the `order_by` method).
-
        Otherwise, no order is imposed, so the returned Table will include at most
        `max_rows` rows, but there are no guarantees on which rows will be
        selected. Moreover, even if the underlying table in the database did not
        change, different sets of rows may be returned each time the returned
        Table is materialized.
-
        The limit is applied at the very end, so the new Table behaves exactly as
        the old one, just limiting its results when being materialized.
        Specifically, applying further filters will still apply to the whole
        result set and the limit will be taken after applying these filters.
 
-       > Example
-           In the call below, assuming that the table of `t1` contains rows for
+       ## Arguments
+        - `max_rows`: The maximum number of rows to get from the table.
+
+       ## Examples
+       ### In the call below, assuming that the table of `t1` contains rows for
+       ```
            numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
            result as one could expect if the limit was applied before the filters.
 
                t1 = table.sort [..Name "A"] . limit 5
                t2 = t1.filter 'A' (..Greater than=5)
                t2.read
+       ```
     limit self max_rows:Integer=1000 -> Table & DB_Table | Any =
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the default ordering used for operations like `add_row_number` or
        `take`.
-
-       If the table was recently ordered by operations like `order_by`, that
-       will determine the ordering. Otherwise, the primary key is used if
-       available.
+       If the table was recently ordered by operations like `order_by`, that will
+       determine the ordering. Otherwise, the primary key is used if available.
     default_ordering : Vector Order_Descriptor | Nothing
     default_ordering self =
         explicit_ordering = self.context.orders
@@ -136,7 +140,9 @@ type DB_Table
                             Order_Descriptor.Value column_expression Sort_Direction.Ascending
                     _ -> Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the primary key defined for the table, if applicable.
     get_primary_key : Vector Text | Nothing
     get_primary_key self = case self.context.from_spec of
@@ -149,7 +155,9 @@ type DB_Table
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a query corresponding to this table.
     to_select_query : SQL_IR_Statement
     to_select_query self =
@@ -157,53 +165,59 @@ type DB_Table
         assert cols.not_empty
         SQL_IR_Statement.Select cols self.context
 
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Returns an SQL statement that will be used for materializing this table.
     to_sql self -> SQL_Statement = self.connection.dialect.generate_sql self.to_select_query
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Helper to create columns from internal columns.
 
-       Arguments:
-       - internal: The internal column to use for creating a column.
+       ## Arguments
+        - `internal`: The internal column to use for creating a column.
     make_column self internal:Internal_Column -> Column & DB_Column | Any =
         DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of this table with updated internal columns.
 
-       Arguments:
-       - columns: The columns with which to update this table.
+       ## Arguments
+        - `columns`: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> Table & DB_Table | Any
     updated_columns self internal_columns = DB_Table.new self.name self.connection internal_columns self.context
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of this table with updated context.
 
-       Arguments:
-       - ctx: The new context for this table.
+       ## Arguments
+        - `ctx`: The new context for this table.
     updated_context : SQL_IR_Source -> Table & DB_Table | Any
     updated_context self ctx = DB_Table.new self.name self.connection self.internal_columns ctx
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of this table with updated context and columns.
 
-       Arguments:
-       - ctx: The new context for this table.
-       - internal_columns: The new columns to include in the table.
-       - subquery: A boolean indicating whether the operation should be wrapped
-         in a subquery. This is a simple workaround for operations which may be
-         affected by further operations if not wrapped. For example, a group-by
-         may need to be wrapped in this way if a filter is to be performed on it
-         later on. Ideally, this should be done only on demand, if the
-         subsequent operation needs it and operations like join should try to
-         avoid nesting subqueries without necessity. However, for now, for
-         simplicity, we are always wrapping brittle operations. This may be
-         revised in the future, to generate better and more concise SQL code.
+       ## Arguments
+        - `ctx`: The new context for this table.
+        - `internal_columns`: The new columns to include in the table.
+        - `subquery`: A boolean indicating whether the operation should be
+          wrapped in a subquery. This is a simple workaround for operations which
+          may be affected by further operations if not wrapped. For example, a
+          group-by may need to be wrapped in this way if a filter is to be
+          performed on it later on. Ideally, this should be done only on demand,
+          if the subsequent operation needs it and operations like join should
+          try to avoid nesting subqueries without necessity. However, for now,
+          for simplicity, we are always wrapping brittle operations. This may be
+          revised in the future, to generate better and more concise SQL code.
     updated_context_and_columns : SQL_IR_Source -> Vector Internal_Column -> Boolean -> Table & DB_Table | Any
     updated_context_and_columns self ctx internal_columns subquery=False = case subquery of
         True ->
@@ -214,26 +228,29 @@ type DB_Table
         False ->
             DB_Table.new self.name self.connection internal_columns ctx
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Nests a table as a subquery, using `updated_context_and_columns`, which
        causes its columns to be referenced as names rather than expressions.
     as_subquery : Table & DB_Table | Any
     as_subquery self = self.updated_context_and_columns self.context self.internal_columns subquery=True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if this table is a 'trivial query'.
-
        A trivial query is a result of `connection.query` that has not been
        further processed. If there are any columns that are added or removed, or
        any other operations like join or aggregate are performed, the resulting
        table is no longer trivial.
-
        Some operations, like writing to tables, require their target to be a
        trivial query.
 
-       Arguments:
-       - fail_if_not_found: If `True`, a `Table_Not_Found` error is raised if the
-         table does not exist in the database. Otherwise, `False` is returned.
+       ## Arguments
+        - `fail_if_not_found`: If `True`, a `Table_Not_Found` error is raised if
+          the table does not exist in the database. Otherwise, `False` is
+          returned.
     is_trivial_query self (fail_if_not_found : Boolean = True) -> Boolean ! Table_Not_Found =
         case self.context.from_spec of
             SQL_IR_From_Part.Table internal_table_name _ _ ->
@@ -250,25 +267,28 @@ type DB_Table
                         if trivial_counterpart.is_error then False else check_context_and_columns
             _ -> False
 
-    ## GROUP Standard.Base.Output
-       ICON data_output
+    ## ---
+       group: Standard.Base.Output
+       icon: data_output
+       ---
        Creates a Data Link that will act as a view into the query represented by
        this table.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
     save_as_data_link self destination on_existing_file:Existing_File_Behavior=..Error =
         DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Creates a Table out of a connection, name and list of column names.
 
-   Arguments:
-   - connection: The connection to a database.
-   - table_name: The name of the table to get.
-   - columns: List of columns to fetch. Each column is represented by a pair of
-     column name and its expected SQL Type.
-   - ctx: The context to use for the table.
-   - on_problems: The behavior to use when problems are encountered.
+   ## Arguments
+    - `connection`: The connection to a database.
+    - `table_name`: The name of the table to get.
+    - `columns`: List of columns to fetch. Each column is represented by a pair
+      of column name and its expected SQL Type.
+    - `ctx`: The context to use for the table.
+    - `on_problems`: The behavior to use when problems are encountered.
 make_table : Connection -> Text -> Vector -> SQL_IR_Source -> Problem_Behavior -> Table & DB_Table
 make_table connection table_name columns ctx on_problems =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
@@ -287,11 +307,16 @@ make_table connection table_name columns ctx on_problems =
         problem_builder.attach_problems_before on_problems <|
             DB_Table.new table_name connection cols ctx
 
-## PRIVATE
-    The largest dataset that can be used to make a literal table, expressed in number of elements.
+## ---
+   private: true
+   ---
+   The largest dataset that can be used to make a literal table, expressed in
+   number of elements.
 MAX_LITERAL_ELEMENT_COUNT = 256
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_literal_table connection column_vectors column_names alias =
     Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
 

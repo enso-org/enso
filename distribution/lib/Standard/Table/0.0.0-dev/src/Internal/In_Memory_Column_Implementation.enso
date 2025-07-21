@@ -692,7 +692,9 @@ type In_Memory_Column_Implementation
     pretty_implementation (this_column : Column & In_Memory_Column) =
         (this_column:In_Memory_Column).pretty
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        This is a shortcut for API compatibility.
     naming_helper this_column =
         _ = this_column
@@ -716,17 +718,19 @@ type In_Memory_Column_Implementation
     default_row_limit_for_read = ..All_Rows
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Folds the vectorized operation over the provided column and values. When more
    than one value to is provided, the result is folded with subsequent values.
 
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - fallback_fn: A function used if the vectorized operation isn't available.
-     It should never raise dataflow errors.
-   - operands: The vector of operands to apply to the function after `column`.
-   - new_name: The name of the column created as the result of this operation.
+   ## Arguments
+    - `column`: The column to execute the operation over.
+    - `name`: The name of the vectorized operation.
+    - `fallback_fn`: A function used if the vectorized operation isn't available.
+      It should never raise dataflow errors.
+    - `operands`: The vector of operands to apply to the function after `column`.
+    - `new_name`: The name of the column created as the result of this operation.
 private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands new_name:(Text | Nothing)=Nothing =
     effective_operands = Vector.unify_vector_or_element operands
     all_operands = [column]+effective_operands
@@ -742,21 +746,23 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
                     "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
             In_Memory_Column.from_java_column folded
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Runs a binary operation over the provided column and operand which may be
    another column or a scalar value.
 
-   Arguments:
-   - column: The column to execute the operation over.
-   - function: The function to apply to each element of `column`.
-   - operand: The operand to apply to the function after `column`.
-   - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-   - expected_result_type: The expected result type of the operation. If set to
-     `Nothing`, the result type is inferred from the values.
+   ## Arguments
+    - `column`: The column to execute the operation over.
+    - `function`: The function to apply to each element of `column`.
+    - `operand`: The operand to apply to the function after `column`.
+    - `new_name`: The name of the column created as the result of this operation.
+    - `skip_nulls`: Specifies if nulls should be skipped. If set to `True`, a
+      null value results in null without passing it to the function. If set to
+      `False`, the null values are passed as any other value and can have custom
+      handling logic.
+    - `expected_result_type`: The expected result type of the operation. If set
+      to `Nothing`, the result type is inferred from the values.
 private _apply_binary_map column function operand new_name skip_nulls=True expected_result_type=Nothing =
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
@@ -764,50 +770,61 @@ private _apply_binary_map column function operand new_name skip_nulls=True expec
             BinaryOperation.mapFunction (column:In_Memory_Column).java_column (_java_other operand) skip_nulls new_name function storage_type problem_builder
         In_Memory_Column.from_java_column new_column
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = normalize_ranges ranges
     In_Memory_Column.from_java_column ((column:In_Memory_Column).java_column.slice normalized)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the value type to a storage type, passing `Nothing` through.
-
    Sometimes we do not specify the storage type as it should be inferred by the
    vectorized operation, in which case it can be `Nothing`.
 resolve_storage_type value_type = case value_type of
     Nothing -> Nothing
     _ -> Storage.from_value_type_strict value_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Applies a UnaryOperation to a column.
 
-   Arguments:
-   - column: The column to apply the operation to.
-   - operation: The UnaryOperation to apply.
-   - new_name: The name of the column created as the result of this operation.
-   - if_unsupported: The result if the operation is not supported for the column.
+   ## Arguments
+    - `column`: The column to apply the operation to.
+    - `operation`: The UnaryOperation to apply.
+    - `new_name`: The name of the column created as the result of this operation.
+    - `if_unsupported`: The result if the operation is not supported for the
+      column.
 apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply (column:In_Memory_Column).java_column operation used_name java_problem_aggregator
         if java_column.is_nothing then if_unsupported else In_Memory_Column.from_java_column java_column
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Applies a function to every row in the column.
 
-   Arguments:
-   - column: The column to apply the operation to.
-   - new_name: The name of the column created as the result of this operation.
-   - function: A function applied to every element. It should not raise errors.
-   - expected_result_type: The expected result type of the operation.
-   - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
-     the operation without being changed. If set to `False`, `Nothing` values will
-     be passed to the function.
+   ## Arguments
+    - `column`: The column to apply the operation to.
+    - `new_name`: The name of the column created as the result of this operation.
+    - `function`: A function applied to every element. It should not raise
+      errors.
+    - `expected_result_type`: The expected result type of the operation.
+    - `nothing_unchanged`: If set to `True`, `Nothing` values will be passed
+      through the operation without being changed. If set to `False`, `Nothing`
+      values will be passed to the function.
 private _apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name on_problems java_problem_aggregator->
@@ -832,7 +849,9 @@ private _call_binary_operator left:In_Memory_Column other new_name ~operation =
         java_column = operation.apply left.java_column (_java_other other) new_name java_problem_aggregator
         In_Memory_Column.from_java_column java_column
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text =
     java_other = (if other.is_a Column then (other:In_Memory_Column).java_column else other)
     use_fallback = case case_sensitivity of
@@ -845,16 +864,16 @@ private _apply_case_sensitive_text_operation left:Column (other : Column | Text 
                 java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name java_problem_aggregator
                 In_Memory_Column.from_java_column java_column
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This conversion is defined in a `private` module and is never exported.
-   It is only available inside of this implementation to allow the
-   `(this_column : Column & In_Memory_Column)` type refinement to work.
-
+   It is only available inside of this implementation to allow the `(this_column
+   : Column & In_Memory_Column)` type refinement to work.
    It will always succeed, because `In_Memory_Column_Implementation` is only
    called on `In_Memory_Column` columns.
-
    It is needed, because the base API in `Column` calls this implementation with
-   `self` and the `self` loses all the intersection types - so it becomes
-   a 'raw' `Column`, losing the `& In_Memory_Column` part. This hidden
-   conversion allows to 'regain' that part.
+   `self` and the `self` loses all the intersection types - so it becomes a 'raw'
+   `Column`, losing the `& In_Memory_Column` part. This hidden conversion allows
+   to 'regain' that part.
 In_Memory_Column.from (that : Column) = get_underlying_from_column that

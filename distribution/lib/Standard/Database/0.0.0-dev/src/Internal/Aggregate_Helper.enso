@@ -20,18 +20,21 @@ import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Errors import Aggregagtion_Requires_Order
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Creates an `Internal_Column` that will represent the computed aggregate.
 
-   Arguments:
-   - table: The table owning the columns used in the aggregation.
-   - aggregate: The description of the aggregation to compute.
-   - as: The name for the created column.
-   - dialect: The dialect of the database to generate the SQL for.
-   - infer_return_type: A function that takes 3 arguments (name of the
-     operation, list of input columns and a raw SQL IR Expression) and returns
-     the inferred type for the aggregation.
-   - problem_builder: A `Problem_Builder` instance used for reporting warnings.
+   ## Arguments
+    - `table`: The table owning the columns used in the aggregation.
+    - `aggregate`: The description of the aggregation to compute.
+    - `as`: The name for the created column.
+    - `dialect`: The dialect of the database to generate the SQL for.
+    - `infer_return_type`: A function that takes 3 arguments (name of the
+      operation, list of input columns and a raw SQL IR Expression) and returns
+      the inferred type for the aggregation.
+    - `problem_builder`: A `Problem_Builder` instance used for reporting
+      warnings.
 make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column
 make_aggregate_column table aggregate as dialect infer_return_type problem_builder -> Internal_Column =
     simple_aggregate op_kind columns =
@@ -106,7 +109,9 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.Average c _ -> simple_aggregate "AVG" [c]
         Aggregate_Column.Median c _ -> simple_aggregate "MEDIAN" [c]
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Implementation for the `DB_Table.aggregate` method.
 aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vector error_on_missing_columns:Boolean on_problems:Problem_Behavior =
     normalized_group_by = Vector.unify_vector_or_element group_by
@@ -150,7 +155,9 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
                         if validated.old_style.not then result else
                             Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_build_aggregate build_aggregate dialect base_table key_columns resolved_aggregates problem_builder =
     key_expressions = key_columns.map .expression
     new_ctx = base_table.context.set_groups key_expressions
@@ -165,7 +172,9 @@ default_build_aggregate build_aggregate dialect base_table key_columns resolved_
         result.catch Any error->(DB_Wrapped_Error.Value error)
     Pair.new new_ctx results
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_infer_return_type dialect connection context =
     ## TODO [RW] here we will perform as many fetches as there are
        aggregate columns, but technically we could perform just one
@@ -181,32 +190,35 @@ make_infer_return_type dialect connection context =
         type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
     infer_return_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Setup for building aggregates that may require additional helper expressions.
    The expressions are evaluated in the context of the base query, for each row
    - so things like row number can be used. Then the actual aggregates are built
-   in the context of a subquery that can access these additional expressions as
-   fields of the parent query.
-
+     in the context of a subquery that can access these additional expressions as
+     fields of the parent query.
    The `create_helper_expressions` method takes one aggregate and the vector of
-   key columns, and it should return a vector of expressions
-   needed for a specific query, along with their name hints - these hints are
-   used for generating the temporary column names - to make queries a bit easier
-   to debug. Then, expressions corresponding to the requested ones (but
-   transformed to refer to the subquery) are passed to `build_aggregate` as the
-   third argument.
-
+   key columns, and it should return a vector of expressions needed for a
+   specific query, along with their name hints - these hints are used for
+   generating the temporary column names - to make queries a bit easier to debug.
+   Then, expressions corresponding to the requested ones (but transformed to
+   refer to the subquery) are passed to `build_aggregate` as the third argument.
    The expressions are deduplicated - if multiple aggregations rely on the same
    expression, only one will be added for 'efficiency'.
-
    If no aggregation requires additional expressions, no additional subquery is
    created.
 type Aggregate_With_Helper_Expressions
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (create_helper_expressions : Aggregate_Column -> Vector Internal_Column -> Vector (Pair Text SQL_IR_Expression)) (make_aggregate : Aggregate_Column -> Text -> Vector Internal_Column -> Table & DB_Table -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column)
 
-    ## PRIVATE
-       This method should be declared as result of `dialect.custom_build_aggregate` to use this setup.
+    ## ---
+       private: true
+       ---
+       This method should be declared as result of
+       `dialect.custom_build_aggregate` to use this setup.
     build self dialect base_table key_columns resolved_aggregates problem_builder =
         helper_expressions_for_aggregates = resolved_aggregates.map p-> self.create_helper_expressions p.second key_columns
         needed_expressions = helper_expressions_for_aggregates.flatten.distinct
@@ -244,7 +256,9 @@ type Aggregate_With_Helper_Expressions
                     result.catch Any error->(DB_Wrapped_Error.Value error)
                 Pair.new new_ctx results
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Applies a mapping to column inputs of the aggregate.
 map_column_inputs f:Function aggregate_column:Aggregate_Column -> Aggregate_Column =
     update_order_by order_by = if order_by.is_nothing then Nothing else
@@ -274,8 +288,12 @@ map_column_inputs f:Function aggregate_column:Aggregate_Column -> Aggregate_Colu
         Shortest c as -> Shortest (f c) as
         Longest c as -> Longest (f c) as
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_non_empty_selector v = v.is_nothing.not && v.not_empty
 
-## PRIVATE
+## ---
+   private: true
+   ---
 throw_ordering_required op_name = Error.throw (Aggregagtion_Requires_Order.Error op_name)

@@ -21,7 +21,9 @@ import project.Match_Columns.Match_Columns
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Resolve the xls_format setting to a boolean.
 should_treat_as_xls_format : (Boolean|Infer) -> File_Format_Metadata -> Boolean ! Illegal_Argument
 should_treat_as_xls_format xls_format file:File_Format_Metadata =
@@ -34,72 +36,80 @@ should_treat_as_xls_format xls_format file:File_Format_Metadata =
 type Excel_Format
     ## Reads an Excel file as a connection to an `Excel_Workbook`.
 
-       Arguments:
-       - xls_format:
-         If set to `True`, the file is read as an Excel 95-2003 format.
-         If set to `False`, the file is read as an Excel 2007+ format.
-         `Infer` will attempt to deduce this from the extension of the filename.
-       - default_sheet: The default sheet to use when writing a table to a file
-         with these format settings.
+       ## Arguments
+        - `xls_format`:  If set to `True`, the file is read as an Excel 95-2003
+          format. If set to `False`, the file is read as an Excel 2007+ format.
+          `Infer` will attempt to deduce this from the extension of the filename.
+        - `default_sheet`: The default sheet to use when writing a table to a
+          file with these format settings.
     @default_sheet Text_Input
     Workbook (xls_format : Boolean | Infer = Infer) (default_sheet : Text = "EnsoSheet")
 
     ## Reads a sheet from an Excel file as a `Table`.
 
-       Arguments:
-       - sheet: The sheet number or name.
-       - headers: Specifies if the first row contains the  column names. If set
-         to `Detect_Headers`, the process tries to infer if headers are
-         present. If the column names are not unique, numeric suffixes will be
-         appended to disambiguate them.
-       - skip_rows: The number of rows to skip before reading the data.
-       - row_limit: The maximum number of rows to read.
-       - xls_format:
-         If set to `True`, the file is read as an Excel 95-2003 format.
-         If set to `False`, the file is read as an Excel 2007+ format.
-         `Infer` will attempt to deduce this from the extension of the filename.
+       ## Arguments
+        - `sheet`: The sheet number or name.
+        - `headers`: Specifies if the first row contains the  column names. If
+          set to `Detect_Headers`, the process tries to infer if headers are
+          present. If the column names are not unique, numeric suffixes will be
+          appended to disambiguate them.
+        - `skip_rows`: The number of rows to skip before reading the data.
+        - `row_limit`: The maximum number of rows to read.
+        - `xls_format`:  If set to `True`, the file is read as an Excel 95-2003
+          format. If set to `False`, the file is read as an Excel 2007+ format.
+          `Infer` will attempt to deduce this from the extension of the filename.
     @sheet (Text_Input display=Display.Always)
     @row_limit Rows_To_Read.default_widget
     Sheet (sheet:(Integer|Text)=1) (headers:Headers=..Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format:Boolean|Infer=Infer)
 
     ## Reads a range from an Excel file as a `Table`.
 
-       Arguments:
-       - address: A name of a range or an Excel-style address (e.g. Sheet1!A1:B2).
-       - headers: Specifies if the first row contains the  column names. If set
-         to `Detect_Headers`, the process tries to infer if headers are
-         present. If the column names are not unique, numeric suffixes will be
-         appended to disambiguate them.
-       - skip_rows: The number of rows to skip before reading the data.
-       - row_limit: The maximum number of rows to read.
-       - xls_format:
-         If set to `True`, the file is read as an Excel 95-2003 format.
-         If set to `False`, the file is read as an Excel 2007+ format.
-         `Infer` will attempt to deduce this from the extension of the filename.
+       ## Arguments
+        - `address`: A name of a range or an Excel-style address (e.g.
+          Sheet1!A1:B2).
+        - `headers`: Specifies if the first row contains the  column names. If
+          set to `Detect_Headers`, the process tries to infer if headers are
+          present. If the column names are not unique, numeric suffixes will be
+          appended to disambiguate them.
+        - `skip_rows`: The number of rows to skip before reading the data.
+        - `row_limit`: The maximum number of rows to read.
+        - `xls_format`:  If set to `True`, the file is read as an Excel 95-2003
+          format. If set to `False`, the file is read as an Excel 2007+ format.
+          `Infer` will attempt to deduce this from the extension of the filename.
     @address Text_Input
     @row_limit Rows_To_Read.default_widget
     Range (address:(Text|Excel_Range)=(Missing_Argument.throw 'address')) (headers:Headers=..Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format : Boolean | Infer = Infer)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Excel_Format | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:Excel_Format) _->Nothing
 
-    ## PRIVATE
-       ADVANCED
-       If the File_Format supports reading from the file, return a configured instance.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
     for_read : File_Format_Metadata -> Excel_Format | Nothing
     for_read file:File_Format_Metadata =
         is_xls = xls_format_from_metadata file
         is_xls.if_not_nothing <| Excel_Format.Workbook xls_format=is_xls
 
-    ## PRIVATE
-       If this File_Format should be used for writing to that file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
     for_file_write : Writable_File -> Excel_Format | Nothing
     for_file_write file = Excel_Format.for_read file
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_dropdown_options : Vector Option
     get_dropdown_options =
         workbook = Option "Excel Workbook" "..Workbook"
@@ -107,12 +117,16 @@ type Excel_Format
         range = Option "Excel Range" "..Range"
         [workbook, sheet, range]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_name_patterns -> Vector File_Name_Pattern =
         [File_Name_Pattern.Value "Excel" ["*.xls", "*.xlsx", "*.xlsm", "*.xlt"]]
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
@@ -129,7 +143,9 @@ type Excel_Format
                     Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, format]
                     result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
@@ -153,10 +169,11 @@ type Excel_Format
                 Excel_Format.Workbook _ _ -> workbook
                 _ -> workbook.read_section (as_section self)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Implements the `Table.write` for this `File_Format`.
-
        Depending on the `section` will control where to write.
        - If `Excel_Section.Workbook` (the default), the `table` will be written
          to a new sheet in the workbook named `Sheet<n>` where n is the first
@@ -167,18 +184,20 @@ type Excel_Format
        - If `Excel_Section.Cell_Range`, the `table` will be written to the
          specified range.
 
-       Arguments:
-       - file: The file to write to.
-       - table: The table to write.
-       - on_existing_file: What to do if the file already exists.
-       - match_columns: How to match columns between the table and the file.
-       - on_problems: What to do if there are problems reading the file.
+       ## Arguments
+        - `file`: The file to write to.
+        - `table`: The table to write.
+        - `on_existing_file`: What to do if the file already exists.
+        - `match_columns`: How to match columns between the table and the file.
+        - `on_problems`: What to do if there are problems reading the file.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
         format = should_treat_as_xls_format self.xls_format file
         Excel_Writer.write_file file table on_existing_file (as_section self) match_columns on_problems format
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This function returns:
    - `True` if the file is an XLS format,
    - `False` if the file is an XLSX format,
@@ -199,7 +218,9 @@ xls_format_from_metadata (metadata : File_Format_Metadata) =
             ".xlt" -> True
             _ -> Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts this format to a corresponding `Excel_Section`.
 as_section (format : Excel_Format) -> Excel_Section = case format of
     Excel_Format.Workbook _ default_sheet ->
@@ -211,7 +232,9 @@ as_section (format : Excel_Format) -> Excel_Section = case format of
     Excel_Format.Range address headers skip_rows row_limit _ ->
         Excel_Section.Cell_Range address headers skip_rows row_limit
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Constructs an `Excel_Format` instance from JSON.
    Only a subset of options is currently supported.
 Excel_Format.from (that : JS_Object) =

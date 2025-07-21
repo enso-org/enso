@@ -60,22 +60,22 @@ export class Vec2 {
     return Math.abs(this.x - other.x) < epsilon && Math.abs(this.y - other.y) < epsilon
   }
 
-  /** TODO: Add docs */
+  /** Check if both coords are 0. */
   isZero(): boolean {
     return this.x === 0 && this.y === 0
   }
 
-  /** TODO: Add docs */
+  /** Check if both coords have finite values. */
   isFinite(): boolean {
     return Number.isFinite(this.x) && Number.isFinite(this.y)
   }
 
-  /** TODO: Add docs */
+  /** Change non-finite values in vector to 0. */
   finiteOrZero(): Vec2 {
     return new Vec2(Number.isFinite(this.x) ? this.x : 0, Number.isFinite(this.y) ? this.y : 0)
   }
 
-  /** TODO: Add docs */
+  /** Multiply values by given value. */
   scale(scalar: number): Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
   }

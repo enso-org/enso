@@ -19,9 +19,10 @@ import project.Value_Type.Value_Type
 from project.Column import make_storage_builder_for_type
 
 ## The implementation of common logic that is used by `Table.from_union`.
-   The caller should ensure that `tables` contains only `Table` instances or `Nothing`.
-   Each `Nothing` is replaced by a single all-nothing row, not introducing any new columns. 
-   The `tables` vector must contain at least one non-nothing entry.
+   The caller should ensure that `tables` contains only `Table` instances or
+   `Nothing`.
+   Each `Nothing` is replaced by a single all-nothing row, not introducing any
+   new columns.  The `tables` vector must contain at least one non-nothing entry.
 make_union (tables : Vector) (columns_to_keep : Columns_To_Keep) (match_columns : Match_Columns) (on_problems : Problem_Behavior) =
     problem_builder = Problem_Builder.new
     matched_column_sets = Match_Columns_Helpers.match_columns tables match_columns columns_to_keep problem_builder
@@ -59,9 +60,8 @@ private _concat_columns column_set tables result_type result_row_count needs_cas
 
 ## Creates a storage builder suitable for building a column for the provided
    column type.
-
-   If a value type is not supported, its closest match is selected and
-   an `Inexact_Type_Coercion` problem is reported.
+   If a value type is not supported, its closest match is selected and an
+   `Inexact_Type_Coercion` problem is reported.
 private _make_storage_builder_for_type value_type on_problems initial_size java_problem_aggregator =
     closest_storage_type = Storage.from_value_type value_type on_problems
     Storage.make_builder closest_storage_type initial_size java_problem_aggregator

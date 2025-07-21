@@ -12,7 +12,7 @@ import { Text } from '#/components/Text'
 import { Tooltip } from '#/components/Tooltip'
 import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
-import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
+import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
 import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
@@ -267,10 +267,15 @@ export function EnsoDevtools() {
 
   const queryClient = useQueryClient()
   const session = useUserSession()
+
   const { getFeature } = usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
 
   const { features, setFeature } = usePaywallDevtools()
+
+  const currentlyViewedPlan = session?.user.plan ?? backend.Plan.free
+  const { isFeatureUnderPaywall } = usePaywall({ plan: currentlyViewedPlan })
+
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
 
@@ -540,30 +545,26 @@ export function EnsoDevtools() {
             gap="small"
             schema={(schema) =>
               schema.object(
-                Object.fromEntries(Object.keys(features).map((key) => [key, schema.boolean()])),
+                Object.fromEntries(unsafeKeys(features).map((key) => [key, schema.boolean()])),
               )
             }
             defaultValues={Object.fromEntries(
-              Object.keys(features).map((feature) => {
-                // eslint-disable-next-line no-restricted-syntax
-                const featureName = feature as PaywallFeatureName
-                return [featureName, features[featureName].isForceEnabled ?? true]
+              unsafeKeys(features).map((featureName) => {
+                return [featureName, features[featureName].isForceEnabled ?? false]
               }),
             )}
           >
-            {Object.keys(features).map((feature) => {
-              // eslint-disable-next-line no-restricted-syntax
-              const featureName = feature as PaywallFeatureName
+            {unsafeKeys(features).map((featureName) => {
               const { label, descriptionTextId } = getFeature(featureName)
-
               return (
                 <Switch
-                  key={feature}
+                  key={featureName}
                   name={featureName}
                   label={getText(label)}
+                  halfway={!isFeatureUnderPaywall(featureName, true)}
                   description={getText(descriptionTextId)}
                   onChange={(value) => {
-                    setFeature(featureName, value)
+                    setFeature(featureName, value || null)
                   }}
                 />
               )
