@@ -91,6 +91,9 @@ export function createProjectNameStore({
     onProjectRenameRequested: (newName: string) => {
       pendingName.value = newName
     },
+    onProjectRenameFailed: () => {
+      pendingName.value = undefined
+    },
     onProjectRenamed: (oldName: string, newName: string) => {
       if ((oldName as Identifier) === synchronizedName.value) {
         synchronizedName.value = newName as Identifier

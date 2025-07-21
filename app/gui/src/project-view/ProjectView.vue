@@ -30,7 +30,7 @@ const props = defineProps<{
   readonly projectNamespace?: string
   readonly projectPath: string
   readonly engine: LsUrls
-  readonly renameProject: (newName: string) => void
+  readonly renameProject: (newName: string) => Promise<void>
   /** The current project's backend, which may be remote or local. */
   readonly projectBackend?: Opt<Backend>
   /**

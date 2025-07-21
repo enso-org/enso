@@ -108,7 +108,7 @@ export interface ProjectProps {
 export function createProjectStore(
   props: {
     projectId: ProjectId
-    renameProject: (newName: string) => void
+    renameProject: (newName: string) => Promise<void>
     engine: LsUrls
   },
   projectNames: ProjectNameStore,
@@ -354,12 +354,13 @@ export function createProjectStore(
     executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
   })
 
-  function renameProject(newDisplayedName: string) {
+  async function renameProject(newDisplayedName: string) {
     try {
-      renameProjectBackend(newDisplayedName)
       projectNames.onProjectRenameRequested(newDisplayedName)
+      await renameProjectBackend(newDisplayedName)
       return Ok()
     } catch (err) {
+      projectNames.onProjectRenameFailed()
       return Err(err)
     }
   }
