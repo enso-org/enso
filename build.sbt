@@ -5719,7 +5719,10 @@ extraBazelEnvForStdLibIndexes := Def.taskIf {
       "JAVA_TOOL_OPTIONS" -> s"-Denso.languageHomeOverride=$langHome"
     )
   } else {
-    Map.empty[String, String]
+    val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
+    Map(
+      "JAVA_TOOL_OPTIONS" -> s"-Denso.languageHomeOverride=$langHome"
+    )
   }
 }.value
 
