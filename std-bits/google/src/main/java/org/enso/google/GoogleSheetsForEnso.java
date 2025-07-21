@@ -114,11 +114,8 @@ public class GoogleSheetsForEnso {
 
     String type = format.getNumberFormat().getType();
     switch (type) {
-        case "NUMBER", "CURRENCY", "SCIENTIFIC" -> {
+        case "NUMBER", "CURRENCY", "SCIENTIFIC", "PERCENT" -> {
             return cell.getEffectiveValue().getNumberValue();
-          }
-        case "PERCENT" -> {
-            return cell.getEffectiveValue().getNumberValue(); // May need scaling
           }
         case "DATE" -> {
             double serial = cell.getEffectiveValue().getNumberValue();
