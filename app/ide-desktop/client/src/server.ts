@@ -11,6 +11,7 @@ import createServer from 'create-servers'
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
+import * as yaml from 'yaml'
 
 import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
@@ -305,6 +306,12 @@ export class Server {
       }
     } else if (request.method === 'POST') {
       switch (requestPath) {
+        case '/api/directories': {
+          break
+        }
+        case '/api/directories/search': {
+          break
+        }
         case '/api/upload-file': {
           const url = new URL(`https://example.com/${requestUrl}`)
           const fileName = url.searchParams.get('file_name')
@@ -437,6 +444,192 @@ export class Server {
           response.writeHead(HTTP_STATUS_NOT_FOUND)
           response.end()
         })
+    }
+  }
+}
+
+/** Details of a project. */
+interface ProjectMetadata {
+  /** The name of the project. */
+  readonly name: string
+  /** The namespace of the project. */
+  readonly namespace: string
+  /** The project id. */
+  readonly id: string
+  /**
+   * The Enso Engine version to use for the project, represented by a semver version
+   * string.
+   *
+   * If the edition associated with the project could not be resolved, the
+   * engine version may be missing.
+   */
+  readonly engineVersion?: string
+  /** The project creation time. */
+  readonly created: string
+  /** The last opened datetime. */
+  readonly lastOpened?: string
+}
+
+/** Attributes of a file or folder. */
+interface Attributes {
+  readonly creationTime: string
+  readonly lastAccessTime: string
+  readonly lastModifiedTime: string
+  readonly byteSize: number
+}
+
+/** Metadata for an arbitrary file system entry. */
+type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+
+/** Metadata for a file. */
+interface FileEntry {
+  readonly type: 'FileEntry'
+  readonly path: string
+  readonly attributes: Attributes
+}
+
+/** Metadata for a directory. */
+interface DirectoryEntry {
+  readonly type: 'DirectoryEntry'
+  readonly path: string
+  readonly attributes: Attributes
+}
+
+/** Metadata for a project. */
+interface ProjectEntry {
+  readonly type: 'ProjectEntry'
+  readonly path: string
+  readonly metadata: ProjectMetadata
+  readonly attributes: Attributes
+}
+
+/** A regex for matching hybrid project directories. */
+export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
+
+/**
+ * Checks if files that start with the dot.
+ * Note on Windows does not check the hidden property.
+ */
+function isFileHidden(filePath: string): boolean {
+  const dotfile = /(^|[\\/])\.[^\\/]+$/g
+  return dotfile.test(filePath)
+}
+
+async function apiListDirectory(directoryPath: string) {
+  const entryNames = await fs.readdir(directoryPath)
+  const entries: FileSystemEntry[] = []
+  for (const entryName of entryNames) {
+    const entryPath = path.join(directoryPath, entryName)
+    if (isFileHidden(entryPath)) continue
+    const stat = await fs.stat(entryPath)
+    const attributes: Attributes = {
+      byteSize: stat.size,
+      creationTime: new Date(stat.ctimeMs).toISOString(),
+      lastAccessTime: new Date(stat.atimeMs).toISOString(),
+      lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
+    }
+    if (stat.isFile()) {
+      entries.push({
+        type: 'FileEntry',
+        path: entryPath,
+        attributes,
+      } satisfies FileEntry)
+    } else {
+      try {
+        const packageMetadataPath = path.join(entryPath, 'package.yaml')
+        const projectMetadataPath = path.join(
+          entryPath,
+          projectManagement.PROJECT_METADATA_RELATIVE_PATH,
+        )
+        const packageMetadataContents = await fs.readFile(packageMetadataPath)
+        const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
+        let projectMetadataJson
+        try {
+          const projectMetadataContents = await fs.readFile(projectMetadataPath)
+          projectMetadataJson = JSON.parse(projectMetadataContents.toString())
+        } catch (e) {
+          if ('name' in packageMetadataYaml && typeof packageMetadataYaml.name === 'string') {
+            projectMetadataJson = {
+              id: crypto.randomUUID(),
+              kind: 'UserProject',
+              created: new Date().toISOString(),
+              lastOpened: null,
+            }
+            await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
+            await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
+          } else {
+            throw e
+          }
+        }
+        const metadata = extractProjectMetadata(packageMetadataYaml, projectMetadataJson)
+        if (metadata != null) {
+          // This is a project.
+          entries.push({
+            type: 'ProjectEntry',
+            path: entryPath,
+            attributes,
+            metadata,
+          } satisfies ProjectEntry)
+        } else {
+          // This error moves control flow to the
+          // `catch` clause directly below.
+          throw new Error('Invalid project metadata.')
+        }
+      } catch {
+        // This is a regular directory, not a project.
+        entries.push({
+          type: 'DirectoryEntry',
+          path: entryPath,
+          attributes,
+        } satisfies DirectoryEntry)
+      }
+    }
+  }
+  return entries
+}
+
+/**
+ * Return a {@link ProjectMetadata} if the metadata is a valid metadata object,
+ * else return `null`.
+ */
+function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMetadata | null {
+  if (
+    typeof yamlObj !== 'object' ||
+    yamlObj == null ||
+    typeof jsonObj !== 'object' ||
+    jsonObj == null
+  ) {
+    return null
+  } else {
+    const validDateString = (string: string) => {
+      const date = new Date(string)
+      return !Number.isNaN(Number(date)) ? date.toString() : null
+    }
+    const name = 'name' in yamlObj && typeof yamlObj.name === 'string' ? yamlObj.name : null
+    const namespace =
+      'namespace' in yamlObj && typeof yamlObj.namespace === 'string' ? yamlObj.namespace : 'local'
+    const engineVersion =
+      'edition' in yamlObj && typeof yamlObj.edition === 'string' ? yamlObj.edition : null
+    const id = 'id' in jsonObj && typeof jsonObj.id === 'string' ? jsonObj.id : null
+    const created =
+      'created' in jsonObj && typeof jsonObj.created === 'string' ?
+        validDateString(jsonObj.created)
+      : null
+    const lastOpened =
+      'lastOpened' in jsonObj && typeof jsonObj.lastOpened === 'string' ?
+        validDateString(jsonObj.lastOpened)
+      : null
+    if (name != null && id != null && created != null) {
+      return {
+        name,
+        namespace,
+        id,
+        ...(engineVersion != null ? { engineVersion } : {}),
+        created,
+        ...(lastOpened != null ? { lastOpened } : {}),
+      } satisfies ProjectMetadata
+    } else {
+      return null
     }
   }
 }

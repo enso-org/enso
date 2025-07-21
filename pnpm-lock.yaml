@@ -612,6 +612,9 @@ importers:
       tar:
         specifier: ^6.2.1
         version: 6.2.1
+      yaml:
+        specifier: ^2.7.0
+        version: 2.7.0
       yargs:
         specifier: 17.6.2
         version: 17.6.2
