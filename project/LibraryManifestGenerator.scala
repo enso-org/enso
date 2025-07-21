@@ -61,7 +61,7 @@ object LibraryManifestGenerator {
     env: Map[String, String] = Map.empty
   ): Unit = {
     val canonicalPath = projectPath.getCanonicalFile
-    val javaCommand = javaExecutable()
+    val javaCommand   = javaExecutable()
     val command = Seq(
       javaCommand
     ) ++ javaOpts ++ Seq(

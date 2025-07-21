@@ -343,7 +343,7 @@ object DistributionPackage {
   }
 
   /** Helper method to execute project manager and enso using similar technique.
-   */
+    */
   private def adjustArgsAndStart(
     log: Logger,
     args: java.util.List[String],
