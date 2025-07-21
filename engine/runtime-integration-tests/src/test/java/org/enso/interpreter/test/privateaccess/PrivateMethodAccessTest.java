@@ -140,4 +140,35 @@ public class PrivateMethodAccessTest {
           assertThat(res.asInt(), is(42));
         });
   }
+
+  @Test
+  public void canCallPrivateMethod_UnresolvedSymbol() throws IOException {
+    var libDir = tempFolder.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib", """
+            apply obj func =
+                func obj
+            """, libDir);
+
+    var projDir = tempFolder.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        from local.Lib import apply
+
+        type My_Type
+            private Cons value
+
+        main =
+            mt = My_Type.Cons 42
+            apply mt .value
+        """,
+        projDir);
+
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.asInt(), is(42));
+        });
+  }
 }
