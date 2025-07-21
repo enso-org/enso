@@ -28,11 +28,56 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   },
 })
 
-/** Get {@link text.TextId} for given shortcut action. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function actionToTextId(action: inputBindings.DashboardBindingKey): text.TextId {
-  return `${action}Shortcut`
-}
+export const ACTION_TO_TEXT_ID: Readonly<
+  Record<
+    inputBindings.DashboardBindingKey,
+    Extract<text.TextId, `${inputBindings.DashboardBindingKey}Shortcut`>
+  >
+> = {
+  settings: 'settingsShortcut',
+  closeTab: 'closeTabShortcut',
+  open: 'openShortcut',
+  run: 'runShortcut',
+  close: 'closeShortcut',
+  uploadToCloud: 'uploadToCloudShortcut',
+  downloadToLocal: 'downloadToLocalShortcut',
+  rename: 'renameShortcut',
+  edit: 'editShortcut',
+  snapshot: 'snapshotShortcut',
+  delete: 'deleteShortcut',
+  undelete: 'undeleteShortcut',
+  share: 'shareShortcut',
+  label: 'labelShortcut',
+  duplicate: 'duplicateShortcut',
+  copy: 'copyShortcut',
+  copyAsPath: 'copyAsPathShortcut',
+  cut: 'cutShortcut',
+  paste: 'pasteShortcut',
+  download: 'downloadShortcut',
+  uploadFiles: 'uploadFilesShortcut',
+  newProject: 'newProjectShortcut',
+  newFolder: 'newFolderShortcut',
+  newDatalink: 'newDatalinkShortcut',
+  newSecret: 'newSecretShortcut',
+  newCredential: 'newCredentialShortcut',
+  useInNewProject: 'useInNewProjectShortcut',
+  closeModal: 'closeModalShortcut',
+  cancelEditName: 'cancelEditNameShortcut',
+  signOut: 'signOutShortcut',
+  downloadApp: 'downloadAppShortcut',
+  cancelCut: 'cancelCutShortcut',
+  selectAdditional: 'selectAdditionalShortcut',
+  selectRange: 'selectRangeShortcut',
+  selectAdditionalRange: 'selectAdditionalRangeShortcut',
+  goBack: 'goBackShortcut',
+  goForward: 'goForwardShortcut',
+  upgradePlan: 'upgradePlanShortcut',
+  aboutThisApp: 'aboutThisAppShortcut',
+  openInFileBrowser: 'openInFileBrowserShortcut',
+  ensoDevtools: 'ensoDevtoolsShortcut',
+  copyId: 'copyIdShortcut',
+} satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
@@ -86,7 +131,7 @@ export default function MenuEntry(props: MenuEntryProps) {
         : 'openInFileBrowserShortcut'
       )
     } else {
-      return actionToTextId(action)
+      return ACTION_TO_TEXT_ID[action]
     }
   })()
 

@@ -1,7 +1,7 @@
 /** @file Metadata for rendering each settings section. */
 import ComputerIcon from '#/assets/computer.svg'
 import { Button } from '#/components/Button'
-import { actionToTextId } from '#/components/MenuEntry'
+import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
 import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
@@ -401,7 +401,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 if (v.rebindable === false) {
                   return []
                 } else {
-                  return actionToTextId(k)
+                  return ACTION_TO_TEXT_ID[k]
                 }
               })
               return rebindableBindings.map((binding) => context.getText(binding))

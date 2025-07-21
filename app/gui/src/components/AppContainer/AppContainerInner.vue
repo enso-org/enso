@@ -5,12 +5,8 @@ import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
 import { useContainerData, type LaunchedProject, type TabId } from '$/providers/container'
 import { RightPanelDataProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
-import { appContainerBindings } from '@/bindings'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
-import { useEvent } from '@/composables/events'
-import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
-import * as objects from 'enso-common/src/utilities/data/object'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, shallowRef, toRefs, watch } from 'vue'
 import { Drive, Editor, Settings } from './reactTabs'
@@ -77,42 +73,6 @@ watch(openedProjects, (openedProjectsList) => {
   }
 })
 
-function closeSettingsTab() {
-  // The settings tab autohide when not selected.
-  tab.value = 'drive'
-}
-
-const actionHandlers = registerHandlers({
-  'app.closeTab': {
-    action: () => {
-      switch (tab.value) {
-        case 'settings':
-          closeSettingsTab()
-          break
-        case 'drive':
-          break
-        default: {
-          // project id
-          const project = openedProjects.value.find((proj) => proj.ensoPath === tab.value)
-          if (project) emit('closeProject', project)
-          break
-        }
-      }
-    },
-  },
-})
-
-useEvent(
-  window,
-  'keydown',
-  appContainerBindings.handler(
-    objects.mapEntries(
-      appContainerBindings.bindings,
-      (actionName) => actionHandlers[actionName].action,
-    ),
-  ),
-)
-
 const onSignOut = () => {
   emit('closeAllProjects')
 }
@@ -152,7 +112,7 @@ const onSignOut = () => {
           :selected="true"
           icon="settings"
           label="Settings"
-          @close="closeSettingsTab"
+          @close="tab = 'drive'"
         />
       </div>
       <div class="filler" />
