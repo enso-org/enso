@@ -45,7 +45,7 @@ const SAMPLES_DIRECTORY_NAME = 'Samples'
 export interface ProjectInfo {
   readonly id: UUID
   readonly name: string
-  readonly projectRoot: string
+  readonly projectRoot: Path
   readonly parentDirectory: string
 }
 

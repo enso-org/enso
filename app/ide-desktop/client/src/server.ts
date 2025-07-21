@@ -27,6 +27,7 @@ import {
   AssetType,
   DirectoryAsset,
   DirectoryId,
+  EnsoPath,
   ExportedArchive,
   extractTypeFromId,
   FileAsset,
@@ -719,6 +720,7 @@ export class Server {
         projectState: null,
         parentsPath: ParentsPath(''),
         virtualParentsPath: VirtualParentsPath(''),
+        ensoPath: EnsoPath(String(destinationPath)),
       } satisfies Partial<DirectoryAsset>
       if (isDirectory) {
         assets.push({
@@ -924,6 +926,7 @@ export class Server {
         projectState: null,
         parentsPath: ParentsPath(''),
         virtualParentsPath: VirtualParentsPath(''),
+        ensoPath: EnsoPath(String(path)),
       } satisfies Partial<DirectoryAsset>
       switch (type) {
         case AssetType.project: {
@@ -1017,7 +1020,7 @@ export class Server {
           filePath ?
             projectManagement.importProjectFromPath(filePath, directory, projectName)
           : await projectManagement.uploadBundle(request, directory, projectName)
-        this.httpOkText(response, project.path)
+        this.httpOkText(response, project.projectRoot)
       } else {
         const filePath = path.join(directory, fileName)
         void writeFile(filePath, request)
