@@ -14,7 +14,6 @@ ts_project(
     name = "tsc",
     srcs = glob([
         "src/**/*.ts",
-        "src/**/*.js",
     ]) + ["src/text/english.json"],
     allow_js = True,
     composite = True,
