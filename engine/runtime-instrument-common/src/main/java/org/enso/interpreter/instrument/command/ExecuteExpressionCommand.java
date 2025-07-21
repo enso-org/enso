@@ -49,9 +49,7 @@ public final class ExecuteExpressionCommand extends SynchronousCommand {
               "execute expression " + expressionId + " request in visualization " + visualizationId,
               job -> {
                 if (job instanceof ExecuteJob e) {
-                  return e.visualizationTriggered()
-                      .map(id -> expressionId == id)
-                      .getOrElse(() -> false);
+                  return e.visualizationTriggered().exists(id -> expressionId == id);
                 } else if (job instanceof ExecuteExpressionJob j) {
                   return j.getExpressionId() == expressionId;
                 } else {
