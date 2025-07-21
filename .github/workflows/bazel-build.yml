@@ -1,3 +1,5 @@
+# This file is NOT auto-generated. Feel free to edit it.
+
 name: Bazel build
 on:
   push:
@@ -45,5 +47,28 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: gui-static
+          path: ${{ steps.get_bazel_output.outputs.location }}
+          if-no-files-found: error
+
+  build-engine:
+    name: Run bazel Engine build
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelisk-cache: true
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+      - uses: actions/checkout@v4
+      - run: bazel build --verbose_failures //:sbt_build_engine_distribution
+      - name: Get build output location
+        id: get_bazel_output
+        run: |
+          OUTPUT_SYMLINK=$(bazel cquery --output=files //:sbt_build_engine_distribution)
+          BAZEL_OUTPUT=$(readlink -f "$OUTPUT_SYMLINK")
+          echo "location=$BAZEL_OUTPUT" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: built_distribution
           path: ${{ steps.get_bazel_output.outputs.location }}
           if-no-files-found: error
