@@ -311,36 +311,7 @@ export default class LocalBackend extends Backend {
       from: null,
       pageSize: null,
     })
-    const typeLower = query.type?.toLowerCase()
-    const titleLower = query.title?.toLowerCase()
-    const extensionLower = query.extension?.toLowerCase()
-    const queryLower = query.query?.toLowerCase().split(/\s+/)
-    const isMatch = (asset: backend.AnyAsset) => {
-      if (typeLower != null && String(asset.type) !== typeLower) {
-        return false
-      }
-      if (titleLower != null && !asset.title.toLowerCase().includes(titleLower)) {
-        return false
-      }
-      if (
-        extensionLower != null &&
-        asset.extension?.toLowerCase().includes(extensionLower) !== true
-      ) {
-        return false
-      }
-      if (
-        queryLower?.some(
-          (term) =>
-            String(asset.type) !== term &&
-            !asset.title.toLowerCase().includes(term) &&
-            asset.extension?.toLowerCase().includes(term) !== true,
-        ) === true
-      ) {
-        return false
-      }
-      return true
-    }
-    const result = assets.filter(isMatch)
+    const result = assets.filter(backend.doesAssetMatchQuery(query))
     const index = query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from) + 1
     return result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
   }

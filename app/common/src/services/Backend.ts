@@ -1581,6 +1581,39 @@ export function compareAssets(
   }
 }
 
+/** Whether an asset matches the given backend search query. */
+export function doesAssetMatchQuery(query: SearchDirectoryRequestParams) {
+  const typeLower = query.type?.toLowerCase()
+  const titleLower = query.title?.toLowerCase()
+  const extensionLower = query.extension?.toLowerCase()
+  const queryLower = query.query?.toLowerCase().split(/\s+/)
+  return (asset: AnyAsset) => {
+    if (typeLower != null && String(asset.type) !== typeLower) {
+      return false
+    }
+    if (titleLower != null && !asset.title.toLowerCase().includes(titleLower)) {
+      return false
+    }
+    if (
+      extensionLower != null &&
+      asset.extension?.toLowerCase().includes(extensionLower) !== true
+    ) {
+      return false
+    }
+    if (
+      queryLower?.some(
+        (term) =>
+          String(asset.type) !== term &&
+          !asset.title.toLowerCase().includes(term) &&
+          asset.extension?.toLowerCase().includes(term) !== true,
+      ) === true
+    ) {
+      return false
+    }
+    return true
+  }
+}
+
 /**
  * A convenience function to get the `id` of an {@link Asset}.
  * This is useful to avoid React re-renders as it is not re-created on each function call.
