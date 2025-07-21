@@ -807,15 +807,11 @@ export default class RemoteBackend extends Backend {
    * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
-  override async getAssetDetails<
-    Id extends backend.RealAssetId,
-    Type extends backend.RealAssetTypeId<Id>,
-    ReturnType extends Id extends backend.DirectoryId ?
-      backend.Asset<backend.AssetType.directory> | null
-    : backend.Asset<Type>,
-  >(assetId: Id): Promise<ReturnType> {
+  override async getAssetDetails<Id extends backend.RealAssetId>(
+    assetId: Id,
+  ): Promise<backend.AssetDetailsResponse<Id>> {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
-    const response = await this.get<backend.Asset<Type> | null>(path)
+    const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
     if (!response.ok) {
       if (response.status === STATUS_NOT_FOUND) {
@@ -829,8 +825,7 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getAssetDetailsBackendError')
     }
 
-    // eslint-disable-next-line no-restricted-syntax
-    return (await response.json()) as ReturnType
+    return await response.json()
   }
   /**
    * Return Language Server logs for a project session.
@@ -1399,7 +1394,7 @@ export default class RemoteBackend extends Backend {
     })
 
     const response = await this.client.get<ResponseBody>(
-      `./api/cloud/download-project?${queryString}`,
+      `/api/cloud/download-project?${queryString}`,
     )
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
@@ -1419,7 +1414,7 @@ export default class RemoteBackend extends Backend {
       directory: extractIdFromDirectoryId(directoryId),
     })
 
-    const response = await this.client.get(`./api/cloud/get-project-archive?${queryString}`)
+    const response = await this.client.get(`/api/cloud/get-project-archive?${queryString}`)
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
@@ -1444,8 +1439,11 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Resolve asset metadata from an enso path. */
-  async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    const response = await this.get<backend.Asset>(remoteBackendPaths.RESOLVE_ENSO_PATH, { path })
+  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    const response = await this.get<backend.Asset<backend.RealAssetType>>(
+      remoteBackendPaths.RESOLVE_ENSO_PATH,
+      { path },
+    )
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
     return await response.json()

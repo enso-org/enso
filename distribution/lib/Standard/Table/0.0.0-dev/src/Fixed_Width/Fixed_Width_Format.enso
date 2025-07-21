@@ -20,90 +20,102 @@ import project.Table.Table
 polyglot java import org.enso.table.read.FixedWidthReader.Justification
 
 ## Read fixed-width files into a Table.
-
    A fixed-width format defines its columns as fixed column offsets and widths.
    The columns are defined in a `Fixed_Width_Layout` object.
 type Fixed_Width_Format
     ## Read fixed-width files into a Table.
-
        Fixed-width files require have a `Fixed_Width_Layout` that specifies the
        start and width of each column, along with an optional column name. This
        layout can be defined using the `Fixed_Width_Column_Description` type, or
        using a table.
+       In a fixed-width file, it is usually the case that every character offset
+       of the input data is part of one of the columns, without gaps between
+       them. However, the `layout` defined by the `Fixed_Width_Format does not
+       have to use every character of every line; it can specify only the columns
+       that are needed.
 
-       In a fixed-width file, it is usually the case that every character
-       offset of the input data is part of one of the columns, without gaps
-       between them. However, the `layout` defined by the `Fixed_Width_Format
-       does not have to use every character of every line; it can specify only
-       the columns that are needed.
+       ## Arguments
+        - `layout`: A `Fixed_Width_Layout` object that defines the start and
+          width for each column, along with an optional column name.
+        - `encoding`: The encoding to use when reading the file.
+        - `skip_rows`: The number of rows to skip from the top of the file.
+        - `row_limit`: The maximum number of rows to read from the file.
+        - `on_invalid_rows`: Specifies how to handle rows that are not short
+          enough to cover the columns specified in the layout.
+        - `on_empty_field`: Specifies whether to convert an empty field to
+          `Nothing` or the empty string.
+        - `value_formatter`: formatter to parse text values into numbers, dates,
+          times, etc. if `nothing` values are left as text.
 
-       ! Error Conditions
+       ## Examples
+       ### Specify a column layout using `Fixed_Width_Column_Description`.
 
-         If a line of the input data does not have enough characters to
-         cover all of the columns specified in the `layout`, the result depends
-         on the value of `on_invalid_rows`:
-         `Drop_Invalid_Rows`: short lines are skipped.
-         `Keep_Invalid_Rows`: short lines are added to the table. Columns that
-           are missing entirely take on the empty string, and columns that are
-           partially covered by the input data take on the partial value.
-
-       Arguments:
-       - layout: A `Fixed_Width_Layout` object that defines the start and width
-         for each column, along with an optional column name.
-       - encoding: The encoding to use when reading the file.
-       - skip_rows: The number of rows to skip from the top of the file.
-       - row_limit: The maximum number of rows to read from the file.
-       - on_invalid_rows: Specifies how to handle rows that are not short enough
-         to cover the columns specified in the layout.
-       - on_empty_field: Specifies whether to convert an empty field to
-         `Nothing` or the empty string.
-       - value_formatter: formatter to parse text values into numbers, dates,
-         times, etc. if `nothing` values are left as text.
-
-       > Example
-         Specify a column layout using `Fixed_Width_Column_Description`.
-
+       ```
              descs = [Fixed_Width_Column_Description.Start_And_Width 0 4, Fixed_Width_Column_Description.Width 1]
              layout = Fixed_Width_Layout.from_descriptions descs
 
-       > Example
-         Specify a column layout using a `Table`.
+       ```
 
+       ### Specify a column layout using a `Table`.
+
+       ```
              table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
              layout = table : Fixed_Width_Layout
+       ```
+
+       ## Errors
+       If a line of the input data does not have enough characters to cover all
+       of the columns specified in the `layout`, the result depends on the value
+       of `on_invalid_rows`: `Drop_Invalid_Rows`: short lines are skipped.
+       `Keep_Invalid_Rows`: short lines are added to the table. Columns that are
+       missing entirely take on the empty string, and columns that are partially
+       covered by the input data take on the partial value.
     Fixed_Width (layout:(Infer_Layout | Fixed_Width_Layout)=Fixed_Width_Layout.missing_layout_argument) (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (on_empty_field:On_Empty_Field=..As_Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Fixed_Width_Format | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:Fixed_Width_Format) _->Nothing
 
-    ## PRIVATE
-       If the File_Format supports reading from the file, return a configured instance.
-
+    ## ---
+       private: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
        We cannot infer the layout from the file metadata or contents.
     for_read : File_Format_Metadata -> Fixed_Width_Format | Nothing
     for_read file:File_Format_Metadata =
         _ = [file]
         Nothing
 
-    ## PRIVATE
-       If this File_Format should be used for writing to that file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
     for_file_write : Writable_File -> XML_Format | Nothing
     for_file_write file:Writable_File =
         _ = [file]
         Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "Fixed_Width" "..Fixed_Width"]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_name_patterns -> Vector File_Name_Pattern = []
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
@@ -112,47 +124,59 @@ type Fixed_Width_Format
             Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Fixed_Width_Format", "Table", result.row_count, result.column_count]
             result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
         Fixed_Width_Reader.read_stream self stream on_problems=..Report_Warning
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Specifies a fixed-width column. A column can be specified as a start offset
    and a witdh, or by just a width, starting just after the previous column.
 type Fixed_Width_Column_Description
     ## Specify a fixed-width column using a start and width, and an optional
        column name.
 
-       Arguments:
-       - name: The name of the column; if `Nothing`, a default name is
-         generated.
-       - start: The first character offset of the column.
-       - width: The width of the column, in characters.
+       ## Arguments
+        - `name`: The name of the column; if `Nothing`, a default name is
+          generated.
+        - `start`: The first character offset of the column.
+        - `width`: The width of the column, in characters.
     Start_And_Width (start:Integer) (width:Integer) (name : Text | Nothing = Nothing)
 
-    ## Specify a fixed-width column using just a width, and an optional
-       column name. The start column defaults to the character after the last
-       character of the previous column, or 0 if this is the first column.
+    ## Specify a fixed-width column using just a width, and an optional column
+       name. The start column defaults to the character after the last character
+       of the previous column, or 0 if this is the first column.
 
-       Arguments:
-       - name: The name of the column; if `Nothing`, a default name is
-         generated.
-       - width: The width of the column, in characters.
+       ## Arguments
+        - `name`: The name of the column; if `Nothing`, a default name is
+          generated.
+        - `width`: The width of the column, in characters.
     Width (width:Integer) (name : Text | Nothing = Nothing)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Specifies a fixed-width column as a start and a width.
 type Fixed_Width_Layout_Entry
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (start:Integer) (width:Integer) (name:Text)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Specifies a set of fixed-width columns.
 type Fixed_Width_Layout
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value (internal_entries : Vector Fixed_Width_Layout_Entry)
 
     ## Create a new `Fixed_Width_Layout` from a vector of column descriptions.
@@ -182,82 +206,92 @@ type Fixed_Width_Layout
             Fixed_Width_Layout_Entry.Value start desc.width name
         Fixed_Width_Layout.Value entries
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     entries self -> Vector = self.internal_entries
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     missing_layout_argument =
         Missing_Argument.throw "layout" "A fixed-width table layout can be a Column or Vector of field widths, or a Table with columns called 'start', 'width', and (optionally) 'name'."
 
 type Infer_Layout
     ## Infer the column layout from the first line, assuming left-justified
        column names.
-
        Assume that the column name is left-justified in the column. The column
        starts at the first character of the column name, and extends until the
        last character before the start of the next column, or until the last
        column of the line if there is no next column.
-
        There must be at least one space between each pair of columns, or they
        will be considered a single column.
-
        If `skip_rows` is also specified, the header line is the first line after
        the skipped lines.
 
-       > Example
-         The layout of a left-justified column header line
+       ## Examples
+       ### The layout of a left-justified column header line
 
          File contents:
 
+       ```
              one  two  three four five   six
              12345abcde234567bcdef3456789cdefg
              82345zbcde834567zcdef8456789zdefg
 
+       ```
          Parsed as:
 
+       ```
             |one  |two  |three |four |five   |six  |
             +-----+-----+------+-----+-------+-----+
             |12345|abcde|234567|bcdef|3456789|cdefg|
             |82345|zbcde|834567|zcdef|8456789|zdefg|
+       ```
     Left
 
     ## Infer the column layout from the first line, assuming right-justified
        column names.
-
        Assume that the column name is right-justified in the column. The column
        ends at the last character of the column name, and starts at the first
        character after the end of the previous column, or at the first character
        of the line if there is no previous column.
-
        There must be at least one space between each pair of columns, or they
        will be considered a single column.
-
        If `skip_rows` is also specified, the header line is the first line after
        the skipped lines.
 
-       > Example
-         The layout of a right-justified column header line
+       ## Examples
+       ### The layout of a right-justified column header line
 
          File contents:
 
+       ```
                one  two three four   five  six
              12345abcde234567bcdef3456789cdefg
              82345zbcde834567zcdef8456789zdefg
 
+       ```
          Parsed as:
 
+       ```
             |  one|  two| three| four|   five|  six|
             +-----+-----+------+-----+-------+-----+
             |12345|abcde|234567|bcdef|3456789|cdefg|
             |82345|zbcde|834567|zcdef|8456789|zdefg|
+       ```
     Right
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_java self -> Justification = case self of
         Infer_Layout.Left -> Justification.LEFT
         Infer_Layout.Right -> Justification.RIGHT
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Fixed_Width_Layout.from (that:Table) =
     columns = find_named_columns that [["names", Regex.compile "names?", False], ["starts", Regex.compile "starts?", False], ["widths", Regex.compile "widths?", True]]
     columns.if_not_error <|
@@ -274,21 +308,20 @@ Fixed_Width_Layout.from (that:Table) =
                 Fixed_Width_Column_Description.Start_And_Width start width name
         Fixed_Width_Layout.from_descriptions descriptions
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Find named columns matching patterns. Returns matching columns (or nothings
    for unmatched, non-required columns). If any required column is not found, or
    its matcher matches more than one column, an error is thrown.
-
    Name matching is case-insensitive.
-
    On success, the matching columns (or unrequired column Nothings) are returned
    in the order specified by the specs.
 
-   Arguments:
-   - specs: list of pairs of the form [Text, Regex, Boolean].
-     - 0: The canonical name for the column
-     - 1: A column name matcher
-     - 2: True if the column is required
+   ## Arguments
+    - `specs`: list of pairs of the form [Text, Regex, Boolean]. - 0: The
+      canonical name for the column - 1: A column name matcher - 2: True if the
+      column is required
 private find_named_columns table:Table (specs : Vector Vector) -> Vector (Column | Nothing) ! Illegal_Argument =
     columns_or_nothings = specs.map spec->
         matcher = spec.at 1
@@ -302,11 +335,15 @@ private find_named_columns table:Table (specs : Vector Vector) -> Vector (Column
     if missing.is_empty then columns_or_nothings else
         Error.throw (Illegal_Argument.Error "A fixed-width column specification should have a 'widths' column, and optionally a 'starts' column and a 'names' column.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Fixed_Width_Layout.from (that:Column) =
     Fixed_Width_Layout.from that.to_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Fixed_Width_Layout.from (that:Vector) =
     table =
         names = Column.from_vector "names" (Vector.new that.length (_->Nothing))
@@ -315,7 +352,9 @@ Fixed_Width_Layout.from (that:Vector) =
         Table.new [names, starts, widths]
     Fixed_Width_Layout.from table
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Fixed_Width_Layout.from (that : Function) =
     is_unapplied_table_input = (that.to_text.starts_with "Table.type.new") || (that.to_text.starts_with "Table.type.input")
     if is_unapplied_table_input then

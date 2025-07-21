@@ -106,6 +106,7 @@ export type DownloadUrlOptions = {
 interface SystemApi {
   readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
+  readonly getFilePath: (item: File) => string
 }
 
 // ========================
@@ -126,9 +127,10 @@ interface FileBrowserApi {
 // ==============================
 
 /** Metadata for a newly imported project. */
-interface ProjectInfo {
+export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 

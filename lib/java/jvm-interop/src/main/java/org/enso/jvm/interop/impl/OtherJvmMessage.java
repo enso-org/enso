@@ -1,16 +1,23 @@
-package org.enso.jvm.interop;
+package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.exception.AbstractTruffleException;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
@@ -18,7 +25,7 @@ import org.enso.persist.Persistance;
 
 /** Sends a message to the other side with ReflectionLibrary-like arguments. */
 @Persistable(id = 81901)
-record OtherJvmMessage(long id, Message message, List<Object> args)
+public record OtherJvmMessage(long id, Message message, List<Object> args)
     implements Function<
         Channel<OtherJvmPool>, OtherJvmResult<? extends Object, ? extends Exception>> {
   @Persistable(id = 81908, allowInlining = false)
@@ -29,7 +36,24 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81909, allowInlining = false)
-  record ThrowException<V, E extends Exception>(int kind, String msg)
+  record ThrowValue<T, E extends Exception>(Optional<String> msg, TruffleObject exception)
+      implements OtherJvmResult<T, E> {
+    @Override
+    @SuppressWarnings("unchecked")
+    public T value() throws E {
+      var ex = exception();
+      var msg = msg().isPresent() ? msg().get() : null;
+      assert InteropLibrary.getUncached().isException(ex);
+      if (ex instanceof AbstractTruffleException truffleEx) {
+        throw truffleEx;
+      } else {
+        throw new OtherJvmTruffleException(msg, (OtherJvmObject) ex);
+      }
+    }
+  }
+
+  @Persistable(id = 81910, allowInlining = false)
+  record ThrowException<V, E extends Exception>(int kind, Optional<String> msg)
       implements OtherJvmResult<V, E> {
     private static final Map<Class<? extends Throwable>, Integer> kinds;
 
@@ -37,20 +61,33 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
       kinds = new LinkedHashMap<>();
       kinds.put(ClassNotFoundException.class, 1);
       kinds.put(UnsupportedMessageException.class, 2);
+      kinds.put(UnknownIdentifierException.class, 3);
     }
 
-    static <T, E extends Exception> ThrowException<T, E> create(E ex) {
-      var kind = kinds.getOrDefault(ex.getClass(), 0);
-      return new ThrowException<>(kind, ex.getMessage());
+    @SuppressWarnings("unchecked")
+    static <T, E extends Exception> OtherJvmResult<T, E> create(E ex) {
+      var msg = Optional.ofNullable(ex.getMessage());
+      if (ex instanceof OtherJvmTruffleException truffleEx) {
+        var original = truffleEx.delegate;
+        return new ThrowValue<>(msg, original);
+      } else if (InteropLibrary.getUncached().isException(ex)
+          && ex instanceof TruffleObject truffleEx) {
+        return new ThrowValue<>(msg, truffleEx);
+      } else {
+        var kind = kinds.getOrDefault(ex.getClass(), 0);
+        return new ThrowException<>(kind, msg);
+      }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public V value() throws E {
+      var msg = msg().isPresent() ? msg().get() : null;
       switch (kind) {
-        case 1 -> throw (E) new ClassNotFoundException(msg());
+        case 1 -> throw (E) new ClassNotFoundException(msg);
         case 2 -> throw (E) UnsupportedMessageException.create();
-        default -> throw new OtherJvmException(msg());
+        case 3 -> throw (E) UnknownIdentifierException.create(msg);
+        default -> throw new OtherJvmException(msg);
       }
     }
   }
@@ -59,33 +96,32 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
-    var res = t.getConfig().loader.withCtx(() -> handle(t));
-    return res;
-  }
-
-  private OtherJvmResult<? extends Object, ? extends Exception> handle(Channel<OtherJvmPool> t) {
+    var node = ReflectionLibrary.getUncached();
+    var prev = t.getConfig().enter(t.isMaster(), node);
     try {
       var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;
       if (message == IS_IDENTICAL) {
         args.set(1, InteropLibrary.getUncached());
       }
-      var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
+      var res = node.send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
+    } finally {
+      t.getConfig().leave(t.isMaster(), node, prev);
     }
   }
 
   @Persistable(id = 81905)
-  record LoadClass(String name)
+  public record LoadClass(String name)
       implements Function<
           Channel<OtherJvmPool>, OtherJvmResult<TruffleObject, ClassNotFoundException>> {
     @Override
     public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel<OtherJvmPool> t) {
       assert !t.isMaster() : "Class loading only works on the slave side!";
       try {
-        var clazzRaw = t.getConfig().loader.loadClassObject(name);
+        var clazzRaw = t.getConfig().loadClassObject(t.isMaster(), name);
         return ReturnValue.create(clazzRaw);
       } catch (ClassNotFoundException ex) {
         return ThrowException.create(ex);
@@ -94,10 +130,10 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81906)
-  record AddToClassPath(String url) implements Function<Channel<OtherJvmPool>, Void> {
+  public record AddToClassPath(String path) implements Function<Channel<OtherJvmPool>, Void> {
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
-      t.getConfig().loader.addToClassPath(url);
+      t.getConfig().addToClassPath(t.isMaster(), path);
       return null;
     }
   }
@@ -376,6 +412,106 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
       var arr = new byte[len];
       in.readFully(arr);
       return new BigInteger(arr);
+    }
+  }
+
+  @Persistable(id = 121, clazz = ExceptionType.class)
+  static final class OtherMessages {}
+
+  @Persistable(id = 122)
+  static final class PersistLocalDate extends Persistance<LocalDate> {
+
+    public PersistLocalDate() {
+      super(LocalDate.class, false, 122);
+    }
+
+    @Override
+    protected void writeObject(LocalDate obj, Output out) throws IOException {
+      out.writeInt(obj.getYear());
+      out.writeByte(obj.getMonthValue());
+      out.writeByte(obj.getDayOfMonth());
+    }
+
+    @Override
+    protected LocalDate readObject(Input in) throws IOException, ClassNotFoundException {
+      var year = in.readInt();
+      var month = in.readByte();
+      var day = in.readByte();
+      return LocalDate.of(year, month, day);
+    }
+  }
+
+  @Persistable(id = 123)
+  static final class PersistLocalTime extends Persistance<LocalTime> {
+
+    public PersistLocalTime() {
+      super(LocalTime.class, false, 123);
+    }
+
+    @Override
+    protected void writeObject(LocalTime obj, Output out) throws IOException {
+      out.writeByte(obj.getHour());
+      out.writeByte(obj.getMinute());
+      out.writeByte(obj.getSecond());
+      out.writeInt(obj.getNano());
+    }
+
+    @Override
+    protected LocalTime readObject(Input in) throws IOException, ClassNotFoundException {
+      var hour = in.readByte();
+      var minute = in.readByte();
+      var second = in.readByte();
+      var nano = in.readInt();
+      return LocalTime.of(hour, minute, second, nano);
+    }
+  }
+
+  @Persistable(id = 124)
+  static final class PersistZoneId extends Persistance<ZoneId> {
+
+    public PersistZoneId() {
+      super(ZoneId.class, true, 124);
+    }
+
+    @Override
+    protected void writeObject(ZoneId obj, Output out) throws IOException {
+      out.writeUTF(obj.getId());
+    }
+
+    @Override
+    protected ZoneId readObject(Input in) throws IOException, ClassNotFoundException {
+      var id = in.readUTF();
+      return ZoneId.of(id);
+    }
+  }
+
+  @Persistable(id = 125)
+  static final class PersistOptional extends Persistance<Optional> {
+
+    public PersistOptional() {
+      super(Optional.class, true, 125);
+    }
+
+    @Override
+    protected void writeObject(Optional obj, Output out) throws IOException {
+      if (obj.isEmpty()) {
+        out.writeBoolean(false);
+      } else {
+        out.writeBoolean(true);
+        out.writeObject(obj.get());
+      }
+    }
+
+    @Override
+    protected Optional readObject(Input in) throws IOException, ClassNotFoundException {
+      var is = in.readBoolean();
+      if (is) {
+        var obj = in.readObject();
+        assert obj != null;
+        return Optional.of(obj);
+      } else {
+        return Optional.empty();
+      }
     }
   }
 }

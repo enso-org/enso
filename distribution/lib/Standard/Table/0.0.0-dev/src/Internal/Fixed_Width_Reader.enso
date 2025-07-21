@@ -22,36 +22,40 @@ polyglot java import org.enso.table.read.FixedWidthReader
 polyglot java import org.enso.table.read.FixedWidthReader.FixedWidthLayoutEntry
 polyglot java import org.enso.table.read.FixedWidthReader.InvalidFixedWidthRowsBehavior
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads a fixed-width column file according to the provided format.
 
-   Arguments:
-   - format: The specification of format of the file, including the column
-     layout.
-   - file: The file to read.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
+   ## Arguments
+    - `format`: The specification of format of the file, including the column
+      layout.
+    - `file`: The file to read.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
 read_file : Fixed_Width_Format -> File -> Problem_Behavior -> Any
 read_file format file on_problems:Problem_Behavior =
     file.with_input_stream [File_Access.Read] stream->
         read_stream format stream on_problems related_file=file
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads fixed-width column data from an input stream according to the provided
    format.
 
-   Arguments:
-   - format: The specification of format of the file, including the column
-     layout.
-   - stream: An `Input_Stream` to be used as the data source.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-   - related_file: The file related to the provided `java_stream`, if available,
-     or `Nothing`. It is used for more detailed error reporting.
+   ## Arguments
+    - `format`: The specification of format of the file, including the column
+      layout.
+    - `stream`: An `Input_Stream` to be used as the data source.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
+    - `related_file`: The file related to the provided `java_stream`, if
+      available, or `Nothing`. It is used for more detailed error reporting.
 read_stream : Fixed_Width_Format -> Input_Stream -> Problem_Behavior -> File | Nothing -> Any
 read_stream format input_stream on_problems:Problem_Behavior related_file=Nothing =
     # We always ensure the stream is peekable, as that also implies buffering which is supposedly more efficient e.g. when working with files.
@@ -92,6 +96,8 @@ private format_to_java layout =
     layout.entries.map e->
         FixedWidthLayoutEntry.new e.start e.width e.name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private handle_io_exception related_file ~action = Panic.catch IOException action cause->
     File_Error.wrap_io_exception related_file cause.payload

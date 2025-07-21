@@ -26,7 +26,9 @@ polyglot java import org.enso.table.data.column.storage.type.TextType
 polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
 polyglot java import org.enso.table.problems.ProblemAggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Gets the value type represented by this Java Storage.
 to_value_type : StorageType -> Value_Type
 to_value_type storage_type = case storage_type of
@@ -49,7 +51,9 @@ to_value_type storage_type = case storage_type of
     _ : NullType -> Value_Type.Null
     _ : AnyObjectType -> Value_Type.Mixed
 
-## PRIVATE
+## ---
+   private: true
+   ---
 closest_storage_type value_type = case value_type of
     Value_Type.Byte -> IntegerType.INT_8
     Value_Type.Integer bits ->
@@ -74,8 +78,9 @@ closest_storage_type value_type = case value_type of
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Convert an Enso value to a Java value before storing it in a Java `Column`.
    This step is unnecessary for primitive and builtin values, but necessary for
    values such as `Decimal`/`BigDecimal`.
@@ -83,8 +88,9 @@ enso_to_java x = case x of
     _ : Decimal -> get_big_decimal x
     _ -> x
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Convert a Java value to an Enso value before returning it to Enso from a Java
    `Column`.  This step is unnecessary for primitive and builtin values, but
    necessary for values such as `Decimal`/`BigDecimal`.
@@ -93,7 +99,9 @@ java_to_enso x = case x of
     _ : BigDecimal -> from_big_decimal x
     _ -> x
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts a value type to an in-memory storage type, possibly approximating it
    to the closest supported type.
 from_value_type : Value_Type -> Problem_Behavior -> StorageType
@@ -104,7 +112,9 @@ from_value_type value_type on_problems:Problem_Behavior =
         [Inexact_Type_Coercion.Warning value_type approximated_value_type]
     on_problems.attach_problems_before problems approximate_storage
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A strict variant of `from_value_type` that expects that we can represent the
    provided value type exactly.
 from_value_type_strict : Value_Type -> StorageType ! Illegal_State
@@ -114,7 +124,9 @@ from_value_type_strict value_type =
         result.catch Inexact_Type_Coercion cause->
             Panic.throw (Illegal_State.Error "No exact representation for the provided value has been found: "+cause.to_display_text+" This is a bug in the Table library.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Creates a column storage builder for the given storage type.
 make_builder : StorageType -> Integer -> ProblemAggregator -> Java_Builder
 make_builder storage initial_size java_problem_aggregator =
