@@ -1,6 +1,6 @@
 /** @file Logic for mounting children into a portal. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { usePortalContext } from './PortalProvider'
 import type { PortalProps } from './types'
 
@@ -12,24 +12,15 @@ export function usePortal(props: PortalProps) {
   const { children, isDisabled = false, root = null, onMount = () => {} } = props
 
   const contextRoot = usePortalContext()
-  const [mountRoot, setMountRoot] = useState<Element | null>(null)
   const onMountEventCallback = useEventCallback(onMount)
 
   useEffect(() => {
-    if (!isDisabled) {
-      setMountRoot(root?.current ?? contextRoot)
-    }
-  }, [root, contextRoot, isDisabled])
-
-  useEffect(() => {
-    if (isDisabled || mountRoot) {
-      onMountEventCallback()
-    }
-  }, [isDisabled, mountRoot, onMountEventCallback])
+    onMountEventCallback()
+  }, [isDisabled, onMountEventCallback])
 
   return {
     isDisabled,
     children,
-    mountRoot,
+    mountRoot: root?.current ?? contextRoot,
   }
 }
