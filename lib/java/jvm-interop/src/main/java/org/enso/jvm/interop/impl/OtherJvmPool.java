@@ -70,6 +70,11 @@ public final class OtherJvmPool extends Channel.Config {
                     // them know it is theirs by using negative ID
                     yield new OtherJvmObject(null, -other.id());
                   }
+                  case OtherJvmTruffleException ex -> {
+                    // unwrap the exception to object reference
+                    // and send it back as regular OtherJvmObject
+                    yield new OtherJvmObject(null, -ex.delegate.id());
+                  }
                   case TruffleObject foreign -> {
                     var id = registerObject(foreign);
                     // our own truffle objects send to the other side should

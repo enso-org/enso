@@ -495,6 +495,12 @@ public abstract class JavaInteropTest {
     assertEquals(result.asInt(), -1);
   }
 
+  @Test
+  public void catchCheckedSubExceptionThrownInJava() {
+    var result = checkedException(3);
+    assertEquals(result.asInt(), -1);
+  }
+
   private Value checkedException(int t) {
     var code =
         """
@@ -509,6 +515,7 @@ public abstract class JavaInteropTest {
       0 -> handle_errors 10
       1 -> handle_errors (Panic.throw TestException.new)
       2 -> handle_errors (TestException.throwMe)
+      3 -> handle_errors (TestException.throwSubtype)
 
     main = run
     """;

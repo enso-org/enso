@@ -47,7 +47,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       if (ex instanceof AbstractTruffleException truffleEx) {
         throw truffleEx;
       } else {
-        throw new OtherJvmTruffleException(msg, ex);
+        throw new OtherJvmTruffleException(msg, (OtherJvmObject) ex);
       }
     }
   }
