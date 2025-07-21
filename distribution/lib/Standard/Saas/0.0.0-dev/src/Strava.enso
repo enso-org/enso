@@ -29,7 +29,7 @@ type Strava
         _strava_get self "https://www.strava.com/api/v3/athlete/zones"
 
     stats self =
-        id = self.get_user.decode_as_json.get "id"
+        id = self.user.decode_as_json.get "id"
         _strava_get self "https://www.strava.com/api/v3/athletes/"+id.to_text+"/stats"
 
 private _strava_get strava url =
