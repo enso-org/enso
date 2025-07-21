@@ -120,10 +120,21 @@ public class GoogleSheetsForEnso {
         case "PERCENT" -> {
             return cell.getEffectiveValue().getNumberValue(); // May need scaling
           }
-        case "DATE", "TIME", "DATE_TIME" -> {
-            // Google Sheets stores these as serial numbers since 1899-12-30
+        case "DATE" -> {
             double serial = cell.getEffectiveValue().getNumberValue();
-            long epochMilli = (long)((serial - 25569) * 86400000); // 25569 is the serial for 1970-01-01
+            long epochMilli = (long)((serial - 25569) * 86400000);
+            return java.time.Instant.ofEpochMilli(epochMilli)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate();
+          }
+        case "TIME" -> {
+            double serial = cell.getEffectiveValue().getNumberValue();
+            long millisInDay = (long)(serial * 86400000);
+            return java.time.LocalTime.ofSecondOfDay(millisInDay / 1000);
+          }
+        case "DATE_TIME" -> {
+            double serial = cell.getEffectiveValue().getNumberValue();
+            long epochMilli = (long)((serial - 25569) * 86400000);
             return java.time.Instant.ofEpochMilli(epochMilli)
                     .atZone(java.time.ZoneId.systemDefault())
                     .toLocalDateTime();
