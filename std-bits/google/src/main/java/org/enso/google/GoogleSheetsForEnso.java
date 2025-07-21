@@ -3,7 +3,6 @@ package org.enso.google;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
@@ -15,6 +14,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
+import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.RowData;
 import com.google.auth.http.HttpCredentialsAdapter;
 
@@ -48,20 +48,6 @@ public class GoogleSheetsForEnso {
       int skip_rows,
       ProblemAggregator problemAggregator)
       throws IOException {
-    var rawData =
-        service
-            .spreadsheets()
-            .values()
-            .get(sheetId, range)
-            .setMajorDimension("COLUMNS")
-            .setValueRenderOption("UNFORMATTED_VALUE")
-            .execute()
-            .getValues();
-
-    if (rawData == null) {
-      throw new EmptySheetException();
-    }
-
     var rowData = service
       .spreadsheets()
       .get(sheetId)
@@ -72,6 +58,10 @@ public class GoogleSheetsForEnso {
       .getData().get(0)
       .getRowData();
 
+    if (rowData == null) {
+      throw new EmptySheetException();
+    }
+
     final int firstRowIndex = Math.max(0, skip_rows);
     var firstRow = getDataRow(rowData, firstRowIndex);
     var secondRow = getDataRow(rowData, firstRowIndex + 1);
@@ -79,31 +69,71 @@ public class GoogleSheetsForEnso {
         new GoogleSheetsHeaders(headerBehavior, firstRow, secondRow, problemAggregator);
 
     var numberOfColumns = firstRow.getValues().size();
-    Column[] columns = new Column[numberOfColumns];
+    Builder[] builders = new Builder[numberOfColumns];
+    for (int i = 0; i < numberOfColumns; i++) {
+        builders[i] = Builder.getInferredBuilder(rowData.size(), problemAggregator);
+    }
     var resolved_row_limit = row_limit == null ? Long.MAX_VALUE : (row_limit < 0 ? 0 : row_limit);
+
+    rowData.stream()
+        .skip(firstRowIndex)
+        .skip(headerBuilder.getRowsUsed())
+        .limit(resolved_row_limit)
+        .forEach(row -> {
+            for (int colIdx = 0; colIdx < numberOfColumns; colIdx++) {
+                if (row == null || row.getValues() == null) {
+                  builders[colIdx].append(null);
+                } else {
+                var cell = row.getValues().size() > colIdx ? row.getValues().get(colIdx) : null;
+                builders[colIdx].append(fixTypes(cell));
+                }
+            }
+        });
+    Column[] columns = new Column[numberOfColumns];
     for (int colIdx = 0; colIdx < numberOfColumns; colIdx++) {
-      var column = rawData.get(colIdx);
-      var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
-      IntStream.range(0, column.size())
-          .skip(firstRowIndex)
-          .skip(headerBuilder.getRowsUsed())
-          .limit(resolved_row_limit)
-          .mapToObj(rowIdx -> fixTypes(column.get(rowIdx)))
-          .forEach(builder::append);
-      columns[colIdx] = new Column(headerBuilder.get(colIdx), builder.seal());
+        columns[colIdx] = new Column(headerBuilder.get(colIdx), builders[colIdx].seal());
     }
     return new Table(columns);
   }
 
-  private static Object fixTypes(Object value) {
-    if (value instanceof String str && str.isEmpty()) {
+  private static Object fixTypes(CellData cell) {
+    if (cell == null || cell.getEffectiveValue() == null) {
       return null;
     }
-    if (value instanceof java.math.BigDecimal bd && bd.scale() <= 0) {
-      int intValue = bd.intValue();
-      return intValue;
+    var format = cell.getUserEnteredFormat();
+    if (format == null || format.getNumberFormat() == null || cell.getEffectiveValue() == null) {
+        if (cell.getEffectiveValue().getStringValue() != null)
+          return cell.getEffectiveValue().getStringValue();
+        double value = cell.getEffectiveValue().getNumberValue();
+        if (value % 1 == 0) {
+            return (int) value;
+        } else {
+            return value;
+        }
     }
-    return value;
+
+    String type = format.getNumberFormat().getType();
+    switch (type) {
+        case "NUMBER", "CURRENCY", "SCIENTIFIC" -> {
+            return cell.getEffectiveValue().getNumberValue();
+          }
+        case "PERCENT" -> {
+            return cell.getEffectiveValue().getNumberValue(); // May need scaling
+          }
+        case "DATE", "TIME", "DATE_TIME" -> {
+            // Google Sheets stores these as serial numbers since 1899-12-30
+            double serial = cell.getEffectiveValue().getNumberValue();
+            long epochMilli = (long)((serial - 25569) * 86400000); // 25569 is the serial for 1970-01-01
+            return java.time.Instant.ofEpochMilli(epochMilli)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDateTime();
+          }
+
+        case "TEXT" -> {
+            return cell.getEffectiveValue().getStringValue();
+          }
+        default -> throw new AssertionError("Unhandled format type: " + type);
+    }
   }
 
   private com.google.api.services.sheets.v4.model.Spreadsheet getSpreadsheet(String workbookId)
