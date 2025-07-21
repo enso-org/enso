@@ -1501,12 +1501,12 @@ public class EnsoParserTest {
         """;
     Module ir = compile(code);
     expectNoErrorsInIr(ir);
-    var typeAscription = (org.enso.compiler.core.ir.Type.Ascription)
-        CollectionConverters.asJava(ir.preorder()).stream()
-            .filter(
-                child -> child instanceof org.enso.compiler.core.ir.Type.Ascription)
-            .findFirst()
-            .get();
+    var typeAscription =
+        (org.enso.compiler.core.ir.Type.Ascription)
+            CollectionConverters.asJava(ir.preorder()).stream()
+                .filter(child -> child instanceof org.enso.compiler.core.ir.Type.Ascription)
+                .findFirst()
+                .get();
     assertTrue(typeAscription.typed() instanceof org.enso.compiler.core.ir.Literal.Number);
     var location = typeAscription.location().get().location();
     assertEquals(14, location.start());
