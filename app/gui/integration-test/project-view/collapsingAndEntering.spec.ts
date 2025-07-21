@@ -310,6 +310,8 @@ async function expectInsideFunc1(page: Page) {
 
 async function expectInsideFunc2(page: Page) {
   await actions.expectNodePositionsInitialized(page, -88)
+  // The mouse is often in input's output port area, making our checks fooled by the edge ghost.
+  await page.mouse.move(0, 0)
   await expect(locate.graphNode(page)).toHaveCount(3)
   await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'r')).toExist()

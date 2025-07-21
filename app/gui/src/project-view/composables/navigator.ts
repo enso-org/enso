@@ -54,8 +54,8 @@ export function useNavigator(
 ) {
   const predicate = options.predicate ?? ((_) => true)
   const size = useResizeObserver(viewportNode)
-  const targetCenter = shallowRef<Vec2>(Vec2.Zero)
-  const center = useApproachVec(targetCenter, 100, 0.02)
+  const targetLeftTop = shallowRef<Vec2>(Vec2.Zero)
+  const leftTop = useApproachVec(targetLeftTop, 100, 0.2)
 
   const viewportRect = shallowRef<Rect>(Rect.Zero)
   const viewportElem = computed(() => unrefElement(viewportNode))
@@ -83,7 +83,7 @@ export function useNavigator(
 
   function handleDragPanning(state: DragState) {
     if (Vec2.FromTuple(state.movement).length() > LONGPRESS_MAX_SLIDE) cancelLongpress()
-    scrollTo(center.value.addScaled(Vec2.FromTuple(state.delta), -1 / scale.value))
+    scrollTo(leftTop.value.addScaled(Vec2.FromTuple(state.delta), -1 / scale.value))
     state.event.stopImmediatePropagation()
   }
 
@@ -91,7 +91,7 @@ export function useNavigator(
     if (state.delta[1] != 0) preventContextMenu = true
     const prevScale = scale.value
     updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
-    scrollTo(center.value.scaleAround(prevScale / scale.value, gesturePivot))
+    scrollTo(leftTop.value.scaleAround(prevScale / scale.value, gesturePivot))
   }
 
   function handleDragHolding(state: DragState) {
@@ -186,7 +186,7 @@ export function useNavigator(
         const prevScale = scale.value
         updateScale((_) => pinchScaleRatio * state.da[0])
         scrollTo(
-          center.value
+          leftTop.value
             .scaleAround(prevScale / scale.value, gesturePivot)
             .addScaled(originDelta, -1 / scale.value),
         )
@@ -194,7 +194,7 @@ export function useNavigator(
       onWheel(state) {
         if (state.ctrlKey) return
         const delta = Vec2.FromTuple(state.delta)
-        scrollTo(center.value.addScaled(delta, 1 / scale.value))
+        scrollTo(leftTop.value.addScaled(delta, 1 / scale.value))
       },
     },
     {
@@ -221,7 +221,7 @@ export function useNavigator(
   const scale = useApproach(targetScale)
 
   const panArrows = useArrows(
-    (pos) => scrollTo(center.value.addScaled(pos.delta, 1 / scale.value)),
+    (pos) => scrollTo(leftTop.value.addScaled(pos.delta, 1 / scale.value)),
     { predicate, velocity: 1000 },
   )
 
@@ -270,10 +270,16 @@ export function useNavigator(
       minScale,
       maxScale,
     )
-    targetCenter.value = rect.center().finiteOrZero()
+    // Rect position should be centered inside viewport (they may have different aspect ratio).
+    const w = viewportElem.value.clientWidth / targetScale.value
+    const h = viewportElem.value.clientHeight / targetScale.value
+    targetLeftTop.value = rect
+      .center()
+      .finiteOrZero()
+      .sub(new Vec2(w / 2, h / 2))
     if (skipAnimation) {
       scale.skip()
-      center.skip()
+      leftTop.skip()
     }
   }
 
@@ -320,32 +326,31 @@ export function useNavigator(
   function panToImpl(points: Partial<Vec2>[]) {
     let target = viewport.value
     for (const point of points.reverse()) target = target.offsetToInclude(point) ?? target
-    targetCenter.value = target.center().finiteOrZero()
+    targetLeftTop.value = target.pos.finiteOrZero()
   }
 
   /** Pan immediately to center the viewport at the given point, in scene coordinates. */
-  function scrollTo(newCenter: Vec2) {
+  function scrollTo(newLeftTop: Vec2) {
     resetTargetFollowing()
-    targetCenter.value = newCenter.finiteOrZero()
-    center.skip()
+    targetLeftTop.value = newLeftTop.finiteOrZero()
+    leftTop.skip()
   }
 
-  /** Set viewport center point and scale value immediately, skipping animations. */
-  function setCenterAndScale(newCenter: Vec2, newScale: number) {
+  /** Set viewport left-top point and scale value immediately, skipping animations. */
+  function setPosAndScale(newLeftTop: Vec2, newScale: number) {
     resetTargetFollowing()
-    targetCenter.value = newCenter.finiteOrZero()
+    targetLeftTop.value = newLeftTop.finiteOrZero()
     targetScale.value = newScale
     scale.skip()
-    center.skip()
+    leftTop.skip()
   }
 
   const viewport = computed(() => {
     const nodeSize = size.value
-    const { x, y } = center.value
     const s = scale.value
     const w = nodeSize.x / s
     const h = nodeSize.y / s
-    return new Rect(new Vec2(x - w / 2, y - h / 2), new Vec2(w, h))
+    return new Rect(leftTop.value, new Vec2(w, h))
   })
 
   const viewBox = computed(() => {
@@ -354,16 +359,11 @@ export function useNavigator(
   })
 
   const translate = computed<Vec2>(() => {
-    const nodeSize = size.value
-    const { x, y } = center.value
-    const s = scale.value
-    const w = nodeSize.x / s
-    const h = nodeSize.y / s
-    return new Vec2(-x + w / 2, -y + h / 2)
+    return leftTop.value.scale(-1)
   })
 
   const transformChanging = computed(
-    () => scale.active || center.active || dragActive.value || pinchActive.value,
+    () => scale.active || leftTop.active || dragActive.value || pinchActive.value,
   )
   const transform = computed(
     () => `scale(${scale.value}) translate(${translate.value.x}px, ${translate.value.y}px)`,
@@ -428,8 +428,8 @@ export function useNavigator(
     const scenePos0 = clientToScenePos(clientPos)
     const result = f()
     const scenePos1 = clientToScenePos(clientPos)
-    targetCenter.value = center.value.add(scenePos0.sub(scenePos1)).finiteOrZero()
-    center.skip()
+    targetLeftTop.value = leftTop.value.add(scenePos0.sub(scenePos1)).finiteOrZero()
+    leftTop.skip()
     return result
   }
 
@@ -449,7 +449,7 @@ export function useNavigator(
     },
     (e) => {
       const delta = new Vec2(e.deltaX, e.deltaY)
-      scrollTo(center.value.addScaled(delta, 1 / scale.value))
+      scrollTo(leftTop.value.addScaled(delta, 1 / scale.value))
     },
   )
 
@@ -463,7 +463,7 @@ export function useNavigator(
   return proxyRefs({
     keyboardEvents: panArrows.events,
     translate: readonly(translate),
-    targetCenter: readonly(targetCenter),
+    targetLeftTop: readonly(targetLeftTop),
     targetScale: readonly(targetScale),
     scale: readonly(toRef(scale, 'value')),
     viewBox: readonly(viewBox),
@@ -489,6 +489,6 @@ export function useNavigator(
     viewport,
     stepZoom,
     scrollTo,
-    setCenterAndScale,
+    setPosAndScale,
   })
 }

@@ -14,6 +14,7 @@ import {
   markRaw,
   onActivated,
   onDeactivated,
+  onMounted,
   onScopeDispose,
   ref,
   toRaw,
@@ -70,6 +71,7 @@ provideVisibility(visible)
 openedProjects.registerProject(toRefs(props))
 onScopeDispose(() => openedProjects.unregisterProject(props.projectId))
 
+onMounted(() => (visible.value = true))
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
 </script>

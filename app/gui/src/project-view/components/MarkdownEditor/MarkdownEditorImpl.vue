@@ -4,10 +4,16 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { useBlockTypeDropdown } from '@/components/MarkdownEditor/blockTypeDropdown'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
 import type { BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import {
+  insertPlaceholder,
+  replaceablePlaceholders,
+  replacePlaceholder,
+} from '@/components/MarkdownEditor/codemirror/placeholder'
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { StartedUpload, useAsyncResources } from '@/providers/asyncResources'
+import { useCurrentProjectResourceContext } from '@/providers/asyncResources/context'
 import { AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
@@ -17,13 +23,7 @@ import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
-import { useCurrentProjectResourceContext } from '../../providers/asyncResources/context'
-import {
-  insertPlaceholder,
-  replaceablePlaceholders,
-  replacePlaceholder,
-} from './codemirror/placeholder'
+import { type ComponentInstance, computed, useCssModule, useTemplateRef, watch } from 'vue'
 
 const {
   toolbar = true,
@@ -123,6 +123,16 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 useLinkTitles(editorView, { readonly })
 
 const { focused, focusHandlers } = useEditorFocus(editorView)
+watch(focused, (focused) => {
+  if (!focused && !editorView.state.selection.main.empty) {
+    editorView.dispatch({
+      selection: {
+        anchor: editorView.state.selection.main.from,
+        head: editorView.state.selection.main.from,
+      },
+    })
+  }
+})
 const editing = computed(() => !readonly && focused.value)
 
 const formatting = useMarkdownFormatting(editorView)
