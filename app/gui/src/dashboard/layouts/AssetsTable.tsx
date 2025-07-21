@@ -30,10 +30,9 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import AssetIcon from '#/pages/dashboard/components/AssetIcon'
 import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
-import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
-import { NameColumn } from '#/pages/dashboard/components/column'
 import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
   Column,
@@ -74,7 +73,6 @@ import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
 import { fileExtension } from '#/utilities/fileInfo'
-import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { PermissionAction } from '#/utilities/permissions'
@@ -1054,25 +1052,11 @@ function AssetsTable(props: AssetsTableProps) {
             ASSET_ROWS.unbind(payload)
           }}
         >
-          {nodes.map((node) => (
-            <NameColumn
-              isNavigating={false}
-              key={node.id}
-              item={node}
-              isOpened={false}
-              backendType={backend.type}
-              state={state}
-              rowState={INITIAL_ROW_STATE}
-              // The drag placeholder cannot be interacted with.
-              isEditable={false}
-              isPlaceholder={false}
-              setSelected={noop}
-              setRowState={noop}
-              renameAsset={noopPromise}
-              closeProject={noopPromise}
-              openProject={noopPromise}
-              labels={[]}
-            />
+          {nodes.map((otherAsset) => (
+            <div key={otherAsset.id} className="flex h-[34px] items-center gap-2 px-2">
+              <AssetIcon asset={otherAsset} />
+              <Text>{otherAsset.title}</Text>
+            </div>
           ))}
         </DragModal>,
       )
