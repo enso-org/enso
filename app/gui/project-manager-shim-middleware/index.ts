@@ -17,6 +17,7 @@ import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import {
   AssetType,
   DirectoryId,
+  EnsoPath,
   extractTypeAndPath,
   extractTypeFromId,
   FileId,
@@ -681,13 +682,14 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
       projectState: null,
       parentsPath: ParentsPath(''),
       virtualParentsPath: VirtualParentsPath(''),
+      ensoPath: EnsoPath(String(path)),
     } satisfies Partial<DirectoryAsset>
     switch (type) {
       case AssetType.project: {
         const result: ProjectAsset = {
           ...shared,
           type: AssetType.project,
-          id: ProjectId(`project-${path}`),
+          id: ProjectId(`project-${encodeURIComponent(path)}`),
           // FIXME: Get correct state.
           projectState: { type: ProjectState.closed },
         }
@@ -698,7 +700,7 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
         const result: FileAsset = {
           ...shared,
           type: AssetType.file,
-          id: FileId(`file-${path}`),
+          id: FileId(`file-${encodeURIComponent(path)}`),
           extension: basenameAndExtension(path).extension,
         }
         // This is SAFE because `type` has been narrowed in the `switch` above.
@@ -708,7 +710,7 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
         const result: DirectoryAsset = {
           ...shared,
           type: AssetType.directory,
-          id: DirectoryId(`directory-${path}` as const),
+          id: DirectoryId(`directory-${encodeURIComponent(path)}` as const),
         }
         // This is SAFE because `type` has been narrowed in the `switch` above.
         return result as AnyAsset<Type>
@@ -949,19 +951,22 @@ async function apiUploadArchive({
       projectState: null,
       parentsPath: ParentsPath(''),
       virtualParentsPath: VirtualParentsPath(''),
+      ensoPath: EnsoPath(String(destinationPath)),
     } satisfies Partial<DirectoryAsset>
     if (isDirectory) {
       assets.push({
         ...shared,
         type: AssetType.directory,
-        id: DirectoryId(`directory-${destinationPath}` as const),
+        id: DirectoryId(`directory-${encodeURIComponent(destinationPath)}` as const),
       })
       await entry.extract({ rootDirectory: directory, destinationPath })
     } else if (isProject) {
       assets.push({
         ...shared,
         type: AssetType.project,
-        id: ProjectId(`project-${destinationPath.replace('.enso-project', '/')}`),
+        id: ProjectId(
+          `project-${encodeURIComponent(destinationPath.replace('.enso-project', '/'))}`,
+        ),
         projectState: { type: ProjectState.closed },
       })
       await entry.extract({
@@ -982,7 +987,7 @@ async function apiUploadArchive({
       assets.push({
         ...shared,
         type: AssetType.file,
-        id: FileId(`file-${destinationPath}`),
+        id: FileId(`file-${encodeURIComponent(destinationPath)}`),
         extension: basenameAndExtension(destinationPath).extension,
       })
       await entry.extract({ rootDirectory: directory, destinationPath })
