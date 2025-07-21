@@ -91,19 +91,11 @@ public final class UnresolvedSymbol extends EnsoObject {
     var isPrivateCheckDisabled = EnsoContext.get(node).isPrivateCheckDisabled();
     CompilerAsserts.compilationConstant(isPrivateCheckDisabled);
     if (!isPrivateCheckDisabled && function.getSchema().isProjectPrivate()) {
-      var nodePkg = getPackage(node);
-      var typePkg = getFunctionProject(function);
-      if (nodePkg != typePkg) {
+      var thisPkg = getThisProject();
+      var targetPkg = getFunctionProject(function);
+      if (thisPkg != targetPkg) {
         throw makePrivateAccessPanic(node, function);
       }
-    }
-  }
-
-  private static Package<TruffleFile> getPackage(Node node) {
-    if (node.getRootNode() instanceof EnsoRootNode rootNode) {
-      return rootNode.getModuleScope().getModule().getPackage();
-    } else {
-      return null;
     }
   }
 
