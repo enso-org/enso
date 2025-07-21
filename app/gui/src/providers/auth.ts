@@ -1,21 +1,17 @@
-import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
 import { useFeatureFlag } from '$/providers/featureFlags'
-import { useZustandStoreRef } from '$/utils/zustand'
+import * as analytics from '$/utils/analytics'
 import { Opt } from '@/util/data/opt'
 import { proxyRefs, ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
-import { createStore } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { useBackends } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
@@ -30,7 +26,11 @@ export function createUsersMeQueryKey(
   session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
 ) {
-  return [remoteBackend.type, 'usersMe', () => toValue(session)?.clientId ?? null] as const
+  return [
+    remoteBackend.type,
+    'usersMe',
+    computed(() => toValue(session)?.clientId ?? null),
+  ] as const
 }
 
 /** Query to fetch the user's session data from the backend. */
@@ -56,24 +56,6 @@ export function createUsersMeQuery(
   })
 }
 
-/** State for {@link authOverridesStore}. */
-interface AuthOverridesStoreState {
-  readonly planOverride: backendModule.Plan | undefined
-  readonly setPlanOverride: (planOverride: backendModule.Plan | undefined) => void
-}
-
-export const authOverridesStore = createStore<AuthOverridesStoreState>()(
-  persist(
-    (set): AuthOverridesStoreState => ({
-      planOverride: undefined,
-      setPlanOverride: (planOverride) => {
-        set({ planOverride })
-      },
-    }),
-    { name: 'enso-auth-overrides', version: 1 },
-  ),
-)
-
 export type AuthStore = ReturnType<typeof createAuthStore>
 function createAuthStore(
   onAuthenticated: ((accessToken: string | null) => void) | undefined = inject('onAuthenticated'),
@@ -87,17 +69,14 @@ function createAuthStore(
 
   const queryClient = vueQuery.useQueryClient()
 
-  // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
-  // defined by this component.
-  const gtagEvent = gtagHooks.event
-
   const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
-  const planOverride = useZustandStoreRef(authOverridesStore, (state) => state.planOverride)
+  const planOverride = useFeatureFlag('developerPlanOverride')
   const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
+    onSuccess: analytics.createUser.after,
     meta: { invalidates: [usersMeQueryKey], awaitInvalidates: true },
   })
 
@@ -130,7 +109,6 @@ function createAuthStore(
         userEmail: backendModule.EmailAddress(email),
         organizationId: orgId != null ? orgId : null,
       })
-      gtagEvent('cloud_user_created')
     }
     // Wait until the backend returns a value from `users/me`,
     // otherwise the rest of the steps are skipped.
@@ -224,9 +202,6 @@ function createAuthStore(
       onAuthenticated?.(userData.value.accessToken)
     }
   })
-
-  gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
-  gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
 
   const effectiveUserData = computed(() => {
     const intermediate =

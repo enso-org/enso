@@ -4,7 +4,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import java.util.Arrays;
 import java.util.stream.Collectors;
-import org.enso.interpreter.node.ExpressionNode;
 
 final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
 
@@ -29,9 +28,9 @@ final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
 
   @Override
   @ExplodeLoop
-  Object executeConversion(VirtualFrame frame, Object value, ExpressionNode expr) {
+  Object executeConversion(VirtualFrame frame, Object value) {
     for (var n : checks) {
-      var result = n.executeConversion(frame, value, expr);
+      var result = n.executeConversion(frame, value);
       if (result != null) {
         return result;
       }

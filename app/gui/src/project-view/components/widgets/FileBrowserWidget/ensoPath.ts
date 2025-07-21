@@ -11,7 +11,11 @@ import { unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 export function pathToSegments(path: string) {
   const withProtocol = path.split('/')
   if (withProtocol[0] !== 'enso:') return Err(`"${path}" is not an enso path`)
-  return Ok(withProtocol.slice(1).filter((segment) => segment))
+  const endsWithSlash = withProtocol[withProtocol.length - 1] === ''
+  const segments = withProtocol.slice(1).filter((segment) => segment)
+  const nonEmpty = segments.length > 0
+  const res = segments.concat(endsWithSlash && nonEmpty ? [''] : [])
+  return Ok(res)
 }
 
 export interface EnsoPath {
@@ -77,10 +81,12 @@ export function useEnsoPaths(
 
   function printEnsoPath(path: EnsoPath) {
     const files = toValue(userFiles)
-    const rootPath =
+    let rootPath =
       (path.root === toValue(files?.rootDirectoryId) ? toValue(files?.rootPath) : undefined) ??
-      'enso:/'
-    return [rootPath, ...path.segments].join('/')
+      'enso://'
+    // Sometimes rootPath ends with /, and sometimes not.
+    if (!rootPath.endsWith('/') && path.segments.length) rootPath = rootPath + '/'
+    return `${rootPath}${path.segments.join('/')}`
   }
 
   return {

@@ -1,4 +1,5 @@
 /** @file A button to subscribe to a plan. */
+import { AlertDialog } from '#/components/AlertDialog'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Text } from '#/components/Text'
@@ -42,7 +43,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   const buttonText = (() => {
     if (isDowngrade) {
-      return getText('downgrade')
+      return getText('unavailable')
     }
     if (isCurrent) {
       return getText('currentPlan')
@@ -84,17 +85,31 @@ export function SubscribeButton(props: SubscribeButtonProps) {
       )}
 
       {!isDowngrade && isSolo && (
-        <Button
-          fullWidth
-          isDisabled={disabled}
-          variant={variant}
-          size="medium"
-          rounded="full"
-          aria-label={getText(PLAN_TO_UPGRADE_LABEL_ID[plan])}
-          onPress={() => onSubmit(1)}
+        <Dialog.Trigger
+          {...(disabled ? { defaultOpen: false }
+          : defaultOpen == null ? {}
+          : { defaultOpen })}
         >
-          {buttonText}
-        </Button>
+          <Button
+            fullWidth
+            isDisabled={disabled}
+            variant={variant}
+            size="medium"
+            rounded="full"
+            aria-label={getText(PLAN_TO_UPGRADE_LABEL_ID[plan])}
+          >
+            {buttonText}
+          </Button>
+
+          <AlertDialog
+            title={getText('areYouSure')}
+            onConfirm={() => onSubmit(1)}
+            confirm={getText('goToStripe')}
+            isDestructive
+          >
+            <Text className="relative">{getText('stripeRedirectAlert')}</Text>
+          </AlertDialog>
+        </Dialog.Trigger>
       )}
 
       {!isDowngrade && !isSolo && (

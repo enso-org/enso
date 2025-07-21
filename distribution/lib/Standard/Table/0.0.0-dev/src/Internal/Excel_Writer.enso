@@ -30,7 +30,9 @@ polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
 polyglot java import org.enso.table.write.ExistingFileBehavior
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_java_existing_file_behavior : Existing_File_Behavior -> ExistingFileBehavior
 make_java_existing_file_behavior on_existing_file = case on_existing_file of
     Existing_File_Behavior.Error     -> ExistingFileBehavior.ERROR
@@ -38,21 +40,23 @@ make_java_existing_file_behavior on_existing_file = case on_existing_file of
     Existing_File_Behavior.Backup    -> ExistingFileBehavior.BACKUP
     Existing_File_Behavior.Append    -> ExistingFileBehavior.APPEND
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Writes a Table to an Excel file.
 
-   Arguments:
-   - file: The file to write to.
-   - table: The table to serialize.
-   - section: The part of the Excel workbook to write to.
-   - match_columns: Controls how the columns are matched when appending to an
-     existing file.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-   - xls_format: If `true`, the file is written in the legacy XLS format.
-     Otherwise, the file is written in the modern XLSX format.
+   ## Arguments
+    - `file`: The file to write to.
+    - `table`: The table to serialize.
+    - `section`: The part of the Excel workbook to write to.
+    - `match_columns`: Controls how the columns are matched when appending to an
+      existing file.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
+    - `xls_format`: If `true`, the file is written in the legacy XLS format.
+      Otherwise, the file is written in the modern XLSX format.
 write_file : Writable_File -> Table -> Existing_File_Behavior -> Excel_Section -> Match_Columns -> Problem_Behavior -> Boolean -> File
 write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Boolean) =
     _ = on_problems
@@ -65,7 +69,9 @@ write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_F
                     _ -> on_existing_file
                 write_local_file local_temp_file table effective_file_behavior section match_columns xls_format . if_not_error <| file.file_for_return
 
-## PRIVATE
+## ---
+   private: true
+   ---
 write_local_file (file:File) table on_existing_file section match_columns xls_format =
     java_file = file_as_java file
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
@@ -103,7 +109,9 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
                 file
             result_file
 
-## PRIVATE
+## ---
+   private: true
+   ---
 find_temp_file : File -> File
 find_temp_file base_file =
     parent = base_file.absolute.normalize.parent
@@ -113,13 +121,17 @@ find_temp_file base_file =
         if temp_file.exists then go (i + 1) else temp_file
     go 0
 
-## PRIVATE
+## ---
+   private: true
+   ---
 find_bak_file : File -> File
 find_bak_file base_file =
     parent = base_file.absolute.normalize.parent
     parent / (base_file.name + ".bak")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 prepare_file_modification_strategy : Table -> Excel_Section -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)
 prepare_file_modification_strategy table section on_existing_file match_columns =
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
@@ -138,7 +150,9 @@ prepare_file_modification_strategy table section on_existing_file match_columns 
             workbook_to_modify->
                 ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Handle and map the Java errors when writing an Excel file
 handle_writer ~writer =
     bad_location caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.getCause)
@@ -159,7 +173,9 @@ handle_writer ~writer =
             Illegal_Argument.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
                 writer
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_java_existing_data_mode : Existing_File_Behavior -> Match_Columns -> ExistingDataMode
 make_java_existing_data_mode on_existing_file match_columns = case on_existing_file of
     Existing_File_Behavior.Error -> ExistingDataMode.ERROR

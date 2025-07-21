@@ -60,7 +60,7 @@ export function versionContentQueryOptions(params: FetchVersionContentOptions) {
     ] as const,
     queryFn: ({ queryKey }) => {
       const [, { versionId, projectId }] = queryKey
-      return params.backend.getFileContent(projectId, versionId)
+      return params.backend.getMainFileContent(projectId, versionId)
     },
     refetchInterval: REFRESH_INTERVAL,
     select: (data) => (params.metadata === true ? data : omitMetadata(data)),

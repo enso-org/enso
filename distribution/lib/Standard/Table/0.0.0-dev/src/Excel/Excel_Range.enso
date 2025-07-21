@@ -4,101 +4,130 @@ from Standard.Base.Metadata import Widget
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Wrapper for validation of a value prior to execution.
 validate : Boolean -> Text -> Any -> Any
 validate validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument.Error error_message)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 excel_2007_column_limit = 16384
 
-## PRIVATE
+## ---
+   private: true
+   ---
 excel_2007_row_limit = 1048576
 
 type Excel_Range
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies a range within an Excel Workbook.
     private Value java_range:Java_Range
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the name of the sheet.
     sheet_name : Text
     sheet_name self = self.java_range.getSheetName
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the index (1-based) of the top row of the range.
        Returns `Nothing` if referring to a complete column.
     top_row : Integer | Nothing
     top_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getTopRow
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the index (1-based) of the bottom row of the range.
        Returns `Nothing` if referring to a complete column.
     bottom_row : Integer | Nothing
     bottom_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getBottomRow
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the index (1-based) of the left column of the range.
        Returns `Nothing` if referring to a complete row.
     left_column : Integer | Nothing
     left_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getLeftColumn
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the index (1-based) of the right column of the range.
        Returns `Nothing` if referring to a complete row.
     right_column : Integer | Nothing
     right_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getRightColumn
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Is the Excel_Range referring to a single cell
     is_single_cell : Boolean
     is_single_cell self = self.java_range.isSingleCell
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the address to this in A1 format.
     address : Text
     address self = self.java_range.getAddress
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Displays the Excel_Range.
     to_text : Text
     to_text self = "Excel_Range " + self.address
 
-    ## PRIVATE
-       ADVANCED
-       Validates if a column index (1-based) is within the valid range for
-       Excel.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Validates if a column index (1-based) is within the valid range for Excel.
 
-       Arguments:
-       - column: 1-based index to check.
+       ## Arguments
+        - `column`: 1-based index to check.
     is_valid_column : Integer -> Boolean
     is_valid_column column =
         (column > 0) && (column <= excel_2007_column_limit)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Validates if a row index (1-based) is within the valid range for Excel.
 
-       Arguments:
-       - row: 1-based index to check.
+       ## Arguments
+        - `row`: 1-based index to check.
     is_valid_row : Integer -> Boolean
     is_valid_row row =
         (row > 0) && (row <= excel_2007_row_limit)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Given a column name, parses to the index (1-based) or return index
        unchanged.
     column_index : (Text|Integer) -> Integer
@@ -107,14 +136,18 @@ type Excel_Range
         _ : Text -> Java_Range.parseA1Column column
         _ -> Error.throw (Illegal_Argument.Error "Column must be a Text or Integer")
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
         Illegal_Argument.handle_java_exception <|
             Excel_Range.Value (Java_Range.new address)
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a Range for a single cell.
     @column Widget.Text_Input display=..Always
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
@@ -127,7 +160,9 @@ type Excel_Range
         col_valid <| row_valid <|
             Excel_Range.Value (Java_Range.new sheet col_index row)
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create an Excel_Range for a range of cells.
     @left Widget.Text_Input display=..Always
     @right Widget.Text_Input
@@ -144,7 +179,9 @@ type Excel_Range
         left_valid <| right_valid <| top_valid <| bottom_valid <|
             Excel_Range.Value (Java_Range.new sheet left_index top right_index bottom)
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create an Excel_Range for a set of columns.
     @left Widget.Text_Input display=..Always
     @right Widget.Text_Input
@@ -159,7 +196,9 @@ type Excel_Range
         left_valid <| right_valid <|
             Excel_Range.Value (Java_Range.forColumns sheet left_index right_index)
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
     for_rows sheet top (bottom=top) =
@@ -169,7 +208,9 @@ type Excel_Range
         top_valid <| bottom_valid <|
             Excel_Range.Value (Java_Range.forRows sheet top bottom)
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Convert an index (1-based) to a column name
     column_name_for_index index:Integer -> Text =
         if index <= 0 || index > excel_2007_column_limit then Error.throw (Illegal_Argument.Error "Invalid column index.") else
@@ -180,7 +221,9 @@ type Excel_Range
             bytes = if c > 0 then [c,b,a] else (if b > 0 then [b,a] else [a])
             Text.from_bytes bytes
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Convert a column name to an index (1-based)
     column_index_for_name name:Text -> Integer =
         bytes = name.bytes

@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Incomparable_Values
 from Standard.Table import all
 
 import Standard.Database.DB_Column.DB_Column
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 import Standard.Test.Extensions
 

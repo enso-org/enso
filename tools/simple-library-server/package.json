@@ -16,7 +16,7 @@
   "dependencies": {
     "compression": "^1.7.4",
     "express": "^4.21.2",
-    "multer": "^2.0.1",
+    "multer": "^2.0.2",
     "semver": "^7.5.2",
     "yargs": "^17.0.1"
   },

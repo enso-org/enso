@@ -157,13 +157,11 @@ function onNewNodeClick(id: NodeId) {
       />
       <template v-for="id in nodeIdsWithOutputPorts" :key="id">
         <GraphNodeOutputPorts
+          v-show="id !== graph.editedNodeInfo?.id"
           :nodeId="id"
-          :forceVisible="graph.nodeHovered.get(id) ?? false"
           @newNodeClick="onNewNodeClick(id)"
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
           @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
-          @update:visible="graph.setNodeOutputVisible(id, $event)"
-          @update:animation="graph.updateNodeOutputAnim(id, $event)"
         />
       </template>
     </svg>

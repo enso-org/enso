@@ -89,4 +89,4 @@ type Instrumentor
    ICON metadata
 
    Starts building an instrumentation for a given node
-Meta.Unresolved_Symbol.instrument self -> Instrumentor = Instrumentor.Value (Meta_Helpers.instrumentor_builtin "newBuilder" [ self.impl ])
+Meta.Unresolved.instrument self -> Instrumentor = Instrumentor.Value (Meta_Helpers.instrumentor_builtin "newBuilder" [ self.impl ])

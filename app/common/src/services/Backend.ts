@@ -44,27 +44,9 @@ export function isDirectoryId(id: unknown): id is DirectoryId {
   return typeof id === 'string' && id.startsWith('directory-')
 }
 
-/**
- * Unique identifier for an asset representing the items inside a directory for which the
- * request to retrive the items has not yet completed.
- */
-export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
-export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
-
-/** Unique identifier for an asset representing the nonexistent children of an empty directory. */
-export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
-export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
-
 /** Unique identifier for an asset representing the parent directory. */
 export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
 export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
-
-/**
- * Unique identifier for an asset representing the nonexistent children of a directory
- * that failed to fetch.
- */
-export type ErrorAssetId = newtype.Newtype<string, 'ErrorAssetId'>
-export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
 
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
@@ -145,13 +127,14 @@ export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
 export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
 
-/** The path of this asset, including the root directory. */
+/** The path of this asset, including the root directory. This is NOT url-encoded. */
 export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
 export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
 
-/** The path string of this asset, including the root directory. */
-export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
-export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
+/** Check if this path points to an asset in cloud drive. */
+export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
+  return ensoPath.startsWith('enso://')
+}
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
@@ -168,7 +151,7 @@ export function isPlaceholderUserGroupId(id: string) {
  * being created on the backend.
  */
 export function newPlaceholderUserGroupId() {
-  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}` as const)
+  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
 }
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
@@ -249,6 +232,8 @@ export enum ProjectState {
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
   opened = 'Opened',
+  hybridOpenInProgress = 'HybridOpenInProgress',
+  hybridOpened = 'HybridOpened',
   closed = 'Closed',
   /**
    * A frontend-specific state, representing a project that should be displayed as
@@ -283,6 +268,8 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
   [ProjectState.opened]: false,
+  [ProjectState.hybridOpenInProgress]: true,
+  [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
   [ProjectState.closing]: false,
@@ -294,7 +281,9 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
+  [ProjectState.hybridOpenInProgress]: true,
   [ProjectState.opened]: true,
+  [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
   [ProjectState.closing]: false,
@@ -311,7 +300,7 @@ export interface BaseProject {
 export interface CreatedProject extends BaseProject {
   readonly state: ProjectStateType
   readonly packageName: string
-  readonly ensoPath?: EnsoPath
+  readonly ensoPath: EnsoPath
 }
 
 /** A `Project` returned by `updateProject`. */
@@ -589,12 +578,28 @@ export interface CheckoutSession {
   readonly url: HttpsUrl
 }
 
+/** Metadata for a single payment card. */
+export interface Card {
+  readonly plan: Plan
+  readonly period: PlanBillingPeriod
+  readonly title: string
+  readonly subtitle: string
+  readonly pricing: string
+  readonly features: readonly string[]
+}
+
+/** Metadata for a payment pricing page configuration. */
+export interface PaymentsConfig {
+  readonly cards: readonly Card[]
+}
+
 /** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
   readonly plan?: Plan
   readonly trialStart?: dateTime.Rfc3339DateTime | null
   readonly trialEnd?: dateTime.Rfc3339DateTime | null
+  readonly isPaused?: boolean | null
 }
 
 /** Metadata for an organization. */
@@ -630,6 +635,39 @@ export interface UserGroupPermission {
 /** User permission for a specific user or user group. */
 export type AssetPermission = UserGroupPermission | UserPermission
 
+/** The format of all errors returned by the backend. */
+export interface RemoteBackendError {
+  readonly type: string
+  readonly code: string
+  readonly message: string
+  readonly param: string
+}
+
+/** HTTP response body for the "list users" endpoint. */
+export interface ListUsersResponseBody {
+  readonly users: readonly User[]
+}
+
+/** HTTP response body for the "list projects" endpoint. */
+export interface ListDirectoryResponseBody {
+  readonly assets: readonly AnyAsset[]
+}
+
+/** HTTP response body for the "list files" endpoint. */
+export interface ListFilesResponseBody {
+  readonly files: readonly FileLocator[]
+}
+
+/** HTTP response body for the "list secrets" endpoint. */
+export interface ListSecretsResponseBody {
+  readonly secrets: readonly SecretInfo[]
+}
+
+/** HTTP response body for the "list tag" endpoint. */
+export interface ListTagsResponseBody {
+  readonly tags: readonly Label[]
+}
+
 /**
  * Response from the "create customer portal session" endpoint.
  * Returns a URL that the user can use to access the customer portal and manage their subscription.
@@ -637,6 +675,15 @@ export type AssetPermission = UserGroupPermission | UserPermission
 export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
+
+/** Response from the "path/resolve" endpoint. */
+export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
+
+/** Response from "assets/${assetId}" endpoint. */
+export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
+  Asset<RealAssetTypeId<Id>>,
+  'ensoPath'
+> | null
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
@@ -961,9 +1008,9 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  readonly ensoPath?: EnsoPath | undefined
-  /** The actual path (URL encoded when on the Remote backend). */
-  readonly ensoPathValue?: EnsoPathValue | undefined
+  // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
+  //  to retrieve directory path easily.
+  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1062,6 +1109,9 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   HasType<Type>
 >
 
+/** A union of all {@link Asset} variants that can be retrieved from the backend. */
+export type AnyRealAsset = AnyAsset<RealAssetType>
+
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
   return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
@@ -1090,7 +1140,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
   let result: AssetId
   switch (assetType) {
     case AssetType.directory: {
-      result = DirectoryId(`directory-${id}` as const)
+      result = DirectoryId(`directory-${id}`)
       break
     }
     case AssetType.project: {
@@ -1786,11 +1836,7 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<
-    Id extends RealAssetId,
-    ReturnType extends Id extends DirectoryId ? Asset<AssetType.directory> | null
-    : Asset<RealAssetTypeId<Id>>,
-  >(assetId: Id): Promise<ReturnType>
+  abstract getAssetDetails<Id extends RealAssetId>(assetId: Id): Promise<AssetDetailsResponse<Id>>
 
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
@@ -1810,8 +1856,21 @@ export default abstract class Backend {
     body: UpdateProjectRequestBody,
     title: string,
   ): Promise<UpdatedProject>
+
   /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
+  async getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId) {
+    return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
+  }
+  /** Resolve enso path to an asset */
+  abstract resolveEnsoPath(path: EnsoPath): Promise<PathResolveResponse>
+  /** Resolve the data of a project asset relative to the project root directory. */
+  abstract resolveProjectAssetData(
+    projectId: ProjectId,
+    relativePath: string,
+    versionId?: S3ObjectVersionId,
+    abort?: AbortSignal,
+  ): Promise<Response>
+
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     params: UploadFileRequestParams,
@@ -1869,6 +1928,8 @@ export default abstract class Backend {
   abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
+  /** Cancel subscription. */
+  abstract cancelSubscription(subscriptionId: SubscriptionId): Promise<void>
   /** List events in the organization's audit log. */
   abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
@@ -1891,9 +1952,8 @@ export default abstract class Backend {
    * @param returnUrl - The URL to redirect to after the customer visits the portal.
    */
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
-
-  /** Resolve the path of an asset relative to a project. */
-  abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
+  /** Fetches pricing page configuration. */
+  abstract getPaymentsConfig(): Promise<PaymentsConfig>
 }
 
 /**

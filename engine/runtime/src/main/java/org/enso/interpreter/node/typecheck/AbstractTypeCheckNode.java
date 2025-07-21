@@ -6,7 +6,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 
 /**
@@ -14,7 +13,11 @@ import org.enso.interpreter.runtime.data.text.Text;
  * detail. The API to perform the check or conversion is in {@link TypeCheckValueNode}.
  */
 abstract sealed class AbstractTypeCheckNode extends Node
-    permits OneOfTypesCheckNode, AllOfTypesCheckNode, SingleTypeCheckNode, MetaTypeCheckNode {
+    permits OneOfTypesCheckNode,
+        AllOfTypesCheckNode,
+        SingleTypeCheckNode,
+        MetaTypeCheckNode,
+        FailCheckNode {
   private final String comment;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
@@ -24,7 +27,7 @@ abstract sealed class AbstractTypeCheckNode extends Node
 
   abstract Object findDirectMatch(VirtualFrame frame, Object value);
 
-  abstract Object executeConversion(VirtualFrame frame, Object value, ExpressionNode valueNode);
+  abstract Object executeConversion(VirtualFrame frame, Object value);
 
   abstract String expectedTypeMessage();
 

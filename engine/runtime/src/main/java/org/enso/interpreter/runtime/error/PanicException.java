@@ -105,7 +105,10 @@ public final class PanicException extends AbstractTruffleException {
     try {
       var info = library.getExceptionMessage(this);
       msg = library.asString(info);
-    } catch (StackOverflowError | AssertionError | UnsupportedMessageException e) {
+    } catch (IllegalStateException
+        | StackOverflowError
+        | AssertionError
+        | UnsupportedMessageException e) {
       var l = logger();
       l.atError().log("Cannot compute message for " + payload, e);
       l.error("Exception location: " + getLocation());
@@ -236,8 +239,8 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  int getExceptionExitStatus() {
-    return 1;
+  int getExceptionExitStatus() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage

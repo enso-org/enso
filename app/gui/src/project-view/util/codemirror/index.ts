@@ -27,6 +27,7 @@ import {
   TransactionSpec,
 } from '@codemirror/state'
 import { EditorView, placeholder } from '@codemirror/view'
+import { find, takeUntil } from 'enso-common/src/utilities/data/iter'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import { createDebouncer } from 'lib0/eventloop.js'
 import {
@@ -171,18 +172,14 @@ function useBindings() {
   const keyboard = injectKeyboard(true)
 
   function openLink(event: CmEventExt<AnyHandlerEvent>) {
-    let element: HTMLAnchorElement | undefined = undefined
-    for (const el of elementHierarchy(event.target)) {
-      if (el instanceof HTMLAnchorElement) {
-        element = el
-        break
-      }
-      if (el === event.codemirrorView.contentDOM) break
-    }
-    if (!element) return false
+    const parents = elementHierarchy(event.target)
+    const inEditorHierarchy = takeUntil(parents, (el) => el === event.codemirrorView.contentDOM)
+    const linkElement = find(inEditorHierarchy, (el) => el instanceof HTMLAnchorElement)
+    if (!linkElement) return false
+
     event.preventDefault()
     event.stopPropagation()
-    window.open(element.href, '_blank', 'noopener,noreferrer')
+    window.open(linkElement.href, '_blank', 'noopener,noreferrer')
     return true
   }
 
@@ -191,7 +188,6 @@ function useBindings() {
   })
   return {
     bindingsExt: EditorView.domEventHandlers({
-      keydown: (event, view) => bindingsHandler(extendCmEvent(view, event)),
       click: (event, view) => {
         const cmEvent = extendCmEvent(view, event)
         return bindingsHandler(cmEvent) || (view.state.readOnly && openLink(cmEvent))
@@ -407,10 +403,16 @@ export function useEditorFocus(view: EditorView) {
       if (event.target instanceof Node && view.contentDOM.contains(event.target))
         focused.value = true
     },
-    focusout: () => {
-      // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
-      // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
-      focused.value = false
+    focusout: (event: FocusEvent) => {
+      if (
+        !(event.currentTarget instanceof Node) ||
+        !(event.relatedTarget instanceof Node) ||
+        !event.currentTarget?.contains(event.relatedTarget)
+      ) {
+        // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
+        // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
+        focused.value = false
+      }
     },
   }
   return { focused, focusHandlers }

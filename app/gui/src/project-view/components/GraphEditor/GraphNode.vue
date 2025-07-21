@@ -44,7 +44,7 @@ import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { ComponentInstance, computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { ComponentInstance, computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -107,15 +107,15 @@ const { visibleMessage, hiddenMessage } = useNodeMessage({
   nodeId,
 })
 
-const nodeHovered = computed(() => graph.nodeHovered.get(nodeId.value) ?? false)
-
-const isOnlyOneSelected = computed(
-  () =>
-    nodeSelection?.committedSelection.size === 1 &&
-    nodeSelection?.committedSelection.has(nodeId.value),
+const extended = computed<boolean>(
+  () => nodeSelection != null && nodeSelection.isSoleSelection(nodeId.value),
 )
+watch(extended, (extended) => graph.nodeExtended.set(nodeId.value, extended), { immediate: true })
 
-const menuVisible = computed(() => menuEnabledByHover.value || isOnlyOneSelected.value)
+const nodeHovered = ref(false)
+watch(nodeHovered, (hovered) => graph.nodeHovered.set(nodeId.value, hovered))
+
+const menuVisible = computed(() => menuEnabledByHover.value || extended.value)
 const menuFull = ref(false)
 const menuHovered = ref(false)
 
@@ -170,7 +170,7 @@ function ensureSelected() {
   }
 }
 
-const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value) ?? false)
+const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value))
 
 const scale = computed(() => navigator?.scale ?? 1)
 const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
@@ -186,17 +186,18 @@ const {
   nodeHovered: () => nodeHovered.value || outputHovered.value,
   nodeRect,
   scale,
-  isFocused: isOnlyOneSelected,
+  isFocused: extended,
   typeinfo: () => expressionInfo.value?.typeInfo,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
+  hidden: toRef(props, 'edited'),
   emit,
 })
 
-watch(isVisualizationPreviewed, (newVal, oldVal) => {
-  if (!newVal) {
-    graph.setNodeHovered(nodeId.value, false)
-  } else if (newVal && !oldVal) {
+watch(isVisualizationPreviewed, (newVal) => {
+  if (newVal) {
     graph.db.moveNodeToTop(nodeId.value)
+  } else {
+    graph.nodeHovered.delete(nodeId.value)
   }
 })
 
@@ -266,7 +267,7 @@ const isRecordingOverridden = computed({
       shouldOverride && !projectStore.isRecordingEnabled ?
         [Ast.TextLiteral.new(projectStore.executionMode, edit)]
       : undefined
-    prefixes.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
+    prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })
@@ -428,7 +429,7 @@ const actionHandlers = registerHandlers(
 )
 
 onWindowBlur(() => {
-  graph.setNodeHovered(nodeId.value, false)
+  graph.nodeHovered.delete(nodeId.value)
   updateNodeHover(undefined)
 })
 
@@ -497,8 +498,8 @@ const nodeName = computed(() => props.node.pattern?.code())
         :style="contentNodeStyle"
         v-on="dragPointer.events"
         @click="handleNodeClick"
-        @pointerenter="(graph.setNodeHovered(nodeId, true), updateNodeHover($event))"
-        @pointerleave="(graph.setNodeHovered(nodeId, false), updateNodeHover(undefined))"
+        @pointerenter="((nodeHovered = true), updateNodeHover($event))"
+        @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
         @pointermove="updateNodeHover"
       >
         <ComponentWidgetTree
@@ -509,7 +510,7 @@ const nodeName = computed(() => props.node.pattern?.code())
           :nodeType="props.node.type"
           :primaryApplication="primaryApplication"
           :conditionalPorts="props.node.conditionalPorts"
-          :extended="isOnlyOneSelected"
+          :extended="extended"
         />
       </div>
     </ContextMenuTrigger>
@@ -531,6 +532,8 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  --z-index-component-menu: 20;
+  --z-index-selection-submenu: calc(var(--z-index-component-menu) + 1);
 }
 
 .nodeBackground {
@@ -583,7 +586,7 @@ const nodeName = computed(() => props.node.pattern?.code())
 }
 
 .ComponentMenu {
-  z-index: 20;
+  z-index: var(--z-index-component-menu);
   &.partial {
     z-index: 1;
   }

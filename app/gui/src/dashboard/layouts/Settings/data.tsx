@@ -62,7 +62,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             schema: z.object({
               name: z.string().min(1),
               email: z.string().email().or(z.literal('')),
-              timeZone: z.string().or(z.undefined()),
+              timeZone: z.string().optional(),
             }),
             getValue: (context) => ({
               ...pick(context.user, 'name', 'email'),

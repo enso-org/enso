@@ -57,8 +57,8 @@ export const [providePersisted, usePersisted] = createContextStore(
       debounce: 200,
       captureState() {
         return {
-          x: graphNavigator.targetCenter.x,
-          y: graphNavigator.targetCenter.y,
+          x: graphNavigator.targetLeftTop.x,
+          y: graphNavigator.targetLeftTop.y,
           s: graphNavigator.targetScale,
         } satisfies GraphStoredState
       },
@@ -66,7 +66,7 @@ export const [providePersisted, usePersisted] = createContextStore(
         if (restored) {
           const pos = new Vec2(restored.x ?? 0, restored.y ?? 0)
           const scale = restored.s ?? 1
-          graphNavigator.setCenterAndScale(pos, scale)
+          graphNavigator.setPosAndScale(pos, scale)
         } else {
           await until(visibleAreasReady).toBe(true)
           await until(visible).toBe(true)

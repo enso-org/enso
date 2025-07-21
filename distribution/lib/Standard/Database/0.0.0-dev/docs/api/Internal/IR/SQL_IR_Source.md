@@ -6,7 +6,7 @@
     - add_orders self new_orders:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - add_where_filters self new_filters:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - as_subquery self alias:Standard.Base.Any.Any column_lists:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - for_query raw_sql:(Standard.Base.Data.Text.Text|Standard.Database.SQL_Statement.SQL_Statement) alias:Standard.Base.Data.Text.Text -> Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+    - for_query raw_sql:(Standard.Base.Data.Text.Text|Standard.Database.SQL.SQL_Statement) alias:Standard.Base.Data.Text.Text -> Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
     - for_subquery subquery:Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part -> Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
     - for_table table_name:Standard.Base.Data.Text.Text alias:Standard.Base.Data.Text.Text= internal_temporary_keep_alive_reference:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - set_groups self new_groups:Standard.Base.Any.Any -> Standard.Base.Any.Any

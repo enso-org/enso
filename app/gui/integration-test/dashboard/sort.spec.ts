@@ -1,5 +1,5 @@
 /** @file Test sorting of assets columns. */
-import { expect, test } from '@playwright/test'
+import { expect, test } from 'playwright/test'
 
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 

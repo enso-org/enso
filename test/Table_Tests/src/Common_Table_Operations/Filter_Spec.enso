@@ -10,7 +10,7 @@ from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import all
 
 from Standard.Test import all

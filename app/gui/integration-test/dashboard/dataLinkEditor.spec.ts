@@ -1,5 +1,5 @@
 /** @file Test the user settings tab. */
-import { test } from '@playwright/test'
+import { test } from 'playwright/test'
 
 import { mockAllAndLogin } from './actions'
 

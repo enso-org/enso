@@ -1,4 +1,5 @@
 /** @file Dialog that shows the plan details, price, and the payment form. */
+import { Alert } from '#/components/Alert'
 import { Dialog } from '#/components/Dialog'
 import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
@@ -34,7 +35,7 @@ export interface PlanSelectorDialogProps {
   readonly plan: Plan
   readonly period: PlanBillingPeriod
   readonly planName: string
-  readonly features: string[]
+  readonly features: readonly string[]
   readonly title: string
   readonly onSubmit: (seats: number) => Promise<void> | void
   /** Whether the user clicked on the trial button. */
@@ -120,6 +121,10 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                 formatter={formatter}
                 isInvalid={form.formState.errors.seats != null}
               />
+
+              <Alert variant="outline" icon="warning">
+                {getText('stripeRedirectInfo')}
+              </Alert>
 
               <Form.Submit>
                 {isTrialing ? getText('startTrial') : getText('subscribeSubmit')}

@@ -1,5 +1,4 @@
-import { useStore } from '#/utilities/zustand'
-import { authOverridesStore, type AuthStore, type UserSession } from '$/providers/auth'
+import type { AuthStore, UserSession } from '$/providers/auth'
 import * as react from 'react'
 import invariant from 'tiny-invariant'
 import { useInReactFunction, useVueValue } from './common'
@@ -23,14 +22,4 @@ export function useFullUserSession(): UserSession {
 /** A React context hook returning the user session for a user that is fully logged in. */
 export function useUser() {
   return useFullUserSession().user
-}
-
-/** The current overridden plan. */
-export function usePlanOverride() {
-  return useStore(authOverridesStore, ({ planOverride }) => planOverride)
-}
-
-/** A function to set (or unset) the current overridden plan. */
-export function useSetPlanOverride() {
-  return useStore(authOverridesStore, ({ setPlanOverride }) => setPlanOverride)
 }

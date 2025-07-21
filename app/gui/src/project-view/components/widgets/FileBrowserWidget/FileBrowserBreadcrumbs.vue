@@ -39,7 +39,6 @@ const displayedStack = computed(() => ['Cloud', ...directoryStack])
   display: flex;
   align-items: center;
   flex-grow: 1;
-  color: white;
   gap: 8px; /* gap between up button and breadcrumbs */
 }
 

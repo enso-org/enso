@@ -103,7 +103,6 @@
     - Error message:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Type_Error
-    - Error expected:Standard.Base.Any.Any actual:Standard.Base.Any.Any comment:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Uninitialized_State

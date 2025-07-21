@@ -5,72 +5,105 @@ from Standard.Table import Column, Table, Value_Type
 
 import project.Helpers
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Name of the index column that may be generated to plot against.
 index_name : Text
 index_name = 'index'
 
-## PRIVATE
+## ---
+   private: true
+   ---
 data_field : Text
 data_field = 'data'
 
-## PRIVATE
+## ---
+   private: true
+   ---
 axis_field : Text
 axis_field = 'axis'
 
-## PRIVATE
+## ---
+   private: true
+   ---
 label_field : Text
 label_field = 'label'
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Represents a recognized point data field for a scatter plot visualization.
 type Point_Data
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     X
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Y
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Y_multi number:Integer=0
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Color
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Shape
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Label
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Size
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Row_Number
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns all recognized point data fields.
     all_fields : Vector
     all_fields = [Point_Data.X, Point_Data.Y, Point_Data.Color, Point_Data.Shape, Point_Data.Label, Point_Data.Size, Point_Data.Row_Number]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     recognized_names : Vector
     recognized_names = Point_Data.all_fields.map _.name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_recognized : Column -> Boolean
     is_recognized self column = Point_Data.recognized_names.contains column.name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     name : Text
     name self = self.to_text.to_case Case.Lower
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column self table = case self of
         Point_Data.X ->
@@ -102,29 +135,37 @@ type Point_Data
             
         _ -> Error.throw No_Fallback_Column
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a vector of subsequent integers beginning from 0.
     iota : Number -> Vector
     iota count =
         range = 0.up_to count
         Column.from_vector index_name range.to_vector
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     lookup_in : Table -> Column
     lookup_in self table =
         named = table.lookup_ignore_case self.name
         named.catch_ <| self.fallback_column table
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type No_Fallback_Column
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self =
         "No fallback column found for the scatter plot."
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Generates JSON that describes points data.
 Table.point_data : Vector -> Vector
 Table.point_data self all_fields =
@@ -139,8 +180,9 @@ Table.point_data self all_fields =
             [column.name, value]
         JS_Object.from_pairs pairs
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Returns the number of numeric columns for the plot.
 Table.numeric_column_count : Number
 Table.numeric_column_count self =
@@ -148,8 +190,9 @@ Table.numeric_column_count self =
     columns = self.columns . filter (c-> c.is_numeric && check_for_size c)
     columns.length
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Generates JSON that describes plot axes.
 Table.axes : Vector -> JS_Object
 Table.axes self all_fields =
@@ -164,12 +207,16 @@ Table.axes self all_fields =
     axes_obj = JS_Object.from_pairs <| axis.filter is_valid
     if axes_obj.length > 0 then axes_obj else Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Vector.point_data : Vector
 Vector.point_data self  =
     self.map_with_index i-> elem-> JS_Object.from_pairs [[Point_Data.X.name, i], [Point_Data.Y.name, elem], [Point_Data.Row_Number.name, i]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 bound_data bounds data = case bounds of
     Nothing -> data
     _ ->
@@ -189,7 +236,9 @@ type Extreme
     ## Create an extreme range of points.
     Value min_x max_x min_y max_y
 
-## PRIVATE
+## ---
+   private: true
+   ---
 limit_data limit data = case limit of
     Nothing -> data
     _ -> if ((data.length <= limit) || (data.length == 0)) then data else
@@ -213,15 +262,19 @@ limit_data limit data = case limit of
             extreme + data.take (..Sample (limit - extreme.length))
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
 get_axes_field : Integer -> Vector
 get_axes_field number_of_numeric =
     fields_for_multiseries = ((0.up_to number_of_numeric).map idx-> Point_Data.Y_multi idx)
     fields_for_multiseries . insert item=Point_Data.X . insert item=Point_Data.Y
 
-## PRIVATE
-
-   Returns whether the x axis should be time/date. This is either a column named 'X' or the left most column
+## ---
+   private: true
+   ---
+   Returns whether the x axis should be time/date. This is either a column named
+   'X' or the left most column
 get_x_value_type : Table -> Value_Type
 get_x_value_type table =
     get_x_or_first t =
@@ -230,7 +283,9 @@ get_x_value_type table =
     x_col = get_x_or_first table
     x_col.value_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_table table bounds limit =
     x_value_type = get_x_value_type table
@@ -245,20 +300,22 @@ json_from_table table bounds limit =
     error_message = if axes.length < 2 then "Two numeric columns required for Scatterplot" else Nothing
     JS_Object.from_pairs [[data_field, data], [axis_field, axes], ["is_multi_series", is_multi_series], ["get_row_method", "get_row"], ["x_value_type", x_value_type.to_name], ["error_message", error_message]] . to_json
 
-## PRIVATE
+## ---
+   private: true
+   ---
 json_from_vector : Vector Any -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_vector vec bounds limit =
     data = vec.point_data |> bound_data bounds |> limit_data limit
     JS_Object.from_pairs [[data_field, data], [axis_field, Nothing], ["is_multi_series", False], ["get_row_method", "at"], ["x_value_type", Value_Type.Integer.to_name], ["error_message", Nothing]] . to_json
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Default preprocessor for the scatter-plot visualization.
-
    Generates JSON text describing the scatter-plot visualization.
 
-   Arguments:
-   - value: the value to be visualized.
+   ## Arguments
+    - `value`: the value to be visualized.
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of

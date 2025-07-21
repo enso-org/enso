@@ -19,13 +19,13 @@ import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -45,6 +45,7 @@ import {
 import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
 import {
+  setDriveLocation,
   useDriveStore,
   useSetCanDownload,
   useSetNewestFolderId,
@@ -55,11 +56,9 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
 import {
-  assetIsProject,
   AssetType,
   BackendType,
   getAssetPermissionName,
@@ -89,6 +88,7 @@ import {
   useText,
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
+import { useLaunchedProjects } from '$/providers/react/container'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -169,24 +169,21 @@ export interface AssetRowState {
 export interface AssetsTableProps {
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
-  readonly category: Category
-  readonly initialProjectName: string | null
 }
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
-  const { query, setQuery, category } = props
-  const { initialProjectName } = props
+  const { query, setQuery } = props
 
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const openedProjects = useLaunchedProjects()
   const openProjectLocally = useOpenProjectLocally()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { backendForType, reconnectToProjectManager } = useBackends()
+  const { reconnectToProjectManager } = useBackends()
   const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
-  const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const localStorage = useLocalStorage()
   const { getText } = useText()
@@ -240,7 +237,7 @@ function AssetsTable(props: AssetsTableProps) {
     { unsafeEnableTransition: true },
   )
 
-  const { queryDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
+  const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({
     category,
   })
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
@@ -252,7 +249,7 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
-      setCurrentDirectoryId(null)
+      setDriveLocation(null, category.id)
       return false
     },
   })
@@ -521,26 +518,6 @@ function AssetsTable(props: AssetsTableProps) {
     [driveStore, isCloud, assets, setCanDownload],
   )
 
-  const initialProjectNameDeps = useSyncRef({
-    items: assets,
-    openProjectLocally,
-    toastAndLog,
-  })
-
-  useEffect(() => {
-    const deps = initialProjectNameDeps.current
-    // The project name here might also be a string with project id, e.g. when opening
-    // a project file from explorer on Windows.
-    const isInitialProject = (asset: AnyAsset) =>
-      asset.title === initialProjectName || asset.id === initialProjectName
-    const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
-    if (projectToLoad != null) {
-      void deps.openProjectLocally(projectToLoad, BackendType.local)
-    } else if (initialProjectName != null && initialProjectName !== '') {
-      deps.toastAndLog('findProjectError', null, initialProjectName)
-    }
-  }, [initialProjectName, initialProjectNameDeps])
-
   useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')
     if (savedEnabledColumns != null) {
@@ -603,7 +580,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                setCurrentDirectoryId(item.id)
+                setDriveLocation(item.id, category.id)
                 break
               }
               case AssetType.project: {

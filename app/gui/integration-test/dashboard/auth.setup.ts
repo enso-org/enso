@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 
-import { test as setup } from '@playwright/test'
+import { test as setup } from 'playwright/test'
 
 import { getAuthFilePath, mockAllAndLogin } from './actions'
 

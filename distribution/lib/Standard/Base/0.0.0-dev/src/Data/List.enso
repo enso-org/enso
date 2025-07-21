@@ -24,8 +24,8 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.List.List import Cons, Nil
+from project.Internal.Predicate_Helpers import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Metadata import Display, Widget
 
 ## Cons lists.
@@ -39,7 +39,7 @@ type List
        Arguments:
        - x: The element at this position in the list.
        - xs: The rest of the list.
-    Cons x xs
+    Cons x xs:List
 
     ## GROUP Metadata
        ICON metadata

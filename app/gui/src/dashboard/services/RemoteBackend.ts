@@ -13,16 +13,16 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
-import type { ResponseWithTypedJson } from '#/utilities/HttpClient'
+import type { HttpClientPostOptions, ResponseWithTypedJson } from '#/utilities/HttpClient'
 import * as objects from '#/utilities/object'
 import type { GetText } from '$/providers/text'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
 import { extractTypeAndId } from './LocalBackend'
+import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids'
 
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
@@ -32,168 +32,6 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
-
-/** The format of all errors returned by the backend. */
-interface RemoteBackendError {
-  readonly type: string
-  readonly code: string
-  readonly message: string
-  readonly param: string
-}
-
-/** Whether the given directory is a special directory that cannot be written to. */
-export function isSpecialReadonlyDirectoryId(id: backend.AssetId) {
-  return (
-    id === remoteBackendPaths.USERS_DIRECTORY_ID || id === remoteBackendPaths.TEAMS_DIRECTORY_ID
-  )
-}
-
-/**
- * Extract the ID from the given user group ID.
- * Removes the `usergroup-` prefix.
- * @param id - The user group ID.
- * @returns The ID.
- */
-export function extractIdFromUserGroupId(id: backend.UserGroupId) {
-  return id.replace(/^usergroup-/, '')
-}
-
-/**
- * Extract the ID from the given organization ID.
- * Removes the `organization-` prefix.
- */
-export function extractIdFromOrganizationId(id: backend.OrganizationId) {
-  return id.replace(/^organization-/, '')
-}
-
-/**
- * Extract the ID from the given directory ID.
- * Removes the `directory-` prefix.
- */
-export function extractIdFromDirectoryId(id: backend.DirectoryId) {
-  return id.replace(/^directory-/, '')
-}
-
-/**
- * Extract the ID from the given user ID.
- * Removes the `user-` prefix.
- */
-export function extractIdFromUserId(id: backend.UserId) {
-  return id.replace(/^user-/, '')
-}
-
-/** Convert a user group ID to a directory ID. */
-export function userGroupIdToDirectoryId(id: backend.UserGroupId): backend.DirectoryId {
-  return DirectoryId(`directory-${extractIdFromUserGroupId(id)}` as const)
-}
-
-/** Convert a user ID to a directory ID. */
-export function userIdToDirectoryId(id: backend.UserId): backend.DirectoryId {
-  return DirectoryId(`directory-${extractIdFromUserId(id)}` as const)
-}
-
-/**
- * Convert a directory ID to a user ID.
- * @param id - The directory ID.
- * @returns The user ID.
- */
-export function directoryIdToUserId(id: backend.DirectoryId): backend.UserId {
-  return UserId(`user-${extractIdFromDirectoryId(id)}` as const)
-}
-
-/** Convert organization ID to a directory ID. */
-export function organizationIdToDirectoryId(id: backend.OrganizationId): backend.DirectoryId {
-  return DirectoryId(`directory-${extractIdFromOrganizationId(id)}` as const)
-}
-
-/**
- * Convert a directory ID to a user group ID.
- * @param id - The directory ID.
- * @returns The user group ID.
- */
-export function directoryIdToUserGroupId(id: backend.DirectoryId): backend.UserGroupId {
-  return UserGroupId(`usergroup-${extractIdFromDirectoryId(id)}` as const)
-}
-
-/**
- * Whether the given string is a valid organization ID.
- * @param id - The string to check.
- * @returns Whether the string is a valid organization ID.
- */
-export function isOrganizationId(id: string): id is backend.OrganizationId {
-  return id.startsWith('organization-')
-}
-
-/**
- * Whether the given string is a valid user ID.
- * @param id - The string to check.
- * @returns Whether the string is a valid user ID.
- */
-export function isUserId(id: string): id is backend.UserId {
-  return id.startsWith('user-')
-}
-
-/**
- * Whether the given string is a valid user group ID.
- * @param id - The string to check.
- * @returns Whether the string is a valid user group ID.
- */
-export function idIsUserGroupId(id: string): id is backend.UserGroupId {
-  return id.startsWith('usergroup-')
-}
-
-/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
-export function parentsPathsToPath(
-  parentsPath: backend.ParentsPath,
-  virtualParentsPath: backend.VirtualParentsPath,
-  users: readonly backend.UserInfo[],
-  userGroups: readonly backend.UserGroupInfo[],
-) {
-  const virtualParentsPathWithPrefix = virtualParentsPath === '' ? '' : `/${virtualParentsPath}`
-  // This is SAFE as `parentsPath` is guaranteed to be composed only of valid path segments.
-  // eslint-disable-next-line no-restricted-syntax
-  const firstPathSegment = DirectoryId(parentsPath.split('/')[0] as never)
-  const possibleUserId = directoryIdToUserId(firstPathSegment)
-  const user = users.find((otherUser) => otherUser.userId === possibleUserId)
-  if (user) {
-    return `enso://Users/${user.name}${virtualParentsPathWithPrefix}`
-  }
-  const possibleUserGroupId = directoryIdToUserGroupId(firstPathSegment)
-  const userGroup = userGroups.find((otherUserGroup) => otherUserGroup.id === possibleUserGroupId)
-  if (userGroup) {
-    return `enso://Teams/${userGroup.groupName}${virtualParentsPathWithPrefix}`
-  }
-}
-
-/** HTTP response body for the "list users" endpoint. */
-export interface ListUsersResponseBody {
-  readonly users: readonly backend.User[]
-}
-
-/** HTTP response body for the "list projects" endpoint. */
-export interface ListDirectoryResponseBody {
-  readonly assets: readonly backend.AnyAsset[]
-}
-
-/** HTTP response body for the "list files" endpoint. */
-export interface ListFilesResponseBody {
-  readonly files: readonly backend.FileLocator[]
-}
-
-/** HTTP response body for the "list secrets" endpoint. */
-export interface ListSecretsResponseBody {
-  readonly secrets: readonly backend.SecretInfo[]
-}
-
-/** HTTP response body for the "list tag" endpoint. */
-export interface ListTagsResponseBody {
-  readonly tags: readonly backend.Label[]
-}
-
-/** Options for {@link RemoteBackend.post} private method. */
-interface RemoteBackendPostOptions {
-  readonly keepalive?: boolean
-}
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
@@ -242,9 +80,9 @@ export default class RemoteBackend extends Backend {
         { message: 'unknown error' }
         // This is SAFE only when the response has been confirmed to have an erroring status code.
         // eslint-disable-next-line no-restricted-syntax
-      : ((await response.json()) as RemoteBackendError)
+      : ((await response.json()) as backend.RemoteBackendError)
 
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}`
     this.logger.error(message)
 
     const status = response?.status
@@ -278,11 +116,7 @@ export default class RemoteBackend extends Backend {
       }
       case backend.Plan.team:
       case backend.Plan.enterprise: {
-        return organization == null ? null : (
-            backend.DirectoryId(
-              `directory-${organization.id.replace(/^organization-/, '')}` as const,
-            )
-          )
+        return organization == null ? null : organizationIdToDirectoryId(organization.id)
       }
     }
   }
@@ -290,7 +124,7 @@ export default class RemoteBackend extends Backend {
   /** Return a list of all users in the same organization. */
   override async listUsers(): Promise<readonly Omit<backend.User, 'groups'>[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
-    const response = await this.get<ListUsersResponseBody>(path)
+    const response = await this.get<backend.ListUsersResponseBody>(path)
     if (response.status === STATUS_NOT_ALLOWED) {
       return []
     } else if (!response.ok) {
@@ -351,10 +185,14 @@ export default class RemoteBackend extends Backend {
 
   /**
    * Delete a user.
-   * FIXME: Not implemented on backend yet.
    */
-  override async removeUser(): Promise<void> {
-    return await this.throw(null, 'removeUserBackendError')
+  override async removeUser(userId: backend.UserId): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.removeUserPath(userId))
+    if (!response.ok) {
+      return await this.throw(response, 'removeUserBackendError')
+    } else {
+      return
+    }
   }
 
   /** Invite a new user to the organization by email. */
@@ -562,7 +400,7 @@ export default class RemoteBackend extends Backend {
     title: string,
   ): Promise<readonly backend.AnyAsset[]> {
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH
-    const response = await this.get<ListDirectoryResponseBody>(
+    const response = await this.get<backend.ListDirectoryResponseBody>(
       path +
         '?' +
         new URLSearchParams(
@@ -602,9 +440,6 @@ export default class RemoteBackend extends Backend {
         .map((asset) =>
           objects.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
-            ...(asset.ensoPath != null ?
-              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
-            : {}),
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))
@@ -663,21 +498,6 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'listAssetVersionsBackendError')
     } else {
       return await response.json()
-    }
-  }
-
-  /** Fetch the content of the `Main.enso` file of a project. */
-  override async getFileContent(
-    projectId: backend.ProjectId,
-    versionId?: backend.S3ObjectVersionId,
-  ): Promise<string> {
-    const path = remoteBackendPaths.getProjectContentPath(projectId, versionId)
-    const response = await this.get<string>(path)
-
-    if (!response.ok) {
-      return this.throw(response, 'getFileContentsBackendError')
-    } else {
-      return await response.text()
     }
   }
 
@@ -987,15 +807,11 @@ export default class RemoteBackend extends Backend {
    * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
-  override async getAssetDetails<
-    Id extends backend.RealAssetId,
-    Type extends backend.RealAssetTypeId<Id>,
-    ReturnType extends Id extends backend.DirectoryId ?
-      backend.Asset<backend.AssetType.directory> | null
-    : backend.Asset<Type>,
-  >(assetId: Id): Promise<ReturnType> {
+  override async getAssetDetails<Id extends backend.RealAssetId>(
+    assetId: Id,
+  ): Promise<backend.AssetDetailsResponse<Id>> {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
-    const response = await this.get<backend.Asset<Type> | null>(path)
+    const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
     if (!response.ok) {
       if (response.status === STATUS_NOT_FOUND) {
@@ -1009,8 +825,7 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getAssetDetailsBackendError')
     }
 
-    // eslint-disable-next-line no-restricted-syntax
-    return (await response.json()) as ReturnType
+    return await response.json()
   }
   /**
    * Return Language Server logs for a project session.
@@ -1021,11 +836,11 @@ export default class RemoteBackend extends Backend {
     params: backend.GetProjectSessionLogsRequestParams,
     title: string,
   ): Promise<backend.ProjectSessionLogs> {
-    const queryString = new URLSearchParams({
+    const queryParams = new URLSearchParams({
       ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
-    }).toString()
-    const path = `${remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)}?${queryString}`
-    const response = await this.get<backend.ProjectSessionLogs>(path)
+    })
+    const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
+    const response = await this.get<backend.ProjectSessionLogs>(path, queryParams)
     if (!response.ok) {
       return await this.throw(response, 'getProjectLogsBackendError', title)
     } else {
@@ -1159,11 +974,10 @@ export default class RemoteBackend extends Backend {
     title: string,
     getPresignedUrl = false,
   ): Promise<backend.FileDetails> {
-    const searchParams = new URLSearchParams({
-      presigned: `${getPresignedUrl}`,
-    }).toString()
-    const path = `${remoteBackendPaths.getFileDetailsPath(fileId)}?${searchParams}`
-    const response = await this.get<backend.FileDetails>(path)
+    const response = await this.get<backend.FileDetails>(
+      remoteBackendPaths.getFileDetailsPath(fileId),
+      { presigned: `${getPresignedUrl}` },
+    )
     if (!response.ok) {
       return await this.throw(response, 'getFileDetailsBackendError', title)
     } else {
@@ -1286,7 +1100,7 @@ export default class RemoteBackend extends Backend {
    */
   override async listSecrets(): Promise<readonly backend.SecretInfo[]> {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
-    const response = await this.get<ListSecretsResponseBody>(path)
+    const response = await this.get<backend.ListSecretsResponseBody>(path)
     if (!response.ok) {
       return await this.throw(response, 'listSecretsBackendError')
     } else {
@@ -1314,7 +1128,7 @@ export default class RemoteBackend extends Backend {
    */
   override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
-    const response = await this.get<ListTagsResponseBody>(path)
+    const response = await this.get<backend.ListTagsResponseBody>(path)
     if (!response.ok) {
       return await this.throw(response, 'listLabelsBackendError')
     } else {
@@ -1332,7 +1146,7 @@ export default class RemoteBackend extends Backend {
     title: string,
   ) {
     const path = remoteBackendPaths.associateTagPath(assetId)
-    const response = await this.patch<ListTagsResponseBody>(path, { labels })
+    const response = await this.patch<backend.ListTagsResponseBody>(path, { labels })
     if (!response.ok) {
       return await this.throw(response, 'associateLabelsBackendError', title)
     } else {
@@ -1412,6 +1226,36 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /**
+   * Fetches a configuration for a payment pricing page.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+    const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
+
+    if (!response.ok) {
+      return await this.throw(response, 'getPaymentsConfigBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Cancel given subscription.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async cancelSubscription(subscriptionId: backend.SubscriptionId): Promise<void> {
+    const response = await this.delete(
+      remoteBackendPaths.cancelSubscriptionPath(subscriptionId),
+      {},
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'cancelSubscriptionBackendError')
+    } else {
+      return
+    }
+  }
+
   /** List events in the organization's audit log. */
   override async getLogEvents(
     params: backend.GetLogEventsRequestParams,
@@ -1487,10 +1331,7 @@ export default class RemoteBackend extends Backend {
         await download.download({
           url: details.url,
           name: `${title}.enso-project`,
-          electronOptions: {
-            shouldUnpackProject,
-            path: targetPath,
-          },
+          electronOptions: { shouldUnpackProject, path: targetPath },
         })
         break
       }
@@ -1500,26 +1341,27 @@ export default class RemoteBackend extends Backend {
         await download.download({
           url: details.url,
           name: details.file.fileName ?? '',
-          electronOptions: {
-            path: targetPath,
-          },
+          electronOptions: { path: targetPath },
         })
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        await download.download({
-          url: URL.createObjectURL(
-            new File([JSON.stringify(value)], fileName, {
-              type: 'application/json+x-enso-data-link',
-            }),
-          ),
-          name: fileName,
-          electronOptions: {
-            path: targetPath,
-          },
-        })
+        const fileObjectUrl = URL.createObjectURL(
+          new File([JSON.stringify(value)], fileName, {
+            type: 'application/json+x-enso-data-link',
+          }),
+        )
+        try {
+          await download.download({
+            url: fileObjectUrl,
+            name: fileName,
+            electronOptions: { path: targetPath },
+          })
+        } finally {
+          URL.revokeObjectURL(fileObjectUrl)
+        }
         break
       }
       case backend.AssetType.secret:
@@ -1552,7 +1394,7 @@ export default class RemoteBackend extends Backend {
     })
 
     const response = await this.client.get<ResponseBody>(
-      `./api/cloud/download-project?${queryString}`,
+      `/api/cloud/download-project?${queryString}`,
     )
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
@@ -1561,8 +1403,8 @@ export default class RemoteBackend extends Backend {
     const responseBody = await response.json()
 
     return {
-      targetId: DirectoryId(`directory-${responseBody.targetDirectory}` as const),
-      parentId: DirectoryId(`directory-${responseBody.parentDirectory}` as const),
+      targetId: backend.DirectoryId(`directory-${responseBody.targetDirectory}`),
+      parentId: backend.DirectoryId(`directory-${responseBody.parentDirectory}`),
     }
   }
 
@@ -1572,7 +1414,7 @@ export default class RemoteBackend extends Backend {
       directory: extractIdFromDirectoryId(directoryId),
     })
 
-    const response = await this.client.get(`./api/cloud/get-project-archive?${queryString}`)
+    const response = await this.client.get(`/api/cloud/get-project-archive?${queryString}`)
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
@@ -1585,7 +1427,7 @@ export default class RemoteBackend extends Backend {
   /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
     const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
-      remoteBackendPaths.getCustomerPortalSessionPath(),
+      remoteBackendPaths.CUSTOMER_PORTAL_SESSION_CREATE_PATH,
       {},
     )
 
@@ -1596,23 +1438,38 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Resolve the path of a project asset relative to the project `src` directory.
-   */
-  override async resolveProjectAssetPath(
-    projectId: backend.ProjectId,
-    relativePath: string,
-  ): Promise<string> {
-    const response = await this.get<Blob>(
-      remoteBackendPaths.getProjectAssetPath(projectId, relativePath),
+  /** Resolve asset metadata from an enso path. */
+  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    const response = await this.get<backend.Asset<backend.RealAssetType>>(
+      remoteBackendPaths.RESOLVE_ENSO_PATH,
+      { path },
     )
 
-    if (!response.ok) {
-      return await this.throw(response, 'resolveProjectAssetPathBackendError')
-    } else {
-      const blob = await response.blob()
-      return URL.createObjectURL(blob)
+    if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
+    return await response.json()
+  }
+
+  /**
+   * Resolve the data of a project asset relative to the project root directory.
+   */
+  override async resolveProjectAssetData(
+    projectId: backend.ProjectId,
+    relativePath: string,
+    versionId?: backend.S3ObjectVersionId,
+    abort?: AbortSignal,
+  ): Promise<Response> {
+    const searchParams = new URLSearchParams()
+    if (versionId != null) {
+      searchParams.set('versionId', versionId)
     }
+
+    const response = await this.get(
+      remoteBackendPaths.getProjectAssetPath(projectId, relativePath),
+      searchParams,
+      abort,
+    )
+    if (!response.ok) return this.throw(response, 'getFileContentsBackendError')
+    return response
   }
 
   /** Set state of the project running in Hybrid mode as open in progress. */
@@ -1684,12 +1541,20 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send an HTTP GET request to the given path. */
-  private get<T = void>(path: string) {
-    return this.checkForAuthenticationError(() => this.client.get<T>(`${$config.API_URL}/${path}`))
+  private get<T = void>(
+    path: string,
+    queryParams?: Record<string, string> | URLSearchParams,
+    abort?: AbortSignal,
+  ) {
+    const paramsString = queryParams != null ? new URLSearchParams(queryParams).toString() : ''
+    const query = paramsString ? '?' + paramsString : ''
+    return this.checkForAuthenticationError(() =>
+      this.client.get<T>(`${$config.API_URL}/${path}${query}`, abort),
+    )
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
+  private post<T = void>(path: string, payload: object, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.post<T>(`${$config.API_URL}/${path}`, payload, options),
     )

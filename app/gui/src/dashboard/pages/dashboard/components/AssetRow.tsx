@@ -18,13 +18,12 @@ import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUt
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
+  setDriveLocation,
   useDriveStore,
-  useSetCurrentDirectoryId,
   useSetDragTargetAssetId,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
@@ -38,6 +37,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
+import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useRightPanelData } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
@@ -181,7 +181,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
     { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
@@ -264,13 +263,11 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }
   }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
-  const setDirectoryId = useSetCurrentDirectoryId()
-
   const dragDelayProps = useDragDelayAction(
     item.type === backendModule.AssetType.directory ?
       () => {
         startNavigation(() => {
-          setDirectoryId(item.id)
+          setDriveLocation(item.id, category.id)
         })
       }
     : undefined,
@@ -335,7 +332,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             onDoubleClick={() => {
               if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
-                  setCurrentDirectoryId(item.id)
+                  setDriveLocation(item.id, category.id)
                 })
               }
             }}
