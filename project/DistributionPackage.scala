@@ -250,8 +250,6 @@ object DistributionPackage {
         ) ++ javaOpts ++ Seq(
           "--no-compile-dependencies",
           "--no-global-cache",
-          "--log-level",
-          "DEBUG",
           "--compile",
           path.getAbsolutePath
         )
