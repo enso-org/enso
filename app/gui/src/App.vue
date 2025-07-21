@@ -61,7 +61,7 @@ registerGlobalBlurHandler()
 
 const actionHandlers = registerHandlers(
   {
-    'app.cancel': { action: () => interaction.cancelAll() },
+    'app.cancel': { action: () => {} },
     'app.close': { action: () => window.close() },
   },
   actions,

@@ -1237,5 +1237,10 @@
   "getPaymentsConfigBackendError": "Couldn't get payment pricing page configuration. Please try again later.",
   "stripeRedirectAlert": "You are being redirected to Stripe for finalizing your payment process.",
   "stripeRedirectInfo": "After submitting your order you will be redirect to Stripe for finalizing your payment process.",
-  "goToStripe": "Go to Stripe"
+  "goToStripe": "Go to Stripe",
+  "welcomeToTeam": "Welcome to the \"$0\" team!",
+  "invitationError": "Something went wrong. Please contact the administrator.",
+  "pendingInvitationInfo": "You have pending team invitation.",
+  "invitationText": "\"$0\" invites you to join",
+  "invitationAlert": "All of your assets will be transfered with you. This might take a while."
 }

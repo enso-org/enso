@@ -181,6 +181,9 @@ interface PlaceholderOverrides {
   readonly xHoursLeftInTrial: [hoursLeft: number]
   readonly yourSubscriptionExpiresAtX: [endDate: string]
   readonly commercialUseNotice: [originalTitle: string]
+
+  readonly welcomeToTeam: [organizationName: string]
+  readonly invitationText: [organizationName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
