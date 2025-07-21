@@ -12,7 +12,7 @@ import { useText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
-import { appBindings } from '@/bindings'
+import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import { useEvent, useMounted } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
@@ -61,19 +61,21 @@ registerGlobalBlurHandler()
 
 const actionHandlers = registerHandlers(
   {
-    'app.cancel': { action: () => interaction.cancelAll() },
-    'app.close': { action: () => window.close() },
+    'interaction.cancel': { action: () => interaction.cancelAll() },
   },
   actions,
 )
 
-const bindingsHandlers = appBindings.handler(
-  objects.mapEntries(appBindings.bindings, (actionName) => actionHandlers[actionName].action),
+const interactionBindingsHandler = interactionBindings.handler(
+  objects.mapEntries(
+    interactionBindings.bindings,
+    (actionName) => actionHandlers[actionName].action,
+  ),
 )
 
 const { globalEventRegistry } = provideGlobalEventRegistry()
 
-useEvent(window, 'keydown', bindingsHandlers)
+useEvent(window, 'keydown', interactionBindingsHandler)
 useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 
 const platformClass = (() => {

@@ -12,28 +12,34 @@ polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl.SyntaxErrorException
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl.TypeErrorException
 
-## ICON column_add
+## ---
+   icon: column_add
+   ---
    Create an expression from a Text value.
 
-   Arguments:
-   - expression: the expression to create
+   ## Arguments
+    - `expression`: the expression to create
 @expression Widget.Text_Input syntax="enso-table-expression"
 expr : Text -> Expression
 expr expression:Text -> Expression = Expression.Value expression
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Functions for parsing and handling Enso expressions.
 type Expression
     ## Creates an expression from a Text value.
     Value expression:Text
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Evaluates an expression against a table and returns the result
 
-       Arguments:
-       - expression: the expression to evaluate
-       - table: the table to evaluate it against
+       ## Arguments
+        - `expression`: the expression to evaluate
+        - `table`: the table to evaluate it against
     evaluate expression:Expression table:Table =
         ## Define callbacks for the java code
         _get_column name = table.at name
@@ -57,24 +63,33 @@ type Expression
             ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column method_resolvers var_args_functions
 
 type Expression_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The expression supplied could not be parsed due to a syntax error.
     Syntax_Error message:Text line:Integer column:Integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Expression error when a function could not be found on the target type.
     Unsupported_Operation name:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Expression error when the number of arguments for a function is incorrect.
     Argument_Mismatch message:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Expression error when the type of arguments for a function is incorrect.
     Type_Error message:Text
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = case self of
@@ -83,6 +98,8 @@ type Expression_Error
         Expression_Error.Argument_Mismatch _ -> "Expression.Argument_Mismatch: " + self.message
         Expression_Error.Type_Error _ -> "Expression.Type_Error: " + self.message
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_java_error java_type enso_constructor =
     Panic.catch java_type handler=(cause-> Error.throw (enso_constructor cause.payload.getMessage))

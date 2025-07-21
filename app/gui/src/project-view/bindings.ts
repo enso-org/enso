@@ -1,20 +1,6 @@
 import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
 
-// Some debug shortcuts are also defined in electron
-// (Look for `registerShortcuts` method).
-
-export const appBindings = defineKeybinds('app', {
-  'app.cancel': ['Escape'],
-  'app.close': ['Mod+Q'],
-})
-
-export const appContainerBindings = defineKeybinds('app-container', {
-  'app.closeTab':
-    // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
-    ['Mod+W', 'Mod+Alt+W', ...(!isMacLike ? ['Mod+F4' as const] : [])],
-})
-
 export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
   'documentationEditor.italic': ['Mod+I'],
   'documentationEditor.bold': ['Mod+B'],
@@ -44,6 +30,10 @@ export const listBindings = defineKeybinds('list', {
   'list.moveUp': [{ key: 'ArrowUp', allowRepeat: true }],
   'list.moveDown': [{ key: 'ArrowDown', allowRepeat: true }],
   'list.accept': ['Enter'],
+})
+
+export const interactionBindings = defineKeybinds('current-interaction', {
+  'interaction.cancel': ['Escape'],
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {

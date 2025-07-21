@@ -14,7 +14,9 @@ import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make an aggregate column selector.
 make_aggregate_column_selector : Table -> Display -> Widget
 make_aggregate_column_selector table display:Display=..Always =
@@ -56,7 +58,9 @@ make_aggregate_column_selector table display:Display=..Always =
 
     Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make an Aggregate_Column list editor
 make_aggregate_column_vector_selector : Table -> Display -> Widget
 make_aggregate_column_vector_selector table display:Display=..Always =
@@ -64,7 +68,9 @@ make_aggregate_column_vector_selector table display:Display=..Always =
     # TODO this is a workaround for a dropdown issue
     Vector_Editor item_editor=item_editor item_default="..Count" display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a column name selector.
 make_column_name_selector : Table -> Boolean -> Display -> Widget
 make_column_name_selector table add_expression:Boolean=False display:Display=..Always =
@@ -73,15 +79,20 @@ make_column_name_selector table add_expression:Boolean=False display:Display=..A
     expression = if add_expression then [Option "<Expression>" "(expr '["+col_names.first+"]')"] else []
     Single_Choice display=display values=(expression+names)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a multiple column name selector.
 make_column_name_vector_selector : Table -> Display -> Widget
 make_column_name_vector_selector table display:Display=..Always =
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
-## PRIVATE
-   Make a multiple column-name selector that allows each value to be selected at most once.
+## ---
+   private: true
+   ---
+   Make a multiple column-name selector that allows each value to be selected at
+   most once.
 make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widget
 make_column_name_multi_selector table display:Display=..Always add_regex:Boolean=False add_by_type:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
@@ -89,7 +100,9 @@ make_column_name_multi_selector table display:Display=..Always add_regex:Boolean
     by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
     Multiple_Choice values=regex+by_type+names display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a column reference by name selector.
 make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False add_date:Boolean=False add_time:Boolean=False add_date_time:Boolean=False add_nothing:Boolean=False columns_first:Boolean=False =
     constants = make_any_selector add_text=add_text add_regex=add_regex add_named_pattern=add_named_pattern add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing . values
@@ -98,7 +111,9 @@ make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean
     values = if columns_first then col_names + constants + expression else constants + expression + col_names
     Single_Choice values=values display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a column reference by name selector filtered by type.
 make_column_ref_by_name_selector_for_type table display:Display=..Always value_type:Value_Type add_nothing:Boolean=False if_value_type_numeric_include_all_numeric:Boolean=False =
     is_all = _include_all value_type
@@ -121,7 +136,9 @@ make_column_ref_by_name_selector_for_type table display:Display=..Always value_t
     values = constants + expression + col_names
     Single_Choice values=values display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    If `column_source` is Nothing, `Column_Ref` options will not be added.
 make_fill_default_value_selector column_source=Nothing display:Display=..Always value_types=Value_Type.Mixed add_nothing:Boolean=False =
     to_add = Types_To_Include.Value (Vector.unify_vector_or_element value_types)
@@ -129,7 +146,9 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
     previous_value = [Option 'Previous Value' 'Previous_Value']
     Single_Choice values=(previous_value+column_ref.values) display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a filter condition selector.
 make_filter_condition_selector table display:Display=..Always cache=Nothing =
     column_value_type = _get_column_value_type table cache
@@ -186,7 +205,9 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
 
     Single_Choice options display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Any -> Widget
 make_join_condition_selector table display:Display=..Always cache=Nothing =
@@ -203,7 +224,9 @@ make_join_condition_selector table display:Display=..Always cache=Nothing =
     item_editor = Single_Choice display=display values=names
     Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_grouping_method_selector table:Table display:Display=..Always -> Widget =
     column_selector = make_column_name_selector table display=Display.Always
     columns_selector = Vector_Editor item_editor=column_selector item_default=table.column_names.first.pretty display=display
@@ -214,7 +237,9 @@ make_grouping_method_selector table:Table display:Display=..Always -> Widget =
 
     Single_Choice display=display values=names
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a column name selector.
 make_order_by_selector : Table -> Display -> Boolean -> Widget
 make_order_by_selector table display:Display=..Always name_only:Boolean=False =
@@ -226,7 +251,9 @@ make_order_by_selector table display:Display=..Always name_only:Boolean=False =
     item_editor = Single_Choice display=Display.Always values=values
     Vector_Editor item_editor=item_editor item_default="(..Name "+table.column_names.first.pretty+")" display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a column rename name selector.
 make_rename_name_vector_selector : Table -> Display -> Any -> Widget
 make_rename_name_vector_selector table display:Display=..Always cache=Nothing =
@@ -254,7 +281,9 @@ make_rename_name_vector_selector table display:Display=..Always cache=Nothing =
     item_editor = Single_Choice display=Display.Always values=[name]
     Vector_Editor item_editor=item_editor item_default="(Pair.Value "+first_name.pretty+" "+new_name.pretty+")" display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Selector for type argument on `Column.parse`.
 parse_type_selector : Boolean -> Widget
 parse_type_selector include_auto=True =
@@ -268,7 +297,9 @@ parse_type_selector include_auto=True =
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Selector for writing a table to a file.
 write_table_selector : Widget
 write_table_selector =
@@ -277,7 +308,9 @@ write_table_selector =
     all_types = [Auto_Detect] + (format_types.filter can_write)
     Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a format chooser for a selection of columns.
 make_format_chooser_for_selection table cache =
     columns = cache.if_not_nothing <| cache "columns"
@@ -287,14 +320,18 @@ make_format_chooser_for_selection table cache =
         if real_columns.length == 0 then [Value_Type.Mixed] else real_columns.map .value_type
     make_format_chooser_for_type types
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a format chooser for a parse function.
 make_format_chooser_for_parse table cache =
     _ = table
     value_type = cache.if_not_nothing <| cache "type"
     make_format_chooser_for_type (value_type.if_nothing Value_Type.Mixed)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make format selector based off value type
 make_format_chooser_for_type : Value_Type | Vector -> Widget
 make_format_chooser_for_type value_types =
@@ -306,7 +343,9 @@ make_format_chooser_for_type value_types =
     include_boolean   = vector.any value_type-> value_type.is_boolean || value_type==Value_Type.Mixed
     make_format_chooser include_number include_date include_date_time include_time include_boolean
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make value type selector for type filtering
 make_value_type_vector_selector : Widget
 make_value_type_vector_selector =
@@ -315,7 +354,9 @@ make_value_type_vector_selector =
     item_editor = Single_Choice display=Display.Always values=options
     Vector_Editor item_editor=item_editor item_default="..Boolean" display=Display.Always
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Make a replace builder.
 make_replace_selector : Display -> Widget
 make_replace_selector display:Display=..Always =
@@ -326,49 +367,66 @@ make_replace_selector display:Display=..Always =
     item_editor = Single_Choice display=Display.Always values=[name]
     Vector_Editor item_editor=item_editor item_default="(Pair.Value 'Current' 'New')" display=display
 
-## PRVIATE
-   Make widget for choosing whether or not to ignore length differences in
-   columns and tables. The `Report_Unmatched` option additionally requests a
+## PRVIATE Make widget for choosing whether or not to ignore length differences
+   in columns and tables. The `Report_Unmatched` option additionally requests a
    warning or error on such length differences.
 make_keep_unmatched_selector =
     make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Types_To_Include
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value types:Vector
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Are there any number columns?
     number self = self.types.any value_type-> value_type.is_numeric || value_type==Value_Type.Mixed
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Are there any boolean columns?
     boolean self = self.types.any value_type-> value_type.is_boolean || value_type==Value_Type.Mixed
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Are there any text columns?
     text self = self.types.any value_type-> value_type.is_text || value_type==Value_Type.Mixed
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Are there any date columns?
     date self = self.types.any value_type-> value_type.is_date || value_type==Value_Type.Mixed
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Are there any time columns?
     time self = self.types.any value_type-> value_type.is_time || value_type==Value_Type.Mixed
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Are there any date_time columns?
     date_time self = self.types.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _get_column_value_type table cache parameter:Text="column" default:Value_Type=Value_Type.Mixed =
     raw_column = cache.if_not_nothing <| cache parameter
     column = case raw_column of
@@ -379,8 +437,11 @@ private _get_column_value_type table cache parameter:Text="column" default:Value
     Panic.catch Any handler=_->default <|
         if Nothing == column then default else column.value_type
 
-## PRIVATE
-   Treat Value_Type as if it could be any type (i.e. include all constants and types).
+## ---
+   private: true
+   ---
+   Treat Value_Type as if it could be any type (i.e. include all constants and
+   types).
 private _include_all value_type:Value_Type -> Boolean =
     case value_type of
         Value_Type.Mixed -> True

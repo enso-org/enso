@@ -1,6 +1,6 @@
 [
 {
-  "name":"org.enso.jvm.interop.OtherJvmPool",
+  "name":"org.enso.jvm.interop.impl.OtherJvmPool",
   "queryAllPublicMethods":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
 }

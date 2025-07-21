@@ -1,4 +1,4 @@
-package org.enso.jvm.interop;
+package org.enso.jvm.interop.impl;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -18,9 +18,15 @@ final class OtherJvmObject implements TruffleObject {
   /** special message */
   private static final Message HAS_LANGUAGE = Message.resolve(InteropLibrary.class, "hasLanguage");
 
+  private static final Message GET_LANGUAGE = Message.resolve(InteropLibrary.class, "getLanguage");
+
   private static final Message IS_IDENTICAL_OR_UNDEFINED =
       Message.resolve(InteropLibrary.class, "isIdenticalOrUndefined");
   private static final Message IS_IDENTICAL = Message.resolve(InteropLibrary.class, "isIdentical");
+  private static final Message HAS_SOURCE_LOCATION =
+      Message.resolve(InteropLibrary.class, "hasSourceLocation");
+  private static final Message GET_SOURCE_LOCATION =
+      Message.resolve(InteropLibrary.class, "getSourceLocation");
 
   private final Channel<OtherJvmPool> channel;
   private final long id;
@@ -51,6 +57,9 @@ final class OtherJvmObject implements TruffleObject {
     }
     if (message.getLibraryClass() != InteropLibrary.class
         || HAS_LANGUAGE == message
+        || GET_LANGUAGE == message
+        || HAS_SOURCE_LOCATION == message
+        || GET_SOURCE_LOCATION == message
         || IS_IDENTICAL_OR_UNDEFINED == message) {
       // we need to invoke default implementation of library
       // to handle the message in a proper way
