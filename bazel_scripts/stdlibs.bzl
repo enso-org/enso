@@ -5,6 +5,7 @@ STDLIB_NAMES = [
     "Examples",
     "Generic_JDBC",
     "Geo",
+    "Google",
     "Google_Api",
     "Image",
     "Microsoft",
