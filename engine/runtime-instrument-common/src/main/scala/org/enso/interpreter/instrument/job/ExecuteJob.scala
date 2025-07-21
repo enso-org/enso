@@ -22,7 +22,7 @@ class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
   val executionEnvironment: Option[Api.ExecutionEnvironment],
-  val visualizationTriggered: Boolean = false
+  val visualizationTriggered: Option[UUID] = None
 ) extends Job[Unit](
       List(contextId),
       isCancellable = executionEnvironment.forall(ee =>
@@ -160,7 +160,7 @@ class ExecuteJob(
   }
 
   override def toString(): String = {
-    s"ExecuteJob(contextId=$contextId, jobId=${_jobId})"
+    s"ExecuteJob(contextId=$contextId, jobId=${_jobId}, triggeredByVisualization=${visualizationTriggered})"
   }
 
 }
@@ -177,7 +177,7 @@ object ExecuteJob {
     */
   def apply(
     executable: Executable,
-    visualizationTriggered: Boolean = false
+    visualizationTriggered: Option[UUID] = None
   ): ExecuteJob =
     new ExecuteJob(
       executable.contextId,
