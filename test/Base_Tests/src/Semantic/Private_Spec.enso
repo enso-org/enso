@@ -55,9 +55,10 @@ add_specs spec_builder =
             obj = Public_Type.create 42
             js_access_field_via_getter obj . should_equal 42
 
-        group_builder.specify "cannot call private constructor from Java" <|
+        group_builder.specify "can get reference to private constructor, and call it from Java" <|
             cons_fn data = Public_Type.cons data
-            Test.expect_panic Private_Access <| CallbackHelper.runCallbackInt cons_fn 42
+            res = CallbackHelper.runCallbackInt cons_fn 42
+            res.is_nothing . should_be_false
 
         group_builder.specify "can transitively call private constructor from a lambda method" <|
             obj = Public_Type.in_ctx <|
