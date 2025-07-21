@@ -683,13 +683,6 @@ private object DefaultPackageRepository {
     builtins: Builtins,
     notificationHandler: NotificationHandler
   ): DefaultPackageRepository = {
-    val logger         = LoggerFactory.getLogger(classOf[DefaultPackageRepository])
-    logger.trace(
-      "initializeRepository: projectPackage={}, languageHome={}, editionOverride={}",
-      projectPackage,
-      languageHome,
-      editionOverride
-    )
     val rawEdition = editionOverride
       .map(v => Editions.Raw.Edition(parent = Some(v)))
       .orElse(
@@ -700,6 +693,7 @@ private object DefaultPackageRepository {
 
     val homeManager    = languageHome.map { home => LanguageHome(Path.of(home)) }
     val editionManager = EditionManager(distributionManager, homeManager)
+    val logger         = LoggerFactory.getLogger(classOf[DefaultPackageRepository])
     val edition = editionManager
       .resolveEdition(rawEdition)
       .transform(
@@ -719,7 +713,6 @@ private object DefaultPackageRepository {
         "Failed to resolve original edition. Fallback failed. Aborting",
         err
       )
-      err.printStackTrace(System.err)
     }
 
     val projectRoot = projectPackage.map { pkg =>
