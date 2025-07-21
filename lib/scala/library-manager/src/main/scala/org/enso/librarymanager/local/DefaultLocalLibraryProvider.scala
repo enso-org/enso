@@ -89,13 +89,13 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
               false
             case Success(pkg) => {
               if (checkAot && !pkg.isAotReady()) {
-                logger.warn(
-                  "Candidate library {} at [{}] may not be AOT ready! Use --jvm option when encoutering problems.",
-                  pkg.libraryName,
-                  MaskedPath(potentialPath).applyMasking()
-                )
-                // avoid repeated warnings
-                pkg.markAotReady()
+                pkg.warnAotReady(() => {
+                  logger.warn(
+                    "Candidate library {} at [{}] may not be AOT ready! Use --jvm option when encoutering problems.",
+                    pkg.libraryName,
+                    MaskedPath(potentialPath).applyMasking()
+                  )
+                })
                 false
               } else {
                 pkg.libraryName == libraryName

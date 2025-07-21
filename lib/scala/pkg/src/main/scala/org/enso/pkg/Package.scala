@@ -70,8 +70,20 @@ final class Package[F](
     }
   }
 
+  /** Marks library as AOT ready. Can only be called during image build time.
+    * Otherwise it throws `IllegalStateException`
+    */
   final def markAotReady() = {
     PackageUtils.markAotReady(getConfig())
+  }
+
+  /** Returns true, if one should print a warning about the library not being
+    * AOT ready.
+    */
+  final def warnAotReady(warn: () => Unit): Unit = {
+    if (!PackageUtils.warnAotReady(getConfig())) {
+      warn()
+    }
   }
 
   /** Reloads the config from file system */

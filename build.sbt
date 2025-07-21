@@ -699,12 +699,15 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
-      "io.circe"          %% "circe-core"       % circeVersion     % "provided",
-      "org.yaml"           % "snakeyaml"        % snakeyamlVersion % "provided",
-      "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
+      "org.graalvm.sdk"    % "nativeimage"      % graalMavenPackagesVersion % "provided",
+      "io.circe"          %% "circe-core"       % circeVersion              % "provided",
+      "org.yaml"           % "snakeyaml"        % snakeyamlVersion          % "provided",
+      "org.scalatest"     %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion
     ),
     Compile / moduleDependencies ++= Seq(
+      "org.graalvm.sdk"    % "word"             % graalMavenPackagesVersion,
+      "org.graalvm.sdk"    % "nativeimage"      % graalMavenPackagesVersion,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion,
       "org.yaml"           % "snakeyaml"        % snakeyamlVersion
     ),
