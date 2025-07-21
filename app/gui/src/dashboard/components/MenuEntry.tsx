@@ -30,6 +30,7 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
 })
 
 /** Get {@link text.TextId} for given shortcut action. */
+// All entries are intentionally hard-coded so that `Ctrl+F` will work.
 // eslint-disable-next-line react-refresh/only-export-components
 export const ACTION_TO_TEXT_ID: Readonly<
   Record<
