@@ -9,44 +9,56 @@ from project.Internal.Storage import java_to_enso
 
 ## Represents a single row of some in-memory Table.
 type Row
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value java_row
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Access the index
     index : Integer
     index self = self.java_row.index
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the set of column column_names
     column_names : Vector Text
     column_names self =
         Vector.from_polyglot_array self.java_row.column_names
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the number of columns in the table.
     length : Integer
     length self = self.java_row.column_count
 
-    ## ICON parse3
+    ## ---
+       icon: parse3
+       ---
        Gets the value of the specified column.
 
-       Arguments:
-       - column: The name or index of the column being looked up.
-       - if_missing: The value to use if the column isn't present.
+       ## Arguments
+        - `column`: The name or index of the column being looked up.
+        - `if_missing`: The value to use if the column isn't present.
     @column (self -> Widget_Helpers.make_column_name_selector self)
     get : (Integer | Text) -> Any -> Any
     get self (column:(Integer | Text)=0) ~if_missing=Nothing =
         java_to_enso <| self.java_row.get_value column _->if_missing
 
-    ## GROUP Standard.Base.Selections
-       ICON parse3
+    ## ---
+       group: Standard.Base.Selections
+       icon: parse3
+       ---
        Gets the value of the specified column.
 
-       Arguments:
-       - column: The name or index of the column being looked up.
+       ## Arguments
+        - `column`: The name or index of the column being looked up.
     @column (self -> Widget_Helpers.make_column_name_selector self)
     at : (Integer | Text) -> Any
     at self (column:(Integer | Text)=0) =
@@ -55,44 +67,60 @@ type Row
             _:Text -> Error.throw (No_Such_Column.Error column)
         java_to_enso <| self.java_row.get_value column if_missing
 
-    ## GROUP Standard.Base.Conversions
-       ICON convert
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Gets the row as a Vector.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
 
-    ## GROUP Standard.Base.Conversions
-       ICON convert
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Gets the row as a Dictionary.
     to_dictionary : Dictionary
     to_dictionary self =
         pairs = self.column_names.map n-> [n, self.get n]
         Dictionary.from_vector pairs
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts this row into a JS_Object.
     to_js_object : JS_Object
     to_js_object self =
         pairs = self.column_names.map n-> [n, self.get n]
         JS_Object.from_pairs pairs
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Conversion method to a Column to a Vector.
 Vector.from (that:Row) = that.to_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Row_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compare : Row -> Row -> (Ordering|Nothing)
     compare obj1 obj2 =
         if (obj1.java_row.table.equals obj2.java_row.table) && (obj1.index == obj2.index) then Ordering.Equal else Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash : Row -> Integer
     hash obj =
         table_hash = obj.java_row.table.hashCode
         index_hash = obj.index.hashCode
         (53 * table_hash + 31 * index_hash)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that:Row) = Comparable.new that Row_Comparator

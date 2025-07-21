@@ -239,8 +239,8 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  int getExceptionExitStatus() {
-    return 1;
+  int getExceptionExitStatus() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage

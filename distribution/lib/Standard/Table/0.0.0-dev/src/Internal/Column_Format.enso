@@ -8,7 +8,9 @@ import project.Value_Type.Value_Type
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.time.temporal.UnsupportedTemporalTypeException
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Create a formatter for the specified `Value_Type`.
 make_value_formatter_for_value_type : Value_Type -> Locale -> (Text | Date_Time_Formatter | Nothing -> Any -> Text)
 make_value_formatter_for_value_type value_type locale = case value_type of
@@ -22,7 +24,9 @@ make_value_formatter_for_value_type value_type locale = case value_type of
         msg = "Cannot format a Column of type " + bad_type.to_text
         Error.throw (Illegal_Argument.Error msg)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Create a formatter for the given format string.
    The `value` parameter has to have a `format` method that takes a format and
    locale.
@@ -32,7 +36,9 @@ make_value_formatter locale (format : Text | Nothing) =
         value->
             handle_illegal_argument_exception format <|
                 value.format format locale
-## PRIVATE
+## ---
+   private: true
+   ---
    Create a `Boolean` formatter that takes the format string as the second
    parameter.
 make_boolean_formatter : Text | Nothing -> (Text -> Boolean -> Text)
@@ -41,7 +47,9 @@ make_boolean_formatter (format : Text | Nothing) =
         data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
         bool -> data_formatter.format bool
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_datetime_formatter : Locale -> Text | Date_Time_Formatter | Nothing -> (Any -> Text)
 make_datetime_formatter (locale_override : Locale) (format : Text | Date_Time_Formatter | Nothing) =
     use_default = format.is_nothing || (format == "")
@@ -52,7 +60,9 @@ make_datetime_formatter (locale_override : Locale) (format : Text | Date_Time_Fo
         formatter_with_updated_locale = if locale_override == Locale.default then effective_formatter else effective_formatter.with_locale locale_override
         date_time_value -> date_time_value.format formatter_with_updated_locale
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Rethrow a Java IllegalArgumentException as an Illegal_Argument.
 handle_illegal_argument_exception : Text -> Any -> Any
 handle_illegal_argument_exception format_string ~action =

@@ -645,10 +645,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath =
-      body.filePath ??
-      // The non-standard `path` property is defined in Electron.
-      ('path' in file && typeof file.path === 'string' && file.path !== '' ? file.path : null)
+    const sourcePath = body.filePath ?? window.systemApi?.getFilePath(file)
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],

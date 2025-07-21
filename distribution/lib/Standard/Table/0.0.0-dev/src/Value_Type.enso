@@ -16,14 +16,18 @@ type Bits
     ## 64-bit (8 byte) value
     Bits_64
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_integer : Integer
     to_integer self = case self of
         Bits.Bits_16 -> 16
         Bits.Bits_32 -> 32
         Bits.Bits_64 -> 64
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     from_integer : Integer -> Bits
     from_integer bits = case bits of
         16 -> Bits.Bits_16
@@ -31,178 +35,180 @@ type Bits
         64 -> Bits.Bits_64
         _ : Integer -> Error.throw (Illegal_Argument.Error "Invalid number of bits for a float or integer type.")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the text representation of the bit-size.
     to_text : Text
     to_text self = self.to_integer.to_text + " bits"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Bits_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compare : Bits -> Bits -> Ordering
     compare x y = Ordering.compare x.to_integer y.to_integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash : Bits -> Integer
     hash x = Ordering.hash x.to_integer
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that:Bits) = Comparable.new that Bits_Comparator
 
 ## Represents the different possible types of values within Table columns.
-
    The types are tailored to correspond to RDBMS types, but they are also used
    with our in-memory backend.
 type Value_Type
     ## Boolean or Bit value: 0 or 1.
-
        ANSI SQL: BIT / BOOLEAN
     Boolean
 
-    ## Integer value: 0 to 255
-
-       ANSI SQL: TINYINT
+    ## Integer value: 0 to 255 ANSI SQL: TINYINT
     Byte
 
     ## Integer value:
+       - 16-bit: -32,768 to 32,767
+       - 32-bit: -2,147,483,648 to -2,147,483,648
+       - 64-bit: -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+       - ANSI SQL: SMALLINT (16-bit), INT (32-bit), BIGINT (64-bit)
 
-       16-bit: -32,768 to 32,767
-       32-bit: -2,147,483,648 to -2,147,483,648
-       64-bit: -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
-       ANSI SQL: SMALLINT (16-bit), INT (32-bit), BIGINT (64-bit)
-
-       Arguments:
-       - size: the amount of bits used to store the values.
+       ## Arguments
+        - `size`: the amount of bits used to store the values.
     Integer size:Bits=Bits.Bits_64
 
     ## Floating point value.
-
        ANSI SQL: REAL, FLOAT, DOUBLE
 
-       Arguments:
-       - size: the amount of bits used to store the values.
+       ## Arguments
+        - `size`: the amount of bits used to store the values.
     Float size:Bits=Bits.Bits_64
 
     ## Arbitrary precision numerical value with a scale and precision.
-
        ANSI SQL: NUMERIC, DECIMAL
 
-       Arguments:
-       - precision: the total number of digits in the number.
-       - scale: the number of digits after the decimal point.
+       ## Arguments
+        - `precision`: the total number of digits in the number.
+        - `scale`: the number of digits after the decimal point.
     Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=Nothing
 
     ## Character string.
+       ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB,
+       NCLOB
 
-       ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB, NCLOB
+       ## Arguments
+        - `size`: the maximum number of characters that can be stored in the
+          column. It can be nothing to indicate no limit. It cannot be 0.
+        - `variable_length`: whether the size is a maximum or a fixed length. A
+          fixed length string must have a non-nothing size.
 
-       ! Counting Characters
+       ## Remarks
 
-         Note that different backends may count the text in different ways.
-         The in-memory backend treats a single grapheme cluster (e.g. 💡) as a
-         single character unit. In most database systems more complex grapheme
-         clusters may be counted as multiple characters. So there isn't a 1-1
-         correspondence between these limits across backends which may cause
-         strings to be truncated if they contain such characters and are close
-         to the limit.
-
-       Arguments:
-       - size: the maximum number of characters that can be stored in the
-         column. It can be nothing to indicate no limit. It cannot be 0.
-       - variable_length: whether the size is a maximum or a fixed length.
-         A fixed length string must have a non-nothing size.
+       ### Counting Characters
+       Note that different backends may count the text in different ways.
+       The in-memory backend treats a single grapheme cluster (e.g. 💡) as a
+       single character unit. In most database systems more complex grapheme
+       clusters may be counted as multiple characters. So there isn't a 1-1
+       correspondence between these limits across backends which may cause
+       strings to be truncated if they contain such characters and are close to
+       the limit.
     Char (size : (Positive_Integer | Nothing) = Nothing) variable_length:Boolean=True
 
-    ## Date
-
-       ANSI SQL: DATE
+    ## Date ANSI SQL: DATE
     Date
 
-    ## Date and Time
+    ## Date and Time ANSI SQL: TIMESTAMP / DateTime
 
-       ANSI SQL: TIMESTAMP / DateTime
-
-       Arguments:
-       - with_timezone: whether the values contain the timezone.
+       ## Arguments
+        - `with_timezone`: whether the values contain the timezone.
     Date_Time with_timezone:Boolean=True
 
-    ## Time of day
-
-       ANSI SQL: TIME, TIME WITHOUT TIME ZONE
+    ## Time of day ANSI SQL: TIME, TIME WITHOUT TIME ZONE
     Time
 
     ## Binary data.
-
        ANSI SQL: BINARY, VARBINARY, LONGVARBINARY, BLOB
 
-       Arguments:
-       - size: the maximum number of bytes that can be stored in the
-         column.
-       - variable_length: whether the size is a maximum or a fixed length.
+       ## Arguments
+        - `size`: the maximum number of bytes that can be stored in the column.
+        - `variable_length`: whether the size is a maximum or a fixed length.
     Binary size:(Integer|Nothing)=Nothing variable_length:Boolean=False
 
     ## Unsupported SQL type.
-
-       Fallback provided to allow describing types that are not supported by
-       Enso at this time.
+       Fallback provided to allow describing types that are not supported by Enso
+       at this time.
     Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:Any|Nothing=Nothing)
 
     ## A mix of values can be stored in the Column.
-
        In-Memory and SQLite tables support this.
     Mixed
 
     ## A special type indicating no values present.
+       It can be used when a column does not have any values, so no proper type
+       could be inferred for it. Columns of this type cannot hold any values
+       other than `Nothing`.  Because the column with type `Null` contains no
+       values, it can be used in  any operation.
 
-       It can be used when a column does not have any values, so no proper type 
-       could be inferred for it. Columns of this type cannot hold any values 
-       other than `Nothing`. 
+       ## Remarks
 
-       Because the column with type `Null` contains no values, it can be used in 
-       any operation.
-
-       ? Implementation Note
-
-         The `is_*` methods will return `False` for this type, as they require 
-         more precision. E.g. `Value_Type.Null.is_boolean` will return `False`. 
-         However, the sibling `expect_*` methods will accept a `Value_Type.Null` 
-         column.
+       ### Implementation Note
+       The `is_*` methods will return `False` for this type, as they require
+       more precision. E.g. `Value_Type.Null.is_boolean` will return `False`.
+       However, the sibling `expect_*` methods will accept a `Value_Type.Null`
+       column.
     Null
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a null type.
     is_null : Boolean
     is_null self = case self of
         Value_Type.Null -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a boolean type.
     is_boolean : Boolean
     is_boolean self = case self of
         Value_Type.Boolean -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a floating-point number type.
     is_floating_point : Boolean
     is_floating_point self = case self of
         Value_Type.Float _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a text type.
     is_text : Boolean
     is_text self = case self of
         Value_Type.Char _ _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents any numeric type - integer, byte,
        floating point or decimal.
     is_numeric : Boolean
@@ -213,58 +219,71 @@ type Value_Type
         Value_Type.Decimal _ _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents an integer type.
     is_integer : Boolean
     is_integer self = case self of
         Value_Type.Integer _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a decimal type.
     is_decimal : Boolean
     is_decimal self = case self of
         Value_Type.Decimal _ _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a Date type.
     is_date : Boolean
     is_date self = case self of
         Value_Type.Date -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a Time type.
     is_time : Boolean
     is_time self = case self of
         Value_Type.Time -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a Mixed type.
     is_mixed : Boolean
     is_mixed self = case self of
         Value_Type.Mixed -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a Date_Time type.
     is_date_time : Boolean
     is_date_time self = case self of
         Value_Type.Date_Time _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a type that holds a date.
-
        It will return true for both `Date` and `Date_Time` types.
     has_date : Boolean
     has_date self = case self of
@@ -272,10 +291,11 @@ type Value_Type
         Value_Type.Date_Time _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a type that holds a time of day.
-
        It will return true for both `Time_Of_Day` and `Date_Time` types.
     has_time : Boolean
     has_time self = case self of
@@ -283,8 +303,10 @@ type Value_Type
         Value_Type.Date_Time _ -> True
         _ -> False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the `Value_Type` represents a date/time type.
     is_date_or_time : Boolean
     is_date_or_time self = case self of
@@ -293,7 +315,9 @@ type Value_Type
         Value_Type.Time -> True
         _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies if values of the given type can be compared for ordering.
     has_ordering : Boolean
     has_ordering self = case self of
@@ -312,14 +336,15 @@ type Value_Type
         Value_Type.Mixed -> True
         _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if this type can be widened to the provided type.
-
-       The widening is permitted if the target type is in a way 'larger' than
-       the source type, so that there is no loss of information. In practice,
-       there are cases where widening can still lose information - notably
-       integers can be widened into floats and big enough integers may not be
-       able to be exactly represented in floats.
+       The widening is permitted if the target type is in a way 'larger' than the
+       source type, so that there is no loss of information. In practice, there
+       are cases where widening can still lose information - notably integers can
+       be widened into floats and big enough integers may not be able to be
+       exactly represented in floats.
     can_be_widened_to : Value_Type -> Boolean
     can_be_widened_to self target_type = if (self == target_type) || (target_type == Value_Type.Mixed) || (self == Value_Type.Null) then True else case self of
         Value_Type.Integer self_bits -> case target_type of
@@ -363,7 +388,9 @@ type Value_Type
             _ -> False
         _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies if values of the given type can be compared for ordering.
     are_comparable : Value_Type -> Value_Type -> Boolean
     are_comparable type_1 type_2 =
@@ -383,7 +410,9 @@ type Value_Type
                     bucket_1 == bucket_2
 
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks that both arguments can be compared for ordering and runs the
        following action or reports an error.
     expect_comparable : Any -> Any -> Any -> Any ! Invalid_Value_Type
@@ -395,64 +424,79 @@ type Value_Type
                 if type_2.is_nothing.not && (Value_Type.are_comparable type_1 type_2 . not) then Error.throw (Invalid_Value_Type.Incomparable type_1 type_2) else
                     action
 
-    ## PRIVATE
-       ADVANCED
-       Checks if the provided argument (which may be a value or a Column) is of
-       a text type and runs the following action or reports a type error.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Checks if the provided argument (which may be a value or a Column) is of a
+       text type and runs the following action or reports a type error.
     expect_text : Any -> Any -> Any ! Invalid_Value_Type
     expect_text argument ~action =
         Value_Type.expect_type argument .is_text "Char" action
 
-    ## PRIVATE
-       ADVANCED
-       Checks if the provided argument (which may be a value or a Column) is of
-       a text type and runs the following action or reports a type error.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Checks if the provided argument (which may be a value or a Column) is of a
+       text type and runs the following action or reports a type error.
     expect_boolean : Any -> Any -> Any ! Invalid_Value_Type
     expect_boolean argument ~action =
         Value_Type.expect_type argument .is_boolean Value_Type.Boolean action
 
-    ## PRIVATE
-       ADVANCED
-       Checks if the provided argument (which may be a value or a Column) is of
-       a numeric type and runs the following action or reports a type error.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Checks if the provided argument (which may be a value or a Column) is of a
+       numeric type and runs the following action or reports a type error.
     expect_numeric : Any -> Any -> Any ! Invalid_Value_Type
     expect_numeric argument ~action =
         Value_Type.expect_type argument .is_numeric "a numeric" action
 
-    ## PRIVATE
-       ADVANCED
-       Checks if the provided argument (which may be a value or a Column) is of
-       a floating point type and runs the following action or reports a type
-       error.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Checks if the provided argument (which may be a value or a Column) is of a
+       floating point type and runs the following action or reports a type error.
     expect_floating_point : Any -> Any -> Any ! Invalid_Value_Type
     expect_floating_point argument ~action =
         Value_Type.expect_type argument .is_floating_point "Float" action
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Checks if the provided argument (which may be a value or a Column) is of
        an integer type and runs the following action or reports a type error.
     expect_integer : Any -> Any -> Any ! Invalid_Value_Type
     expect_integer argument ~action =
         Value_Type.expect_type argument .is_integer "Integer" action
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Checks if the provided argument (which may be a value or a Column) has
        type `Date` or `Date_Time`.
     expect_has_date : Any -> Any -> Any ! Invalid_Value_Type
     expect_has_date argument ~action =
         Value_Type.expect_type argument .has_date "Date or Date_Time" action
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Checks if the provided argument (which may be a value or a Column) has
        type `Time_Of_Day` or `Date_Time`.
     expect_has_time : Any -> Any -> Any ! Invalid_Value_Type
     expect_has_time argument ~action =
         Value_Type.expect_type argument .has_time "Time_Of_Day or Date_Time" action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper for generating the `Value_Type.expect_` checks.
     expect_type : Any -> (Value_Type -> Boolean) -> Text|Value_Type -> Any -> Any ! Invalid_Value_Type
     expect_type value predicate type_kind ~action =
@@ -460,9 +504,11 @@ type Value_Type
         if (typ == Value_Type.Null) || predicate typ then action else
             Value_Type_Helpers.raise_unexpected_type type_kind value
 
-    ## PRIVATE
-       Provides a text representation of the `Value_Type` meant for
-       displaying to the user.
+    ## ---
+       private: true
+       ---
+       Provides a text representation of the `Value_Type` meant for displaying to
+       the user.
     to_display_text : Text
     to_display_text self = case self of
         Value_Type.Boolean -> "Boolean"
@@ -495,7 +541,9 @@ type Value_Type
         Value_Type.Mixed -> "Mixed"
         Value_Type.Null -> "Null"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides a JS object representation for use in visualizations.
     to_js_object : JS_Object
     to_js_object self =
@@ -518,14 +566,18 @@ type Value_Type
         JS_Object.from_pairs <|
             [["type", "Value_Type"], ["constructor", constructor_name], ["display_text", display_text_value]] + additional_fields
 
-    ## PRIVATE
-       Provides the constructor name 
+    ## ---
+       private: true
+       ---
+       Provides the constructor name
     to_name : Text
     to_name self = 
         Meta.meta self . constructor . name
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Check if the same type of value ignoring size, precision and scale.
     is_same_type : Value_Type -> Boolean
     is_same_type self other:Value_Type =
@@ -535,7 +587,6 @@ type Value_Type
 
 ## The type representing inferring the column type automatically based on values
    present in the column.
-
    The most specific type which is valid for all values in a column is chosen:
    - if all values are integers, `Integer` is chosen,
    - if all values are decimals or integers, `Decimal` is chosen,
@@ -548,10 +599,13 @@ type Value_Type
 type Auto
 
 ## The type representing the column type being explicitly selected by the user.
-   Arguments:
-   - type: The type of columns to select.
+
+   ## Arguments
+    - `type`: The type of columns to select.
 type By_Type
-    ## The type representing the column type being explicitly selected by the user.
-       Arguments:
-       - type: The type of columns to select.
+    ## The type representing the column type being explicitly selected by the
+       user.
+
+       ## Arguments
+        - `type`: The type of columns to select.
     By_Type type:Value_Type
