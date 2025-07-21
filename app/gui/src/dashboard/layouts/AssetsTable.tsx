@@ -193,16 +193,19 @@ function AssetsTable(props: AssetsTableProps) {
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
   const rightPanel = useRightPanelData()
 
+  const allowedColumns = useMemo(
+    () => getColumnList(user, backend.type, category, query.query !== ''),
+    [backend.type, category, query.query],
+  )
+
   const columns = useMemo(
-    () =>
-      getColumnList(user, backend.type, category).filter((column) => enabledColumns.has(column)),
-    [backend.type, category, enabledColumns, user],
+    () => allowedColumns.filter((column) => enabledColumns.has(column)),
+    [allowedColumns, enabledColumns],
   )
 
   const hiddenColumns = useMemo(
-    () =>
-      getColumnList(user, backend.type, category).filter((column) => !enabledColumns.has(column)),
-    [backend.type, category, enabledColumns, user],
+    () => allowedColumns.filter((column) => !enabledColumns.has(column)),
+    [allowedColumns, enabledColumns],
   )
 
   const [sortInfo, setSortInfo] = useState<SortInfo<AssetSortExpression> | null>(null)
@@ -321,7 +324,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [fetchNextAssetPage, assetsPages.data?.pages])
 
-  const { visibleItems } = useAssetsTableItems({ parentId: currentDirectoryId, assets, sortInfo })
+  const { visibleItems } = useAssetsTableItems({ parentId: currentDirectoryId, assets })
 
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)

@@ -294,26 +294,35 @@ export default class LocalBackend extends Backend {
     return result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
   }
 
-  /**
-   * Recursively search for assets in a directory.
-   * @throws Always.
-   */
+  /** Recursively search for assets in a directory. */
   override async searchDirectory(
     query: backend.SearchDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
-    const assets = await this.listDirectory({
-      parentId: query.parentId,
-      filterBy: null,
-      labels: query.labels,
-      sortDirection: query.sortDirection,
-      sortExpression: query.sortExpression,
-      recentProjects: false,
-      from: null,
-      pageSize: null,
-    })
-    const result = assets.filter(backend.doesAssetMatchQuery(query))
-    const index = query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from) + 1
-    return result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
+    const assets: backend.AnyRealAsset[] = []
+    const isMatch = backend.doesAssetMatchQuery(query)
+    let parentIdQueue = [query.parentId]
+    while (true) {
+      const parentId = parentIdQueue.shift()
+      if (parentId == null) break
+      const newAssets = await this.listDirectory({
+        parentId,
+        filterBy: null,
+        labels: query.labels,
+        sortDirection: query.sortDirection,
+        sortExpression: query.sortExpression,
+        recentProjects: false,
+        from: null,
+        pageSize: null,
+      })
+      assets.push(...newAssets.filter(isMatch))
+      parentIdQueue.push(
+        ...newAssets.flatMap((asset) =>
+          asset.type === backend.AssetType.directory ? [asset.id] : [],
+        ),
+      )
+    }
+    const index = query.from == null ? 0 : assets.findIndex((asset) => asset.id === query.from) + 1
+    return assets.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
   }
 
   /**
