@@ -72,3 +72,4 @@ jobs:
           name: built_distribution
           path: ${{ steps.get_bazel_output.outputs.location }}
           if-no-files-found: error
+          include-hidden-files: 'true'
