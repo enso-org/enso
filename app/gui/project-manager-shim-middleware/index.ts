@@ -162,14 +162,14 @@ export default function projectManagerShimMiddleware(
         https.get(downloadUrl, (actualResponse) => {
           const projectsDirectory = projectManagement.getProjectsDirectory()
           const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-          const targetDirectory = path.join(parentDirectory, 'project_root')
+          const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
-          fs.mkdir(targetDirectory, { recursive: true })
-            .then(() => projectManagement.unpackBundle(actualResponse, targetDirectory))
+          fs.mkdir(projectRootDirectory, { recursive: true })
+            .then(() => projectManagement.unpackBundle(actualResponse, projectRootDirectory))
             .then(() => {
               response
                 .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(JSON.stringify({ targetDirectory, parentDirectory }))
+                .end(JSON.stringify({ parentDirectory, projectRootDirectory }))
             })
             .catch((e) => {
               console.error(e)
@@ -188,14 +188,15 @@ export default function projectManagerShimMiddleware(
       }
       case '/api/cloud/get-project-archive': {
         const url = new URL(`https://example.com/${requestUrl}`)
-        const projectDir = url.searchParams.get('directory')
+        const parentDir = url.searchParams.get('directory')
 
-        if (projectDir == null) {
+        if (parentDir == null) {
           response
             .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
             .end('Request is missing search parameter `directory`.')
           break
         }
+        const projectDir = path.join(parentDir, 'project_root')
 
         projectManagement
           .createBundle(projectDir)
