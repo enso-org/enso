@@ -3605,6 +3605,18 @@ lazy val `engine-runner` = project
         "-m",
         "org.enso.runner/org.enso.runner.Main"
       )
+    },
+    // For an unknown reason, `Runtime / javaOptions` are appended to `Test / javaOptions`.
+    // So we explicitly need to remove the main module option `-m`
+    Test / javaOptions := {
+      val oldVal = (Test / javaOptions).value
+      val idx    = oldVal.indexOf("-m")
+      if (idx == -1) {
+        throw new IllegalStateException(
+          "Expected -m option in Test / javaOptions"
+        )
+      }
+      oldVal.take(idx) ++ oldVal.drop(idx + 2)
     }
   )
   .settings(
