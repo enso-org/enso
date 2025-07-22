@@ -4,7 +4,7 @@
     - Start_And_Width start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
     - Width width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
 - type Fixed_Width_Format
-    - Fixed_Width layout:(Standard.Table.Fixed_Width.Fixed_Width_Format.Infer_Layout|Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout)= encoding:Standard.Base.Data.Text.Encoding.Encoding= skip_rows:Standard.Base.Data.Numbers.Integer= row_limit:Standard.Table.Rows_To_Read.Rows_To_Read= on_invalid_rows:Standard.Table.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows= on_empty_field:Standard.Table.Fixed_Width.On_Empty_Field.On_Empty_Field= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)=
+    - Fixed_Width layout:(Standard.Table.Fixed_Width.Fixed_Width_Format.Infer_Layout|Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout|Standard.Base.Data.Vector.Vector|Standard.Table.Table.Table|Standard.Table.Column.Column)= encoding:Standard.Base.Data.Text.Encoding.Encoding= skip_rows:Standard.Base.Data.Numbers.Integer= row_limit:Standard.Table.Rows_To_Read.Rows_To_Read= on_invalid_rows:Standard.Table.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows= line_endings:(Standard.Base.Data.Text.Line_Ending_Style.Line_Ending_Style|Standard.Base.System.File_Format.Infer|Standard.Base.Data.Text.Line_Ending_Style.Custom_Line_Ending|Standard.Base.Data.Text.Line_Ending_Style.No_Line_Ending)= on_empty_field:Standard.Table.Fixed_Width.On_Empty_Field.On_Empty_Field= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)=
     - for_file_write file:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.Any.Any
     - for_read file:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
     - get_dropdown_options -> Standard.Base.Any.Any
@@ -24,5 +24,6 @@
     - Left
     - Right
     - to_java self -> Standard.Table.Fixed_Width.Fixed_Width_Format.Justification
+- _make_fixed_width_layout_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
 - Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Table.Table.Table -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
 - Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Base.Function.Function -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
