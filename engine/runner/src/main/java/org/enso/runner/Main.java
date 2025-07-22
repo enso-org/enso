@@ -1556,38 +1556,31 @@ public class Main {
         jvm = current;
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
-      if (!shouldLaunchJvm) {
-        if (hasJVMOption) {
-          stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
-        }
-      } else {
-        if (jvm == null) {
-          var javaExe = JavaFinder.findJavaExecutable();
-          if (javaExe == null) {
-            // Try your best if `jvm` mode enabled in a project
-            if (!jvmInProjectEnforced) {
-              throw exitFail("Cannot find java executable");
-            }
-          } else {
-            launchJvm(originalCwdOrNull, line, props, component, javaExe);
-          }
-        } else {
-          var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
+      if (shouldLaunchJvm) {
+        var javaExecutable =
+            jvm != null
+                ? new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile()
+                : JavaFinder.findJavaExecutable();
+        if (javaExecutable != null) {
           launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
+          return;
         }
       }
     }
-
-    if (System.getProperty("java.home") == null) {
-      assert HostEnsoUtils.isAot() : "Otherwise java.home would be defined";
-      var exe = JavaFinder.findJavaExecutable();
-      if (exe != null) {
-        var path = exe.getParentFile().getParentFile().getAbsolutePath();
-        System.setProperty("java.home", path);
-        LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+    if (jvmInProjectEnforced) {
+      throw exitFail("Cannot find java executable to run in JVM mode");
+    } else {
+      if (System.getProperty("java.home") == null) {
+        assert HostEnsoUtils.isAot() : "Otherwise java.home would be defined";
+        var exe = JavaFinder.findJavaExecutable();
+        if (exe != null) {
+          var path = exe.getParentFile().getParentFile().getAbsolutePath();
+          System.setProperty("java.home", path);
+          LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+        }
       }
+      handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
     }
-    handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
   }
 
   final CommandLine preprocessArguments(String... args) {
