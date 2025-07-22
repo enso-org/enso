@@ -17,13 +17,12 @@ public final class MethodNameValidation {
    * @return the normalized name.
    */
   public static String normalize(String name) {
-    if (name.isEmpty()) {
+    var normalizedName = toLowerSnakeCase(name);
+    if (normalizedName.isEmpty()) {
       return DEFAULT_NAME;
+    } else {
+      return normalizedName;
     }
-    if (isAllowedFirstCharacter(Character.toLowerCase(name.charAt(0)))) {
-      return toLowerSnakeCase(name);
-    }
-    return toLowerSnakeCase(DEFAULT_NAME + "_" + name);
   }
 
   /**
@@ -33,6 +32,7 @@ public final class MethodNameValidation {
   public static boolean isAllowedName(String name) {
     return !name.isEmpty()
         && isAllowedFirstCharacter(name.charAt(0))
+        && (name.charAt(0) != CHAR_UNDERSCORE || name.length() > 1)
         && name.chars().allMatch(MethodNameValidation::isAllowedNameCharacter);
   }
 
@@ -47,7 +47,7 @@ public final class MethodNameValidation {
     for (int i = 0; i < chars.length; i++) {
       char current = name.charAt(i);
 
-      if (current == CHAR_UNDERSCORE && previous == CHAR_UNDERSCORE) {
+      if (current == CHAR_UNDERSCORE && previous == CHAR_UNDERSCORE && i != 0) {
         continue;
       }
 
@@ -69,6 +69,10 @@ public final class MethodNameValidation {
       }
     }
 
+    if (result.isEmpty()) {
+      return result.toString();
+    }
+
     char lastChar = result.charAt(result.length() - 1);
     if (lastChar == CHAR_UNDERSCORE) {
       result.setLength(result.length() - 1);
@@ -78,7 +82,7 @@ public final class MethodNameValidation {
   }
 
   private static boolean isAllowedFirstCharacter(int c) {
-    return isLowerCaseAscii(c);
+    return isLowerCaseAscii(c) || c == CHAR_UNDERSCORE;
   }
 
   private static boolean isAllowedNameCharacter(int c) {

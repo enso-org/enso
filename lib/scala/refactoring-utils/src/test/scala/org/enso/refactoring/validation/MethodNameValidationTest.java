@@ -12,7 +12,7 @@ public class MethodNameValidationTest {
   public void isAllowedName() {
     Assert.assertFalse(MethodNameValidation.isAllowedName(""));
     Assert.assertFalse(MethodNameValidation.isAllowedName("@#$"));
-    Assert.assertFalse(MethodNameValidation.isAllowedName("_foo"));
+    Assert.assertFalse(MethodNameValidation.isAllowedName("_"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("42"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("42_foo"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("Foo"));
@@ -23,6 +23,8 @@ public class MethodNameValidationTest {
     Assert.assertTrue(MethodNameValidation.isAllowedName("foo_bar"));
     Assert.assertTrue(MethodNameValidation.isAllowedName("foo_42"));
     Assert.assertTrue(MethodNameValidation.isAllowedName("foo42"));
+    Assert.assertTrue(MethodNameValidation.isAllowedName("_foo"));
+    Assert.assertTrue(MethodNameValidation.isAllowedName("a"));
   }
 
   @Test
@@ -38,10 +40,10 @@ public class MethodNameValidationTest {
     Assert.assertEquals("foo_bar", MethodNameValidation.normalize("foo$_$bar"));
     Assert.assertEquals(MethodNameValidation.DEFAULT_NAME, MethodNameValidation.normalize("!$%"));
     Assert.assertEquals(MethodNameValidation.DEFAULT_NAME, MethodNameValidation.normalize("!_%"));
-    Assert.assertEquals(MethodNameValidation.DEFAULT_NAME + "_foo", MethodNameValidation.normalize("_foo"));
-    Assert.assertEquals(MethodNameValidation.DEFAULT_NAME + "_foo", MethodNameValidation.normalize("__foo"));
-    Assert.assertEquals(MethodNameValidation.DEFAULT_NAME + "_foo", MethodNameValidation.normalize("__foo__"));
-    Assert.assertEquals(MethodNameValidation.DEFAULT_NAME + "_foo", MethodNameValidation.normalize("  foo  "));
+    Assert.assertEquals("_foo", MethodNameValidation.normalize("_foo"));
+    Assert.assertEquals("_foo", MethodNameValidation.normalize("__foo"));
+    Assert.assertEquals("_foo", MethodNameValidation.normalize("__foo__"));
+    Assert.assertEquals("_foo", MethodNameValidation.normalize("  foo  "));
     Assert.assertEquals("foo_bar", MethodNameValidation.normalize("foo bar"));
     Assert.assertEquals("foo42", MethodNameValidation.normalize("foo42"));
     Assert.assertEquals("foo42_bar", MethodNameValidation.normalize("foo42bar"));
