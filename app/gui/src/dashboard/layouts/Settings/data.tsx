@@ -401,7 +401,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 if (v.rebindable === false) {
                   return []
                 } else {
-                  return ACTION_TO_TEXT_ID[k]
+                  return [ACTION_TO_TEXT_ID[k]]
                 }
               })
               return rebindableBindings.map((binding) => context.getText(binding))

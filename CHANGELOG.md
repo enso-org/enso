@@ -106,6 +106,7 @@
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
 - [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 - [Use JAVA_TOOL_OPTIONS env variable to alter JVM arguments][13256]
+- [Check private access at resolution, not on invocation][13392]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
 [12976]: https://github.com/enso-org/enso/pull/12976
@@ -113,6 +114,7 @@
 [12905]: https://github.com/enso-org/enso/pull/12905
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13256]: https://github.com/enso-org/enso/pull/13256
+[13392]: https://github.com/enso-org/enso/pull/13392
 
 # Enso 2025.1
 

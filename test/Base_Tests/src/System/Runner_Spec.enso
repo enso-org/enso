@@ -24,7 +24,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             proj_dir.is_directory . should_be_true
             # The spawned subprocess will try to run the newly created project
             # via a relative path
-            args = [enso_bin, "--run", "Dir1/Dir2/Proj"]
+            args = [enso_bin, "--vm.D", "org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
             proc_bldr = J_ProcessBuilder.new args
             proc_bldr.redirectErrorStream True
             proc_bldr.directory (J_File.new tmp_root.path)
@@ -35,6 +35,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
                 retcode . should_equal 0
+                clue . should_contain "org.enso.runner.Main"
 
 
 runs_in_aot =

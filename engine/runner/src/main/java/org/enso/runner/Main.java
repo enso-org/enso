@@ -1533,8 +1533,13 @@ public class Main {
     }
 
     var logMasking = new boolean[1];
-    var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
+      }
+    }
+    var logLevel = setupLogging(line, logMasking);
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
     var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
@@ -1570,12 +1575,6 @@ public class Main {
           var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
           launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
         }
-      }
-    }
-
-    if (props != null) {
-      for (var e : props.entrySet()) {
-        System.setProperty(e.getKey(), e.getValue());
       }
     }
 
