@@ -12,6 +12,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.function.Function;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.masks.IndexMapper;
+import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -27,8 +29,11 @@ import org.graalvm.polyglot.Context;
 public class JsonOperation {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  public static String apply(Column source, Function<Object, String> ensoJsonCallback) {
-    var storage = ColumnStorageWithInferredStorage.resolveStorage(source);
+  public static String apply(
+      Column source, long start, long length, Function<Object, String> ensoJsonCallback) {
+    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
+    var storage =
+        MaskOperation.getSlicedStorage(fullStorage, new IndexMapper.SingleSlice(start, length));
 
     return switch (storage.getType()) {
       case NullType nullType -> createNullJson(storage.getSize());
@@ -101,19 +106,8 @@ public class JsonOperation {
       }
 
       Object value = storage.getItemBoxed(i);
-      switch (value) {
-        case null -> builder.append("null");
-        case Boolean b -> builder.append(toJson(b));
-        case Long l -> builder.append(toJson(l));
-        case Double d -> builder.append(toJson(d));
-        case String s -> builder.append(toJson(s));
-        case BigInteger bi -> builder.append(toJson(bi));
-        case BigDecimal bd -> builder.append(toJson(bd));
-        case LocalDate date -> builder.append(toJson(date));
-        case LocalTime time -> builder.append(toJson(time));
-        case ZonedDateTime zdt -> builder.append(toJson(zdt));
-        default -> builder.append(ensoJsonCallback.apply(value));
-      }
+      String jsonValue = objectToJson(value, ensoJsonCallback);
+      builder.append(jsonValue);
       context.safepoint();
     }
     builder.append("]");
@@ -125,6 +119,22 @@ public class JsonOperation {
     return checkedSize == 0
         ? "[]"
         : "[" + String.join(",", Collections.nCopies(checkedSize, "null")) + "]";
+  }
+
+  public static String objectToJson(Object value, Function<Object, String> ensoJsonCallback) {
+    return switch (value) {
+      case null -> "null";
+      case Boolean b -> toJson(b);
+      case Long l -> toJson(l);
+      case Double d -> toJson(d);
+      case String s -> toJson(s);
+      case BigInteger bi -> toJson(bi);
+      case BigDecimal bd -> toJson(bd);
+      case LocalDate date -> toJson(date);
+      case LocalTime time -> toJson(time);
+      case ZonedDateTime zdt -> toJson(zdt);
+      default -> ensoJsonCallback.apply(value);
+    };
   }
 
   private static String toJson(boolean value) {
