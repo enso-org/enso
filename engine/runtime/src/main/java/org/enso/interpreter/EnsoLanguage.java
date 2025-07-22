@@ -304,6 +304,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var toTruffle =
               new IrToTruffle(
                   context,
+                  module.getPackage(),
                   request.getSource(),
                   m.getScopeBuilder(),
                   redirectConfigWithStrictErrors);

@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.File;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 
@@ -27,7 +28,12 @@ public abstract class AddToClassPathNode extends Node {
   Object doExecute(Object path, @Cached ExpectStringNode expectStringNode) {
     var ctx = EnsoContext.get(this);
     var file = ctx.getTruffleFile(new File(expectStringNode.execute(path)));
-    ctx.addToClassPath(file);
+    if (getRootNode() instanceof ClosureRootNode crn) {
+      var pkg = crn.getModuleScope().getModule().getPackage();
+      ctx.addToClassPath(pkg, file);
+    } else {
+      throw ctx.raiseAssertionPanic(this, "Cannot find package", null);
+    }
     return ctx.getBuiltins().nothing();
   }
 }

@@ -118,6 +118,7 @@ import scala.jdk.OptionConverters._
   * with each lowering pass operating solely on a single module.
   *
   * @param context        the language context instance for which this is executing
+  * @param pkg            the library this module belongs to
   * @param source         the source code that corresponds to the text for which code
   *                       is being generated
   * @param scopeBuilder   the scope's builder of the module for which code is being generated
@@ -125,6 +126,7 @@ import scala.jdk.OptionConverters._
   */
 class IrToTruffle(
   val context: EnsoContext,
+  val pkg: org.enso.pkg.Package[_],
   val source: Source,
   val scopeBuilder: ModuleScope.Builder,
   val compilerConfig: CompilerConfig
@@ -219,7 +221,7 @@ class IrToTruffle(
     ): Unit =
       scopeBuilder.registerPolyglotSymbol(
         visibleName,
-        () => context.lookupJavaClass(javaClassName)
+        () => context.lookupJavaClass(pkg, javaClassName)
       )
 
     override protected def processConversion(

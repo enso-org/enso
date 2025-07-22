@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 
@@ -21,7 +22,13 @@ public abstract class LookupClassNode extends Node {
   @Specialization
   @CompilerDirectives.TruffleBoundary
   Object doExecute(Object name, @Cached("build()") ExpectStringNode expectStringNode) {
-    return EnsoContext.get(this).lookupJavaClass(expectStringNode.execute(name));
+    var ctx = EnsoContext.get(this);
+    if (getRootNode() instanceof ClosureRootNode crn) {
+      var pkg = crn.getModuleScope().getModule().getPackage();
+      return ctx.lookupJavaClass(pkg, expectStringNode.execute(name));
+    } else {
+      throw ctx.raiseAssertionPanic(this, "Cannot find package", null);
+    }
   }
 
   abstract Object execute(Object name);

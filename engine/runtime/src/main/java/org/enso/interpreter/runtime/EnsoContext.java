@@ -1,21 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.Assumption;
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.interop.InteropException;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.io.TruffleProcessBuilder;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ValueProfile;
-import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
@@ -64,6 +49,24 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;
+
+import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.io.TruffleProcessBuilder;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ValueProfile;
+import com.oracle.truffle.api.source.Source;
+
 import scala.jdk.javaapi.OptionConverters;
 
 /**
@@ -520,19 +523,21 @@ public final class EnsoContext {
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
+   * @param who who requests the addition
    * @param file the file to register
    */
   @TruffleBoundary
-  public void addToClassPath(TruffleFile file) {
-        var path = new File(file.toUri()).getAbsoluteFile();
-        if (!path.exists()) {
-          throw new IllegalStateException("File not found " + path);
-        }
-      try {
-          polyglotJava.addToClassPath(path);
-      } catch (InteropException ex) {
-          throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
-      }
+  public void addToClassPath(Package<?> who, TruffleFile file) {
+    assert who != null;
+    var path = new File(file.toUri()).getAbsoluteFile();
+    if (!path.exists()) {
+      throw new IllegalStateException("File not found " + path);
+    }
+    try {
+      polyglotJava.addToClassPath(path);
+    } catch (InteropException ex) {
+      throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
+    }
   }
 
   /**
@@ -629,11 +634,13 @@ public final class EnsoContext {
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
+     * @param who the package that requests the loading
    * @param className Fully qualified class name, can also be nested static inner class.
    * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
   @TruffleBoundary
-  public TruffleObject lookupJavaClass(String className) {
+  public TruffleObject lookupJavaClass(Package<?> who, String className) {
+    assert who != null;
     var collectedExceptions = new ArrayList<Exception>();
     var hostSymbol =
         ClassLookup.lookupJavaClass(
