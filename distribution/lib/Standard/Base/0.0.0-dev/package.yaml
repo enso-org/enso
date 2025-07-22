@@ -35,5 +35,5 @@ component-groups:
     - Errors: { color: oklch(0.464 0.14 15) }
 
 services:
-    - provides: Standard.Base.System.File.File_System_SPI
-      with: Standard.Base.Enso_Cloud.Enso_File_System_Impl.Enso_File_System_Impl
+  - provides: Standard.Base.System.File.File_System_SPI
+    with: Standard.Base.Enso_Cloud.Enso_File_System_Impl.Enso_File_System_Impl
