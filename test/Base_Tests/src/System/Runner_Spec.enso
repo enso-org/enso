@@ -42,7 +42,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
 
             proj_dir.exists . should_be_true
             proj_dir.is_directory . should_be_true
-            out = enso_run cwd=tmp_root.path args=["--run", if relative then "NeedJvm/Proj" else proj_dir.to_text ]
+            out = enso_run cwd=tmp_root.path args=["--run", if relative then "NeedsJvm/Proj" else proj_dir.to_text ]
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
                 clue . should_contain expected_version
@@ -50,7 +50,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
                 clue . should_contain "Server VM"
 
     group_builder.specify "package.yaml JVM mode (relative)" <|
-        test_jvm_mode False
+        test_jvm_mode True
 
     group_builder.specify "package.yaml JVM mode  (absolute)" <|
         test_jvm_mode False
