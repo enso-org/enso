@@ -1270,7 +1270,7 @@ export interface ListInvitationsResponseBody {
 /** Invitation to join an organization. */
 export interface Invitation {
   readonly organizationId: OrganizationId
-  readonly organizationName?: string
+  readonly organizationName: string
   readonly userEmail: EmailAddress
   readonly expireAt: dateTime.Rfc3339DateTime
 }
