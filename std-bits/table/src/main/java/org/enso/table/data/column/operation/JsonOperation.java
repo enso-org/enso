@@ -32,6 +32,15 @@ public class JsonOperation {
   public static String apply(
       Column source, long start, long length, Function<Object, String> ensoJsonCallback) {
     var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
+    if (start >= fullStorage.getSize()) {
+      // If the start is beyond the size of the storage, return an empty array.
+      return "[]";
+    }
+    if (start + length > fullStorage.getSize()) {
+      // If the requested length goes beyond the size of the storage, adjust it.
+      length = fullStorage.getSize() - start;
+    }
+
     var storage =
         MaskOperation.getSlicedStorage(fullStorage, new IndexMapper.SingleSlice(start, length));
 
