@@ -30,7 +30,9 @@ public class ReloadDetector {
   }
 
   public static void clearOnReload(HasClearableCache o) {
-    if (getSentinel(o).hasReloadOccurred()) {
+    var ro = getSentinel(o).hasReloadOccurred();
+    System.out.println("ZZZZZ ReloadDetector.clearOnReload, sentinel " + getSentinel(o) + " has ro occurred: " + ro);
+    if (ro) {
       o.clearCache();
     }
   }
@@ -83,6 +85,7 @@ public class ReloadDetector {
     public boolean hasReloadOccurred() {
       ensureInitialized();
       var reloadHasOccurred = ensoReloadSentinel.invokeMember("has_reload_occurred").asBoolean();
+      System.out.println("ZZZZZ ReloadSentinel.hasReloadOccurred, sentinel " + this + " has ro " + reloadHasOccurred);
       if (reloadHasOccurred) {
         resetEnsoReloadSentinel();
       }
@@ -97,6 +100,7 @@ public class ReloadDetector {
 
     public void simulateReloadTestOnly() {
       ensureInitialized();
+      System.out.println("ZZZZZ ReloadSentinel.simulateReloadTestOnly, sentinel " + this);
       EnsoMeta.callStaticModuleMethod(
           "Standard.Base.Network.Reload_Sentinel", "simulate_reload_test_only", ensoReloadSentinel);
     }

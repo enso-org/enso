@@ -44,6 +44,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
                 + "written to. This is a bug in the Table library.");
       }
 
+      System.out.println("ZZZZZ ExceltConnectionPool.openRO clearOnReload");
       ReloadDetector.clearOnReload(this);
 
       if (!file.exists()) {
@@ -220,12 +221,16 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   private boolean isCurrentlyWriting = false;
 
   /** If a reload has just happened, clear the ConnectionRecord cache. */
+  @Override
   public void clearCache() {
+    System.out.println("ZZZZZ ExceltConnectionPool.clearCache");
     synchronized (this) {
       for (var record : records.values()) {
         try {
+          System.out.println("ZZZZZ ExceltConnectionPool.clearCache closed");
           record.close();
         } catch (IOException e) {
+          System.out.println("ZZZZZ ExceltConnectionPool.clearCache failed to close");
           LOGGER.error("Unable to close " + record, e);
         }
       }
