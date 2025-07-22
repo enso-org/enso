@@ -12,8 +12,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.function.Function;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.masks.IndexMapper;
-import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -41,25 +39,22 @@ public class JsonOperation {
       length = fullStorage.getSize() - start;
     }
 
-    var storage =
-        MaskOperation.getSlicedStorage(fullStorage, new IndexMapper.SingleSlice(start, length));
-
-    return switch (storage.getType()) {
-      case NullType nullType -> createNullJson(storage.getSize());
-      case BooleanType booleanType -> createBooleanJson(booleanType.asTypedStorage(storage));
-      case IntegerType integerType -> createIntegerJson(integerType.asTypedStorage(storage));
-      case FloatType floatType -> createFloatJson(floatType.asTypedStorage(storage));
-      default -> createObjectJson(storage, ensoJsonCallback);
+    return switch (fullStorage.getType()) {
+      case NullType nullType -> createNullJson(length);
+      case BooleanType booleanType -> createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
+      case IntegerType integerType -> createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
+      case FloatType floatType -> createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
+      default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
     };
   }
 
-  private static String createFloatJson(ColumnDoubleStorage doubleStorage) {
+  private static String createFloatJson(ColumnDoubleStorage doubleStorage, long start, long length) {
     long size = doubleStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
       builder.append(
@@ -70,13 +65,13 @@ public class JsonOperation {
     return builder.toString();
   }
 
-  private static String createIntegerJson(ColumnLongStorage longStorage) {
+  private static String createIntegerJson(ColumnLongStorage longStorage, long start, long length) {
     long size = longStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
       builder.append(longStorage.isNothing(i) ? "null" : toJson(longStorage.getItemAsLong(i)));
@@ -86,13 +81,13 @@ public class JsonOperation {
     return builder.toString();
   }
 
-  private static String createBooleanJson(ColumnBooleanStorage booleanStorage) {
+  private static String createBooleanJson(ColumnBooleanStorage booleanStorage, long start, long length) {
     long size = booleanStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
       builder.append(
@@ -104,13 +99,13 @@ public class JsonOperation {
   }
 
   private static String createObjectJson(
-      ColumnStorage<?> storage, Function<Object, String> ensoJsonCallback) {
+      ColumnStorage<?> storage, long start, long length, Function<Object, String> ensoJsonCallback) {
     long size = storage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
 
