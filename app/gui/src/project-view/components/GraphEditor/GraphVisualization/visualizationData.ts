@@ -3,6 +3,7 @@ import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorV
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
 import { NodeId } from '@/stores/graph/graphDatabase'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -13,7 +14,6 @@ import {
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { wait } from 'lib0/promise.js'

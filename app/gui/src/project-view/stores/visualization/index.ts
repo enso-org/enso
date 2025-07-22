@@ -256,7 +256,9 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
         types.length === 0 ?
           metadata.keys()
         : new Set([
-            ...types.flatMap((type) => [...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? [])]),
+            ...types.flatMap((type) => [
+              ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ]),
             ...(metadata.visualizationIdToType.reverseLookup(ANY_TYPE_QN) ?? []),
           ])
       for (const viz of vizzes) yield fromVisualizationId(viz)
