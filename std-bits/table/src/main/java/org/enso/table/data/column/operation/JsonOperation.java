@@ -41,14 +41,18 @@ public class JsonOperation {
 
     return switch (fullStorage.getType()) {
       case NullType nullType -> createNullJson(length);
-      case BooleanType booleanType -> createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
-      case IntegerType integerType -> createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
-      case FloatType floatType -> createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
+      case BooleanType booleanType -> createBooleanJson(
+          booleanType.asTypedStorage(fullStorage), start, length);
+      case IntegerType integerType -> createIntegerJson(
+          integerType.asTypedStorage(fullStorage), start, length);
+      case FloatType floatType -> createFloatJson(
+          floatType.asTypedStorage(fullStorage), start, length);
       default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
     };
   }
 
-  private static String createFloatJson(ColumnDoubleStorage doubleStorage, long start, long length) {
+  private static String createFloatJson(
+      ColumnDoubleStorage doubleStorage, long start, long length) {
     long size = doubleStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
@@ -81,7 +85,8 @@ public class JsonOperation {
     return builder.toString();
   }
 
-  private static String createBooleanJson(ColumnBooleanStorage booleanStorage, long start, long length) {
+  private static String createBooleanJson(
+      ColumnBooleanStorage booleanStorage, long start, long length) {
     long size = booleanStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
@@ -99,7 +104,10 @@ public class JsonOperation {
   }
 
   private static String createObjectJson(
-      ColumnStorage<?> storage, long start, long length, Function<Object, String> ensoJsonCallback) {
+      ColumnStorage<?> storage,
+      long start,
+      long length,
+      Function<Object, String> ensoJsonCallback) {
     long size = storage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
