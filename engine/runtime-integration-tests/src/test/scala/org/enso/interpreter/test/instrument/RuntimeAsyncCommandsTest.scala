@@ -819,4 +819,118 @@ class RuntimeAsyncCommandsTest
     failure should be(Symbol("empty"))
   }
 
+  it should "execute mutliple expressions in the local scope" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+
+    val idOp1  = metadata.addItem(23, 2)
+    val idOp2  = metadata.addItem(42, 13)
+    val idMain = metadata.addItem(6, 63)
+
+    val code =
+      """main =
+        |    operator1 = 42
+        |    operator2 = operator1 + 1
+        |    operator2
+        |
+        |fun1 x = x.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idOp1, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idOp2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // execute expressions
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idOp2,
+          "fun1 operator1"
+        )
+      )
+    )
+    // execute expressions
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ExecuteExpression(
+          contextId,
+          visualizationId,
+          idMain,
+          "fun1 operator1+operator2"
+        )
+      )
+    )
+    val executeExpressionResponses =
+      context.receiveNIgnoreExpressionUpdates(5)
+
+    executeExpressionResponses.collect {
+      case msg @ Api.Response(_, Api.VisualizationAttached()) => msg
+    } should have length 2
+
+    val repliesData = executeExpressionResponses.collect {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                _
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    repliesData.map(new String(_)) shouldEqual List("42", "85")
+  }
+
 }

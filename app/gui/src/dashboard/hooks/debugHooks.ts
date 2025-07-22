@@ -1,22 +1,29 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
-import * as React from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DependencyList,
+  type EffectCallback,
+  type SetStateAction,
+} from 'react'
 
 // `console.*` is allowed because these are for debugging purposes only.
 /* eslint-disable no-restricted-properties */
-
-// === useDebugState ===
 
 /** A modified `useState` that logs the old and new values when `setState` is called. */
 export function useDebugState<T>(
   initialState: T | (() => T),
   name?: string,
-): [state: T, setState: (valueOrUpdater: React.SetStateAction<T>, source?: string) => void] {
-  const [state, rawSetState] = React.useState(initialState)
+): [state: T, setState: (valueOrUpdater: SetStateAction<T>, source?: string) => void] {
+  const [state, rawSetState] = useState(initialState)
 
   const description = name != null ? `state for '${name}'` : 'state'
 
-  const setState = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<T>, source?: string) => {
+  const setState = useCallback(
+    (valueOrUpdater: SetStateAction<T>, source?: string) => {
       const fullDescription = `${description}${source != null ? ` from '${source}'` : ''}`
       rawSetState((oldState) => {
         const newState =
@@ -42,16 +49,14 @@ export function useDebugState<T>(
   return [state, setState]
 }
 
-// === useMonitorDependencies ===
-
 /** A helper function to log the old and new values of changed dependencies. */
 export function useMonitorDependencies(
-  dependencies: React.DependencyList,
+  dependencies: DependencyList,
   description?: string,
   dependencyDescriptions?: readonly string[],
   active = true,
 ) {
-  const oldDependenciesRef = React.useRef(dependencies)
+  const oldDependenciesRef = useRef(dependencies)
   if (active) {
     const indicesOfChangedDependencies = dependencies.flatMap((dep, i) =>
       Object.is(dep, oldDependenciesRef.current[i]) ? [] : [i],
@@ -72,15 +77,12 @@ export function useMonitorDependencies(
   // eslint-disable-next-line react-compiler/react-compiler
   oldDependenciesRef.current = dependencies
 }
-
 /* eslint-enable no-restricted-properties */
-
-// === useDebugEffect ===
 
 /** A modified `useEffect` that logs the old and new values of changed dependencies. */
 export function useDebugEffect(
-  effect: React.EffectCallback,
-  dependencies: React.DependencyList,
+  effect: EffectCallback,
+  dependencies: DependencyList,
   description?: string,
   dependencyDescriptions?: readonly string[],
 ) {
@@ -88,15 +90,13 @@ export function useDebugEffect(
   // Unavoidable as this is a wrapped hook.
   // eslint-disable-next-line react-compiler/react-compiler
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(effect, dependencies)
+  useEffect(effect, dependencies)
 }
-
-// === useDebugMemo ===
 
 /** A modified `useMemo` that logs the old and new values of changed dependencies. */
 export function useDebugMemo<T>(
   factory: () => T,
-  dependencies: React.DependencyList,
+  dependencies: DependencyList,
   description?: string,
   dependencyDescriptions?: readonly string[],
 ) {
@@ -104,15 +104,13 @@ export function useDebugMemo<T>(
   // Unavoidable as this is a wrapped hook.
   // eslint-disable-next-line react-compiler/react-compiler
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return React.useMemo<T>(factory, dependencies)
+  return useMemo<T>(factory, dependencies)
 }
-
-// === useDebugCallback ===
 
 /** A modified `useCallback` that logs the old and new values of changed dependencies. */
 export function useDebugCallback<T extends (...args: never[]) => unknown>(
   callback: T,
-  dependencies: React.DependencyList,
+  dependencies: DependencyList,
   description?: string,
   dependencyDescriptions?: readonly string[],
 ) {
@@ -120,5 +118,5 @@ export function useDebugCallback<T extends (...args: never[]) => unknown>(
   // Unavoidable as this is a wrapped hook.
   // eslint-disable-next-line react-compiler/react-compiler
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return React.useCallback<T>(callback, dependencies)
+  return useCallback<T>(callback, dependencies)
 }

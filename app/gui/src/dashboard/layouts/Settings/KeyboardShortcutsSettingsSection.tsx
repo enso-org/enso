@@ -6,7 +6,7 @@ import ReloadIcon from '#/assets/reload.svg'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
-import { actionToTextId } from '#/components/MenuEntry'
+import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
 import { Scroller } from '#/components/Scroller'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useRefresh } from '#/hooks/refreshHooks'
@@ -73,7 +73,7 @@ export default function KeyboardShortcutsSettingsSection() {
           <tbody>
             {visibleBindings.map((kv) => {
               const [action, info] = kv
-              const name = getText(actionToTextId(action))
+              const name = getText(ACTION_TO_TEXT_ID[action])
 
               return (
                 <tr key={action} className="rounded-rows-child">

@@ -9,10 +9,13 @@ import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.io.IOException;
+import java.util.Set;
 import org.enso.common.RuntimeOptions;
+import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -154,5 +157,95 @@ public class PrivateConstructorAccessTest {
                 containsString("cannot be used from")));
       }
     }
+  }
+
+  @Test
+  public void canCallPrivateConstructor_ViaCallback() throws Exception {
+    var libDir = tempFolder.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("My_Type"),
+                """
+                private
+
+                type My_Type
+                    Cons name
+                """),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                import project.My_Type.My_Type
+
+                call_method ~callback =
+                    callback My_Type.Cons
+                """)),
+        libDir);
+
+    var projDir = tempFolder.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        from local.Lib import call_method
+
+        callback cons =
+            cons "Name"
+
+        main =
+            call_method callback . to_text
+        """,
+        projDir);
+
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.asString(), containsString("Cons 'Name'"));
+        });
+  }
+
+  @Test
+  public void canCallPrivateConstructor_ViaLambda() throws Exception {
+    var libDir = tempFolder.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("My_Type"),
+                """
+                private
+
+                type My_Type
+                    Cons name
+                """),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                import project.My_Type.My_Type
+
+                call_method ~callback =
+                    callback \\it -> My_Type.Cons it
+                """)),
+        libDir);
+
+    var projDir = tempFolder.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        from local.Lib import call_method
+
+        callback cons =
+            cons "Name"
+
+        main =
+            call_method callback . to_text
+        """,
+        projDir);
+
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.asString(), containsString("Cons 'Name'"));
+        });
   }
 }

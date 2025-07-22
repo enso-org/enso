@@ -1,17 +1,18 @@
 /** @file An entry in a menu. */
 import BlankIcon from '#/assets/blank.svg'
+import LockIcon from '#/assets/lock.svg'
 import * as aria from '#/components/aria'
 import { useDialogContext } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import { PaywallDialog } from '#/components/Paywall'
 import FocusRing from '#/components/styled/FocusRing'
 import { Text, type TextProps } from '#/components/Text'
 import { useVisualTooltip } from '#/components/VisualTooltip'
 import type * as inputBindings from '#/configurations/inputBindings'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
+import type { PaywallFeatureName } from '#/hooks/billing'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import { unsetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
 import * as detect from 'enso-common/src/detect'
@@ -29,15 +30,60 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
 })
 
 /** Get {@link text.TextId} for given shortcut action. */
+// All entries are intentionally hard-coded so that `Ctrl+F` will work.
 // eslint-disable-next-line react-refresh/only-export-components
-export function actionToTextId(action: inputBindings.DashboardBindingKey): text.TextId {
-  return `${action}Shortcut`
-}
+export const ACTION_TO_TEXT_ID: Readonly<
+  Record<
+    inputBindings.DashboardBindingKey,
+    Extract<text.TextId, `${inputBindings.DashboardBindingKey}Shortcut`>
+  >
+> = {
+  settings: 'settingsShortcut',
+  closeTab: 'closeTabShortcut',
+  open: 'openShortcut',
+  run: 'runShortcut',
+  close: 'closeShortcut',
+  uploadToCloud: 'uploadToCloudShortcut',
+  downloadToLocal: 'downloadToLocalShortcut',
+  rename: 'renameShortcut',
+  edit: 'editShortcut',
+  delete: 'deleteShortcut',
+  undelete: 'undeleteShortcut',
+  share: 'shareShortcut',
+  label: 'labelShortcut',
+  duplicate: 'duplicateShortcut',
+  copy: 'copyShortcut',
+  copyAsPath: 'copyAsPathShortcut',
+  cut: 'cutShortcut',
+  paste: 'pasteShortcut',
+  download: 'downloadShortcut',
+  uploadFiles: 'uploadFilesShortcut',
+  newProject: 'newProjectShortcut',
+  newFolder: 'newFolderShortcut',
+  newDatalink: 'newDatalinkShortcut',
+  newSecret: 'newSecretShortcut',
+  newCredential: 'newCredentialShortcut',
+  useInNewProject: 'useInNewProjectShortcut',
+  closeModal: 'closeModalShortcut',
+  cancelEditName: 'cancelEditNameShortcut',
+  signOut: 'signOutShortcut',
+  downloadApp: 'downloadAppShortcut',
+  cancelCut: 'cancelCutShortcut',
+  selectAdditional: 'selectAdditionalShortcut',
+  selectRange: 'selectRangeShortcut',
+  selectAdditionalRange: 'selectAdditionalRangeShortcut',
+  goBack: 'goBackShortcut',
+  goForward: 'goForwardShortcut',
+  upgradePlan: 'upgradePlanShortcut',
+  aboutThisApp: 'aboutThisAppShortcut',
+  openInFileBrowser: 'openInFileBrowserShortcut',
+  ensoDevtools: 'ensoDevtoolsShortcut',
+  copyId: 'copyIdShortcut',
+} satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
   readonly icon?: string | undefined
-  readonly hidden?: boolean | undefined
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
   readonly label?: string | undefined
@@ -47,36 +93,34 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly title?: string | undefined
   readonly doAction: () => void
   readonly color?: TextProps['color'] | undefined
-  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
+  readonly isUnderPaywall?: boolean
+  readonly feature?: PaywallFeatureName
 }
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
   const {
-    hidden = false,
     action,
     label,
     isDisabled = false,
     title,
     doAction,
-    icon,
-    tooltip: tooltipValue,
+    icon: iconRaw,
+    tooltip: tooltipValueRaw,
     color,
-    bindingFocusScope,
+    isUnderPaywall = false,
+    feature,
     ...variantProps
   } = props
 
-  const defaultBindingFocusScope = React.useRef(document.body)
   const { getText } = useText()
+  const icon = isUnderPaywall ? LockIcon : iconRaw
+  const tooltipValue = isUnderPaywall ? getText('upgradeToUseCloud') : tooltipValueRaw
+
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
   const buttonRef = React.useRef<HTMLButtonElement>(null)
-  const isDisabledRef = useSyncRef(isDisabled)
-
-  const doActionCallback = useEventCallback(() => {
-    doAction()
-  })
 
   const labelTextId: text.TextId = (() => {
     if (action === 'openInFileBrowser') {
@@ -86,24 +130,9 @@ export default function MenuEntry(props: MenuEntryProps) {
         : 'openInFileBrowserShortcut'
       )
     } else {
-      return actionToTextId(action)
+      return ACTION_TO_TEXT_ID[action]
     }
   })()
-
-  React.useEffect(
-    () =>
-      inputBindings.attach(
-        bindingFocusScope?.current ?? defaultBindingFocusScope.current,
-        'keydown',
-        {
-          [action]: () => {
-            if (isDisabledRef.current) return
-            doActionCallback()
-          },
-        },
-      ),
-    [inputBindings, action, doActionCallback, isDisabledRef, bindingFocusScope],
-  )
 
   const { tooltip, targetProps } = useVisualTooltip({
     isDisabled: tooltipValue == null,
@@ -112,10 +141,6 @@ export default function MenuEntry(props: MenuEntryProps) {
     children: tooltipValue,
     overlayPositionProps: { placement: 'right' },
   })
-
-  if (hidden) {
-    return null
-  }
 
   return (
     <>
@@ -131,7 +156,11 @@ export default function MenuEntry(props: MenuEntryProps) {
             } else {
               unsetModal()
             }
-            doAction()
+            if (isUnderPaywall && feature != null) {
+              setModal(<PaywallDialog modalProps={{ defaultOpen: true }} feature={feature} />)
+            } else {
+              doAction()
+            }
           }}
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>

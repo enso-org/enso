@@ -1,44 +1,103 @@
 /** @file A context menu. */
+import { Pressable } from '#/components/aria'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Popover } from '#/components/Dialog'
-import { unsetModal } from '#/providers/ModalProvider'
+import type { MenuEntryProps } from '#/components/MenuEntry'
+import { usePortalContext } from '#/components/Portal'
+import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isOnMacOS } from 'enso-common/src/detect'
-import type { MouseEvent, PropsWithChildren } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+  type ForwardedRef,
+  type MouseEvent,
+} from 'react'
 
-/** Props for a `ContextMenu`. */
-export interface ContextMenuProps extends Readonly<PropsWithChildren> {
+/** Props for a {@link ContextMenu}. */
+export interface ContextMenuProps {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label': string
-  readonly hidden?: boolean
-  readonly event: Pick<MouseEvent, 'pageX' | 'pageY'>
+  readonly entries: readonly (MenuEntryProps | false | null | undefined)[]
+  readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
+}
+
+/** Imperative API for {@link ContextMenu}. */
+export interface ContextMenuApi {
+  readonly open: (position: Pick<MouseEvent, 'pageX' | 'pageY'>) => void
+  readonly close: () => void
 }
 
 /** A context menu that opens at the current mouse position. */
-export default function ContextMenu(props: ContextMenuProps) {
-  const { hidden = false, children, event } = props
+export const ContextMenu = forwardRef(function ContextMenu(
+  props: ContextMenuProps,
+  ref: ForwardedRef<ContextMenuApi>,
+) {
+  const { entries, initialPosition } = props
 
-  if (hidden) {
-    return children
-  }
+  const inputBindings = useInputBindings()
+  const root = usePortalContext()
+  const [isOpen, setIsOpen] = useState(initialPosition != null)
+  const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
+    initialPosition ?? {
+      pageX: 0,
+      pageY: 0,
+    },
+  )
+
+  useImperativeHandle(ref, () => ({
+    open: (newPosition) => {
+      setPosition(newPosition)
+      setIsOpen(true)
+    },
+    close: () => {
+      setIsOpen(false)
+    },
+  }))
+
+  useEffect(() => {
+    if (!isOpen) return
+    return inputBindings.attach(document.body, 'keydown', {
+      closeModal: () => {
+        setIsOpen(false)
+      },
+    })
+  }, [inputBindings, isOpen])
 
   return (
-    <Popover
-      data-testid="context-menu"
-      defaultOpen
-      style={{ left: event.pageX, top: event.pageY }}
-      shouldCloseOnInteractOutside={() => true}
-      className="sticky flex w-min items-start"
-      onClose={unsetModal}
-    >
-      <div
-        aria-label={props['aria-label']}
-        className={twMerge(
-          'relative flex flex-col rounded-default',
-          isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
-        )}
+    <Popover.Trigger>
+      <Pressable>
+        <></>
+      </Pressable>
+      <Popover
+        data-testid="context-menu"
+        style={{ left: position.pageX, top: position.pageY }}
+        shouldCloseOnInteractOutside={() => true}
+        className="sticky flex w-min items-start"
+        UNSTABLE_portalContainer={root}
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        onClose={() => {
+          setIsOpen(false)
+        }}
       >
-        {children}
-      </div>
-    </Popover>
+        <div
+          aria-label={props['aria-label']}
+          className={twMerge(
+            'relative flex flex-col rounded-default',
+            isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
+          )}
+        >
+          {entries.flatMap((entry) => {
+            if (entry == null || entry === false) {
+              return []
+            }
+            return [<ContextMenuEntry key={entry.action} {...entry} />]
+          })}
+        </div>
+      </Popover>
+    </Popover.Trigger>
   )
-}
+})
