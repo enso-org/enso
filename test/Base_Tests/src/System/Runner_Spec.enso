@@ -24,17 +24,9 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             proj_dir.is_directory . should_be_true
             # The spawned subprocess will try to run the newly created project
             # via a relative path
-            args = [enso_bin, "--vm.D", "org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
-            proc_bldr = J_ProcessBuilder.new args
-            proc_bldr.redirectErrorStream True
-            proc_bldr.directory (J_File.new tmp_root.path)
-            proc = proc_bldr.start
-            retcode = proc.waitFor
-            bytes = proc.getInputStream.readAllBytes
-            out = J_String.new bytes
+            out = enso_run cwd=tmp_root.path args=["--vm.D", "org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
-                retcode . should_equal 0
                 clue . should_contain "org.enso.runner.Main"
 
 
@@ -51,8 +43,20 @@ tmp_dir -> File =
     d.create_directory
     d
 
-enso_bin -> Text =
+private enso_bin -> Text =
     J_ExecutableLocation.getExecutableLocation
+
+private enso_run (cwd:Text) (args : Vector Text) -> Text =
+    proc_bldr = J_ProcessBuilder.new [enso_bin]+args
+    proc_bldr.redirectErrorStream True
+    proc_bldr.directory (J_File.new cwd)
+    proc = proc_bldr.start
+    retcode = proc.waitFor
+    bytes = proc.getInputStream.readAllBytes
+    out = J_String.new bytes
+    if retcode != 0 then
+        Test.fail out
+    out
 
 create_dummy_project parent_dir:File proj_name:Text main_src:Text -> File =
     Runtime.assert parent_dir.exists
