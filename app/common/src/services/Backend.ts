@@ -1375,7 +1375,10 @@ export interface StravaCredentialInput {
 }
 
 /** User settings for an arbitrary credential. */
-export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput | StravaCredentialInput
+export type CredentialInput =
+  | SnowflakeCredentialInput
+  | GoogleCredentialInput
+  | StravaCredentialInput
 
 /** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
 export interface CredentialConfig {
