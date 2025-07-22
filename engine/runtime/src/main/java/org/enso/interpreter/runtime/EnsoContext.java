@@ -524,8 +524,7 @@ public final class EnsoContext {
       throw new IllegalStateException("File not found " + path);
     }
     try {
-      var polyglotJava = EnsoPolyglotJava.find(this, who);
-      polyglotJava.addToClassPath(path);
+      EnsoPolyglotJava.addToClassPath(this, who,path);
     } catch (InteropException ex) {
       throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
     }

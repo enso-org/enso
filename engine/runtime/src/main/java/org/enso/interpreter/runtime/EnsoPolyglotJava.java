@@ -41,6 +41,14 @@ final class EnsoPolyglotJava {
       if (canPkgHostClassLoad) {
         return data.hosted;
       }
+      pkg.warnAotReady(
+          () -> {
+            logger.log(
+                Level.WARNING,
+                "Package {0} forced to guest classloading. Use --jvm when encountering problems.",
+                pkg.libraryName().qualifiedName());
+            return null;
+          });
     }
     return data.guest;
   }
@@ -70,12 +78,22 @@ final class EnsoPolyglotJava {
   }
 
   /**
+   * This method ensure that hosted as well as guest classpath is the same.
+   * This is necessary until real isolation between libraries is implemented.
+   */
+  static void addToClassPath(EnsoContext ctx, Object whoIsIgnored, File path) throws InteropException {
+      var data = KEY.get(ctx);
+      data.hosted.addToClassPath(path);
+      data.guest.addToClassPath(path);
+  }
+
+  /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
    * @param file the file to register
    */
   @CompilerDirectives.TruffleBoundary
-  final synchronized void addToClassPath(File file) throws InteropException {
+  private final synchronized void addToClassPath(File file) throws InteropException {
     if (polyglotJava == this) {
       pendingPath.add(file);
     } else {
