@@ -12,6 +12,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
   type ForwardedRef,
   type MouseEvent,
@@ -40,6 +41,7 @@ export const ContextMenu = forwardRef(function ContextMenu(
 
   const inputBindings = useInputBindings()
   const root = usePortalContext()
+  const popoverRef = useRef<HTMLElement>(null)
   const [isOpen, setIsOpen] = useState(initialPosition != null)
   const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
     initialPosition ?? {
@@ -69,8 +71,10 @@ export const ContextMenu = forwardRef(function ContextMenu(
 
   useEventListener(
     'scroll',
-    () => {
-      setIsOpen(false)
+    (event) => {
+      if (event.target instanceof Element && popoverRef.current?.contains(event.target) !== true) {
+        setIsOpen(false)
+      }
     },
     document,
     { capture: true },
@@ -85,9 +89,12 @@ export const ContextMenu = forwardRef(function ContextMenu(
         data-testid="context-menu"
         // Remove the underlay element to allow scrolling.
         isNonModal
-        style={{ left: position.pageX, top: position.pageY }}
+        ref={popoverRef}
+        // `position: sticky` must be here rather than in tailwind as `react-aria-components`
+        // sets `position: absolute` via `style`.
+        style={{ position: 'sticky', left: position.pageX, top: position.pageY }}
         shouldCloseOnInteractOutside={() => true}
-        className="sticky flex w-min items-start"
+        className="flex w-min items-start"
         UNSTABLE_portalContainer={root}
         isOpen={isOpen}
         onOpenChange={setIsOpen}
