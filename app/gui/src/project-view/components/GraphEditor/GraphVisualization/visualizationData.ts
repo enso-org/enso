@@ -37,7 +37,7 @@ export type RawDataSource = { type: 'raw'; data: any }
 
 export interface UseVisualizationDataOptions {
   selectedVis: ToValue<Opt<VisualizationIdentifier>>
-  typeInfo: ToValue<TypeInfo | undefined>
+  typeinfo: ToValue<TypeInfo | undefined>
   dataSource: ToValue<VisualizationDataSource | RawDataSource | undefined>
 }
 
@@ -52,7 +52,7 @@ export interface UseVisualizationDataOptions {
 export function useVisualizationData({
   selectedVis,
   dataSource,
-  typeInfo,
+  typeinfo,
 }: UseVisualizationDataOptions) {
   const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
   const vueError = ref<Error>()
@@ -128,7 +128,7 @@ export function useVisualizationData({
     if (selectedTypeValue) return selectedTypeValue
     if (defaultVisualizationForCurrentNodeSource.value)
       return defaultVisualizationForCurrentNodeSource.value
-    const [id] = visualizationStore.byType(toValue(typeInfo))
+    const [id] = visualizationStore.byType(toValue(typeinfo))
     return id ?? DEFAULT_VISUALIZATION_IDENTIFIER
   })
 
@@ -257,7 +257,7 @@ export function useVisualizationData({
     preprocessorLoading.value = false
   })
 
-  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeInfo))))
+  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeinfo))))
 
   const effectiveVisualization = computed(() => {
     if (
