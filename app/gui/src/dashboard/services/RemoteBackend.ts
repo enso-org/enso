@@ -1437,7 +1437,10 @@ export default class RemoteBackend extends Backend {
     const statusPath = remoteBackendPaths.getExportArchiveJobStatusPath(jobId)
     while (true) {
       const statusResponse = await this.get<{ readonly url: backend.HttpsUrl | null }>(statusPath)
-      const { url } = await statusResponse.json()
+      const url = await statusResponse.json().then(
+        (json) => json.url,
+        () => null,
+      )
       if (url == null) {
         await delay(EXPORT_STATUS_INTERVAL_MS)
         continue
