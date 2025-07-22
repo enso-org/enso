@@ -135,7 +135,7 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution(
     "Saas",
     Distribution.sbtProjects(`std-saas`)
-  ),
+  )
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
