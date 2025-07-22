@@ -1,12 +1,12 @@
 import io.circe.yaml
-import io.circe.syntax.*
+import io.circe.syntax._
 import org.apache.commons.io.IOUtils
 import sbt.internal.util.ManagedLogger
-import sbt.*
+import sbt._
 import sbt.io.syntax.fileToRichFile
 import sbt.util.{CacheStore, CacheStoreFactory, FileInfo, Tracked}
 
-import scala.sys.process.*
+import scala.sys.process._
 import org.enso.build.WithDebugCommand
 
 import java.io.File
