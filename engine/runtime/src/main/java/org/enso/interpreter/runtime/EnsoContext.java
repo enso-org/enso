@@ -84,11 +84,6 @@ public final class EnsoContext {
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticAnalysisEnabled;
   private final boolean isHostClassLoading;
-  private final boolean isGuestClassLoading;
-  /**
-   * Right now there is just a single polyglot Java system.
-   */
-  private EnsoPolyglotJava polyglotJava;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -148,21 +143,12 @@ public final class EnsoContext {
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
-    {
-        var classLoading = getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
-        this.isHostClassLoading =
-        switch (classLoading) {
-            case "hosted", "all" -> true;
-            case "guest" -> false;
-            case null, default -> throw new IllegalStateException(classLoading);
+    this.isHostClassLoading =
+        switch (getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY)) {
+          case "hosted" -> true;
+          case "guest" -> false;
+          case String unknown -> throw new IllegalStateException(unknown);
         };
-        this.isGuestClassLoading = switch (classLoading) {
-            case "guest", "all" -> true;
-            case "hosted" -> false;
-            case null, default -> throw new IllegalStateException(classLoading);
-        };
-         this.polyglotJava = new EnsoPolyglotJava(environment, isHostClassLoading, isGuestClassLoading);
-    }
     this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -241,9 +227,9 @@ public final class EnsoContext {
     }
   }
 
-    private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
-        return environment.getInternalLanguages().get("epb");
-    }
+  private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
+    return environment.getInternalLanguages().get("epb");
+  }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
   private void checkWorkingDirectory(Optional<TruffleFile> maybeProjectRoot) {
@@ -344,7 +330,7 @@ public final class EnsoContext {
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
     packageRepository.shutdown();
     topScope = null;
-    polyglotJava.close();
+    EnsoPolyglotJava.close(this);
     EnsoParser.freeAll();
   }
 
@@ -520,6 +506,10 @@ public final class EnsoContext {
         .findFirst();
   }
 
+  final boolean isHostClassLoading() {
+    return isHostClassLoading;
+  }
+
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
@@ -534,6 +524,7 @@ public final class EnsoContext {
       throw new IllegalStateException("File not found " + path);
     }
     try {
+      var polyglotJava = EnsoPolyglotJava.find(this, who);
       polyglotJava.addToClassPath(path);
     } catch (InteropException ex) {
       throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
@@ -634,7 +625,7 @@ public final class EnsoContext {
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
-     * @param who the package that requests the loading
+   * @param who the package that requests the loading
    * @param className Fully qualified class name, can also be nested static inner class.
    * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
@@ -646,7 +637,8 @@ public final class EnsoContext {
         ClassLookup.lookupJavaClass(
             className, // name to search for
             (fqn) -> {
-                return polyglotJava.loadClass(fqn);
+              var polyglotJava = EnsoPolyglotJava.find(this, who);
+              return polyglotJava.loadClass(this, fqn);
             }, // pluggable polyglot searches
             collectedExceptions // collect exceptions
             );

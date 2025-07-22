@@ -1,13 +1,10 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -16,6 +13,7 @@ import java.io.File;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.common.HostEnsoUtils;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
 
@@ -24,28 +22,41 @@ import org.enso.pkg.NativeLibraryFinder;
  * is a collection of Java modules/libraries/JARs that belong together.
  */
 final class EnsoPolyglotJava {
-
   private static final System.Logger logger = System.getLogger(EnsoPolyglotJava.class.getName());
-  private final TruffleLanguage.Env environment;
-  private final boolean isHostClassLoading;
-  private final boolean isGuestClassLoading;
+  private static final EnsoContext.Extra<CtxData> KEY =
+      new EnsoContext.Extra<>(CtxData.class, CtxData::new);
 
+  private final boolean isHostClassLoading;
   private final List<File> pendingPath = new ArrayList<>();
   private Object polyglotJava = this;
 
-  EnsoPolyglotJava(
-      TruffleLanguage.Env environment, boolean isHostClassLoading, boolean isGuestClassLoading) {
-    this.environment = environment;
+  private EnsoPolyglotJava(boolean isHostClassLoading) {
     this.isHostClassLoading = isHostClassLoading;
-    this.isGuestClassLoading = isGuestClassLoading;
+  }
+
+  static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkg) {
+    var data = KEY.get(ctx);
+    if (ctx.isHostClassLoading()) {
+      var canPkgHostClassLoad = !HostEnsoUtils.isAot() || pkg.isAotReady();
+      if (canPkgHostClassLoad) {
+        return data.hosted;
+      }
+    }
+    return data.guest;
+  }
+
+  static void close(EnsoContext ctx) {
+    var data = KEY.get(ctx);
+    data.hosted.close();
+    data.guest.close();
   }
 
   @CompilerDirectives.TruffleBoundary
-  private synchronized Object findPolyglotJava() throws InteropException {
+  private synchronized Object findPolyglotJava(EnsoContext ctx) throws InteropException {
     if (polyglotJava != this) {
       return polyglotJava;
     }
-    polyglotJava = createPolyglotJava();
+    polyglotJava = createPolyglotJava(ctx);
     while (!pendingPath.isEmpty()) {
       addToClassPath(pendingPath.remove(0));
     }
@@ -72,7 +83,7 @@ final class EnsoPolyglotJava {
     }
   }
 
-  final synchronized void close() {
+  private final synchronized void close() {
     if (polyglotJava instanceof TruffleObject closeJava) {
       polyglotJava = null;
       try {
@@ -85,24 +96,23 @@ final class EnsoPolyglotJava {
     }
   }
 
-  private Object createPolyglotJava() throws IllegalStateException {
+  private Object createPolyglotJava(EnsoContext ctx) throws IllegalStateException {
     if (isHostClassLoading) {
       var src = Source.newBuilder("epb", "java:0#hosted", "<Bindings>").build();
-      var target = environment.parseInternal(src);
+      var target = ctx.parseInternal(src);
       return target.call();
-    }
-    if (isGuestClassLoading) {
+    } else {
       var envJava = System.getenv("ENSO_JAVA");
       if (envJava == null) {
         logger.log(Level.ERROR, "Using experimental OtherJvm support!");
         var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
-        var target = environment.parseInternal(src);
+        var target = ctx.parseInternal(src);
         return target.call();
       }
       if ("espresso".equals(envJava)) {
         var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
         try {
-          var java = environment.parsePublic(src).call();
+          var java = ctx.parseInternal(src).call();
           logger.log(Level.ERROR, "Using experimental Espresso support!");
           return java;
         } catch (Exception ex) {
@@ -127,9 +137,8 @@ final class EnsoPolyglotJava {
     return null;
   }
 
-  final TruffleObject loadClass(String fqn)
-      throws UnsupportedMessageException, UnknownIdentifierException, InteropException {
-    var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
+  final TruffleObject loadClass(EnsoContext ctx, String fqn) throws InteropException {
+    var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(ctx), fqn);
     return (TruffleObject) raw;
   }
 
@@ -159,5 +168,10 @@ final class EnsoPolyglotJava {
     boolean isExecutable() {
       return true;
     }
+  }
+
+  private static final class CtxData {
+    private EnsoPolyglotJava hosted = new EnsoPolyglotJava(true);
+    private EnsoPolyglotJava guest = new EnsoPolyglotJava(false);
   }
 }
