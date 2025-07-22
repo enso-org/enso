@@ -499,17 +499,23 @@ export function getDescriptionForTimeZone(timeZone: IanaTimeZone): string {
   return description
 }
 
+/** Get the corresponding timezone given its description. */
+export function tryGetTimeZoneFromDescription(description: string): IanaTimeZone | null {
+  const timeZone = WHITELISTED_TIME_ZONE_DESCRIPTION_MAP.get(description)?.timeZone
+  return timeZone != null ? IanaTimeZone(timeZone) : null
+}
+
 /**
  * Get the corresponding timezone given its description.
  * @throws {Error} when the description does not correspond to the description for
  * one of the whitelisted timezones.
  */
 export function getTimeZoneFromDescription(description: string): IanaTimeZone {
-  const timeZone = WHITELISTED_TIME_ZONE_DESCRIPTION_MAP.get(description)?.timeZone
-  if (!timeZone) {
+  const timeZone = tryGetTimeZoneFromDescription(description)
+  if (timeZone == null) {
     throw new Error(`Unknown IANA identifier for timezone '${description}'.`)
   }
-  return IanaTimeZone(timeZone)
+  return timeZone
 }
 
 /** A string with date and time, following the RFC3339 specification. */

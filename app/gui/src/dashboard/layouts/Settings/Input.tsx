@@ -1,6 +1,8 @@
 /** @file Rendering for an {@link SettingsInputData}. */
 import type { FieldPath, TSchema } from '#/components/Form'
+import { ComboBox } from '#/components/Inputs/ComboBox'
 import { useText } from '$/providers/react'
+import type { HTMLInputTypeAttribute } from 'react'
 import {
   SettingsAriaInput,
   SettingsAriaInputEmail,
@@ -27,6 +29,7 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
     hidden: hiddenRaw,
     editable,
     descriptionId,
+    comboBoxProps,
     type = 'text',
   } = data
   const { getText } = useText()
@@ -34,24 +37,47 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
   const isEditable = typeof editable === 'function' ? editable(context) : (editable ?? true)
   const hidden = typeof hiddenRaw === 'function' ? hiddenRaw(context) : (hiddenRaw ?? false)
 
-  const Input = INPUT_TYPE_MAP[type]
+  switch (type) {
+    case 'comboBox': {
+      const extraProps =
+        typeof comboBoxProps === 'function' ? comboBoxProps(context) : comboBoxProps
+      if (!extraProps) {
+        // eslint-disable-next-line no-restricted-properties
+        console.error('Settings inputs of type `comboBox` MUST be passed `comboBoxProps`.')
+        return null
+      }
+      return (
+        <ComboBox
+          name={name}
+          label={getText(nameId)}
+          {...(descriptionId != null && { description: getText(descriptionId) })}
+          {...extraProps}
+        >
+          {extraProps.children ?? String}
+        </ComboBox>
+      )
+    }
+    case 'email':
+    case 'password':
+    case 'text': {
+      const Input = INPUT_TYPE_MAP[type]
 
-  return (
-    <Input
-      readOnly={!isEditable}
-      label={getText(nameId)}
-      name={name}
-      hidden={hidden}
-      autoComplete={autoComplete}
-      {...(descriptionId != null && {
-        description: getText(descriptionId),
-      })}
-    />
-  )
+      return (
+        <Input
+          readOnly={!isEditable}
+          label={getText(nameId)}
+          name={name}
+          hidden={hidden}
+          autoComplete={autoComplete}
+          {...(descriptionId != null && { description: getText(descriptionId) })}
+        />
+      )
+    }
+  }
 }
 
 const INPUT_TYPE_MAP: Record<
-  SettingsInputType,
+  Extract<HTMLInputTypeAttribute, SettingsInputType>,
   React.ComponentType<SettingsAriaInputProps<TSchema, FieldPath<TSchema>>>
 > = {
   email: SettingsAriaInputEmail,

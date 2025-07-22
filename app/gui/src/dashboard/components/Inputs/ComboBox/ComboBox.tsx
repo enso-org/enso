@@ -67,7 +67,7 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
     VariantProps<typeof COMBO_BOX_STYLES>,
-    Pick<InputProps<Schema, TFieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
+    Pick<InputProps<Schema, TFieldName, string>, 'placeholder'> {
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[TFieldName][]
   /** A text-like representation of the item to be shown on each option. */
@@ -81,6 +81,16 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
   readonly toTooltip?: (item: FieldValues<Schema>[TFieldName]) => string
   /** Hide the `x` button to disable resetting the input. */
   readonly noResetButton?: boolean
+  readonly addonStart?:
+    | InputProps<Schema, TFieldName, string>['addonStart']
+    | ((
+        item: FieldValues<Schema>[TFieldName],
+      ) => InputProps<Schema, TFieldName, string>['addonStart'])
+  readonly addonEnd?:
+    | InputProps<Schema, TFieldName, string>['addonStart']
+    | ((
+        item: FieldValues<Schema>[TFieldName],
+      ) => InputProps<Schema, TFieldName, string>['addonStart'])
 }
 
 // This is a function, even though it does not contain function syntax.
@@ -151,6 +161,7 @@ export const ComboBox = forwardRef(function ComboBox<
       label={label}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
+      description={props.description}
       aria-describedby={props['aria-describedby']}
       isRequired={isRequired}
       isInvalid={fieldState.invalid}
@@ -180,8 +191,14 @@ export const ComboBox = forwardRef(function ComboBox<
               <BasicInput
                 name={name}
                 placeholder={placeholder}
-                addonStart={addonStart}
-                addonEnd={addonEnd}
+                addonStart={
+                  typeof addonStart === 'function' ?
+                    addonStart(renderProps.field.value)
+                  : addonStart
+                }
+                addonEnd={
+                  typeof addonEnd === 'function' ? addonEnd(renderProps.field.value) : addonEnd
+                }
                 size="custom"
                 variant="custom"
               />
