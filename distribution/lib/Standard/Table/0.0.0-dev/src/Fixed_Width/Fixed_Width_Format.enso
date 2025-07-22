@@ -77,7 +77,7 @@ type Fixed_Width_Format
        missing entirely take on the empty string, and columns that are partially
        covered by the input data take on the partial value.
     @layout _make_fixed_width_layout_widget
-    Fixed_Width (layout:(Infer_Layout | Fixed_Width_Layout | Vector | Table | Column)=Fixed_Width_Layout.missing_layout_argument) (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (line_endings : Line_Ending_Style | Infer | Custom_Line_Ending | No_Line_Ending = Infer) (on_empty_field:On_Empty_Field=..As_Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
+    Fixed_Width (layout:(Infer_Layout | Fixed_Width_Layout | Vector | Table | Column)=Fixed_Width_Layout.missing_layout_argument) (encoding:Encoding=Encoding.ascii) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (line_endings : Line_Ending_Style | Infer | Custom_Line_Ending | No_Line_Ending = Infer) (on_empty_field:On_Empty_Field=..As_Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
     ## ---
        private: true
