@@ -72,7 +72,11 @@ export const ContextMenu = forwardRef(function ContextMenu(
   useEventListener(
     'scroll',
     (event) => {
-      if (event.target instanceof Element && !popoverRef.current?.contains(event.target)) {
+      if (
+        event.target instanceof Element &&
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target)
+      ) {
         setIsOpen(false)
       }
     },
