@@ -20,10 +20,10 @@ import type {
   ProjectExecutionRepeatInfo,
   ProjectId,
 } from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
-import { useMutation } from '@tanstack/react-query'
 import {
   PARALLEL_MODE_TO_DESCRIPTION_ID,
   PARALLEL_MODE_TO_TEXT_ID,
@@ -262,9 +262,9 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     }
   })
 
-  const createProjectExecution = useMutation(
+  const createProjectExecution = useMutationCallback(
     backendMutationOptions(backend, 'createProjectExecution'),
-  ).mutateAsync
+  )
 
   const repeatTimes = (() => {
     const parsed = form.schema.safeParse(form.getValues())

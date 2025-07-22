@@ -977,6 +977,7 @@
   "userNameSettingsInput": "Name",
   "userEmailSettingsInput": "Email",
   "userTimeZoneSettingsInput": "Preferred time zone",
+  "userTimeZoneSettingsInputDescription": "This is used as the default time zone when creating a new schedule.",
   "userCurrentPasswordSettingsInput": "Current password",
   "userNewPasswordSettingsInput": "New password",
   "userConfirmNewPasswordSettingsInput": "Confirm new password",
