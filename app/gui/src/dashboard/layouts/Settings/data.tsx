@@ -580,10 +580,7 @@ export interface SettingsFormEntryData<T> {
   readonly schema: z.ZodType<T> | ((context: SettingsContext) => z.ZodType<T>)
   readonly getValue: (context: SettingsContext) => T
   readonly onSubmit: (context: SettingsContext, value: T) => Promise<void> | void
-  readonly inputs: readonly (
-    | SettingsComboBoxInputData<NoInfer<T>>
-    | SettingsInputData<NoInfer<T>>
-  )[]
+  readonly inputs: readonly SettingsInputData<NoInfer<T>>[]
   readonly getVisible?: (context: SettingsContext) => boolean
 }
 
