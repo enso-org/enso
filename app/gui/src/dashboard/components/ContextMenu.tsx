@@ -4,6 +4,7 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Popover } from '#/components/Dialog'
 import type { MenuEntryProps } from '#/components/MenuEntry'
 import { usePortalContext } from '#/components/Portal'
+import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isOnMacOS } from 'enso-common/src/detect'
@@ -66,6 +67,15 @@ export const ContextMenu = forwardRef(function ContextMenu(
     })
   }, [inputBindings, isOpen])
 
+  useEventListener(
+    'scroll',
+    () => {
+      setIsOpen(false)
+    },
+    document,
+    { capture: true },
+  )
+
   return (
     <Popover.Trigger>
       <Pressable>
@@ -73,6 +83,8 @@ export const ContextMenu = forwardRef(function ContextMenu(
       </Pressable>
       <Popover
         data-testid="context-menu"
+        // Remove the underlay element to allow scrolling.
+        isNonModal
         style={{ left: position.pageX, top: position.pageY }}
         shouldCloseOnInteractOutside={() => true}
         className="sticky flex w-min items-start"
