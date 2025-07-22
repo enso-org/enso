@@ -71,6 +71,7 @@ const {
 } = useVisualizationData({
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
+  typename: toRef(props, 'typename'),
   typeinfo: toRef(props, 'typeinfo'),
 })
 

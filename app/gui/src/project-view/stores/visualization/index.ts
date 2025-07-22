@@ -25,6 +25,7 @@ import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { isIconName } from '@/util/iconMetadata/iconName'
+import { ProjectPath } from '@/util/projectPath'
 import { computed, reactive } from 'vue'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'ydoc-shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'ydoc-shared/languageServerTypes'
@@ -250,8 +251,8 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       }
     })
 
-    function* byType(typeInfo: Opt<TypeInfo>): IterableIterator<VisualizationIdentifier> {
-      const types = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+    function* byType(typeInfo: Opt<TypeInfo>, typeName: Opt<ProjectPath>): IterableIterator<VisualizationIdentifier> {
+      const types = typeInfo == null ? (typeName == null ? [] : [typeName]) : [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
       const vizzes =
         types.length === 0 ?
           metadata.keys()

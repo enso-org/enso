@@ -14,6 +14,7 @@ import {
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
+import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { wait } from 'lib0/promise.js'
@@ -37,6 +38,8 @@ export type RawDataSource = { type: 'raw'; data: any }
 
 export interface UseVisualizationDataOptions {
   selectedVis: ToValue<Opt<VisualizationIdentifier>>
+  /** @deprecated use typeInfo instead */
+  typename: ToValue<ProjectPath | undefined>
   typeinfo: ToValue<TypeInfo | undefined>
   dataSource: ToValue<VisualizationDataSource | RawDataSource | undefined>
 }
@@ -52,6 +55,7 @@ export interface UseVisualizationDataOptions {
 export function useVisualizationData({
   selectedVis,
   dataSource,
+  typename,
   typeinfo,
 }: UseVisualizationDataOptions) {
   const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -128,7 +132,7 @@ export function useVisualizationData({
     if (selectedTypeValue) return selectedTypeValue
     if (defaultVisualizationForCurrentNodeSource.value)
       return defaultVisualizationForCurrentNodeSource.value
-    const [id] = visualizationStore.byType(toValue(typeinfo))
+    const [id] = visualizationStore.byType(toValue(typeinfo), toValue(typename))
     return id ?? DEFAULT_VISUALIZATION_IDENTIFIER
   })
 
@@ -257,7 +261,7 @@ export function useVisualizationData({
     preprocessorLoading.value = false
   })
 
-  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeinfo))))
+  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeinfo), toValue(typename))))
 
   const effectiveVisualization = computed(() => {
     if (
