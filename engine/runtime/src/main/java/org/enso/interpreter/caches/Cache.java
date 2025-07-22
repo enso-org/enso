@@ -151,7 +151,6 @@ public final class Cache<T, M> {
       TruffleFile parentPath = cacheDataFile.getParent();
 
       if (writeBytesTo(cacheDataFile, bytesToWrite) && writeBytesTo(metadataFile, metadataBytes)) {
-        System.out.printf("Written cache data [%s] to [%s].%n", logName, parentPath);
         logger.log(
             logLevel,
             "Written cache data ["
