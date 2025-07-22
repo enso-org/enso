@@ -3,29 +3,26 @@
  * A dialog is an overlay shown above other content in an application.
  * Can be used to display alerts, confirmations, or other content.
  */
-import * as React from 'react'
-
 import * as aria from '#/components/aria'
-import * as errorBoundary from '#/components/ErrorBoundary'
-import * as portal from '#/components/Portal'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { usePortalContext } from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
-
-import * as twv from '#/utilities/tailwindVariants'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import * as React from 'react'
 import { ResetButtonGroupContext } from '../Button'
 import type { Placement } from '../types'
 import { Close } from './Close'
-import * as dialogProvider from './DialogProvider'
-import * as dialogStackProvider from './DialogStackProvider'
+import { DialogProvider } from './DialogProvider'
+import { DialogStackRegistrar } from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
-import * as utlities from './utilities'
-import * as variants from './variants'
+import { animateScale, useInteractOutside } from './utilities'
+import { DIALOG_BACKGROUND } from './variants'
 
 /** Props for a {@link Popover}. */
 export interface PopoverProps
   extends Omit<aria.PopoverProps, 'children' | 'placement'>,
-    twv.VariantProps<typeof POPOVER_STYLES> {
+    VariantProps<typeof POPOVER_STYLES> {
   readonly children:
     | React.ReactNode
     | ((opts: aria.PopoverRenderProps & { readonly close: () => void }) => React.ReactNode)
@@ -35,13 +32,13 @@ export interface PopoverProps
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const POPOVER_STYLES = twv.tv({
+export const POPOVER_STYLES = tv({
   base: 'shadow-xl w-full overflow-clip',
   variants: {
     variant: {
       custom: { dialog: '' },
-      light: { base: variants.DIALOG_BACKGROUND({ variant: 'light' }) },
-      dark: { base: variants.DIALOG_BACKGROUND({ variant: 'dark' }) },
+      light: { base: DIALOG_BACKGROUND({ variant: 'light' }) },
+      dark: { base: DIALOG_BACKGROUND({ variant: 'dark' }) },
     },
     isEntering: {
       true: 'animate-in fade-in placement-bottom:slide-in-from-top-1 placement-top:slide-in-from-bottom-1 placement-left:slide-in-from-right-1 placement-right:slide-in-from-left-1 ease-out duration-200',
@@ -101,7 +98,7 @@ export function Popover(props: PopoverProps) {
   } = props
 
   const popoverRef = React.useRef<HTMLDivElement>(null)
-  const root = portal.useStrictPortalContext()
+  const root = usePortalContext()
   const popoverStyle = { zIndex: '' }
 
   return (
@@ -177,7 +174,7 @@ function PopoverContent(props: PopoverContentProps) {
     onClose?.()
   })
 
-  utlities.useInteractOutside({
+  useInteractOutside({
     ref: dialogRef,
     id: dialogId,
     onInteractOutside: (e) => {
@@ -195,7 +192,7 @@ function PopoverContent(props: PopoverContentProps) {
       } else {
         if (popoverRef.current) {
           // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-          utlities.animateScale(popoverRef.current, 1.025)
+          animateScale(popoverRef.current, 1.025)
         }
       }
     },
@@ -203,7 +200,7 @@ function PopoverContent(props: PopoverContentProps) {
 
   return (
     <ResetButtonGroupContext>
-      <dialogStackProvider.DialogStackRegistrar id={dialogId} type="popover" />
+      <DialogStackRegistrar id={dialogId} type="popover" />
       <div
         id={dialogId}
         ref={dialogRef}
@@ -217,13 +214,13 @@ function PopoverContent(props: PopoverContentProps) {
           variant,
         }).dialog()}
       >
-        <dialogProvider.DialogProvider dialogId={dialogId} close={close}>
-          <errorBoundary.ErrorBoundary>
+        <DialogProvider dialogId={dialogId} close={close}>
+          <ErrorBoundary>
             <suspense.Suspense loaderProps={SUSPENSE_LOADER_PROPS}>
               {typeof children === 'function' ? children({ ...opts, close }) : children}
             </suspense.Suspense>
-          </errorBoundary.ErrorBoundary>
-        </dialogProvider.DialogProvider>
+          </ErrorBoundary>
+        </DialogProvider>
       </div>
     </ResetButtonGroupContext>
   )

@@ -7,7 +7,13 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Label as BackendLabel } from '#/services/Backend'
 import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
+import {
+  forwardRef,
+  type DragEvent,
+  type ForwardedRef,
+  type MouseEvent,
+  type PropsWithChildren,
+} from 'react'
 
 /** Props for a {@link Label}. */
 interface InternalLabelProps extends Readonly<PropsWithChildren> {
@@ -35,7 +41,10 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
 }
 
 /** An label that can be applied to an asset. */
-export default function Label(props: InternalLabelProps) {
+export default forwardRef(function Label(
+  props: InternalLabelProps,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
   const { onPress, onDragStart, onContextMenu, label, onDelete } = props
   const { children: childrenRaw } = props
@@ -56,6 +65,7 @@ export default function Label(props: InternalLabelProps) {
   return (
     <FocusRing within placement="after">
       <div
+        ref={ref}
         className={twMerge(
           'relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-inherit',
           negated && 'after:!outline-offset-0',
@@ -105,4 +115,4 @@ export default function Label(props: InternalLabelProps) {
       </div>
     </FocusRing>
   )
-}
+})

@@ -1,6 +1,5 @@
 <script lang="ts">
-import DashboardReact from '#/pages/dashboard/Dashboard'
-import { DashboardProps } from '#/pages/dashboard/Dashboard/types'
+import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
 import { AssetType, EnsoPath } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { provideContainerData } from '$/providers/container'

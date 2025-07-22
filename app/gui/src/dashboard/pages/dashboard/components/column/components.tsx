@@ -1,17 +1,15 @@
 /** @file Components for column cells. */
 import DotsIcon from '#/assets/dots.svg'
 import { Button } from '#/components/Button'
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { ContextMenu, type ContextMenuApi } from '#/components/ContextMenu'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
+import { useMenuEntries } from '#/hooks/menuHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { AssetsTableState } from '#/layouts/AssetsTable'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
-import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import type { AssetColumnProps, AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import DatalinkNameColumn from '#/pages/dashboard/components/column/DatalinkNameColumn'
 import DirectoryNameColumn from '#/pages/dashboard/components/column/DirectoryNameColumn'
@@ -20,22 +18,22 @@ import ProjectNameColumn from '#/pages/dashboard/components/column/ProjectNameCo
 import SecretNameColumn from '#/pages/dashboard/components/column/SecretNameColumn'
 import Label from '#/pages/dashboard/components/Label'
 import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
-import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type { AnyAsset } from '#/services/Backend'
+import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import {
   AssetType,
   FALLBACK_COLOR,
   getAssetPermissionId,
   getAssetPermissionName,
+  type LabelName,
+  type LChColor,
 } from '#/services/Backend'
-import { noopPromise } from '#/utilities/functions'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { PermissionAction } from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { noop } from 'motion-v'
-import { useRef, useState } from 'react'
+import { forwardRef, useRef, useState, type ForwardedRef } from 'react'
 export { PathColumn } from './PathColumn'
 
 /** A column listing the labels on this asset. */
@@ -75,32 +73,7 @@ export function LabelsColumn(props: AssetColumnProps) {
   const labelsList = (item.labels ?? [])
     .filter((label) => labelsByName.has(label))
     .map((label) => (
-      <Label
-        key={label}
-        data-testid="asset-label"
-        title={getText('rightClickToRemoveLabel')}
-        color={labelsByName.get(label)?.color ?? FALLBACK_COLOR}
-        active
-        onDelete={() => doDelete(label)}
-        onContextMenu={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          setModal(
-            <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
-              <ContextMenuEntry
-                action="delete"
-                label={getText('removeLabelShortcut')}
-                doAction={() => {
-                  unsetModal()
-                  void doDelete(label)
-                }}
-              />
-            </ContextMenu>,
-          )
-        }}
-      >
-        {label}
-      </Label>
+      <LabelInColumn label={label} color={labelsByName.get(label)?.color} doDelete={doDelete} />
     ))
 
   return (
@@ -168,6 +141,66 @@ export function LabelsColumn(props: AssetColumnProps) {
   )
 }
 
+/** Props for a {@link LabelInColumn}. */
+interface LabelInColumnProps {
+  readonly label: LabelName
+  readonly color: LChColor | undefined
+  readonly doDelete: (label: LabelName) => void
+}
+
+/** A {@link Label} in a {@link LabelsColumn}. */
+function LabelInColumn(props: LabelInColumnProps) {
+  const { label, color = FALLBACK_COLOR, doDelete } = props
+
+  const { getText } = useText()
+  const labelRef = useRef<HTMLDivElement>(null)
+  const contextMenuRef = useRef<ContextMenuApi>(null)
+
+  return (
+    <BindingFocusScopeContext.Provider key={label} value={labelRef}>
+      <Label
+        active
+        ref={labelRef}
+        data-testid="asset-label"
+        title={getText('rightClickToRemoveLabel')}
+        color={color}
+        onDelete={() => doDelete(label)}
+        onContextMenu={(event) => {
+          contextMenuRef.current?.open(event)
+        }}
+      >
+        {label}
+      </Label>
+      <LabelInColumnContextMenu label={label} doDelete={doDelete} />
+    </BindingFocusScopeContext.Provider>
+  )
+}
+
+/**
+ * A context menu in a {@link LabelInColumn}. Necessary for `useMenuEntries` to pick up
+ * the new `BindingFocusScope`.
+ */
+const LabelInColumnContextMenu = forwardRef(function LabelInColumnContextMenu(
+  props: Pick<LabelInColumnProps, 'doDelete' | 'label'>,
+  ref: ForwardedRef<ContextMenuApi>,
+) {
+  const { label, doDelete } = props
+
+  const { getText } = useText()
+
+  const entries = useMenuEntries([
+    {
+      action: 'delete',
+      label: getText('removeLabelShortcut'),
+      doAction: () => {
+        doDelete(label)
+      },
+    },
+  ])
+
+  return <ContextMenu ref={ref} aria-label={getText('labelContextMenuLabel')} entries={entries} />
+})
+
 /** A column displaying the time at which the asset was last modified. */
 export function ModifiedColumn(props: AssetColumnProps) {
   const { item } = props
@@ -200,37 +233,6 @@ export function NameColumn(props: AssetNameColumnProps) {
       return <></>
     }
   }
-}
-
-/** Props for a {@link ReadonlyNameColumn}. */
-export interface ReadonlyNameColumnProps {
-  readonly node: AnyAsset
-  readonly state: Pick<AssetsTableState, 'backend'>
-}
-
-/** A non-interactable name column. */
-export function ReadonlyNameColumn(props: ReadonlyNameColumnProps) {
-  const { node, state } = props
-
-  return (
-    <NameColumn
-      isNavigating={false}
-      item={node}
-      isOpened={false}
-      backendType={state.backend.type}
-      state={state}
-      rowState={INITIAL_ROW_STATE}
-      // The drag placeholder cannot be interacted with.
-      isEditable={false}
-      isPlaceholder={false}
-      setSelected={noop}
-      setRowState={noop}
-      renameAsset={noopPromise}
-      closeProject={noopPromise}
-      openProject={noopPromise}
-      labels={[]}
-    />
-  )
 }
 
 /** A placeholder component for columns which do not yet have corresponding data to display. */

@@ -1,7 +1,6 @@
 /** @file Shortcuts for the dashboard application. */
 import * as inputBindings from '#/utilities/inputBindings'
 import * as detect from 'enso-common/src/detect'
-export type * from '#/utilities/inputBindings'
 
 /** The type of the keybind and mousebind namespace for the dashboard. */
 export type DashboardBindingNamespace = ReturnType<typeof createBindings>
@@ -16,6 +15,8 @@ export function createBindings() {
 
 export const BINDINGS = inputBindings.defineBindings({
   settings: { bindings: ['Mod+,'], icon: 'settings' },
+  // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
+  closeTab: { bindings: ['Mod+W', 'Mod+Alt+W'], icon: 'close' },
   open: { bindings: ['Enter'], icon: 'open' },
   run: { bindings: ['Shift+Enter'], icon: 'workflow_play' },
   close: { bindings: [], icon: 'close' },
@@ -24,7 +25,6 @@ export const BINDINGS = inputBindings.defineBindings({
   exportArchive: { bindings: [], icon: 'data_download' },
   rename: { bindings: ['Mod+R'], icon: 'edit' },
   edit: { bindings: ['Mod+E'], icon: 'edit' },
-  snapshot: { bindings: ['Mod+S'], icon: 'camera' },
   delete: { bindings: ['OsDelete'], icon: 'trash', color: 'rgb(243 24 10 / 0.87)' },
   undelete: { bindings: ['Mod+R'], icon: 'untrash' },
   share: { bindings: ['Mod+Enter'], icon: 'people' },
