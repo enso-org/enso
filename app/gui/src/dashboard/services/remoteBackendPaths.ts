@@ -38,12 +38,8 @@ export const LIST_DIRECTORY_PATH = 'directories'
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
 export const UNDO_DELETE_ASSET_PATH = 'assets'
-/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
 export const CREATE_PROJECT_PATH = 'projects'
-/** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-export const LIST_FILES_PATH = 'files'
 /** Relative HTTP path to the "upload file start" endpoint of the Cloud backend API. */
 export const UPLOAD_FILE_START_PATH = 'files/upload/start'
 /** Relative HTTP path to the "upload file end" endpoint of the Cloud backend API. */
@@ -52,6 +48,8 @@ export const UPLOAD_FILE_END_PATH = 'files/upload/end'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
+/** Relative HTTP path to the "create credential" endpoint of the Cloud backend API. */
+export const CREATE_CREDENTIAL_PATH = 'secrets'
 /** Relative HTTP path to the "list project sessions" endpoint of the Cloud backend API. */
 export const LIST_PROJECT_SESSIONS_PATH = 'project-sessions'
 /** Relative HTTP path to the "create datalink" endpoint of the Cloud backend API. */
@@ -65,26 +63,27 @@ export const CREATE_USER_GROUP_PATH = 'usergroups'
 /** Relative HTTP path to the "list user groups" endpoint of the Cloud backend API. */
 export const LIST_USER_GROUPS_PATH = 'usergroups'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
-export const CREATE_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
-/** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
-const GET_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
-export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
+export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout/sessions'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
-
+/** Relative HTTP path to the "get payments config" endpoint of the Cloud backend API. */
+export const PAYMENTS_CONFIG_PATH = 'payments/config'
+/** Resolve an enso URL path. */
+export const RESOLVE_ENSO_PATH = 'path/resolve'
 /** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
-export function getCustomerPortalSessionPath(returnUrl?: string) {
-  const baseUrl = 'payments/customer-portal-sessions/create'
+export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-sessions/create'
 
-  if (returnUrl === undefined) {
-    return baseUrl
-  } else {
-    return `${baseUrl}?returnUrl=${returnUrl}`
-  }
+/** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */
+export function cancelSubscriptionPath(subscriptionId: backend.SubscriptionId) {
+  return `payments/subscriptions/${subscriptionId}`
 }
 
+/** Relative HTTP path to the "delete user" endpoint of the Cloud backend API. */
+export function removeUserPath(userId: backend.UserId) {
+  return `users/${userId}`
+}
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {
   return `users/${userId}/usergroups`
@@ -93,21 +92,16 @@ export function changeUserGroupPath(userId: backend.UserId) {
 export function listAssetVersionsPath(assetId: backend.AssetId) {
   return `assets/${assetId}/versions`
 }
-/** Relative HTTP path to the "get Main.enso file" endpoint of the Cloud backend API. */
-export function getProjectContentPath(
-  projectId: backend.ProjectId,
-  versionId?: backend.S3ObjectVersionId,
-) {
-  const searchParams = new URLSearchParams()
-  if (versionId !== undefined) {
-    searchParams.set('versionId', versionId)
-  }
-  return `projects/${projectId}/files?${searchParams.toString()}`
-}
-
 /** Relative HTTP path to the "get project asset" endpoint of the Cloud backend API. */
 export function getProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
-  return `projects/${projectId}/files/${relativePath.replace('./', '')}`
+  return `projects/${projectId}/files/${relativePath}`.replace('/./', '/').replace(/\/$/, '')
+}
+
+/**
+ * Relative HTTP path to the "get asset details" endpoint of the Cloud backend API.
+ */
+export function getAssetDetailsPath(assetId: backend.AssetId) {
+  return `assets/${assetId}` as const
 }
 /** Relative HTTP path to the upload project endpoint of the Cloud backend API. */
 export function getProjectUploadPath(projectId: backend.ProjectId) {
@@ -138,7 +132,6 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
-
 /** Relative HTTP path to the "get project logs" endpoint of the Cloud backend API. */
 export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessionId) {
   return `project-sessions/${projectSessionId}/logs`
@@ -147,9 +140,9 @@ export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessi
 export function duplicateProjectPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/versions/clone`
 }
-/** Relative HTTP path to the "restore project" endpoint of the Cloud backend API. */
-export function restoreProjectPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/versions/restore`
+/** Relative HTTP path to the "restore asset" endpoint of the Cloud backend API. */
+export function restoreAssetPath(assetId: backend.AssetId) {
+  return `assets/${assetId}/versions/restore`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {
@@ -187,10 +180,6 @@ export function deleteProjectExecutionPath(executionId: backend.ProjectExecution
 export function getFileDetailsPath(fileId: backend.FileId) {
   return `files/${fileId}`
 }
-/** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
-export function checkResourcesPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/resources`
-}
 /** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
 export function updateSecretPath(secretId: backend.SecretId) {
   return `secrets/${secretId}`
@@ -215,9 +204,10 @@ export function deleteTagPath(tagId: backend.TagId) {
 export function deleteUserGroupPath(groupId: backend.UserGroupId) {
   return `usergroups/${groupId}`
 }
-/** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
-export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
-  return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
+/** Relative HTTP path to the "get oauth callback" endpoint of the Cloud backend API. */
+export function getOauthCallbackPath(service: backend.CredentialInput['type']) {
+  const normalized = service.toLowerCase()
+  return `oauth/${normalized}/callback`
 }
 
 /** Relative HTTP path to the "hybrid set open in progress" endpoint of the Cloud backend API. */

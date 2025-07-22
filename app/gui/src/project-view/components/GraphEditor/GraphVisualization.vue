@@ -7,10 +7,14 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent, useResizeObserver } from '@/composables/events'
+import { registerHandlers } from '@/providers/action'
+import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import type { ProjectPath } from '@/util/projectPath'
+import { proxyRefs } from '@/util/reactivity'
 import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -25,7 +29,6 @@ const DEFAULT_CONTENT_HEIGHT_PX = 150
 
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
-  isComponentMenuVisible: boolean
   isFullscreenAllowed: boolean
   isResizable: boolean
   isPreview?: boolean
@@ -35,7 +38,9 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
-  typename?: string | undefined
+  /** @deprecated use typeinfo instead */
+  typename?: ProjectPath | undefined
+  typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
@@ -45,6 +50,7 @@ const emit = defineEmits<{
   'update:width': [width: number]
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
+  'update:hovered': [hovered: boolean]
   createNodes: [options: NodeCreationOptions[]]
 }>()
 
@@ -56,8 +62,8 @@ const {
   effectiveVisualization,
   effectiveVisualizationData,
   updatePreprocessor,
-  allTypes,
-  currentType,
+  allVisualizations,
+  currentVisualization,
   setToolbarDefinition,
   visualizationDefinedToolbar,
   toolbarOverlay,
@@ -81,46 +87,55 @@ const contentElementSize = useResizeObserver(contentElement)
 
 // === Events ===
 
-const keydownHandler = visualizationBindings.handler({
-  nextType: () => {
-    if (props.isFocused || focusIsIn(panelElement.value)) {
-      const currentIndex = allTypes.value.findIndex((type) =>
-        visIdentifierEquals(type, currentType.value),
+const isFullscreen = ref(false)
+
+const actionHandlers = registerHandlers({
+  'visualization.exitFullscreen': {
+    action: () => (isFullscreen.value = false),
+  },
+  'component.toggleVisualization': {
+    available: () => !isFullscreen.value,
+    action: () => emit('update:enabled', false),
+  },
+  'visualization.nextType': {
+    action: () => {
+      const currentIndex = allVisualizations.value.findIndex((type) =>
+        visIdentifierEquals(type, currentVisualization.value),
       )
-      const nextIndex = (currentIndex + 1) % allTypes.value.length
-      emit('update:id', allTypes.value[nextIndex]!)
+      const nextIndex = (currentIndex + 1) % allVisualizations.value.length
+      emit('update:id', allVisualizations.value[nextIndex]!)
+    },
+  },
+})
+
+const keydownHandler = visualizationBindings.handler({
+  'visualization.nextType': () => {
+    if (props.isFocused || focusIsIn(panelElement.value)) {
+      actionHandlers['visualization.nextType'].action()
     } else {
       return false
     }
   },
-  toggleFullscreen: () => {
+  'panel.fullscreen': () => {
     if (props.isFocused || focusIsIn(panelElement.value)) {
       isFullscreen.value = !isFullscreen.value
     } else {
       return false
     }
   },
-  exitFullscreen: () => {
+  'visualization.exitFullscreen': () => {
     if (isFullscreen.value) {
-      isFullscreen.value = false
+      actionHandlers['visualization.exitFullscreen'].action()
     } else {
       return false
     }
   },
 })
 
-useEvent(window, 'keydown', keydownHandler)
-
-function onWheel(event: WheelEvent) {
-  if (
-    event.currentTarget instanceof Element &&
-    (isFullscreen.value ||
-      event.currentTarget.scrollWidth > event.currentTarget.clientWidth ||
-      event.currentTarget.scrollHeight > event.currentTarget.clientHeight)
-  ) {
-    event.stopPropagation()
-  }
-}
+// TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
+//  (deselectAllNodes in particular). But this is quick workaround, the proper solution
+//  should be soon delivered as part of https://github.com/enso-org/enso/issues/13002
+useEvent(document, 'keydown', keydownHandler)
 
 // =============================
 // === Sizing and Fullscreen ===
@@ -140,8 +155,6 @@ const rect = computed(
 
 watchEffect(() => emit('update:rect', rect.value))
 onUnmounted(() => emit('update:rect', undefined))
-
-const isFullscreen = ref(false)
 
 const containerContentSize = computed<Vec2>(
   () => new Vec2(rect.value.width, rect.value.height - props.nodeSize.y),
@@ -185,19 +198,21 @@ watch(
   (f) => f && nextTick(() => panelElement.value?.focus()),
 )
 
-const visParams = computed(() => {
-  return {
-    visualization: effectiveVisualization.value,
-    data: effectiveVisualizationData.value,
-    size: contentElementSize.value,
-    nodeType: props.typename,
-    executeExpression,
-  }
+// Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
+const visParams = proxyRefs({
+  visualization: effectiveVisualization,
+  data: effectiveVisualizationData,
+  size: contentElementSize,
+  nodeType: toRef(props, 'typename'),
+  executeExpression,
 })
+
+const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
 import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================
@@ -215,39 +230,38 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 </script>
 
 <template>
-  <div class="GraphVisualization" :style="style" :class="{ isFocused }">
-    <WithFullscreenMode :fullscreen="isFullscreen" @update:animating="fullscreenAnimating = $event">
+  <div
+    class="GraphVisualization"
+    :style="style"
+    :class="{ isFocused }"
+    @pointerenter="emit('update:hovered', false)"
+    @pointerleave="emit('update:hovered', true)"
+  >
+    <WithFullscreenMode
+      v-model="isFullscreen"
+      :enabled="isFullscreenAllowed"
+      @update:animating="fullscreenAnimating = $event"
+    >
       <div
         ref="panelElement"
         class="VisualizationPanel"
         :class="{
-          fullscreen: isFullscreen || fullscreenAnimating,
           nonInteractive: isPreview,
         }"
         tabindex="-1"
       >
         <VisualizationToolbar
-          v-model:isFullscreen="isFullscreen"
-          :currentVis="currentType"
+          :currentVis="currentVisualization"
           :showControls="!isPreview"
-          :hideVisualizationButton="
-            isFullscreen ? 'hide'
-            : isComponentMenuVisible ? 'invisible'
-            : 'show'
-          "
-          :isFullscreenAllowed="isFullscreenAllowed"
-          :allTypes="allTypes"
+          :isFocused="isFocused"
+          :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"
+          :typeinfo="typeinfo"
           :class="{ overlay: toolbarOverlay }"
           @update:currentVis="emit('update:id', $event)"
-          @hide="emit('update:enabled', false)"
         />
-        <div
-          ref="contentElement"
-          class="VisualizationHostContainer content scrollable"
-          @wheel.passive="onWheel"
-        >
+        <div ref="contentElement" class="VisualizationHostContainer content scrollable">
           <component
             :is="ensoVisualizationHost"
             :params="visParams"
@@ -267,6 +281,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
       left
       right
       bottom
+      v-on="resizableWidgets?.visResizeHandleEventHandlers"
       @update:resizing="resizing = $event"
     />
   </div>
@@ -279,17 +294,12 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
   --resize-handle-radius: var(--radius-default);
   position: absolute;
   border-radius: var(--radius-default);
-  background: var(--color-visualization-bg);
   opacity: 0.9;
-}
-
-.content {
-  /** Prevent drawing on top of other UI elements (e.g. dropdown widgets). */
-  isolation: isolate;
-}
-
-.isFocused {
-  opacity: 1;
+  overflow: hidden;
+  transition: opacity 0.2s;
+  &.isFocused {
+    opacity: 1;
+  }
 }
 
 .VisualizationPanel {
@@ -300,16 +310,16 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
   display: flex;
   flex-direction: column;
   height: 100%;
-  &.fullscreen {
-    background: var(--color-visualization-bg);
-  }
+  background: var(--color-visualization-bg);
 }
 
 .content {
   overflow: auto;
   contain: strict;
+  isolation: isolate;
   border-radius: 0 0 var(--radius-default) var(--radius-default);
   height: 100%;
+  overscroll-behavior: contain;
 }
 
 .nonInteractive {

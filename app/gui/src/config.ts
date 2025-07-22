@@ -14,7 +14,6 @@ const $config = {
   SENTRY_DSN: import.meta.env.ENSO_IDE_SENTRY_DSN,
   STRIPE_KEY: import.meta.env.ENSO_IDE_STRIPE_KEY,
   AUTH_ENDPOINT: import.meta.env.ENSO_IDE_AUTH_ENDPOINT,
-  CHAT_URL: import.meta.env.ENSO_IDE_CHAT_URL,
   COGNITO_USER_POOL_ID: import.meta.env.ENSO_IDE_COGNITO_USER_POOL_ID,
   COGNITO_USER_POOL_WEB_CLIENT_ID: import.meta.env.ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
   GOOGLE_ANALYTICS_TAG: import.meta.env.ENSO_IDE_GOOGLE_ANALYTICS_TAG,
@@ -26,6 +25,7 @@ const $config = {
   YDOC_SERVER_URL: import.meta.env.ENSO_IDE_YDOC_SERVER_URL,
   CLOUD_BUILD: import.meta.env.ENSO_IDE_CLOUD_BUILD,
   AG_GRID_LICENSE_KEY: import.meta.env.ENSO_IDE_AG_GRID_LICENSE_KEY,
+  GOOGLE_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
   MAPBOX_API_TOKEN: window.mapBoxApiToken?.() || import.meta.env.ENSO_IDE_MAPBOX_API_TOKEN,
 } as const
 

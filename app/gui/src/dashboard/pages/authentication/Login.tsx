@@ -1,45 +1,33 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-import * as router from 'react-router-dom'
-
-import { isOnElectron } from 'enso-common/src/detect'
-
-import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
-import GithubIcon from '#/assets/github_color.svg'
-import GoogleIcon from '#/assets/google_color.svg'
 import LockIcon from '#/assets/lock.svg'
-import type { CognitoUser } from '#/authentication/cognito'
-import { Button, Form, Input, OTPInput, Password, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
+import { OTPInput } from '#/components/Inputs/OTPInput'
+import { Password } from '#/components/Inputs/Password'
 import Link from '#/components/Link'
 import { Stepper } from '#/components/Stepper'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
-import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
-import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
-
-// eslint-disable-next-line no-restricted-syntax
-const GOOGLE_ICON = <img src={GoogleIcon} alt="" />
-// eslint-disable-next-line no-restricted-syntax
-const GITHUB_ICON = <img src={GithubIcon} alt="" />
+import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
+import type { CognitoUser } from '$/authentication/cognito'
+import { useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
+import { isOnElectron } from 'enso-common/src/detect'
+import { useState } from 'react'
 
 /** A form for users to log in. */
 export default function Login() {
-  const location = router.useLocation()
-  const navigate = router.useNavigate()
-  const queryClient = useQueryClient()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
+  const { router } = useRouter()
+  const { signInWithApple, signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } =
+    useSession()
   const { getText } = useText()
 
-  const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email') ?? ''
-
-  useEffect(() => {
-    void queryClient.clearWithPersister()
-  }, [queryClient])
+  const [initialEmail] = useQueryParam('email')
 
   const form = Form.useForm({
     schema: (z) =>
@@ -50,23 +38,15 @@ export default function Login() {
           .email(getText('invalidEmailValidationError')),
         password: passwordSchema(getText),
       }),
-    defaultValues: { email: initialEmail },
+    defaultValues: { email: initialEmail ?? '' },
     onSubmit: async ({ email, password }) => {
-      const res = await signInWithPassword(email, password)
+      const { user, challenge } = await signInWithPassword(email, password)
 
-      switch (res.challenge) {
-        case 'SMS_MFA':
-        case 'SOFTWARE_TOKEN_MFA':
-          setUser(res.user)
-          nextStep()
-          break
-        case 'NO_CHALLENGE':
-        case 'CUSTOM_CHALLENGE':
-        case 'MFA_SETUP':
-        case 'NEW_PASSWORD_REQUIRED':
-        case 'SELECT_MFA_TYPE':
-        default:
-          navigate(DASHBOARD_PATH)
+      if (challenge) {
+        setUser(user)
+        nextStep()
+      } else {
+        await router.push(DASHBOARD_PATH)
       }
     },
   })
@@ -79,6 +59,10 @@ export default function Login() {
   const { nextStep, stepperState, previousStep } = Stepper.useStepperState({
     steps: 2,
     defaultStep: 0,
+  })
+
+  const handleApplePress = useEventCallback(async () => {
+    await signInWithApple()
   })
 
   const handleGooglePress = useEventCallback(async () => {
@@ -109,11 +93,24 @@ export default function Login() {
         <Stepper.StepContent index={0}>
           {() => (
             <div className="flex flex-col gap-auth">
-              <Button size="large" variant="outline" icon={GOOGLE_ICON} onPress={handleGooglePress}>
+              <Button
+                size="large"
+                variant="outline"
+                icon="google_color"
+                onPress={handleGooglePress}
+              >
                 {getText('signUpOrLoginWithGoogle')}
               </Button>
-              <Button size="large" variant="outline" icon={GITHUB_ICON} onPress={handleGitHubPress}>
+              <Button
+                size="large"
+                variant="outline"
+                icon="github_color"
+                onPress={handleGitHubPress}
+              >
                 {getText('signUpOrLoginWithGitHub')}
+              </Button>
+              <Button size="large" variant="outline" icon="apple_color" onPress={handleApplePress}>
+                {getText('signUpOrLoginWithApple')}
               </Button>
 
               <Form form={form} gap="medium">
@@ -176,7 +173,7 @@ export default function Login() {
                   const res = await confirmSignIn(user, otp)
 
                   if (res.ok) {
-                    navigate(DASHBOARD_PATH)
+                    await router.push(DASHBOARD_PATH)
                   } else {
                     switch (res.val.code) {
                       case 'NotAuthorizedException':

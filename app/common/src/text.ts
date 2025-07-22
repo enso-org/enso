@@ -1,5 +1,4 @@
 /** @file Functions related to displaying text. */
-
 import ENGLISH from './text/english.json' with { type: 'json' }
 import { unsafeKeys } from './utilities/data/object'
 
@@ -56,13 +55,11 @@ interface PlaceholderOverrides {
   readonly youAreAlreadyAddingUser: [userEmail: string]
   readonly lastModifiedOn: [dateString: string]
   readonly versionX: [version: number | string]
-  readonly buildX: [build: string]
-  readonly electronVersionX: [electronVersion: string]
-  readonly chromeVersionX: [chromeVersion: string]
-  readonly userAgentX: [userAgent: string]
-  readonly compareVersionXWithLatest: [versionNumber: number]
+  readonly compareVersionXWithY: [versionNumber: number | string, versionNumber: string | number]
+  readonly compareWithVersionY: [versionNumber: number | string]
   readonly projectSessionX: [count: number]
   readonly onDateX: [dateString: string]
+  readonly byUserX: [userName: string]
   readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
   readonly removeTheLocalDirectoryXFromFavorites: [directoryName: string]
   readonly upgradeTo: [planName: string]
@@ -71,7 +68,6 @@ interface PlaceholderOverrides {
   readonly downloadFileError: [fileName: string]
   readonly downloadDatalinkError: [datalinkName: string]
   readonly deleteUserGroupError: [userGroupName: string]
-  readonly removeUserFromUserGroupError: [userName: string, userGroupName: string]
   readonly deleteUserError: [userName: string]
 
   readonly inviteUserBackendError: [userEmail: string]
@@ -81,10 +77,7 @@ interface PlaceholderOverrides {
   readonly updateFolderBackendError: [folderTitle: string]
   readonly updateAssetBackendError: [assetTitle: string]
   readonly deleteAssetBackendError: [assetTitle: string]
-  readonly undoDeleteAssetBackendError: [assetTitle: string]
-  readonly copyAssetBackendError: [assetTitle: string, newParentTitle: string]
   readonly createProjectBackendError: [projectTitle: string]
-  readonly restoreProjectBackendError: [projectTitle: string]
   readonly duplicateProjectBackendError: [projectTitle: string]
   readonly closeProjectBackendError: [projectTitle: string]
   readonly listProjectSessionsBackendError: [projectTitle: string]
@@ -98,13 +91,13 @@ interface PlaceholderOverrides {
   readonly openProjectBackendError: [projectTitle: string]
   readonly openProjectMissingCredentialsBackendError: [projectTitle: string]
   readonly updateProjectBackendError: [projectTitle: string]
-  readonly checkResourcesBackendError: [projectTitle: string]
   readonly uploadFileWithNameBackendError: [fileTitle: string]
   readonly getFileDetailsBackendError: [fileTitle: string]
   readonly createDatalinkBackendError: [datalinkTitle: string]
   readonly getDatalinkBackendError: [datalinkTitle: string]
   readonly deleteDatalinkBackendError: [datalinkTitle: string]
   readonly createSecretBackendError: [secretTitle: string]
+  readonly createCredentialBackendError: [credentialTitle: string]
   readonly getSecretBackendError: [secretTitle: string]
   readonly updateSecretBackendError: [secretTitle: string]
   readonly createLabelBackendError: [labelName: string]
@@ -114,12 +107,10 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupBackendError: [userGroupName: string]
   readonly listVersionsBackendError: [versionType: string]
   readonly createCheckoutSessionBackendError: [plan: string]
-  readonly getCheckoutSessionBackendError: [checkoutSessionId: string]
   readonly getDefaultVersionBackendError: [versionType: string]
   readonly logEventBackendError: [eventType: string]
 
   readonly subscribeSuccessSubtitle: [plan: string]
-  readonly assetsDropFilesDescription: [count: number]
 
   readonly paywallAvailabilityLevel: [plan: string]
   readonly paywallScreenDescription: [plan: string]
@@ -137,7 +128,6 @@ interface PlaceholderOverrides {
 
   readonly upgradeCTA: [plan: string]
   readonly priceTemplate: [price: string, interval: string]
-  readonly months: [months: number]
   readonly teamPlanSeatsDescription: [seats: number]
   readonly tryFree: [days: number]
   readonly organizationNameSettingsInputDescription: [howLong: number]
@@ -146,14 +136,17 @@ interface PlaceholderOverrides {
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
-  readonly everyHourXMinute: [minute: string]
-  readonly groupNameSettingsInputDescription: [howLong: number]
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
-  readonly ordinalFallback: [number: number]
+  readonly uploadedXFilesNotification: [count: number]
+  readonly uploadingXFilesWithProgressNotification: [
+    sentFiles: number,
+    totalFiles: number,
+    progressMb: string,
+    totalMb: string,
+  ]
   readonly dateXTimeX: [date: string, time: string]
-  readonly hourlyBetweenX: [startTime: string, endTime: string]
   readonly projectSessionsOnX: [date: string]
   readonly monthlyXthDay: [dateOrdinal: string]
   readonly monthlyXthXDay: [weekOrdinal: string, dayOfWeek: string]
@@ -166,19 +159,39 @@ interface PlaceholderOverrides {
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]
-  readonly uploadLargeFileStatus: [uploadedParts: number, totalParts: number]
+  readonly uploadLargeFileStatus: [uploadedMb: string, totalMb: string]
 
   readonly latestVersion: [version: string, date: string]
+  readonly copyInsteadOfMoving: [categoryName: string]
+  readonly copyInsteadOfRestoring: [categoryName: string, destinationCategoryName: string]
+  readonly copyInsteadOfRestoringDescription: [
+    categoryName: string,
+    destinationCategoryName: string,
+  ]
+
+  readonly plusXUsers: [count: number]
+  readonly managingUserGroupX: [groupName: string]
+  readonly planOverriddenToX: [planName: string]
+  readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
+  readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
+  readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
+  readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
+
+  readonly xDaysLeftInTrial: [daysLeft: number]
+  readonly xHoursLeftInTrial: [hoursLeft: number]
+  readonly yourSubscriptionExpiresAtX: [endDate: string]
+  readonly commercialUseNotice: [originalTitle: string]
 }
+
+// This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
+// out of sync with `TextId`.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type SanityCheck<T extends TextId = keyof PlaceholderOverrides> = T
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */
 export interface Replacements
   extends PlaceholderOverrides,
     Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
-
-// =================
-// === Constants ===
-// =================
 
 export const TEXTS: Readonly<Record<Language, Texts>> = {
   [Language.english]: ENGLISH,
@@ -196,9 +209,7 @@ export type GetText = <K extends TextId>(
   ...replacements: Replacements[K]
 ) => string
 
-/**
- * Resolves the language texts based on the user's preferred language.
- */
+/** Resolves the language texts based on the user's preferred language. */
 export function resolveUserLanguage() {
   const locale = navigator.language
   const language =

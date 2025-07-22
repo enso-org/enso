@@ -1,38 +1,43 @@
 /** @file Display and modify the properties of an asset. */
-import * as React from 'react'
-
-import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
-import {
-  Button,
-  ButtonGroup,
-  CopyButton,
-  Form,
-  ResizableContentEditableInput,
-  Text,
-} from '#/components/AriaComponents'
-import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
-import Label from '#/components/dashboard/Label'
+import { Button, CopyButton } from '#/components/Button'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { Form } from '#/components/Form'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
+import { Text } from '#/components/Text'
 import { validateDatalink } from '#/data/datalinkValidator'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
-import { useText } from '#/providers/TextProvider'
+import { type Category } from '#/layouts/Drive/Categories'
+import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
+import { SharedWithColumn } from '#/pages/dashboard/components/column'
+import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
+import Label from '#/pages/dashboard/components/Label'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  getAssetPermissionId,
+  getAssetPermissionName,
+  isAssetCredential,
+  Plan,
+  type AnyAsset,
+  type DatalinkId,
+} from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useStore } from '#/utilities/zustand'
-import { useMutation } from '@tanstack/react-query'
+import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/container'
+import { useFeatureFlags } from '$/providers/react/featureFlags'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import * as React from 'react'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -41,102 +46,76 @@ const ASSET_PROPERTIES_VARIANTS = tv({
   },
 })
 
-/** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
-
-/** Props for an {@link AssetPropertiesProps}. */
-export interface AssetPropertiesProps {
-  readonly backend: Backend
-  readonly category: Category
-  readonly isReadonly?: boolean
-}
-
 /** Display and modify the properties of an asset. */
-export function AssetProperties(props: AssetPropertiesProps) {
-  const { isReadonly = false, backend, category } = props
-
-  const { item, spotlightOn, defaultItem } = useStore(
-    assetPanelStore,
-    (state) => state.assetPanelProps,
-    { unsafeEnableTransition: true },
-  )
-
-  const currentItem = item ?? defaultItem
-
+export function AssetProperties() {
+  const { remoteBackend } = useBackends()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
   const { getText } = useText()
+  const isReadonly = category?.type === 'trash'
 
-  if (backend.type === BackendType.local) {
+  if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (currentItem == null) {
+  if (focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
-    <AssetPropertiesInternal
-      key={currentItem.id}
-      backend={backend}
-      item={currentItem}
-      isReadonly={isReadonly}
-      category={category}
-      spotlightOn={spotlightOn}
-    />
+    <ErrorBoundary>
+      <AssetPropertiesInternal
+        key={focusedAsset.id}
+        backend={remoteBackend}
+        item={focusedAsset}
+        isReadonly={isReadonly}
+        category={category}
+      />
+    </ErrorBoundary>
   )
 }
 
 /** Props for an {@link AssetPropertiesInternal}. */
-export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
+export interface AssetPropertiesInternalProps {
+  readonly backend: Backend
+  readonly category: Category
+  readonly isReadonly: boolean
   readonly item: AnyAsset
-  readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, spotlightOn, isReadonly = false } = props
+  const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
-
-  const setAssetPanelProps = useSetAssetPanelProps()
+  const rightPanel = useRightPanelData()
+  const spotlightOn = useVueValue(
+    React.useCallback(() => rightPanel.context?.spotlightOn, [rightPanel]),
+  )
 
   const closeSpotlight = useEventCallback(() => {
-    const assetPanelProps = assetPanelStore.getState().assetPanelProps
-    setAssetPanelProps({ ...assetPanelProps, spotlightOn: null })
+    rightPanel.updateContext('drive', (ctx) => {
+      ctx.spotlightOn = undefined
+      return ctx
+    })
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
-  const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
-  const setIsEditingDescription = useEventCallback(
-    (valueOrUpdater: React.SetStateAction<boolean>) => {
-      setIsEditingDescriptionRaw((currentValue) => {
-        if (typeof valueOrUpdater === 'function') {
-          valueOrUpdater = valueOrUpdater(currentValue)
-        }
-        if (!valueOrUpdater) {
-          closeSpotlight()
-        }
-        return valueOrUpdater
-      })
-    },
-  )
   const featureFlags = useFeatureFlags()
-  const datalinkQuery = useBackendQuery(
-    backend,
-    'getDatalink',
-    // eslint-disable-next-line no-restricted-syntax
-    [item.id as DatalinkId, item.title],
-    {
-      enabled: item.type === AssetType.datalink,
-      ...(featureFlags.enableAssetsTableBackgroundRefresh ?
-        { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
-      : {}),
-    },
+  const datalinkQuery = useQuery(
+    backendQueryOptions(
+      backend,
+      'getDatalink',
+      // eslint-disable-next-line no-restricted-syntax
+      [item.id as DatalinkId, item.title],
+      {
+        enabled: item.type === AssetType.datalink,
+        ...(featureFlags.enableAssetsTableBackgroundRefresh ?
+          { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
+        : {}),
+      },
+    ),
   )
-  const descriptionSpotlight = useSpotlight({
-    enabled: spotlightOn === 'description',
-    close: closeSpotlight,
-  })
   const secretSpotlight = useSpotlight({
     enabled: spotlightOn === 'secret',
     close: closeSpotlight,
@@ -146,7 +125,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     close: closeSpotlight,
   })
 
-  const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -154,108 +133,19 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
   const isSecret = item.type === AssetType.secret
+  const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
-  const editDescriptionMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', { mutationKey: ['editDescription'] }),
-  )
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
-  const displayedDescription =
-    editDescriptionMutation.variables?.[0] === item.id ?
-      (editDescriptionMutation.variables[1].description ?? item.description)
-    : item.description
-
-  const editDescriptionForm = Form.useForm({
-    schema: (z) => z.object({ description: z.string() }),
-    defaultValues: { description: item.description ?? '' },
-    onSubmit: async ({ description }) => {
-      if (description !== item.description) {
-        await editDescriptionMutation.mutateAsync([
-          item.id,
-          { parentDirectoryId: null, description },
-          item.title,
-        ])
-      }
-      setIsEditingDescription(false)
-    },
-  })
-  const resetEditDescriptionForm = editDescriptionForm.reset
-
-  React.useEffect(() => {
-    setIsEditingDescription(false)
-  }, [item.id, setIsEditingDescription])
-
-  React.useEffect(() => {
-    resetEditDescriptionForm({ description: item.description ?? '' })
-  }, [item.description, resetEditDescriptionForm])
-
-  const editDatalinkForm = Form.useForm({
-    schema: (z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) }),
-    defaultValues: { datalink: datalinkQuery.data },
-    onSubmit: async ({ datalink }) => {
-      await createDatalinkMutation.mutateAsync([
-        {
-          // The UI to submit this form is only visible if the asset is a datalink.
-          // eslint-disable-next-line no-restricted-syntax
-          datalinkId: item.id as DatalinkId,
-          name: item.title,
-          parentDirectoryId: null,
-          value: datalink,
-        },
-      ])
-    },
-  })
-
-  const editDatalinkFormRef = useSyncRef(editDatalinkForm)
-  React.useEffect(() => {
-    editDatalinkFormRef.current.setValue('datalink', datalinkQuery.data)
-  }, [datalinkQuery.data, editDatalinkFormRef])
+  const ownerPermission = permissions.tryGetOwnerPermission(item)
 
   return (
     <div className="flex w-full flex-col gap-8">
-      {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}
-      <div className={styles.section()} {...descriptionSpotlight.props}>
-        <Heading
-          level={2}
-          className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
-        >
-          {getText('description')}
-          {!isReadonly && ownsThisAsset && !isEditingDescription && (
-            <Button
-              size="medium"
-              variant="icon"
-              icon={PenIcon}
-              loading={editDescriptionMutation.isPending}
-              onPress={() => {
-                setIsEditingDescription(true)
-              }}
-            />
-          )}
-        </Heading>
-        <div
-          data-testid="asset-panel-description"
-          className="self-stretch py-side-panel-description-y"
-        >
-          {!isEditingDescription ?
-            <Text>{displayedDescription}</Text>
-          : <Form form={editDescriptionForm} className="flex flex-col gap-modal pr-4">
-              <ResizableContentEditableInput
-                autoFocus
-                form={editDescriptionForm}
-                name="description"
-                mode="onBlur"
-              />
-              <ButtonGroup>
-                <Form.Submit>{getText('update')}</Form.Submit>
-              </ButtonGroup>
-            </Form>
-          }
-        </div>
-      </div>
+
       {isCloud && (
         <div className={styles.section()}>
           <Heading
@@ -266,9 +156,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           <table>
             <tbody>
-              {item.ensoPath != null && item.ensoPathValue && (
-                <tr data-testid="asset-panel-permissions" className="h-row">
-                  <td className="text my-auto min-w-side-panel-label p-0">
+              {item.ensoPath != null && (
+                <tr data-testid="asset-panel-path" className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
                   </td>
                   <td className="w-full p-0">
@@ -276,15 +166,84 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                       <Text className="w-0 grow" truncate="1">
                         {item.ensoPath}
                       </Text>
-                      <CopyButton copyText={item.ensoPathValue} />
+                      <CopyButton copyText={encodeURI(item.ensoPath)} />
                     </div>
                   </td>
                 </tr>
               )}
+              {featureFlags.showDeveloperIds && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('assetId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {item.id}
+                      </Text>
+                      <CopyButton copyText={item.id} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {featureFlags.showDeveloperIds && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('parentId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {item.parentId}
+                      </Text>
+                      <CopyButton copyText={item.parentId} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {ownerPermission && (
+                <tr data-testid="asset-panel-owner" className="h-row">
+                  <td className="min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('owner')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {getAssetPermissionName(ownerPermission)}
+                      </Text>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {featureFlags.showDeveloperIds && ownerPermission && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('ownerId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {getAssetPermissionId(ownerPermission)}
+                      </Text>
+                      <CopyButton copyText={getAssetPermissionId(ownerPermission)} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              <tr data-testid="asset-panel-modified-at" className="h-row">
+                <td className="min-w-side-panel-label p-0">
+                  <Text className="inline-block">{getText('modifiedAt')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <Text className="grow" truncate="1">
+                    {toReadableIsoString(new Date(item.modifiedAt))}
+                  </Text>
+                </td>
+              </tr>
               {isEnterprise && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
-                  <td className="text my-auto min-w-side-panel-label p-0">
-                    <Text className="text inline-block">{getText('sharedWith')}</Text>
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('sharedWith')}</Text>
                   </td>
                   <td className="flex w-full gap-1 p-0">
                     <SharedWithColumn
@@ -296,8 +255,8 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 </tr>
               )}
               <tr data-testid="asset-panel-labels" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p-0">
-                  <Text className="text inline-block">{getText('labels')}</Text>
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text className="inline-block">{getText('labels')}</Text>
                 </td>
                 <td className="flex w-full gap-1 p-0">
                   {item.labels?.map((value) => {
@@ -318,7 +277,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
-      {isSecret && (
+      {isSecret && !isCredential && (
         <div className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}
@@ -326,17 +285,68 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           >
             {getText('configuration')}
           </Heading>
-          <UpsertSecretModal
+          <UpsertSecretForm
             key={item.id}
-            noDialog
-            canReset
-            canCancel={false}
-            id={item.id}
+            doCancel="reset"
+            secretId={item.id}
             name={item.title}
-            doCreate={async (title, value) => {
-              await updateSecretMutation.mutateAsync([item.id, { title, value }, title])
-            }}
+            doCreate={(title, value) =>
+              updateSecretMutation.mutateAsync([item.id, { title, value }, title])
+            }
           />
+        </div>
+      )}
+
+      {isSecret && isCredential && (
+        <div className={styles.section()} {...secretSpotlight.props}>
+          <Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
+            {getText('configuration')}
+          </Heading>
+          <table>
+            <tbody>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialServiceName')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {item.credentialMetadata.serviceName}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialState')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {getText(`credentialState${item.credentialMetadata.state}`)}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              {item.credentialMetadata.expirationDate && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text>{getText('credentialExpiresAt')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {toReadableIsoString(new Date(item.credentialMetadata.expirationDate))}
+                      </Text>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -350,24 +360,39 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">
-              <StatelessSpinner size={48} state="loading-medium" />
+              <StatelessSpinner size={48} phase="loading-medium" />
             </div>
-          : <Form form={editDatalinkForm} className="w-full">
-              <DatalinkFormInput
-                form={editDatalinkForm}
-                name="datalink"
-                readOnly={!canEditThisAsset}
-                dropdownTitle={getText('type')}
-              />
-              {canEditThisAsset && (
-                <ButtonGroup>
-                  <Form.Submit>{getText('update')}</Form.Submit>
-                  <Form.Reset
-                    onPress={() => {
-                      editDatalinkForm.reset({ datalink: datalinkQuery.data })
-                    }}
+          : <Form
+              schema={(z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) })}
+              defaultValues={{ datalink: datalinkQuery.data }}
+              onSubmit={({ datalink }) =>
+                createDatalinkMutation.mutateAsync([
+                  {
+                    datalinkId: item.id,
+                    name: item.title,
+                    parentDirectoryId: item.parentId,
+                    value: datalink,
+                  },
+                ])
+              }
+              className="w-full bg-white"
+            >
+              {(form) => (
+                <>
+                  <DatalinkFormInput
+                    name="datalink"
+                    readOnly={!canEditThisAsset}
+                    dropdownTitle={getText('type')}
                   />
-                </ButtonGroup>
+
+                  {canEditThisAsset && form.formState.isDirty && (
+                    <Button.Group>
+                      <Form.Submit>{getText('update')}</Form.Submit>
+                      <Form.Reset />
+                    </Button.Group>
+                  )}
+                  <Form.FormError />
+                </>
               )}
             </Form>
           }

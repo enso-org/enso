@@ -2,9 +2,9 @@
  * @file The React provider for modals, along with hooks to use the provider via
  * the shared React context.
  */
+import { useStore } from '#/hooks/storeHooks'
 import * as React from 'react'
 import { createStore } from 'zustand'
-import { useStore } from '../hooks/storeHooks'
 
 /** The type of a modal. */
 export type Modal = React.JSX.Element
@@ -64,7 +64,11 @@ export function setModal(modal: ModalOrCallback) {
 // eslint-disable-next-line react-refresh/only-export-components
 export function unsetModal() {
   const modalsStore = ModalsStore.getState()
-  modalsStore.setModal(null)
+  if (modalsStore.modal != null) {
+    modalsStore.setModal(null)
+  } else {
+    return false
+  }
 }
 
 /**
@@ -145,13 +149,4 @@ export function useModal() {
 export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)
   return { modalRef } as const
-}
-
-/**
- * A React context hook exposing functions to set and unset the currently active modal.
- * @deprecated Use directly imported `setModal`, and `unsetModal` functions instead.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetModal() {
-  return { setModal, unsetModal } as const
 }

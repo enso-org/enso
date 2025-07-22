@@ -1,3 +1,4 @@
+import { clamp } from 'enso-common/src/utilities/data/math'
 import { assert } from '../assert'
 import { SourceRange } from './text'
 
@@ -52,8 +53,8 @@ export class Range {
    * If `this` and `other` are both of exact type `Range`, this is a complete equality comparison; if either is a
    * derived type, this performs a comparison only with regard to the `Range` data.
    */
-  rangeEquals(other: Range) {
-    return this.from === other.from && this.to === other.to
+  rangeEquals(other: Range | undefined): boolean {
+    return !!other && this.from === other.from && this.to === other.to
   }
 
   /**
@@ -108,7 +109,7 @@ export class Range {
 
   /** @returns A range composed of the closest positions to `from` and `to` that are within `bounds`. */
   clip(bounds: Range): Range {
-    const clipPos = (pos: number) => Math.max(Math.min(pos, bounds.to), bounds.from)
+    const clipPos = (pos: number) => clamp(pos, bounds.from, bounds.to)
     return new Range(clipPos(this.from), clipPos(this.to))
   }
 

@@ -26,7 +26,7 @@ object NativeImage {
     * One wildcard could theoretically be used instead of the list, but to make things
     * more explicit, we use the list.
     */
-  private val defaultBuildTimeInitClasses = Seq(
+  val defaultBuildTimeInitClasses = Seq(
     "org",
     "org.enso",
     "scala",
@@ -193,11 +193,21 @@ object NativeImage {
       val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
-      val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+      val isCi       = sys.env.contains("CI")
+      val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
       val excludeConfigsOpt =
         if (excludeConfigs.nonEmpty)
           excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(","))
         else Seq.empty
+
+      val deadlockWatchdogOpts = Seq(
+        "-H:-DeadlockWatchdogExitOnTimeout",
+        "-H:DeadlockWatchdogInterval=30",
+        "-H:+UnlockExperimentalVMOptions"
+      )
+
+      val compilationTimeoutOpt =
+        if (isCi) Seq("-H:CompilationExpirationPeriod=500") else Seq.empty
 
       var args: Seq[String] =
         excludeConfigsOpt ++
@@ -212,6 +222,8 @@ object NativeImage {
         runtimeMemoryOptions ++
         additionalOptions ++
         additionalOpts.value ++
+        deadlockWatchdogOpts ++
+        compilationTimeoutOpt ++
         Seq("-o", targetLoc.toString)
 
       args = mainClass match {
@@ -260,7 +272,26 @@ object NativeImage {
         println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
-      log.info(s"$targetLoc native image build successful.")
+      var msg = s"$targetLoc native image build successful."
+      if (targetDir != null) {
+        val symlinkTargetFile = artifactFile(null, name)
+        if (symlinkTargetFile.exists()) {
+          symlinkTargetFile.delete()
+        }
+        try {
+          val res = Files.createSymbolicLink(
+            symlinkTargetFile.toPath(),
+            targetLoc.toPath()
+          )
+          msg += s" Symlink from $res created."
+        } catch {
+          case io: java.io.IOException =>
+            log.error(
+              s"Failed to create $symlinkTargetFile symlink to $targetLoc because of ${io.getMessage}"
+            )
+        }
+        log.info(msg)
+      }
     }
     .tag(nativeImageBuildTag)
     .dependsOn(Compile / compile)
@@ -312,6 +343,37 @@ object NativeImage {
             }
       }
     }
+
+  def checkNativeImageSize(
+    name: String,
+    targetDir: File
+  ): Def.Initialize[Task[Unit]] = Def.task {
+    val generatedBin = artifactFile(targetDir, name)
+    val logger       = streams.value.log
+    if (!generatedBin.exists) {
+      logger.error(s"Generated binary $generatedBin does not exist.")
+      logger.error(
+        "Ensure that the dependency on `buildNativeImage` is properly set."
+      )
+    }
+    val bytes        = generatedBin.attributes.size()
+    val mb           = bytes / (1024 * 1024)
+    val expectedSize = GraalVM.NativeImageSize.expectedSizeForCurrentPlatform()
+    val isInBounds =
+      expectedSize.minMb <= mb && mb <= expectedSize.maxMb
+    if (!isInBounds) {
+      logger.error(
+        s"Generated binary $generatedBin has unexpected size: $mb MB. " +
+        s"Expected size is between ${expectedSize.minMb} and ${expectedSize.maxMb} MB."
+      )
+      throw new RuntimeException(s"Generated binary $generatedBin is too large")
+    } else {
+      logger.info(
+        s"Generated binary $generatedBin size ($mb MB) " +
+        s"is within the expected size: [${expectedSize.minMb}, ${expectedSize.maxMb}] MB."
+      )
+    }
+  }
 
   /** [[File]] representing the artifact called `name` built with the Native
     * Image.

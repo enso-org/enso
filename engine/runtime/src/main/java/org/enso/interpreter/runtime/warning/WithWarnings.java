@@ -102,7 +102,7 @@ public final class WithWarnings extends EnsoObject {
    * @param warnings array of warnings to be attached to the {@code value}
    */
   public static WithWarnings create(
-      Object value, int maxWarnings, boolean limitReached, Warning[] warnings) {
+      Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
     assert warnings.length <= maxWarnings;
     if (limitReached) {
       assert warnings.length == maxWarnings;
@@ -276,7 +276,7 @@ public final class WithWarnings extends EnsoObject {
   }
 
   @ExportMessage
-  RuntimeException throwException(@Bind("$node") Node node) {
+  RuntimeException throwException(@Bind Node node) {
     throw asException(node);
   }
 

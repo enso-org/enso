@@ -1,11 +1,13 @@
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A function that throws an error to indicate that a file is being uploaded to
    `path`.
 
-   Arguments:
-   - `path`: The path to which the file is being uploaded.
+   ## Arguments
+    - ``path``: The path to which the file is being uploaded.
 file_uploading : (File | Text) -> File ! File_Being_Uploaded
 file_uploading path =
     err = File_Being_Uploaded.Value <| case path of
@@ -16,8 +18,10 @@ file_uploading path =
 
 ## Represents that a file is being uploaded to the given `file_path`.
 
-   Arguments:
-   - file_path: The path at which the file is being uploaded.
+   ## Arguments
+    - `file_path`: The path at which the file is being uploaded.
 type File_Being_Uploaded
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value file_path:Text

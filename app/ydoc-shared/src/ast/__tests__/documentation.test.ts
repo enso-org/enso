@@ -118,6 +118,10 @@ describe('Function documentation (Markdown)', () => {
       markdown: 'My function\nSecond paragraph',
     },
     {
+      source: '## # Header\n   Paragraph',
+      markdown: '# Header\nParagraph',
+    },
+    {
       source: '## Trailing whitespace \n\n   Second paragraph',
       markdown: 'Trailing whitespace \nSecond paragraph',
     },
@@ -133,6 +137,11 @@ describe('Function documentation (Markdown)', () => {
     {
       source: '## ICON group\n   My function with an icon',
       markdown: 'ICON group\nMy function with an icon',
+    },
+    {
+      source: '## My function\n   > Block quote\n   quote continuation',
+      markdown: 'My function\n> Block quote quote continuation',
+      normalized: '## My function\n   > Block quote quote continuation',
     },
     {
       source: [
@@ -176,20 +185,27 @@ describe('Function documentation (Markdown)', () => {
         '- Bullet list\n  - Nested list\n    - Very nested list\n  - Nested list\n- Bullet list',
     },
     {
-      source: '## Plain text\n   - Bullet list\n   Plain text\n   1. Numbered list\n   Plain text',
-      markdown: 'Plain text\n- Bullet list\nPlain text\n1. Numbered list\nPlain text',
+      source:
+        '## Plain text\n   - Bullet list\n     list item continuation\n   1. Numbered list\n     list item continuation',
+      markdown:
+        'Plain text\n- Bullet list list item continuation\n1. Numbered list list item continuation',
+      normalized:
+        '## Plain text\n   - Bullet list list item continuation\n   1. Numbered list list item continuation',
     },
   ]
 
-  test.each(cases)('Enso source comments to prerendered markdown', ({ source, markdown }) => {
-    const moduleSource = `${source}\nmain =\n    x = 1`
-    const topLevel = parseModule(moduleSource)
-    topLevel.module.setRoot(topLevel)
-    const main = iter.first(topLevel.statements())
-    assert(main instanceof MutableFunctionDef)
-    expect(main.name.code()).toBe('main')
-    expect(main.mutableDocumentationMarkdown().toJSON()).toBe(markdown)
-  })
+  test.each(cases)(
+    'Enso source comments to prerendered markdown (`abstractMarkdown`)',
+    ({ source, markdown }) => {
+      const moduleSource = `${source}\nmain =\n    x = 1`
+      const topLevel = parseModule(moduleSource)
+      topLevel.module.setRoot(topLevel)
+      const main = iter.first(topLevel.statements())
+      assert(main instanceof MutableFunctionDef)
+      expect(main.name.code()).toBe('main')
+      expect(main.mutableDocumentationMarkdown().toJSON()).toBe(markdown)
+    },
+  )
 
   test.each(cases)('Markdown to Enso source', ({ source, markdown, normalized }) => {
     const functionCode = 'main =\n    x = 1'

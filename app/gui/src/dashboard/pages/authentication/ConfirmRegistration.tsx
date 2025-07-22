@@ -2,20 +2,15 @@
  * @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address.
  */
-
-import * as router from 'react-router-dom'
-
-import * as appUtils from '#/appUtils'
-
+import { Button } from '#/components/Button'
 import { Result } from '#/components/Result'
-
-import { Button } from '#/components/AriaComponents'
 import { useMounted } from '#/hooks/mountHooks'
 import { useTimeoutAPI } from '#/hooks/timeoutHooks'
-import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
+import * as appUtils from '$/appUtils'
+import { useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 
@@ -23,14 +18,13 @@ const REDIRECT_TIMEOUT = 5_000
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
-  const { confirmSignUp } = useSessionAPI()
+  const { confirmSignUp } = useSession()
   const { getText } = useText()
+  const { router } = useRouter()
 
-  const [searchParams] = router.useSearchParams()
-
-  const email = searchParams.get('email')
-  const verificationCode = searchParams.get('verification_code')
-  const redirectUrl = searchParams.get('redirect_url')
+  const [email] = useQueryParam('email')
+  const [verificationCode] = useQueryParam('verification_code')
+  const [redirectUrl] = useQueryParam('redirect_url')
 
   const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
 
@@ -38,12 +32,7 @@ export default function ConfirmRegistration() {
     if (redirectUrl != null) {
       return redirectUrl
     }
-
-    searchParams.delete('verification_code')
-    searchParams.delete('email')
-    searchParams.delete('redirect_url')
-
-    return appUtils.SETUP_PATH + '?' + searchParams.toString()
+    return appUtils.DASHBOARD_PATH
   })()
 
   const confirmRegistrationMutation = useMutation({
@@ -92,7 +81,8 @@ export default function ConfirmRegistration() {
   }
 
   if (email == null || verificationCode == null) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} replace />
+    void router.replace(appUtils.LOGIN_PATH)
+    return
   }
 
   return (

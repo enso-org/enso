@@ -36,7 +36,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes = new Passes(CompilerConfig())
+  val passes = new Passes(CompilerConfig.createDefault())
 
   /** The passes that must be run before the dataflow analysis pass. */
   val precursorPasses: PassGroup =

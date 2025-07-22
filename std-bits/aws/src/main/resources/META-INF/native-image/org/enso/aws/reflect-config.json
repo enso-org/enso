@@ -57,21 +57,6 @@
         ]
     },
     {
-        "name":"org.enso.aws.ClientBuilder"
-    },
-    {
-        "name":"org.enso.aws.DefaultRegionProvider"
-    },
-    {
-        "name":"org.enso.aws.ProfileReader"
-    },
-    {
-        "name":"org.enso.aws.file_system.S3DataLinkCache"
-    },
-    {
-        "name": "software.amazon.awssdk.services.s3.model.PutObjectAclRequest"
-    },
-    {
         "name": "software.amazon.awssdk.services.s3.model.HeadBucketResponse",
         "methods": [
             {

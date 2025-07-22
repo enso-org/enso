@@ -10,15 +10,22 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.PKCS8Generator;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.operator.OperatorCreationException;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.operator.OutputEncryptor;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PKCS8Generator;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
+import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.OutputEncryptor;
 
 public class TestKeyGenerator {
+
+  static {
+    if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+      Security.addProvider(new BouncyCastleProvider());
+    }
+  }
+
   public static void generateKeyPairForTest(
       String privateKeyPath, String publicKeyPath, String passphrase)
       throws NoSuchAlgorithmException, IOException, OperatorCreationException {
@@ -59,7 +66,6 @@ public class TestKeyGenerator {
 
   private static void savePrivateKeyEncrypted(PrivateKey key, File destination, String passphrase)
       throws IOException, OperatorCreationException {
-    Security.addProvider(new BouncyCastleProvider());
     var encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC);
     encryptorBuilder.setPassword(passphrase.toCharArray().clone());
     OutputEncryptor encryptor = encryptorBuilder.build();

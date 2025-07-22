@@ -2,6 +2,8 @@ package org.enso.runtime.parser.processor;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,6 +21,9 @@ import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 import org.enso.runtime.parser.dsl.GenerateFields;
 import org.enso.runtime.parser.dsl.GenerateIR;
+import org.enso.runtime.parser.dsl.IRChild;
+import org.enso.runtime.parser.processor.utils.DependencySorter;
+import org.enso.runtime.parser.processor.utils.DependencySorter.CyclicDependencyException;
 import org.enso.runtime.parser.processor.utils.Utils;
 
 @SupportedAnnotationTypes({
@@ -35,23 +40,134 @@ public class IRProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-    var generateIRElems = roundEnv.getElementsAnnotatedWith(GenerateIR.class);
-    for (var generateIRElem : generateIRElems) {
+    if (annotations.isEmpty()) {
+      return false;
+    }
+    // Elements sorted in processing order.
+    List<TypeElement> orderedElems;
+    try {
+      var generateIRElems =
+          roundEnv.getElementsAnnotatedWith(GenerateIR.class).stream()
+              .map(
+                  elem -> {
+                    ensureIsClass(elem);
+                    return (TypeElement) elem;
+                  })
+              .collect(Collectors.toUnmodifiableSet());
+      orderedElems = orderByReferences(generateIRElems);
+    } catch (IRProcessingException e) {
+      if (e.getElement() == null) {
+        processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage());
+      } else {
+        processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage(), e.getElement());
+      }
+      return false;
+    }
+    for (var elemToProcess : orderedElems) {
       try {
-        ensureIsClass(generateIRElem);
-        processGenerateIRElem((TypeElement) generateIRElem);
+        processGenerateIRElem(elemToProcess);
       } catch (IRProcessingException e) {
         Element element;
         if (e.getElement() != null) {
           element = e.getElement();
         } else {
-          element = generateIRElem;
+          element = elemToProcess;
         }
         processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage(), element);
         return false;
       }
     }
     return true;
+  }
+
+  /**
+   * There might be some references between the annotated classes inside this compilation unit. If
+   * that is the case, it means that they must be ordered so that the first processed class is the
+   * one that does not depend on any other class. Otherwise, there might be some compilation errors
+   * due to missing super classes.
+   *
+   * <p>If a cyclic dependency is detected, {@link IRProcessingException} is thrown.
+   *
+   * <p>If there are no dependencies between the annotated classes inside this compilation unit,
+   * they are returned in an arbitrary order.
+   *
+   * <h2>Example</h2>
+   *
+   * An example of a problematic case is:
+   *
+   * <pre>
+   *   &#64;GenerateIR
+   *   class A extends AGen {
+   *     &#64;GenerateFields
+   *     A(&#64;IRChild B b) {...}
+   *   }
+   *
+   *   &#64;GenerateIR
+   *   class B extends BGen {}
+   * </pre>
+   *
+   * <p>In this case, {@code A} <emph>depends on</emph> {@code B}, so we need to ensure that {@code
+   * B} is processed first (a super class is generated for it first).
+   */
+  private List<TypeElement> orderByReferences(Set<TypeElement> classesToProcess) {
+    var classesToProcessNames =
+        classesToProcess.stream().map(type -> type.getSimpleName().toString()).toList();
+    var dependencies = new HashMap<String, Set<String>>();
+    for (var clazz : classesToProcess) {
+      var annotatedCtors =
+          clazz.getEnclosedElements().stream()
+              .filter(elem -> Utils.hasAnnotation(elem, GenerateFields.class))
+              .toList();
+      if (annotatedCtors.size() != 1) {
+        throw singleAnnotatedCtorError(clazz);
+      }
+      var annotatedCtor = annotatedCtors.get(0);
+      if (annotatedCtor.getKind() != ElementKind.CONSTRUCTOR) {
+        throw new IRProcessingException(
+            "Only constructors can be annotated with GenerateFields", annotatedCtor);
+      }
+      var ctor = (ExecutableElement) annotatedCtor;
+      var childTypeNames =
+          ctor.getParameters().stream()
+              .filter(param -> Utils.hasAnnotation(param, IRChild.class))
+              .map(
+                  param -> {
+                    var paramType = param.asType();
+                    var paramTypeElem = processingEnv.getTypeUtils().asElement(paramType);
+                    return paramTypeElem.getSimpleName().toString();
+                  })
+              .toList();
+      for (var childTypeName : childTypeNames) {
+        if (classesToProcessNames.contains(childTypeName)) {
+          var clazzName = clazz.getSimpleName().toString();
+          var deps = dependencies.computeIfAbsent(clazzName, k -> new HashSet<>());
+          deps.add(childTypeName);
+        }
+      }
+    }
+    if (dependencies.isEmpty()) {
+      // If dependencies are empty, it means there are no internal dependencies,
+      // in that case, just return the classes in any order.
+      return classesToProcess.stream().toList();
+    }
+    try {
+      DependencySorter.ensureNoCycles(dependencies);
+    } catch (CyclicDependencyException e) {
+      throw new IRProcessingException("Cyclic dependency detected", null, e);
+    }
+    var sortedDeps = DependencySorter.topologicalSort(dependencies);
+    // Map class names to their TypeElements
+    return sortedDeps.stream()
+        .map(
+            depName -> {
+              var depClazz =
+                  classesToProcess.stream()
+                      .filter(clazz -> clazz.getSimpleName().toString().equals(depName))
+                      .findFirst()
+                      .orElseThrow(() -> new AssertionError("Class not found: " + depName));
+              return depClazz;
+            })
+        .toList();
   }
 
   /**
@@ -176,11 +292,15 @@ public class IRProcessor extends AbstractProcessor {
             .filter(ctor -> ctor.getAnnotation(GenerateFields.class) != null)
             .count();
     if (annotatedCtorsCnt != 1) {
-      throw new IRProcessingException(
-          "Class annotated with @GenerateIR must have exactly one constructor annotated with"
-              + " @GenerateFields",
-          clazz);
+      throw singleAnnotatedCtorError(clazz);
     }
+  }
+
+  private static IRProcessingException singleAnnotatedCtorError(TypeElement clazz) {
+    return new IRProcessingException(
+        "Class annotated with @GenerateIR must have exactly one constructor annotated with"
+            + " @GenerateFields",
+        clazz);
   }
 
   private void ensureExtendsGeneratedSuperclass(TypeElement clazz) {

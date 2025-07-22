@@ -36,28 +36,43 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vector_Editor
 from project.System.File_Format import Auto_Detect, File_Format
 
-## ALIAS load, open
+## ALIAS csv, delimited, excel, hyper, load, open, tableau
    GROUP File
    ICON data_input
    SUGGESTED 1
    Reads a file into Enso.
+
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
 
    Arguments:
-   - path: The path to the file to read. If the path is a URI, then the data
-     will be fetched if from a supported protocol.
+   - path: The path to the file to read. If the path is a URI, the data
+     will be fetched from a supported protocol.
    - format: A `File_Format` object used to read file into memory.
-     If `Auto_Detect` is specified; the provided file determines the specific
-     type and configures it appropriately. If there is no matching type then
-     a `File_Error.Unsupported_Type` error is returned.
-     You can use `File_Format.all` to get a list of currently loaded
-     formats.
+     If `Auto_Detect` is specified, the provided file determines the specific
+     type and configures it appropriately. A `File_Error.Unsupported_Type`
+     error is returned if it cannot match the type.
    - on_problems: Specifies the behavior when a problem occurs during the
-     function.
-     By default, a warning is issued, but the operation proceeds.
+     function. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
+     The operation proceeds without errors or warnings if set to `Ignore`.
+
+   > Example
+     Read the first sheet of an XLSX from disk and convert it into a table.
+
+         from Standard.Table import all
+         import Standard.Examples
+
+         example_xlsx_to_table = Data.read Examples.xlsx
+
+
+   > Example
+     Read the sheet named `Dates` from an XLS and convert it to a table.
+
+         from Standard.Table import all
+         import Standard.Examples
+
+         example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
 
    ! Request Caching
 
@@ -71,22 +86,6 @@ from project.System.File_Format import Auto_Detect, File_Format
 
      The cached values are retained as long as the project remains open. Closing
      a project will clear the cache.
-
-   > Example
-     Read the first sheet of an XLSX from disk and convert it into a table.
-
-         from Standard.Table import all
-         import Standard.Examples
-
-         example_xlsx_to_table = Data.read Examples.xlsx
-
-   > Example
-     Read the sheet named `Dates` from an XLS and convert it to a table.
-
-         from Standard.Table import all
-         import Standard.Examples
-
-         example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
 @path (Text_Input display=..Always)
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
@@ -112,16 +111,16 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
    GROUP File
    ICON data_input
    SUGGESTED 2
-   Reads a a list of files into Enso.
+   Reads a list of files into Enso.
 
    Arguments:
    - paths: A list of files to load. It can be a Vector, Column or Table of
      files, paths or URIs to fetch. If a Table is provided, it must either
      contain a single column or a column called `path` (case insensitive).
-   - format: A `File_Format` object used to read files into memory.
-     If `Auto_Detect` is specified; each file determines the specific
-     type and configures it appropriately. If there is no matching type then
-     a `File_Error.Unsupported_Type` error is returned.
+   - format: A `File_Format` object used to read file into memory.
+     If `Auto_Detect` is specified, the provided file determines the specific
+     type and configures it appropriately. A `File_Error.Unsupported_Type`
+     error is returned if it cannot match the type.
    - return: Specifies the shape of the data to return.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
@@ -131,6 +130,15 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
      first failing file.
      If set to `Ignore`, the operation proceeds without errors or warnings,
      replacing files that fail to load with `Nothing`.
+
+   > Example
+     Read all CSV files from a directory into a single merged table.
+
+         from Standard.Table import all
+         import Standard.Examples
+
+         files = Data.list name_filter="*.csv"
+         example_csv_dir_to_table = Data.read_many files
 
    ! Request Caching
 
@@ -144,15 +152,6 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
 
      The cached values are retained as long as the project remains open. Closing
      a project will clear the cache.
-
-   > Example
-     Read all CSV files from a directory into a single merged table.
-
-         from Standard.Table import all
-         import Standard.Examples
-
-         files = Data.list name_filter="*.csv"
-         example_csv_dir_to_table = Data.read_many files
 @paths (Vector_Editor item_editor=File_Browse item_default='""' display=..Always)
 @format File_Format.default_widget
 @return Return_As.default_widget
@@ -197,17 +196,25 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
     File.new path . read_text encoding on_problems
 
 ## GROUP File
-   ICON data_input
+   ICON folder
    SUGGESTED 3
    Lists files contained in the provided directory.
 
-   Arguments:
    - directory: A path or `File` object to get the contents of.
    - name_filter: A glob pattern that can be used to filter the returned files.
      If it is not specified, all files are returned.
    - recursive: Specifies whether the returned list of files should include also
      files from the subdirectories. If set to `False` (the default), only the
      immediate children of the listed directory are considered.
+
+   > Example
+     List all files with `.md` extension in the example directory and any of its
+     subdirectories.
+
+         import Standard.Examples
+
+         example_list_files =
+             Data.list Examples.data_dir name_filter="**.md" recursive=True
 
    ? Name Filter Rules
 
@@ -243,14 +250,6 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
    listed directory, to list files recursively you need to use a filter like
    `"**.txt"` or `"*/*"` (which will match only files that are exactly one
    directory down from the listed directory) or no filter at all.
-
-   > Example
-     List all files with `.md` extension in the example directory and any of its
-     subdirectories.
-
-         import Standard.Examples
-
-         example_list_files =
 @directory (Folder_Browse display=..Always)
 @name_filter File_Format.name_filter_widget
 list : Text | File -> Text -> Boolean -> Vector File
@@ -328,6 +327,7 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
 ## ALIAS http post, upload
    GROUP Web
    ICON data_upload
+   SUGGESTED 8
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
    status code does not represent a successful response.

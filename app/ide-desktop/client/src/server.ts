@@ -36,6 +36,7 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
+const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 // ==============
 // === Config ===
@@ -148,14 +149,16 @@ export class Server {
               reject(err)
             }
             const server = httpsServer ?? httpServer
-            if (server) {
-              await ydocServer.createGatewayServer(server)
-            } else {
-              logger.warn('YDocs server is not run, new GUI may not work properly!')
+            if (!IS_ELECTRON_DEV_MODE) {
+              if (server) {
+                await ydocServer.createGatewayServer(server)
+              } else {
+                logger.warn('YDocs server is not run, new GUI may not work properly!')
+              }
             }
             logger.log(`Server started on port ${this.config.port}.`)
-            logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
-            if (process.env.ELECTRON_DEV_MODE === 'true') {
+            logger.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
+            if (IS_ELECTRON_DEV_MODE) {
               const vite = (await import(
                 pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
               )) as typeof import('vite')
@@ -165,6 +168,20 @@ export class Server {
                   hmr: server ? { server } : {},
                 },
                 configFile: process.env.GUI_CONFIG_PATH ?? false,
+                mode: process.env.MODE ?? 'staging',
+              })
+
+              const docServer = http.createServer()
+              docServer.on('request', (request, response) => {
+                if (request.method === 'GET' && request.url === '/_health') {
+                  response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
+                }
+              })
+
+              await ydocServer.createGatewayServer(docServer)
+
+              docServer.listen(5976, 'localhost', () => {
+                console.log(`Ydoc server listening on localhost:5976`)
               })
             }
             resolve()
@@ -253,17 +270,10 @@ export class Server {
 
           break
         }
-        case '/api/cloud/upload-project': {
+        case '/api/cloud/get-project-archive': {
           const url = new URL(`https://example.com/${requestUrl}`)
-          const uploadUrl = url.searchParams.get('uploadUrl')
           const projectDir = url.searchParams.get('directory')
 
-          if (uploadUrl == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-              .end('Request is missing search parameter `uploadUrl`.')
-            break
-          }
           if (projectDir == null) {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
@@ -274,34 +284,12 @@ export class Server {
           projectManagement
             .createBundle(projectDir)
             .then((projectBundle) => {
-              const headers = {
-                authorization: request.headers.authorization,
-              }
-              const uploadRequest = https.request(
-                uploadUrl,
-                { method: 'POST', headers },
-                (actualResponse) => {
-                  if (!response.writableFinished) {
-                    response.writeHead(
-                      // This is SAFE. The documentation says:
-                      // Only valid for response obtained from ClientRequest.
-                      actualResponse.statusCode!,
-                      actualResponse.statusMessage,
-                      actualResponse.headers,
-                    )
-                    actualResponse.pipe(response, { end: true })
-                  }
-                },
-              )
-              uploadRequest.write(projectBundle, (err) => {
-                if (err) {
-                  logger.error(err)
-                  response
-                    .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
-                    .end('Failed to write project bundle.')
-                }
-              })
-              uploadRequest.end()
+              response
+                .writeHead(HTTP_STATUS_OK, {
+                  ...COOP_COEP_CORP_HEADERS,
+                  'Content-Length': String(projectBundle.byteLength),
+                })
+                .end(projectBundle)
             })
             .catch((err) => {
               logger.error(err)

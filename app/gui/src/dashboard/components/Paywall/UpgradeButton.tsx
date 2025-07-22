@@ -1,25 +1,17 @@
-/**
- * @file
- *
- * A button that links to the upgrade page.
- */
-import * as React from 'react'
-
-import * as appUtils from '#/appUtils'
-
+/** @file A button that links to the upgrade page. */
+import { Button, type ButtonProps } from '#/components/Button'
 import * as billingHooks from '#/hooks/billing'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import * as appUtils from '$/appUtils'
+import { useText } from '$/providers/react'
+import * as React from 'react'
 
 /** Props for an {@link UpgradeButton}. */
 export type UpgradeButtonProps<IconType extends string = string> = Omit<
-  ariaComponents.ButtonProps<IconType>,
+  ButtonProps<IconType>,
   'variant'
 > & {
   readonly feature: billingHooks.PaywallFeatureName
-  readonly variant?: ariaComponents.ButtonProps<IconType>['variant']
+  readonly variant?: ButtonProps<IconType>['variant']
 }
 
 /** A button that links to the upgrade page. */
@@ -35,7 +27,7 @@ export function UpgradeButton<IconType extends string>(
     children,
     ...buttonProps
   } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const { getFeature } = billingHooks.usePaywallFeatures()
 
@@ -47,7 +39,7 @@ export function UpgradeButton<IconType extends string>(
     children ?? (isEnterprise ? getText('contactSales') : getText('upgradeTo', levelLabel))
 
   return (
-    <ariaComponents.Button
+    <Button
       variant={variant ?? VARIANT_BY_LEVEL[level.name]}
       size={size}
       rounded={rounded}
@@ -59,14 +51,11 @@ export function UpgradeButton<IconType extends string>(
       {...(buttonProps as any)}
     >
       {child}
-    </ariaComponents.Button>
+    </Button>
   )
 }
 
-const VARIANT_BY_LEVEL: Record<
-  billingHooks.PaywallLevelName,
-  ariaComponents.ButtonProps<string>['variant']
-> = {
+const VARIANT_BY_LEVEL: Record<billingHooks.PaywallLevelName, ButtonProps<string>['variant']> = {
   free: 'primary',
   enterprise: 'primary',
   solo: 'accent',

@@ -81,8 +81,10 @@ public class DebugLocalScope extends EnsoObject {
 
   @TruffleBoundary
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
-    return new DebugLocalScope(
-        rootNode, frame, gatherBindingsByLevels(rootNode.getLocalScope().flattenBindings()), 0);
+    var scope = rootNode.getLocalScope();
+    var flatten = scope.flattenBindings();
+    var byLevels = gatherBindingsByLevels(flatten);
+    return new DebugLocalScope(rootNode, frame, byLevels, 0);
   }
 
   @TruffleBoundary
@@ -229,13 +231,18 @@ public class DebugLocalScope extends EnsoObject {
 
   @ExportMessage
   boolean hasSourceLocation() {
-    return true;
+    return rootNode.getSourceSection() != null;
   }
 
   @ExportMessage
   @TruffleBoundary
-  SourceSection getSourceLocation() {
-    return rootNode.getSourceSection();
+  SourceSection getSourceLocation() throws UnsupportedMessageException {
+    var section = rootNode.getSourceSection();
+    if (section == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return section;
+    }
   }
 
   @ExportMessage

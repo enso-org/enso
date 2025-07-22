@@ -1,13 +1,21 @@
 /** @file A single breadcrumb item. */
+import { mergeProps } from '#/components/aria'
+import { Button } from '#/components/Button'
+import { IconDisplay } from '#/components/IconDisplay'
+import { Text } from '#/components/Text'
+import type { Addon, IconProp, TestIdProps } from '#/components/types'
+import type { TooltipElementType } from '#/components/VisualTooltip'
+import { useDragDelayAction, type DragDelayCallback } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { noop } from '#/utilities/functions'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { useMutation } from '@tanstack/react-query'
 import {
   createContext,
   useContext,
   useRef,
+  useState,
   type CSSProperties,
+  type HTMLAttributes,
   type Key,
   type PropsWithChildren,
 } from 'react'
@@ -20,19 +28,10 @@ import {
 } from 'react-aria'
 import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
-import {
-  Button,
-  IconDisplay,
-  Text,
-  type Addon,
-  type IconProp,
-  type TestIdProps,
-  type TooltipElementType,
-} from '../AriaComponents'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const BREADCRUMB_ITEM_STYLES = tv({
-  base: 'flex items-center gap-2 bg-transparent transition-colors',
+  base: 'flex items-center gap-2 bg-transparent transition-colors rounded-4xl drop-target-after',
   slots: {
     link: 'block max-w-48 min-w-4 w-auto',
     more: 'aspect-square',
@@ -43,13 +42,9 @@ export const BREADCRUMB_ITEM_STYLES = tv({
     isCurrent: {
       true: { link: 'flex justify-center px-2 h-8' },
     },
-    isDropTarget: {
-      true: { base: 'bg-primary/10 rounded-4xl cursor-copy' },
-    },
   },
   defaultVariants: {
     isCurrent: false,
-    isDropTarget: false,
   },
 })
 
@@ -79,6 +74,7 @@ export interface BreadcrumbItemProps<IconType extends string>
     | ((renderProps: BreadcrumbItemRenderProps) => TooltipElementType)
   readonly isLoading?: boolean
   readonly isDroppable?: boolean
+  readonly onDragDelay?: DragDelayCallback<HTMLElement> | undefined
 }
 
 /**
@@ -139,8 +135,11 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     referrerPolicy,
     onPress: onPressRaw,
     isDroppable = true,
+    onDragDelay,
   } = props
   const { id, ...breadcrumbItemProps } = props
+
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const { isCurrent, onAction, onActionSpecified, onDrop, onDropSpecified } =
     useContext(BreadcrumbItemContext)
@@ -150,25 +149,30 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
   const ref = useRef(null)
   const { itemProps } = useBreadcrumbItem({ elementType: 'div', ...breadcrumbItemProps }, ref)
 
-  const dropMutation = useMutation({
-    mutationFn: async (params: { id: Key | null | undefined; e: DropEvent }) => {
-      if (params.id == null) {
-        return
-      }
-
-      return onDrop(params.id, params.e)
-    },
-  })
-
-  // `dropProps` is type-safe, ESLint is being silly.
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const { dropProps, isDropTarget } = useDrop({
+  const useDropResult: {
+    readonly dropProps: HTMLAttributes<HTMLElement>
+    readonly isDropTarget: boolean
+  } = useDrop({
     isDisabled: !onDropSpecified || isDisabled || !isDroppable,
     ref,
     onDrop: (e) => {
-      dropMutation.mutate({ id, e })
+      if (id == null) {
+        return
+      }
+
+      const res = onDrop(id, e)
+
+      if (res instanceof Promise) {
+        setIsTransitioning(true)
+        void res.finally(() => {
+          setIsTransitioning(false)
+        })
+      }
     },
   })
+  const { dropProps, isDropTarget } = useDropResult
+
+  const dragDelayProps = useDragDelayAction(onDragDelay)
 
   const onPress = useEventCallback(async (event: PressEvent) => {
     if (id == null) {
@@ -195,7 +199,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
         'download' | 'href' | 'hrefLang' | 'ping' | 'referrerPolicy' | 'rel' | 'target'
       >)
 
-  const styles = variants({ isCurrent, isDropTarget })
+  const styles = variants({ isCurrent })
 
   const renderedIcon = typeof icon === 'function' ? icon(renderProps) : icon
   const renderedChildren = typeof children === 'function' ? children(renderProps) : children
@@ -214,7 +218,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
       </IconDisplay>
     : <Button
         {...linkProps}
-        loading={dropMutation.isPending}
+        isLoading={isTransitioning}
         loaderPosition="icon"
         onPress={onPress}
         icon={renderedIcon}
@@ -230,8 +234,9 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
         className: typeof className === 'function' ? className(renderProps) : className,
       })}
       style={typeof style === 'function' ? style(renderProps) : style}
+      data-drop-target={isDropTarget}
       {...(id != null ? { id: id.toString() } : {})}
-      {...dropProps}
+      {...mergeProps<HTMLAttributes<HTMLElement>>()(dropProps, dragDelayProps)}
     >
       <div className={styles.container()} {...itemProps}>
         <Button.GroupJoin verticalAlign="center" buttonVariants={{ variant: 'icon', isDisabled }}>

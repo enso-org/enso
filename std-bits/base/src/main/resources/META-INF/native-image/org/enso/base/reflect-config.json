@@ -3,9 +3,6 @@
         "name": "[Lorg.enso.text.buffer.Node;"
     },
     {
-        "name": "org.enso.base.Array_Utils"
-    },
-    {
         "name": "org.enso.base.CompareException"
     },
     {
@@ -73,7 +70,8 @@
         "allPublicConstructors": true
     },
     {
-        "name": "org.enso.base.encoding.DecodingProblem"
+        "name": "org.enso.base.encoding.DecodingProblem",
+        "allPublicMethods": true
     },
     {
         "name": "org.enso.base.encoding.DecodingProblemAggregator"
@@ -161,6 +159,21 @@
     },
     {
         "name": "org.enso.base.enso_cloud.audit.AuditLog"
+    },
+    {
+        "name": "org.enso.base.enso_cloud.audit.AuditLog$AuditLogError"
+    },
+    {
+        "name": "org.enso.base.enso_cloud.audit.AuditLog.AuditLogError"
+    },
+    {
+        "name": "org.enso.base.enso_cloud.audit.AuditLogApiAccess",
+        "fields": [
+            {
+                "name": "INSTANCE"
+            }
+        ],
+        "allPublicMethods": true
     },
     {
         "name": "org.enso.base.file_format.FileFormatSPI"
@@ -351,6 +364,15 @@
         ]
     },
     {
+        "name": "org.enso.base_test_helpers.ExecutableLocation",
+        "methods": [
+            {
+                "name": "getExecutableLocation",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
         "name": "org.slf4j.Logger",
         "methods": [
             {
@@ -485,6 +507,15 @@
             {
                 "name": "init",
                 "parameterTypes": ["javax.net.ssl.KeyManager[]", "javax.net.ssl.TrustManager[]", "java.security.SecureRandom"]
+            }
+        ]
+    },
+    {
+        "name": "java.io.Console",
+        "methods": [
+            {
+                "name": "isTerminal",
+                "parameterTypes": []
             }
         ]
     }

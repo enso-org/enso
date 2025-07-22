@@ -3,12 +3,11 @@
  *
  * This file contains hooks for using Zustand store with tearing transitions.
  */
+import { objectEquality, refEquality, shallowEquality } from '#/utilities/equalities'
 import type { DispatchWithoutAction, Reducer, RefObject } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { type StoreApi } from 'zustand'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
-
-import { objectEquality, refEquality, shallowEquality } from '../utilities/equalities'
 
 /**
  * A type that allows to choose between different equality functions.
@@ -48,6 +47,11 @@ export interface UseStoreOptions<Slice> {
 
 /**
  * A wrapper that allows to choose between tearing transition and standard Zustand store.
+ * @param store - The Zustand store to use.
+ * @param selector - The selector function to use.
+ * @param options - {@link UseStoreOptions} - The options for the `useStore` hook
+ * @param options.unsafeEnableTransition - Whether to enable tearing transitions.
+ * @param options.areEqual - The equality function to use. Defaults to `'Object.is'`.
  *
  * # `options.unsafeEnableTransition` must not be changed during the component lifecycle.
  */

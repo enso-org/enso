@@ -21,7 +21,7 @@ type Cloud_Tests_Setup
     with_prepared_environment self ~action = case self of
         Cloud_Tests_Setup.Mock _ _ ->
             Panic.with_finalizer Cloud_Tests_Setup.reset <|
-                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URL" self.api_url.to_text <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
                         Cloud_Tests_Setup.reset
                         action
@@ -151,6 +151,9 @@ type Mock_Credentials
             + [["refresh_url", self.refresh_url]]
             + [["client_id", self.client_id]]
         JS_Object.from_pairs fields . to_json
+
+    set_access_token self token:Text =
+        Mock_Credentials.Value token self.expire_at self.refresh_token self.refresh_url self.client_id
 
     set_refresh_token self token:Text =
         Mock_Credentials.Value self.access_token self.expire_at token self.refresh_url self.client_id

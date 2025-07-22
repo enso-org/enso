@@ -62,6 +62,33 @@ export type FlattenedChoice = {
   icon?: string | null | undefined
 }
 
+const fileTypeSchema: z.ZodType<FileType> = z.object({
+  label: z.string(),
+  extensions: z.lazy(() => z.union([z.array(z.string()), z.array(fileTypeSchema)])),
+  icon: z.string().nullable().optional(),
+})
+
+export type FileType = {
+  label: string
+  extensions: string[] | FileType[]
+  icon?: string | null | undefined
+}
+
+/** Whether FileType[] contains nested FileType objects. */
+export function isFileTypes(array: (FileType | string)[]): array is FileType[] {
+  return array.length == 0 || typeof array[0]! === 'object'
+}
+
+/** Whether FileType[] contains only string values. */
+export function isExtensions(array: (FileType | string)[]): array is string[] {
+  return array.length == 0 || typeof array[0]! === 'string'
+}
+
+/** Whether FileType[] contains a single '*' value, indicating that all files are allowed. */
+export function isGlobAll(array: (FileType | string)[]): boolean {
+  return array.length === 1 && array[0]! === '*'
+}
+
 /**
  * An external configuration for a widget retreived from the language server.
  *
@@ -76,12 +103,12 @@ export type WidgetConfiguration =
   | SingleChoice
   | VectorEditor
   | MultipleChoice
-  | CodeInput
   | BooleanInput
   | NumericInput
   | TextInput
   | FolderBrowse
   | FileBrowse
+  | SecretBrowse
   | FunctionCall
   | OneOfFunctionCalls
   | SomeOfFunctionCalls
@@ -98,10 +125,6 @@ export interface MultipleChoice {
   values: Choice[]
 }
 
-export interface CodeInput {
-  kind: 'Code_Input'
-}
-
 export interface BooleanInput {
   kind: 'Boolean_Input'
 }
@@ -114,6 +137,7 @@ export interface NumericInput {
 
 export interface TextInput {
   kind: 'Text_Input'
+  syntax?: string | undefined
 }
 
 export interface FolderBrowse {
@@ -123,6 +147,11 @@ export interface FolderBrowse {
 export interface FileBrowse {
   kind: 'File_Browse'
   existing_only?: boolean | undefined
+  file_types?: FileType[] | undefined
+}
+
+export interface SecretBrowse {
+  kind: 'Secret_Browse'
 }
 
 export interface SingleChoice {
@@ -189,7 +218,6 @@ export const widgetConfigurationSchema: z.ZodType<
         values: z.array(choiceSchema),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
     z
       .object({
@@ -198,11 +226,16 @@ export const widgetConfigurationSchema: z.ZodType<
         minimum: z.number().optional(),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Text_Input'), syntax: z.string().optional() }).merge(withDisplay),
     z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
     z
-      .object({ kind: z.literal('File_Browse'), existing_only: z.boolean().optional() })
+      .object({
+        kind: z.literal('File_Browse'),
+        existing_only: z.boolean().optional(),
+        file_types: z.array(fileTypeSchema),
+      })
       .merge(withDisplay),
+    z.object({ kind: z.literal('Secret_Browse') }).merge(withDisplay),
     /* eslint-enable camelcase */
   ]),
 )

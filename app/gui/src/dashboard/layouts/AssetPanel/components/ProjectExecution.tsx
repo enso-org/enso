@@ -1,6 +1,34 @@
 /** @file Displays information describing a specific version of an asset. */
+import LogsIcon from '#/assets/logs.svg'
+import RepeatIcon from '#/assets/repeat.svg'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { IconDisplay } from '#/components/IconDisplay'
+import { Menu } from '#/components/Menu'
+import { Text } from '#/components/Text'
+import { VisualTooltip } from '#/components/VisualTooltip'
+import {
+  backendMutationOptions,
+  getProjectExecutionDetailsQueryOptions,
+} from '#/hooks/backendHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
+import { useGetOrdinal } from '#/hooks/ordinalHooks'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import ProjectLogsModal from '#/modals/ProjectLogsModal'
+import { setModal } from '#/providers/ModalProvider'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
+import {
+  getLocalTimeZone,
+  now,
+  parseAbsolute,
+  toZoned,
+  type ZonedDateTime,
+} from '@internationalized/date'
 import { useMutation, useQuery } from '@tanstack/react-query'
-
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
@@ -9,32 +37,6 @@ import {
   MONTH_3_LETTER_TEXT_IDS,
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
-
-import LogsIcon from '#/assets/logs.svg'
-import RepeatIcon from '#/assets/repeat.svg'
-import { DialogTrigger } from '#/components/aria'
-import {
-  Button,
-  ButtonGroup,
-  CloseButton,
-  IconDisplay,
-  Text,
-  VisualTooltip,
-} from '#/components/AriaComponents'
-import {
-  backendMutationOptions,
-  getProjectExecutionDetailsQueryOptions,
-} from '#/hooks/backendHooks'
-import { useGetOrdinal } from '#/hooks/ordinalHooks'
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import ProjectLogsModal from '#/modals/ProjectLogsModal'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import { tv } from '#/utilities/tailwindVariants'
-import { getLocalTimeZone, now, parseAbsolute, type ZonedDateTime } from '@internationalized/date'
 
 /** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
 const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 60_000
@@ -69,10 +71,11 @@ export interface ProjectExecutionProps {
 
 /** Displays information describing a specific version of an asset. */
 export function ProjectExecution(props: ProjectExecutionProps) {
-  const { compact = false, backend, item, projectExecution, date } = props
+  const { compact = false, backend, item, projectExecution } = props
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
+  const date = props.date == null ? null : toZoned(props.date, timeZone)
   const enableAdvancedProjectExecutionOptions = useFeatureFlag(
     'enableAdvancedProjectExecutionOptions',
   )
@@ -87,7 +90,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     date == null ? null : (
       sessions?.find(
         (otherSession) =>
-          Number(new Date(otherSession.createdAt)) - Number(date.toDate()) <
+          Math.abs(Number(new Date(otherSession.createdAt)) - Number(date.toDate())) <
           EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS,
       )
     )
@@ -201,33 +204,52 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             {repeatEl}
           </VisualTooltip>
         }
-        {session && (
-          <DialogTrigger>
-            <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
+        <Button.GroupJoin
+          className="shrink-0 grow-0"
+          buttonVariants={{ size: 'small', variant: 'outline' }}
+        >
+          {session && (
+            <Dialog.Trigger>
+              <Button icon={LogsIcon}>{getText('showLogs')}</Button>
 
-            <ProjectLogsModal
-              backend={backend}
-              projectSessionId={session.projectSessionId}
-              projectTitle={item.title}
-            />
-          </DialogTrigger>
-        )}
-        <DialogTrigger>
-          <CloseButton
-            className={styles.timeButtons()}
-            tooltip={getText('delete')}
-            tooltipPlacement="top left"
-          />
-          <ConfirmDeleteModal
-            actionText={getText('deleteThisProjectExecution')}
-            doDelete={async () => {
-              await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
-            }}
-          />
-        </DialogTrigger>
+              <ProjectLogsModal
+                backend={backend}
+                projectSessionId={session.projectSessionId}
+                projectTitle={item.title}
+              />
+            </Dialog.Trigger>
+          )}
+          <Menu.Trigger>
+            <Button icon="folder_opened" iconPosition="end" variant="outline">
+              {!session && getText('actions')}
+            </Button>
+
+            <Menu>
+              <Menu.Item
+                icon="trash2"
+                onAction={() => {
+                  setModal(
+                    <ConfirmDeleteModal
+                      defaultOpen
+                      actionText={getText('deleteThisProjectExecution')}
+                      onConfirm={async () => {
+                        await deleteProjectExecution.mutateAsync([
+                          projectExecution.executionId,
+                          item.title,
+                        ])
+                      }}
+                    />,
+                  )
+                }}
+              >
+                {getText('delete')}
+              </Menu.Item>
+            </Menu>
+          </Menu.Trigger>
+        </Button.GroupJoin>
       </div>
       {!compact && (
-        <ButtonGroup className={styles.infoContainer()}>
+        <Button.Group className={styles.infoContainer()}>
           {enableAdvancedProjectExecutionOptions && (
             <IconDisplay
               variant="outline"
@@ -257,7 +279,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           >
             {timeZoneDescription}
           </IconDisplay>
-        </ButtonGroup>
+        </Button.Group>
       )}
     </div>
   )

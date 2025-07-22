@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.util.Iterator;
 import java.util.function.Function;
 import org.enso.table.data.column.storage.type.StorageType;
 
@@ -11,6 +12,11 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   public ColumnStorageFacade(ColumnStorage<S> parent, Function<S, T> converter) {
     this.parent = parent;
     this.converter = converter;
+  }
+
+  @Override
+  public long uniqueKey() {
+    return parent.uniqueKey();
   }
 
   @Override
@@ -35,7 +41,24 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   }
 
   @Override
-  public ColumnStorageIterator<T> iterator() {
-    return new Storage.StorageIterator<>(this);
+  public Iterator<T> iterator() {
+    return new Iterator<T>() {
+      private final Iterator<S> parentIterator = parent.iterator();
+
+      @Override
+      public boolean hasNext() {
+        return parentIterator.hasNext();
+      }
+
+      @Override
+      public T next() {
+        S item = parentIterator.next();
+        if (item == null) {
+          return null;
+        } else {
+          return converter.apply(item);
+        }
+      }
+    };
   }
 }

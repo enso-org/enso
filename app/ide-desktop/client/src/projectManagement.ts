@@ -19,7 +19,6 @@ import type * as stream from 'node:stream'
 import * as tar from 'tar'
 
 import * as common from 'enso-common'
-import * as buildUtils from 'enso-common/src/buildUtils'
 
 import * as desktopEnvironment from '@/desktopEnvironment'
 
@@ -45,12 +44,22 @@ const SAMPLES_DIRECTORY_NAME = 'Samples'
 export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
 // ======================
 // === Project Import ===
 // ======================
+
+/**
+ * Check if the given path is a project bundle.
+ * @param path - The path to check.
+ * @returns `true` if the path is a project bundle, `false` otherwise.
+ */
+export function isProjectBundle(path: string): boolean {
+  return pathModule.extname(path).endsWith(BUNDLED_PROJECT_SUFFIX)
+}
 
 /**
  * Open a project from the given path. Path can be either a source file under the project root,
@@ -65,7 +74,7 @@ export function importProjectFromPath(
   name: string | null = null,
 ) {
   directory ??= getProjectsDirectory()
-  if (pathModule.extname(openedPath).endsWith(BUNDLED_PROJECT_SUFFIX)) {
+  if (isProjectBundle(openedPath)) {
     logger.log(`Path '${openedPath}' denotes a bundled project.`)
     // The second part of condition is for the case when someone names a directory
     // like `my-project.enso-project` and stores the project there.
@@ -101,7 +110,9 @@ export function importBundle(
   name: string | null = null,
 ) {
   directory ??= getProjectsDirectory()
-  logger.log(`Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}.`)
+  logger.log(
+    `Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}. Target directory: '${directory}'.`,
+  )
   // The bundle is a tarball, so we just need to extract it to the right location.
   const bundlePrefix = prefixInBundle(bundlePath)
   // We care about spurious '.' and '..' when stripping paths but not when generating name.
@@ -150,6 +161,20 @@ export function importBundle(
     sync: true,
     strip: rootPieces.length,
   })
+
+  const entries = fs.readdirSync(targetPath)
+  const firstEntry = entries[0]
+  // If the directory only contains one subdirectory, replace the directory with its sole
+  // subdirectory.
+  if (entries.length === 1 && firstEntry != null) {
+    if (fs.statSync(pathModule.join(targetPath, firstEntry)).isDirectory()) {
+      const temporaryDirectoryName = targetPath + `_${crypto.randomUUID().split('-')[0] ?? ''}`
+      fs.renameSync(targetPath, temporaryDirectoryName)
+      fs.renameSync(pathModule.join(temporaryDirectoryName, firstEntry), targetPath)
+      fs.rmdirSync(temporaryDirectoryName)
+    }
+  }
+
   return bumpMetadata(targetPath, directory, name ?? null)
 }
 
@@ -198,7 +223,12 @@ export function importDirectory(
     logger.log(`Project already installed at '${rootPath}'.`)
     const id = getProjectId(rootPath)
     if (id != null) {
-      return { id, name: getPackageName(rootPath) ?? '', parentDirectory: directory }
+      return {
+        id,
+        name: getPackageName(rootPath) ?? '',
+        parentDirectory: directory,
+        projectRoot: rootPath,
+      }
     } else {
       throw new Error(`Project already installed, but missing metadata.`)
     }
@@ -263,7 +293,7 @@ function getPackageName(projectRoot: string) {
 export function updatePackageName(projectRoot: string, name: string) {
   const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
   const contents = fs.readFileSync(path, { encoding: 'utf-8' })
-  const newContents = contents.replace(/^name: .*/, `name: ${name}`)
+  const newContents = contents.replace(/^name: .*/, `name: ${JSON.stringify(name)}`)
   fs.writeFileSync(path, newContents)
 }
 
@@ -293,7 +323,7 @@ export function getMetadata(projectRoot: string): ProjectMetadata | null {
 export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
   const metadataPath = pathModule.join(projectRoot, PROJECT_METADATA_RELATIVE_PATH)
   fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
-  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, buildUtils.INDENT_SIZE))
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4))
 }
 
 /**
@@ -322,12 +352,8 @@ export function updateMetadata(
  */
 export function isProjectRoot(candidatePath: string): boolean {
   const projectJsonPath = pathModule.join(candidatePath, PROJECT_METADATA_RELATIVE_PATH)
-  try {
-    fs.accessSync(projectJsonPath, fs.constants.R_OK)
-    return true
-  } catch {
-    return false
-  }
+
+  return fs.existsSync(projectJsonPath)
 }
 
 /**
@@ -336,17 +362,22 @@ export function isProjectRoot(candidatePath: string): boolean {
  */
 export function prefixInBundle(bundlePath: string): string | null {
   // We need to look up the root directory among the tarball entries.
-  let commonPrefix: string | null = null
+  let commonPrefix: string | undefined
   tar.list({
     file: bundlePath,
     sync: true,
     onentry: (entry) => {
-      const path = entry.path
-      commonPrefix = commonPrefix == null ? path : buildUtils.getCommonPrefix(commonPrefix, path)
+      commonPrefix = commonPrefix == null ? entry.path : getCommonPrefix(commonPrefix, entry.path)
     },
   })
+  return commonPrefix || null
+}
 
-  return commonPrefix != null && commonPrefix !== '' ? commonPrefix : null
+function getCommonPrefix(a: string, b: string): string {
+  let i = 0
+  const length = Math.min(a.length, b.length)
+  while (i < length && a[i] === b[i]) ++i
+  return a.slice(0, i)
 }
 
 /**
@@ -360,18 +391,18 @@ export function prefixInBundle(bundlePath: string): string | null {
  */
 export function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
   // Use only the last path component.
-  name = pathModule.parse(name).name
+  let baseName = pathModule.parse(name).name
 
   // If the name already consists a suffix, reuse it.
-  const matches = name.match(/^(.*)_(\d+)$/)
+  const matches = baseName.match(/^(.*)_(\d+)$/)
   // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
   const [matchedName, matchedSuffix] = matches?.slice(1) ?? []
 
   if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
-    name = matchedName
+    baseName = matchedName
   }
 
-  return pathModule.join(directory, name)
+  return pathModule.join(directory, baseName)
 }
 
 /**
@@ -496,7 +527,7 @@ export function bumpMetadata(
     id: generateId(),
     lastOpened: new Date().toISOString(),
   })).id
-  return { id, name, parentDirectory }
+  return { id, name, projectRoot, parentDirectory }
 }
 
 /** Download project templates GitHub repo into the Samples directory if one not exists. */

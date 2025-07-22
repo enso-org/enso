@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.logging.Level;
 import javax.swing.Action;
 import javax.swing.event.ChangeListener;
 import org.netbeans.api.project.Project;
@@ -88,6 +89,9 @@ final class EnsoRootProject implements Project {
     }
 
     private static void searchForProjects(FileObject fo, Collection<Project> found, int depth) {
+      if (fo.getName().startsWith("bazel")) {
+          return;
+      }
       if (fo.isFolder() && depth > 0) {
         if (EnsoProjectFactory.isProjectCheck(fo) == 1) {
           try {
@@ -96,6 +100,7 @@ final class EnsoRootProject implements Project {
               found.add(p);
             }
           } catch (IllegalArgumentException | IOException ex) {
+            Installer.LOG.log(Level.WARNING, "error processing " + fo, ex);
           }
         } else {
           for (var ch : fo.getChildren()) {

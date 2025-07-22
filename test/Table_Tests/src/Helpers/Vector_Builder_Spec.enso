@@ -1,0 +1,65 @@
+from Standard.Base import all
+
+import Standard.Table.Internal.Vector_Builder.Vector_Builder
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "Vector_Builder" group_builder->
+        # Tests added because early implementation of Vector_Builder was overflowing the stack for larger vectors
+        group_builder.specify "should be able to concatenate lots of elements" <|
+            vb1 = 0.up_to 1000 . fold Vector_Builder.empty acc-> i->
+                acc ++ [i]
+            v1 = vb1.build
+            v1.should_be_a Vector
+            v1.length . should_equal 1000
+            v1.should_equal (Vector.new 1000 i->i)
+
+            vb2 = 0.up_to 1000 . fold Vector_Builder.empty acc-> i->
+                Vector_Builder.from_vector [i] ++ acc
+            v2 = vb2.build
+            v2.length . should_equal 1000
+            v2.should_equal (Vector.new 1000 i->i).reverse
+
+            vb3 = 0.up_to 10000 . fold Vector_Builder.empty acc-> i->
+                if i % 2 == 0 then acc ++ ["."] else
+                    Vector_Builder.from_vector ["."] ++ acc
+            v3 = vb3.build
+            v3.length . should_equal 10000
+            v3.should_equal (Vector.new 10000 _->".")
+
+            vb4 = vb1 ++ vb2 ++ vb3
+            v4 = vb4.build
+            v4.length . should_equal 12000
+            v4.should_equal ((Vector.new 1000 i->i) + (Vector.new 1000 i->i).reverse + (Vector.new 10000 _->"."))
+
+        group_builder.specify "should keep correct ordering" <|
+            vb1 = 0.up_to 100 . fold Vector_Builder.empty acc-> i->
+                acc ++ [i, 10*i]
+            v1 = vb1.build
+            v1.should_be_a Vector
+            v1.length . should_equal 200
+            v1.should_equal (Vector.new 100 i->[i, 10*i]).flatten
+
+            vb2 = 0.up_to 100 . fold Vector_Builder.empty acc-> i->
+                Vector_Builder.from_vector [i, 10*i] ++ acc
+            v2 = vb2.build
+            v2.length . should_equal 200
+            ev2 = Vector.new 100 j->
+                i = 99 - j
+                [i, 10*i]
+            v2.should_equal ev2.flatten
+
+            abc = Vector_Builder.from_vector ["a", "b", "c"]
+            vb3 = 0.up_to 500 . fold Vector_Builder.empty acc-> i->
+                if i % 2 == 0 then acc ++ abc else
+                    abc ++ acc
+            v3 = vb3.build
+            v3.length . should_equal 1500
+            v3.should_equal (Vector.new 500 _->["a", "b", "c"]).flatten
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

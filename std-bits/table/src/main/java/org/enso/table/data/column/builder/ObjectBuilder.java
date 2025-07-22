@@ -1,14 +1,13 @@
 package org.enso.table.data.column.builder;
 
-import org.enso.table.data.column.storage.ObjectStorage;
-import org.enso.table.data.column.storage.SpecializedStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 
 /** A builder for boxed object columns. */
-public class ObjectBuilder extends TypedBuilder<Object> {
-  public ObjectBuilder(int size) {
+class ObjectBuilder extends TypedBuilder<Object> {
+  ObjectBuilder(int size) {
     super(AnyObjectType.INSTANCE, new Object[size]);
   }
 
@@ -18,21 +17,22 @@ public class ObjectBuilder extends TypedBuilder<Object> {
   }
 
   @Override
-  public void append(Object o) {
+  public ObjectBuilder append(Object o) {
     ensureSpaceToAppend();
     data[currentSize++] = o;
+    return this;
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     long newSize = currentSize + storage.getSize();
     if (newSize > data.length) {
       int newSizeInt = Builder.checkSize(newSize);
       resize(newSizeInt);
     }
 
-    if (storage instanceof SpecializedStorage<?> specializedStorage) {
-      // We can safely cast here, as for SpecializedStorage the size is always an int.
+    if (storage instanceof TypedStorage<?> specializedStorage) {
+      // We can safely cast here, as for TypedStorage the size is always an int.
       int toCopy = (int) storage.getSize();
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
       currentSize += toCopy;
@@ -47,7 +47,7 @@ public class ObjectBuilder extends TypedBuilder<Object> {
   }
 
   @Override
-  public Storage<Object> doSeal() {
-    return new ObjectStorage(data);
+  public ColumnStorage<Object> doSeal() {
+    return new TypedStorage<>(AnyObjectType.INSTANCE, data);
   }
 }

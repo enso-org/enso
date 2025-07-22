@@ -15,21 +15,22 @@ import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AvoidIdInstrumentationTagTest {
 
-  private Context context;
-  private NodeCountingTestInstrument nodes;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
-  @Before
-  public void initContext() {
-    context = ContextUtils.defaultContextBuilder().build();
+  private static NodeCountingTestInstrument nodes;
+
+  @BeforeClass
+  public static void initContext() {
+    var context = ctxRule.context();
     var engine = context.getEngine();
     var langs = engine.getLanguages();
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
@@ -42,10 +43,8 @@ public class AvoidIdInstrumentationTagTest {
     nodes.enable();
   }
 
-  @After
-  public void disposeContext() {
-    context.close();
-    context = null;
+  @AfterClass
+  public static void disposeContext() {
     nodes = null;
   }
 
@@ -59,7 +58,7 @@ public class AvoidIdInstrumentationTagTest {
     run n = 0.up_to n . map i-> 1.floor * i
     """;
     var src = Source.newBuilder("enso", code, "TestLambda.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var run = module.invokeMember("eval_expression", "run");
     var res = run.execute(10000);
     assertEquals("Array of the requested size computed", 10000, res.getArraySize());
@@ -85,7 +84,7 @@ public class AvoidIdInstrumentationTagTest {
     operator15 = operator13.map year-> if year < 2000 then [255, 100] else if year < 2010 then [0, 255] else [0, 100]
     """;
     var src = Source.newBuilder("enso", code, "YearLambda.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "operator15");
     assertEquals("Array of the requested size computed", 4, res.getArraySize());
     for (var i = 0; i < res.getArraySize(); i++) {
@@ -118,7 +117,7 @@ public class AvoidIdInstrumentationTagTest {
         operator2
     """;
     var src = Source.newBuilder("enso", code, "CaseLambda.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "run");
     assertEquals("Array of the requested size computed", 2, res.getArraySize());
 

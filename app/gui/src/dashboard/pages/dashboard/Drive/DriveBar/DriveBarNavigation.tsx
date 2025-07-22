@@ -2,20 +2,25 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-import { Button, ButtonGroup, Menu } from '#/components/AriaComponents'
+import RecentIcon from '#/assets/recent.svg'
 import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components/Breadcrumbs'
+import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
+import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { listDirectoryQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
+import CategorySwitcher from '#/layouts/CategorySwitcher'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
-import { useDriveStore } from '#/providers/DriveProvider'
-import { useText } from '#/providers/TextProvider'
-import { isDirectoryId } from '#/services/Backend'
+import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
+import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
+import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { NetworkError } from '#/utilities/error'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useRightPanelData, useText } from '$/providers/react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
@@ -28,14 +33,13 @@ export function DriveBarNavigation() {
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
 
-  const { rootDirectoryId, currentDirectoryId, parentDirectoryId, setCurrentDirectoryId } =
-    useDirectoryIds({ category })
+  const { rootDirectoryId, currentDirectoryId } = useDirectoryIds({ category })
 
-  const setAssetPanelDefaultItem = useSetAssetPanelDefaultItem()
+  const rightPanel = useRightPanelData()
 
   const driveStore = useDriveStore()
 
-  const moveAssetsMutation = useMutation({
+  const moveAssetsMutation = useMutationCallback({
     ...moveAssetsMutationOptions(associatedBackend),
     onSuccess: () => {
       driveStore.setState({ selectedIds: new Set(), visuallySelectedKeys: new Set() })
@@ -50,73 +54,90 @@ export function DriveBarNavigation() {
     },
   })
 
-  const parentDirectoryQueryOptions = listDirectoryQueryOptions({
-    backend: associatedBackend,
-    parentId: parentDirectoryId,
-    category,
-    refetchInterval: null,
-  })
-
   const { data: directoryData } = useSuspenseQuery({
-    ...parentDirectoryQueryOptions,
-    select: (data) => {
-      if (parentDirectoryId === currentDirectoryId) {
-        return null
+    queryKey: [associatedBackend.type, 'getAssetDetails', { id: currentDirectoryId }],
+    queryFn: () => associatedBackend.getAssetDetails(currentDirectoryId),
+    meta: { persist: false },
+    retry: (count, error) => {
+      if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
+        setDriveLocation(null, null)
+        return false
       }
 
-      const directory = data.find((item) => item.id === currentDirectoryId)
-
-      if (directory == null) {
+      return count < 3
+    },
+    select: (data) => {
+      if (data == null) {
         return null
       }
 
       const virtualParentsPath = () => {
-        if (directory.virtualParentsPath.length === 0) {
-          return directory.title
+        if (data.virtualParentsPath.length === 0) {
+          return data.title
         }
 
-        return directory.virtualParentsPath + '/' + directory.title
+        return data.virtualParentsPath + '/' + data.title
       }
 
       return {
-        parentsPath: directory.parentsPath + '/' + directory.id,
+        asset: data,
+        parentsPath: data.parentsPath + '/' + data.id,
         virtualParentsPath: virtualParentsPath(),
-        asset: directory,
+        parentId: data.parentId,
       }
     },
   })
 
   useEffect(() => {
-    setAssetPanelDefaultItem(directoryData?.asset ?? null)
-  }, [directoryData?.asset, setAssetPanelDefaultItem])
+    if (directoryData?.asset != null) {
+      rightPanel.updateContext('drive', (ctx) => {
+        ctx.defaultItem = { ...directoryData.asset, ensoPath: undefined }
+        return ctx
+      })
+    }
+  }, [directoryData?.asset, rightPanel])
 
-  const { finalPath } = parseDirectoriesPath({
+  const { finalPath: finalPathRaw } = parseDirectoriesPath({
     parentsPath: directoryData?.parentsPath ?? '',
     virtualParentsPath: directoryData?.virtualParentsPath ?? '',
     rootDirectoryId,
     getCategoryByDirectoryId,
   })
+  const finalPath = (() => {
+    if (category.type === 'recent') {
+      return [
+        {
+          id: rootDirectoryId,
+          categoryId: category.id,
+          label: getText('recentCategory'),
+          icon: RecentIcon,
+        } satisfies PathItem,
+        ...finalPathRaw.slice(1),
+      ]
+    }
+
+    if (category.type === 'trash') {
+      return [
+        {
+          id: category.homeDirectoryId,
+          categoryId: category.id,
+          label: getText('trashCategory'),
+          icon: 'trash_small',
+        } satisfies PathItem,
+        ...finalPathRaw.slice(Math.max(1, finalPathRaw.length - 1)),
+      ]
+    }
+
+    return finalPathRaw
+  })()
 
   const parentId = finalPath.findIndex((item) => item.id === currentDirectoryId) - 1
   const canNavigateUp = parentId >= 0
 
-  const setDirectoryId = useEventCallback((id: React.Key) => {
-    const parentIdToNewId = finalPath.findIndex((item) => item.id === id) - 1
-
-    if (!isDirectoryId(id)) {
-      return
-    }
-
-    setCurrentDirectoryId({
-      current: id,
-      // This is safe, because we know the index presents in the array.
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      parent: parentIdToNewId < 0 ? null : finalPath[parentIdToNewId]!.id,
-    })
-  })
-
   const navigateToDirectory = useEventCallback((id: React.Key) => {
-    setDirectoryId(id)
+    if (isDirectoryId(id)) {
+      setDriveLocation(id, category.id)
+    }
   })
 
   const onDrop = useEventCallback<OnDrop>(async (id) => {
@@ -130,23 +151,76 @@ export function DriveBarNavigation() {
       return
     }
 
-    await moveAssetsMutation.mutateAsync([[...selectedIds], id])
+    await moveAssetsMutation([[...selectedIds], id])
   })
 
   const navigateToParent = useEventCallback(() => {
-    navigateToDirectory(parentDirectoryId)
+    if (directoryData == null) {
+      return
+    }
+
+    navigateToDirectory(directoryData.parentId)
   })
+
+  const breadcrumbs = (
+    <Scroller orientation="horizontal">
+      <Breadcrumbs onDrop={onDrop}>
+        {finalPath.map((pathItem, index) => {
+          const isCurrent = pathItem.id === currentDirectoryId
+          const breadcrumb = (
+            <DriveBarBreadcrumbsItem
+              key={pathItem.id + index}
+              id={pathItem.id}
+              icon={pathItem.icon}
+              navigateToDirectory={navigateToDirectory}
+              isDroppable={!isCurrent}
+            >
+              {pathItem.label}
+            </DriveBarBreadcrumbsItem>
+          )
+          if (index === 0 && isCurrent) {
+            return (
+              <Menu.Trigger key={pathItem.id + index}>
+                <Button size="custom">
+                  <DriveBarBreadcrumbsItem
+                    id={pathItem.id}
+                    icon={pathItem.icon}
+                    navigateToDirectory={navigateToDirectory}
+                    isDroppable={pathItem.id !== currentDirectoryId}
+                  >
+                    {pathItem.label}
+                  </DriveBarBreadcrumbsItem>
+                </Button>
+                <Popover size="auto">
+                  {({ close }) => {
+                    return <CategorySwitcher onChange={close} />
+                  }}
+                </Popover>
+              </Menu.Trigger>
+            )
+          }
+          return breadcrumb
+        })}
+      </Breadcrumbs>
+    </Scroller>
+  )
 
   switch (category.type) {
     case 'trash': {
       return (
-        <div className="py-2">
+        <div className="flex w-full flex-none items-center py-2">
           <UpButton navigateToParent={navigateToParent} isDisabled={!canNavigateUp} />
+          {breadcrumbs}
         </div>
       )
     }
     case 'recent':
-      return null
+      return (
+        <div className="flex w-full flex-none items-center py-2">
+          <UpButton navigateToParent={navigateToParent} isDisabled />
+          {breadcrumbs}
+        </div>
+      )
     case 'cloud':
     case 'local':
     case 'user':
@@ -154,7 +228,7 @@ export function DriveBarNavigation() {
     case 'local-directory': {
       return (
         <div className="flex w-full flex-none items-center">
-          <ButtonGroup className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
+          <Button.Group className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
             <Menu.Trigger trigger="longPress">
               <UpButton navigateToParent={navigateToParent} isDisabled={!canNavigateUp} />
 
@@ -174,27 +248,9 @@ export function DriveBarNavigation() {
                 }}
               </Menu>
             </Menu.Trigger>
-          </ButtonGroup>
+          </Button.Group>
 
-          <Scroller orientation="horizontal">
-            <Breadcrumbs onDrop={onDrop}>
-              {finalPath.map((pathItem, index) => (
-                <DriveBarBreadcrumbsItem
-                  key={pathItem.id + index}
-                  id={pathItem.id}
-                  icon={pathItem.icon}
-                  navigateToDirectory={navigateToDirectory}
-                  isDroppable={pathItem.id !== currentDirectoryId}
-                >
-                  {pathItem.label}
-                </DriveBarBreadcrumbsItem>
-              ))}
-            </Breadcrumbs>
-          </Scroller>
-
-          <div className="ml-auto">
-            <AssetPanelToggle showWhen="collapsed" className="my-auto" />
-          </div>
+          {breadcrumbs}
         </div>
       )
     }
@@ -228,7 +284,7 @@ function DriveBarBreadcrumbsItem<IconType extends string>(
   })
 
   return (
-    <Breadcrumbs.Item {...props} onPress={onPress} isLoading={isLoading}>
+    <Breadcrumbs.Item {...props} onPress={onPress} isLoading={isLoading} onDragDelay={onPress}>
       {props.children}
     </Breadcrumbs.Item>
   )

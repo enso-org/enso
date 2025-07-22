@@ -8,8 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -22,6 +21,7 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -50,14 +50,13 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public void append(Object o) {
+  public Builder append(Object o) {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     o = Polyglot_Utils.convertPolyglotValue(o);
 
     if (currentBuilder == null) {
       if (o == null) {
-        appendNulls(1);
-        return;
+        return appendNulls(1);
       } else {
         initBuilderFor(o);
       }
@@ -72,18 +71,20 @@ public final class InferredBuilder implements Builder {
       }
     }
     currentSize++;
+    return this;
   }
 
   @Override
-  public void appendNulls(int count) {
+  public InferredBuilder appendNulls(int count) {
     if (currentBuilder != null) {
       currentBuilder.appendNulls(count);
     }
     currentSize += count;
+    return this;
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
@@ -184,15 +185,17 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return currentSize;
   }
 
   @Override
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     if (currentBuilder == null) {
       // If all values that the builder got were nulls, we can return a special null storage.
-      return new NullStorage(currentSize);
+      return Builder.getForType(NullType.INSTANCE, currentSize, BlackholeProblemAggregator.INSTANCE)
+          .appendNulls(currentSize)
+          .seal();
     }
     return currentBuilder.seal();
   }

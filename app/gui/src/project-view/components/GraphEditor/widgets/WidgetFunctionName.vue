@@ -1,28 +1,33 @@
 <script setup lang="ts">
-import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
+import {
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+} from '$/components/WithCurrentProject.vue'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
+import {
+  defineWidget,
+  Score,
+  UpdateResult,
+  WidgetInput,
+  widgetProps,
+} from '@/providers/widgetRegistry'
 import { usePersisted } from '@/stores/persisted'
-import { useProjectStore } from '@/stores/project'
-import { injectProjectNames } from '@/stores/projectNames'
 import { Ast } from '@/util/ast'
-import { Err, Ok, type Result } from '@/util/data/result'
+import { Err, Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { type IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
-import { useToast } from '@/util/toast'
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { PropertyAccess } from 'ydoc-shared/ast'
 import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore(true)
+const graph = useGraphStore()
 const persisted = usePersisted(true)
-const displayedName = ref(props.input.value.code())
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 
 const project = useProjectStore()
-const renameError = useToast.error()
 
 const thisArg = computed(() =>
   props.input.value instanceof PropertyAccess ? props.input.value.lhs : undefined,
@@ -35,33 +40,21 @@ const name = computed(() =>
 )
 
 const nameCode = computed(() => name.value.code())
-watch(nameCode, (newValue) => (displayedName.value = newValue))
-
-async function newNameAccepted(newName: string | undefined) {
-  if (!newName) {
-    displayedName.value = name.value.code()
-  } else {
-    const result = await renameFunction(newName)
-    if (!result.ok) {
-      renameError.reportError(result.error)
-      displayedName.value = name.value.code()
-    }
-  }
-}
-
-async function renameFunction(newName: string): Promise<Result> {
-  if (!project.moduleProjectPath?.ok) return project.moduleProjectPath ?? Err('Unknown module Path')
+async function renameFunction(newName: string): Promise<UpdateResult> {
+  if (!project.moduleProjectPath?.ok) return Err('Unknown module Path')
   const modPath = projectNames.serializeProjectPathForBackend(project.moduleProjectPath.value)
   const editedName = props.input[FunctionName].editableNameExpression
   const oldMethodPointer = props.input[FunctionName].methodPointer
   const refactorResult = await project.lsRpcConnection.renameSymbol(modPath, editedName, newName)
-  if (!refactorResult.ok) return refactorResult
+  if (!refactorResult.ok) {
+    return Err(refactorResult.error.message('Failed to rename function'))
+  }
   if (oldMethodPointer) {
     const newMethodPointer = {
       ...oldMethodPointer,
       name: refactorResult.value.newName as IdentifierOrOperatorIdentifier,
     }
-    graph?.db.insertSyntheticMethodPointerUpdate(oldMethodPointer, newMethodPointer)
+    graph.db.insertSyntheticMethodPointerUpdate(oldMethodPointer, newMethodPointer)
     persisted?.handleModifiedMethodPointer(oldMethodPointer, newMethodPointer)
   }
   return Ok()
@@ -101,18 +94,16 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFunctionName widgetRounded">
+  <div class="WidgetFunctionName widgetRounded widgetPill">
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
-    <AutoSizedInput
-      v-model="displayedName"
-      class="FunctionName widgetApplyPadding"
-      @change="newNameAccepted"
-      @pointerdown.stop
-      @click.stop
-      @keydown.enter.stop
-      @keydown.arrow-left.stop
-      @keydown.arrow-right.stop
+    <CodeMirrorWidgetBase
+      v-model="nameCode"
+      contentTestId="widget-function-name-content"
+      :onAccepted="renameFunction"
+      :widgetTypeId="widgetTypeId"
+      :input="input"
+      lineMode="single"
     />
   </div>
 </template>
@@ -120,21 +111,12 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetFunctionName {
   display: inline-flex;
-  background: var(--color-widget);
-  border-radius: var(--radius-full);
   justify-content: center;
   align-items: center;
-  min-width: var(--node-port-height);
-  color: var(--color-node-text);
+}
 
-  &:has(> :focus) {
-    outline: none;
-    background: var(--color-widget-focus);
-    color: var(--color-node-text-selected);
-  }
-
-  &:deep(::selection) {
-    background: var(--color-widget-selection);
-  }
+/*noinspection CssUnusedSymbol*/
+.CodeMirrorRoot {
+  font-weight: 800;
 }
 </style>

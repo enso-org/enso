@@ -49,4 +49,4 @@
     - to_text self -> Standard.Base.Any.Any
     - to_vector self -> Standard.Base.Any.Any
     - transpose self -> Standard.Base.Any.Any
-    - zip self that:Standard.Base.Any.Any function:Standard.Base.Any.Any= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
+    - zip self that:(Standard.Base.Data.Array.Array|Standard.Base.Data.Vector.Vector) function:Standard.Base.Any.Any= skip_nothing:Standard.Base.Data.Boolean.Boolean= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Data.Vector.Vector

@@ -1,51 +1,46 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.operation.unary.CountNothing;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public final class NullBuilder implements Builder {
+final class NullBuilder implements Builder {
   private int length = 0;
 
-  NullBuilder() {}
-
   @Override
-  public void append(Object o) {
+  public NullBuilder append(Object o) {
     if (o != null) {
       throw new IllegalArgumentException("NullBuilder can only append nulls, but got " + o);
     }
 
     length++;
+    return this;
   }
 
   @Override
-  public void appendNulls(int count) {
+  public NullBuilder appendNulls(int count) {
     length += count;
+    return this;
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     // For any storage that is not all-null, check if non-null values are present
-    if (!(storage.getType() instanceof NullType)) {
-      for (long i = 0; i < storage.getSize(); i++) {
-        if (!storage.isNothing(i)) {
-          throw new IllegalArgumentException(
-              "NullBuilder can only append nulls, but got " + storage.getItemBoxed(i));
-        }
-      }
+    if (!CountNothing.allNothing(storage)) {
+      throw new IllegalArgumentException("NullBuilder can only append nulls.");
     }
-
     length += Math.toIntExact(storage.getSize());
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return length;
   }
 
   @Override
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     return new NullStorage(length);
   }
 

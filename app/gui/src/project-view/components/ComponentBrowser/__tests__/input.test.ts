@@ -1,9 +1,9 @@
 import { useComponentBrowserInput } from '@/components/ComponentBrowser/input'
 import { GraphDb, NodeId } from '@/stores/graph/graphDatabase'
-import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
+import { ComputedValueRegistry, TypeInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { unwrap } from '@/util/data/result'
-import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
+import { makeMethod, makeType } from '@/stores/suggestionDatabase/mockSuggestion'
+import { stdPath } from '@/util/projectPath'
 import { expect, test } from 'vitest'
 import { assert, assertUnreachable } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
@@ -15,11 +15,11 @@ const operator2Id = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as NodeId
 function mockGraphDb() {
   const computedValueRegistryMock = ComputedValueRegistry.Mock()
   computedValueRegistryMock.db.set(operator1Id, {
-    typename: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.Number')),
-    rawTypename: 'Standard.Base.Number',
+    typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Number')], [])!,
     methodCall: undefined,
     payload: { type: 'Value' },
     profilingInfo: [],
+    evaluationId: 1,
   })
   const db = GraphDb.Mock(computedValueRegistryMock)
   db.mockNode('operator1', operator1Id, 'Data.read')
@@ -70,3 +70,28 @@ test.each`
     expect(input.code).toBe(expectedCode)
   },
 )
+
+function mockSuggestionDb() {
+  const suggestionDb = new SuggestionDb()
+  suggestionDb.set(1, makeType('Standard.Base.Number'))
+  suggestionDb.set(2, makeMethod('Standard.Base.Any.Any.to_text'))
+  suggestionDb.set(3, makeMethod('Standard.Base.Number.add'))
+  suggestionDb.set(4, makeMethod('Standard.Base.Type.after_cast'))
+  return suggestionDb
+}
+
+test.each`
+  suggestionId | expectedCode
+  ${2}         | ${'operator1.to_text '}
+  ${3}         | ${'operator1.add '}
+  ${4}         | ${'operator1:Type . after_cast '}
+`('Applying suggestion with possible type casting', ({ suggestionId, expectedCode }) => {
+  const db = mockGraphDb()
+  const suggestionDb = mockSuggestionDb()
+  const input = useComponentBrowserInput(db, suggestionDb, aiMock)
+  const sourcePort = db.getNodeFirstOutputPort(db.getIdentDefiningNode('operator1'))
+  assert(sourcePort != null)
+  input.reset({ type: 'newNode', sourcePort })
+  input.applySuggestion(suggestionId, undefined)
+  expect(input.code).toBe(expectedCode)
+})

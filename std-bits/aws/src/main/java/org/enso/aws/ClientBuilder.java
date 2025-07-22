@@ -3,6 +3,7 @@ package org.enso.aws;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.util.function.Supplier;
+import org.enso.aws.regions.AWSRegion;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -19,9 +20,9 @@ import software.amazon.awssdk.services.s3.S3Client;
 public class ClientBuilder {
   private static AwsCredential defaultCredentialOverride = null;
   private final AwsCredential awsCredential;
-  private final Region awsRegion;
+  private final AWSRegion awsRegion;
 
-  public ClientBuilder(AwsCredential credential, Region awsRegion) {
+  public ClientBuilder(AwsCredential credential, AWSRegion awsRegion) {
     this.awsCredential = credential;
     this.awsRegion = awsRegion;
   }
@@ -53,11 +54,11 @@ public class ClientBuilder {
     return previous;
   }
 
-  public S3Client buildS3Client() {
-    return S3Client.builder()
-        .credentialsProvider(unsafeBuildCredentialProvider())
-        .region(awsRegion)
-        .build();
+  public S3ClientWrapper buildS3Client() {
+    return S3ClientWrapper.from(
+        S3Client.builder()
+            .credentialsProvider(unsafeBuildCredentialProvider())
+            .region(AWSRegion.underlying(awsRegion)));
   }
 
   /**
@@ -79,12 +80,12 @@ public class ClientBuilder {
    *
    * <p>It is used by {@link BucketLocator} to find out the region of buckets.
    */
-  S3Client buildGlobalS3Client() {
-    return S3Client.builder()
-        .credentialsProvider(unsafeBuildCredentialProvider())
-        .region(Region.US_EAST_1)
-        .endpointOverride(URI.create("https://s3.us-east-1.amazonaws.com"))
-        .build();
+  S3ClientWrapper buildGlobalS3Client() {
+    return S3ClientWrapper.from(
+        S3Client.builder()
+            .credentialsProvider(unsafeBuildCredentialProvider())
+            .region(Region.US_EAST_1)
+            .endpointOverride(URI.create("https://s3.us-east-1.amazonaws.com")));
   }
 
   /**

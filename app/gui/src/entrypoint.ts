@@ -1,20 +1,17 @@
+import './beforeMain' // Keep newline below to ensure that this import is always first.
+
 import '#/styles.css'
 import '#/tailwind.css'
-import * as sentry from '@sentry/react'
+import App from '$/App.vue'
+import router from '$/router'
+import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
+import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
 import * as idbKeyval from 'idb-keyval'
-import { useEffect } from 'react'
-import {
-  createRoutesFromChildren,
-  matchRoutes,
-  useLocation,
-  useNavigationType,
-} from 'react-router-dom'
 import { createApp } from 'vue'
-import App from './App.vue'
 
 const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
@@ -23,19 +20,20 @@ const SENTRY_SAMPLE_RATE = 0.005
 const SCAM_WARNING_TIMEOUT = 1000
 const INITIAL_URL_KEY = `Enso-initial-url`
 
-function main() {
-  if (detect.IS_DEV_MODE) {
-    suppressReactAriaConsoleWarnings()
-    suppressVueDevToolsConsoleWarnings()
-  }
+async function main() {
   setupScamWarning()
   setupSentry()
   configureAnimations()
-  const appProps = imNotSureButPerhapsFixingRefreshingWithAuthentication()
+  const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
+  const rootDirPath = await getRootDirPath()
 
-  const app = createApp(App, appProps)
-  app.use(VueQueryPlugin, { queryClient })
+  const app = createApp(App)
+  app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
+  app.use(router)
+  app.use(widgetDevtools)
+  app.provide('rootDirPath', rootDirPath)
+  app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')
 }
 
@@ -83,13 +81,7 @@ function setupSentry() {
       environment: $config.ENVIRONMENT ?? 'dev',
       release: $config.VERSION ?? 'dev',
       integrations: [
-        sentry.reactRouterV6BrowserTracingIntegration({
-          useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-        }),
+        sentry.browserTracingIntegration({ router }),
         sentry.extraErrorDataIntegration({ captureErrorCause: true }),
         sentry.replayIntegration(),
         new sentry.BrowserProfilingIntegration(),
@@ -168,60 +160,25 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  return {
-    onAuthenticated() {
-      if (isInAuthenticationFlow) {
-        const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
-        if (initialUrl != null) {
-          // This is not used past this point, however it is set to the initial URL
-          // to make refreshing work as expected.
-          history.replaceState(null, '', initialUrl)
-        }
+  function onAuthenticated() {
+    if (isInAuthenticationFlow) {
+      const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+      if (initialUrl != null) {
+        // This is not used past this point, however it is set to the initial URL
+        // to make refreshing work as expected.
+        history.replaceState(null, '', initialUrl)
       }
-    },
-  }
-}
-
-function suppressConsoleMessage(
-  message: string | RegExp | (string | RegExp)[] | ((...args: unknown[]) => boolean),
-  level: 'warn' | 'error' | 'log' | 'debug' | 'info' = 'warn',
-) {
-  const originalConsoleMethod = console[level]
-
-  console[level] = function overrideConsoleMethod(...args: unknown[]) {
-    let shouldSuppress = false
-
-    switch (true) {
-      case typeof message === 'function':
-        shouldSuppress = message(...args)
-        break
-      case typeof message === 'string':
-        shouldSuppress = args[0] === message
-        break
-      case Array.isArray(message):
-        shouldSuppress = message.some((m) =>
-          typeof m === 'string' ? args[0] === m : m.test(args[0] as string),
-        )
-        break
-      default:
-        shouldSuppress = message.test(args[0] as string)
-        break
     }
-
-    if (shouldSuppress) {
-      return
-    }
-
-    return originalConsoleMethod.apply(console, args)
   }
+  return onAuthenticated
 }
 
-function suppressReactAriaConsoleWarnings() {
-  suppressConsoleMessage(/A PressResponder was rendered without a pressable child/)
-}
-
-function suppressVueDevToolsConsoleWarnings() {
-  suppressConsoleMessage((...args) => args[1] === 'data-v-inspector', 'error')
+async function getRootDirPath() {
+  const supportsLocalBackend =
+    window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
+  if (!supportsLocalBackend) return undefined
+  const rootDirRequest = await fetch(`/api/root-directory`)
+  return await rootDirRequest.text()
 }
 
 main()

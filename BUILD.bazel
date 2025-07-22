@@ -16,5 +16,6 @@ write_source_files(
         "//app/rust-ffi:write_wasm_dist",
         "//app/ydoc-shared:write_ast_codegen",
         "//app/gui:write_icon_metadata",
+        "//app/table-expression:write_parser_codegen",
     ],
 )

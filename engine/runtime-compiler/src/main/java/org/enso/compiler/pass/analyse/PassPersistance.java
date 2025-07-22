@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.enso.common.CachePreferences;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
-import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
 import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
@@ -29,8 +28,6 @@ import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
-import org.openide.util.lookup.ServiceProvider;
-import scala.Tuple2$;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
 @Persistable(clazz = DataflowAnalysis.DependencyInfo.class, id = 1112)
@@ -74,7 +71,7 @@ import scala.Tuple2$;
 public final class PassPersistance {
   private PassPersistance() {}
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1101)
   public static final class PersistState extends Persistance<IgnoredBindings.State> {
     public PersistState() {
       super(IgnoredBindings.State.class, true, 1101);
@@ -95,79 +92,7 @@ public final class PassPersistance {
     }
   }
 
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
-  public static final class PersistAliasAnalysisGraphScope extends Persistance<Graph.Scope> {
-    public PersistAliasAnalysisGraphScope() {
-      super(Graph.Scope.class, false, 1267);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Graph.Scope readObject(Input in) throws IOException {
-      var childScopes = in.readInline(scala.collection.immutable.List.class);
-      var occurrencesValues = (scala.collection.immutable.Set<GraphOccurrence>) in.readObject();
-      var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
-      var allDefinitions = in.readInline(scala.collection.immutable.List.class);
-      var parent = new Graph.Scope(childScopes, occurrences, allDefinitions);
-      childScopes.forall(
-          (object) -> {
-            var ch = (Graph.Scope) object;
-            ch.withParent(parent);
-            return null;
-          });
-      return parent;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected void writeObject(Graph.Scope obj, Output out) throws IOException {
-      out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
-      out.writeObject(obj.occurrences().values().toSet());
-      out.writeInline(scala.collection.immutable.List.class, obj.allDefinitions());
-    }
-  }
-
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
-  public static final class PersistAliasAnalysisGraph extends Persistance<Graph> {
-    public PersistAliasAnalysisGraph() {
-      super(Graph.class, false, 1268);
-    }
-
-    @SuppressWarnings("unchecked")
-    protected Graph readObject(Input in) throws IOException {
-
-      var rootScope = (Graph.Scope) in.readObject();
-      assignParents(rootScope);
-
-      var links =
-          (scala.collection.immutable.Set) in.readInline(scala.collection.immutable.Set.class);
-
-      var nextIdCounter = in.readInt();
-      var g = new Graph(rootScope, nextIdCounter, links);
-      return g;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    protected void writeObject(Graph obj, Output out) throws IOException {
-      out.writeObject(obj.rootScope());
-      out.writeInline(scala.collection.immutable.Set.class, obj.getLinks());
-      out.writeInt(obj.nextIdCounter());
-    }
-
-    private static void assignParents(Graph.Scope scope) {
-      scope
-          .childScopes()
-          .foreach(
-              (ch) -> {
-                assignParents(ch);
-                ch.withParent(scope);
-                return null;
-              });
-    }
-  }
-
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1289)
   public static final class PersistCachePreferences
       extends Persistance<org.enso.common.CachePreferences> {
     public PersistCachePreferences() {

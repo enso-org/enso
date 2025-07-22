@@ -9,6 +9,7 @@ import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
+import project.Data.Vector.Report_Unmatched
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
@@ -21,8 +22,7 @@ import project.Errors.Unimplemented.Unimplemented
 import project.Internal.Array_Like_Helpers
 import project.Meta
 import project.Nothing.Nothing
-import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
 
@@ -31,6 +31,7 @@ from project.Metadata import Display, Widget
 type Array
     ## GROUP Selections
        ICON parse3
+       SUGGESTED 4
        Gets an element from the array at a specified index (0-based).
 
        Arguments:
@@ -53,6 +54,7 @@ type Array
 
     ## GROUP Metadata
        ICON metadata
+       SUGGESTED 3
        Returns the number of elements stored in this array.
 
        > Example
@@ -72,6 +74,7 @@ type Array
     ## ALIAS order_by
        GROUP Calculations
        ICON order
+       SUGGESTED 11
        Sort the array.
 
        Arguments:
@@ -150,6 +153,7 @@ type Array
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON parse3
+       SUGGESTED 6
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -180,6 +184,7 @@ type Array
 
     ## GROUP Calculations
        ICON row_add
+       SUGGESTED 8
        Inserts the given item into the array at the given index.
 
        Arguments:
@@ -201,6 +206,7 @@ type Array
 
     ## GROUP Selections
        ICON table_clean
+       SUGGESTED 9
        Removes the item at the given index from the array.
 
        Arguments:
@@ -317,6 +323,7 @@ type Array
     ## ALIAS deduplicate, unique
        GROUP Selections
        ICON preparation
+       SUGGESTED 7
        Keeps only unique elements within the array, removing any duplicates.
 
        Arguments:
@@ -439,7 +446,22 @@ type Array
     flat_map self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.flat_map self function on_problems
 
-    ## GROUP Selections
+    ## ALIAS where
+       MACRO equals filter=..Equal
+       MACRO not_equals filter=..Not_Equal
+       MACRO not_nothing filter=..Not_Nothing
+       MACRO is_nothing filter=..Is_Nothing
+       MACRO is_in filter=..Is_In
+       MACRO less_than filter=..Less
+       MACRO greater_than filter=..Greater
+       MACRO between filter=..Between
+       MACRO contains filter=..Contains
+       MACRO starts_with filter=..Starts_With
+       MACRO ends_with filter=..Ends_With
+       MACRO like filter=..Like
+       MACRO regex_match filter=..Regex_Match
+       MACRO predicate filter=v->v==Nothing
+       GROUP Selections
        ICON preparation
        Selects all elements of this array which satisfy a condition.
 
@@ -534,6 +556,7 @@ type Array
 
     ## GROUP Calculations
        ICON union
+       SUGGESTED 10
        Extend `self` array to the length of `n` appending elements `elem` to
        the end.
 
@@ -725,6 +748,7 @@ type Array
         Array_Like_Helpers.find self condition start if_missing
 
     ## ICON parse3
+       SUGGESTED 5
        Gets an element from the array at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
@@ -877,6 +901,7 @@ type Array
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
        ICON join2-1
+       SUGGESTED 13
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -884,11 +909,27 @@ type Array
        - that: The array to zip with `self`.
        - function: The function used to combine pairwise elements of `self` and
          `that`.
+       - skip_nothing: If `True`, `Nothing` values will be skipped, and a
+         `Nothing` will be used at that position in the output. Otherwise,
+         `Nothing` values will be passed to the `function`. Defaults to `False`.
+       - keep_unmatched: If set to `True`, the result will include as many elements
+         as the longer of the two arrays - the last elements of the longer
+         array will have `Nothing`s for elements in the smaller one. If set to
+         `False`, the result will have as many elements as the smaller of the
+         two arrays - the additional elements of the larger array will be
+         discarded. The default value is `Report_Unmatched` which means that the
+         user expects that two arrays should have the same amount of elements;
+         if they do not, the behaviour is the same as if it was set to `True` -
+         i.e. the unmatched elements are kept with `Nothing` values for the
+         other array, but a `Row_Count_Mismatch` problem is also reported.
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       The result of this function is a `Vector` of length being the shorter of
-       `self` and `that`, containing results of calling `function`.
+       The result of this function is an array containing results of calling
+       `function`. For `keep_unmatched=True`, the length of the resulting
+       array is the maximum of the lengths of the input arrays.  For
+       `keep_unmatched=False`, the length of the resulting array is the
+       minimum of the lengths of the input arrays.
 
        ! Error Conditions
 
@@ -921,10 +962,8 @@ type Array
          of both elements.
 
              [1, 2, 3].to_array.zip [4, 5, 6].to_array == [[1, 4].to_array, [2, 5].to_array, [3, 6].to_array].to_array
-    zip : Vector Any -> (Any -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    zip self that function=[_,_] on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
-        len = self.length.min that.length
-        Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
+    zip self that:(Array|Vector) (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error -> Vector =
+        Array_Like_Helpers.zip self that function skip_nothing keep_unmatched on_problems
 
     ## ICON convert
        Returns the array as a `Vector`.
@@ -933,6 +972,7 @@ type Array
 
     ## GROUP Selections
        ICON order
+       SUGGESTED 12
        Reverses the array, returning a `Vector` with the same elements, but in
        the opposite order.
 

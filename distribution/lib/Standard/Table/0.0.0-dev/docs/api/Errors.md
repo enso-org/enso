@@ -51,11 +51,17 @@
 - type Existing_Data
     - Error message:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+- type Fixed_Width_Line_Too_Long
+    - handle_java_exception -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Data.Text.Text
 - type Ignored_NaN_Values
     - Warning column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
     - to_display_text self -> Standard.Base.Any.Any
 - type Ignored_Nothing_Values
     - Warning column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
+    - to_display_text self -> Standard.Base.Any.Any
+- type Inconsistent_Fixed_Width_Lengths
+    - Error
     - to_display_text self -> Standard.Base.Any.Any
 - type Inexact_Type_Coercion
     - Warning requested_type:Standard.Table.Value_Type.Value_Type actual_type:Standard.Table.Value_Type.Value_Type unavailable:Standard.Base.Data.Boolean.Boolean=
@@ -70,6 +76,9 @@
 - type Invalid_Column_Names
     - Error column_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) extra_message:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
     - handle_java_exception ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Invalid_Fixed_Width_Row
+    - Error source_line_number:Standard.Base.Data.Numbers.Integer table_row_number:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) line_length:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) minimum_line_length:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Format
     - Error column:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) value_type:(Standard.Table.Value_Type.Value_Type|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Number|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day|Standard.Base.Data.Boolean.Boolean|Standard.Base.Any.Any) count:Standard.Base.Data.Numbers.Integer cells:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
@@ -117,6 +126,9 @@
 - type Name_Too_Long
     - Error entity_kind:Standard.Base.Data.Text.Text name:Standard.Base.Data.Text.Text extra_message:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Any.Any
+- type No_Column_Names_Found
+    - handle_java_exception -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Data.Text.Text
 - type No_Common_Type
     - Error types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) related_column_name:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)
     - Warning_Convert_To_Text types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) related_column_name:Standard.Base.Data.Text.Text

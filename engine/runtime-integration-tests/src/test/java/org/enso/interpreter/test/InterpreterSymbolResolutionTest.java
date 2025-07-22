@@ -8,16 +8,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /** Tests symbol resolution in the interpreter. */
-public class InterpreterSymbolResolutionTest extends ContextTest {
+public class InterpreterSymbolResolutionTest {
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @After
+  public void clear() {
+    ctxRule.resetOut();
+  }
 
   @Test
   public void resolvingLocalSymbol() throws Exception {
@@ -33,7 +40,7 @@ public class InterpreterSymbolResolutionTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "entry_point");
     assertTrue(result.isNumber());
     assertEquals(42, result.asInt());
@@ -53,7 +60,7 @@ public class InterpreterSymbolResolutionTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "entry_point");
     assertTrue(result.isNumber());
     assertEquals(42, result.asInt());
@@ -74,7 +81,7 @@ public class InterpreterSymbolResolutionTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "entry_point");
     assertTrue(result.isNumber());
     assertEquals(43, result.asInt());
@@ -98,7 +105,7 @@ public class InterpreterSymbolResolutionTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "entry_point");
     assertTrue(result.isNumber());
     assertEquals(43, result.asInt());
@@ -119,7 +126,7 @@ public class InterpreterSymbolResolutionTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "entry_point");
     assertTrue(result.isNumber());
     assertEquals(44, result.asInt());
@@ -136,17 +143,14 @@ public class InterpreterSymbolResolutionTest extends ContextTest {
         main =
             static_method
         """;
-    var out = new ByteArrayOutputStream();
-    try (var ctx = ContextUtils.defaultContextBuilder().out(out).err(out).build()) {
-      try {
-        var res = ContextUtils.evalModule(ctx, code);
-        fail("Should throw exception. Instead got: " + res);
-      } catch (PolyglotException ex) {
-        assertThat(ex.isSyntaxError(), is(true));
-        assertThat(
-            out.toString(),
-            allOf(containsString("The name"), containsString("could not be found")));
-      }
+    try {
+      var res = ctxRule.evalModule(code);
+      fail("Should throw exception. Instead got: " + res);
+    } catch (PolyglotException ex) {
+      assertThat(ex.isSyntaxError(), is(true));
+      assertThat(
+          ctxRule.getOut(),
+          allOf(containsString("The name"), containsString("could not be found")));
     }
   }
 }

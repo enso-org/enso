@@ -17,6 +17,7 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   padding: calc((var(--node-port-height) - var(--widget-checkbox-inner-size)) / 2);
   border-radius: var(--node-port-border-radius);
   background: var(--color-widget);
+  transition: background-color 0.2s ease;
 }
 
 .selected .Checkbox {

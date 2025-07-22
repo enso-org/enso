@@ -22,7 +22,7 @@ add_specs suite_builder =
 
         group_builder.specify "should allow passing the casted column to methods expecting column" <|
             t1 = Table.new [["A", [1, 2, 3]]]
-            (t1:Column).zip (t1:Column) (+) . to_vector . should_equal [2, 4, 6]
+            (t1:Column).map  (+ 10) . to_vector . should_equal [11, 12, 13]
 
         group_builder.specify "should also work for Tables returned from various operations" <|
             t1 = Table.new [["A", [1, 2]], ["B", [3, 4]]]

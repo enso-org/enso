@@ -16,6 +16,7 @@ import syntaxImportAttributes from '@babel/plugin-syntax-import-attributes'
 
 const isDevMode = process.env.NODE_ENV === 'development'
 const isE2E = process.env.INTEGRATION_TEST === 'true'
+const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 const entrypoint = isE2E ? './src/project-view/test-entrypoint.ts' : './src/entrypoint.ts'
 
@@ -23,12 +24,23 @@ if (isDevMode) {
   process.env.ENSO_IDE_YDOC_SERVER_URL ||= 'ws://__HOSTNAME__:5976'
 }
 
+// Used by vite middleware inside devtools plugin. Specifying this by an option doesn't work when `componentInspector` is false.
+process.env.LAUNCH_EDITOR ??= 'code'
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
     wasm(),
-    ...(isDevMode ? [await VueDevTools()] : []),
+    ...(isDevMode ?
+      [
+        await VueDevTools({
+          // The JSX transform used by the inspector is causing react to complain and adds significant load time.
+          componentInspector: false,
+        }),
+      ]
+    : []),
     vue({
       customElement: ['**/components/visualizations/**', '**/components/shared/**'],
       template: {
@@ -39,7 +51,7 @@ export default defineConfig({
     }),
     react({
       include: [
-        fileURLToPath(new URL('./src/dashboard/**/*.tsx', import.meta.url)),
+        fileURLToPath(new URL('./src/**/*.tsx', import.meta.url)),
         fileURLToPath(new URL('./src/dashboard/**/use*.ts', import.meta.url)),
         fileURLToPath(new URL('./src/dashboard/**/*Hooks.ts', import.meta.url)),
       ],
@@ -50,7 +62,7 @@ export default defineConfig({
         ],
       },
     }),
-    await projectManagerShim(),
+    ...(process.env.DASHBOARD_TESTS !== 'true' ? [await projectManagerShim()] : []),
     ...((
       process.env.SENTRY_AUTH_TOKEN != null &&
       process.env.ENSO_IDE_SENTRY_ORGANIZATION != null &&
@@ -73,6 +85,16 @@ export default defineConfig({
     holdUntilCrawlEnd: true,
   },
   server: {
+    warmup: {
+      // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
+      clientFiles: [
+        './src/**/*.vue',
+        './src/**/*.tsx',
+        './src/dashboard/hooks/**/*.ts',
+        './src/dashboard/tailwind.css',
+        './node_modules/@tanstack/**/*.js',
+      ],
+    },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
@@ -86,6 +108,7 @@ export default defineConfig({
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
+      $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   envPrefix: 'ENSO_IDE_',

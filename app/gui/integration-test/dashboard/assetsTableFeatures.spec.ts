@@ -1,5 +1,5 @@
 /** @file Test the drive view. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import { EmailAddress, ProjectState } from '#/services/Backend'
 import { getText, mockAllAndLogin, TEXT } from './actions'
@@ -21,6 +21,7 @@ test('extra columns should stick to top of scroll container', ({ page }) =>
       }
     },
   })
+    .driveTable.toggleColumn.labels()
     .withAssetsTable(async (assetsTable) => {
       await assetsTable.evaluate((element) => {
         let scrollableParent: HTMLElement | SVGElement | null = element
@@ -68,12 +69,12 @@ test('can navigate to parent directory of an asset in the Trash category', ({ pa
   })
     // Project in the root (a)
     .driveTable.rightClickRow('a')
-    .contextMenu.moveNonFolderToTrash()
+    .contextMenu.moveToTrash()
     .driveTable.openDirectory('d')
     .driveTable.openDirectory('e')
     // Project in the nested directory (c)
     .driveTable.rightClickRow('c')
-    .contextMenu.moveNonFolderToTrash()
+    .contextMenu.moveToTrash()
     .goToCategory.trash()
     .driveTable.withPathColumnCell('a', async (cell) => {
       await expect(cell).toBeVisible()
@@ -96,9 +97,13 @@ test('can navigate to parent directory of an asset in the Trash category', ({ pa
 test("can't run a project in browser by default", ({ page }) =>
   mockAllAndLogin({
     page,
+    goToCloudFirst: false,
     setupAPI: async (api) => {
       api.addProject({ title: 'a' })
-      api.setFeatureFlags({ enableCloudExecution: false })
+      api.setFeatureFlags({
+        enableLocalBackend: false,
+        enableCloudExecution: false,
+      })
     },
   }).do(() => {
     expect(page.getByText(TEXT.cloudBrowserDisabledTitle)).toBeVisible()

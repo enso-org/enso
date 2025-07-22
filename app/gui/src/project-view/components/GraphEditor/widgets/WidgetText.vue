@@ -1,59 +1,49 @@
 <script setup lang="ts">
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
-import { unrefElement } from '@/composables/events'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { useGraphStore } from '@/stores/graph'
+import {
+  defineWidget,
+  type HandledUpdate,
+  Score,
+  WidgetInput,
+  widgetProps,
+} from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { MutableModule } from '@/util/ast/abstract'
-import { targetIsOutside } from '@/util/autoBlur'
-import { computed, ref, watch, type ComponentInstance } from 'vue'
+import { languageExtension } from '@/util/codemirror/language'
+import { computed, ref, useTemplateRef } from 'vue'
+import { Ok } from 'ydoc-shared/util/data/result'
 
+const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const input = ref<ComponentInstance<typeof AutoSizedInput>>()
-const widgetRoot = ref<HTMLElement>()
+const currentProject = useCurrentProject().ref
 
-const previousValue = ref<string>()
+function focusAndSelect() {
+  baseEditor.value?.focusAndSelect()
+}
 
-const editing = WidgetEditHandler.New('WidgetText', props.input, {
-  start() {
-    previousValue.value = textContents.value
-  },
-  cancel() {
-    editedContents.value = textContents.value
-    input.value?.blur()
-  },
-  pointerdown(event) {
-    if (targetIsOutside(event, unrefElement(input))) {
-      accepted()
-    }
-    return false
-  },
-  end() {
-    input.value?.blur()
-  },
-})
+const textContents = computed(() =>
+  props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
+)
+function acceptValue(text: string): HandledUpdate {
+  if (!currentProject.value) return Ok()
+  const graph = currentProject.value.graph
 
-function accepted() {
-  editing.end()
   if (props.input.value instanceof Ast.TextLiteral) {
-    if (previousValue.value === editedContents.value) return
     const edit = graph.startEdit()
     const value = edit.getVersion(props.input.value)
-    if (value.rawTextContent === editedContents.value) return
-    value.setRawTextContent(editedContents.value)
-    props.onUpdate({ edit, directInteraction: true })
+    if (value.rawTextContent === text) return Ok()
+    value.setRawTextContent(text)
+    return props.onUpdate({ edit, directInteraction: true })
   } else {
     let value: Ast.Owned<Ast.MutableTextLiteral>
     if (inputTextLiteral.value) {
       value = Ast.copyIntoNewModule(inputTextLiteral.value)
-      value.setRawTextContent(editedContents.value)
+      value.setRawTextContent(text)
     } else {
-      value = makeNewLiteral(editedContents.value)
+      value = Ast.TextLiteral.new(text)
     }
-    props.onUpdate({
+    return props.onUpdate({
       portUpdate: {
         value,
         origin: props.input.portId,
@@ -63,6 +53,10 @@ function accepted() {
   }
 }
 
+const syntaxLanguage = computed(() =>
+  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig.syntax : undefined,
+)
+
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (props.input.value instanceof Ast.TextLiteral) return props.input.value
@@ -70,36 +64,43 @@ const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (valueStr == null) return undefined
   return Ast.TextLiteral.tryParse(valueStr)
 })
-
-function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiteral> {
-  if (props.input.value instanceof Ast.TextLiteral) {
-    const literal = MutableModule.Transient().copy(props.input.value)
-    literal.setRawTextContent(value)
-    return literal
-  } else {
-    return makeNewLiteral(value)
-  }
-}
-
 const openToken = computed(() => inputTextLiteral.value?.open ?? emptyTextLiteral.value.open)
-const closeToken = computed(() => inputTextLiteral.value?.close ?? openToken.value)
-
-const textContents = computed(() =>
-  props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
+const closeToken = computed(() =>
+  isBlock.value ? undefined : (inputTextLiteral.value?.close ?? openToken.value),
 )
+const isBlock = computed<boolean>(() => !!inputTextLiteral.value?.isBlock)
+const editedTextIsMultiline = ref(isTextMultiline(textContents.value))
+const isMultiline = computed<boolean>(() => isBlock.value || editedTextIsMultiline.value)
+
 const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
-const editedContents = ref(textContents.value)
-watch(textContents, (value) => (editedContents.value = value))
+
+const languageExt = computed(() => languageExtension(syntaxLanguage.value))
+const extensions = computed(() => (languageExt.value ? [languageExt.value] : []))
+
+function isTextMultiline(text: string) {
+  return !!text.match(/[\r\n]/)
+}
+
+function onTextEdited(text: string) {
+  editedTextIsMultiline.value = isTextMultiline(text)
+}
+
+function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiteral> {
+  if (props.input.value instanceof Ast.TextLiteral) {
+    const literal = Ast.copyIntoNewModule(props.input.value)
+    literal.setRawTextContent(value)
+    return literal
+  } else {
+    return Ast.TextLiteral.new(value)
+  }
+}
 </script>
 
 <script lang="ts">
 // Computed used intentionally to delay computation until wasm package is loaded.
-const emptyTextLiteral = computed(() => makeNewLiteral(''))
-function makeNewLiteral(value: string) {
-  return Ast.TextLiteral.new(value, MutableModule.Transient())
-}
+const emptyTextLiteral = computed(() => Ast.TextLiteral.new(''))
 
 export const widgetDefinition = defineWidget(
   WidgetInput.placeholderOrAstMatcher(Ast.TextLiteral),
@@ -118,53 +119,65 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <label ref="widgetRoot" class="WidgetText widgetRounded">
-    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" />
-    <!-- Do not finish edit on blur here!
-
-    It is tempting, but it breaks the cooperation with possible drop-down widget. Blur may be done on
-    pointerdown, and if it would end the interaction, the drop down would also be hidden, making 
-    any `click` event on it impossible.
-    -->
-    <AutoSizedInput
-      ref="input"
-      v-model="editedContents"
+  <label
+    class="WidgetText widgetRounded widgetPill"
+    :class="{ singleLine: !isMultiline }"
+    @pointerdown.stop.prevent="focusAndSelect"
+    @click.stop
+  >
+    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />
+    <CodeMirrorWidgetBase
+      ref="baseEditor"
+      v-model="textContents"
+      contentTestId="widget-text-content"
       :placeholder="placeholder"
-      autoSelect
-      @keydown.enter.stop="accepted"
-      @keydown.tab.stop="accepted"
-      @focusin="editing.start()"
-      @input="editing.edit(makeLiteralFromUserInput($event ?? ''))"
+      :lineMode="isMultiline ? 'autoMulti' : 'auto'"
+      :extensions="extensions"
+      :widgetTypeId="widgetTypeId"
+      :input="input"
+      :transformUserInput="makeLiteralFromUserInput"
+      :onAccepted="acceptValue"
+      @textEdited="onTextEdited"
     />
-    <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
+    <NodeWidget
+      v-if="closeToken"
+      :input="WidgetInput.FromAst(closeToken)"
+      class="delimiter close"
+    />
   </label>
 </template>
 
 <style scoped>
 .WidgetText {
   display: inline-flex;
-  background: var(--color-widget);
-  border-radius: var(--radius-full);
-  user-select: none;
   justify-content: center;
   align-items: center;
-  min-width: var(--node-port-height);
-
-  &:has(> :focus) {
-    outline: none;
-    background: var(--color-widget-focus);
-  }
-
-  &:deep(::selection) {
-    background: var(--color-widget-selection);
-  }
 }
 
-.selected .WidgetText {
-  background: var(--color-widget-unfocus);
-  &:has(> :focus) {
-    outline: none;
-    background: var(--color-widget-focus);
+.singleLine :deep(.cm-scroller) {
+  font-weight: 800;
+}
+
+/**
+ * In multiline mode the widget is still sized to content (unless max-height is exceeded), but the
+ * content is padded to be slightly larger than its scroller so that the scrollbar shows.
+ */
+.WidgetText:not(.singleLine) {
+  & :deep(.cm-scroller) {
+    min-height: 2.5em;
+    max-height: 20em;
+  }
+  & :deep(.cm-line) {
+    padding: 0;
+  }
+  & .delimiter {
+    font-size: 1.4em;
+    &.open {
+      align-self: flex-start;
+    }
+    &.close {
+      align-self: flex-end;
+    }
   }
 }
 </style>

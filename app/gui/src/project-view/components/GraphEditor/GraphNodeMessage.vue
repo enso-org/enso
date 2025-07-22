@@ -1,19 +1,18 @@
 <script setup lang="ts">
+import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useGraphStore } from '@/stores/graph'
 import { QualifiedImport } from '@/stores/graph/imports'
-import { injectProjectNames } from '@/stores/projectNames'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 
 const graph = useGraphStore()
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 
 const props = defineProps<{
   message: string
   type: MessageType
-  outputPortHovered?: boolean
+  passEvents?: boolean
 }>()
 
 function containsLibraryName(): ProjectPath | null {
@@ -65,7 +64,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 <template>
   <div
     class="GraphNodeMessage"
-    :class="{ passEvents: outputPortHovered }"
+    :class="{ passEvents }"
     :style="{ '--background-color': colorForMessageType[props.type] }"
   >
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
@@ -76,14 +75,14 @@ export const colorForMessageType: Record<MessageType, string> = {
         name="edit"
         class="fixImportButton"
         title="Fix Import"
-        @click.stop="fixImport"
+        @activate="fixImport"
       />
       <SvgButton
         v-if="!containsLibraryName()"
         name="copy2"
         class="copyButton"
         title="Copy message text"
-        @click.stop="copyText"
+        @activate="copyText"
       />
     </div>
   </div>

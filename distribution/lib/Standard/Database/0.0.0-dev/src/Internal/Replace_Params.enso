@@ -2,15 +2,21 @@ from Standard.Base import all
 
 from project.Errors import Unsupported_Database_Operation
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Specifies a set of parameters to Table.replace
 type Replace_Params
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value input_type (case_sensitivity : Case_Sensitivity) (only_first : Boolean)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Raise an exception for an unsupported combination of parameters
     throw_unsupported : Text -> Nothing ! Unsupported_Database_Operation
     throw_unsupported self name =
-        msg = "REPLACE operation on "+name+" for the following options: argument type " + self.input_type.to_text + ", case_sensitivity " + self.case_sensitivity.to_display_text + ", only_first " + self.only_first.to_text
+        msg = "REPLACE operation on " + name.to_text + " for the following options: argument type " + self.input_type.to_text + ", case_sensitivity " + self.case_sensitivity.to_display_text + ", only_first " + self.only_first.to_text
         Error.throw (Unsupported_Database_Operation.Error msg)

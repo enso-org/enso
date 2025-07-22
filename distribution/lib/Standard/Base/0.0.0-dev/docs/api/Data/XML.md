@@ -20,6 +20,7 @@
     - name self -> Standard.Base.Any.Any
     - new doc:Standard.Base.Data.XML.Document -> Standard.Base.Any.Any
     - outer_xml self -> Standard.Base.Any.Any
+    - parse xml_string:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - root_element self -> Standard.Base.Any.Any
     - text self -> Standard.Base.Any.Any
     - to_default_visualization_data self -> Standard.Base.Any.Any

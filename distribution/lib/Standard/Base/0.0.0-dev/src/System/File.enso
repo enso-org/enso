@@ -1,10 +1,8 @@
 import project.Any.Any
-import project.Data.Array.Array
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
-import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
@@ -18,7 +16,6 @@ import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
-import project.Function.Function
 import project.Internal.Path_Helpers
 import project.Meta
 import project.Metadata.Display
@@ -31,7 +28,6 @@ import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
 import project.System.File.Generic.File_Like.File_Like
-import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
@@ -890,7 +886,7 @@ list_descendants file =
    - if the project is running in the Cloud, the path is resolved to a Cloud file,
      relative to the project's location.
    - if running locally, the path is resolved to a local file, relative to the
-     current working directory.
+     currently running project (not to the working directory).
 
    The method also does some extra processing to ensure that if the path
    contains any data links, they will be correctly resolved. We cannot just
@@ -899,16 +895,24 @@ list_descendants file =
    the parts, allowing the data link logic to kick in.
 resolve_local_file (path : Text) = handle_invalid_path path <|
     local_file = get_file path
+    is_home = path.match "^~([\\/].*|$)"
+    is_absolute = local_file.is_absolute
+
     resolved_local_file =
         parts = Path_Helpers.split_path path
+
         # Special case - if there are no parts, it means path was "", so we use that as base.
         base_part = parts.get 0 if_missing=""
-        base = get_file base_part
+
+        # Handle special case when starts with ~
+        base = if is_home.not then get_file base_part else
+            if Enso_File.cloud_project_parent_directory == Nothing then File.home else Enso_File.home
+
         rest = parts.drop 1
         rest.fold base acc-> part-> acc.resolve_single_part part
 
     # Absolute files always resolve to themselves.
-    if local_file.is_absolute then resolved_local_file else
+    if is_absolute || is_home then resolved_local_file else
         case Enso_File.cloud_project_parent_directory of
             Nothing -> resolved_local_file
             base_cloud_directory -> base_cloud_directory / path

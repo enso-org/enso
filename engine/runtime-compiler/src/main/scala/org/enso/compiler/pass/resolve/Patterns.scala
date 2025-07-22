@@ -336,12 +336,12 @@ object Patterns extends IRPass {
           case other => other
         }
         branch.copy(
-          pattern = resolvedPattern,
-          expression =
-            doExpression(branch.expression, bindings, selfTypeResolution)
+          resolvedPattern,
+          doExpression(branch.expression, bindings, selfTypeResolution),
+          branch.terminalBranch()
         )
       }
-      caseExpr.copy(branches = newBranches)
+      caseExpr.copy(newBranches)
 
     }
   }

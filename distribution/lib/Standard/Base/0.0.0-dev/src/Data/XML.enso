@@ -8,6 +8,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Deprecated.Deprecated
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.No_Such_Key.No_Such_Key
@@ -20,6 +21,7 @@ import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Write_Extensions
 import project.System.Input_Stream.Input_Stream
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
@@ -89,11 +91,26 @@ type XML_Document
          Read an XML document from an string.
 
              xml_string = "<foo></foo>"
-             doc = XML_Document.from_text xml_string
-    from_text : Text -> XML_Document ! XML_Error
-    from_text xml_string:Text =
+             doc = XML_Document.parse xml_string
+    parse : Text -> XML_Document ! XML_Error
+    parse xml_string:Text =
         XML_Error.handle_java_exceptions <|
             XML_Document.Value (XML_Utils.parseString xml_string)
+
+    ## PRIVATE
+       DEPRECATED
+       GROUP Conversions
+       ICON convert
+       Read an XML document from a string.
+       If there is a parsing error, `XML_Error.Parse_Error` is thrown. This has
+       been deprecated in favour of `XML_Document.parse`.
+
+       Arguments:
+       - xml_string: The string to read the XML document from.
+    from_text : Text -> XML_Document ! XML_Error
+    from_text xml_string:Text =
+        Warning.attach (Deprecated.Warning "Standard.Base.Data.XML.XML_Document" "from_text" "Deprecated: use `XML_Document.parse` instead.") <|
+            XML_Document.parse xml_string
 
     ## PRIVATE
        Wrap Java's Document to XML_Document
@@ -124,7 +141,7 @@ type XML_Document
        > Example
          Get the tag of an XML document's root element.
 
-             XML_Document.from_text '<foo>hello</foo>' . name
+             XML_Document.parse '<foo>hello</foo>' . name
              # => "foo"
     name : Text ! XML_Error
     name self = self.root_element.name
@@ -142,14 +159,14 @@ type XML_Document
        > Example
          Get the first child of the document (the root element).
 
-             XML_Document.from_text '<foo><baz>hello</baz></foo>' . get 0
-             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+             XML_Document.parse '<foo><baz>hello</baz></foo>' . get 0
+             # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
 
        > Example
          Get the child of the document (the root element) by name.
 
-             root = XML_Document.from_text '<foo bar="one">hello</foo>' . get "foo"
-             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+             root = XML_Document.parse '<foo bar="one">hello</foo>' . get "foo"
+             # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
     @key child_selector
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get self key:(Text | Integer)="." ~if_missing=Nothing = case key of
@@ -186,14 +203,14 @@ type XML_Document
        > Example
          Get the first child of the document (the root element).
 
-             XML_Document.from_text '<foo><baz>hello</baz></foo>' . at 0
-             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+             XML_Document.parse '<foo><baz>hello</baz></foo>' . at 0
+             # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
 
        > Example
          Get the child of the document (the root element) by name.
 
-             root = XML_Document.from_text '<foo bar="one">hello</foo>' . get "foo"
-             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+             root = XML_Document.parse '<foo bar="one">hello</foo>' . get "foo"
+             # => XML_Document.parse "<foo><baz>hello</baz></foo>" . root_element
     @key child_selector
     at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     at self key:(Text | Integer)="." =
@@ -208,7 +225,7 @@ type XML_Document
        > Example
          Get the outer XML of the document.
 
-             XML_Document.from_text '<foo>hello</foo>' . outer_xml
+             XML_Document.parse '<foo>hello</foo>' . outer_xml
              # => '<foo>hello</foo>'
     outer_xml : Text ! XML_Error
     outer_xml self =
@@ -221,7 +238,7 @@ type XML_Document
        > Example
          Get the inner XML of the document.
 
-             XML_Document.from_text '<foo><bar>hello</bar></foo>' . inner_xml
+             XML_Document.parse '<foo><bar>hello</bar></foo>' . inner_xml
              # => '<foo><bar>hello</bar></foo>'
     inner_xml : Text ! XML_Error
     inner_xml self =
@@ -276,7 +293,7 @@ type XML_Document
        Gets the child elements of an XML document.
 
        > Example
-             XML_Document.from_text '<foo><baz>hello</baz></foo>' . children
+             XML_Document.parse '<foo><baz>hello</baz></foo>' . children
              # => [XML_Element'<foo><baz>hello</baz></foo>']
     children : Vector (XML_Element | Text) ! XML_Error
     children self = [self.root_element]
@@ -292,7 +309,7 @@ type XML_Document
        > Example
          Get the number of children of an document.
 
-             XML_Document.from_text '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . child_count
+             XML_Document.parse '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . child_count
              # => 1
     child_count : Integer
     child_count self = 1
@@ -344,7 +361,7 @@ type XML_Document
 
              root = XML_Document.from_file test_file
              root.get_xpath "/class/teacher[1]/firstname"
-             # => [XML_Document.from_text "<firstname>Alice</firstname>" . root_element]
+             # => [XML_Document.parse "<firstname>Alice</firstname>" . root_element]
     get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
     get_xpath self key:Text =
         XML_Error.handle_java_exceptions <|
@@ -369,8 +386,8 @@ type XML_Document
        - tag_name: The tag name to search for.
 
        > Example
-             XML_Document.from_text '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_descendants_by_tag_name "baz"
-             # => [XML_Document.from_text "<baz>hello</baz>" . root_element, XML_Document.from_text "<baz>goodbye</baz>" . root_element]
+             XML_Document.parse '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_descendants_by_tag_name "baz"
+             # => [XML_Document.parse "<baz>hello</baz>" . root_element, XML_Document.parse "<baz>goodbye</baz>" . root_element]
     get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_descendants_by_tag_name self tag_name:Text =
         root = if tag_name == self.root_element.name then [self.root_element] else []
@@ -404,7 +421,7 @@ type XML_Element
        > Example
          Get the tag of an XML element.
 
-             XML_Document.from_text '<foo>hello</foo>' . root_element . name
+             XML_Document.parse '<foo>hello</foo>' . root_element . name
              # => "foo"
     name : Text ! XML_Error
     name self =
@@ -423,13 +440,13 @@ type XML_Element
        - if_missing: The value returned if the key does not exist.
 
        > Example
-           XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . get 0
-           # => XML_Document.from_text "<baz>hello</baz>" . root_element
+           XML_Document.parse '<foo><baz>hello</baz></foo>' . root_element . get 0
+           # => XML_Document.parse "<baz>hello</baz>" . root_element
 
        > Example
          Get a tag attribute.
 
-             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . get "@bar"
+             root = XML_Document.parse '<foo bar="one">hello</foo>' . root_element . get "@bar"
              # => "one"
     @key child_selector
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
@@ -451,13 +468,13 @@ type XML_Element
        > Example
          Get a nested tag:
 
-             XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . at 0
-             # => XML_Document.from_text "<baz>hello</baz>" . root_element
+             XML_Document.parse '<foo><baz>hello</baz></foo>' . root_element . at 0
+             # => XML_Document.parse "<baz>hello</baz>" . root_element
 
        > Example
          Get a tag attribute.
 
-             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
+             root = XML_Document.parse '<foo bar="one">hello</foo>' . root_element
              root.at "@bar"
              # => "one"
     @key child_selector
@@ -476,8 +493,8 @@ type XML_Element
        100% whitespace. Other node types, such as comments, are not included.
 
        > Example
-             XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . children
-             # => [XML_Document.from_text "<baz>hello</baz>"]
+             XML_Document.parse '<foo><baz>hello</baz></foo>' . root_element . children
+             # => [XML_Document.parse "<baz>hello</baz>"]
     children : Vector (XML_Element | Text) ! XML_Error
     children self = self.children_cache
 
@@ -492,7 +509,7 @@ type XML_Element
        > Example
          Get the number of children of an element.
 
-             XML_Document.from_text '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . child_count
+             XML_Document.parse '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . child_count
              # => 2
     child_count : Integer ! XML_Error
     child_count self = self.children_cache.length
@@ -516,7 +533,7 @@ type XML_Element
        > Example
          Get an attribute of an element.
 
-             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
+             root = XML_Document.parse '<foo bar="one">hello</foo>' . root_element
              root.attribute "bar"
              # => "one"
     @name (e-> make_single_choice e.attribute_names)
@@ -538,7 +555,7 @@ type XML_Element
        Gets a Dictionary containing of the attributes of an XML element.
 
        > Example
-           XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
+           XML_Document.parse '<foo bar="one">hello</foo>' . root_element . attributes
            # => Dictionary.from_vector [["bar", "one"]]
     attributes : Dictionary Text Text ! XML_Error
     attributes self =
@@ -557,7 +574,7 @@ type XML_Element
        > Example
          Get the text content of an element.
 
-             XML_Document.from_text '<foo>hello</foo>' . root_element . text
+             XML_Document.parse '<foo>hello</foo>' . root_element . text
              # => "hello"
     text : Text ! XML_Error
     text self =
@@ -570,7 +587,7 @@ type XML_Element
        > Example
          Get the outer XML of an element.
 
-             XML_Document.from_text '<foo>hello</foo>' . root_element . outer_xml
+             XML_Document.parse '<foo>hello</foo>' . root_element . outer_xml
              # => '<foo>hello</foo>'
     outer_xml : Text ! XML_Error
     outer_xml self =
@@ -584,7 +601,7 @@ type XML_Element
        > Example
          Get the inner XML of an element.
 
-             XML_Document.from_text '<foo><bar>hello</bar></foo>' . root_element . inner_xml
+             XML_Document.parse '<foo><bar>hello</bar></foo>' . root_element . inner_xml
              # => '<bar>hello</bar>'
     inner_xml : Text ! XML_Error
     inner_xml self =
@@ -645,7 +662,7 @@ type XML_Element
 
              root = XML_Document.from_file test_file . root_element
              root.get_xpath "/class/teacher[1]/firstname"
-             # => [XML_Document.from_text "<firstname>Alice</firstname>" . root_element]
+             # => [XML_Document.parse "<firstname>Alice</firstname>" . root_element]
     get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
     get_xpath self key:Text =
         XML_Error.handle_java_exceptions <|
@@ -671,8 +688,8 @@ type XML_Element
        - tag_name: The tag name to search for.
 
        > Example
-             XML_Document.from_text '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_descendants_by_tag_name "baz"
-             # => [XML_Document.from_text "<baz>hello</baz>" . root_element, XML_Document.from_text "<baz>goodbye</baz>" . root_element]
+             XML_Document.parse '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_descendants_by_tag_name "baz"
+             # => [XML_Document.parse "<baz>hello</baz>" . root_element, XML_Document.parse "<baz>goodbye</baz>" . root_element]
     get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_descendants_by_tag_name self tag_name:Text =
         XML_Error.handle_java_exceptions <|

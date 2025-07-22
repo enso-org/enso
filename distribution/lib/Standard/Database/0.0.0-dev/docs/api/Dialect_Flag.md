@@ -26,6 +26,7 @@
     - Supports_Nanoseconds_In_Time
     - Supports_Negative_Decimal_Places
     - Supports_Nested_With_Clause
+    - Supports_Regex_Match
     - Supports_Separate_NaN
     - Supports_Sort_Digits_As_Numbers
     - Supports_Time_Duration

@@ -1,5 +1,5 @@
-import { expect, type Locator, type Page } from '@playwright/test'
 import assert from 'assert'
+import { expect, type Locator, type Page } from 'playwright/test'
 
 // ================
 // === Locators ===
@@ -13,7 +13,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 
 /** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Show/Hide visualization')
+  return page.getByLabel(/(Show|Hide|Show\/Hide) visualization.*/).first()
 }
 
 /** Visualization Selector button */
@@ -82,12 +82,13 @@ export const codeEditor = componentLocator('.CodeEditor')
 export const anyVisualization = componentLocator('.GraphVisualization')
 export const loadingVisualization = componentLocator('.LoadingVisualization')
 export const componentMenu = componentLocator('.ComponentMenu')
+export const componentMenuMoreEntries = testIdLocator('component-menu-more-entries')
 export const addNewNodeButton = testIdLocator('add-component-button')
 export const componentBrowser = componentLocator('.ComponentBrowser')
+export const componentBrowserInput = testIdLocator('component-editor-content')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
-export const editorRoot = componentLocator('.CodeMirror')
 export const nodeComment = componentLocator('.GraphNodeComment')
-export const nodeCommentContent = componentLocator('.GraphNodeComment div[contentEditable]')
+export const nodeCommentContent = testIdLocator('graph-node-comment-content')
 
 /**
  * A not-selected variant of Component Browser Entry.
@@ -110,12 +111,7 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
 
 /** Right-docked panel */
 export function rightDock(page: Page) {
-  return page.getByTestId('rightDock')
-}
-
-/** rightDock, but also includes toggle button */
-export function rightDockRoot(page: Page) {
-  return page.getByTestId('rightDockRoot')
+  return page.getByTestId('right-panel')
 }
 
 /** Bottom-docked panel */
@@ -134,7 +130,6 @@ export function deleteItemButton(page: Locator | Page) {
 }
 
 export const navBreadcrumb = componentLocator('.NavBreadcrumb')
-export const componentBrowserInput = componentLocator('.ComponentEditor')
 
 function visualizationLocator(visSelector: string) {
   // Playwright pierces shadow roots, but not within a single XPath.

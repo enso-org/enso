@@ -69,7 +69,7 @@ interface Attributes {
 type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
 /** The discriminator value for {@link FileSystemEntry}. */
-export enum FileSystemEntryType {
+enum FileSystemEntryType {
   DirectoryEntry = 'DirectoryEntry',
   ProjectEntry = 'ProjectEntry',
   FileEntry = 'FileEntry',
@@ -186,17 +186,10 @@ export default function projectManagerShimMiddleware(
 
         break
       }
-      case '/api/cloud/upload-project': {
+      case '/api/cloud/get-project-archive': {
         const url = new URL(`https://example.com/${requestUrl}`)
-        const uploadUrl = url.searchParams.get('uploadUrl')
         const projectDir = url.searchParams.get('directory')
 
-        if (uploadUrl == null) {
-          response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `uploadUrl`.')
-          break
-        }
         if (projectDir == null) {
           response
             .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
@@ -207,34 +200,12 @@ export default function projectManagerShimMiddleware(
         projectManagement
           .createBundle(projectDir)
           .then((projectBundle) => {
-            const headers = {
-              authorization: request.headers.authorization,
-            }
-            const uploadRequest = https.request(
-              uploadUrl,
-              { method: 'POST', headers },
-              (actualResponse) => {
-                if (!response.writableFinished) {
-                  response.writeHead(
-                    // This is SAFE. The documentation says:
-                    // Only valid for response obtained from ClientRequest.
-                    actualResponse.statusCode!,
-                    actualResponse.statusMessage,
-                    actualResponse.headers,
-                  )
-                  actualResponse.pipe(response, { end: true })
-                }
-              },
-            )
-            uploadRequest.write(projectBundle, (err) => {
-              if (err) {
-                console.error(err)
-                response
-                  .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
-                  .end('Failed to write project bundle.')
-              }
-            })
-            uploadRequest.end()
+            response
+              .writeHead(HTTP_STATUS_OK, {
+                ...COMMON_HEADERS,
+                'Content-Length': String(projectBundle.byteLength),
+              })
+              .end(projectBundle)
           })
           .catch((err) => {
             console.error(err)
@@ -322,9 +293,12 @@ export default function projectManagerShimMiddleware(
                 id: 0,
                 error: { code: 0, message, ...(data != null ? { data } : {}) },
               })
-            let result = toJSONRPCError(`Error running Project Manager command.`, {
-              command: cliArguments,
-            })
+            let result: string | fsSync.ReadStream = toJSONRPCError(
+              `Error running Project Manager command.`,
+              {
+                command: cliArguments,
+              },
+            )
             try {
               switch (cliArguments[0]) {
                 case '--filesystem-exists': {
@@ -380,7 +354,11 @@ export default function projectManagerShimMiddleware(
                                 created: new Date().toISOString(),
                                 lastOpened: null,
                               }
-                              fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
+                              await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
+                              await fs.writeFile(
+                                projectMetadataPath,
+                                JSON.stringify(projectMetadataJson),
+                              )
                             } else {
                               throw e
                             }
@@ -421,6 +399,13 @@ export default function projectManagerShimMiddleware(
                   if (directoryPath != null) {
                     await fs.mkdir(directoryPath, { recursive: true })
                     result = toJSONRPCResult(null)
+                  }
+                  break
+                }
+                case '--filesystem-read-path': {
+                  const filePath = cliArguments[1]
+                  if (filePath != null) {
+                    result = await fsSync.createReadStream(filePath)
                   }
                   break
                 }
@@ -470,14 +455,23 @@ export default function projectManagerShimMiddleware(
             } catch {
               // Ignored. `result` retains its original value indicating an error.
             }
-            const buffer = Buffer.from(result)
-            response
-              .writeHead(HTTP_STATUS_OK, {
-                'Content-Length': String(buffer.byteLength),
-                'Content-Type': 'application/json',
+
+            const resultData = typeof result === 'string' ? Buffer.from(result) : result
+            if (resultData instanceof fsSync.ReadStream) {
+              const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+                'Content-Type': 'application/octet-stream',
                 ...COMMON_HEADERS,
               })
-              .end(buffer)
+              resultData.pipe(responseWithHead)
+            } else {
+              response
+                .writeHead(HTTP_STATUS_OK, {
+                  'Content-Length': String(resultData.byteLength),
+                  'Content-Type': 'application/json',
+                  ...COMMON_HEADERS,
+                })
+                .end(resultData)
+            }
           })()
         }
         break

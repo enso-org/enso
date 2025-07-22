@@ -1,9 +1,14 @@
 package org.enso.table.data.column.storage;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.type.StorageType;
 
 /** Basic interface of a column storage. */
 public interface ColumnStorage<T> extends Iterable<T> {
+  /* Gets a unique key for the storage. This is used for internal caching. */
+  long uniqueKey();
+
   /* Gets the size of the storage. */
   long getSize();
 
@@ -16,11 +21,30 @@ public interface ColumnStorage<T> extends Iterable<T> {
    * @param index – the index to check.
    * @return whether the value is Nothing.
    */
-  boolean isNothing(long index);
+  default boolean isNothing(long index) {
+    return getItemBoxed(index) == null;
+  }
 
   /* Gets the value at a given index. */
   T getItemBoxed(long index);
 
   @Override
-  ColumnStorageIterator<T> iterator();
+  default Iterator<T> iterator() {
+    return new Iterator<>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public T next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
+  }
 }

@@ -5,11 +5,11 @@ import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
 import ZoomControl from '@/components/ZoomControl.vue'
-import { Action, ActionName } from '@/providers/action'
+import { type DisplayableActionName } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
 
 const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
-const props = defineProps<{ zoomLevel: number; menuActions: (Action | ActionName)[] }>()
+const props = defineProps<{ zoomLevel: number; menuActions: DisplayableActionName[] }>()
 const selection = injectGraphSelection()
 </script>
 
@@ -40,22 +40,21 @@ const selection = injectGraphSelection()
   position: absolute;
   display: flex;
   gap: 8px;
-  top: 8px;
+  top: 1.25rem;
   left: 0;
   right: 0;
-  margin-left: 11px;
-  margin-right: 11px;
+  margin-top: -3px;
+  margin-left: 13px;
+  margin-right: 13px;
   pointer-events: none;
+  align-items: flex-start;
   > * {
     pointer-events: all;
+    min-height: 32px;
   }
 }
 
 .redButton:active {
   color: #ba4c40;
-}
-
-.TopBar.extraRightSpace {
-  right: 32px;
 }
 </style>

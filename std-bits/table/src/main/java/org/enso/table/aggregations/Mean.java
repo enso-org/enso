@@ -6,8 +6,8 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -22,7 +22,7 @@ import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the mean value in a group. */
 public class Mean extends KnownTypeAggregator {
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
   private final String columnName;
 
   public Mean(String name, Column column) {
@@ -31,12 +31,9 @@ public class Mean extends KnownTypeAggregator {
     this.columnName = column.getName();
   }
 
-  private static StorageType<?> resultTypeFromInput(Storage<?> inputStorage) {
-    StorageType<?> inputType = inputStorage.getType();
-    if (inputType instanceof AnyObjectType) {
-      inputType = inputStorage.inferPreciseType();
-    }
-
+  private static StorageType<?> resultTypeFromInput(ColumnStorage<?> inputStorage) {
+    var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(inputStorage);
+    var inputType = resolvedStorage.getType();
     return switch (inputType) {
       case FloatType floatType -> FloatType.FLOAT_64;
       case IntegerType integerType -> FloatType.FLOAT_64;
@@ -69,7 +66,7 @@ public class Mean extends KnownTypeAggregator {
 
   private abstract static class MeanAccumulator {
     abstract void accumulate(
-        List<Integer> indexes, Storage<?> storage, ProblemAggregator problemAggregator);
+        List<Integer> indexes, ColumnStorage<?> storage, ProblemAggregator problemAggregator);
 
     abstract Object summarize();
   }
@@ -80,7 +77,7 @@ public class Mean extends KnownTypeAggregator {
 
     @Override
     void accumulate(
-        List<Integer> indexes, Storage<?> storage, ProblemAggregator problemAggregator) {
+        List<Integer> indexes, ColumnStorage<?> storage, ProblemAggregator problemAggregator) {
       Context context = Context.getCurrent();
       if (storage instanceof ColumnDoubleStorage doubleStorage) {
         for (int i : indexes) {
@@ -131,7 +128,7 @@ public class Mean extends KnownTypeAggregator {
 
     @Override
     void accumulate(
-        List<Integer> indexes, Storage<?> storage, ProblemAggregator problemAggregator) {
+        List<Integer> indexes, ColumnStorage<?> storage, ProblemAggregator problemAggregator) {
       ColumnAggregatedProblemAggregator innerAggregator =
           new ColumnAggregatedProblemAggregator(problemAggregator);
       Context context = Context.getCurrent();
@@ -164,7 +161,7 @@ public class Mean extends KnownTypeAggregator {
 
     @Override
     void accumulate(
-        List<Integer> indexes, Storage<?> storage, ProblemAggregator problemAggregator) {
+        List<Integer> indexes, ColumnStorage<?> storage, ProblemAggregator problemAggregator) {
       assert storage.getType() instanceof NullType;
     }
 

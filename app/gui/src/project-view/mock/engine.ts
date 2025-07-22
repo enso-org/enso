@@ -3,7 +3,6 @@ import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
 import type { WebSocketHandler } from '@/util/net'
 import type { QualifiedName } from '@/util/qualifiedName'
-import * as random from 'lib0/random'
 import {
   Builder,
   EnsoUUID,
@@ -30,7 +29,7 @@ import { mockFsDirectoryHandle, type FileTree } from '../util/convert/fsAccess'
 import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
 import mockDb from './mockSuggestions.json' with { type: 'json' }
 
-const mockProjectId = random.uuidv4() as Uuid
+const mockProjectId = crypto.randomUUID() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
 
 function placeholderGroups(): LibraryComponentGroup[] {
@@ -49,7 +48,7 @@ const mainFile = `\
 ## Module documentation
 from Standard.Base import all
 
-## A collapsed function
+## A User Defined Function
 func1 arg =
     f2 = Main.func2 arg
     result = f2 - 5
@@ -66,6 +65,10 @@ func2 a =
    ![Image](/images/image.png)
    ![Image](../images/image.png)
    ![Image](</images/image.png>)
+   
+   This is a video:
+
+   ![Video](<https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ>)
 
    Here is a link: <https://example.com>
 
@@ -371,7 +374,7 @@ function mockWidgetConfiguration(method: string | undefined) {
 }
 
 function createMessageId(builder: Builder) {
-  const messageUuid = random.uuidv4()
+  const messageUuid = crypto.randomUUID()
   const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
   return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
 }

@@ -76,7 +76,8 @@ object FrgaalJavaCompiler {
     if (frgaalOnClasspath.isEmpty) {
       throw new RuntimeException("Failed to resolve Frgaal compiler. Aborting!")
     }
-    val frgaalJavac = new FrgaalJavaCompiler(
+    val withFrgaalJavac = new FrgaalJavaCompiler(
+      sbtCompilers.javaTools.javac(),
       javaHome,
       frgaalOnClasspath.get,
       javaSourceDir           = javaSourceDir,
@@ -84,19 +85,22 @@ object FrgaalJavaCompiler {
       shouldCompileModuleInfo = shouldCompileModuleInfo,
       shouldNotLimitModules   = shouldNotLimitModules
     )
-    val javaTools = sbt.internal.inc.javac
-      .JavaTools(frgaalJavac, sbtCompilers.javaTools.javadoc())
+
+    val javadoc   = sbtCompilers.javaTools.javadoc()
+    val javaTools = sbt.internal.inc.javac.JavaTools(withFrgaalJavac, javadoc)
     xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
   }
 
   /** Helper method to launch programs.
     */
   def launch(
+    original: XJavaCompiler,
     javaHome: Option[Path],
     compilerJar: Path,
     sources0: Seq[VirtualFile],
     options: Seq[String],
     output: Output,
+    incToolOptions: IncToolOptions,
     log: Logger,
     reporter: Reporter,
     source: Option[String],
@@ -277,10 +281,32 @@ object FrgaalJavaCompiler {
         ensoProperties.setProperty("java.home", v.toString())
       )
 
-      Using(new FileWriter(ensoConfig)) { w =>
-        ensoProperties.store(w, "# Enso compiler configuration")
+      def changeInProperties: Boolean = {
+        if (ensoConfig.exists()) {
+          val original = new java.util.Properties();
+          Using(new java.io.FileReader(ensoConfig)) { r =>
+            original.load(r);
+          }
+          if (original == ensoProperties) {
+            return false
+          }
+        }
+        true
       }
-      Using(new FileWriter(ensoMarker)) { _ => }
+      if (changeInProperties) {
+        Using(new FileWriter(ensoConfig)) { w =>
+          ensoProperties.store(w, "# Enso compiler configuration")
+        }
+        Using(new FileWriter(ensoMarker, true)) { w =>
+          w.write(
+            "Updated " + ensoConfig + " on " + new java.util.Date() + "\n"
+          )
+        }
+      } else {
+        log.debug(
+          s"[FrgaalJavaCompiler] no change in: ${ensoConfig}"
+        )
+      }
     } else {
       throw new IllegalStateException(
         "Cannot write Enso source options to " + shared + " values:\n" +
@@ -295,16 +321,28 @@ object FrgaalJavaCompiler {
       )
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ allSources
 
+    if (Integer.parseInt(target) >= 24) {
+      return original.run(
+        sources0.toArray,
+        options.toArray,
+        output,
+        incToolOptions,
+        reporter,
+        log
+      )
+    }
+
     withArgumentFile(allArguments) { argsFile =>
       // List of modules that Frgaal can use for compilation
       val limitModules = Seq(
         "java.base",
         "jdk.zipfs",
-        "jdk.internal.vm.compiler.management",
         "java.desktop",
         "java.net.http",
         "java.sql",
-        "jdk.jfr"
+        "jdk.jfr",
+        // sun.misc.Unsafe
+        "jdk.unsupported"
       )
       val limitModulesArgs =
         if (shouldNotLimitModules) Seq()
@@ -397,6 +435,7 @@ object FrgaalJavaCompiler {
 
 /** An implementation of compiling java which forks Frgaal instance. */
 final class FrgaalJavaCompiler(
+  val original: XJavaCompiler,
   javaHome: Option[Path],
   compilerPath: Path,
   target: String,
@@ -414,11 +453,13 @@ final class FrgaalJavaCompiler(
     log: XLogger
   ): Boolean =
     FrgaalJavaCompiler.launch(
+      original,
       javaHome,
       compilerPath,
       sources,
       options,
       output,
+      incToolOptions,
       log,
       reporter,
       source,

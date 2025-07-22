@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::ci::input;
 use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
+use crate::engine;
 use crate::engine::env;
 use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
@@ -156,6 +157,10 @@ pub mod secret {
     // === Sentry ===
     /// The authentication token for pushing source maps to Sentry.
     pub const SENTRY_AUTH_TOKEN: &str = "SENTRY_AUTH_TOKEN";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Google OAuth integration used for Google Credentials.
+    pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -263,7 +268,7 @@ pub fn cleaning_step(
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
     let mut ret = run("git-clean").with_name(name);
-    ret.r#if = CleaningCondition::format_conjunction(conditions);
+    ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }
 
@@ -274,6 +279,8 @@ pub struct RunStepsBuilder {
     pub run_command: String,
     /// Condition under which the runner should be cleaned before and after the run.
     pub cleaning:    CleaningCondition,
+    /// Custom fetch depth of repo checkout action.
+    pub fetch_depth: Option<u32>,
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
@@ -284,12 +291,23 @@ pub struct RunStepsBuilder {
 impl RunStepsBuilder {
     /// Create a builder with the given command.
     pub fn new(run_command: impl Into<String>) -> Self {
-        Self { run_command: run_command.into(), cleaning: default(), customize: default() }
+        Self {
+            run_command: run_command.into(),
+            cleaning:    default(),
+            customize:   default(),
+            fetch_depth: default(),
+        }
     }
 
     /// Set the cleaning condition.
     pub fn cleaning(mut self, cleaning: CleaningCondition) -> Self {
         self.cleaning = cleaning;
+        self
+    }
+
+    /// Set the cleaning condition.
+    pub fn fetch_depth(mut self, depth: u32) -> Self {
+        self.fetch_depth = Some(depth);
         self
     }
 
@@ -308,7 +326,7 @@ impl RunStepsBuilder {
             Some(customize) => customize(run_step),
             None => vec![run_step],
         };
-        let mut steps = setup_script_steps();
+        let mut steps = setup_script_steps(self.fetch_depth);
         steps.push(clean_before);
         steps.extend(run_steps);
         steps.push(clean_after);
@@ -375,12 +393,12 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 }
 
 /// Initial CI job steps: check out the source code and set up the environment.
-pub fn setup_script_steps() -> Vec<Step> {
+pub fn setup_script_steps(fetch_depth: Option<u32>) -> Vec<Step> {
     let mut ret = vec![
         setup_bazel_env(),
         setup_bazel(),
         setup_artifact_api(),
-        checkout_repo_step(None),
+        checkout_repo_step(fetch_depth),
         setup_node(),
         setup_corepack(),
     ];
@@ -405,7 +423,7 @@ impl JobArchetype for DraftRelease {
         let name = "Create a release draft.".into();
 
         let prepare_step = run("release create-draft").with_id(Self::PREPARE_STEP_ID);
-        let mut steps = setup_script_steps();
+        let mut steps = setup_script_steps(None);
         steps.push(prepare_step);
 
         let mut ret = Job { name, runs_on: target.runs_on(), steps, ..default() };
@@ -525,16 +543,19 @@ fn concurrency(group: impl AsRef<str>) -> Concurrency {
 /// Generate a workflow that checks if the changelog has been updated (if needed).
 pub fn changelog() -> Result<Workflow> {
     use PullRequestActivityType::*;
-    let mut ret = Workflow::new("Changelog");
-    ret.on.pull_request(PullRequest::default().with_types([
+    let mut workflow = Workflow::new("Changelog");
+    workflow.on.pull_request(PullRequest::default().with_types([
         Labeled,
         Unlabeled,
         Synchronize,
         Opened,
         Reopened,
     ]));
-    ret.add_job(RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64));
-    Ok(ret)
+    let mut changelog_check =
+        RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64);
+    changelog_check.runs_on = vec![RunnerLabel::Linux, RunnerLabel::SelfHosted];
+    workflow.add_job(changelog_check);
+    Ok(workflow)
 }
 
 pub fn nightly() -> Result<Workflow> {
@@ -601,36 +622,59 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
 }
 
 /// Add jobs that perform backend checks, including Scala and Standard Library tests.
-pub fn add_backend_checks_customized(
-    workflow: &mut Workflow,
-    target: Target,
-    graal_edition: graalvm::Edition,
-    native_image_mode: bool,
-    continue_on_error: impl Fn(&Target) -> Option<bool>,
-) {
-    workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(target, job::JvmTests { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(
-        target,
-        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode },
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
-    );
-}
-
-/// Add jobs that perform backend checks, including Scala and Standard Library tests.
 pub fn add_backend_checks(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
-    native_image_mode: bool,
+    engine_launcher: engine::EngineLauncher,
 ) {
-    add_backend_checks_customized(workflow, target, graal_edition, native_image_mode, |_| None);
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+
+    if target == PRIMARY_TARGET {
+        workflow.add_dependent(
+            PRIMARY_TARGET,
+            job::StandardLibraryApiCheck { graal_edition, engine_launcher },
+            &[&build_engine_distribution_id],
+        );
+        workflow.add_dependent(
+            PRIMARY_TARGET,
+            job::EnsoCodeLintCheck { graal_edition, engine_launcher },
+            &[&build_engine_distribution_id],
+        );
+    }
+
+    // Engine distribution is required to run project manager tests.
+    workflow.add_dependent(target, job::JvmTests { graal_edition, engine_launcher }, &[
+        &build_engine_distribution_id,
+    ]);
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::StandardLibraryInNative,
+        },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::StandardLibraryJvm,
+        },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::Microsoft,
+        },
+        &[&build_engine_distribution_id],
+    );
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -731,8 +775,9 @@ pub fn ide_packaging() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_REQUIRED_TARGETS {
-        let project_manager_job = workflow.add(target, job::BuildBackend);
+        let project_manager_job = workflow.add(target, job::BuildBackend { engine_launcher });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
@@ -754,11 +799,13 @@ pub fn ide_packaging_optional() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_OPTIONAL_TARGETS {
         let continue_on_error = Some(true);
-        let project_manager_job = workflow.add_customized(target, job::BuildBackend, |job| {
-            job.continue_on_error = continue_on_error;
-        });
+        let project_manager_job =
+            workflow.add_customized(target, job::BuildBackend { engine_launcher }, |job| {
+                job.continue_on_error = continue_on_error;
+            });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
             job.continue_on_error = continue_on_error;
@@ -782,7 +829,7 @@ pub fn wasm_checks() -> Result<Workflow> {
         on,
         ..default()
     };
-    workflow.add(PRIMARY_TARGET, job::Lint);
+    workflow.add(PRIMARY_TARGET, job::WasmLint);
     workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
     Ok(workflow)
@@ -800,10 +847,10 @@ pub fn engine_checks() -> Result<Workflow> {
         on,
         ..default()
     };
+    let engine_launcher = engine::EngineLauncher::TestNative;
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
-    workflow.add(PRIMARY_TARGET, job::StandardLibraryApiCheck);
     for target in PR_REQUIRED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, false);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     Ok(workflow)
 }
@@ -820,14 +867,9 @@ pub fn engine_checks_optional() -> Result<Workflow> {
         on,
         ..default()
     };
+    let engine_launcher = engine::EngineLauncher::TestNative;
     for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks_customized(
-            &mut workflow,
-            target,
-            graalvm::Edition::Community,
-            false,
-            |_| Some(true),
-        );
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     Ok(workflow)
 }
@@ -839,19 +881,25 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
         ..default()
     };
     let mut workflow = Workflow { name: "Engine Nightly Checks".into(), on, ..default() };
+    let engine_launcher = engine::EngineLauncher::TestNative;
 
     // Oracle GraalVM jobs run only on Linux
-    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise, true);
+    add_backend_checks(
+        &mut workflow,
+        PRIMARY_TARGET,
+        graalvm::Edition::Enterprise,
+        engine_launcher,
+    );
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
     for target in PR_CHECKED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, true);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     add_backend_checks(
         &mut workflow,
         (OS::MacOS, Arch::AArch64),
         graalvm::Edition::Community,
-        true,
+        engine_launcher,
     );
     Ok(workflow)
 }
@@ -869,12 +917,30 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     // We run the extra tests only on Linux, as they should not contain any platform-specific
     // behavior.
     let target = PRIMARY_TARGET;
-    workflow.add(target, job::SnowflakeTests {});
-    workflow.add(target, job::StandardLibraryTests {
-        graal_edition:       graalvm::Edition::Community,
-        cloud_tests_enabled: true,
-        native_image_mode:   true,
-    });
+    let graal_edition = graalvm::Edition::Community;
+    let engine_launcher = engine::EngineLauncher::TestNative;
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: false },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: true },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::CloudRelated,
+        },
+        &[&build_engine_distribution_id],
+    );
+
     Ok(workflow)
 }
 
@@ -885,7 +951,8 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "AWS",
         "Base",
         "Database",
-        "Google_Api",
+        "Generic_JDBC",
+        "Google",
         "Image",
         "Microsoft",
         "Snowflake",

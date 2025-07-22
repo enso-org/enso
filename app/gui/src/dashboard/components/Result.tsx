@@ -1,17 +1,17 @@
 /** @file Display the result of an operation. */
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
+import type { TestIdProps } from '#/components/types'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { JSX, PropsWithChildren, ReactElement } from 'react'
-import type { TestIdProps } from './AriaComponents'
-import { Text } from './AriaComponents/Text'
 import { Loader } from './Loader'
 import SvgMask from './SvgMask'
+import { Text } from './Text'
 
 const INFO_ICON = (
   // eslint-disable-next-line no-restricted-syntax
   <Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
-    !
+    i
   </Text>
 )
 
@@ -24,7 +24,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   info: {
     icon: INFO_ICON,
     colorClassName: 'text-primary',
-    bgClassName: 'bg-primary/30',
+    bgClassName: 'bg-primary/15',
   },
   error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
   success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
@@ -93,16 +93,7 @@ export interface ResultProps
 
 /** Display the result of an operation. */
 export function Result(props: ResultProps) {
-  const {
-    title,
-    children,
-    status = 'success',
-    subtitle,
-    className,
-    icon,
-    testId = 'Result',
-    centered,
-  } = props
+  const { title, children, status = 'success', subtitle, className, icon, testId, centered } = props
 
   const statusIcon = typeof status === 'string' ? STATUS_ICON_MAP[status] : null
   const showIcon = icon !== false

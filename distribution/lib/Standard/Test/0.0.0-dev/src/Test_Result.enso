@@ -4,10 +4,14 @@ import project.Spec_Result.Spec_Result
 
 ## A wrapper for `Spec_Result` that contains also name of the group and name of the spec.
 type Test_Result
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Impl (group_name : Text) (spec_name : Text) (spec_result : Spec_Result) (time_taken : Duration)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Render as Test_Result as Text.
     to_text self =
         "'" + self.group_name + "' '" + self.spec_name + "': " + self.spec_result.to_text

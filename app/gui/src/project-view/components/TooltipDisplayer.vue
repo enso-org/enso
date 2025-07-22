@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { HoveredElement, type TooltipRegistry } from '@/providers/tooltipRegistry'
+import { Opt } from '@/util/data/opt'
 import { autoUpdate, flip, FloatingElement, offset, shift, useFloating } from '@floating-ui/vue'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 
@@ -50,23 +51,33 @@ watch(activeTooltip, (newValue, oldValue) => {
   // `activeTooltip` is always set to null intermitently when switching between elements.
 })
 
+const isDisplayed = (tooltip: Opt<HoveredElement>) => {
+  if (tooltip == null) return false
+  if (tooltip.entry.isHidden) return false
+  if (tooltip.entry.forceShow) return true
+  if (!tooltip.element.isConnected) return false
+  switch (toValue(tooltip.entry.props.when)) {
+    case 'always':
+      return true
+    case 'whenOverflow':
+      return (
+        tooltip.element.scrollWidth > tooltip.element.clientWidth ||
+        tooltip.element.scrollHeight > tooltip.element.clientHeight
+      )
+    default:
+      return false
+  }
+}
+
 const displayedTooltip = computed(() => {
-  if (!show.value) return undefined
+  if (!show.value && !activeTooltip.value?.entry.forceShow) return undefined
   // When hovering the element, display its tooltip.
-  if (
-    activeTooltip.value != null &&
-    !activeTooltip.value.entry.isHidden &&
-    activeTooltip.value.element.isConnected
-  ) {
+  if (isDisplayed(activeTooltip.value)) {
     return activeTooltip.value
   }
   // If no element with the tooltip is being hovered, display the tooltip of the previously hovered element.
   // (until it will be hidden after timeout, by changing the `show` ref)
-  if (
-    previousTooltip.value != null &&
-    !previousTooltip.value.entry.isHidden &&
-    previousTooltip.value.element.isConnected
-  ) {
+  if (isDisplayed(previousTooltip.value)) {
     return previousTooltip.value
   }
   return undefined
@@ -90,7 +101,7 @@ function whileElementsMounted(
 
 const tooltip = ref<HTMLDivElement>()
 const floating = useFloating(floatTarget, tooltip, {
-  placement: 'top',
+  placement: computed(() => toValue(displayedTooltip.value?.entry.props.placement)),
   transform: false,
   middleware: [offset(5), flip(), shift()],
   whileElementsMounted,

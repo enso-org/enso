@@ -9,49 +9,21 @@ import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
-import org.enso.common.LanguageInfo;
-import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AssertionsTest {
 
-  private static Context ctx;
-
-  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void setupCtx() {
-    ctx =
-        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-            .environment("ENSO_ENABLE_ASSERTIONS", "true")
-            .out(out)
-            .err(out)
-            .build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close(true);
-    ctx = null;
-    out.close();
-    out = null;
-  }
-
-  @After
-  public void resetOutput() {
-    out.reset();
-  }
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
+          .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
+          .build();
 
   @Test
   public void jvmAssertionsAreEnabled() {
@@ -66,18 +38,14 @@ public class AssertionsTest {
 
   @Test
   public void assertionsAreEnabled() {
-    EnsoContext ensoCtx =
-        ctx.getBindings(LanguageInfo.ID)
-            .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-            .asHostObject();
+    EnsoContext ensoCtx = ctxRule.ensoContext();
     assertTrue(ensoCtx.isAssertionsEnabled());
   }
 
   @Test
   public void simpleAssertionFailureWithMessage() {
     try {
-      ContextUtils.evalModule(
-          ctx,
+      ctxRule.evalModule(
           """
               from Standard.Base import False, Runtime
               main = Runtime.assert False
@@ -91,8 +59,7 @@ public class AssertionsTest {
   @Test
   public void assertionFailureDisplaysMessage() {
     try {
-      ContextUtils.evalModule(
-          ctx,
+      ctxRule.evalModule(
           """
               from Standard.Base import False, Runtime
               main = Runtime.assert False 'My fail message'
@@ -108,8 +75,7 @@ public class AssertionsTest {
   @Test
   public void assertionFailureDisplaysStackTrace() {
     try {
-      ContextUtils.evalModule(
-          ctx,
+      ctxRule.evalModule(
           """
               from Standard.Base import False, Runtime
               foo = Runtime.assert False 'My fail message'
@@ -129,8 +95,7 @@ public class AssertionsTest {
   @Test
   public void assertionSuccessReturnsNothing() {
     Value res =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
                 from Standard.Base import Runtime, True
                 main = Runtime.assert True
@@ -141,8 +106,7 @@ public class AssertionsTest {
   @Test
   public void assertChecksTypeOfReturnValue() {
     try {
-      ContextUtils.evalModule(
-          ctx,
+      ctxRule.evalModule(
           """
               from Standard.Base import Runtime
               main = Runtime.assert [1,2,3]
@@ -156,8 +120,7 @@ public class AssertionsTest {
   @Test
   public void actionInAssertIsComputedWhenAssertionsAreEnabled() {
     Value res =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
                 from Standard.Base import Runtime
                 import Standard.Base.Runtime.Ref.Ref

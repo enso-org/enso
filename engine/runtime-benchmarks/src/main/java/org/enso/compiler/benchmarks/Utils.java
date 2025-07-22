@@ -10,42 +10,35 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
-import org.enso.common.LanguageInfo;
-import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 
 public final class Utils {
   private Utils() {}
 
-  public static Context.Builder createDefaultContextBuilder() {
-    return Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath())
-        .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
-        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-        .option(RuntimeOptions.STRICT_ERRORS, "true")
-        .option("engine.CompilationFailureAction", "Print")
-        // MultiTier = false does not affect the peak performance, and the graphs generated from
-        // that are easier to inspect in IGV.
-        .option("engine.MultiTier", "false")
-        .logHandler(System.err)
-        .allowIO(IOAccess.ALL)
-        .allowAllAccess(true);
+  public static ContextUtils.Builder createDefaultContextBuilder() {
+    return ContextUtils.newBuilder()
+        .withModifiedContext(
+            bldr ->
+                bldr.allowExperimentalOptions(true)
+                    .option(
+                        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                        Paths.get("../../distribution/component").toFile().getAbsolutePath())
+                    .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
+                    .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+                    .option(RuntimeOptions.STRICT_ERRORS, "true")
+                    .option("engine.CompilationFailureAction", "Print")
+                    // MultiTier = false does not affect the peak performance, and the graphs
+                    // generated from
+                    // that are easier to inspect in IGV.
+                    .option("engine.MultiTier", "false")
+                    .allowIO(IOAccess.ALL)
+                    .allowAllAccess(true));
   }
 
-  public static EnsoContext leakEnsoContext(Context ctx) {
-    return ctx.getBindings(LanguageInfo.ID)
-        .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-        .as(EnsoContext.class);
-  }
-
-  public static Object unwrapReceiver(Context ctx, Value value) {
+  public static Object unwrapReceiver(ContextUtils ctx, Value value) {
     var unwrapper = new Unwrapper();
     var unwrapperValue = ctx.asValue(unwrapper);
     unwrapperValue.execute(value);

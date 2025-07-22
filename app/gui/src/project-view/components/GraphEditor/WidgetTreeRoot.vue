@@ -2,23 +2,24 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
 import { useLayoutAnimationsState } from '@/providers/animationCounter'
-import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { UpdateHandler, WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
+import { type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import { Opt } from '@/util/data/opt'
 import { computed, toRef, watch } from 'vue'
-import { AstId } from 'ydoc-shared/ast'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
   externalId: string & ExternalId
   input: WidgetInput
-  rootElement: HTMLElement | undefined
-  potentialSelfArgumentId?: AstId | undefined
+  rootElement: Opt<HTMLElement>
+  primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
   extended: boolean
-  onUpdate: (update: WidgetUpdate) => boolean
+  onUpdate: UpdateHandler
 }>()
 const emit = defineEmits<{
   currentEditChanged: [WidgetEditHandlerParent | undefined]
@@ -50,7 +51,7 @@ const tree = provideWidgetTree(
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   anyLayoutAnimationActive,
-  toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'primaryApplication'),
 )
 watch(toRef(tree, 'currentEdit'), (edit) => emit('currentEditChanged', edit))
 </script>
@@ -114,10 +115,10 @@ export const ICON_WIDTH = 16
    * children of a widget. That way, only the innermost left/right deep child of a rounded widget will
    * receive the propagated paddings.
    */
-  *:not(:nth-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+  *:nth-child(n + 2 of :not(.widgetOutOfLayout, [data-transitioning='leave'])) {
     --widget-token-pad-left: 0px;
   }
-  *:not(:nth-last-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+  *:nth-last-child(n + 2 of :not(.widgetOutOfLayout, [data-transitioning='leave'])) {
     --widget-token-pad-right: 0px;
   }
 
@@ -141,6 +142,27 @@ export const ICON_WIDTH = 16
     margin-left: var(--widget-token-pad-left, 0);
     margin-right: var(--widget-token-pad-right, 0);
     transition: margin 0.2s ease-out;
+  }
+
+  :deep(.widgetPill) {
+    background-color: var(--color-widget);
+    min-width: var(--node-port-height);
+    min-height: var(--node-port-height);
+    border-radius: var(--node-port-border-radius);
+    transition:
+      background-color,
+      color,
+      opacity 0.2s ease;
+
+    &:focus,
+    &:has(:focus):not(:has(.widgetPill :focus)) {
+      outline: none;
+      background-color: var(--color-widget-focus);
+    }
+  }
+
+  &::selection {
+    background: var(--color-widget-selection);
   }
 }
 </style>

@@ -186,20 +186,6 @@ export class Type {
 }
 
 /** TODO: Add docs */
-export function seekView(view: ts.Expression, address: number): ts.Expression {
-  if (address === 0) {
-    return view
-  } else {
-    return seekViewDyn(view, tsf.createNumericLiteral(address))
-  }
-}
-
-/** TODO: Add docs */
-export function seekViewDyn(view: ts.Expression, address: ts.Expression): ts.Expression {
-  return tsf.createCallExpression(support.readOffset, [], [view, address])
-}
-
-/** TODO: Add docs */
 export function abstractTypeVariants(cases: ts.Identifier[]): ts.Statement {
   const reads = cases.map((c) => tsf.createPropertyAccessChain(c, undefined, 'read'))
   return tsf.createVariableStatement(

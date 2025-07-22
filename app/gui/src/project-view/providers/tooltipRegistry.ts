@@ -1,4 +1,6 @@
 import { createContextStore } from '@/providers'
+import { ToValue } from '@/util/reactivity'
+import { Placement } from '@floating-ui/vue'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import {
   computed,
@@ -10,10 +12,19 @@ import {
 } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
 
+export type TooltipDisplayStrategy = 'always' | 'whenOverflow'
+
+interface TooltipProps {
+  placement: ToValue<Placement>
+  when: ToValue<TooltipDisplayStrategy>
+}
+
 interface TooltipEntry {
   contents: Ref<Slot | undefined>
   isHidden: boolean
+  forceShow: boolean
   key: symbol
+  props: TooltipProps
 }
 
 /** A hovered element with its corresponding tooltip. */
@@ -58,9 +69,9 @@ export const [provideTooltipRegistry, useTooltipRegistry] = createContextStore(
 
         const methods = {
           /** The registered tooltip must be shown when hovering this element. */
-          onTargetEnter(target: HTMLElement) {
+          onTargetEnter(target: HTMLElement, props: TooltipProps) {
             const entriesSet: EntriesSet = hoveredElements.get(target) ?? shallowReactive(new Set())
-            entriesSet.add({ contents: slot, isHidden: false, key })
+            entriesSet.add({ contents: slot, isHidden: false, key, props, forceShow: false })
             // make sure that the newly entered target is on top of the map
             hoveredElements.delete(target)
             hoveredElements.set(target, entriesSet)
@@ -92,6 +103,19 @@ export const [provideTooltipRegistry, useTooltipRegistry] = createContextStore(
               const newSet = new Set(entriesSet)
               newSet.forEach((entry) => (entry.isHidden = true))
               hoveredElements.set(el, newSet)
+            }
+          },
+          /**
+           * Forcefully shows the registered tooltip.
+           * If multiple tooltips are registered for the same element, all of them will be shown.
+           * @param target The element to force show the tooltip for.
+           */
+          forceShow(target: HTMLElement) {
+            const entriesSet = hoveredElements.get(target)
+            if (entriesSet) {
+              const newSet = new Set(entriesSet)
+              newSet.forEach((entry) => (entry.forceShow = true))
+              hoveredElements.set(target, newSet)
             }
           },
         }

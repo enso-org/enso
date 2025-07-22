@@ -3,13 +3,8 @@ package org.enso.interpreter.test.builtins;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /**
@@ -17,25 +12,7 @@ import org.junit.Test;
  * accept Enso values in different ways.
  */
 public class BuiltinsJavaInteropTest {
-  private static Context ctx;
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
-    out.close();
-  }
-
-  @After
-  public void resetOutput() {
-    out.reset();
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   /**
    * This test reflects the state of many Java methods in stdlibs that accept Enso values as {@link
@@ -54,7 +31,7 @@ public class BuiltinsJavaInteropTest {
             dt = Date_Time.now
             PolyglotTestClass.isPolyglotDate_Object dt
         """;
-    var result = ContextUtils.evalModule(ctx, src);
+    var result = ctxRule.evalModule(src);
     assertThat(result.asBoolean(), is(true));
   }
 
@@ -69,7 +46,7 @@ public class BuiltinsJavaInteropTest {
             dt = Date_Time.now
             PolyglotTestClass.isPolyglotDate_LocalDate dt
         """;
-    var result = ContextUtils.evalModule(ctx, src);
+    var result = ctxRule.evalModule(src);
     assertThat(result.asBoolean(), is(true));
   }
 
@@ -84,7 +61,7 @@ public class BuiltinsJavaInteropTest {
             dt = Date_Time.now
             PolyglotTestClass.isPolyglotDate_Value dt
         """;
-    var result = ContextUtils.evalModule(ctx, src);
+    var result = ctxRule.evalModule(src);
     assertThat(result.asBoolean(), is(true));
   }
 }

@@ -391,7 +391,7 @@ class RuntimeVersionManager(
       )
     ) true
     else if (CurrentVersion.isDevVersion) {
-      logger.warn(
+      logger.trace(
         "Ignoring the minimum required engine version check " +
         s"[${manifest.minimumRequiredVersion}] for the development version " +
         s"[${CurrentVersion.version}]"

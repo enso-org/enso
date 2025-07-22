@@ -2,7 +2,9 @@ package org.enso.interpreter.instrument.command;
 
 import java.util.UUID;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
+import org.enso.interpreter.instrument.job.AnalyzeModuleInScopeJob;
 import org.enso.interpreter.instrument.job.DeserializeLibrarySuggestionsJob;
+import org.enso.interpreter.instrument.job.EnsureCompiledJob;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.runtime.Runtime$Api$InvalidateModulesIndexResponse;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,8 @@ import scala.runtime.BoxedUnit;
 /** A command that invalidates the modules index. */
 public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
 
+  private final Option<UUID> maybeRequestId;
+
   /**
    * Create a command that invalidates the modules index.
    *
@@ -21,6 +25,7 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
    */
   public InvalidateModulesIndexCommand(Option<UUID> maybeRequestId) {
     super(maybeRequestId);
+    this.maybeRequestId = maybeRequestId;
   }
 
   @Override
@@ -34,13 +39,22 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
             ctx.jobControlPlane().stopBackgroundJobs();
             ctx.jobControlPlane()
                 .abortBackgroundJobs(
-                    "invalidate modules index", DeserializeLibrarySuggestionsJob.class);
+                    "invalidate modules index",
+                    DeserializeLibrarySuggestionsJob.class,
+                    AnalyzeModuleInScopeJob.class);
 
             EnsoContext context = ctx.executionService().getContext();
             context
                 .getTopScope()
                 .getModules()
                 .forEach(module -> ctx.state().suggestions().markIndexAsDirty(module));
+
+            maybeRequestId.foreach(
+                uuid -> {
+                  var stack = ctx.contextManager().getStack(uuid);
+                  ctx.jobProcessor().run(EnsureCompiledJob.apply(stack, ctx));
+                  return BoxedUnit.UNIT;
+                });
 
             context
                 .getPackageRepository()

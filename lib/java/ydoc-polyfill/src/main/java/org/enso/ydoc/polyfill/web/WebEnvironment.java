@@ -11,7 +11,7 @@ import org.graalvm.polyglot.Value;
 public final class WebEnvironment {
 
   public static final HostAccess.Builder defaultHostAccess =
-      HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).allowBufferAccess(true);
+      HostAccess.newBuilder(HostAccess.EXPLICIT).allowBufferAccess(true);
 
   private WebEnvironment() {}
 

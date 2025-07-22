@@ -4,6 +4,8 @@
  * monkeypatching on `window` and generated code.
  */
 
+import type { FileFilter } from './fileBrowser'
+
 // =============
 // === Types ===
 // =============
@@ -91,10 +93,20 @@ interface MenuApi {
 // === System API ===
 // ==================
 
+/** Options for downloading a URL. */
+export type DownloadUrlOptions = {
+  url: string
+  path?: string | null
+  name?: string | null
+  shouldUnpackProject?: boolean
+  showFileDialog?: boolean
+}
+
 /** `window.systemApi` exposes functionality related to the operating system. */
 interface SystemApi {
-  readonly downloadURL: (url: string, headers?: Record<string, string>) => void
+  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
+  readonly getFilePath: (item: File) => string
 }
 
 // ========================
@@ -106,6 +118,7 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'any' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
+    filters?: FileFilter[],
   ) => Promise<unknown>
 }
 
@@ -114,9 +127,10 @@ interface FileBrowserApi {
 // ==============================
 
 /** Metadata for a newly imported project. */
-interface ProjectInfo {
+export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
@@ -158,7 +172,6 @@ declare global {
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken: () => string
-    toggleDevtools: () => void
   }
 
   namespace NodeJS {

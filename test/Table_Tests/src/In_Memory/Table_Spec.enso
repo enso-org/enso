@@ -7,14 +7,14 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Debug
 
-from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Blank_Selector, Value_Type, Auto
-from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Invalid_Value_Type, Row_Count_Mismatch
+from Standard.Table import Table, Column, Aggregate_Column, Blank_Selector, Value_Type, Auto
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Such_Column, Row_Count_Mismatch
 
 import Standard.Visualization
 
-import Standard.Database.Extensions.Upload_Database_Table
-import Standard.Database.Extensions.Upload_In_Memory_Table
-from Standard.Database import Database, SQLite
+import Standard.Database.Extensions.Upload_Table
+import Standard.Database.Connection.Database
+import Standard.Database.Connection.SQLite.SQLite
 
 from Standard.Test import all
 
@@ -40,7 +40,6 @@ type My_Comparator
         Ordering.hash sum
 
 Comparable.from (that:My) = Comparable.new that My_Comparator
-
 
 type Data
     Value ~varied_type_table
@@ -291,25 +290,6 @@ add_specs suite_builder =
             r.to_vector . should_equal [Date_Time.new 2022, Date_Time.new 2000, Date_Time.new 1999]
             r.value_type . should_equal Value_Type.Date_Time
 
-        group_builder.specify "should allow zipping columns with a custom function" <|
-            b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
-            a = Column.from_vector 'z' ['foo', 'bar', 'baz', 'spam', 'eggs']
-            c = a.zip b x-> y-> x + y.to_text
-            c.to_vector.should_equal ['foo6.3', 'bar3.1', 'baz5.2', 'spam4.6', 'eggs8.0']
-            c.value_type . should_equal Value_Type.Char
-
-            x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
-            y = Column.from_vector 'b' [0, 0, 0, 0]
-            r = x.zip y skip_nothing=False x-> y-> if x == 1 then x else y
-            r.to_vector.should_equal [1, 0, 0, 0]
-            r.value_type . should_equal Value_Type.Integer
-
-            u = Column.from_vector 'u' [12, 13, 0]
-            v = Column.from_vector 'v' [0, 30, 45]
-            r2 = u.zip v h-> m-> Time_Of_Day.new h m
-            r2.to_vector . should_equal [Time_Of_Day.new 12 0, Time_Of_Day.new 13 30, Time_Of_Day.new 0 45]
-            r2.value_type . should_equal Value_Type.Time
-
         group_builder.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             (c_str == 'b').to_vector.should_equal [False, True, Nothing, True]
@@ -431,6 +411,12 @@ add_specs suite_builder =
             i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
+            i.at "# Nothing" . to_vector . should_equal [1, 2, 0]
+            i.at "# Distinct" . to_vector . should_equal [2, 2, 4]
+            i.at "Minimum" . to_vector . should_equal ["a", 1, Nothing]
+            i.at "Maximum" . to_vector . should_equal ["b", 2, Nothing]
+            i.at "# Empty" . to_vector . should_equal [0, Nothing, Nothing]
+            i.at "Types and Counts" . to_vector . should_equal [Nothing, Nothing, 'Char: 2\nInteger: 1\nOther: 1']
 
     suite_builder.group "Sorting Tables" group_builder->
         group_builder.specify 'should respect defined comparison operations for custom types' <|
@@ -969,9 +955,12 @@ add_specs suite_builder =
             data.varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom")) . at "custom_objects" . to_vector . should_equal [My.Data 1 2]
             data.varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom" . to_vector)) . at "custom_objects" . to_vector . should_equal [My.Data 1 2]
 
-            t2 = Table.new [["ints", [1, 2, 3]], ["doubles", [1.2, 0.0, 1.0]]]
+            t2 = Table.new [["ints", [1, 2, 3]], ["doubles", [1.2, 0.0, 1.0]], ["decs", [dec "1.23", dec 1, dec "1.2"]], ["bigints", [0, 2^65, 1]]]
             t2.filter "ints" (Filter_Condition.Is_In [2.0, 1.5, 3, 4]) . at "ints" . to_vector . should_equal [2, 3]
             t2.filter "doubles" (Filter_Condition.Is_In [0.1, 1, 3, 1.2]) . at "doubles" . to_vector . should_equal [1.2, 1.0]
+            t2.filter "bigints" (Filter_Condition.Is_In [0, 1]) . at "bigints" . to_vector . should_equal [0, 1]
+            t2.filter "decs" (Filter_Condition.Is_In [1.0, dec "1.2"]) . at "decs" . to_vector . should_equal [1, dec "1.2"]
+
             t3 = Table.new [["ints", [0, 2]], ["doubles", [1.0, 2.0]]]
             t2.filter "ints" (Filter_Condition.Is_In (t3.at "doubles")) . at "ints" . to_vector . should_equal [1, 2]
             t2.filter "doubles" (Filter_Condition.Is_In (t3.at "ints")) . at "doubles" . to_vector . should_equal [0.0]

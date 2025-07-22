@@ -3,18 +3,17 @@ import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
 import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Backend'
 import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
-import { useText } from '#/providers/TextProvider'
+import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import type { DirectoryId } from '#/services/ProjectManager'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
-import { useEffect } from 'react'
-import invariant from 'tiny-invariant'
+import { useText } from '$/providers/react'
+import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */
 export interface UseAssetsTableOptions {
@@ -58,22 +57,15 @@ export function useGetAssetChildren() {
   )
 }
 
-/** Return the asset with the given id, or throw an error if it is `undefined`. */
-export function useAssetStrict(id: AssetId) {
-  const asset = useAsset(id)
-  invariant(
-    asset,
-    `Expected asset to be defined, but got undefined, Asset ID: ${JSON.stringify(id)}`,
-  )
-  return asset
-}
-
 /** A hook to return the items in the assets table. */
 export function useAssetsTableItems(options: UseAssetsTableOptions) {
   const { parentId, assets: items, sortInfo, query } = options
 
   const { locale } = useText()
-  const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems)
+
+  const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems, {
+    unsafeEnableTransition: true,
+  })
 
   const filter = (() => {
     const globCache: Record<string, RegExp> = {}
@@ -81,9 +73,6 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
       return null
     } else {
       return (asset: AnyAsset) => {
-        if (asset.type === AssetType.specialEmpty || asset.type === AssetType.specialLoading) {
-          return false
-        }
         const assetType =
           asset.type === AssetType.directory ? 'folder'
           : asset.type === AssetType.datalink ? 'datalink'
@@ -181,7 +170,9 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
   })()
 
   useEffect(() => {
-    setAssetItems(parentId, items)
+    startTransition(() => {
+      setAssetItems(parentId, items)
+    })
   }, [items, parentId, setAssetItems])
 
   const compare = sortInfo ? assetCompareFunction(sortInfo, locale) : null

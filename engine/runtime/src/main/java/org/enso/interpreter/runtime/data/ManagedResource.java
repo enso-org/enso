@@ -117,7 +117,7 @@ public final class ManagedResource extends BuiltinObject {
 
   @ExportMessage
   @TruffleBoundary
-  public String toDisplayString(boolean allowSideEffects, @Bind("$node") Node node) {
+  public String toDisplayString(boolean allowSideEffects, @Bind Node node) {
     var type = getBuiltinType(node);
     return type.getName()
         + " "

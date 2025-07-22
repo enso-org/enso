@@ -308,7 +308,7 @@ trait CompilerRunner {
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,
-            BindingsMap(
+            new BindingsMap(
               List(),
               ModuleReference.Concrete(mod.asCompilerModule())
             )
@@ -333,5 +333,5 @@ trait CompilerRunner {
     )
   }
 
-  val defaultConfig: CompilerConfig = CompilerConfig()
+  val defaultConfig: CompilerConfig = CompilerConfig.createDefault()
 }

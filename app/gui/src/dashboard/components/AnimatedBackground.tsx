@@ -42,13 +42,8 @@ export function AnimatedBackground(props: AnimatedBackgroundProps) {
 
   const layoutId = useId()
 
-  const contextValue = useMemo(
-    () => ({ value, transition, layoutId }),
-    [value, transition, layoutId],
-  )
-
   return (
-    <AnimatedBackgroundContext.Provider value={contextValue}>
+    <AnimatedBackgroundContext.Provider value={{ value, transition, layoutId }}>
       {children}
     </AnimatedBackgroundContext.Provider>
   )

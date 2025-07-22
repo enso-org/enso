@@ -898,8 +898,7 @@ final class TreeToIr {
         yield new Application.Sequence(
             items.reverse(),
             getIdentifiedLocation(arr),
-            meta()
-        );
+            meta());
       }
       case Tree.Number n -> translateNumber(n);
       case Tree.Ident id -> translateIdent(id, isMethod);
@@ -999,25 +998,32 @@ final class TreeToIr {
             var comment = translateComment(cas, docLine.getDocs());
             var loc = getIdentifiedLocation(cas);
             var doc = new Pattern.Documentation(comment.doc(), loc, meta());
-            var br = new Case.Branch(
-                doc,
-                new Empty(null, meta()), true, loc, meta()
-            );
+            var br = Case.Branch.builder()
+                .pattern(doc)
+                .expression(new Empty(null, meta()))
+                .terminalBranch(true)
+                .location(loc)
+                .build();
             branches = join(br, branches);
           }
           // A branch with no expression is used to hold any orphaned documentation at the end of the case-of
           // expression, with no case to attach it to.
           if (branch.getExpression() != null) {
-            var br = new Case.Branch(
-                translatePattern(branch.getPattern()),
-                translateExpression(branch.getExpression(), false),
-                true,
-                getIdentifiedLocation(branch.getExpression()), meta()
-            );
+            var br = Case.Branch.builder()
+                .pattern(translatePattern(branch.getPattern()))
+                .expression(translateExpression(branch.getExpression(), false))
+                .terminalBranch(true)
+                .location(getIdentifiedLocation(branch.getExpression()))
+                .build();
             branches = join(br, branches);
           }
         }
-        yield new Case.Expr(expr, branches.reverse(), false, getIdentifiedLocation(tree), meta());
+        yield Case.Expr.builder()
+            .scrutinee(expr)
+            .branches(branches.reverse())
+            .isNested(false)
+            .location(getIdentifiedLocation(tree))
+            .build();
       }
       case Tree.Function fun -> translateFunction(fun);
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
@@ -1518,7 +1524,7 @@ final class TreeToIr {
         ascribedType,
         defaultValue,
         isSuspended,
-        getIdentifiedLocation(def),
+        getIdentifiedLocation(def.getPattern()),
         meta()
     );
   }
@@ -1963,42 +1969,6 @@ final class TreeToIr {
         yield new IdentifiedLocation(begin, end, uuid);
       }
     };
-  }
-
-  private IdentifiedLocation getIdentifiedLocation(ArgumentDefinition ast) {
-    // Note: In the IR, `DefinitionArgument` is a type of AST node; in the parser, it is not an AST-level type, but a
-    // type used only in specific locations. As a result, the IR expects it to have a source-code location, but the
-    // parser doesn't have a span for it. Here we synthesize one. This will not be necessary if we refactor IR so that
-    // `ArgumentDefinition` is not an AST node, though that change would have effects throughout the compiler and may
-    // not be worthwhile if IR is expected to be replaced.
-    long begin;
-    if (ast.getOpen() != null) {
-      begin = ast.getOpen().getStartCode();
-    } else if (ast.getOpen2() != null) {
-      begin = ast.getOpen2().getStartCode();
-    } else if (ast.getSuspension() != null) {
-      begin = ast.getSuspension().getStartCode();
-    } else {
-      begin = ast.getPattern().getStartCode();
-    }
-    int begin_ = castToInt(begin);
-    long end;
-    if (ast.getClose() != null) {
-      end = ast.getClose().getEndCode();
-    } else if (ast.getDefault() != null) {
-      end = ast.getDefault().getEquals().getEndCode();
-    } else if (ast.getClose2() != null) {
-      end = ast.getClose2().getEndCode();
-    } else if (ast.getType() != null) {
-      end = ast.getType().getOperator().getEndCode();
-    } else {
-      end = ast.getPattern().getEndCode();
-    }
-    int end_ = castToInt(end);
-
-    var location = new Location(begin_, end_);
-    var uuid = idMap.get(location);
-    return new IdentifiedLocation(begin_, end_, uuid);
   }
 
   private IdentifiedLocation getIdentifiedLocation(FunctionAnnotation anno) {

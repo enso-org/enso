@@ -1,5 +1,0 @@
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect opacity="0.25" x="2" y="11" width="11" height="12" rx="2" transform="rotate(-90 2 11)" fill="black" />
-    <rect opacity="0.25" x="7" y="15" width="4" height="2" transform="rotate(-90 7 15)" fill="black" />
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4L5 8L7 8L7 15L9 15L9 8L11 8L8 4Z" fill="black" />
-</svg>

@@ -9,12 +9,13 @@ import * as devtools from '#/components/Devtools'
 
 import type * as backend from '#/services/Backend'
 
+import * as React from 'react'
 import * as paywallConfiguration from './FeaturesConfiguration'
 import * as paywallFeatures from './paywallFeaturesHooks'
 
 /** Props for the {@link usePaywall} hook. */
 export interface UsePaywallProps {
-  readonly plan?: backend.Plan | undefined
+  readonly plan: backend.Plan
 }
 
 /** A hook that provides paywall-related functionality. */
@@ -25,15 +26,14 @@ export function usePaywall(props: UsePaywallProps) {
   const { features } = devtools.usePaywallDevtools()
   const paywallLevel = paywallConfiguration.mapPlanOnPaywall(plan)
 
-  const getPaywallLevel = eventCallbackHooks.useEventCallback(
-    (specifiedPlan: backend.Plan | undefined) =>
-      paywallConfiguration.mapPlanOnPaywall(specifiedPlan),
+  const getPaywallLevel = eventCallbackHooks.useEventCallback((specifiedPlan: backend.Plan) =>
+    paywallConfiguration.mapPlanOnPaywall(specifiedPlan),
   )
 
-  const isFeatureUnderPaywall = eventCallbackHooks.useEventCallback(
-    (feature: paywallConfiguration.PaywallFeatureName) => {
+  const isFeatureUnderPaywall = React.useCallback(
+    (feature: paywallConfiguration.PaywallFeatureName, ignoreForceEnabled = false) => {
       const featureConfig = getFeature(feature)
-      const { isForceEnabled } = features[feature]
+      const isForceEnabled = ignoreForceEnabled ? null : features[feature].isForceEnabled
       const { level } = featureConfig
 
       if (isForceEnabled == null) {
@@ -42,6 +42,7 @@ export function usePaywall(props: UsePaywallProps) {
         return !isForceEnabled
       }
     },
+    [paywallLevel, getFeature, features],
   )
 
   return {

@@ -1,5 +1,5 @@
-import { ToValue } from '@/util/reactivity'
-import { computed, Ref, toValue } from 'vue'
+import { type ToValue } from '@/util/reactivity'
+import { computed, type Ref, toValue } from 'vue'
 import { createContextStore } from '.'
 
 export type EventLogger = ReturnType<typeof injectEventLogger>

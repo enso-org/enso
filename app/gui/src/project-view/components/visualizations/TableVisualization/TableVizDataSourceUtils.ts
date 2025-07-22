@@ -1,17 +1,11 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { IServerSideGetRowsRequest } from 'ag-grid-community'
-import {
-  actionMap,
-  FilterAction,
-  getFilterValue,
-  GridFilterModel,
-  makeFilterModelList,
-} from './tableVizFilterUtils'
+import type { IServerSideGetRowsRequest } from 'ag-grid-enterprise'
+import { actionMap, FilterAction, getFilterValue, GridFilterModel } from './tableVizFilterUtils'
 import { getCellValueType } from './tableVizUtils'
 
-type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char'
-type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
+export type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char' | 'Boolean'
+export type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
 type ValueTypeArgumentParent =
   | { valueType: ValueTypes; value: string }
   | { valueType: 'Mixed'; value: ValueTypeArgumentChild[] }
@@ -23,7 +17,7 @@ const sortDirectionMap = {
   desc: '-1',
 }
 
-const parseSingleArgument = (
+const parseFilterValues = (
   value: ValueTypeArgumentParent,
   tempModule: Ast.MutableModule,
 ): Ast.Owned<Ast.MutableExpression> => {
@@ -50,25 +44,48 @@ const parseSingleArgument = (
       return Ast.TextLiteral.new(value.value)
     case 'Mixed': {
       const items = value.value.map((val: { valueType: ValueTypes; value: string }) =>
-        parseSingleArgument(val, tempModule),
+        parseFilterValues(val, tempModule),
       )
       return Ast.Vector.new(tempModule, items)
     }
+    case 'Boolean':
+      return value.value === 'false' ?
+          Ast.Ident.new(tempModule, Ast.identifier('False')!)
+        : Ast.Ident.new(tempModule, Ast.identifier('True')!)
     default:
       return Ast.parseExpression(value, tempModule)!
   }
 }
 
-export const parseArgument = (arg: Argument, tempModule: Ast.MutableModule) => {
+export const parseArgument = (arg: string[] | 'Nothing', tempModule: Ast.MutableModule) => {
   if (Array.isArray(arg)) {
-    const itemList = arg.map((i) => {
-      return typeof i === 'string' ?
-          Ast.parseExpression(i, tempModule)!
-        : parseSingleArgument(i, tempModule)
-    })
+    const itemList = arg.map((i) => Ast.parseExpression(i, tempModule)!)
     return Ast.Vector.new(tempModule, itemList!)
   }
   return Ast.parseExpression(arg, tempModule)!
+}
+
+const parseFilterCondition = (
+  filterAction: string,
+  filterValue: any,
+  tempModule: Ast.MutableModule,
+) => {
+  if (filterAction === '..Is_Nothing') {
+    return Ast.parseExpression('..Is_Nothing', tempModule)!
+  }
+  if (filterAction === '..Not_Nothing') {
+    return Ast.parseExpression('..Not_Nothing', tempModule)!
+  }
+  if (filterAction === '..Between') {
+    const filterCondition = Pattern.parseExpression('(..Between __ __)')
+    const fromValue = parseFilterValues(filterValue[0], tempModule)
+    const toValue = parseFilterValues(filterValue[1], tempModule)
+    return filterCondition.instantiateCopied([fromValue, toValue])
+  }
+  const filterCondition = Pattern.parseExpression('(__ __)')
+  const action = Ast.parseExpression(filterAction, tempModule)!
+  const filterVal = parseFilterValues(filterValue, tempModule)
+  return filterCondition.instantiateCopied([action, filterVal])
 }
 
 export const convertSortModel = (request: IServerSideGetRowsRequest, columnHeaders: string[]) => {
@@ -86,13 +103,10 @@ export const convertSortModel = (request: IServerSideGetRowsRequest, columnHeade
 }
 
 export const convertFilterModel = (
-  request: IServerSideGetRowsRequest,
+  gridFilterModelList: Array<GridFilterModel>,
   columnHeaders: string[],
   colTypeMap: Map<string, string>,
 ) => {
-  const gridFilterModelList: Array<GridFilterModel> =
-    request.filterModel ? makeFilterModelList(request.filterModel) : []
-
   const filterColumnNames = gridFilterModelList.map((filter) => filter.columnName)
 
   const filterColumnIndexList =
@@ -100,11 +114,14 @@ export const convertFilterModel = (
       filterColumnNames.map((colName) => `${columnHeaders.findIndex((h: string) => colName === h)}`)
     : 'Nothing'
 
+  const getSetFilterAction = (filter: GridFilterModel) =>
+    colTypeMap.get(filter.columnName) === 'Boolean' ? '..Equal' : '..Is_In'
+
   const filterActions =
     filterColumnNames.length ?
       gridFilterModelList.map((filter) => {
         return filter.filterType === 'set' ?
-            '..Is_In'
+            getSetFilterAction(filter)
           : actionMap[filter.filterAction as FilterAction]
       })
     : 'Nothing'
@@ -117,10 +134,10 @@ export const convertFilterModel = (
     }
   })
 
-  const valueList: Argument =
+  const valueList =
     valueMap.length ?
       valueMap.map((value) => {
-        if (value.valType === 'Mixed' && Array.isArray(value.value)) {
+        if (value.action === undefined && Array.isArray(value.value)) {
           const parseValues = value.value.map((val) => {
             return { valueType: getCellValueType(val), value: val }
           })
@@ -132,7 +149,10 @@ export const convertFilterModel = (
           typeof value.value === 'object' &&
           'fromValue' in value.value
         ) {
-          return { valueType: value.valType as ValueTypes, value: `${value.value.fromValue}` }
+          return [
+            { valueType: value.valType as ValueTypes, value: `${value.value.fromValue}` },
+            { valueType: value.valType as ValueTypes, value: `${value.value.toValue}` },
+          ]
         }
 
         return { valueType: value.valType as ValueTypes, value: `${value.value}` }
@@ -142,10 +162,13 @@ export const convertFilterModel = (
   return { filterColumnIndexList, filterActions, valueList }
 }
 
-export const createExpressionTemplate = (
+export const createDistinctExpressionTemplate = (
   visulizationModule: string,
   expressionString: string,
-  ...positionalArgumentsExpressions: Argument[]
+  columnIndex: string,
+  filterColumnIndexList: string[] | 'Nothing',
+  filterActions: string[] | 'Nothing',
+  valueList: string[] | 'Nothing',
 ) => {
   const tempModule = Ast.MutableModule.Transient()
   const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
@@ -155,11 +178,78 @@ export const createExpressionTemplate = (
     Ast.identifier(expressionString)!,
   )
 
+  const parseFilterArgs = (actions: string[] | 'Nothing') => {
+    if (actions === 'Nothing') {
+      return parseArgument('Nothing', tempModule)
+    }
+    const filters = actions.map((action: string, index: number) => {
+      const value = valueList[index]
+      return parseFilterCondition(action, value, tempModule)
+    })
+    return Ast.Vector.new(tempModule, filters)
+  }
+
+  const positionalArgumentsExpressions = [
+    Ast.parseExpression(columnIndex, tempModule)!,
+    parseArgument(filterColumnIndexList, tempModule),
+    parseFilterArgs(filterActions),
+  ]
+
   const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
     Ast.Wildcard.new(tempModule),
     ...positionalArgumentsExpressions.map((arg) => {
-      const parsedArg = parseArgument(arg, tempModule)
-      return Ast.Group.new(tempModule, parsedArg)
+      return Ast.Group.new(tempModule, arg)
+    }),
+  ])
+  return (nodeId: string) => {
+    const rhs = Ast.parseExpression(nodeId, tempModule)!
+    return Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+  }
+}
+
+export const createExpressionRowTemplate = (
+  visulizationModule: string,
+  expressionString: string,
+  startRow: string,
+  sortColIndexes: string[] | 'Nothing',
+  sortDirections: string[] | 'Nothing',
+  filterColumnIndexList: string[] | 'Nothing',
+  filterActions: string[] | 'Nothing',
+  valueList: string[] | 'Nothing',
+) => {
+  const tempModule = Ast.MutableModule.Transient()
+  const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
+  const preprocessorQn = Ast.PropertyAccess.new(
+    tempModule,
+    preprocessorModule,
+    Ast.identifier(expressionString)!,
+  )
+
+  const parseFilterArgs = (actions: string[] | 'Nothing') => {
+    if (actions === 'Nothing') {
+      return parseArgument('Nothing', tempModule)
+    }
+    const filters = actions.map((action: string, index: number) => {
+      const value = valueList[index]
+      return parseFilterCondition(action, value, tempModule)
+    })
+    return Ast.Vector.new(tempModule, filters)
+  }
+
+  const parsedfilterConditions = parseFilterArgs(filterActions)
+
+  const positionalArgumentsExpressions = [
+    Ast.parseExpression(startRow, tempModule)!,
+    parseArgument(sortColIndexes, tempModule),
+    parseArgument(sortDirections, tempModule),
+    parseArgument(filterColumnIndexList, tempModule),
+    parsedfilterConditions,
+  ]
+
+  const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+    Ast.Wildcard.new(tempModule),
+    ...positionalArgumentsExpressions.map((arg) => {
+      return Ast.Group.new(tempModule, arg)
     }),
   ])
   return (nodeId: string) => {

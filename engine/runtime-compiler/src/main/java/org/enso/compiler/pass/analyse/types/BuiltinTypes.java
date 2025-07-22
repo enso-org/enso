@@ -46,4 +46,8 @@ public final class BuiltinTypes {
   public static boolean isFloat(QualifiedName qualifiedName) {
     return qualifiedName.toString().equals(FQN_FLOAT);
   }
+
+  // This must be used carefully, it is used e.g. in conversions.
+  static TypeRepresentation.AtomType functionTypeAsAtomType =
+      new TypeRepresentation.AtomType(QualifiedName$.MODULE$.fromString(FQN_FUNCTION));
 }

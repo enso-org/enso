@@ -64,6 +64,16 @@ public final class StaticImportExportScope {
       // TODO filtering only/hiding (see above) - for now we just return everything
       return methodResolutionAlgorithm.getExportedMethod(referredModuleScope, type, name);
     }
+
+    public TypeRepresentation getConversionForType(
+        TypeScopeReference target, TypeScopeReference source) {
+      return referredModuleScope.getConversionFor(target, source);
+    }
+
+    public TypeRepresentation getExportedConversion(
+        TypeScopeReference target, TypeScopeReference source) {
+      return methodResolutionAlgorithm.getExportedConversion(referredModuleScope, target, source);
+    }
   }
 
   public QualifiedName getReferredModuleName() {

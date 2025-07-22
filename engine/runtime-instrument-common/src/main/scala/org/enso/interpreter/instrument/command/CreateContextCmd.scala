@@ -22,8 +22,14 @@ class CreateContextCmd(
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
-      ctx.contextManager.create(request.contextId)
-      reply(Api.CreateContextResponse(request.contextId))
+      ctx.locking.withWriteContextLock(
+        ctx.locking.getOrCreateContextLock(request.contextId),
+        classOf[CreateContextCmd],
+        () => {
+          ctx.contextManager.create(request.contextId)
+          reply(Api.CreateContextResponse(request.contextId))
+        }
+      )
     }
 
 }

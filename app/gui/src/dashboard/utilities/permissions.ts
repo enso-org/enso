@@ -1,13 +1,10 @@
 /** @file Utilities for working with permissions. */
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import * as backend from '#/services/Backend'
-import { directoryIdToUserGroupId, directoryIdToUserId } from '#/services/RemoteBackend'
+import type * as backend from '#/services/Backend'
 import {
   type AssetPermission,
   compareAssetPermissions,
   type User,
 } from 'enso-common/src/services/Backend'
-import { merge } from 'enso-common/src/utilities/data/object'
 import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
 export * from 'enso-common/src/utilities/permissions'
 
@@ -25,41 +22,6 @@ export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
 export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
-
-/**
- * Return an array containing the owner permission if `owner` is not `null`,
- * else return an empty array (`[]`).
- */
-export function tryCreateOwnerPermission(
-  path: string,
-  category: Category,
-  user: backend.User,
-  users: readonly backend.User[],
-  userGroups: readonly backend.UserGroup[],
-): readonly backend.AssetPermission[] {
-  switch (category.type) {
-    case 'team': {
-      return [{ userGroup: category.team, permission: PermissionAction.own }]
-    }
-    case 'cloud':
-    case 'recent':
-    case 'trash':
-    case 'user':
-    case 'local':
-    case 'local-directory':
-    default: {
-      const isFreeOrSolo =
-        user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
-      const owner = isFreeOrSolo ? user : (newOwnerFromPath(path, users, userGroups) ?? user)
-      if ('userId' in owner) {
-        const { organizationId, userId, name, email } = owner
-        return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
-      } else {
-        return [{ userGroup: owner, permission: PermissionAction.own }]
-      }
-    }
-  }
-}
 
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
@@ -96,33 +58,8 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
 }
 
 /** Replace the first owner permission with the permission of a new user or team. */
-export function replaceOwnerPermission(
-  asset: backend.AnyAsset,
-  newOwner: backend.User | backend.UserGroup,
-) {
-  let found = false
-  const newPermissions =
-    asset.permissions?.map((permission) => {
-      if (found || permission.permission !== PermissionAction.own) {
-        return permission
-      } else {
-        found = true
-        if ('userId' in newOwner) {
-          const newPermission: backend.UserPermission = {
-            user: newOwner,
-            permission: PermissionAction.own,
-          }
-          return newPermission
-        } else {
-          const newPermission: backend.UserGroupPermission = {
-            userGroup: newOwner,
-            permission: PermissionAction.own,
-          }
-          return newPermission
-        }
-      }
-    }) ?? null
-  return merge(asset, { permissions: newPermissions })
+export function tryGetOwnerPermission(asset: backend.AnyAsset) {
+  return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
 }
 
 const USER_PATH_REGEX = /^enso:[/][/][/]Users[/]([^/]+)/
@@ -136,27 +73,6 @@ export function isUserPath(path: string) {
 /** Whether a path is inside a team's home directory. */
 export function isTeamPath(path: string) {
   return TEAM_PATH_REGEX.test(path)
-}
-
-/** Whether a path is inside a user's home directory. */
-export function isUserParentsPath(path: backend.ParentsPath, userIds: readonly backend.UserId[]) {
-  const assetUserOrTeamId = directoryIdToUserId(
-    // eslint-disable-next-line no-restricted-syntax
-    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
-  )
-  return userIds.includes(assetUserOrTeamId)
-}
-
-/** Whether a path is inside a team's home directory. */
-export function isTeamParentsPath(
-  path: backend.ParentsPath,
-  teamIds: readonly backend.UserGroupId[],
-) {
-  const assetUserOrTeamId = directoryIdToUserGroupId(
-    // eslint-disable-next-line no-restricted-syntax
-    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
-  )
-  return teamIds.includes(assetUserOrTeamId)
 }
 
 /** Find the new owner of an asset based on the path of its new parent directory. */

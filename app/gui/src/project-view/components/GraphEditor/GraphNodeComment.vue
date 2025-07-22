@@ -3,6 +3,7 @@ import PlainTextEditor from '@/components/PlainTextEditor.vue'
 import { useFocusDelayed } from '@/composables/focus'
 import { type Node } from '@/stores/graph'
 import { nodeMutableDocumentation } from '@/util/ast/node'
+import { useYTextSync } from '@/util/codemirror'
 import { syncRef } from '@vueuse/core'
 import { computed, ref, type ComponentInstance } from 'vue'
 
@@ -14,6 +15,8 @@ const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const documentation = computed(() => nodeMutableDocumentation(props.node))
 
+const { syncExt, connectSync } = useYTextSync(documentation)
+
 syncRef(editing, useFocusDelayed(textEditorContent).focused)
 </script>
 <template>
@@ -22,22 +25,24 @@ syncRef(editing, useFocusDelayed(textEditorContent).focused)
     class="GraphNodeComment"
     @keydown.enter.capture.stop="editing = false"
   >
-    <PlainTextEditor ref="textEditor" :content="documentation" />
+    <PlainTextEditor
+      ref="textEditor"
+      :extensions="syncExt"
+      contentTestId="graph-node-comment-content"
+      @editorReady="connectSync"
+    />
   </div>
 </template>
 
 <style scoped>
 :deep(.cm-content) {
-  display: inline-block;
   min-width: 22px;
   border-radius: var(--radius-default);
   background-color: var(--node-color-no-type);
   opacity: 0.8;
   color: var(--color-text-inversed);
   font-weight: 400;
-}
-
-:deep(.cm-line) {
-  padding: 0 8px 0 8px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 </style>

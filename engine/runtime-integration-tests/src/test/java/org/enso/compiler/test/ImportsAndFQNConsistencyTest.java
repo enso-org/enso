@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -18,9 +17,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -40,10 +37,15 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 @RunWith(Parameterized.class)
 public class ImportsAndFQNConsistencyTest {
-  private static Context ctx;
 
   /** Used for description in {@link PrintCodeRule} test rule. */
   private static String code;
+
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
+          .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
+          .build();
 
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 
@@ -53,57 +55,41 @@ public class ImportsAndFQNConsistencyTest {
    */
   @Parameters(name = "exported symbol '{0}'")
   public static List<Symbol> symbolsToTest() {
-    try (var ctx =
-        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-            .build()) {
-      var ensoCtx = ContextUtils.leakContext(ctx);
-      var src = """
+    var ensoCtx = ctxRule.ensoContext();
+    var src = """
 from Standard.Base import all
 from Standard.Table import all
 main = 42
 """;
-      // Ensure that the context is initialized first.
-      var res = ContextUtils.evalModule(ctx, src);
-      assertThat(res.isNumber(), is(true));
-      List<Symbol> symbolsToTest = new ArrayList<>();
-      gatherExportedSymbols(ensoCtx, List.of("Standard.Base.Main", "Standard.Table.Main")).stream()
-          .map(Symbol::new)
-          .forEach(
-              exportedSymbol -> {
-                var mod = ensoCtx.findModule(exportedSymbol.getModuleName());
-                if (mod.isPresent()) {
-                  var builtin =
-                      ensoCtx.getBuiltins().getBuiltinType(exportedSymbol.getLastPathItem());
-                  if (builtin == null) {
-                    if (mod.get().isSynthetic()) {
+    // Ensure that the context is initialized first.
+    var res = ctxRule.evalModule(src);
+    assertThat(res.isNumber(), is(true));
+    List<Symbol> symbolsToTest = new ArrayList<>();
+    gatherExportedSymbols(ensoCtx, List.of("Standard.Base.Main", "Standard.Table.Main")).stream()
+        .map(Symbol::new)
+        .forEach(
+            exportedSymbol -> {
+              var mod = ensoCtx.findModule(exportedSymbol.getModuleName());
+              if (mod.isPresent()) {
+                var builtin =
+                    ensoCtx.getBuiltins().getBuiltinType(exportedSymbol.getLastPathItem());
+                if (builtin == null) {
+                  if (mod.get().isSynthetic()) {
+                    symbolsToTest.add(exportedSymbol);
+                    return;
+                  }
+                  // The symbol is not a builtin type
+                  var modIr = mod.get().getIr();
+                  if (modIr != null) {
+                    var bindings = mod.get().getIr().bindings();
+                    if (shouldIncludeSymbolForTest(bindings, exportedSymbol.getLastPathItem())) {
                       symbolsToTest.add(exportedSymbol);
-                      return;
-                    }
-                    // The symbol is not a builtin type
-                    var modIr = mod.get().getIr();
-                    if (modIr != null) {
-                      var bindings = mod.get().getIr().bindings();
-                      if (shouldIncludeSymbolForTest(bindings, exportedSymbol.getLastPathItem())) {
-                        symbolsToTest.add(exportedSymbol);
-                      }
                     }
                   }
                 }
-              });
-      return symbolsToTest;
-    }
-  }
-
-  @BeforeClass
-  public static void initCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
+              }
+            });
+    return symbolsToTest;
   }
 
   private final Symbol symbol;
@@ -113,7 +99,7 @@ main = 42
   }
 
   private void evalCode(Symbol symbol) {
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertThat(res.isString(), is(true));
     assertThat(res.asString(), is(symbol.getLastPathItem()));
   }

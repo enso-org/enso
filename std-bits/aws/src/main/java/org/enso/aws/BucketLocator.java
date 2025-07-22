@@ -3,6 +3,7 @@ package org.enso.aws;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.logging.Logger;
+import org.enso.aws.regions.AWSRegion;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
@@ -18,25 +19,25 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
  * restart of the engine in such a case seems OK.
  */
 public class BucketLocator {
-  private static final HashMap<String, Region> cache = new HashMap<>();
+  private static final HashMap<String, AWSRegion> cache = new HashMap<>();
   private static final Logger logger = Logger.getLogger(BucketLocator.class.getName());
 
   public static void flushCache() {
     cache.clear();
   }
 
-  public static Region getBucketRegion(String bucketName, AwsCredential associatedCredential) {
+  public static AWSRegion getBucketRegion(String bucketName, AwsCredential associatedCredential) {
     if (cache.containsKey(bucketName)) {
       return cache.get(bucketName);
     }
 
-    Region found = locateBucket(bucketName, associatedCredential);
+    AWSRegion found = locateBucket(bucketName, associatedCredential);
     cache.put(bucketName, found);
     return found;
   }
 
-  private static Region locateBucket(String bucketName, AwsCredential associatedCredential) {
-    Region region = locateBucketUsingHead(bucketName, associatedCredential);
+  private static AWSRegion locateBucket(String bucketName, AwsCredential associatedCredential) {
+    AWSRegion region = locateBucketUsingHead(bucketName, associatedCredential);
     if (region != null) {
       return region;
     }
@@ -50,7 +51,7 @@ public class BucketLocator {
    * <p>However, in practice we noticed it usually fails if the region the client is using is wrong.
    * But the error response, contains the true bucket region which we can extract.
    */
-  private static Region locateBucketUsingHead(
+  private static AWSRegion locateBucketUsingHead(
       String bucketName, AwsCredential associatedCredential) {
     var clientBuilder = new ClientBuilder(associatedCredential, null);
     try (var client = clientBuilder.buildGlobalS3Client()) {
@@ -72,23 +73,24 @@ public class BucketLocator {
     }
   }
 
-  private static Region findRegionInResponse(SdkHttpResponse response) {
+  private static AWSRegion findRegionInResponse(SdkHttpResponse response) {
     Optional<String> regionId = response.firstMatchingHeader("x-amz-bucket-region");
-    return regionId.map(Region::of).orElse(null);
+    return regionId.map(AWSRegion::of).orElse(null);
   }
 
   /**
    * If the new way of getting the region does not work, we use the legacy method. It may not be
    * able to recognize all regions, so it is only used as a fallback.
    */
-  private static Region locateBucketLegacy(String bucketName, AwsCredential associatedCredential) {
+  private static AWSRegion locateBucketLegacy(
+      String bucketName, AwsCredential associatedCredential) {
     var clientBuilder = new ClientBuilder(associatedCredential, null);
     try (var client = clientBuilder.buildGlobalS3Client()) {
       BucketLocationConstraint locationConstraint =
           client.getBucketLocation(builder -> builder.bucket(bucketName)).locationConstraint();
       if (locationConstraint == null) {
         // Weird edge case: documentation says that buckets in region us-east-1 return null
-        return Region.US_EAST_1;
+        return AWSRegion.from(Region.US_EAST_1);
       }
 
       if (locationConstraint == BucketLocationConstraint.UNKNOWN_TO_SDK_VERSION) {
@@ -96,8 +98,8 @@ public class BucketLocator {
         return null;
       }
 
-      var inferredRegion = Region.of(locationConstraint.toString());
-      boolean isKnown = Region.regions().contains(inferredRegion);
+      var inferredRegion = AWSRegion.of(locationConstraint.toString());
+      boolean isKnown = AWSRegion.all().contains(inferredRegion);
       if (isKnown) {
         return inferredRegion;
       } else {

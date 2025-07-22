@@ -1,9 +1,10 @@
-import type { PortId } from '@/providers/portInfo'
+import { syntheticPortId, type PortId } from '@/providers/portInfo'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { DisplayMode } from '@/providers/widgetRegistry/configuration'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { type GraphDb, type MethodCallInfo } from '@/stores/graph/graphDatabase'
 import {
   isRequiredArgument,
   type CallableSuggestionEntry,
@@ -22,7 +23,7 @@ export const enum ApplicationKind {
 
 class ArgumentFactory {
   constructor(
-    private callId: string,
+    private callId: AstId,
     private kind: ApplicationKind,
     private widgetCfg: widgetCfg.FunctionCall | undefined,
   ) {}
@@ -58,13 +59,13 @@ class ArgumentFactory {
   }
 }
 
-type ArgWidgetConfiguration = WidgetConfiguration & { display?: DisplayMode }
+export type DynamicConfig = WidgetConfiguration & { display?: DisplayMode }
 type WidgetInputValue = Ast.Expression | Ast.Token | string | undefined
 abstract class Argument {
   protected constructor(
-    public callId: string,
+    public callId: AstId,
     public kind: ApplicationKind,
-    public dynamicConfig: ArgWidgetConfiguration | undefined,
+    public dynamicConfig: DynamicConfig | undefined,
     public index: number | undefined,
     public argInfo: SuggestionEntryArgument | undefined,
   ) {}
@@ -100,9 +101,9 @@ export class ArgumentPlaceholder extends Argument {
   declare public argInfo: SuggestionEntryArgument
   /** TODO: Add docs */
   constructor(
-    callId: string,
+    callId: AstId,
     kind: ApplicationKind,
-    dynamicConfig: ArgWidgetConfiguration | undefined,
+    dynamicConfig: DynamicConfig | undefined,
     index: number,
     argInfo: SuggestionEntryArgument,
     public insertAsNamed: boolean,
@@ -112,12 +113,13 @@ export class ArgumentPlaceholder extends Argument {
 
   /** TODO: Add docs */
   get portId(): PortId {
-    return `${this.callId}[${this.index}]` as PortId
+    return syntheticPortId(this.callId, this.index)
   }
 
   /** TODO: Add docs */
   get value(): WidgetInputValue {
-    return this.argInfo.defaultValue === null ? undefined : this.argInfo.defaultValue
+    const value = this.argInfo.defaultValue
+    return value == null || isRequiredArgument(this.argInfo) ? undefined : value
   }
 
   /** Whether the argument should be hidden when the component isn't currently focused for editing. */
@@ -134,9 +136,9 @@ export class ArgumentPlaceholder extends Argument {
 export class ArgumentAst extends Argument {
   /** TODO: Add docs */
   constructor(
-    callId: string,
+    callId: AstId,
     kind: ApplicationKind,
-    dynamicConfig: ArgWidgetConfiguration | undefined,
+    dynamicConfig: DynamicConfig | undefined,
     index: number | undefined,
     argInfo: SuggestionEntryArgument | undefined,
     public ast: Ast.Expression,
@@ -216,6 +218,7 @@ interface CallInfo {
   suggestion?: CallableSuggestionEntry | undefined
   widgetCfg?: widgetCfg.FunctionCall | undefined
   subjectAsSelf?: boolean | undefined
+  suppressPlaceholders?: boolean | undefined
 }
 
 /** TODO: Add docs */
@@ -251,7 +254,8 @@ export class ArgumentApplication {
   }
 
   private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
-    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
+    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf, suppressPlaceholders } =
+      callInfo
 
     const knownArguments = suggestion?.arguments
     const allPossiblePrefixArguments = Array.from(knownArguments ?? [], (_, i) => i)
@@ -266,7 +270,9 @@ export class ArgumentApplication {
       allPossiblePrefixArguments.shift()
     }
 
-    const notAppliedOriginally = new Set(notAppliedArguments ?? allPossiblePrefixArguments)
+    const notAppliedOriginally = new Set(
+      suppressPlaceholders ? [] : (notAppliedArguments ?? allPossiblePrefixArguments),
+    )
     const argumentsLeftToMatch = allPossiblePrefixArguments.filter((i) =>
       notAppliedOriginally.has(i),
     )
@@ -432,7 +438,7 @@ export class ArgumentApplication {
       portId:
         this.argument instanceof ArgumentAst ?
           this.appTree.id
-        : (`app:${this.argument.portId}` as PortId),
+        : syntheticPortId(this.argument.portId, ':app:'),
       value: this.appTree,
       [ArgumentApplicationKey]: this,
     }
@@ -499,7 +505,7 @@ const unknownArgInfoNamed = (name: string) => ({
 })
 
 /** TODO: Add docs */
-export function getAccessOprSubject(app: Ast.Expression): Ast.Expression | undefined {
+export function getAccessOprSubject(app: Ast.Expression | undefined): Ast.Expression | undefined {
   if (app instanceof Ast.PropertyAccess) return app.lhs
 }
 

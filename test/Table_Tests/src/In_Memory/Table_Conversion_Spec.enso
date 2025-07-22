@@ -448,7 +448,7 @@ add_specs suite_builder =
                     <c id="4"/>
                   </b>
                 </a>
-            xml = XML_Document.from_text xml_string . root_element
+            xml = XML_Document.parse xml_string . root_element
             t = xml.to Table . expand_to_rows "Children" . expand_column "Children" . expand_to_rows "Children Children" . expand_column "Children Children"
             t.at "Children Children @id" . to_vector . should_equal ["1", "2", "3", "4"]
 
@@ -461,7 +461,7 @@ add_specs suite_builder =
             t.at "Value" . to_vector . should_equal ["My Book"]
 
         group_builder.specify "Converting a node without any child nodes does not produce Value or Children columns" <|
-            xml = XML_Document.from_text '<foo id="10"></foo>'
+            xml = XML_Document.parse '<foo id="10"></foo>'
             t = xml.to Table
             t.at "Name" . to_vector . should_equal ["foo"]
             t.at "@id" . to_vector . should_equal ["10"]

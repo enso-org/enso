@@ -21,6 +21,7 @@ import java.util.Set;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
@@ -842,36 +843,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(module));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
-  @Test
-  public void typeErrorFromAscription() throws Exception {
-    final URI uri = new URI("memory://typeErrorFromAscription.enso");
-    final Source src =
-        Source.newBuilder(
-                "enso",
-                """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    foo =
-                        x = My_Type.Value 12
-                        y = (x : Other_Type)
-                        y
-                    """,
-                uri.getAuthority())
-            .uri(uri)
-            .buildLiteral();
-
-    var module = compile(src);
-    var foo = ModuleUtils.findStaticMethod(module, "foo");
-
-    var y = ModuleUtils.findAssignment(foo, "y");
-    var typeError =
-        new Warning.TypeMismatch(y.expression().identifiedLocation(), "Other_Type", "My_Type");
-    assertEquals(List.of(typeError), ModuleUtils.getDescendantsDiagnostics(y.expression()));
-  }
-
   @Test
   public void noTypeErrorIfConversionExists() throws Exception {
     final URI uri = new URI("memory://noTypeErrorIfConversionExists.enso");
@@ -883,10 +854,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         Value v
                     type Other_Type
                         Value o
-                    Other_type.from (that : My_Type) = Other_Type.Value that.v+1000
+                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+
+                    function_taking_other o:Other_Type =
+                        o.o
+
                     foo =
                         x = My_Type.Value 12
-                        y = (x : Other_Type)
+                        y = function_taking_other x
                         y
                     """,
                 uri.getAuthority())
@@ -903,7 +878,136 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         ModuleUtils.getDescendantsDiagnostics(y.expression()));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
+  @Test
+  public void noTypeErrorIfConversionExistsInTypeScope() throws Exception {
+    final URI uriA = new URI("memory://local.Project1.typeDef.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    type Other_Type
+                        Value o
+                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    final URI uriB = new URI("memory://noTypeErrorIfConversionExistsInTypeScope.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.typeDef import My_Type, Other_Type
+
+                    function_taking_other o:Other_Type =
+                        o.o
+
+                    foo =
+                        x = My_Type.Value 12
+                        y = function_taking_other x
+                        y
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+
+    var moduleB = compile(srcB);
+    var foo = ModuleUtils.findStaticMethod(moduleB, "foo");
+
+    var y = ModuleUtils.findAssignment(foo, "y");
+    assertEquals(
+        "valid conversion should ensure there is no type error",
+        List.of(),
+        ModuleUtils.getDescendantsDiagnostics(y.expression()));
+  }
+
+  @Test
+  public void noTypeErrorIfConversionIsImported() throws Exception {
+    final URI uriA = new URI("memory://local.Project1.typeDef.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    type Other_Type
+                        Value o
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    final URI uriB = new URI("memory://local.Project1.conversionDef.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.typeDef import My_Type, Other_Type
+                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+    compile(srcB);
+
+    final URI uriC = new URI("memory://errorIfNotImported.enso");
+    final Source srcC =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.typeDef import My_Type, Other_Type
+
+                    function_taking_other o:Other_Type =
+                        o.o
+
+                    foo =
+                        x = My_Type.Value 12
+                        y = function_taking_other x
+                        y
+                    """,
+                uriC.getAuthority())
+            .uri(uriC)
+            .buildLiteral();
+
+    var moduleC = compile(srcC);
+    var fooC = ModuleUtils.findStaticMethod(moduleC, "foo");
+    var yC = ModuleUtils.findAssignment(fooC, "y");
+    // Conversion is not imported, so there should be a type error
+    assertTypeMismatch(yC.expression(), "Other_Type", "My_Type");
+
+    var uriD = new URI("memory://noTypeErrorIfConversionIsImported.enso");
+    var srcD =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.typeDef import My_Type, Other_Type
+                    from local.Project1.conversionDef import all
+
+                    function_taking_other o:Other_Type =
+                        o.o
+
+                    foo =
+                        x = My_Type.Value 12
+                        y = function_taking_other x
+                        y
+                    """,
+                uriD.getAuthority())
+            .uri(uriD)
+            .buildLiteral();
+    var moduleD = compile(srcD);
+    var fooD = ModuleUtils.findStaticMethod(moduleD, "foo");
+    var yD = ModuleUtils.findAssignment(fooD, "y");
+    assertEquals(
+        "valid conversion should ensure there is no type error",
+        List.of(),
+        ModuleUtils.getDescendantsDiagnostics(yD.expression()));
+  }
+
   @Test
   public void typeErrorFunctionToObject() throws Exception {
     final URI uri = new URI("memory://typeErrorFunctionToObject.enso");
@@ -916,10 +1020,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
                     foo =
                         f x = x
-                        y = (f : My_Type)
+                        takes_my_type (m : My_Type) = m
+                        y1 = takes_my_type f
                         g (x : My_Type) -> My_Type = x
-                        z = (g : My_Type)
-                        [y, z]
+                        y2 = takes_my_type g
+
+                        takes_function (f : Any -> Any) = f
+                        y3 = takes_function (My_Type.Value 123)
+                        y4 = takes_function My_Type.Value
+                        y5 = takes_function f
+                        [y1, y2, y3, y4, y5]
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -928,19 +1038,23 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var module = compile(src);
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
-    var y = ModuleUtils.findAssignment(foo, "y");
-    var typeError1 =
-        new Warning.TypeMismatch(y.expression().identifiedLocation(), "My_Type", "(Any -> Any)");
-    assertEquals(List.of(typeError1), ModuleUtils.getDescendantsDiagnostics(y.expression()));
+    var y1 = ModuleUtils.findAssignment(foo, "y1");
+    assertTypeMismatch(y1.expression(), "My_Type", "Any -> Any");
 
-    var z = ModuleUtils.findAssignment(foo, "z");
-    var typeError2 =
-        new Warning.TypeMismatch(
-            z.expression().identifiedLocation(), "My_Type", "My_Type -> My_Type");
-    assertEquals(List.of(typeError2), ModuleUtils.getDescendantsDiagnostics(z.expression()));
+    var y2 = ModuleUtils.findAssignment(foo, "y2");
+    assertTypeMismatch(y2.expression(), "My_Type", "My_Type -> My_Type");
+
+    var y3 = ModuleUtils.findAssignment(foo, "y3");
+    assertTypeMismatch(y3.expression(), "Any -> Any", "My_Type");
+
+    // Not-applied constructor _is_ a function
+    var y4 = ModuleUtils.findAssignment(foo, "y4");
+    assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(y4));
+
+    var y5 = ModuleUtils.findAssignment(foo, "y5");
+    assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(y5));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
   @Test
   public void typeErrorInLocalCall() throws Exception {
     final URI uri = new URI("memory://typeErrorInLocalCall.enso");
@@ -976,7 +1090,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(typeError), ModuleUtils.getImmediateDiagnostics(arg));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
+  @Ignore("TODO: distinguish return type ascription (no conversions) from regular one: #12292")
   @Test
   public void typeErrorInReturn() throws Exception {
     final URI uri = new URI("memory://typeErrorInReturn.enso");
@@ -998,9 +1112,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
     var x = ModuleUtils.findAssignment(foo, "x");
-    var typeError =
-        new Warning.TypeMismatch(x.expression().identifiedLocation(), "My_Type", "Integer");
-    assertEquals(List.of(typeError), ModuleUtils.getDescendantsDiagnostics(x.expression()));
+    assertTypeMismatch(x.expression(), "My_Type", "Integer");
   }
 
   @Test
@@ -1137,9 +1249,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x8"));
   }
 
-  @Ignore(
-      "TODO: error can only be reported when we can rule out there is no Other_Type -> My_Type"
-          + " conversion")
   @Test
   public void staticCallWithWrongType() throws Exception {
     final URI uri = new URI("memory://staticCallWithWrongType.enso");
@@ -1170,9 +1279,62 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
     var x1 = ModuleUtils.findAssignment(foo, "x1");
-    var typeError =
-        new Warning.TypeMismatch(x1.expression().identifiedLocation(), "My_Type", "Other_Type");
-    assertEquals(List.of(typeError), ModuleUtils.getDescendantsDiagnostics(x1.expression()));
+    assertTypeMismatch(x1.expression(), "My_Type", "Other_Type");
+  }
+
+  @Test
+  public void defaultArgumentWithWrongType() throws Exception {
+    final URI uri = new URI("memory://defaultArgumentWithWrongType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Value v
+
+            type Other_Type
+                Constructor v
+
+            foo (arg : My_Type = Other_Type.Constructor 1) = arg
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var fooBody = foo.body();
+    if (!(fooBody instanceof Function.Lambda fooLambda)) {
+      fail("Expected the body of the function to be a lambda, but got " + fooBody);
+    } else {
+      var arg = fooLambda.arguments().find((a) -> a.name().name().equals("arg")).get();
+      assertTypeMismatch(arg.defaultValue().get(), "My_Type", "Other_Type");
+    }
+  }
+
+  @Ignore("TODO")
+  @Test
+  public void returnWrongType() throws Exception {
+    final URI uri = new URI("memory://returnWrongType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Value v
+
+            type Other_Type
+                Constructor v
+
+            foo -> My_Type = Other_Type.Constructor 1
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    assertTypeMismatch(foo, "My_Type", "Other_Type");
   }
 
   @Test
@@ -1283,6 +1445,46 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                 x5.expression().identifiedLocation(),
                 "member method `static_method` on type My_Type")),
         ModuleUtils.getImmediateDiagnostics(x5.expression()));
+  }
+
+  @Test
+  public void noSuchMethodInsideMethodWithDefaultArgs() throws Exception {
+    final URI uri = new URI("memory://noSuchMethodInsideMethodWithArgs.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Any.Any
+
+                    type My_Type
+                        Value v
+                        method_one self = 42
+
+                    foo arg1 arg2="default" =
+                        inst = My_Type.Value 23
+                        x1 = inst.method_one
+                        x2 = inst.nonexistent
+                        [x1, x2]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var x1 = ModuleUtils.findAssignment(foo, "x1");
+    var x2 = ModuleUtils.findAssignment(foo, "x2");
+
+    // member method is defined
+    assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(x1.expression()));
+
+    // this method is not found
+    assertEquals(
+        List.of(
+            new Warning.NoSuchMethod(
+                x2.expression().identifiedLocation(),
+                "member method `nonexistent` on type My_Type")),
+        ModuleUtils.getImmediateDiagnostics(x2.expression()));
   }
 
   @Test
@@ -1692,14 +1894,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     ProjectUtils.createProject("Proj", mainSrc, projDir);
     var out = new ByteArrayOutputStream();
     var ctxBuilder =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .currentWorkingDirectory(projDir.getParent())
-            .out(out)
-            .err(out)
-            .logHandler(out);
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+                        .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
+                        .option(RuntimeOptions.STRICT_ERRORS, "true")
+                        .currentWorkingDirectory(projDir.getParent())
+                        .out(out)
+                        .err(out)
+                        .logHandler(out));
     ProjectUtils.testProjectRun(
         ctxBuilder,
         projDir,
@@ -1773,5 +1977,18 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     } else {
       fail("Expected " + ir.showCode() + " to have a SumType, but got " + type);
     }
+  }
+
+  private void assertTypeMismatch(IR ir, String expectedType, String gotType) {
+    var diagnostics = ModuleUtils.getDescendantsDiagnostics(ir);
+    assertThat("exactly 1 diagnostic expected but got " + diagnostics, diagnostics.size() == 1);
+
+    var diagnostic = diagnostics.get(0);
+    if (!(diagnostic instanceof Warning.TypeMismatch typeMismatch)) {
+      throw new AssertionError("Expected Warning.TypeMismatch but got " + diagnostic);
+    }
+
+    assertEquals(expectedType, typeMismatch.expectedType());
+    assertEquals(gotType, typeMismatch.actualType());
   }
 }

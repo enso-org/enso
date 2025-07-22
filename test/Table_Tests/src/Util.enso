@@ -1,8 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Database.DB_Table.DB_Table
-import Standard.Database.DB_Column.DB_Column
 from Standard.Table import Column, Table
 
 from Standard.Test import all
@@ -12,29 +10,20 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 Table.should_equal : Any -> Boolean -> Any
 Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected ignore_order) error->
+    ## For DB_Tables we want to materialise and then compare.
+       For In_Memory_Tables these are no-ops
+    materialised_self = self.read
+    materialised_expected = expected.read
+    Panic.catch Test_Failure_Error (table_should_equal_impl materialised_self materialised_expected ignore_order) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Any
 Column.should_equal self expected = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (column_should_equal_impl self expected) error->
+    self_materialized = self.read ..All_Rows
+    expected_materialized = expected.read ..All_Rows
+    Panic.catch Test_Failure_Error (column_should_equal_impl self_materialized expected_materialized) error->
         Test.fail error.payload.message
-
-DB_Table.should_equal : DB_Table|Table -> Boolean -> Any
-DB_Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
-    rhs_error_check expected
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1 ignore_order
-
-DB_Column.should_equal : DB_Column -> Any
-DB_Column.should_equal self expected = Frame_Hider.hide <|
-    rhs_error_check expected
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1
-
 type Test_Failure_Error
     ## PRIVATE
        The runtime representation of a test failure.
@@ -71,7 +60,7 @@ column_should_equal_impl actual expected should_display:Boolean=True = Frame_Hid
                 Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc should_display)+'.')
             if actual.value_type != expected.value_type then
                 Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc should_display)+'.')
-            actual.zip expected skip_nothing=False a-> e->
+            actual.to Vector . zip (expected.to Vector) skip_nothing=False a-> e->
                 if values_not_equal a e then
                     report_fail actual expected should_display
         _ -> Panic.throw (Test_Failure_Error.Error "Got a Column, but expected a "+expected.to_display_text+(display_loc should_display)+'.')
@@ -82,7 +71,7 @@ values_not_equal a e =
 
 ## PRIVATE
 report_fail actual expected should_display = Frame_Hider.hide <|
-    indexed = actual.zip (0.up_to actual.length) skip_nothing=False a-> i-> Pair.new a i
+    indexed = actual.to Vector . zip (0.up_to actual.length) skip_nothing=False a-> i-> Pair.new a i
     indexed.zip expected skip_nothing=False a-> e->
         if values_not_equal a.first e then
             Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc should_display)+'.')

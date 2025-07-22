@@ -17,6 +17,7 @@ import project.Errors.Deprecated.Deprecated
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
+import project.Runtime.Source_Location.Source_Location
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
@@ -80,7 +81,7 @@ Decimal.from (that:JS_Object) =
     case that.get "type" == "Decimal" && ["value", "scale", "precision"].all that.contains_key of
         True ->
             math_context = Math_Context.new (that.at "precision")
-            raw_value = Decimal.from_text (that.at "value") math_context
+            raw_value = Decimal.parse (that.at "value") mc=math_context
             raw_value.set_scale (that.at "scale")
         False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Decimal.")
 
@@ -110,7 +111,7 @@ Nothing.to_js_object self = self
 Array.to_js_object : Vector
 Array.to_js_object self =
     stripped = Warning.clear self
-    proxy = Array_Proxy.new stripped.length i-> stripped.at i .to_js_object
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
 ## PRIVATE
@@ -195,3 +196,15 @@ Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | JS_Object
 Text.parse_fast_json self =
     warning = Deprecated.Warning "Standard.Base.Data.Text.Text" "parse_fast_json" "Deprecated: The `parse_json` method uses a faster implementation now by default"
     Warning.attach warning self.parse_json
+
+## PRIVATE
+   ICON convert
+   Extension for Source_Location to allow use.
+Source_Location.to_js_object self =
+    pairs = Vector.build initial_capacity=5 b->
+        b.append ["type", "Source_Location"]
+        b.append ["file", self.file]
+        b.append ["start_line", self.start_line]
+        b.append ["start_column", self.start_column]
+        b.append ["end_column", self.end_column]
+    JS_Object.from_pairs pairs

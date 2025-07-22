@@ -37,7 +37,7 @@ impl From<bool> for Boolean {
 }
 
 ide_ci::define_env_var! {
-    JAVA_OPTS, String;
+    JAVA_TOOL_OPTIONS, String;
     ENSO_BENCHMARK_TEST_DRY_RUN, Boolean;
 }
 
@@ -73,14 +73,14 @@ pub struct BuiltEnso {
 }
 
 impl BuiltEnso {
-    pub fn wrapper_script_path(&self) -> PathBuf {
-        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
+    pub fn wrapper_script_path(&self, native_image: bool) -> PathBuf {
+        let win_ext = if native_image { ".exe" } else { ".bat" };
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { win_ext } else { "" });
         self.paths.repo_root.built_distribution.enso_engine_triple.engine_package.bin.join(filename)
     }
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
         let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
-        let base_working_directory = self.paths.repo_root.test.benchmarks.try_parent()?;
         let enso = self
             .paths
             .repo_root
@@ -89,9 +89,19 @@ impl BuiltEnso {
             .engine_package
             .bin
             .join(filename);
+        let small_jdk_dir = &self.paths.repo_root.target.small_jdk;
+        if !small_jdk_dir.path.exists() {
+            bail!("Small JDK directory does not exist: {}", small_jdk_dir.path.display());
+        }
+        let small_jdk_dir_absolutized = small_jdk_dir.path.absolutize()?;
+        let small_jdk_dir_path = small_jdk_dir_absolutized.as_str();
         let benchmarks = Command::new(&enso)
-            .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
-            .current_dir(base_working_directory)
+            .args([
+                "--jvm",
+                small_jdk_dir_path,
+                "--run",
+                self.paths.repo_root.test.benchmarks.as_str(),
+            ])
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await;
@@ -103,17 +113,28 @@ impl BuiltEnso {
         test_path: impl AsRef<Path>,
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
+        extra_args: Option<Vec<String>>,
+        native_image: bool,
     ) -> Result<Command> {
-        let mut command = self.cmd()?;
-        let base_working_directory = test_path.try_parent()?;
+        let mut command = if native_image {
+            let enso = self.wrapper_script_path(native_image);
+            Command::new(&enso)
+        } else {
+            self.cmd()?
+        };
+        if let Some(args) = extra_args {
+            command.args(args);
+        }
         command
             .arg(ir_caches)
             .arg("--run")
             .arg(test_path.as_ref())
-            .current_dir(base_working_directory)
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
-            .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
+            .set_env(
+                JAVA_TOOL_OPTIONS,
+                &ide_ci::programs::java::Option::EnableAssertions.as_ref(),
+            )?;
 
         for (k, v) in environment_overrides {
             command.env(k, &v);
@@ -137,40 +158,52 @@ impl BuiltEnso {
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
+        extra_runner_args: Option<Vec<String>>,
+        native_image: bool,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
-        ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
-        ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+        ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path(native_image))?;
+        if let Some(args) = &extra_runner_args {
+            ENSO_META_TEST_ARGS.set(&format!("{} {} --run", ir_caches.flag(), args.join(" ")))?;
+        } else {
+            ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+        }
 
         ENSO_ENABLE_ASSERTIONS.set("true")?;
         ENSO_TEST_ANSI_COLORS.set("true")?;
 
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
-            let google_api_test_data_dir =
-                paths.repo_root.join("test").join("Google_Api_Test").join("data");
-            ide_ci::fs::create_dir_if_missing(&google_api_test_data_dir)?;
-            ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
+            let google_test_data_dir =
+                paths.repo_root.join("test").join("Google_Test").join("data");
+            ide_ci::fs::create_dir_if_missing(&google_test_data_dir)?;
+            ide_ci::fs::write(google_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
-        let std_tests = match &test_selection {
-            StandardLibraryTestsSelection::All =>
-                crate::paths::discover_standard_library_tests(&paths.repo_root)?,
-            StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().map(|test| paths.repo_root.test.join(test)).collect(),
+        let std_tests: Vec<_> = match &test_selection {
+            StandardLibraryTestsSelection::Whitelist(whitelist) => {
+                let all_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
+                all_tests
+                    .into_iter()
+                    .filter(|test| {
+                        whitelist.iter().any(|allow| test.to_string_lossy().contains(allow))
+                    })
+                    .collect()
+            }
+            StandardLibraryTestsSelection::Blacklist(blacklist) => {
+                let all_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
+                all_tests
+                    .into_iter()
+                    .filter(|test| {
+                        blacklist.iter().all(|deny| !test.to_string_lossy().contains(deny))
+                    })
+                    .collect()
+            }
         };
-        let may_need_postgres = match &test_selection {
-            StandardLibraryTestsSelection::All => true,
-            StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("Table_Tests")),
-        };
-        let may_need_sqlserver = match &test_selection {
-            StandardLibraryTestsSelection::All => true,
-            StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("Microsoft_Tests")),
-        };
+        let may_need_postgres = test_selection.is_allowed(&"Table_Tests".to_owned());
+        let may_need_sqlserver = test_selection.is_allowed(&"Microsoft_Tests".to_owned());
 
         let cloud_credentials_file = match cloud_tests::build_auth_config_from_environment() {
             Ok(config) => {
@@ -243,17 +276,21 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_CLOUD_CREDENTIALS_FILE.name().to_string(),
                 path.to_string(),
             ));
-            // We do not set ENSO_CLOUD_API_URI - we rely on the default, or any existing overrides.
+            // We do not set ENSO_CLOUD_API_URL - we rely on the default, or any existing overrides.
             environment_overrides.push((
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),
             ));
-            environment_overrides.push(("ENSO_LAUNCHER".to_string(), "native".to_string()));
         };
 
         let futures = std_tests.into_iter().map(|test_path| {
-            let command: std::result::Result<Command, anyhow::Error> =
-                self.run_test(test_path, ir_caches, environment_overrides.clone());
+            let command: std::result::Result<Command, anyhow::Error> = self.run_test(
+                test_path,
+                ir_caches,
+                environment_overrides.clone(),
+                extra_runner_args.clone(),
+                native_image,
+            );
             async move { command?.run_ok().await }
         });
 
@@ -298,7 +335,7 @@ impl Program for BuiltEnso {
     }
 
     fn cmd(&self) -> Result<Command> {
-        ide_ci::platform::DEFAULT_SHELL.run_script(self.wrapper_script_path())
+        Ok(Command::new(self.wrapper_script_path(true)))
     }
 
     fn version_string(&self) -> BoxFuture<'static, Result<String>> {

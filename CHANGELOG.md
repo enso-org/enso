@@ -2,6 +2,124 @@
 
 #### Enso IDE
 
+- [Add syntax highlighting for Table expressions][12778]
+- [Allow adding and reordering component group arguments][12850]
+- [Display component evaluation progress][12913]
+- [Editing multiline text literals is now supported][12774]
+- [Type annotations are now visible in the graph editor][12751]
+- [Component Browser shows methods with respect to possible type casts][12751]
+- [Add option to browse cloud for secret values][12953]
+- [Add option to create a new secret in the graph editor's cloud browser][12985]
+- [Allow editing grouped component argument names.][13014]
+- [Add ability to inspect column, row and value from right click on table
+  viz][12986]
+- [Add option to browse cloud for folders][13117]
+- [File Browser Widget: Add ability to filter files by extension][13048]
+- [Add keyboard shortcuts for formatting documentation][13134]
+- [New right-side panel][13135], unified between tabs.
+- [Allow selecting expected types for arguments of grouped components.][13161]
+- [Methods for ‘intersection’ types are now visible in Component
+  Browser.][13266]
+- [Allow marking grouped component arguments as required or providing a default
+  value.][13254]
+- [New Right Panel Tab with Markdown Description Editor][13347]
+- [Panic on unresolved type checks in the IDE][13467]
+- [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
+  resulting in an Error page without option of returning back to Local.][13366]
+- ["Grouped Components" are renamed to "User Defined Components"][13389]
+- [Allow displaying cloud images using enso:// url in documentation][13419]
+- [File Browser Widget is used when editing file paths to datalinks][13439]
+- [Graph is not moved when showing/resizing side panels.][13557]
+- [Add "Invite" button to the top bar when using a team or higher plan][13522]
+- ["Welcome Project" is automatically opened for new users][13479]
+
+[12774]: https://github.com/enso-org/enso/pull/12774
+[12778]: https://github.com/enso-org/enso/pull/12778
+[12850]: https://github.com/enso-org/enso/pull/12850
+[12913]: https://github.com/enso-org/enso/pull/12913
+[12751]: https://github.com/enso-org/enso/pull/12751
+[12953]: https://github.com/enso-org/enso/pull/12953
+[12985]: https://github.com/enso-org/enso/pull/12985
+[13014]: https://github.com/enso-org/enso/pull/13014
+[12986]: https://github.com/enso-org/enso/pull/12986
+[13117]: https://github.com/enso-org/enso/pull/13117
+[13048]: https://github.com/enso-org/enso/pull/13048
+[13134]: https://github.com/enso-org/enso/pull/13134
+[13135]: https://github.com/enso-org/enso/pull/13135
+[13161]: https://github.com/enso-org/enso/pull/13161
+[13266]: https://github.com/enso-org/enso/pull/13266
+[13254]: https://github.com/enso-org/enso/pull/13254
+[13347]: https://github.com/enso-org/enso/pull/13347
+[13467]: https://github.com/enso-org/enso/pull/13467
+[13366]: https://github.com/enso-org/enso/pull/13366
+[13389]: https://github.com/enso-org/enso/pull/13389
+[13419]: https://github.com/enso-org/enso/pull/13419
+[13439]: https://github.com/enso-org/enso/pull/13439
+[13557]: https://github.com/enso-org/enso/pull/13557
+[13522]: https://github.com/enso-org/enso/pull/13522
+[13479]: https://github.com/enso-org/enso/pull/13479
+
+#### Enso Standard Library
+
+- [Support for reading fixed-width-column data files.][12726]
+- [Added `row_limit` parameter to the `Fixed_Width` format.][12950]
+- [Add Tableau Hyper write support][12900]
+- [Support character encodings when reading fixed-width files.][13138]
+- [Initial Microsoft Azure support][13144]
+- [Column inference for fixed-width files.][13240]
+- [Specify fixed-width file layout with a `Vector` or `Column` of
+  widths.][13240]
+- [Use `Filter_Condition.Predicate` to provide custom condition.][13460]
+- [Support `skip_rows` and `on_empty_field` for fixed-width files.][13240]
+- [Add Google_Sheets.read][13307]
+- [Align the Generic JDBC Connection with the main Connection type][13365]
+- [Add `execute_query` to the `Connection` types.][13415]
+- [`Meta.meta` recognizes functions as `Meta.Function`][13443]
+- [`Meta.Unresolved_Symbol` renamed to `Meta.Unresolved`][13443]
+- [Remane Google_Api library to Google][13436]
+- [Data.read_many now returns the read path as a char field][13475]
+- [Add prototype `find_group_number` function to Table][13487]
+
+[12726]: https://github.com/enso-org/enso/pull/12726
+[12950]: https://github.com/enso-org/enso/pull/12950
+[12900]: https://github.com/enso-org/enso/pull/12900
+[13138]: https://github.com/enso-org/enso/pull/13138
+[13144]: https://github.com/enso-org/enso/pull/13144
+[13240]: https://github.com/enso-org/enso/pull/13240
+[13307]: https://github.com/enso-org/enso/pull/13307
+[13460]: https://github.com/enso-org/enso/pull/13460
+[13365]: https://github.com/enso-org/enso/pull/13365
+[13415]: https://github.com/enso-org/enso/pull/13415
+[13415]: https://github.com/enso-org/enso/pull/13443
+[13436]: https://github.com/enso-org/enso/pull/13436
+[13443]: https://github.com/enso-org/enso/pull/13443
+[13475]: https://github.com/enso-org/enso/pull/13475
+[13487]: https://github.com/enso-org/enso/pull/13487
+
+#### Enso Language & Runtime
+
+- [Allow optional path for `--jvm` option of `project-manager`][13225]
+- [Prevent `Meta` access to private constructors and private fields][12905]
+- [Encapsulating Private_Access constructor][12976]
+- [Upgrading Truffle][12500] (including its
+  [JavaScript](https://www.graalvm.org/javascript/) and
+  [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
+- [Upgrade GraalVM from JDK 21 to JDK 24][12855]
+- [Use JAVA_TOOL_OPTIONS env variable to alter JVM arguments][13256]
+- [Check private access at resolution, not on invocation][13392]
+
+[12500]: https://github.com/enso-org/enso/pull/12500
+[12976]: https://github.com/enso-org/enso/pull/12976
+[12855]: https://github.com/enso-org/enso/pull/12855
+[12905]: https://github.com/enso-org/enso/pull/12905
+[13225]: https://github.com/enso-org/enso/pull/13225
+[13256]: https://github.com/enso-org/enso/pull/13256
+[13392]: https://github.com/enso-org/enso/pull/13392
+
+# Enso 2025.1
+
+#### Enso IDE
+
 - [ENSO_IDE_MAPBOX_API_TOKEN environment variable should be provided to enable
   GeoMap visualization][11889].
 - [Round ‘Add component’ button under the component menu replaced by a small
@@ -53,7 +171,11 @@
 - [Output port ‘plus’ button is hidden if there are existing outgoing
   connections][12576]
 - [Navigate up button for file browser and collapsed components][12603]
+- [Resizing visualization in Table.input component resizes the table widget
+  too][12643]
+- [File Browser Widget warns when trying to override an existing file][12644]
 - [Add right-click context menu to the graph editor background][12601]
+- [Fixed appearance of Cloud Browser scrollbars][12831]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -89,7 +211,10 @@
 [12502]: https://github.com/enso-org/enso/pull/12502
 [12576]: https://github.com/enso-org/enso/pull/12576
 [12603]: https://github.com/enso-org/enso/pull/12603
+[12643]: https://github.com/enso-org/enso/pull/12643
+[12644]: https://github.com/enso-org/enso/pull/12644
 [12601]: https://github.com/enso-org/enso/pull/12603
+[12831]: https://github.com/enso-org/enso/pull/12831
 
 #### Enso Standard Library
 
@@ -119,6 +244,13 @@
   regex_match in the expression language][12492]
 - [Added `add_group_number` for Postgres and SQLite.][12574]
 - [Added `add_group_number` for Snowflake and SQLServer.][12590]
+- [Added `skip_nothing` and `report_unmatched` arguments to `Vector.zip`][12626]
+- [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
+  parameter][12626]
+- [Added Regex_match for Postgres][12663]
+- [Added Regex_match for Snowflake][12671]
+- [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
+  methods][12641]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -140,6 +272,10 @@
 [12492]: https://github.com/enso-org/enso/pull/12492
 [12574]: https://github.com/enso-org/enso/pull/12574
 [12590]: https://github.com/enso-org/enso/pull/12590
+[12626]: https://github.com/enso-org/enso/pull/12626
+[12663]: https://github.com/enso-org/enso/pull/12663
+[12671]: https://github.com/enso-org/enso/pull/12671
+[12641]: https://github.com/enso-org/enso/pull/12641
 
 #### Enso Language & Runtime
 
@@ -292,6 +428,8 @@
 - [Added `Table.geo_distance` to calculate the distance between two
   points.][12393]
 - [The reload button clears the Enso Cloud request cache.][12526]
+- [The reload button clears the AuthenticationProvider, EnsoSecretReader and
+  AuditLog caches.][12541]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -306,6 +444,7 @@
 [12017]: https://github.com/enso-org/enso/pull/12017
 [12393]: https://github.com/enso-org/enso/pull/12393
 [12526]: https://github.com/enso-org/enso/pull/12526
+[12541]: https://github.com/enso-org/enso/pull/12526
 
 #### Enso Language & Runtime
 

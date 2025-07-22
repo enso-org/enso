@@ -32,11 +32,9 @@ class EditFileCmd(request: Api.EditFileNotification)
           () => {
             logger.trace(
               "Adding pending file [{}] edits [{}] and IdMap of length {}",
-              Array[Any](
-                MaskedPath(request.path.toPath),
-                request.edits.map(e => (e.range, e.text.length)),
-                request.idMap.map(_.values.length)
-              )
+              MaskedPath(request.path.toPath),
+              request.edits.map(e => (e.range, e.text.length)),
+              request.idMap.map(_.values.length)
             )
             val edits =
               request.edits.map(edit =>

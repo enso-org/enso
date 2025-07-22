@@ -4,7 +4,7 @@
     - all_character_sets -> Standard.Base.Any.Any
     - all_encodings -> Standard.Base.Any.Any
     - ascii -> Standard.Base.Any.Any
-    - character_set_name self -> Standard.Base.Any.Any
+    - character_set_name self -> Standard.Base.Data.Text.Text!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - default -> Standard.Base.Data.Text.Encoding.Encoding
     - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
     - from_java_charset charset:Standard.Base.Data.Text.Encoding.Charset -> Standard.Base.Data.Text.Encoding.Encoding

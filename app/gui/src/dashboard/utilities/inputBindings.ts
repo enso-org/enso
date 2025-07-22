@@ -2,12 +2,12 @@
  * @file Exports `defineKeybinds`, a function to define a namespace containing keyboard and mouse
  * shortcuts.
  */
-import * as detect from 'enso-common/src/detect'
-
+import type { SvgUseIcon } from '#/components/types'
 import * as eventModule from '#/utilities/event'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+import * as detect from 'enso-common/src/detect'
 
 /** A keyboard key obtained from `KeyboardEvent.key`. */
 type KeyName = newtype.Newtype<string, 'keyboard key'>
@@ -340,7 +340,6 @@ type AutocompleteKeybinds<T extends readonly string[]> = {
 
 /** A list of keybinds, with metadata describing its purpose. */
 export interface KeybindsWithMetadata {
-  readonly name: string
   readonly bindings: readonly [] | readonly string[]
   readonly description?: string
   readonly icon?: string
@@ -357,10 +356,9 @@ export interface KeybindsWithMetadata {
  * errors.
  */
 export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
-  readonly name: string
   readonly bindings: AutocompleteKeybinds<T['bindings']>
   readonly description?: string
-  readonly icon?: string
+  readonly icon?: SvgUseIcon
   readonly color?: string
   /** Defaults to `true`. */
   readonly rebindable?: boolean
@@ -530,8 +528,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   >(
     handlers: Partial<
       // This MUST be `void` to allow implicit returns.
-      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-      Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
+      Record<
+        BindingKey | typeof DEFAULT_HANDLER,
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        (event: Event, matchingBindings: Set<BindingKey>) => boolean | void
+      >
     >,
     stopAndPrevent = true,
   ): ((event: Event, stopAndPrevent?: boolean) => boolean) => {
@@ -545,11 +546,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
               PointerButtonFlags(event.buttons)
             : buttonToPointerButtonFlags(event.button)
           ]?.[eventModifierFlags]
-      let handle = handlers[DEFAULT_HANDLER]
       const isTextInputFocused = eventModule.isElementTextInput(document.activeElement)
       const isTextInputEvent =
         'key' in event && (eventModule.isTextInputEvent(event) || event.key === 'Enter')
       const shouldIgnoreEvent = isTextInputFocused && isTextInputEvent
+      let handle = shouldIgnoreEvent ? null : handlers[DEFAULT_HANDLER]
       if (matchingBindings != null && !shouldIgnoreEvent) {
         for (const bindingNameRaw in handlers) {
           // This is SAFE, because `handlers` is an object with identical keys to `T`,
@@ -564,7 +565,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       }
       if (handle == null) {
         return false
-      } else if (handle(event) === false) {
+      } else if (handle(event, matchingBindings ?? new Set()) === false) {
         return false
       } else {
         if (innerStopAndPrevent) {
@@ -594,8 +595,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     eventName: EventName,
     handlers: Partial<
       // This MUST be `void` to allow implicit returns.
-      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-      Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
+      Record<
+        BindingKey | typeof DEFAULT_HANDLER,
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        (event: Event, matchingBindings: Set<BindingKey>) => boolean | void
+      >
     >,
     stopAndPrevent = true,
   ) => {

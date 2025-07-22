@@ -10,7 +10,6 @@ import org.slf4j.event.Level
 import java.net.URI
 import org.enso.runtimeversionmanager.components.{Engine, RuntimeVersionManager}
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
-import org.enso.runtimeversionmanager.runner.Runner.ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME
 
 import java.nio.file.Path
 
@@ -45,7 +44,7 @@ class Runner(
     path: Path,
     name: String,
     engineVersion: SemVer,
-    jvmMode: Boolean,
+    jvm: Option[Option[Path]],
     normalizedName: Option[String],
     projectTemplate: Option[String],
     authorName: Option[String],
@@ -81,7 +80,7 @@ class Runner(
       }
       RunSettings(
         engineVersion,
-        jvmMode,
+        jvm,
         arguments,
         workingDirectory         = None,
         connectLoggerIfAvailable = false
@@ -105,7 +104,8 @@ class Runner(
       version,
       logLevel,
       logMasking,
-      additionalArguments
+      additionalArguments,
+      Seq()
     )
   }
 
@@ -116,7 +116,8 @@ class Runner(
     version: SemVer,
     logLevel: Level,
     logMasking: Boolean,
-    additionalArguments: Seq[String]
+    additionalArguments: Seq[String],
+    extraEnv: Seq[(String, String)]
   ): Try[RunSettings] =
     Try {
       val arguments = Seq(
@@ -146,13 +147,11 @@ class Runner(
       val projectDirectory = Path.of(projectPath).toAbsolutePath.normalize
       RunSettings(
         version,
-        options.jvmModeEnabled,
+        options.jvm,
         arguments ++ additionalArguments,
         workingDirectory         = Some(projectDirectory.getParent),
         connectLoggerIfAvailable = true,
-        extraEnv = Seq(
-          ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME -> projectDirectory.toString
-        )
+        extraEnv                 = extraEnv
       )
     }
 
@@ -175,9 +174,8 @@ class Runner(
     def prepareAndRunCommand(engine: Engine, cmd: ExecCommand): R = {
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
-        logger.debug(
-          "Picking up additional JVM options [{}] from the " +
-          "[{}] environment variable.",
+        logger.info(
+          "Additional JVM options [{}] from the {} environment variable.",
           MaskedString(opts),
           JVM_OPTIONS_ENV_VAR
         )
@@ -234,13 +232,19 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            val ensoLauncher = Option(System.getenv(Runner.LAUNCHER_ENV_NAME))
-            val requiresJVMRunner =
-              ensoLauncher.exists(_.equals("shell")) || runSettings.jvmMode
-            if (requiresJVMRunner) {
+            if (runSettings.jvm.isDefined) {
+              val javaHome = runSettings.jvm.get
+              val javaExec = javaHome
+                .map(home =>
+                  new JavaExecCommand(
+                    home.resolve("bin").resolve("java").toString,
+                    javaHome.map(_.toString)
+                  )
+                )
+                .getOrElse(JavaExecCommand.forRuntime(runtime))
               prepareAndRunCommand(
                 engine,
-                JavaExecCommand.forRuntime(runtime)
+                javaExec
               )
             } else {
               NativeExecCommand.apply(
@@ -323,13 +327,4 @@ class Runner(
         globalConfigurationManager.defaultVersion
     }
   }
-}
-
-object Runner {
-
-  private val LAUNCHER_ENV_NAME = "ENSO_LAUNCHER"
-
-  /** The variable is used in stdlib to resolve relative paths. */
-  private val ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME =
-    "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
 }

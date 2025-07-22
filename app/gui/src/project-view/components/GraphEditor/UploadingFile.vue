@@ -1,26 +1,24 @@
 <script setup lang="ts">
-import type { UploadingFile } from '@/stores/awareness'
+import { useProgressBackground } from '@/composables/progressBar'
+import { type UploadingFile } from '@/stores/awareness'
 import { computed } from 'vue'
 
-const props = defineProps<{
+const { name, file } = defineProps<{
   name: string
   file: UploadingFile
 }>()
 
 const transform = computed(() => {
-  const pos = props.file.position
+  const pos = file.position
   return `translate(${pos.x}px, ${pos.y}px)`
 })
 
-const backgroundOffset = computed(() => 200 - props.file.sizePercentage)
+const { progressStyles } = useProgressBackground(() => file.sizePercentage)
 </script>
 
 <template>
-  <div
-    class="UploadingFile"
-    :style="{ transform, 'background-position': `${backgroundOffset}% 0` }"
-  >
-    <span>{{ `Uploading ${props.name} (${props.file.sizePercentage}%)` }}</span>
+  <div class="UploadingFile" :style="{ transform, ...progressStyles }">
+    {{ `Uploading ${name} (${file.sizePercentage}%)` }}
   </div>
 </template>
 
@@ -35,7 +33,7 @@ const backgroundOffset = computed(() => 200 - props.file.sizePercentage)
   white-space: nowrap;
   padding: 4px 8px;
   z-index: 2;
-  background: linear-gradient(to right, #e0e0e0 0%, #e0e0e0 50%, #ffffff 50%, #ffffff 100%);
-  background-size: 200% 100%;
+  --progress-background-initial: #e0e0e0;
+  --progress-background-final: #ffffff;
 }
 </style>

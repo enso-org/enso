@@ -4,10 +4,10 @@ import type * as queryCore from '@tanstack/query-core'
 
 import type Backend from './services/Backend'
 import * as backendModule from './services/Backend'
-import * as object from './utilities/data/object'
+import * as objects from './utilities/data/object'
 
 /** The properties of the Backend type that are methods. */
-export type BackendMethods = object.ExtractKeys<Backend, object.MethodOf<Backend>>
+export type BackendMethods = objects.ExtractKeys<Backend, objects.MethodOf<Backend>>
 
 /** Ensure that the given type contains only names of backend methods. */
 type DefineBackendMethods<T extends BackendMethods> = T
@@ -19,7 +19,9 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'changeUserGroup'
   | 'closeProject'
   | 'copyAsset'
+  | 'cancelSubscription'
   | 'createCheckoutSession'
+  | 'createCredential'
   | 'createDatalink'
   | 'createDirectory'
   | 'createPermission'
@@ -82,25 +84,25 @@ export const INVALIDATION_MAP: Partial<
   changeUserGroup: [INVALIDATE_ALL_QUERIES],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
-  associateTag: ['listDirectory'],
+  associateTag: ['listDirectory', 'getAssetDetails'],
   acceptInvitation: [INVALIDATE_ALL_QUERIES],
   declineInvitation: ['usersMe'],
-  createProject: ['listDirectory'],
-  duplicateProject: ['listDirectory'],
-  createDirectory: ['listDirectory'],
-  createSecret: ['listDirectory'],
-  updateSecret: ['listDirectory'],
-  updateProject: ['listDirectory'],
-  updateFile: ['listDirectory'],
-  updateDirectory: ['listDirectory'],
-  createDatalink: ['listDirectory', 'getDatalink'],
-  uploadFileEnd: ['listDirectory', 'listAssetVersions'],
-  copyAsset: ['listDirectory', 'listAssetVersions'],
-  deleteAsset: ['listDirectory', 'listAssetVersions'],
-  undoDeleteAsset: ['listDirectory'],
-  updateAsset: ['listDirectory', 'listAssetVersions'],
-  openProject: ['listDirectory'],
-  closeProject: ['listDirectory', 'listAssetVersions'],
+  createProject: ['listDirectory', 'getAssetDetails'],
+  duplicateProject: ['listDirectory', 'getAssetDetails'],
+  createDirectory: ['listDirectory', 'getAssetDetails'],
+  createSecret: ['listDirectory', 'getAssetDetails'],
+  updateSecret: ['listDirectory', 'getAssetDetails'],
+  updateProject: ['listDirectory', 'getAssetDetails'],
+  updateFile: ['listDirectory', 'getAssetDetails'],
+  updateDirectory: ['listDirectory', 'getAssetDetails'],
+  createDatalink: ['listDirectory', 'getDatalink', 'getAssetDetails'],
+  uploadFileEnd: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  copyAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  deleteAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  undoDeleteAsset: ['listDirectory', 'getAssetDetails'],
+  updateAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  openProject: ['listDirectory', 'getAssetDetails'],
+  closeProject: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
   createProjectExecution: ['listProjectExecutions'],
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
@@ -115,7 +117,7 @@ type BackendQueryNormalizers = {
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: (query) => [query.parentId, object.omit(query, 'parentId')],
+  listDirectory: (query) => [query.parentId, objects.omit(query, 'parentId')],
   getFileDetails: (fileId) => [fileId],
 }
 
@@ -144,12 +146,15 @@ export function backendQueryOptions<Method extends BackendMethods>(
 }
 
 /** Returns the QueryKey to use for the given backend method invocation. */
-export function backendQueryKey<Method extends BackendMethods>(
+export function backendQueryKey<
+  Method extends BackendMethods,
+  TQueryKey extends queryCore.QueryKey = queryCore.QueryKey,
+>(
   backend: Backend | null,
   method: Method,
   args: Readonly<Parameters<Backend[Method]>>,
-  keyExtra?: queryCore.QueryKey | undefined,
-): queryCore.QueryKey {
+  keyExtra?: TQueryKey | undefined,
+) {
   return [backend?.type, method, ...normalizeMethodQuery(method, args), ...(keyExtra ?? [])]
 }
 

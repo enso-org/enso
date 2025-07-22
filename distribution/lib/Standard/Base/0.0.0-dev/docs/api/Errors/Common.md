@@ -45,6 +45,8 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Conversion_Target
     - Error target:Standard.Base.Any.Any
+- type Length_Mismatch
+    - to_display_text self -> Standard.Base.Any.Any
 - type Loss_Of_Numeric_Precision
     - Warning original_value:Standard.Base.Any.Any new_value:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
@@ -52,6 +54,9 @@
 - type Missing_Argument
     - Error argument_name:Standard.Base.Data.Text.Text function_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= call_location:(Standard.Base.Runtime.Source_Location.Source_Location|Standard.Base.Nothing.Nothing)= message:Standard.Base.Data.Text.Text=
     - throw argument_name:Standard.Base.Data.Text.Text message_override:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Mixed_Signed_And_Unsigned_Bytes
+    - Error
     - to_display_text self -> Standard.Base.Any.Any
 - type Module_Does_Not_Exist
     - Error name:Standard.Base.Any.Any
@@ -88,7 +93,6 @@
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Private_Access
-    - Error this_project_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) target_project_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) target_method_name:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Any.Any
 - type Response_Too_Large
     - Error actual_size:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) limit:Standard.Base.Data.Numbers.Integer
@@ -99,7 +103,6 @@
     - Error message:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Type_Error
-    - Error expected:Standard.Base.Any.Any actual:Standard.Base.Any.Any comment:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Uninitialized_State

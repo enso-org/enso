@@ -1,15 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 import project.Internal.Storage
 import project.Value_Type.Value_Type
-from project.Errors import Conversion_Failure
 
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if one type can be cast into another and returns a dataflow error
    explaining the situation if not.
 check_cast_compatibility source_type target_type ~action =

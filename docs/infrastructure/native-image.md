@@ -11,7 +11,8 @@ order: 3
 [`NativeImage`](../../project/NativeImage.scala) defines a task that is used for
 compiling a project into a native binary using Graal's Native Image. It compiles
 the project and runs the Native Image tool which builds the image. Currently,
-Native Image is used for building the Launcher.
+Native Image is used for building the `ensoup` launcher, `project-manager` and
+also `enso` executable once one **opts-in** to it via `ENSO_LAUNCHER` option.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -23,16 +24,17 @@ Native Image is used for building the Launcher.
 - [Configuration](#configuration)
   - [`ensoup` Configuration](#ensoup-configuration)
   - [Project Manager Configuration](#project-manager-configuration)
+- [Tips and tricks](#tips-and-tricks)
 
 <!-- /MarkdownTOC -->
 
 ## Requirements
 
-### Native Image Component
+### GraalVM JDK
 
-The Native Image component has to be installed within the used GraalVM
-distribution. It can be installed by running
-`<path-to-graal-home>/bin/gu install native-image`.
+Since
+[GraalVM JDK 17](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-17.0.7),
+the `native-image` executable is part of the JDK release.
 
 ### Additional Linux Dependencies
 
@@ -115,7 +117,7 @@ Note that for convenience, you can run the launcher/engine runtime via
 `bin/enso`, e.g.
 
 ```bash
-env JAVA_OPTS="-agentlib:native-image-agent=config-merge-dir=./engine/runner/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
+env JAVA_TOOL_OPTIONS="-agentlib:native-image-agent=config-merge-dir=./engine/runner/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
 ```
 
 The command may need to be re-run with different arguments to ensure that all
@@ -212,12 +214,13 @@ following:
 - There are additional variants of `native` useful for _development_. They are
   specified as comma separated attributes following `native`:
   - using `native,fast` turns on _native image_ build, but disables
-    optimizations - e.g. produces build similar to _release mode_, but more
-    quickly
+    optimizations and support for libraries other than `Standard.Base` - e.g.
+    produces build similar to _release mode_, but more quickly
   - using `native,test` _enables assertions_ - e.g. it instructs
     `buildEngineDistribution` command to build native image with assertions
-    enabled (`-ea`). Useful for running Enso tests in the _native mode_.
-  - using `native,debug` generates _debugging informations_ for VSCode _native
+    enabled (`-ea`). Useful for running Enso tests in the _native mode_. Also
+    includes additional testing libraries in the target native image.
+  - using `native,debug` generates _debugging information_ for VSCode _native
     image debugger_
   - using `native,-ls` disables support for _language server_ in the generated
     binary
@@ -290,10 +293,11 @@ $ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run he
 Unless you see a warning containing _"No language for id java found."_ your code
 has just successfully been executed by
 [Espresso](https://www.graalvm.org/jdk17/reference-manual/java-on-truffle/)! To
-debug just add `JAVA_OPTS` environment variable set to your IDE favorite value:
+debug just add `JAVA_TOOL_OPTIONS` environment variable set to your IDE favorite
+value:
 
 ```bash
-$ JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso
+$ JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso
 ```
 
 Espresso support works also with
@@ -315,3 +319,24 @@ $ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run he
 ```
 
 to execute native image build of Enso together with Espresso.
+
+## Tips and tricks
+
+### Size
+
+Try to keep the size of the generated binary within reasonable limits. Since
+[GraalVM JDK 24](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-24.0.0),
+once can generate a
+[Build report](https://www.graalvm.org/jdk24/reference-manual/native-image/overview/build-report/)
+that allows to inspect classes, fields, methods, and other contents of the
+generated binary.
+
+### Helpful cmdline options
+
+- Since
+  [GraalVM JDK 24](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-24.0.0),
+  native image recognizes `NATIVE_IMAGE_OPTIONS` env var and prepends it to its
+  command line options. Use it, e.g., like
+  `env NATIVE_IMAGE_OPTIONS=--verbose sbt engine-runner/buildNativeImage`.
+- `--diagnostics` - generates a report with information about the generated
+  image - classes initialized at runtime and buildtime, cmdline options, etc.

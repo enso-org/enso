@@ -2,15 +2,15 @@ package org.enso.table.data.column.builder;
 
 import java.time.LocalDate;
 import java.util.Objects;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.datetime.DateStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalDate columns. */
-public final class DateBuilder extends TypedBuilder<LocalDate> {
+final class DateBuilder extends TypedBuilder<LocalDate> {
   private final boolean allowDateToDateTimeConversion;
 
   DateBuilder(int size, boolean allowDateToDateTimeConversion) {
@@ -19,13 +19,18 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  public void append(Object o) {
+  public DateBuilder append(Object o) {
     ensureSpaceToAppend();
-    try {
-      data[currentSize++] = (LocalDate) o;
-    } catch (ClassCastException e) {
-      throw new ValueTypeMismatchException(getType(), o);
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        data[currentSize++] = (LocalDate) o;
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
     }
+    return this;
   }
 
   @Override
@@ -34,8 +39,8 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  protected Storage<LocalDate> doSeal() {
-    return new DateStorage(data);
+  protected ColumnStorage<LocalDate> doSeal() {
+    return new TypedStorage<>(DateType.INSTANCE, data);
   }
 
   @Override

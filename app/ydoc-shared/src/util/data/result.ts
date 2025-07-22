@@ -30,7 +30,7 @@ export type Result<T = undefined, E = unknown> =
 
 /** Constructor of success {@link Result}. */
 export function Ok(): Result<undefined, never>
-export function Ok<T>(data: T): Result<T, never>
+export function Ok<const T>(data: T): Result<T, never>
 /** Implementation of `Ok` constructor. */
 export function Ok<T>(data?: T): Result<T | undefined, never> {
   return { ok: true, value: data }
@@ -137,7 +137,7 @@ export class ResultError<E = unknown> {
   message(preamble: string = 'error') {
     const ctx =
       this.context.length > 0 ? `\n${Array.from(this.context, (ctx) => ctx()).join('\n')}` : ''
-    return `${preamble}: ${this.payload}${ctx}`
+    return `${preamble}${preamble ? ': ' : ''}${this.payload}${ctx}`
   }
 }
 

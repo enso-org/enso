@@ -1,14 +1,10 @@
-import project.Any.Any
 import project.Data.Json.JS_Object
-import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Duration.Duration
-import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
@@ -17,11 +13,10 @@ import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.Metadata import Display, make_single_choice, Widget
+from project.Metadata import Display, Widget
 from project.Metadata.Choice import Option
 from project.Widget_Helpers import make_time_format_selector
 
@@ -55,7 +50,7 @@ new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_bui
 @Builtin_Type
 type Time_Of_Day
     ## GROUP DateTime
-       ICON time
+       ICON time2
        Obtains the current time from the system clock in the default time-zone.
 
        > Example
@@ -67,8 +62,8 @@ type Time_Of_Day
     now : Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
-    ## GROUP DateTime
-       ICON time
+    ## GROUP Constants
+       ICON time2
        Obtains an instance of `Time_Of_Day` from an hour, minute, second
        and nanosecond.
 

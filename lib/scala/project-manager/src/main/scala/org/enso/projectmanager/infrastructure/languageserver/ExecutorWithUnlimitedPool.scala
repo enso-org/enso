@@ -90,7 +90,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       secureRpcPort  = secureRpcPort,
       dataPort       = dataPort,
       secureDataPort = secureDataPort,
-      jvmModeEnabled = descriptor.jvmModeEnabled
+      jvm            = descriptor.jvm
     )
     val configurationManager = new GlobalRunnerConfigurationManager(
       versionManager,
@@ -124,7 +124,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         version             = descriptor.engineVersion,
         logLevel            = inheritedLogLevel,
         logMasking          = Masking.isMaskingEnabled,
-        additionalArguments = additionalArguments
+        additionalArguments = additionalArguments,
+        extraEnv            = descriptor.extraEnv
       )
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>

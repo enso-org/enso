@@ -2,46 +2,28 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class PrintTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-  private Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Before
-  public void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
-
-  @After
-  public void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
-    out.reset();
-  }
-
-  @AfterClass
-  public static void cleanup() throws IOException {
-    out.close();
+  public void cleanOut() {
+    ctxRule.resetOut();
   }
 
   private void checkPrint(String code, String expected) throws Exception {
     Value result = evalCode(code, "test");
     assertTrue("should return Nothing", result.isNull());
-    String log = out.toString(StandardCharsets.UTF_8).trim();
+    String log = ctxRule.getOut().trim();
     assertEquals(expected, log);
   }
 
@@ -49,7 +31,7 @@ public class PrintTest {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
     final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, methodName);
   }
 

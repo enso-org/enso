@@ -9,24 +9,24 @@ import static org.junit.Assert.fail;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class BinaryDispatchTest {
-  private static Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static Value module;
 
   public BinaryDispatchTest() {}
 
   @BeforeClass
   public static void initCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
+    var ctx = ctxRule.context();
 
     var prelude =
         Source.newBuilder(
@@ -64,8 +64,6 @@ public class BinaryDispatchTest {
   @AfterClass
   public static void closeCtx() {
     module = null;
-    ctx.close();
-    ctx = null;
   }
 
   @Test
@@ -276,7 +274,7 @@ public class BinaryDispatchTest {
   public void thatArgumentChallengedByManyValues() throws Exception {
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
 
-    var g = ValuesGenerator.create(ctx);
+    var g = ValuesGenerator.create(ctxRule);
 
     for (var second : g.allValues()) {
       try {

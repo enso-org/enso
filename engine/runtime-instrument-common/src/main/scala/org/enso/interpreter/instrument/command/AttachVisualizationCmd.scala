@@ -25,7 +25,8 @@ class AttachVisualizationCmd(
   ): Future[Unit] = {
     logger.debug(
       "Attach visualization cmd for request id [{}] and visualization id [{}]",
-      Array[Object](maybeRequestId.toString, request.visualizationId)
+      maybeRequestId.toString,
+      request.visualizationId
     )
     ctx.endpoint.sendToClient(
       Api.Response(maybeRequestId, Api.VisualizationAttached())

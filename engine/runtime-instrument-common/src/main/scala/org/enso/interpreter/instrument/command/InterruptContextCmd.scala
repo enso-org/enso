@@ -23,11 +23,7 @@ class InterruptContextCmd(
   ): Future[Unit] =
     if (doesContextExist) {
       Future {
-        ctx.jobControlPlane.abortJobs(
-          request.contextId,
-          "interrupt context",
-          false
-        )
+        ctx.executionService.getContext.getThreadManager.interruptThreads()
         reply(Api.InterruptContextResponse(request.contextId))
       }
     } else {

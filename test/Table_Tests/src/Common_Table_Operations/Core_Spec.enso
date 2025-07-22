@@ -1,6 +1,8 @@
 from Standard.Base import all
-from Standard.Base.Errors.Common import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
 
 from Standard.Table import all
 from Standard.Table.Errors import all
@@ -8,11 +10,10 @@ import Standard.Table.Expression.Expression_Error
 
 from Standard.Database import all
 import Standard.Database.Internal.Internals_Access
-from Standard.Database.Errors import Integrity_Error
-import Standard.Database.Feature.Feature
+from Standard.Database.Errors import Implicit_DB_Table_Read, Integrity_Error
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
-
 
 from project.Common_Table_Operations.Util import run_default_backend
 import project.Common_Table_Operations.Util
@@ -191,10 +192,9 @@ add_core_specs suite_builder setup =
             t0 = (Table.new [["X", [3, 2, 1]]]).select_into_database_table alternative_connection "T0" temporary=True
             c0 = t0.at "X"
 
-            r1 = t1.set c0
             case setup.is_database of
-                True ->  r1.should_fail_with Integrity_Error
-                False -> r1.should_fail_with Illegal_Argument
+                True ->  (t1.set c0).should_fail_with Integrity_Error
+                False -> Test.expect_panic Type_Error (t1.set c0)
 
     suite_builder.group prefix+"(Core_Spec) Table.column_names" group_builder->
         group_builder.specify "should return the names of all columns" <|
@@ -345,8 +345,15 @@ add_core_specs suite_builder setup =
                     r2.length . should_equal 1500
                     Problems.assume_no_problems r2
 
-            # to_vector always downloads the whole column, even if its large
-            c1.to_vector.length . should_equal 1500
+            v1 = c1.to_vector
+            case setup.is_database of
+                True ->
+                    v1.length . should_equal 1000
+                    Problems.expect_warning Implicit_DB_Table_Read v1
+                    Problems.expect_warning Not_All_Rows_Downloaded v1
+                False ->
+                    v1.length . should_equal 1500
+                    Problems.assume_no_problems v1
 
             r3 = c1.read (..First_With_Warning 10)
             r3.length . should_equal 10
@@ -361,24 +368,25 @@ add_core_specs suite_builder setup =
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
-            connection = Internals_Access.get_connection data.t_big
-            connection.query data.t_big.name . row_count . should_equal 1500
+            connection = Internals_Access.get_connection (data.t_big:DB_Table)
+            table_name = (data.t_big:DB_Table).name
+            connection.query table_name . row_count . should_equal 1500
 
-            t1 = connection.read data.t_big.name
+            t1 = connection.read table_name
             t1.row_count . should_equal 1000
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 1000
 
-            t2 = connection.read data.t_big.name (..First_With_Warning 42)
+            t2 = connection.read table_name (..First_With_Warning 42)
             t2.row_count . should_equal 42
             w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
             w2.max_rows . should_equal 42
 
-            t3 = connection.read data.t_big.name (..All_Rows)
+            t3 = connection.read table_name (..All_Rows)
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
-            t4 = connection.read data.t_big.name (..First 1000)
+            t4 = connection.read table_name (..First 1000)
             t4.row_count . should_equal 1000
             Problems.assume_no_problems t4
 

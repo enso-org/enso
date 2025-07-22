@@ -6,14 +6,11 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Handler;
-import org.enso.logger.Converter;
-import org.enso.logger.JulHandler;
-import org.enso.logging.config.LoggerSetup;
+import java.util.logging.Level;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.MessageTransport;
-import org.slf4j.event.Level;
 
 /**
  * Builder to create a new Graal polyglot context.
@@ -43,10 +40,11 @@ public final class ContextFactory {
   private MessageTransport messageTransport;
   private Level logLevel = Level.INFO;
   private boolean logMasking;
-  private Handler logHandler = JulHandler.get();
+  private Handler logHandler;
   private boolean enableIrCaches;
   private boolean disablePrivateCheck;
-  private boolean enableStaticAnalysis;
+  private boolean enableStaticAnalysis = false;
+  private boolean treatWarningsAsErrors = false;
   private boolean strictErrors;
   private boolean disableLinting;
   private boolean useGlobalIrCacheLocation = true;
@@ -120,6 +118,11 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory treatWarningsAsErrors(boolean treatWarningsAsErrors) {
+    this.treatWarningsAsErrors = treatWarningsAsErrors;
+    return this;
+  }
+
   public ContextFactory strictErrors(boolean strictErrors) {
     this.strictErrors = strictErrors;
     return this;
@@ -174,8 +177,6 @@ public final class ContextFactory {
     if (executionEnvironment != null) {
       options.put("enso.ExecutionEnvironment", executionEnvironment);
     }
-    var julLogLevel = Converter.toJavaLevel(logLevel);
-    var logLevelName = julLogLevel.getName();
     var inAOTMode = HostEnsoUtils.isAot();
     java.util.Map<String, String> engineOptions = null;
     if (runtimerServerKey != null) {
@@ -200,6 +201,8 @@ public final class ContextFactory {
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))
+            .option(
+                RuntimeOptions.TREAT_WARNINGS_AS_ERRORS, Boolean.toString(treatWarningsAsErrors))
             .option(RuntimeOptions.LOG_MASKING, Boolean.toString(logMasking))
             .options(options)
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))
@@ -214,18 +217,8 @@ public final class ContextFactory {
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
     }
-    builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
-    var logLevels = LoggerSetup.get().getConfig().getLoggers();
-    if (logLevels.hasEnsoLoggers()) {
-      logLevels
-          .entrySet()
-          .forEach(
-              (entry) ->
-                  builder.option(
-                      "log." + LanguageInfo.ID + "." + entry.getKey() + ".level",
-                      Converter.toJavaLevel(entry.getValue()).getName()));
-    }
-    builder.logHandler(logHandler);
+
+    ContextLoggingConfigurator.DEFAULT.prepareBuilderForLogging(builder, logLevel, logHandler);
 
     if (projectRoot != null) {
       builder.option(RuntimeOptions.PROJECT_ROOT, projectRoot);

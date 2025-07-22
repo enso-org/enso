@@ -1,21 +1,24 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { applyWidgetUpdates, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
-import { useGraphStore, type NodeId } from '@/stores/graph'
-import { type NodeType } from '@/stores/graph/graphDatabase'
+import { type NodeId } from '@/stores/graph'
+import { type NodeType, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import { Opt } from '@/util/data/opt'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
 import { computed, toRef } from 'vue'
+import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps<{
   ast: Ast.Expression
   nodeId: NodeId
-  rootElement: HTMLElement | undefined
+  rootElement: Opt<HTMLElement>
   nodeType: NodeType
-  potentialSelfArgumentId: Ast.AstId | undefined
+  primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
   extended: boolean
@@ -36,7 +39,7 @@ const rootPort = computed(() => {
     input.forcePort = true
   }
 
-  if (!props.potentialSelfArgumentId) {
+  if (props.primaryApplication.function == null) {
     input[DisplayIcon] = {
       icon: displayedIcon.value,
       showContents: props.nodeType != 'output',
@@ -53,33 +56,8 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   if (update.directInteraction) {
     selectNode()
   }
-  const edit = update.edit ?? graph.startEdit()
-  if (update.portUpdate) {
-    const { origin } = update.portUpdate
-    if (Ast.isAstId(origin)) {
-      if ('value' in update.portUpdate) {
-        const value = update.portUpdate.value
-        const ast =
-          value instanceof Ast.Ast ? value
-          : value == null ? Ast.Wildcard.new(edit)
-          : undefined
-        if (ast) {
-          edit.replaceValue(origin, ast)
-        } else if (typeof value === 'string') {
-          edit.tryGet(origin)?.syncToCode(value)
-        }
-      }
-      if ('metadata' in update.portUpdate) {
-        const { metadataKey, metadata } = update.portUpdate
-        edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
-      }
-    } else {
-      console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
-    }
-  }
-  graph.commitEdit(edit)
-  // This handler is guaranteed to be the last handler in the chain.
-  return true
+  applyWidgetUpdates(update, graph)
+  return Ok()
 }
 
 function onCurrentEditChange(currentEdit: WidgetEditHandlerParent | undefined) {
@@ -96,7 +74,7 @@ export const ICON_WIDTH = 16
   <WidgetTreeRoot
     class="ComponentWidgetTree"
     :externalId="nodeId"
-    :potentialSelfArgumentId="potentialSelfArgumentId"
+    :primaryApplication="primaryApplication"
     :input="rootPort"
     :rootElement="rootElement"
     :conditionalPorts="conditionalPorts"

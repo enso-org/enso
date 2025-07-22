@@ -140,9 +140,7 @@ final class ByteBufferDirect implements AutoCloseable {
 
     @Specialization
     static ByteBuffer profiledDataBuffer(
-        ByteBufferDirect direct,
-        @Bind("$node") Node node,
-        @Cached InlinedExactClassProfile bufferClazz) {
+        ByteBufferDirect direct, @Bind Node node, @Cached InlinedExactClassProfile bufferClazz) {
       return bufferClazz.profile(node, direct.dataBuffer);
     }
   }
@@ -164,7 +162,7 @@ final class ByteBufferDirect implements AutoCloseable {
     static ByteBuffer profiledBitmapBuffer(
         ByteBufferDirect direct,
         boolean forceCreation,
-        @Bind("$node") Node node,
+        @Bind Node node,
         @Cached InlinedExactClassProfile bufferClazz) {
 
       if (direct.bitmapBuffer == null) {

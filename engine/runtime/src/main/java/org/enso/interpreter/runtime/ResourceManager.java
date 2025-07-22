@@ -210,7 +210,7 @@ public final class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   private synchronized void addPendingItem(Item item) {
     if (processor == null) {
-      processor = new ProcessItems(r -> context.createThread(true, r));
+      processor = new ProcessItems(r -> context.getThreadManager().createThread(true, r));
     }
     pendingItems.put(item.underlying, item);
   }
@@ -374,7 +374,7 @@ public final class ResourceManager {
           it.flaggedForFinalization.set(true);
           synchronized (toFinalize) {
             if (safepointRequest == null) {
-              safepointRequest = context.submitThreadLocal(null, this);
+              safepointRequest = context.getThreadManager().submitThreadLocal(null, this);
             }
             toFinalize.add(it);
           }

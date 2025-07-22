@@ -9,8 +9,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Level;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.dump.service.IRDumpFactoryService;
@@ -67,14 +65,9 @@ public class IRDumpTest {
   @Test
   public void dumpVectorModule() throws IOException {
     System.setProperty(IRDumpFactoryService.SYSTEM_PROP, "Vector");
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.toString())
-            .out(out)
-            .build()) {
+    try (var ctx = ContextUtils.createDefault()) {
       // Dumping is done in the compiler, so it is enough just to compile the module
-      ContextUtils.compileModule(
-          ctx,
+      ctx.compileModule(
           """
           import Standard.Base.Data.Vector.Vector
           main = 42

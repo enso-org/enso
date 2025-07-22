@@ -16,9 +16,14 @@ import org.junit.Test;
  * indexing.
  */
 public class TypeMetadataPersistanceTest {
+  private static final Persistance.Pool POOL =
+      Persistance.Pool.merge(
+          org.enso.compiler.core.ir.Persistables.POOL,
+          org.enso.compiler.pass.analyse.types.Persistables.POOL);
+
   private static <T> T serde(Class<T> clazz, T l) throws IOException {
-    var arr = Persistance.write(l, null);
-    var ref = Persistance.read(arr, null);
+    var arr = POOL.write(l);
+    var ref = POOL.read(arr);
     return ref.get(clazz);
   }
 

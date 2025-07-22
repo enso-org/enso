@@ -30,7 +30,7 @@ const NAME = 'enso'
  * `node:process` is here because `process.on` does not exist on the namespace import.
  */
 const DEFAULT_IMPORT_ONLY_MODULES =
-  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|react-keyed-flatten-children|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json|.*[.]svg$'
+  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|react-keyed-flatten-children|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json|.*[.]svg|.*[.]vue$'
 const RELATIVE_MODULES =
   'projectManager|server|configParser|authentication|config|debug|detect|fileAssociations|index|ipc|log|naming|paths|preload|projectManagement|security|urlAssociations|contentConfig|desktopEnvironment|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
@@ -143,10 +143,6 @@ const RESTRICTED_SYNTAXES = [
     message: 'Use arrow functions for nested functions',
   },
   {
-    selector: 'IfStatement > ExpressionStatement',
-    message: 'Wrap `if` branches in `{}`',
-  },
-  {
     selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
     message: 'Use `while (true)` instead of `for (;;)`',
   },
@@ -238,6 +234,23 @@ const config = [
           varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
         },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'vue',
+              importNames: ['proxyRefs'],
+              message: 'Use more type-safe alternative in @/util/reactivity',
+            },
+          ],
+        },
+      ],
+      'no-restricted-properties': [
+        'warn',
+        { object: 'console', property: 'debug', message: DEBUG_STATEMENTS_MESSAGE },
+        { object: 'console', property: 'trace', message: DEBUG_STATEMENTS_MESSAGE },
       ],
       '@typescript-eslint/no-namespace': 'off',
       // Empty interfaces have valid uses; e.g. although an empty interface extending a class is semantically equivalent
@@ -349,6 +362,12 @@ const config = [
       ],
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }],
+        },
+      ],
       'no-restricted-properties': [
         'error',
         { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
@@ -436,7 +455,10 @@ const config = [
           },
         },
       ],
-      '@typescript-eslint/no-confusing-void-expression': 'error',
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreVoidReturningFunctions: true },
+      ],
       '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-extraneous-class': 'error',
       '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],

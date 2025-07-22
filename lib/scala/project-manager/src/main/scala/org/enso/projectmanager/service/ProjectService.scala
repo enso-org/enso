@@ -300,6 +300,7 @@ class ProjectService[
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentActions.MissingComponentAction,
+    cloudProjectDirectoryPath: Option[String],
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     for {
@@ -311,11 +312,15 @@ class ProjectService[
       _ <- repo.update(updated).mapError(toServiceFailure)
       projectWithDefaultEdition =
         updated.copy(edition = Some(DefaultEdition.getDefaultEdition))
+      extraEnv = cloudProjectDirectoryPath
+        .map(ProjectService.ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME -> _)
+        .toSeq
       sockets <- startServer(
         progressTracker,
         clientId,
         projectWithDefaultEdition,
-        missingComponentAction
+        missingComponentAction,
+        extraEnv
       )
     } yield sockets
   }
@@ -344,13 +349,14 @@ class ProjectService[
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    missingComponentAction: MissingComponentActions.MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
+    extraEnv: Seq[(String, String)]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
     _       <- log.debug("Preparing to start the Language Server for [{}].", project)
     version <- resolveProjectVersion(project)
     _       <- preinstallEngine(progressTracker, version, missingComponentAction)
     sockets <- languageServerGateway
-      .start(progressTracker, clientId, project, version)
+      .start(progressTracker, clientId, project, version, extraEnv)
       .mapError {
         case PreviousInstanceNotShutDown =>
           ProjectOpenFailed(
@@ -580,4 +586,8 @@ object ProjectService {
       created    = project.created,
       lastOpened = project.lastOpened
     )
+
+  /** The variable is used in stdlib to resolve relative paths. */
+  private val ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME =
+    "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
 }

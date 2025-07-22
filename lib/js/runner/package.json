@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.4",
-    "typescript": "^5.7.2"
+    "typescript": "catalog:"
   },
   "dependencies": {
     "spectorjs": "^0.9.30"

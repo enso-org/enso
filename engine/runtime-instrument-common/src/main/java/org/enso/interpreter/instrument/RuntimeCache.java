@@ -31,16 +31,13 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
+    expressions.put(key, new WeakReference<>(value));
     if (preferences.contains(key)) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
-      expressions.put(key, new WeakReference<>(value));
       return true;
-    } else {
-      var ref = new WeakReference<>(value);
-      expressions.put(key, ref);
-      return false;
     }
+    return false;
   }
 
   /** Get the value from the cache. */
@@ -57,6 +54,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     return res;
   }
 
+  // Accessed in InstrumentorBuiltin
   @Override
   public Object apply(String uuid) {
     Object res;

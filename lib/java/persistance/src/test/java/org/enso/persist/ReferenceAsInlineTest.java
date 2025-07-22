@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNull;
 import java.io.IOException;
 import org.enso.persist.Persistance.Reference;
 import org.junit.Test;
-import org.openide.util.lookup.ServiceProvider;
 
 /**
  * This test case verifies the order of writing references down. There are two tests. One creates
@@ -112,7 +111,7 @@ public class ReferenceAsInlineTest {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 54288453)
   public static final class ChainPersistance extends Persistance<Chain> {
 
     public ChainPersistance() {

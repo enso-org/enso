@@ -237,8 +237,12 @@ object AutomaticParallelism extends IRPass {
         {
           case n: Name.Literal =>
             for {
-              occ @ alias.AliasMetadata.Occurrence(_, _) <-
-                n.getMetadata(AliasAnalysis)
+              raw <- Option(n.getMetadata(AliasAnalysis))
+              occ <- raw
+                .filter(_.isInstanceOf[alias.AliasMetadata.Occurrence])
+                .map(
+                  _.asInstanceOf[alias.AliasMetadata.Occurrence]
+                )
               link <- occ.graph.defLinkFor(occ.id)
               id   <- depMap.get(link.target)
               if id != line.id

@@ -56,7 +56,6 @@ import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GenericAnnotations,
   GlobalNames,
-  MethodDefinitions,
   Patterns,
   TypeNames,
   TypeSignatures
@@ -239,15 +238,16 @@ class IrToTruffle(
         "Method definition missing frame information."
       )
 
-      val toOpt =
+      val toType =
         conversion.methodReference.typePointer match {
-          case Some(tpePointer) =>
-            getTypeResolution(tpePointer)
+          case Some(tpePointer) => getTypeResolution(tpePointer)
           case None =>
-            Some(scopeAssociatedType)
+            throw new CompilerError(
+              s"Conversion (${where()}) missing type pointer."
+            )
         }
-      val fromOpt = getTypeResolution(conversion.sourceTypeName)
-      toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
+      val fromType = getTypeResolution(conversion.sourceTypeName)
+      if (fromType != null && toType != null) {
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ conversion.methodName.name,
           () => scopeInfo().graph,
@@ -833,6 +833,8 @@ class IrToTruffle(
     case typeInContext: Tpe.Context =>
       // Type contexts aren't currently really used. But we should still check the base type.
       extractAscribedType(comment, typeInContext.typed)
+    case err: errors.Resolution =>
+      TypeCheckValueNode.fail("unresolved symbol " + err.originalName.name)
     case t => {
       val res = t.getMetadata(TypeNames)
       res match {
@@ -906,42 +908,6 @@ class IrToTruffle(
       })
       .getOrElse(source.createUnavailableSection())
   }
-
-  private def getTypeResolution(expr: IR): Option[Type] =
-    expr
-      .getMetadata(MethodDefinitions.INSTANCE, classOf[BindingsMap.Resolution])
-      .map { res =>
-        res.target match {
-          case binding @ BindingsMap.ResolvedType(_, _) =>
-            asType(binding)
-          case BindingsMap.ResolvedModule(module) =>
-            asAssociatedType(module.unsafeAsModule())
-          case BindingsMap.ResolvedConstructor(_, _) =>
-            throw new CompilerError(
-              "Impossible here, should be caught by MethodDefinitions pass."
-            )
-          case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-            throw new CompilerError(
-              "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-            )
-          case BindingsMap.ResolvedPolyglotField(_, _) =>
-            throw new CompilerError(
-              "Impossible polyglot field, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedModuleMethod =>
-            throw new CompilerError(
-              "Impossible module method here, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedExtensionMethod =>
-            throw new CompilerError(
-              "Impossible static method here, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedConversionMethod =>
-            throw new CompilerError(
-              "Impossible conversion method here, should be caught by MethodDefinitions pass."
-            )
-        }
-      }
 
   private def getTailStatus(
     expression: Expression
@@ -1399,10 +1365,11 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case caseExpr @ Case.Expr(scrutinee, branches, isNested, location, _) =>
-          val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
+        case caseExpr: Case.Expr =>
+          val scrutineeNode =
+            this.run(caseExpr.scrutinee, subjectToInstrumentation)
 
-          val maybeCases    = branches.map(processCaseBranch)
+          val maybeCases    = caseExpr.branches.map(processCaseBranch)
           val allCasesValid = maybeCases.forall(_.isRight)
 
           if (allCasesValid) {
@@ -1416,9 +1383,9 @@ class IrToTruffle(
             val matchExpr = CaseNode.build(
               scrutineeNode,
               cases,
-              isNested
+              caseExpr.isNested
             )
-            setLocation(matchExpr, location)
+            setLocation(matchExpr, caseExpr.location())
           } else {
             val invalidBranches = maybeCases.collect { case Left(x) =>
               x
@@ -2226,11 +2193,13 @@ class IrToTruffle(
               )
               .asInstanceOf[FramePointer]
             val slotIdx = fp.frameSlotIdx()
-            val readArgNoCheck =
+            val readArgNoCheck0 =
               ReadArgumentNode.build(
                 idx,
                 arg.getDefaultValue.orElse(null)
               )
+            val readArgNoCheck =
+              setLocation(readArgNoCheck0, unprocessedArg.name().location())
             val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
@@ -2266,14 +2235,17 @@ class IrToTruffle(
       val name = scopeName.replace('.', '_') + "." + language
       val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
       b.uri(source.getURI())
-      val src       = b.build()
-      val foreignCt = context.parseInternal(src, argumentNames: _*)
+      val src = b.build()
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
           ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
         )
         .toArray[RuntimeExpression]
-      ForeignMethodCallNode.build(argumentReaders, foreignCt)
+      ForeignMethodCallNode.buildDeferred(
+        src,
+        argumentNames.toArray,
+        argumentReaders
+      )
     }
 
     /** Generates code for an Enso function body.

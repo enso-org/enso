@@ -1,25 +1,12 @@
 /** @file Metadata for rendering each settings section. */
-import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
-
-import type { QueryClient } from '@tanstack/react-query'
-import * as z from 'zod'
-
-import type { TextId } from 'enso-common/src/text'
-
 import ComputerIcon from '#/assets/computer.svg'
-import CreditCardIcon from '#/assets/credit_card.svg'
-import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
-import LogIcon from '#/assets/log.svg'
-import PeopleIcon from '#/assets/people.svg'
-import PeopleSettingsIcon from '#/assets/people_settings.svg'
-import SettingsIcon from '#/assets/settings.svg'
-import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import type { GetText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import {
   EmailAddress,
@@ -33,16 +20,20 @@ import type RemoteBackend from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'
+import type { GetText } from '$/providers/text'
+import type { QueryClient } from '@tanstack/react-query'
+import type { TextId } from 'enso-common/src/text'
+import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
+import * as z from 'zod'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
 import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
 import MembersSettingsSection from './MembersSettingsSection'
-import MembersTable from './MembersTable'
 import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
 import SettingsTabType from './TabType'
-import UserGroupsSettingsSection from './UserGroupsSettingsSection'
+import { UserGroupsSettingsSection } from './UserGroupsSettingsSection'
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',
@@ -61,7 +52,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.account]: {
     nameId: 'accountSettingsTab',
     settingsTab: SettingsTabType.account,
-    icon: SettingsIcon,
+    icon: 'settings',
     sections: [
       {
         nameId: 'userAccountSettingsSection',
@@ -69,20 +60,17 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              name: z.string().regex(/.*\S.*/),
-              email: z.string().email(),
-              timeZone: z.string().or(z.undefined()),
+              name: z.string().min(1),
+              email: z.string().email().or(z.literal('')),
+              timeZone: z.string().optional(),
             }),
             getValue: (context) => ({
               ...pick(context.user, 'name', 'email'),
-              timeZone: context.preferredTimeZone,
+              timeZone: context.preferredTimeZone ?? '',
             }),
             onSubmit: async (context, { name, timeZone }) => {
-              const oldName = context.user.name
-              if (name !== oldName) {
-                await context.updateUser([{ username: name }])
-              }
               context.setPreferredTimeZone(timeZone)
+              await context.updateUser([{ username: name }])
             },
             inputs: [
               { nameId: 'userNameSettingsInput', name: 'name' },
@@ -210,7 +198,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.organization]: {
     nameId: 'organizationSettingsTab',
     settingsTab: SettingsTabType.organization,
-    icon: PeopleSettingsIcon,
+    icon: 'people_settings',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     sections: [
@@ -306,7 +294,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: 'custom',
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: (context) => (
-              <ButtonGroup>
+              <Button.Group>
                 {window.fileBrowserApi && (
                   <Button
                     size="small"
@@ -330,7 +318,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 >
                   {context.getText('resetLocalRootDirectory')}
                 </Button>
-              </ButtonGroup>
+              </Button.Group>
             ),
           },
         ],
@@ -340,7 +328,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.billingAndPlans]: {
     nameId: 'billingAndPlansSettingsTab',
     settingsTab: SettingsTabType.billingAndPlans,
-    icon: CreditCardIcon,
+    icon: 'credit_card',
     organizationOnly: true,
     visible: ({ user, organization }) =>
       user.isOrganizationAdmin && organization?.subscription != null,
@@ -368,62 +356,41 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
     settingsTab: SettingsTabType.members,
-    icon: PeopleIcon,
+    icon: 'people',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     feature: 'inviteUser',
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [{ type: 'custom', render: () => <MembersSettingsSection /> }],
+        columnClassName: 'h-full *:flex-1 *:min-h-0',
+        entries: [{ type: 'custom', render: MembersSettingsSection }],
       },
     ],
   },
   [SettingsTabType.userGroups]: {
     nameId: 'userGroupsSettingsTab',
     settingsTab: SettingsTabType.userGroups,
-    icon: PeopleSettingsIcon,
+    icon: 'people_settings',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     feature: 'userGroups',
     sections: [
       {
         nameId: 'userGroupsSettingsSection',
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => <UserGroupsSettingsSection backend={context.backend} />,
-          },
-        ],
-      },
-      {
-        nameId: 'userGroupsUsersSettingsSection',
-        column: 2,
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => (
-              <MembersTable
-                backend={context.backend}
-                draggable={context.user.isOrganizationAdmin}
-                populateWithSelf
-              />
-            ),
-          },
-        ],
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [{ type: 'custom', render: UserGroupsSettingsSection }],
       },
     ],
   },
   [SettingsTabType.keyboardShortcuts]: {
     nameId: 'keyboardShortcutsSettingsTab',
     settingsTab: SettingsTabType.keyboardShortcuts,
-    icon: KeyboardShortcutsIcon,
+    icon: 'keyboard_shortcuts',
     sections: [
       {
         nameId: 'keyboardShortcutsSettingsSection',
-        columnClassName: 'h-full *:flex-1 *:min-h-0',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
         entries: [
           {
             type: 'custom',
@@ -434,7 +401,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 if (v.rebindable === false) {
                   return []
                 } else {
-                  return ACTION_TO_TEXT_ID[k]
+                  return [ACTION_TO_TEXT_ID[k]]
                 }
               })
               return rebindableBindings.map((binding) => context.getText(binding))
@@ -448,12 +415,13 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.activityLog]: {
     nameId: 'activityLogSettingsTab',
     settingsTab: SettingsTabType.activityLog,
-    icon: LogIcon,
+    icon: 'log',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
         entries: [
           {
             type: 'custom',
@@ -582,7 +550,7 @@ export interface SettingsSectionData {
 export interface SettingsTabData {
   readonly nameId: TextId & `${string}SettingsTab`
   readonly settingsTab: SettingsTabType
-  readonly icon: string
+  readonly icon: SvgUseIcon | (string & {})
   readonly visible?: (context: SettingsContext) => boolean
   readonly organizationOnly?: true
   /**

@@ -1,6 +1,6 @@
 import project.Data.Numbers.Number
 import project.Data.Text.Text
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
 
 ## A type representing an interval bound over any order-able type.
 
@@ -48,8 +48,7 @@ type Interval_Type
 
 ## A type representing an interval over real numbers.
 type Interval
-    ## GROUP DateTime
-       ICON time
+    ## ICON time
        Creates an interval.
 
        Arguments:

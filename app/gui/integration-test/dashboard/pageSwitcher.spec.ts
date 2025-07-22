@@ -1,5 +1,5 @@
 /** @file Test the login flow. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import { mockAllAndLogin } from './actions'
 
@@ -20,8 +20,7 @@ test('page switcher', ({ page }) =>
     page,
     setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }),
   })
-    // Create a new project so that the editor page can be switched to.
-    .newEmptyProjectTest()
+    .newEmptyProject()
     .do(async (thePage) => {
       await expect(locateDriveView(thePage)).not.toBeVisible()
       await expect(locateEditor(thePage)).toBeVisible()

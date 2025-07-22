@@ -1,6 +1,6 @@
 /** @file Rendering for a settings section. */
-import { Text } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { Text } from '#/components/Text'
+import { useText } from '$/providers/react'
 import { memo } from 'react'
 import type { SettingsContext, SettingsSectionData } from './data'
 import SettingsEntry from './Entry'
@@ -25,9 +25,9 @@ function SettingsSection(props: SettingsSectionProps) {
   }
 
   return (
-    <div className="flex w-full flex-1 flex-col gap-2.5 overflow-auto">
+    <div className="flex w-full flex-1 flex-col gap-2.5">
       {!heading ? null : (
-        <Text.Heading level={2} weight="bold">
+        <Text.Heading level={2} weight="bold" className="cursor-default">
           {getText(nameId)}
         </Text.Heading>
       )}

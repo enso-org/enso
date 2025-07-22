@@ -1,11 +1,8 @@
 /** @file Hooks for interacting with the backend. */
 import {
   queryOptions,
-  useMutation,
   useMutationState,
-  useQuery,
   useQueryClient,
-  useSuspenseQuery,
   type DefaultError,
   type Mutation,
   type MutationKey,
@@ -14,9 +11,7 @@ import {
   type UnusedSkipTokenOptions,
   type UseMutationOptions,
   type UseQueryOptions,
-  type UseQueryResult,
 } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 
 import {
   backendQueryOptions as backendQueryOptionsBase,
@@ -29,11 +24,7 @@ import {
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -41,15 +32,15 @@ import {
   BackendType,
   type AnyAsset,
   type AssetId,
-  type DirectoryAsset,
   type DirectoryId,
+  type FilterBy,
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
-import { useMemo } from 'react'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { flagsStore } from '$/providers/featureFlags'
+import { useBackends, useFullUserSession } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -89,12 +80,54 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
   return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
     ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    queryFn: () => (backend?.[method] as any)?.(...args),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+      let result = await (backend?.[method] as any)?.(...args)
+      // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+      switch (method) {
+        case 'listUsers': {
+          const { multiplyUserList } = flagsStore.getState().featureFlags
+          if (multiplyUserList) {
+            // eslint-disable-next-line no-restricted-syntax
+            const typedResult = result as readonly Omit<User, 'groups'>[]
+            const user = typedResult[0]
+            result = [
+              ...(user != null ?
+                [
+                  {
+                    email: backendModule.EmailAddress('test@example.com'),
+                    isEnabled: true,
+                    isEnsoTeamMember: false,
+                    isOrganizationAdmin: false,
+                    name: 'Test User',
+                    organizationId: user.organizationId,
+                    plan: backendModule.Plan.free,
+                    rootDirectoryId: user.rootDirectoryId,
+                    userId: user.userId,
+                    userGroups: [
+                      ...new Set(typedResult.flatMap((otherUser) => otherUser.userGroups ?? [])),
+                    ],
+                  } satisfies Omit<User, 'groups'>,
+                ]
+              : []),
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment
+              ...Array.from({ length: 10 }).flatMap(() => result),
+            ]
+          }
+          break
+        }
+        default: {
+          // No action needed.
+          break
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return result
+    },
   })
 }
 
-/** An identity function to help in constructing options for a mutation. */
+/** An identity function to construct options for a mutation. */
 export function mutationOptions<
   TData = unknown,
   TError = DefaultError,
@@ -104,31 +137,6 @@ export function mutationOptions<
   options: UseMutationOptions<TData, TError, TVariables, TContext>,
 ): UseMutationOptions<TData, TError, TVariables, TContext> {
   return options
-}
-
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend | null,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryResult<Awaited<ReturnType<Backend[Method]>> | undefined>
-/** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend | null,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-) {
-  return useQuery(backendQueryOptions(backend, method, args, options))
 }
 
 /** The type of the corresponding mutation for the given backend method. */
@@ -183,6 +191,7 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
     mutationFn: (args) => (backend?.[method] as any)?.(...args),
     networkMode: backend?.type === BackendType.local ? 'always' : 'online',
     meta: {
+      ...options?.meta,
       invalidates,
       awaitInvalidates: options?.meta?.awaitInvalidates ?? true,
       refetchType:
@@ -197,118 +206,6 @@ export interface UserGroupInfoWithUsers extends UserGroupInfo {
   readonly users: readonly User[]
 }
 
-/** Create a list of {@link UserGroupInfoWithUsers} given user groups and users. */
-function createUserGroupsWithUsers(
-  userGroups: readonly backendModule.UserGroupInfo[],
-  users: readonly backendModule.User[],
-): readonly UserGroupInfoWithUsers[] {
-  return userGroups.map((userGroup) => {
-    const usersInGroup: readonly User[] = users.filter(
-      (user) => user.userGroups?.includes(userGroup.id) ?? false,
-    )
-    return { ...userGroup, users: usersInGroup }
-  })
-}
-
-/** The return value of {@link useListUserGroupsWithUsers}. */
-export type ListUserGroupsWithUsersQueryResult = Omit<
-  UseQueryResult<readonly UserGroupInfoWithUsers[]>,
-  'refetch'
->
-
-/** A list of user groups, taking into account optimistic state. */
-export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWithUsersQueryResult {
-  const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
-  const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
-
-  const promise: Promise<readonly UserGroupInfoWithUsers[]> = useMemo(
-    () =>
-      Promise.all([listUsersQuery.promise, listUserGroupsQuery.promise]).then(
-        ([users, userGroups]) => createUserGroupsWithUsers(userGroups, users),
-      ),
-    [listUserGroupsQuery.promise, listUsersQuery.promise],
-  )
-
-  const error = listUserGroupsQuery.error ?? listUsersQuery.error
-  const isStale = listUsersQuery.isStale || listUserGroupsQuery.isStale
-  const failureCount = listUsersQuery.failureCount + listUserGroupsQuery.failureCount
-  const failureReason = listUserGroupsQuery.failureReason ?? listUsersQuery.failureReason
-  const dataUpdatedAt = Math.max(listUsersQuery.dataUpdatedAt, listUserGroupsQuery.dataUpdatedAt)
-  const errorUpdatedAt = Math.max(listUsersQuery.errorUpdatedAt, listUserGroupsQuery.errorUpdatedAt)
-  const errorUpdateCount = listUsersQuery.errorUpdateCount + listUserGroupsQuery.errorUpdateCount
-  const isFetched = listUsersQuery.isFetched && listUserGroupsQuery.isFetched
-  const isFetching = listUsersQuery.isFetching || listUserGroupsQuery.isFetching
-  const isPaused = listUsersQuery.isPaused || listUserGroupsQuery.isPaused
-  const isInitialLoading = listUsersQuery.isInitialLoading || listUserGroupsQuery.isInitialLoading
-  const isFetchedAfterMount =
-    listUsersQuery.isFetchedAfterMount || listUserGroupsQuery.isFetchedAfterMount
-  const isPlaceholderData =
-    listUsersQuery.isPlaceholderData || listUserGroupsQuery.isPlaceholderData
-  const isRefetching = listUsersQuery.isRefetching || listUserGroupsQuery.isRefetching
-  const fetchStatus = (() => {
-    if (listUsersQuery.isPaused || listUserGroupsQuery.isPaused) {
-      return 'paused'
-    }
-    if (listUsersQuery.isFetching || listUserGroupsQuery.isFetching) {
-      return 'fetching'
-    }
-    return 'idle'
-  })()
-  const status = (() => {
-    if (listUsersQuery.isSuccess && listUserGroupsQuery.isSuccess) {
-      return 'success'
-    }
-    if (listUsersQuery.isError || listUserGroupsQuery.isError) {
-      return 'error'
-    }
-    return 'pending'
-  })()
-  const shared = {
-    promise,
-    error,
-    isStale,
-    failureCount,
-    failureReason,
-    dataUpdatedAt,
-    errorUpdatedAt,
-    errorUpdateCount,
-    isFetched,
-    isFetching,
-    isPaused,
-    isInitialLoading,
-    isFetchedAfterMount,
-    isPlaceholderData,
-    isRefetching,
-    fetchStatus,
-    status,
-  } satisfies Partial<MergeValuesOfObjectUnion<ListUserGroupsWithUsersQueryResult>>
-
-  if (listUsersQuery.isSuccess && listUserGroupsQuery.isSuccess) {
-    const data = createUserGroupsWithUsers(listUserGroupsQuery.data, listUsersQuery.data)
-    const rest = {
-      data,
-      isSuccess: true,
-      isError: false,
-      isPending: false,
-      isLoading: false,
-      isLoadingError: false,
-      isRefetchError: false,
-      status: 'success',
-      error: null,
-    } satisfies Partial<ListUserGroupsWithUsersQueryResult>
-    return {
-      // This is UNSAFE. Care must be taken to ensure that states are merged correctly in `shared`.
-      // eslint-disable-next-line no-restricted-syntax
-      ...(shared as Omit<ListUserGroupsWithUsersQueryResult, keyof typeof rest>),
-      ...rest,
-    }
-  } else {
-    // This is UNSAFE. Care must be taken to ensure that states are merged correctly in `shared`.
-    // eslint-disable-next-line no-restricted-syntax
-    return shared as ListUserGroupsWithUsersQueryResult
-  }
-}
-
 /** Return the refetch interval for listing directories based on feature flag state. */
 export function useListDirectoryRefetchInterval() {
   const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
@@ -321,10 +218,11 @@ export function useListDirectoryRefetchInterval() {
 /** Options for {@link listDirectoryQueryOptions}. */
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
-  readonly parentId: DirectoryId
+  readonly filterBy?: FilterBy | null | undefined
+  readonly parentId: DirectoryId | null
   readonly category: Category
   /**
-   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * When using React, use {@link useListDirectoryRefetchInterval} to get the correct value.
    * `undefined` is intentionally excluded as this value should be explicitly given.
    */
   readonly refetchInterval: number | null
@@ -332,7 +230,13 @@ export interface ListDirectoryQueryOptions {
 
 /** Build a query options object to fetch the children of a directory. */
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
-  const { backend, parentId, category, refetchInterval } = options
+  const {
+    backend,
+    parentId,
+    category,
+    refetchInterval,
+    filterBy = CATEGORY_TO_FILTER_BY[category.type],
+  } = options
 
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
 
@@ -344,7 +248,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
       {
         rootPath,
         labels: null,
-        filterBy: CATEGORY_TO_FILTER_BY[category.type],
+        filterBy,
         recentProjects: category.type === 'recent',
       },
     ] as const,
@@ -355,11 +259,11 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
           {
             parentId,
             rootPath,
-            filterBy: CATEGORY_TO_FILTER_BY[category.type],
+            filterBy,
             labels: null,
             recentProjects: category.type === 'recent',
           },
-          parentId,
+          parentId ?? '(unknown)',
         )
       } catch (error) {
         if (error instanceof Error) {
@@ -432,97 +336,34 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
   })
 }
 
+/** Whether the user can run projects. */
+export function useCanRunProjects() {
+  const { user } = useFullUserSession()
+  const { localBackend } = useBackends()
+  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
+
+  return {
+    // All projects can be run locally.
+    // Local projects: Open normally
+    // Cloud projects: Open in Hybrid
+    locally: {
+      [BackendType.local]: localBackend != null,
+      [BackendType.remote]: localBackend != null,
+    },
+    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
+    // Local projects: Open normally
+    // Cloud projects: Open in Cloud VM
+    natively: {
+      [BackendType.local]: localBackend != null,
+      [BackendType.remote]:
+        enableCloudExecution &&
+        (user.plan === backendModule.Plan.team || user.plan === backendModule.Plan.enterprise),
+    },
+  }
+}
+
 /** The type of directory listings in the React Query cache. */
 type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
-
-/** Options for {@link useAsset}. */
-export interface UseAssetOptions extends ListDirectoryQueryOptions {
-  readonly assetId: AssetId
-}
-
-/** Data for a specific asset. */
-export function useAsset(options: UseAssetOptions) {
-  const { parentId, assetId } = options
-
-  const { data: asset } = useQuery({
-    ...listDirectoryQueryOptions(options),
-    select: (data) => data.find((child) => child.id === assetId),
-  })
-
-  if (asset) {
-    return asset
-  }
-
-  const shared = {
-    parentId,
-    projectState: null,
-    extension: null,
-    description: '',
-    modifiedAt: toRfc3339(new Date()),
-    permissions: [],
-    labels: [],
-    parentsPath: backendModule.ParentsPath(''),
-    virtualParentsPath: backendModule.VirtualParentsPath(''),
-  } satisfies Partial<DirectoryAsset>
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (true) {
-    case assetId === USERS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Users',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case assetId === TEAMS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Teams',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case backendModule.isLoadingAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialLoading,
-      } satisfies backendModule.SpecialLoadingAsset
-    }
-    case backendModule.isEmptyAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialEmpty,
-      } satisfies backendModule.SpecialEmptyAsset
-    }
-    case backendModule.isErrorAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialError,
-      } satisfies backendModule.SpecialErrorAsset
-    }
-    default: {
-      return
-    }
-  }
-}
-
-/** Non-nullable for a specific asset. */
-export function useAssetStrict(options: UseAssetOptions) {
-  const asset = useAsset(options)
-
-  invariant(
-    asset,
-    `Expected asset to be defined, but got undefined, Asset ID: ${JSON.stringify(options.assetId)}`,
-  )
-
-  return asset
-}
 
 /** Return matching in-flight mutations matching the given filters. */
 export function useBackendMutationState<Method extends BackendMutationMethod, Result>(
@@ -546,24 +387,6 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
     // eslint-disable-next-line no-restricted-syntax
     select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
   })
-}
-
-/** Get the root directory ID given the current backend and category. */
-export function useRootDirectoryId(backend: Backend, category: Category) {
-  const { user } = useFullUserSession()
-  const { data: organization } = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-
-  const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
-  const id =
-    'homeDirectoryId' in category ?
-      category.homeDirectoryId
-    : backend.rootDirectoryId(user, organization, localRootPath)
-  invariant(id, 'Missing root directory')
-  return id
 }
 
 /** Return query data for the children of a directory, fetching it if it does not exist. */
@@ -623,7 +446,10 @@ export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const setNewestFolderId = useSetNewestFolderId()
   const setSelectedAssets = useSetSelectedAssets()
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+
+  const createDirectoryMutation = useMutationCallback(
+    backendMutationOptions(backend, 'createDirectory'),
+  )
 
   return useEventCallback(async (parentId: DirectoryId) => {
     const siblings = await ensureListDirectory(parentId)
@@ -635,15 +461,12 @@ export function useNewFolder(backend: Backend, category: Category) {
       .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
 
     const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-    const placeholderItem = backendModule.createPlaceholderDirectoryAsset(title, parentId)
 
-    return await createDirectoryMutation
-      .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
-      .then((result) => {
-        setNewestFolderId(result.id)
-        setSelectedAssets([{ type: AssetType.directory, ...result }])
-        return result
-      })
+    return await createDirectoryMutation([{ parentId, title }]).then((result) => {
+      setNewestFolderId(result.id)
+      setSelectedAssets([{ type: AssetType.directory, ...result }])
+      return result
+    })
   })
 }
 
@@ -652,20 +475,23 @@ export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const openProjectLocally = useOpenProjectLocally()
   const openProjectNatively = useOpenProjectNatively()
+  const canRunProjects = useCanRunProjects()
   const deleteAsset = useDeleteAsset(backend, category)
 
-  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const createProjectMutation = useMutationCallback(
+    backendMutationOptions(backend, 'createProject'),
+  )
 
   return useEventCallback(
     async (
       {
         templateName,
         templateId,
-        datalinkId,
+        ensoPath,
       }: {
         templateName: string | null | undefined
         templateId?: string | null | undefined
-        datalinkId?: backendModule.DatalinkId | null | undefined
+        ensoPath?: string | null | undefined
       },
       parentId: DirectoryId,
       runLocally = true,
@@ -683,15 +509,14 @@ export function useNewProject(backend: Backend, category: Category) {
 
       const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
-      return await createProjectMutation
-        .mutateAsync([
-          {
-            parentDirectoryId: placeholderItem.parentId,
-            projectName: placeholderItem.title,
-            ...(templateId == null ? {} : { projectTemplateName: templateId }),
-            ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
-          },
-        ])
+      return await createProjectMutation([
+        {
+          parentDirectoryId: placeholderItem.parentId,
+          projectName: placeholderItem.title,
+          ...(templateId == null ? {} : { projectTemplateName: templateId }),
+          ...(ensoPath == null ? {} : { ensoPath }),
+        },
+      ])
         .catch((error) => {
           void deleteAsset(placeholderItem.id, parentId)
           throw error
@@ -701,12 +526,17 @@ export function useNewProject(backend: Backend, category: Category) {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          }
+            ensoPath: createdProject.ensoPath,
+          } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
-            // Open in background.
-            void openProjectLocally(openProjectParams, backend.type)
+            if (canRunProjects.locally[backend.type]) {
+              // Open in background.
+              void openProjectLocally(openProjectParams, backend.type)
+            }
           } else {
-            openProjectNatively(openProjectParams, backend.type)
+            if (canRunProjects.natively[backend.type]) {
+              void openProjectNatively(openProjectParams, backend.type)
+            }
           }
 
           return createdProject
@@ -715,56 +545,24 @@ export function useNewProject(backend: Backend, category: Category) {
   )
 }
 
-/** A function to create a new secret. */
-export function useNewSecret(backend: Backend) {
-  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
-
-  return useEventCallback(async (name: string, value: string, parentId: DirectoryId) => {
-    const placeholderItem = backendModule.createPlaceholderSecretAsset(name, parentId)
-
-    return await createSecretMutation.mutateAsync([
-      {
-        parentDirectoryId: placeholderItem.parentId,
-        name: placeholderItem.title,
-        value: value,
-      },
-    ])
-  })
-}
-
-/** A function to create a new Datalink. */
-export function useNewDatalink(backend: Backend) {
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-
-  return useEventCallback(async (name: string, value: unknown, parentId: DirectoryId) => {
-    const placeholderItem = backendModule.createPlaceholderDatalinkAsset(name, parentId)
-
-    return await createDatalinkMutation.mutateAsync([
-      {
-        parentDirectoryId: placeholderItem.parentId,
-        datalinkId: null,
-        name: placeholderItem.title,
-        value,
-      },
-    ])
-  })
-}
-
 /** Remove the user's own permission from an asset. */
 export function useRemoveSelfPermissionMutation(backend: Backend) {
   const { user } = useFullUserSession()
 
-  const createPermissionMutation = useMutation(
+  const createPermissionMutation = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
-        invalidates: [[backend.type, 'listDirectory']],
+        invalidates: [
+          [backend.type, 'listDirectory'],
+          [backend.type, 'getAssetDetails'],
+        ],
         awaitInvalidates: true,
       },
     }),
   )
 
   const mutate = useEventCallback((id: AssetId) => {
-    createPermissionMutation.mutate([
+    void createPermissionMutation([
       {
         action: null,
         resourceId: id,
@@ -774,7 +572,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   const mutateAsync = useEventCallback(async (id: AssetId) => {
-    await createPermissionMutation.mutateAsync([
+    await createPermissionMutation([
       {
         action: null,
         resourceId: id,
@@ -784,54 +582,6 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   return { ...createPermissionMutation, mutate, mutateAsync }
-}
-
-/** Duplicate a specific version of a project. */
-export function duplicateProjectMutationOptions(
-  backend: Backend,
-  queryClient: QueryClient,
-  openProject: (project: LaunchedProject) => void,
-) {
-  return mutationOptions({
-    meta: {
-      invalidates: [[backend.type, 'listDirectory']],
-      awaitInvalidates: true,
-    },
-    mutationFn: async ([id, originalTitle, parentId, versionId]: [
-      id: backendModule.ProjectId,
-      originalTitle: string,
-      parentId: backendModule.DirectoryId,
-      versionId: backendModule.S3ObjectVersionId,
-    ]) => {
-      const siblings = await queryClient.ensureQueryData(
-        backendQueryOptions(backend, 'listDirectory', [
-          {
-            parentId,
-            labels: null,
-            filterBy: backendModule.FilterBy.active,
-            recentProjects: false,
-          },
-          '(unknown)',
-        ]),
-      )
-      const siblingTitles = new Set(siblings.map((sibling) => sibling.title))
-      let index = 1
-      let title = `${originalTitle} (${index})`
-      while (siblingTitles.has(title)) {
-        index += 1
-        title = `${originalTitle} (${index})`
-      }
-
-      await backend.duplicateProject(id, versionId, title).then((project) => {
-        openProject({
-          type: backend.type,
-          parentId,
-          title,
-          id: project.projectId,
-        })
-      })
-    },
-  })
 }
 
 /** Build a query options object to list executions for a project. */

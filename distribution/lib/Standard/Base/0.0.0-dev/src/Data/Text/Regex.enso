@@ -1,10 +1,9 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Dictionary.Dictionary
-import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Hashset.Hashset
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
-import project.Data.Range.Range
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
@@ -20,7 +19,6 @@ import project.Error.Error
 import project.Errors.Common.Syntax_Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -428,6 +426,33 @@ type Regex
             if should_recompile.not then self else
                 Regex.compile self.pattern case_insensitive
 
+    ## Create a Regex from a glob string
+
+       Arguments:
+       - expression: The glob string to compile into a regex.
+    from_glob : Text -> Regex
+    from_glob expression:Text -> Regex =
+        to_escape = Hashset.from_vector ["/", "$", "^", "+", ".", "(", ")", "=", "|", "\"]
+        characters = expression.characters
+        step pattern:Text index:Integer in_group:Boolean = if index == characters.length then pattern else
+            char = characters.at index
+            new_index = if (char != '*') || (characters.get index+1 != '*') then index+1 else
+                characters.index_of (..Not_Equal '*') index . if_nothing characters.length
+            new_in_group = if char == '{' then True else (if char == '}' then False else in_group)
+            new_pattern = if to_escape.contains char then pattern + "\" + char else case char of
+                '!' -> if characters.get index-1 == '[' then pattern + '^' else pattern + "\!"
+                '?' -> pattern + "."
+                '{' -> pattern + "("
+                '}' -> pattern + ")"
+                ',' -> pattern + (if in_group then "|" else ",")
+                '*' -> if new_index == index + 1 then pattern + ".*" else
+                    ## Multiple * so need to match 0 or more segments
+                    pattern + "((.*?(\/|\\|$))*)"
+                _ -> pattern + char
+            @Tail_Call step new_pattern new_index new_in_group
+        pattern = step "" 0 False
+        Regex.compile pattern
+
 ## PRIVATE
    Convert the polyglot map to a Dictionary.
 polyglot_map_to_dictionary : Any -> Dictionary Any Any
@@ -457,7 +482,7 @@ build_tokenization_output_from_match pattern match =
     if pattern.group_count == 1 then match.text 0 else
         # Extract the ranges of the spans of all capturing groups
         group_numbers = 1.up_to pattern.group_count
-        spans = group_numbers.map (n-> match.span n) . filter Filter_Condition.Not_Nothing
+        spans = group_numbers.map (n-> match.span n) . filter i->i.is_nothing.not
         ranges = spans.map span-> case span of Span.Value range _ -> range
 
         # Eliminate nested capturing groups by sorting and merging the ranges.

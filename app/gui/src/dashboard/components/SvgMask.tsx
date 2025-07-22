@@ -1,8 +1,7 @@
 /** @file File containing SVG icon definitions. */
-import * as React from 'react'
-
+import type { TestIdProps } from '#/components/types'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import type { TestIdProps } from './AriaComponents'
+import * as React from 'react'
 
 /** Props for a {@link SvgMask}. */
 export interface SvgMaskProps extends TestIdProps {
@@ -24,19 +23,21 @@ const SvgMask = React.forwardRef(function SvgMask(
   props: SvgMaskProps,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { invert = false, alt = '', src, style, color, className, testId = 'svg-mask' } = props
+  const { invert = false, alt = '', src, style, color, className, testId } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 
-  const classes = React.useMemo(
-    () => tailwindMerge.twMerge('inline-block h-max w-max flex-none', className),
-    [className],
-  )
+  const classes = tailwindMerge.twMerge('inline-block h-4 w-4 flex-none', className)
+
+  const ariaProps =
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    alt === '' ? { role: 'presentation', 'aria-hidden': true } : { role: 'img', 'aria-label': alt }
 
   return (
     <div
       data-testid={testId}
       ref={ref}
+      {...ariaProps}
       style={{
         ...(style ?? {}),
         backgroundColor: color ?? 'currentcolor',
@@ -55,10 +56,7 @@ const SvgMask = React.forwardRef(function SvgMask(
         /* eslint-enable @typescript-eslint/naming-convention */
       }}
       className={classes}
-    >
-      {/* This is required for this component to have the right size. */}
-      <img alt={alt} src={src} className="pointer-events-none opacity-0" draggable={false} />
-    </div>
+    />
   )
 })
 

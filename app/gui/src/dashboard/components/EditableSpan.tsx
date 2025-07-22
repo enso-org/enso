@@ -1,17 +1,18 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
-import * as React from 'react'
-
 import CrossIcon from '#/assets/cross.svg'
 import TickIcon from '#/assets/tick.svg'
-
-import { Button, Form, Input, Text, Underlay } from '#/components/AriaComponents'
-import * as textProvider from '#/providers/TextProvider'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-
 import { useInteractOutside } from '#/components/aria'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
+import { Text } from '#/components/Text'
+import { Underlay } from '#/components/Underlay'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useMeasure } from '#/hooks/measureHooks'
+import { twJoin } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
+import * as React from 'react'
 import { useLayoutEffect } from 'react'
 import type { z } from 'zod'
 
@@ -38,24 +39,15 @@ export interface EditableSpanProps {
 export default function EditableSpan(props: EditableSpanProps) {
   const { className = '', editable = false, children } = props
 
-  return (
-    <AnimatePresence initial={false}>
-      {editable && <EditForm {...props} />}
+  if (!editable) {
+    return (
+      <Text className={twJoin('min-w-0', className)} testId={props['data-testid']} truncate="1">
+        {children}
+      </Text>
+    )
+  }
 
-      {!editable && (
-        <MotionText
-          className={tailwindMerge.twJoin('min-w-0', className)}
-          testId={props['data-testid']}
-          truncate="1"
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 5 }}
-        >
-          {children}
-        </MotionText>
-      )}
-    </AnimatePresence>
-  )
+  return <EditForm {...props} />
 }
 
 /**
@@ -92,7 +84,7 @@ const TRANSITION_OPTIONS = { stiffness: 300, damping: 150, mass: 1 }
 function EditForm(props: EditFormProps) {
   const { className = '', children, onSubmit, onCancel, schema } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const formRef = React.useRef<HTMLFormElement | null>(null)
   const inputRef = React.useRef<HTMLInputElement | null>(null)
@@ -151,7 +143,7 @@ function EditForm(props: EditFormProps) {
             size="custom"
             rounded="none"
             testId={props['data-testid']}
-            className={tailwindMerge.twJoin('flex-shrink-0 flex-grow basis-0', className)}
+            className={twJoin('flex-shrink-0 flex-grow basis-0', className)}
             type="text"
             aria-label={getText('editNameShortcut')}
             // we don't want the display the default error message
@@ -240,7 +232,7 @@ function ErrorMessage(props: ErrorMessageProps) {
   const [measureFormRef, formRect] = useMeasure({ useRAF: false })
 
   const offset = 12
-  const crossOffset = 36
+  const crossOffset = 30
 
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   const outlineWidth = crossOffset + 10

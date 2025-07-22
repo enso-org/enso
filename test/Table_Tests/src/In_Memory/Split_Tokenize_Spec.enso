@@ -90,6 +90,14 @@ add_specs suite_builder =
             t2 = t.split_to_columns "bar" "|"
             t2.should_equal expected
 
+        group_builder.specify "can do split_to_columns on a vector of newlines" <|
+            cols = [["foo", [0, 1, 2, 3, 4]], ["bar", ['a\nbc', 'cbd\r\nbef', 'ghb\nijbu', Nothing, ""]]]
+            t = Table.new cols
+            expected_rows = [[0, "a", "bc"], [1, "cbd", "bef"], [2, "ghb", "ijbu"], [3, Nothing, Nothing], [4, "", Nothing]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2"] expected_rows
+            t2 = t.split_to_columns "bar" ['\n', '\r\n', '\r']
+            t2.should_equal expected
+
     suite_builder.group "Table.tokenize" group_builder->
         group_builder.specify "can do tokenize_to_columns" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]

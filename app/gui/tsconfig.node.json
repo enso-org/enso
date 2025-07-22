@@ -9,10 +9,22 @@
     "eslint.config.js",
     "tailwind.config.ts",
     "integration-test/**/*",
-    "src/dashboard/hooks/eventCallbackHooks.ts",
     "src/dashboard/modules/payments/constants.ts",
     "src/dashboard/services/Backend.ts",
-    "src/dashboard/utilities/**/*",
+    "src/dashboard/services/ProjectManager/types.ts",
+    "src/dashboard/services/RemoteBackend/ids.ts",
+    "src/dashboard/services/remoteBackendPaths.ts",
+    "src/dashboard/utilities/equalities.ts",
+    "src/dashboard/utilities/newtype.ts",
+    "src/dashboard/utilities/object.ts",
+    "src/dashboard/utilities/path.ts",
+    "src/dashboard/utilities/permissions.ts",
+    "src/dashboard/utilities/write.ts",
+    "src/dashboard/utilities/zustand.ts",
+    "src/project-view/util/equals.ts",
+    "src/providers/featureFlags.ts",
+    "src/providers/session/constants.ts",
+    "src/utils/zustand.ts",
     "node.env.d.ts"
   ],
   "compilerOptions": {
@@ -20,6 +32,6 @@
     "module": "ESNext",
     "verbatimModuleSyntax": true,
     "types": ["node", "vitest/importMeta"],
-    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
+    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"], "$/*": ["./src/*"] }
   }
 }

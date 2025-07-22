@@ -1,6 +1,4 @@
 /** @file `useEvent` shim. */
-import { useCallback } from 'react'
-
 import { useSyncRef } from './syncRefHooks'
 
 /**
@@ -15,15 +13,10 @@ export function useEventCallback<Func extends (...args: never[]) => unknown>(
 
   // Make sure that the value of `this` provided for the call to fn is not `ref`
   // This type assertion is safe, because it's a transparent wrapper around the original callback
-
-  return useCallback<Func>(
-    // @ts-expect-error we know that the callbackRef.current is of type Func
-    function eventCallback(...args: Parameters<Func>) {
-      if (typeof callbackRef.current === 'function') {
-        // eslint-disable-next-line no-restricted-syntax
-        return callbackRef.current(...args) as ReturnType<Func>
-      }
-    },
-    [callbackRef],
-  )
+  // eslint-disable-next-line no-restricted-syntax
+  return function eventCallback(...args: Parameters<Func>) {
+    if (typeof callbackRef.current === 'function') {
+      return callbackRef.current(...args)
+    }
+  } as Func
 }

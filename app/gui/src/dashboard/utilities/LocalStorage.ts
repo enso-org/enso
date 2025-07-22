@@ -6,6 +6,7 @@ import * as common from 'enso-common'
 import * as object from '#/utilities/object'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
+import { shallowReactive, toRaw } from 'vue'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
 
@@ -35,7 +36,12 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
  * The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key.
  */
-export interface LocalStorageData {}
+export interface LocalStorageData {
+  // Add a dummy key to avoid type errors for configurations that don't import
+  // any files that merge declarations into `LocalStorageData`.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly _dummyLocalStorageKey: true
+}
 
 /** All possible keys of a {@link LocalStorage}. */
 export type LocalStorageKey = keyof LocalStorageData
@@ -56,7 +62,7 @@ export default class LocalStorage {
 
   /** Create a {@link LocalStorage}. */
   private constructor() {
-    this.values = {}
+    this.values = shallowReactive<Partial<LocalStorageData>>({})
   }
 
   /**
@@ -255,7 +261,13 @@ export default class LocalStorage {
 
   /** Save the current value of the stored data.. */
   protected save() {
-    localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
+    // Make values raw, so any watchEffect setting values will not be triggered unnecessarily.
+    const rawValues = toRaw(this.values)
+    const storedValues = localStorage.getItem(this.localStorageKey)
+    const savedValues: unknown = JSON.parse(storedValues ?? '{}')
+    const valuesToSave =
+      typeof savedValues === 'object' ? { ...savedValues, ...rawValues } : rawValues
+    localStorage.setItem(this.localStorageKey, JSON.stringify(valuesToSave))
   }
 
   /**

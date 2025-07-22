@@ -5,47 +5,53 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.Function;
+import org.enso.example.TestClass;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class JavaInteropTest {
-
-  private static Context ctx;
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
-    out.close();
-  }
+/**
+ * Tests {@code polyglot java import} behavior in isolation. When there is a problem with
+ * interactions with the Java classes, it is best to expand this test. It is easier to debug the
+ * problem then having whole integration tests and moreover this suite executes the same test in
+ * various configurations automatically.
+ *
+ * <p>The test itself is abstract class and just defines the test cases. Then there are various
+ * implementations:
+ *
+ * <ul>
+ *   <li>{@link HostJavaInteropTest} - regular GraalVM <em>host interop</em> with JVM classes
+ *   <li>{@link GuestJavaInteropTest} - dual JVM mode used when running Enso in <em>native
+ *       image</em> mode and loading classes in separate <b>HotSpot</b> JVM
+ * </ul>
+ *
+ * Those implementations setup the {@link #ctx()} and execute the test in that setup. This way we
+ * can guarantee consistency between various implementations of the {@code polyglot java import}
+ * statements.
+ *
+ * <p>Execute all these tests as:
+ *
+ * <pre>
+ * sbt:enso> runtime-integration-tests/testOnly *JavaInteropTest
+ * </pre>
+ */
+public abstract class JavaInteropTest {
 
   @After
   public void resetOutput() {
-    out.reset();
+    ctx().resetOut();
   }
 
   private String[] getStdOutLines() {
-    return out.toString(StandardCharsets.UTF_8).trim().split(System.lineSeparator());
+    return ctx().getOut().trim().split(System.lineSeparator());
   }
 
   private void checkPrint(String code, List<String> expected) {
-    Value result = ContextUtils.evalModule(ctx, code);
+    Value result = ctx().evalModule(code);
     assertTrue("should return Nothing", result.isNull());
     assertArrayEquals(expected.toArray(), getStdOutLines());
   }
@@ -57,7 +63,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass
         main = TestClass.add 1 2
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctx().evalModule(code);
     assertEquals(3, result.asInt());
   }
 
@@ -71,7 +77,7 @@ public class JavaInteropTest {
             instance = TestClass.new (x -> x * 2)
             instance.callFunctionAndIncrement 10
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctx().evalModule(code);
     assertEquals(21, result.asInt());
   }
 
@@ -85,7 +91,7 @@ public class JavaInteropTest {
             instance = StaticInnerClass.new "my_data"
             instance.add 1 2
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctx().evalModule(code);
     assertEquals(3, result.asInt());
   }
 
@@ -122,6 +128,57 @@ public class JavaInteropTest {
             IO.println <| to_string TestClass.InnerEnum.ENUM_VALUE_2
         """;
     checkPrint(code, List.of("one", "two"));
+  }
+
+  @Test
+  public void testCaseOnFunctionalInterface() {
+    var code =
+        """
+        from Standard.Base import IO
+        polyglot java import org.enso.example.TestClass
+        polyglot java import org.enso.example.TestClass.FnIntrfc
+
+        check x y=42 = case x of
+          call:FnIntrfc -> call.perform y
+          _ -> "no"
+
+        main = check
+        """;
+    var check = ctx().evalModule(code);
+
+    assertEquals("'no'", check.execute("Not FnIntrfc").toString());
+
+    Function<Object, Object> alien = (x) -> x;
+    assertEquals(
+        "Function isn't the right Java interface", "'no'", check.execute(alien).toString());
+
+    TestClass.FnIntrfc real = (x) -> x;
+    assertEquals(
+        "FnIntrfc is the right interface", "'good'", check.execute(real, "good").toString());
+
+    var atomCode =
+        """
+        type My_Type
+            Value x
+
+        main = My_Type.Value 1
+        """;
+    var atom = ctx().evalModule(atomCode);
+    assertEquals(
+        "atom is not Java interface at all " + "and it shouldn't pass the call:FnIntrfc check",
+        "'no'",
+        check.execute(atom).toString());
+
+    TestClass.FnIntrfc subclass = new TestClass.FnIntrfcSubclass();
+    assertEquals(
+        "FnIntrfcSubclass implements the right interface",
+        "'subclass'",
+        check.execute(subclass, "good").toString());
+
+    assertEquals(
+        "TestClass doesn't implement the interface",
+        "'no'",
+        check.execute(new TestClass(), "good").toString());
   }
 
   @Test
@@ -180,7 +237,7 @@ public class JavaInteropTest {
             instance = TestClass.StaticInnerClass.new "my_data"
             instance.getData
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctx().evalModule(code);
     assertEquals("my_data", result.asString());
   }
 
@@ -211,7 +268,7 @@ public class JavaInteropTest {
             inner_inner_value = StaticInnerInnerClass.new
             inner_inner_value.mul 3 5
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctx().evalModule(code);
     assertEquals(15, res.asInt());
   }
 
@@ -222,7 +279,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass.StaticInnerClass.Non_Existing_Class
         """;
     try {
-      ContextUtils.evalModule(ctx, code);
+      ctx().evalModule(code);
       fail("Should throw exception");
     } catch (Exception ignored) {
     }
@@ -235,7 +292,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass.Non_Existing_Class.Another_Non_ExistingClass
         """;
     try {
-      ContextUtils.evalModule(ctx, code);
+      ctx().evalModule(code);
       fail("Should throw exception");
     } catch (Exception ignored) {
     }
@@ -251,7 +308,7 @@ public class JavaInteropTest {
             instance = TestClass.StaticInnerClass.StaticInnerInnerClass.new
             instance.mul 3 5
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctx().evalModule(code);
     assertEquals(15, res.asInt());
   }
 
@@ -279,7 +336,7 @@ public class JavaInteropTest {
         [a, b, c, d, e]
     """;
 
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctx().evalModule(code);
     assertTrue("It is an array", res.hasArrayElements());
     assertEquals("Array with five elements", 5, res.getArraySize());
     assertEquals(123, res.getArrayElement(0).asInt());
@@ -287,6 +344,85 @@ public class JavaInteropTest {
     assertEquals("Fooable.foo() = 123", res.getArrayElement(2).asString());
     assertEquals("obj.toString() = (Instance 23)", res.getArrayElement(3).asString());
     assertEquals("{(Instance 23)}.foo() = 123", res.getArrayElement(4).asString());
+  }
+
+  @Test
+  public void testToStringBehaviorSimple1() {
+    var code =
+        """
+    from Standard.Base import all
+
+    polyglot java import org.enso.example.ToString as Foo
+
+    type My_Fooable_Implementation
+        Instance x
+
+        foo : Integer
+        foo self = 100+self.x
+
+    main =
+        fooable = My_Fooable_Implementation.Instance 23
+        e = Foo.callFooAndShow fooable
+        e
+    """;
+
+    var res = ctx().evalModule(code);
+    assertEquals("{(Instance 23)}.foo() = 123", res.asString());
+  }
+
+  @Test
+  public void throwsParsingError() {
+    var code =
+        """
+              from Standard.Base import Panic
+              polyglot java import java.lang.Integer as Num
+              polyglot java import java.lang.NumberFormatException as Ex
+
+              main =
+                Panic.catch Ex (Num.parseInt "NotAnInt") .payload
+              """;
+
+    var res = ctx().evalModule(code);
+    assertTrue("Got an exception back", res.isException());
+    var typeEx = res.getMetaObject();
+    assertEquals("java.lang.NumberFormatException", typeEx.getMetaQualifiedName());
+    try {
+      throw res.throwException();
+    } catch (PolyglotException ex) {
+      assertEquals("For input string: \"NotAnInt\"", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void throwsParsingErrorIndirect() {
+    var code =
+        """
+              from Standard.Base import Panic
+              polyglot java import java.lang.Integer as Num
+              polyglot java import java.lang.NumberFormatException as Ex
+              polyglot java import org.enso.example.TestClass
+
+              type En
+                Err msg
+
+              main =
+                e = TestClass.newDirectExecutor
+                e.execute
+                    Panic.catch Ex (Num.parseInt "NotAnInt") ex->
+                        Panic.throw (En.Err ex.payload.to_text)
+              """;
+
+    try {
+      var res = ctx().evalModule(code);
+      fail("Expecting an exception: " + res);
+    } catch (PolyglotException ex) {
+      var exObj = ex.getGuestObject();
+      var typeEx = exObj.getMetaObject();
+      assertEquals("Standard.Base.Panic.Panic", typeEx.getMetaQualifiedName());
+      assertEquals(
+          "java.lang.NumberFormatException: For input string: \"NotAnInt\"",
+          exObj.getMember("msg").asString());
+    }
   }
 
   @Test
@@ -338,6 +474,54 @@ public class JavaInteropTest {
         b = Panic.catch No_Such_Method (Foo.callFoo Fooable_Unresolved.Value) (caught-> caught.payload.method_name)
         """;
 
-    return ContextUtils.evalModule(ctx, code + "\nmain = " + methodToEval);
+    return ctx().evalModule(code + "\nmain = " + methodToEval);
   }
+
+  @Test
+  public void catchCheckedExceptionValueIsReturned() {
+    var result = checkedException(0);
+    assertEquals(result.asInt(), 10);
+  }
+
+  @Test
+  public void catchCheckedExceptionThrownInEnso() {
+    var result = checkedException(1);
+    assertEquals(result.asInt(), -1);
+  }
+
+  @Test
+  public void catchCheckedExceptionThrownInJava() {
+    var result = checkedException(2);
+    assertEquals(result.asInt(), -1);
+  }
+
+  @Test
+  public void catchCheckedSubExceptionThrownInJava() {
+    var result = checkedException(3);
+    assertEquals(result.asInt(), -1);
+  }
+
+  private Value checkedException(int t) {
+    var code =
+        """
+    polyglot java import org.enso.example.TestException
+    from Standard.Base import Panic
+
+    handle_errors ~action  =
+        Panic.catch TestException action caught_panic->
+          -1
+
+    run t = case t of
+      0 -> handle_errors 10
+      1 -> handle_errors (Panic.throw TestException.new)
+      2 -> handle_errors (TestException.throwMe)
+      3 -> handle_errors (TestException.throwSubtype)
+
+    main = run
+    """;
+    var result = ctx().evalModule(code);
+    return result.execute(t);
+  }
+
+  protected abstract ContextUtils ctx();
 }

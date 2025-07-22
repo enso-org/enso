@@ -5,403 +5,303 @@ export default {
 </script>
 
 <script setup lang="ts">
-import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
+import { useBackends } from '$/providers/backends'
+import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
-import SvgButton from '@/components/SvgButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
-import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
-import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
+import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
+import { mapPath, useEnsoPaths } from '@/components/widgets/FileBrowserWidget/ensoPath'
+import {
+  listDirectoryArgs,
+  useCurrentPath,
+  useSecretCreation,
+  useUpsertDirectory,
+} from '@/components/widgets/FileBrowserWidget/fileBrowser'
+import FileBrowserBreadcrumbs from '@/components/widgets/FileBrowserWidget/FileBrowserBreadcrumbs.vue'
+import FileBrowserContent from '@/components/widgets/FileBrowserWidget/FileBrowserContent.vue'
+import FileBrowserModals from '@/components/widgets/FileBrowserWidget/FileBrowserModals.vue'
+import FileBrowserNameBar from '@/components/widgets/FileBrowserWidget/FileBrowserNameBar.vue'
+import FileBrowserTopBar from '@/components/widgets/FileBrowserWidget/FileBrowserTopBar.vue'
+import { useNameBar } from '@/components/widgets/FileBrowserWidget/nameBar'
+import {
+  usePathBrowsing,
+  type Directory,
+} from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
-import { Action } from '@/providers/action'
-import { injectBackend } from '@/providers/backend'
-import { assert } from '@/util/assert'
-import type { ToValue } from '@/util/reactivity'
-import { useToast } from '@/util/toast'
-import type {
-  DatalinkAsset,
-  DirectoryAsset,
-  DirectoryId,
-  FileAsset,
-} from 'enso-common/src/services/Backend'
-import Backend, {
-  assetIsDatalink,
-  assetIsDirectory,
-  assetIsFile,
-} from 'enso-common/src/services/Backend'
-import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
+import { registerHandlers } from '@/providers/action'
+import { providePopoverRoot } from '@/providers/popoverRoot'
+import { FileType } from '@/providers/widgetRegistry/configuration'
+import type { AnyAsset } from 'enso-common/src/services/Backend'
+import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
+import { computed, ref, toValue, useTemplateRef, watch, watchEffect } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     writeMode?: boolean
     choosenPath?: string
+    type?: 'file' | 'secret' | 'directory'
+    fileTypes?: FileType[] | undefined
+    allowOverride?: boolean
   }>(),
-  { writeMode: false, choosenPath: '' },
+  {
+    writeMode: false,
+    choosenPath: '',
+    type: 'file',
+    fileTypes: () => [{ label: 'All files', extensions: ['*'] }],
+    allowOverride: false,
+  },
 )
 
 const emit = defineEmits<{
   pathAccepted: [path: string]
+  close: []
 }>()
 
+const browserContent = useTemplateRef('browserContent')
+
+// === Cloud file APIs ===
+
 const { query, fetch, ensureQueryData, mutation } = useBackend('remote')
-const { remote: backend } = injectBackend()
-
-const errorToast = useToast.error()
-const newDirPlaceholder = Symbol()
-
-let nextKeyForNewDir = 0
-/**
- * Override for `:key` attribute in content entries.
- *
- * When new directory is added, it receives new entry.id, but we want animations to treat them
- * as same element. Therefore we assign a number as a key to every new directory placeholder,
- * and keep them once the placeholder turns into actual entry.
- */
-const keyOverride: Map<DirectoryId | symbol, number> = reactive(new Map())
-
-const currentUser = query('usersMe', [])
-const currentOrganization = query('getOrganization', [])
-
-const {
-  filenameInputContents,
-  directoryStack,
-  currentDirectory,
-  currentFilePath,
-  highlightedName,
-  initializeStack,
-  isDirectoryStackInitializing,
-} = useFileBrowserStack(
+const { remoteBackend: backend } = useBackends()
+const { userFiles, userFilesError } = useUserFiles({
   backend,
-  toRef(props, 'choosenPath'),
-  currentUser.data,
-  toRef(props, 'writeMode'),
-  (dir) => fetch('listDirectory', listDirectoryArgs(dir)),
-)
+  user: query('usersMe', []),
+  organization: query('getOrganization', []),
+})
+const { parseEnsoPath, ensoPath, printEnsoPath } = useEnsoPaths(userFiles)
+const listDirectory = (dir: Directory | undefined) => fetch('listDirectory', listDirectoryArgs(dir))
+const {
+  setBrowsingPath,
+  enteredPath,
+  unenteredPathSuffix,
+  currentDirectory,
+  isPending: isBrowsingPending,
+} = usePathBrowsing({
+  listDirectory,
+})
+const { isPending, data, error } = query('listDirectory', listDirectoryArgs(currentDirectory))
+const { acceptName } = useUpsertDirectory({ currentDirectory, mutation })
 
-// === Directory Contents ===
-
-function listDirectoryArgs(params: ToValue<Directory | undefined>) {
-  return computed<Parameters<Backend['listDirectory']> | undefined>(() => {
-    const paramsValue = toValue(params)
-    return paramsValue ?
-        [
-          {
-            parentId: paramsValue.id,
-            filterBy: null,
-            labels: null,
-            recentProjects: false,
-          },
-          paramsValue.title,
-        ]
-      : undefined
-  })
+type AssetExists = { exists: true; type: AssetType } | { exists: false }
+async function assetExists(name: string): Promise<AssetExists> {
+  const currentDir = currentDirectory.value
+  if (currentDir == null) return { exists: false }
+  const content = await listDirectory(currentDir)
+  const asset = content?.find((asset) => asset.title === name)
+  if (!asset) return { exists: false }
+  return { exists: true, type: asset.type }
 }
 
-const { isPending, isError, data, error } = query(
-  'listDirectory',
-  listDirectoryArgs(currentDirectory),
-)
-const compareTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title)
-const directories = computed(
-  () => data.value && data.value.filter((asset) => assetIsDirectory(asset)).sort(compareTitle),
-)
-const files = computed(
-  () =>
-    data.value &&
-    data.value.filter((asset) => assetIsFile(asset) || assetIsDatalink(asset)).sort(compareTitle),
-)
-const isEmpty = computed(
-  () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
-)
-
-// === Prefetching ===
-
-watch(directories, (directories) => {
-  // Prefetch directories to avoid lag when the user navigates, but only if we don't already have stale data.
-  // When the user opens a directory with stale data, it will refresh and the animation will show what files have
-  // changed since they last viewed.
-  for (const directory of directories ?? [])
-    ensureQueryData('listDirectory', listDirectoryArgs(directory))
+// Prefetch directories to avoid lag when the user navigates, but only if we don't already have
+// stale data. When the user opens a directory with stale data, it will refresh and the animation
+// will show what files have changed since they last viewed.
+watch(data, (assets) => {
+  for (const asset of assets ?? [])
+    if (assetIsDirectory(asset)) ensureQueryData('listDirectory', listDirectoryArgs(asset))
 })
 
-// === Interactivity ===
+// === Current Path ===
 
-function enterDir(dir: DirectoryAsset) {
-  directoryStack.value.push(dir)
+const { filenameInput, extensionInput, fullFilePath, setFilename, fileExtensionFilter } =
+  useNameBar()
+
+const { currentDirPath, chosenFilename, setPath, enterDir, popTo, append } = useCurrentPath({
+  home: () => ensoPath(toValue(userFiles.value?.home ?? [])),
+  enteredPath,
+})
+watchEffect(() => setPath(parseEnsoPath(props.choosenPath)))
+watchEffect(() => currentDirPath.value && setBrowsingPath(currentDirPath.value))
+watchEffect(() => {
+  if (props.writeMode && unenteredPathSuffix.value) setFilename(unenteredPathSuffix.value)
+})
+
+watchEffect(() => {
+  if (chosenFilename.value) setFilename(chosenFilename.value)
+})
+const highlightedFilename = computed(
+  () => (props.writeMode && fullFilePath.value) || chosenFilename.value,
+)
+
+// === Status ===
+
+const overwriteFilename = ref<string | null>(null)
+const warningText = ref<string | null>(null)
+const isBusy = computed(
+  () => isBrowsingPending.value || isPending.value || commitSecretPending.value,
+)
+const anyError = computed(() => error.value ?? userFilesError.value)
+const creatingSecret = ref(false)
+const editingAsset = ref(false)
+const enableTopBarButtons = computed(() => !creatingSecret.value && !editingAsset.value)
+
+// === Secret creation ===
+
+const { commitSecret, commitSecretPending } = useSecretCreation({ currentDirectory, mutation })
+
+async function createSecret(value: string, name: string) {
+  creatingSecret.value = false
+  return commitSecret(value, name, () => acceptFile(name))
 }
 
-function popTo(index: number) {
-  directoryStack.value.splice(index + 1)
-}
+// === Accepting Chosen File ===
 
-function popDirectory() {
-  if (directoryStack.value.length > 1) {
-    directoryStack.value.pop()
+async function tryAcceptCurrentFile() {
+  if (!enteredPath.value) {
+    // We can only reach this if there was a root previously, but there isn't now. This might be
+    // possible if the session is lost.
+    warningText.value = 'Unable to access files'
+    return
   }
-}
-
-const canPop = computed(() => directoryStack.value.length > 1)
-
-function chooseFile(file: FileAsset | DatalinkAsset) {
-  filenameInputContents.value = file.title
-  if (!props.writeMode) {
+  const path = mapPath(enteredPath.value, append(...fullFilePath.value.split('/')))
+  const enteringResult = await setBrowsingPath(path)
+  currentDirPath.value = path
+  if (!enteringResult.ok) {
+    warningText.value = `${enteringResult.error.payload.toString()}`
+    return
+  }
+  setFilename(unenteredPathSuffix.value)
+  const assetInfo = await assetExists(fullFilePath.value)
+  if (
+    assetInfo.exists &&
+    assetInfo.type === AssetType.file &&
+    props.writeMode &&
+    !props.allowOverride
+  ) {
+    overwriteFilename.value = fullFilePath.value
+  } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
+    warningText.value = `'${fullFilePath.value}' is a directory, not a file`
+  } else {
     acceptCurrentFile()
+    return
   }
 }
 
 function acceptCurrentFile() {
-  if (currentFilePath.value) {
-    emit('pathAccepted', currentFilePath.value)
+  acceptFile(fullFilePath.value)
+}
+
+function acceptFile(name: string) {
+  if (!enteredPath.value) return
+  const currentFilePath = printEnsoPath(mapPath(enteredPath.value, append(...name.split('/'))))
+  emit('pathAccepted', currentFilePath)
+}
+
+function chooseEntry(asset: AnyAsset, close: boolean) {
+  if (props.writeMode) {
+    setFilename(asset.title)
   } else {
-    return false
+    acceptFile(asset.title)
+    if (close) emit('close')
   }
 }
 
-const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
+const root = useTemplateRef<HTMLDivElement>('root')
+providePopoverRoot(root)
 
-const anyError = computed(() =>
-  isError.value ? error
-  : currentUser.isError.value ? currentUser.error
-  : currentOrganization.isError.value ? currentOrganization.error
-  : undefined,
-)
-
-// === Creating and Renaming Directories ===
-
-const editedAsset = ref<{
-  asset?: Directory
-  name: string
-  state: 'editing' | 'pending' | 'just created'
-  createdId?: DirectoryId
-}>()
-
-// Don't await invalidates, because we want `createDirectory` to return first, to fill
-// `keyOverride` property before getting update from backend.
-const createDir = mutation('createDirectory', { meta: { awaitInvalidates: false } })
-const updateDir = mutation('updateDirectory')
-
-function addNewDirectory() {
-  assert(editedAsset.value == null)
-  keyOverride.set(newDirPlaceholder, nextKeyForNewDir++)
-  editedAsset.value = { name: 'New Folder', state: 'editing' }
-}
-
-function renameDirectory(dir: DirectoryAsset) {
-  assert(editedAsset.value == null)
-  editedAsset.value = { asset: dir, name: dir.title, state: 'editing' }
-}
-
-async function acceptName(name: string) {
-  if (editedAsset.value?.state !== 'editing') {
-    console.error('Accepting edited name without editing')
-    return
-  }
-  const edited = editedAsset.value
-  edited.name = name
-  edited.state = 'pending'
-  const parentId = currentDirectory.value?.id
-  if (parentId == null) {
-    console.error('Cannot rename directory without parentId')
-    return
-  }
-  const action =
-    edited.asset == null ? createDir.mutateAsync([{ title: edited.name, parentId }, false])
-    : edited.asset.title != edited.name ?
-      updateDir.mutateAsync([edited.asset.id, { title: edited.name }, edited.asset.title])
-    : Promise.resolve(undefined)
-  action.then(
-    (result) => {
-      assert(edited === editedAsset.value)
-      // Editing existing asset does not require 'just created' state, because we await
-      // invalidates there
-      if (edited.asset == null && result != null) {
-        edited.createdId = result.id
-        edited.state = 'just created'
-        const key = keyOverride.get(newDirPlaceholder)
-        if (key != null) {
-          keyOverride.set(result.id, key)
-        }
-      } else {
-        editedAsset.value = undefined
-      }
-    },
-    (error) => {
-      const actionDescription = edited.asset == null ? 'create folder' : 'rename folder'
-      errorToast.show(`Failed to ${actionDescription}: ${error}`)
-      editedAsset.value = undefined
-    },
-  )
-}
-
-watch(
-  directories,
-  (dirs) => {
-    // Finish editing once received an updated directory.
-    if (dirs?.find((dir) => dir.id === editedAsset.value?.createdId)) {
-      editedAsset.value = undefined
-    }
+registerHandlers({
+  'fileBrowser.newDirectory': {
+    enabled: enableTopBarButtons,
+    action: () => browserContent.value?.newDirectory.action(),
   },
-  { flush: 'sync' },
-)
-// Currently, the only way to "focus" on an element is by context menu.
-const focusedDirectory = ref<DirectoryAsset>()
-const renameAction: Action = {
-  icon: 'edit',
-  description: 'Rename directory',
-  disabled: computed(() => focusedDirectory.value == null || editedAsset.value != null),
-  action: () => focusedDirectory.value && renameDirectory(focusedDirectory.value),
-}
-
-// === Initialization ===
-
-onMounted(() => {
-  Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
-    ([user, organizaton]) => {
-      initializeStack(user, organizaton)
-    },
-  )
+  'fileBrowser.renameDirectory': {
+    enabled: () =>
+      enableTopBarButtons.value && (browserContent.value?.renameDirectory.enabled.value ?? false),
+    action: () => browserContent.value?.renameDirectory.action(),
+  },
+  'fileBrowser.newSecret': {
+    available: computed(() => props.type === 'secret'),
+    enabled: enableTopBarButtons,
+    action: () => (creatingSecret.value = true),
+  },
+  'fileBrowser.navigateUp': {
+    enabled: () => enableTopBarButtons.value && !!enteredPath.value?.segments.length,
+    action: () => popTo(enteredPath.value!.segments.length - 1),
+  },
 })
 </script>
 
 <template>
-  <div class="FileBrowserWidget">
-    <div class="topBar">
-      <div class="directoryStack">
-        <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
-        <div class="breadcrumbs">
-          <TransitionGroup>
-            <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
-              <SvgIcon v-if="index > 0" name="navigate_breadcrumb" />
-              <div
-                class="clickable"
-                :class="{ nonInteractive: index === directoryStack.length - 1 }"
-                @click.stop="popTo(index)"
-                v-text="directory.title"
-              ></div>
-            </template>
-          </TransitionGroup>
-        </div>
+  <div ref="root" class="FileBrowserWidgetWrapper">
+    <div class="FileBrowserWidget">
+      <FileBrowserModals
+        v-model:overwriteFilename="overwriteFilename"
+        v-model:warningText="warningText"
+        @overwriteConfirmed="acceptCurrentFile"
+      />
+      <FileBrowserTopBar>
+        <FileBrowserBreadcrumbs
+          :directoryStack="enteredPath?.segments ?? []"
+          :enabled="enableTopBarButtons"
+          @popTo="popTo"
+        />
+        <ActionButton action="fileBrowser.newDirectory" />
+        <ActionButton action="fileBrowser.newSecret" />
+      </FileBrowserTopBar>
+      <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
+      <div v-else-if="isBusy" class="centerContent browserContents">
+        <LoadingSpinner phase="loading-medium" />
       </div>
-      <SvgButton
-        name="folder_add"
-        title="Add New Folder"
-        :disabled="editedAsset != null"
-        @click.stop="addNewDirectory"
+      <div v-else-if="creatingSecret" class="browserContents">
+        <UpsertSecretPanel @accepted="createSecret" @canceled="creatingSecret = false" />
+      </div>
+      <FileBrowserContent
+        v-show="!(anyError || isBusy || creatingSecret)"
+        ref="browserContent"
+        :key="currentDirectory?.id ?? 'root'"
+        class="browserContents"
+        :assets="data ?? []"
+        :chosenFilename="highlightedFilename"
+        :targetType="type ?? 'file'"
+        :matchesFilter="fileExtensionFilter.matches"
+        @renameDirectory="acceptName"
+        @enterDirectory="enterDir"
+        @choose="chooseEntry"
+        @update:editingAsset="editingAsset = $event"
       />
-    </div>
-
-    <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
-    <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
-      <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
-        <TransitionGroup>
-          <FileBrowserEntry
-            v-if="editedAsset && editedAsset.asset == null"
-            :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
-            icon="folder"
-            :title="editedAsset.name"
-            :editingState="editedAsset.state"
-            @nameAccepted="acceptName($event)"
-          />
-          <FileBrowserEntry
-            v-for="entry in directories"
-            :key="keyOverride.get(entry.id) ?? entry.id"
-            icon="folder"
-            :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
-            :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
-            @click="enterDir(entry)"
-            @nameAccepted="acceptName($event)"
-            @contextmenu="focusedDirectory = entry"
-          />
-          <FileBrowserEntry
-            v-for="entry in files"
-            :key="entry.id"
-            icon="text2"
-            :title="entry.title"
-            :highlighted="entry.title === highlightedName"
-            @click="chooseFile(entry)"
-          />
-        </TransitionGroup>
-      </ContextMenuTrigger>
-    </div>
-    <div v-if="writeMode" class="fileNameBar">
-      <input
-        v-model="filenameInputContents"
-        class="fileNameInput"
-        @pointerdown.stop
-        @click.stop
-        @contextmenu.stop
-        @keydown.backspace.stop
-        @keydown.delete.stop
-        @keydown.arrow-left.stop
-        @keydown.arrow-right.stop
-        @keydown.enter.stop="acceptCurrentFile()"
-      />
-      <SvgButton
-        class="fileNameAcceptButton"
-        label="Ok"
-        :disabled="!filenameInputContents"
-        @click.stop="acceptCurrentFile"
+      <FileBrowserNameBar
+        v-model:filenameInput="filenameInput"
+        v-model:extensionInput="extensionInput"
+        :writeMode="writeMode ?? false"
+        :root="root"
+        :fileExtensionFilter="fileExtensionFilter.filter.value"
+        :displayedExtension="fileExtensionFilter.displayedExtension.value"
+        :fileTypes="props.fileTypes"
+        @accept="tryAcceptCurrentFile"
+        @setFilter="fileExtensionFilter.filter.value = $event"
       />
     </div>
   </div>
 </template>
 
 <style scoped>
+.FileBrowserWidgetWrapper {
+  --z-index: var(--z-index-file-browser, 0);
+  --z-index-selection-submenu: calc(var(--z-index) - 1);
+}
+
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
-  background-color: var(--background-color);
+  background-color: var(--file-browser-background-color, var(--color-panel-accent));
+  --corner-radius: var(--file-browser-corner-radius, var(--radius-default));
   padding: var(--border-width);
-  border-radius: 0 0 var(--radius-default) var(--radius-default);
-  min-width: 400px;
+  border-radius: 0 0 var(--corner-radius) var(--corner-radius);
+  min-width: var(--file-browser-min-width, 400px);
   min-height: 200px;
   max-height: 600px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  contain: layout;
+  position: relative;
+  z-index: var(--z-index);
 }
 
-.topBar {
-  color: white;
-  background-color: var(--background-color);
-  display: flex;
-  flex-direction: row;
-  padding: 2px 8px;
-}
-
-.directoryStack {
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
-  color: white;
-  gap: 8px; /* gap between up button and breadcrumbs */
-}
-
-.breadcrumbs {
-  --transition-duration: 0.1s;
-  display: flex;
-  align-items: center;
-  gap: 2px; /* breadcrumb spacing */
-}
-
-.contents {
+.browserContents {
   flex: 1;
   width: 100%;
   background-color: var(--color-frame-selected-bg);
   border-radius: 0 0 var(--border-radius-inner) var(--border-radius-inner);
-}
-
-.listing {
-  --transition-duration: 0.5s;
-  padding: 8px;
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  align-items: start;
-  justify-content: start;
-  gap: 8px;
 }
 
 .centerContent {
@@ -410,48 +310,11 @@ onMounted(() => {
   justify-content: center;
 }
 
-.nonInteractive {
-  pointer-events: none;
-}
-
-.v-move,
-.v-enter-active,
-.v-leave-active {
-  transition: all var(--transition-duration) ease;
-}
-.v-enter-from,
-.v-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
-}
-.list-leave-active {
-  position: absolute;
-}
-
-.fileNameBar {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  padding: var(--border-width) 0 0 0;
-  gap: var(--border-width);
-}
-
-.fileNameInput {
-  border-radius: var(--border-radius-inner);
-  height: calc(var(--border-radius-inner) * 2);
-  padding: 0 8px;
-  background-color: var(--color-frame-selected-bg);
-  flex-grow: 1;
-  appearance: textfield;
-  -moz-appearance: textfield;
-  user-select: all;
-}
-
-.fileNameAcceptButton {
+:deep(.FileBrowserButton) {
   --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
   border-radius: var(--border-radius-inner);
   height: calc(var(--border-radius-inner) * 2);
-  margin: 0px;
+  margin: 0;
   padding: 4px 12px;
   background-color: var(--color-frame-selected-bg);
 }

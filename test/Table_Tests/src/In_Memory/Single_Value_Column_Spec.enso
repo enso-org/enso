@@ -147,10 +147,10 @@ add_specs suite_builder =
             c1 = Column.from_vector "c1" [10]
             c2 = Column.from_vector "c2" ["hello"]
 
-            c3 = c1.zip c2 a-> b-> a.to_text+" "+b
+            c3 = c1.map a-> a.to_text+" hi!"
             c3.should_be_a Column
             r3 = my_text_fn c3:Text
-            r3 . should_equal "10 hello!"
+            r3 . should_equal "10 hi!!"
 
             c4 = c1.is_nothing
             c4.should_be_a Column

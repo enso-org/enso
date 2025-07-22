@@ -1,18 +1,20 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
+import project.Column.Column
 import project.Value_Type.Value_Type
 from project.Errors import Nothing_Value_In_Filter_Condition
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper function gathering the common logic that generates a boolean mask
    from a given source column and a filter condition. It contains logic common
    for all backends.
-
    It also performs validation and will throw errors if unexpected column types
    are encountered.
-make_filter_column source_column filter_condition on_problems:Problem_Behavior =
+make_filter_column source_column:Column filter_condition on_problems:Problem_Behavior -> Column =
     base_column = case filter_condition of
         # Equality
         Equal value ->
@@ -78,11 +80,14 @@ make_filter_column source_column filter_condition on_problems:Problem_Behavior =
         Is_In values _ ->
             warn_on_nothing_in_comparison_vector filter_condition values <|
                 source_column.is_in values
+        Predicate _ -> Error.throw (Illegal_State.Error "Predicate filter conditions need to be resolved before being used as a filter column.")
     if filter_condition.action == Filter_Action.Keep then base_column else
         ## We need to fill in the Nothing values and then negate the result.
         (base_column.fill_nothing False).not
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Attach a warning if the provided value is `Nothing`.
 warn_on_nothing_in_comparison : Filter_Condition -> Any -> Any -> Any
 warn_on_nothing_in_comparison filter_condition value ~action =
@@ -90,7 +95,9 @@ warn_on_nothing_in_comparison filter_condition value ~action =
         Nothing -> Warning.attach (Nothing_Value_In_Filter_Condition.Error filter_condition) action
         _ -> action
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Attach a warning if the provided value is a `Vector` that contains `Nothing`.
 warn_on_nothing_in_comparison_vector : Filter_Condition -> Vector Any -> Any -> Any
 warn_on_nothing_in_comparison_vector filter_condition values ~action =

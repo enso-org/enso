@@ -7,10 +7,10 @@ import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
 }
+import org.enso.logger.Converter
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
-import org.enso.filewatcher.WatcherAdapterFactory
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.languageserver.capability.CapabilityRouter
@@ -50,6 +50,7 @@ import org.enso.logger.masking.Masking
 import org.enso.common.RuntimeOptions
 import org.enso.common.ContextFactory
 import org.enso.common.HostEnsoUtils
+import org.enso.filewatcher.WatcherFactory
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
@@ -261,7 +262,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       ReceivesTreeUpdatesHandler.props(
         languageServerConfig,
         contentRootManagerWrapper,
-        new WatcherAdapterFactory,
+        WatcherFactory.createDefault(),
         fileSystem,
         zioExec
       ),
@@ -329,9 +330,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
-    .logLevel(logLevel)
+    .logLevel(Converter.toJavaLevel(logLevel))
     .strictErrors(false)
-    .disableLinting(false)
     .enableIrCaches(true)
     .out(stdOut)
     .err(stdErr)
@@ -545,9 +545,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .getAttribute(osBean.getObjectName, "TotalPhysicalMemorySize")
       .asInstanceOf[Long]
     val totalMemMB = totalMem / 1024 / 1024
-    ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
     telemetryLog.trace(
-      "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}, os_name={}, os_arch={}, os_version={}, available_cpus={}, total_memory_MB={}, available_memory_MB={}",
+      "Initializing main module of the Language Server: project_id={}, edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}, os_name={}, os_arch={}, os_version={}, available_cpus={}, total_memory_MB={}, available_memory_MB={}",
+      serverConfig.projectId,
       BuildVersion.currentEdition(),
       BuildVersion.graalVersion(),
       BuildVersion.ensoVersion(),

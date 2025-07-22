@@ -3,10 +3,10 @@ package org.enso.table.data.column.operation.unary;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 /* An operation that checks if a column's row values are empty.
  * Only supported on Text values. */

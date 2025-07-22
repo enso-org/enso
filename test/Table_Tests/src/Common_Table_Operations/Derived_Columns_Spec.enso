@@ -7,7 +7,7 @@ from Standard.Table import all
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 
@@ -24,7 +24,7 @@ add_derived_columns_specs suite_builder setup =
     table_builder = setup.light_table_builder
     pending_datetime = if (setup.flagged ..Date_Time).not then "Date/Time operations are not supported by this backend."
     suite_builder.group prefix+"(Derived_Columns_Spec) Table.set with Simple_Expression" group_builder->
-        group_builder.specify "arithmetics" pending=(if prefix.contains "Snowflake" then "TODO: re-enable these once https://github.com/enso-org/enso/pull/10583 is merged") <|
+        group_builder.specify "arithmetics" <|
             t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") Simple_Calculation.Copy) "C" . at "C" . to_vector . should_equal [1, 2]
             t.set (..Simple_Expr (..Name "A") ..Copy) "C" . at "C" . to_vector . should_equal [1, 2]
@@ -67,6 +67,14 @@ add_derived_columns_specs suite_builder setup =
 
             Test.expect_panic Type_Error <| t.set (Simple_Expression.Simple_Expr "x" (Simple_Calculation.Subtract "y"))
             t.set (Simple_Expression.Simple_Expr 42 (Simple_Calculation.Add "y")) . should_fail_with Illegal_Argument
+
+        group_builder.specify "more math operations" <|
+            t = table_builder [["A", [15, -100]], ["txt", ["a", "b"]]]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (..Math ..Absolute)) "C" . at "C" . to_vector . should_equal [15, 100]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (..Math ..Signum)) "C" . at "C" . to_vector . should_equal [1, -1]
+
+            # Expect a nice error if the column has wrong type
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "txt") (..Math ..Absolute)) "C" . should_fail_with Invalid_Value_Type
 
         group_builder.specify "rounding" <|
             t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]]
@@ -181,7 +189,7 @@ add_derived_columns_specs suite_builder setup =
             # Passing a column does not work row-by-row, but looks at whole column contents.
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (t2.at "B")) "TT" "FF")) "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]
             t3 = table_builder [["x", ["e", "e", "a"]]]
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (t3.at "x")) "TT" "FF")) "Z" . at "Z" . to_vector . should_equal ["TT", "FF"]
+            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (t3.at "x")) "TT" "FF")) "Z" . sort "C" . at "Z" . to_vector . should_equal ["TT", "FF"]
 
             # Thus, passing a Column_Ref into Is_In is not allowed as it would be confusing.
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.If (Filter_Condition.Is_In (Column_Ref.Name "B")) "TT" "FF")) . should_fail_with Illegal_Argument

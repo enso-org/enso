@@ -1,2 +1,0 @@
-case 61: return XA_COPYRIGHT;
-Atom XA_COPYRIGHT = new Atom(61);

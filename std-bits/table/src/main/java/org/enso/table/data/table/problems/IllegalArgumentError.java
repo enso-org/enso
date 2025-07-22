@@ -3,7 +3,7 @@ package org.enso.table.data.table.problems;
 public class IllegalArgumentError extends ColumnAggregatedProblem {
   private final String message;
 
-  public IllegalArgumentError(String locationName, String message, Integer row) {
+  public IllegalArgumentError(String locationName, String message, long row) {
     super(locationName, row);
     this.message = message;
   }

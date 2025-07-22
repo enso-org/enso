@@ -179,7 +179,7 @@ trait CompilerTestSetup {
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,
-            BindingsMap(
+            new BindingsMap(
               List(),
               ModuleReference.Concrete(mod.asCompilerModule())
             )
@@ -204,5 +204,5 @@ trait CompilerTestSetup {
     )
   }
 
-  val defaultConfig: CompilerConfig = CompilerConfig()
+  val defaultConfig: CompilerConfig = CompilerConfig.createDefault()
 }

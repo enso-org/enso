@@ -105,7 +105,10 @@ public final class PanicException extends AbstractTruffleException {
     try {
       var info = library.getExceptionMessage(this);
       msg = library.asString(info);
-    } catch (StackOverflowError | AssertionError | UnsupportedMessageException e) {
+    } catch (IllegalStateException
+        | StackOverflowError
+        | AssertionError
+        | UnsupportedMessageException e) {
       var l = logger();
       l.atError().log("Cannot compute message for " + payload, e);
       l.error("Exception location: " + getLocation());
@@ -211,12 +214,12 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().panic();
   }
 
   @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
+  Type getMetaObject(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().panic();
   }
 
@@ -236,8 +239,8 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  int getExceptionExitStatus() {
-    return 1;
+  int getExceptionExitStatus() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
@@ -247,7 +250,7 @@ public final class PanicException extends AbstractTruffleException {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  final Object getExceptionStackTrace(@Bind("$node") Node queryNode) {
+  final Object getExceptionStackTrace(@Bind Node queryNode) {
     if (stackTrace == null) {
       if (ctx != null) {
         stackTrace = ctx.withinCtx(queryNode, () -> computeStackTrace(queryNode));
@@ -312,11 +315,12 @@ public final class PanicException extends AbstractTruffleException {
 
   @ExportMessage(name = "getSourceLocation")
   SourceSection getSourceSection() throws UnsupportedMessageException {
-    SourceSection loc = getLocation().getEncapsulatingSourceSection();
-    if (loc == null) {
+    SourceSection section = getLocation().getEncapsulatingSourceSection();
+    if (section == null) {
       throw UnsupportedMessageException.create();
+    } else {
+      return getLocation().getEncapsulatingSourceSection();
     }
-    return getLocation().getEncapsulatingSourceSection();
   }
 
   private static Logger logger() {

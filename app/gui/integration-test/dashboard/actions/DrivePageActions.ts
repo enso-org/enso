@@ -1,5 +1,5 @@
 /** @file Actions for the "drive" page. */
-import { expect, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from 'playwright/test'
 
 import { TEXT } from '.'
 import type { LocatorCallback } from './BaseActions'
@@ -17,7 +17,7 @@ function locateContextMenu(page: Page) {
   return page.getByTestId('context-menu')
 }
 
-/** Find a drive view. */
+/** Find a drive view. .*/
 function locateDriveView(page: Page) {
   // This has no identifying features.
   return page.getByTestId('drive-view')
@@ -66,10 +66,17 @@ function locateSecretValueInput(page: Page) {
   return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
+/** Find a radio button that navigates to specified drive category. */
+function locateCategoryButton(page: Page, category: string): Locator {
+  return page
+    .getByLabel(TEXT.categorySwitcherMenuLabel)
+    .getByRole('button', { name: category, exact: true })
+}
+
 /** Find an asset panel. */
-function locateAssetPanel(page: Page) {
+function locateRightPanel(page: Page) {
   // This has no identifying features.
-  return page.getByTestId('asset-panel').locator('visible=true')
+  return page.getByTestId('right-panel').locator('visible=true')
 }
 
 /** Actions for the "drive" page. */
@@ -85,47 +92,12 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   }
 
   /** Switch to a different category. */
-  get goToCategory() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self: DrivePageActions<Context> = this
-    return {
-      /** Switch to the "cloud" category. */
-      cloud() {
-        return self.step('Go to "Cloud" category', (page) =>
-          page
-            .getByLabel(TEXT.categorySwitcherMenuLabel)
-            .getByRole('button', { name: TEXT.cloudCategory, exact: true })
-            .getByText(TEXT.cloudCategory)
-            .click(),
-        )
-      },
-      /** Switch to the "local" category. */
-      local() {
-        return self.step('Go to "Local" category', (page) =>
-          page
-            .getByLabel(TEXT.categorySwitcherMenuLabel)
-            .getByRole('button', { name: TEXT.localCategory, exact: true })
-            .getByText(TEXT.localCategory)
-            .click(),
-        )
-      },
-      /** Switch to the "recent" category. */
-      recent() {
-        return self.step('Go to "Recent" category', (page) =>
-          page
-            .getByLabel(TEXT.categorySwitcherMenuLabel)
-            .getByRole('button', { name: TEXT.recentCategory, exact: true })
-            .getByText(TEXT.recentCategory)
-            .click(),
-        )
-      },
-      /** Switch to the "trash" category. */
-      trash() {
-        return self.step('Go to "Trash" category', (page) =>
-          page.getByRole('button', { name: TEXT.trashCategory, exact: true }).click(),
-        )
-      },
-    }
+  goToCategory = {
+    /** Switch to the "cloud" category. */
+    cloud: () => this.goToCategoryNamed(TEXT.cloudCategory),
+    local: () => this.goToCategoryNamed(TEXT.localCategory),
+    recent: () => this.goToCategoryNamed(TEXT.recentCategory),
+    trash: () => this.goToCategoryNamed(TEXT.trashCategory),
   }
 
   /** Interact with the assets search bar. */
@@ -135,21 +107,18 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     )
   }
 
+  /** Select category of specified name. */
+  goToCategoryNamed(this: DrivePageActions<Context>, category: string) {
+    return this.step(`Go to "${category}" category`, async (page) => {
+      await locateCategoryButton(page, category).click()
+      await this.expectCategory(category)
+    })
+  }
+
   /** Expect the category to be selected. */
   expectCategory(category: string) {
     return this.step(`Expect category '${category}'`, (page) =>
-      expect(
-        page.getByLabel(TEXT.categorySwitcherMenuLabel).getByRole('button', { name: category }),
-      ).toHaveAttribute('data-selected', 'true'),
-    )
-  }
-
-  /** Expect the category to be not selected. */
-  expectCategoryNotSelected(category: string) {
-    return this.step(`Expect category '${category}' not selected`, (page) =>
-      expect(
-        page.getByLabel(TEXT.categorySwitcherMenuLabel).getByRole('button', { name: category }),
-      ).toHaveAttribute('data-selected', 'false'),
+      expect(locateCategoryButton(page, category)).toHaveAttribute('data-selected', 'true'),
     )
   }
 
@@ -171,6 +140,13 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     const locatePathColumnHeading = (page: Page) => page.getByTestId('path-column-heading')
     const locatePathColumnCell = (page: Page, title: string) =>
       page.getByTestId(`path-column-cell-${title.toLowerCase().replace(/\s+/g, '-')}`)
+
+    const getRow = (page: Page, indexOrName: number | string) => {
+      const rows = locateAssetRows(page)
+      return typeof indexOrName === 'number' ?
+          rows.nth(indexOrName)
+        : rows.filter({ hasText: indexOrName })
+    }
 
     return {
       /** Click the column heading for the "name" column to change its sort order. */
@@ -208,39 +184,30 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         )
       },
       /** Click to select a specific row. */
-      clickRow(indexOrName: number | string) {
-        return self.step(`Click drive table row '${indexOrName}'`, async (page) => {
-          const rows = locateAssetRows(page)
-          const row =
-            typeof indexOrName === 'number' ?
-              rows.nth(indexOrName)
-            : rows.filter({ hasText: indexOrName })
-          await row.click({ position: ASSET_ROW_SAFE_POSITION })
+      clickRow(row: number | string) {
+        return self.step(`Click drive table row '${row}'`, async (page) => {
+          await getRow(page, row).click({ position: ASSET_ROW_SAFE_POSITION })
+        })
+      },
+      /** Click the background to deselect all rows. */
+      clickAway() {
+        return self.step('Click drive table background', async (page) => {
+          await page.getByTestId('assets-table-assets-unselector').first().click()
         })
       },
       /**
        * Right click a specific row to bring up its context menu, or the context menu for multiple
        * assets when right clicking on a selected asset when multiple assets are selected.
        */
-      rightClickRow(indexOrName: number | string) {
-        return self.step(`Right click drive table row '${indexOrName}'`, async (page) => {
-          const rows = locateAssetRows(page)
-          const row =
-            typeof indexOrName === 'number' ?
-              rows.nth(indexOrName)
-            : rows.filter({ hasText: indexOrName })
-          await row.click({ button: 'right', position: ASSET_ROW_SAFE_POSITION })
+      rightClickRow(row: number | string) {
+        return self.step(`Right click drive table row '${row}'`, async (page) => {
+          await getRow(page, row).click({ button: 'right', position: ASSET_ROW_SAFE_POSITION })
         })
       },
       /** Double click a row. */
-      doubleClickRow(indexOrName: number | string) {
-        return self.step(`Double dlick drive table row '${indexOrName}'`, async (page) => {
-          const rows = locateAssetRows(page)
-          const row =
-            typeof indexOrName === 'number' ?
-              rows.nth(indexOrName)
-            : rows.filter({ hasText: indexOrName })
-          await row.dblclick({ position: ASSET_ROW_SAFE_POSITION })
+      doubleClickRow(row: number | string) {
+        return self.step(`Double dlick drive table row '${row}'`, async (page) => {
+          await getRow(page, row).dblclick({ position: ASSET_ROW_SAFE_POSITION })
         })
       },
       /** Interact with the set of all rows in the Drive table. */
@@ -264,39 +231,65 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
       /** Drag a row onto another row. */
       dragRowToRow(from: number | string, to: number | string) {
         return self.step(`Drag drive table row '${from}' to row '${to}'`, async (page) => {
-          const rows = locateAssetRows(page)
-          const fromRow = typeof from === 'number' ? rows.nth(from) : rows.filter({ hasText: from })
-          const toRow = typeof to === 'number' ? rows.nth(to) : rows.filter({ hasText: to })
+          const fromRow = getRow(page, from)
           await fromRow.click()
-          await fromRow.dragTo(toRow, {
+          await fromRow.dragTo(getRow(page, to), {
             sourcePosition: ASSET_ROW_SAFE_POSITION,
             targetPosition: ASSET_ROW_SAFE_POSITION,
           })
         })
       },
       /** Drag a row onto another row. */
-      dragRow(from: number | string, to: Locator, force?: boolean) {
+      dragRow(from: number | string, to: Locator, force = false) {
         return self.step(`Drag drive table row '${from}' to custom locator`, async (page) => {
-          const rows = locateAssetRows(page)
-          const fromRow = typeof from === 'number' ? rows.nth(from) : rows.filter({ hasText: from })
-          await fromRow.dragTo(to, {
-            sourcePosition: ASSET_ROW_SAFE_POSITION,
-            ...(force == null ? {} : { force }),
-          })
+          await getRow(page, from).dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION, force })
         })
       },
-      openDirectory(indexOrName: number | string) {
-        return self.step(`Open directory on drive table row ${indexOrName}`, async (page) => {
-          const rows = locateAssetRows(page)
-          const row =
-            typeof indexOrName === 'number' ?
-              rows.nth(indexOrName)
-            : rows.filter({ hasText: indexOrName })
-          const navigateButton = row.getByTestId('directory-row-navigate-button')
+      /** Drag a row to a different category. */
+      dragRowToCategory(row: number | string, category: 'Cloud' | 'Local' | 'Recent' | 'Trash') {
+        return self.step(
+          `Drag drive table row '${row}' to '${category}' category`,
+          async (page) => {
+            const categoryId = (
+              {
+                Cloud: 'cloudCategory',
+                Local: 'localCategory',
+                Recent: 'recentCategory',
+                Trash: 'trashCategory',
+              } satisfies { [C in typeof category]: `${Lowercase<C>}Category` & keyof typeof TEXT }
+            )[category]
 
+            const categoryElement = page
+              .getByLabel(TEXT.categorySwitcherMenuLabel)
+              .getByRole('button', { name: TEXT[categoryId], exact: true })
+              .getByText(TEXT[categoryId])
+
+            await getRow(page, row).dragTo(categoryElement, {
+              sourcePosition: ASSET_ROW_SAFE_POSITION,
+            })
+          },
+        )
+      },
+      /** Open a directory at a specific row. */
+      openDirectory(row: number | string) {
+        return self.step(`Open directory on drive table row ${row}`, async (page) => {
+          const navigateButton = getRow(page, row).getByTestId('directory-row-navigate-button')
           await expect(navigateButton).toHaveAttribute('aria-label', TEXT.open)
-
           await navigateButton.dblclick()
+        })
+      },
+      /** Open a project at a specific row. */
+      openProject(row: number | string) {
+        return self.step(`Open directory on drive table row ${row}`, async (page) => {
+          const button = getRow(page, row).getByLabel(TEXT.openInEditor)
+          await button.dblclick()
+        })
+      },
+      /** Close a project at a specific row. */
+      closeProject(row: number | string) {
+        return self.step(`Open directory on drive table row ${row}`, async (page) => {
+          const button = getRow(page, row).getByLabel(TEXT.stopExecution)
+          await button.dblclick()
         })
       },
       /**
@@ -356,15 +349,18 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
               page.getByLabel(TEXT.accessedDataColumnName).click(),
             )
           },
-          /** Toggle visibility for the "docs" column. */
-          docs() {
-            return self.step('Toggle "docs" column', (page) =>
-              page.getByLabel(TEXT.docsColumnName).click(),
-            )
-          },
         }
       },
     }
+  }
+
+  /** Expect editor is opened due to external causes (like auto opening Welcome project). */
+  expectProjectEditorOpened(name: string) {
+    return this.step('Expect Editor is opened', async (page) => {
+      const projectTab = page.getByRole('tab', { name })
+      await expect(projectTab).toBeVisible()
+      await expect(projectTab).toHaveClass(/selected/)
+    }).into(EditorPageActions<Context>)
   }
 
   /** Clear trash. */
@@ -377,18 +373,10 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
 
   /** Create a new empty project. */
   newEmptyProject() {
-    return this.step('Create empty project', (page) =>
-      page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
-    ).into(EditorPageActions<Context>)
-  }
-
-  // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-  // Delete once cloud execution in the browser is re-enabled.
-  /** Create a new empty project. */
-  newEmptyProjectTest() {
-    return this.step('Create empty project', (page) =>
-      page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
-    ).into(EditorPageActions<Context>)
+    return this.step('Create empty project', async (page) => {
+      await page.getByText(TEXT.newEmptyProject, { exact: true }).click()
+      await expect(page.getByTestId('editor')).toBeVisible()
+    }).into(EditorPageActions<Context>)
   }
 
   /** Interact with the drive view (the main container of this page). */
@@ -431,69 +419,24 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     })
   }
 
-  /** Show the Asset Panel. */
-  showAssetPanel() {
-    return this.step('Show asset panel', async (page) => {
-      const isShown = await this.isAssetPanelShown(page)
-
-      if (!isShown) {
-        await this.toggleAssetPanel()
-      }
+  /** Show the properties tab of the Asset Panel. */
+  togglePropertiesAssetPanel() {
+    return this.step('Toggle properties asset panel', async (page) => {
+      await page.getByRole('tab', { name: 'Properties' }).click()
     })
-  }
-
-  /** Hide the Asset Panel. */
-  hideAssetPanel() {
-    return this.step('Hide asset panel', async (page) => {
-      const isShown = await this.isAssetPanelShown(page)
-
-      if (isShown) {
-        await this.toggleAssetPanel()
-      }
-    })
-  }
-
-  /** Toggle the Asset Panel open or closed. */
-  toggleAssetPanel() {
-    return this.step('Toggle asset panel', async (page) => {
-      page.getByLabel('Asset Panel').locator('visible=true').click()
-      await this.waitForAssetPanelShown(page)
-    })
-  }
-
-  /**
-   * Check if the Asset Panel is shown.
-   */
-  async isAssetPanelShown(page: Page) {
-    return await page
-      .getByTestId('asset-panel')
-      .isVisible({ timeout: 0 })
-      .then(
-        () => true,
-        () => false,
-      )
-  }
-
-  /**
-   * Wait for the Asset Panel to be shown and visually stable
-   */
-  async waitForAssetPanelShown(page: Page) {
-    await page.getByTestId('asset-panel').waitFor({ state: 'visible' })
   }
 
   /** Show the description tab of the Asset Panel. */
   toggleDescriptionAssetPanel() {
     return this.step('Toggle description asset panel', async (page) => {
-      await this.showAssetPanel()
-      await page.getByTestId('asset-panel-tab-settings').click()
+      await page.getByRole('tab', { name: 'Description' }).click()
     })
   }
 
   /** Show the Docs tab of the Asset Panel. */
   toggleDocsAssetPanel() {
     return this.step('Toggle docs asset panel', async (page) => {
-      await this.showAssetPanel()
-      await page.getByTestId('asset-panel-tab-docs').click()
+      await page.getByRole('tab', { name: 'Documentation' }).click()
     })
   }
 
@@ -507,9 +450,9 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   }
 
   /** Interact with the Asset Panel. */
-  withAssetPanel(callback: LocatorCallback<Context>) {
-    return this.step('Interact with asset panel', async (page, context) => {
-      await callback(locateAssetPanel(page), context)
+  withRightPanel(callback: LocatorCallback<Context>) {
+    return this.step('Interact with right panel', async (page, context) => {
+      await callback(locateRightPanel(page), context)
     })
   }
 

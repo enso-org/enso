@@ -2,7 +2,6 @@ from Standard.Base import all
 from Standard.Table import Table
 from Standard.Test import all
 from Standard.Table.Errors import all
-import Standard.Base.Errors.Common.Type_Error
 
 ## Pretty xml makes the tests easier to read, 
    so this function allows to convert a pretty-formatted expected XML value

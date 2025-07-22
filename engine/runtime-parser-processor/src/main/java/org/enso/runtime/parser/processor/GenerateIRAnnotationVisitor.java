@@ -11,13 +11,14 @@ import javax.lang.model.util.SimpleAnnotationValueVisitor14;
 import org.enso.runtime.parser.dsl.GenerateIR;
 import org.enso.runtime.parser.processor.utils.Utils;
 
-final class GenerateIRAnnotationVisitor extends SimpleAnnotationValueVisitor14<Void, Void> {
+public final class GenerateIRAnnotationVisitor extends SimpleAnnotationValueVisitor14<Void, Void> {
   private final ProcessingEnvironment procEnv;
   private final ExecutableElement annotationField;
   private final LinkedHashSet<TypeElement> allInterfaces = new LinkedHashSet<>();
   private TypeElement irInterface;
 
-  GenerateIRAnnotationVisitor(ProcessingEnvironment procEnv, ExecutableElement annotationField) {
+  public GenerateIRAnnotationVisitor(
+      ProcessingEnvironment procEnv, ExecutableElement annotationField) {
     this.procEnv = procEnv;
     this.annotationField = annotationField;
     allInterfaces.add(Utils.irTypeElement(procEnv));

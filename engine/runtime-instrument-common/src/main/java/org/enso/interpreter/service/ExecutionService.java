@@ -21,7 +21,10 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
@@ -31,6 +34,9 @@ import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.TypeInfo;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
+import org.enso.interpreter.instrument.execution.ErrorResolver;
+import org.enso.interpreter.instrument.execution.LocationResolver;
+import org.enso.interpreter.instrument.job.VisualizationResult;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -45,7 +51,9 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
@@ -58,6 +66,8 @@ import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
+import org.enso.polyglot.runtime.Runtime$Api$ExecutionResult$Diagnostic$;
+import org.enso.polyglot.runtime.Runtime$Api$ExecutionResult$Failure$;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
 import org.slf4j.Logger;
@@ -68,7 +78,7 @@ import org.slf4j.LoggerFactory;
  * language.
  */
 public final class ExecutionService {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionService.class);
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
@@ -110,21 +120,25 @@ public final class ExecutionService {
     return context;
   }
 
-  public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
+  public CompletionStage<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
-    ModuleScope scope = module.compileScope(context);
-    Type type = scope.getType(typeName, false);
-    if (type == null) {
-      throw new TypeNotFoundException(module.getName().toString(), typeName);
-    }
-    Function function = scope.lookupMethodDefinition(type, methodName);
-    if (function == null) {
-      throw new MethodNotFoundException(module.getName().toString(), type, methodName);
-    }
-    Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
-    return new FunctionCallInstrumentationNode.FunctionCall(
-        function, State.create(context), arguments);
+    return submitExecution(
+        () -> {
+          ModuleScope scope = module.compileScope(context);
+          Type type = scope.getType(typeName, false);
+          if (type == null) {
+            throw new TypeNotFoundException(module.getName().toString(), typeName);
+          }
+          Function function = scope.lookupMethodDefinition(type, methodName);
+          if (function == null) {
+            throw new MethodNotFoundException(module.getName().toString(), type, methodName);
+          }
+          Object[] arguments =
+              MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
+          return new FunctionCallInstrumentationNode.FunctionCall(
+              function, State.create(context), arguments);
+        });
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
@@ -134,29 +148,30 @@ public final class ExecutionService {
     if (connectedLockManager != null) {
       connectedLockManager.connect(endpoint);
     } else {
-      LoggerFactory.getLogger(ExecutionService.class)
-          .warn(
-              "ConnectedLockManager was not initialized, even though a Language Server connection"
-                  + " has been established. This may result in synchronization errors.");
+      LOGGER.warn(
+          "ConnectedLockManager was not initialized, even though a Language Server connection"
+              + " has been established. This may result in synchronization errors.");
     }
   }
 
   /**
-   * Executes a function with given arguments, represented as runtime language-level objects.
+   * Submits a function with given arguments, represented as runtime language-level objects, for
+   * execution.
    *
    * @param module the module where the call is defined
-   * @param call the call metadata.
-   * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
-   * @param syncState the synchronization state of runtime updates.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param expressionExecutionState the execution state for each expression.
-   * @param funCallCallback the consumer for function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @param call the call metadata
+   * @param cache the precomputed expression values
+   * @param methodCallsCache the storage tracking the executed method calls
+   * @param syncState the synchronization state of runtime updates
+   * @param nextExecutionItem the next item scheduled for execution
+   * @param expressionExecutionState the execution state for each expression
+   * @param funCallCallback the consumer for function call events
+   * @param onComputedCallback the consumer of the computed value events
+   * @param onCachedCallback the consumer of the cached value events
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result
+   * @return computation of call to a function
    */
-  public void execute(
+  public CompletionStage<Object> execute(
       VisualizationHolder visualizationHolder,
       Module module,
       FunctionCallInstrumentationNode.FunctionCall call,
@@ -168,62 +183,57 @@ public final class ExecutionService {
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
-      Consumer<ExecutedVisualization> onExecutedVisualizationCallback)
-      throws ArityException,
-          SourceNotFoundException,
-          UnsupportedMessageException,
-          UnsupportedTypeException {
-    SourceSection src = call.getFunction().getSourceSection();
-    if (src == null) {
-      throw new SourceNotFoundException(call.getFunction().getName());
-    }
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
+    return submitExecution(
+        () -> {
+          var callbacks =
+              new ExecutionCallbacks(
+                  visualizationHolder,
+                  nextExecutionItem,
+                  cache,
+                  methodCallsCache,
+                  syncState,
+                  expressionExecutionState,
+                  onCachedCallback,
+                  onComputedCallback,
+                  funCallCallback,
+                  onExecutedVisualizationCallback,
+                  this.context.isProgressReportEnabled() ? onComputedCallback : null);
+          Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+              idExecutionInstrument.map(
+                  service ->
+                      service.bind(
+                          module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    var callbacks =
-        new ExecutionCallbacks(
-            visualizationHolder,
-            nextExecutionItem,
-            cache,
-            methodCallsCache,
-            syncState,
-            expressionExecutionState,
-            onCachedCallback,
-            onComputedCallback,
-            funCallCallback,
-            onExecutedVisualizationCallback,
-            this.context.isProgressReportEnabled() ? onComputedCallback : null);
-    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service ->
-                service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
-
-    Object p = context.getThreadManager().enter();
-    try {
-      var callFn = Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
-      RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
+          try {
+            var callFn =
+                Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
+            return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
+          } finally {
+            eventNodeFactory.ifPresent(EventBinding::dispose);
+          }
+        });
   }
 
   /**
-   * Executes a method described by its name, constructor it's defined on and the module it's
-   * defined in.
+   * Submits a method described by its name, constructor it's defined on and the module it's defined
+   * in, for execution.
    *
-   * @param moduleName the module where the method is defined.
-   * @param typeName the name of the type the method is defined on.
-   * @param methodName the method name.
-   * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
-   * @param syncState the synchronization state of runtime updates.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param expressionExecutionState the execution state for each expression.
-   * @param funCallCallback the consumer for function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @param moduleName the module where the method is defined
+   * @param typeName the name of the type the method is defined on
+   * @param methodName the method name
+   * @param cache the precomputed expression values
+   * @param methodCallsCache the storage tracking the executed method calls
+   * @param syncState the synchronization state of runtime updates
+   * @param nextExecutionItem the next item scheduled for execution
+   * @param expressionExecutionState the execution state for each expression
+   * @param funCallCallback the consumer for function call events
+   * @param onComputedCallback the consumer of the computed value events
+   * @param onCachedCallback the consumer of the cached value events
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result
+   * @return computation of execution
    */
-  public void execute(
+  public CompletionStage<Object> execute(
       String moduleName,
       String typeName,
       String methodName,
@@ -245,21 +255,23 @@ public final class ExecutionService {
           UnsupportedTypeException {
     Module module =
         context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
-    FunctionCallInstrumentationNode.FunctionCall call =
+    CompletionStage<FunctionCallInstrumentationNode.FunctionCall> callFuture =
         prepareFunctionCall(module, typeName, methodName);
-    execute(
-        visualizationHolder,
-        module,
-        call,
-        cache,
-        methodCallsCache,
-        syncState,
-        nextExecutionItem,
-        expressionExecutionState,
-        funCallCallback,
-        onComputedCallback,
-        onCachedCallback,
-        onExecutedVisualizationCallback);
+    return callFuture.thenCompose(
+        call ->
+            execute(
+                visualizationHolder,
+                module,
+                call,
+                cache,
+                methodCallsCache,
+                syncState,
+                nextExecutionItem,
+                expressionExecutionState,
+                funCallCallback,
+                onComputedCallback,
+                onCachedCallback,
+                onExecutedVisualizationCallback));
   }
 
   /**
@@ -285,26 +297,22 @@ public final class ExecutionService {
   }
 
   /**
-   * Evaluates an expression in the scope of the provided module.
+   * Submits an expression in the scope of the provided module, for evaluation.
    *
    * @param module the module providing a scope for the expression
    * @param expression the expression to evaluate
-   * @return a result of evaluation
+   * @return a computation representing the evaluation of an expression
    */
-  public Object evaluateExpression(Module module, String expression) {
-    Object p = context.getThreadManager().enter();
-    try {
-      return invoke.getCallTarget().call(module, expression);
-    } finally {
-      context.getThreadManager().leave(p);
-    }
+  public CompletionStage<Object> evaluateExpression(Module module, String expression) {
+    LOGGER.trace("evaluateExpression in {} code: {}", module.getName(), expression);
+    return submitExecution(() -> invoke.getCallTarget().call(module, expression));
   }
 
   /**
    * Converts the provided object to a readable representation.
    *
-   * @param receiver the object to convert.
-   * @return the textual representation of the object.
+   * @param receiver the object to convert
+   * @return the textual representation of the object
    */
   public String toDisplayString(Object receiver) {
     try {
@@ -317,21 +325,20 @@ public final class ExecutionService {
   }
 
   /**
-   * Calls a function with the given argument.
+   * Submits a call for a function with the given argument.
    *
    * @param fn the function object
    * @param argument the argument applied to the function
-   * @return the result of calling the function
+   * @return computation of a function call
    */
-  public Object callFunction(Object fn, Object argument) {
-    Object p = context.getThreadManager().enter();
-    try {
-      var callArgs =
-          Function.ArgumentsHelper.buildArguments(null, new Object[] {fn, new Object[] {argument}});
-      return call.getCallTarget().call(callArgs);
-    } finally {
-      context.getThreadManager().leave(p);
-    }
+  public CompletionStage<Object> callFunction(Object fn, Object argument) {
+    return submitExecution(
+        () -> {
+          var callArgs =
+              Function.ArgumentsHelper.buildArguments(
+                  null, new Object[] {fn, new Object[] {argument}});
+          return call.getCallTarget().call(callArgs);
+        });
   }
 
   /**
@@ -343,65 +350,132 @@ public final class ExecutionService {
    * @param module the module providing scope for the function
    * @param function the function object
    * @param arguments the sequence of arguments applied to the function
-   * @return the result of calling the function
+   * @return the computation of a function call
    */
-  public Object callFunctionWithInstrument(
+  public CompletionStage<Object> callFunctionWithInstrument(
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
       RuntimeCache executionCache,
       Module module,
       Object function,
       Object... arguments) {
-    UUID nextExecutionItem = null;
-    CallTarget entryCallTarget =
-        (function instanceof Function) ? ((Function) function).getCallTarget() : null;
-    MethodCallsCache methodCallsCache = new MethodCallsCache();
-    UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
-    Consumer<ExpressionCall> funCallCallback = (value) -> {};
-    Consumer<ExpressionValue> onComputedCallback =
-        (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
-    Consumer<ExpressionValue> onCachedCallback =
-        (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
-    Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
-    ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
-    Consumer<ExpressionValue> onProgressCallback =
-        (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
-    var callbacks =
-        new ExecutionCallbacks(
-            visualizationHolder,
-            nextExecutionItem,
-            cache,
-            methodCallsCache,
-            syncState,
-            expressionExecutionState,
-            onCachedCallback,
-            onComputedCallback,
-            funCallCallback,
-            onExecutedVisualizationCallback,
-            onProgressCallback);
-    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service -> service.bind(module, entryCallTarget, callbacks, this.timer));
-    var ret = new Object[1];
-    Object p = context.getThreadManager().enter();
-    try {
-      State state;
-      if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
-        state = fnCall.getState();
-      } else {
-        var fn = (Function) function;
-        state = State.create(context);
-        function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
-      }
-      var callArgs = new Object[] {function, arguments};
-      var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
-      ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
-    return ret[0];
+    return submitExecution(
+        () -> {
+          var fn = function;
+          UUID nextExecutionItem = null;
+          CallTarget entryCallTarget =
+              (fn instanceof Function) ? ((Function) fn).getCallTarget() : null;
+          MethodCallsCache methodCallsCache = new MethodCallsCache();
+          UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
+          Consumer<ExpressionCall> funCallCallback = (value) -> {};
+          Consumer<ExpressionValue> onComputedCallback =
+              (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
+          Consumer<ExpressionValue> onCachedCallback =
+              (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
+          Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
+          ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
+          Consumer<ExpressionValue> onProgressCallback =
+              (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
+
+          var callbacks =
+              new ExecutionCallbacks(
+                  visualizationHolder,
+                  nextExecutionItem,
+                  cache,
+                  methodCallsCache,
+                  syncState,
+                  expressionExecutionState,
+                  onCachedCallback,
+                  onComputedCallback,
+                  funCallCallback,
+                  onExecutedVisualizationCallback,
+                  onProgressCallback);
+          Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+              idExecutionInstrument.map(
+                  service -> service.bind(module, entryCallTarget, callbacks, this.timer));
+          var ret = new Object[1];
+          try {
+            if (fn instanceof Function tmp) {
+              State state = State.create(context);
+              fn = new FunctionCallInstrumentationNode.FunctionCall(tmp, state, new Object[0]);
+            }
+            var callArgs = new Object[] {fn, arguments};
+            var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+            ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
+          } finally {
+            eventNodeFactory.ifPresent(EventBinding::dispose);
+          }
+          return ret[0];
+        });
+  }
+
+  /**
+   * Computes diagnostics from an exception. Returns an `Option` because Scala/Java interop for
+   * nested classes from Java is non-usable.
+   *
+   * @param t an exception to analyze
+   * @return computation that infers the message from an exception
+   */
+  public CompletionStage<Optional<Object>> getDiagnosticOutcome(Throwable t) {
+    return submitExecution(
+        () -> {
+          if (t instanceof AbstractTruffleException ex) {
+            var section = scala.Option.apply(getSourceLocation(ex));
+            var source = section.flatMap(sec -> scala.Option.apply(sec.getSource()));
+            var file = source.flatMap(src -> findFileByModuleName(src.getName()));
+            if (!isExitException(ex)) {
+              // The empty language is allowed because `getLanguage` returns null when
+              // the error originates in builtin node.
+              var lang = getLanguage(ex);
+              if (lang == null || lang.equals(LanguageInfo.ID)) {
+                return Optional.of(
+                    Runtime$Api$ExecutionResult$Diagnostic$.MODULE$.error(
+                        VisualizationResult.findExceptionMessage(ex),
+                        file,
+                        section.map(sec -> LocationResolver.sectionToRange(sec)),
+                        section
+                            .flatMap(sec -> LocationResolver.getExpressionId(sec, this))
+                            .map(LocationResolver.ExpressionId::externalId),
+                        ErrorResolver.getStackTrace(ex, this)));
+              }
+            } else {
+              return Optional.of(
+                  Runtime$Api$ExecutionResult$Failure$.MODULE$.apply(ex.getMessage(), file));
+            }
+          }
+          return Optional.empty();
+        });
+  }
+
+  /**
+   * Computes a type of a Truffle's node.
+   *
+   * @param value node to compute
+   * @return computation that infers the type of a value
+   */
+  public CompletionStage<Object> typeOfValue(Object value) {
+    return submitExecution(() -> TypeOfNode.getUncached().findTypeOrError(value));
+  }
+
+  /**
+   * Sets global execution environment.
+   *
+   * @param env the execution envrionment to use
+   * @return old execution environment
+   */
+  public CompletionStage<ExecutionEnvironment> setExecutionInstrument(ExecutionEnvironment env) {
+    return submitExecution(
+        () -> {
+          var old = getContext().getExecutionEnvironment();
+          getContext().setExecutionEnvironment(env);
+          return old;
+        });
+  }
+
+  private scala.Option<File> findFileByModuleName(String module) {
+    return scala.Option.apply(
+        getContext().findModule(module).map(m -> new File(m.getPath())).orElse(null));
   }
 
   private Type cacheKey() {
@@ -463,10 +537,8 @@ public final class ExecutionService {
               rope -> {
                 logger.trace(
                     "Applied edits. Source has {} lines, last line has {} characters.",
-                    new Object[] {
-                      rope.lines().length(),
-                      rope.lines().drop(rope.lines().length() - 1).characters().length()
-                    });
+                    rope.lines().length(),
+                    rope.lines().drop(rope.lines().length() - 1).characters().length());
                 module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });
@@ -488,8 +560,8 @@ public final class ExecutionService {
         if (source != null) {
           return source.getLanguage();
         }
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      } catch (UnsupportedMessageException ex) {
+        // fallthru
       }
     }
     return null;
@@ -503,14 +575,18 @@ public final class ExecutionService {
    */
   public SourceSection getSourceLocation(Object o) {
     var iop = InteropLibrary.getUncached(o);
-    if (iop.hasSourceLocation(o)) {
-      try {
-        return iop.getSourceLocation(o);
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
-      }
-    }
-    return null;
+    return context.withinCtx(
+        iop,
+        () -> {
+          if (iop.hasSourceLocation(o)) {
+            try {
+              return iop.getSourceLocation(o);
+            } catch (UnsupportedMessageException ex) {
+              // fallthru
+            }
+          }
+          return null;
+        });
   }
 
   public boolean isExitException(AbstractTruffleException ex) {
@@ -528,12 +604,15 @@ public final class ExecutionService {
   /**
    * Returns a human-readable message for a panic exception.
    *
-   * @param panic the panic to display.
-   * @return a human-readable version of its contents.
+   * @param panic the panic to display
+   * @return a computation of a human-readable version of an exception
    */
-  public String getExceptionMessage(AbstractTruffleException panic) {
+  public CompletionStage<String> getExceptionMessage(AbstractTruffleException panic) {
+    return submitExecution(() -> computeExceptionMessage(panic));
+  }
+
+  private String computeExceptionMessage(AbstractTruffleException panic) {
     var iop = InteropLibrary.getUncached();
-    var p = context.getThreadManager().enter();
     var payload = panic instanceof PanicException ex ? ex.getPayload() : panic;
     try {
       // Invoking a member on an Atom that does not have a method `to_display_text` will not
@@ -554,14 +633,16 @@ public final class ExecutionService {
       } else {
         throw e;
       }
-    } finally {
-      context.getThreadManager().leave(p);
     }
   }
 
   @SuppressWarnings("unchecked")
   static <E extends Throwable> E raise(Class<E> type, Throwable ex) throws E {
     throw (E) ex;
+  }
+
+  private <T> CompletionStage<T> submitExecution(Supplier<T> c) {
+    return context.getThreadManager().submit(c);
   }
 
   private static final class ExecuteRootNode extends RootNode {
@@ -777,13 +858,6 @@ public final class ExecutionService {
      */
     public TypeInfo getType() {
       return typeInfo;
-    }
-
-    /**
-     * @return the cached type of the value.
-     */
-    public TypeInfo getCachedType() {
-      return cachedTypeInfo;
     }
 
     /**

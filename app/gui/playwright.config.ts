@@ -6,12 +6,13 @@
  * - System validation dialogs are not reliable between computers, as they may have different
  * default fonts.
  */
-import { defineConfig } from '@playwright/test'
 import net from 'node:net'
 import path from 'node:path'
 import url from 'node:url'
+import { defineConfig } from 'playwright/test'
 import invariant from 'tiny-invariant'
 
+const UNSAFE_SKIP_BUILD = process.env.PW_UNSAFE_SKIP_BUILD === 'true'
 const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
 const isProd = process.env.PROD === 'true'
@@ -62,7 +63,12 @@ const ports = {
       portsFromEnv.dashboard
     : await findFreePortInRange(4300, 4999),
 }
-console.log(`Selected playwright servers' ports: ${ports.projectView} and ${ports.dashboard}`)
+
+if (!Number.isFinite(portsFromEnv.projectView) || !Number.isFinite(portsFromEnv.dashboard)) {
+  // Avoid spamming this log in each worker thread.
+  console.log(`Selected playwright servers' ports: ${ports.projectView} and ${ports.dashboard}`)
+}
+
 // Make sure to set the env to actual port that is being used. This is necessary for workers to
 // pick up the same configuration.
 process.env.PLAYWRIGHT_PORT = `${ports.dashboard}`
@@ -73,25 +79,25 @@ export default defineConfig({
   ...(WORKERS ? { workers: WORKERS } : {}),
   forbidOnly: isCI,
   reporter: isCI ? [['list'], ['blob']] : [['html']],
-  retries: isCI ? 3 : 0,
+  retries: isCI ? 1 : 0,
   use: {
-    headless: !DEBUG,
     actionTimeout: 5000,
 
     trace: 'retain-on-failure',
-    ...(DEBUG ?
-      {}
-    : {
-        launchOptions: {
+    headless: !DEBUG,
+    launchOptions:
+      DEBUG ?
+        {}
+      : {
           ignoreDefaultArgs: ['--headless'],
           args: [
             // Much closer to headful Chromium than classic headless.
             '--headless=new',
             // Required for `backdrop-filter: blur` to work.
             '--use-angle=swiftshader',
-            // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
-            // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
-            // MUST stay as CI does not have a GPU.
+            // `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+            // the software (CPU) compositor. This flag MUST stay if screenshot testing/
+            // visual regression testing is needed, as CI does not have a GPU.
             '--disable-gpu',
             // Fully disable GPU process.
             '--disable-software-rasterizer',
@@ -103,7 +109,6 @@ export default defineConfig({
             '--disable-lcd-text',
           ],
         },
-      }),
   },
   projects: [
     // Setup project
@@ -162,7 +167,7 @@ export default defineConfig({
         INTEGRATION_TEST: 'true',
         ENSO_IDE_PROJECT_MANAGER_URL: 'ws://__HOSTNAME__:30536',
       },
-      command: `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
+      command: `${UNSAFE_SKIP_BUILD ? '' : 'corepack pnpm build && '}corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
       // Build from scratch apparently can take a while on CI machines.
       timeout: 480 * 1000,
       port: ports.projectView,
@@ -173,7 +178,7 @@ export default defineConfig({
       env: { NODE_ENV: 'test' },
       command:
         isCI || isProd ?
-          `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
+          `${UNSAFE_SKIP_BUILD ? '' : 'corepack pnpm exec vite -c vite.test.config.ts build && '}corepack pnpm exec vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
         : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
       timeout: 480 * 1000,
       port: ports.dashboard,

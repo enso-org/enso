@@ -2,13 +2,12 @@
  * @file Container responsible for rendering and interactions in second half of forgot password
  * flow.
  */
-import * as router from 'react-router-dom'
-import * as z from 'zod'
-
-import { LOGIN_PATH } from '#/appUtils'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Button, Form, Input, Password } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
+import { Password } from '#/components/Inputs/Password'
 import Link from '#/components/Link'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
@@ -17,13 +16,15 @@ import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalBackend } from '#/providers/BackendProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
+import { LOGIN_PATH } from '$/appUtils'
+import { useBackends, useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
+import { type GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
+import * as z from 'zod'
 
 /** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {
@@ -52,31 +53,30 @@ const REDIRECT_TIMEOUT = 3000
 
 /** A form for users to reset their password. */
 export default function ResetPassword() {
-  const { resetPassword } = useSessionAPI()
+  const { resetPassword } = useSession()
   const { getText } = useText()
-  const navigate = router.useNavigate()
-
-  const [searchParams] = router.useSearchParams()
+  const { router } = useRouter()
 
   const toastAndLog = useToastAndLog()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const defaultEmail = searchParams.get('email')
-  const defaultVerificationCode = searchParams.get('verification_code')
-  const redirectUrl = searchParams.get('redirect_url') ?? 'enso://auth/login'
+  const [defaultEmail] = useQueryParam('email')
+  const [defaultVerificationCode] = useQueryParam('verification_code')
+  const [maybeRedirectUrl] = useQueryParam('redirect_url')
+  const redirectUrl = maybeRedirectUrl ?? 'enso://auth/login'
 
   const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
 
   useMount(() => {
     if (defaultEmail == null) {
       toastAndLog('missingEmailError')
-      navigate(LOGIN_PATH)
+      void router.push(LOGIN_PATH)
     }
 
     if (defaultVerificationCode == null) {
       toastAndLog('missingVerificationCodeError')
-      navigate(LOGIN_PATH)
+      void router.push(LOGIN_PATH)
     }
   })
 

@@ -3,15 +3,15 @@ package org.enso.table.data.column.operation.text;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.BinaryOperationBase;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-public final class TextPartOperation implements BinaryOperation<String> {
+public final class TextPartOperation extends BinaryOperationBase<String, String> {
   public static final TextPartOperation LEFT = new TextPartOperation(Text_Utils::take_prefix);
   public static final TextPartOperation RIGHT = new TextPartOperation(Text_Utils::take_suffix);
 
@@ -23,13 +23,8 @@ public final class TextPartOperation implements BinaryOperation<String> {
   private final TextLongToStringFunction function;
 
   private TextPartOperation(TextLongToStringFunction function) {
+    super(TextType.VARIABLE_LENGTH, TextType.VARIABLE_LENGTH, true);
     this.function = function;
-  }
-
-  @Override
-  public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    var storageType = left.getType();
-    return storageType instanceof TextType || storageType instanceof NullType;
   }
 
   @Override
@@ -40,44 +35,47 @@ public final class TextPartOperation implements BinaryOperation<String> {
   }
 
   @Override
-  public ColumnStorage<String> applyMap(ColumnStorage<?> left, Object rightValue) {
-    if (left.getType() instanceof NullType) {
-      return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
-    }
-
-    if (left.getType() instanceof TextType textType) {
-      if (rightValue == null) {
-        return StringStorage.makeEmpty(textType, left.getSize());
-      }
-
-      if (!NumericConverter.isCoercibleToLong(rightValue)) {
-        throw new IllegalArgumentException("Unsupported right value type.");
-      }
-      long right = NumericConverter.coerceToLong(rightValue);
-
-      return StorageIterators.mapOverStorage(
-          textType.asTypedStorage(left),
-          Builder.getForText(textType, left.getSize()),
-          (index, value) -> function.apply(value, right));
-    }
-
-    throw new IllegalArgumentException("Unsupported storage type.");
+  protected ColumnStorage<String> applyNullMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    return Builder.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
   }
 
   @Override
-  public ColumnStorage<String> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    if (left.getSize() != right.getSize()) {
-      throw new IllegalArgumentException("Columns must be of the same size.");
+  protected ColumnStorage<String> applyTypedMap(
+      ColumnStorage<String> left,
+      Object rightValue,
+      MapOperationProblemAggregator problemAggregator) {
+    if (!(left.getType() instanceof TextType textType)) {
+      throw new IllegalArgumentException("Left type is not a text type");
     }
 
-    if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
-      return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
+    if (rightValue == null) {
+      return Builder.makeEmpty(textType, left.getSize());
     }
 
-    if (left.getType() instanceof TextType textType
-        && right.getType() instanceof IntegerType integerType) {
+    if (!NumericConverter.isCoercibleToLong(rightValue)) {
+      throw new IllegalArgumentException("Unsupported right value type.");
+    }
+    long right = NumericConverter.coerceToLong(rightValue);
+
+    return StorageIterators.mapOverStorage(
+        left,
+        Builder.getForText(textType, left.getSize()),
+        (index, value) -> function.apply(value, right));
+  }
+
+  @Override
+  protected ColumnStorage<String> applyTypedZip(
+      ColumnStorage<String> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
+    if (!(left.getType() instanceof TextType textType)) {
+      throw new IllegalArgumentException("Left type is not a text type");
+    }
+
+    if (right.getType() instanceof IntegerType integerType) {
       return StorageIterators.zipOverStorages(
-          textType.asTypedStorage(left),
+          left,
           integerType.asTypedStorage(right),
           length -> Builder.getForText(textType, length),
           true,

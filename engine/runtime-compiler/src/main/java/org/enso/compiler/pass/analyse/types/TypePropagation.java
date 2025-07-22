@@ -46,17 +46,13 @@ abstract class TypePropagation {
   private final ModuleResolver moduleResolver;
   private final MethodTypeResolver methodTypeResolver;
 
-  TypePropagation(
-      TypeResolver typeResolver,
-      TypeCompatibility compatibilityChecker,
-      Module currentModule,
-      ModuleResolver moduleResolver) {
+  TypePropagation(TypeResolver typeResolver, Module currentModule, ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
-    this.compatibilityChecker = compatibilityChecker;
     this.moduleResolver = moduleResolver;
 
     var currentModuleScope = StaticModuleScope.forIR(currentModule);
     this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope);
+    this.compatibilityChecker = new TypeCompatibility(this.methodTypeResolver);
   }
 
   /**
@@ -270,12 +266,6 @@ abstract class TypePropagation {
       Function.Lambda lambda, LocalBindingsTyping localBindingsTyping) {
     boolean hasAnyDefaults =
         lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
-    if (hasAnyDefaults) {
-      // Inferring function types with default arguments is not supported yet.
-      // TODO we will need to mark defaults in the TypeRepresentation to know when they may be
-      // FORCEd
-      return null;
-    }
 
     scala.collection.immutable.List<TypeRepresentation> argTypesScala =
         lambda
@@ -283,19 +273,29 @@ abstract class TypePropagation {
             .filter((arg) -> !(arg.name() instanceof Name.Self))
             .map(
                 (arg) -> {
+                  var resolvedTyp = TypeRepresentation.UNKNOWN;
                   if (arg.ascribedType().isDefined()) {
                     Expression typeExpression = arg.ascribedType().get();
-                    var resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
+                    resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
                     if (resolvedTyp != null) {
                       // We register the type of the argument in the local bindings map, so that it
                       // can be used by expressions that refer to this argument.
                       // No need to fork it, because there is just one code path.
                       registerBinding(arg, resolvedTyp, localBindingsTyping);
-                      return resolvedTyp;
                     }
                   }
 
-                  return TypeRepresentation.UNKNOWN;
+                  // If default value is present, make sure that its type is compatible with the
+                  // ascription.
+                  if (arg.defaultValue().isDefined()) {
+                    var defaultValue = arg.defaultValue().get();
+                    var defaultValueTyp = tryInferringType(defaultValue, localBindingsTyping);
+                    if (defaultValueTyp != null && resolvedTyp != null) {
+                      checkTypeCompatibility(defaultValue, resolvedTyp, defaultValueTyp);
+                    }
+                  }
+
+                  return resolvedTyp;
                 });
 
     TypeRepresentation returnType = tryInferringType(lambda.body(), localBindingsTyping);
@@ -303,6 +303,11 @@ abstract class TypePropagation {
     if (returnType == null && argTypesScala.isEmpty()) {
       // If the return type is unknown and we have no arguments, we do not infer anything useful -
       // so we withdraw.
+      return null;
+    }
+
+    if (hasAnyDefaults) {
+      // TODO we don't yet have ability to return a signature with default arguments
       return null;
     }
 
@@ -628,10 +633,6 @@ abstract class TypePropagation {
         logger.trace(
             "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
       }
-
-      // If the inferred type implies the ascription will fail at runtime, we can report a warning
-      // here.
-      checkTypeCompatibility(ir, ascribedType, inferredType);
     }
   }
 }

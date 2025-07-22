@@ -1,21 +1,34 @@
 <script setup lang="ts">
-import Backend from '#/services/Backend'
+import Backend, { EnsoPath, ProjectId } from '#/services/Backend'
+import WithCurrentProject from '$/components/WithCurrentProject.vue'
+import { injectOpenedProjects } from '$/providers/openedProjects'
 import GraphEditor from '@/components/GraphEditor.vue'
-import { provideBackend } from '@/providers/backend'
 import { provideEventLogger } from '@/providers/eventLogging'
+import { provideProjectBackend } from '@/providers/projectBackend'
 import { provideVisibility } from '@/providers/visibility'
-import { type LsUrls, provideProjectStore } from '@/stores/project'
-import { provideProjectNames } from '@/stores/projectNames'
+import { type LsUrls } from '@/stores/project'
 import { provideSettings } from '@/stores/settings'
 import { type Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
-import { markRaw, onActivated, onDeactivated, ref, toRaw, toRef, watch } from 'vue'
+import {
+  markRaw,
+  onActivated,
+  onDeactivated,
+  onMounted,
+  onScopeDispose,
+  ref,
+  toRaw,
+  toRef,
+  toRefs,
+  watch,
+} from 'vue'
 
 const props = defineProps<{
-  readonly projectId: string
-  readonly projectName: string
+  readonly projectId: ProjectId
+  readonly projectInitialName: string
   readonly projectDisplayedName: string
   readonly projectNamespace?: string
+  readonly projectPath: string
   readonly engine: LsUrls
   readonly renameProject: (newName: string) => void
   /** The current project's backend, which may be remote or local. */
@@ -28,7 +41,7 @@ const props = defineProps<{
   readonly remoteBackend?: Opt<Backend>
 }>()
 
-provideBackend({
+provideProjectBackend({
   project: () => (props.projectBackend && markRaw(toRaw(props.projectBackend))) ?? null,
   remote: () => (props.remoteBackend && markRaw(toRaw(props.remoteBackend))) ?? null,
 })
@@ -50,30 +63,34 @@ watch(
 
 useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
 
-const projectNames = provideProjectNames(
-  toRef(props, 'projectNamespace'),
-  props.projectName,
-  toRef(props, 'projectDisplayedName'),
-)
-provideProjectStore(props, projectNames)
+const openedProjects = injectOpenedProjects()
 provideSettings()
 
 const visible = ref(false)
 provideVisibility(visible)
+openedProjects.registerProject(toRefs(props))
+onScopeDispose(() => openedProjects.unregisterProject(props.projectId))
+
+onMounted(() => (visible.value = true))
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
 </script>
 
 <template>
   <div class="ProjectView">
-    <GraphEditor />
+    <WithCurrentProject :id="projectId">
+      <!-- Key property is needed because of still many usages of deprecated useXStore 
+       (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor
+       will be no longer necessary -->
+      <GraphEditor v-if="projectId" :key="projectId" :tab="EnsoPath(projectPath)" />
+    </WithCurrentProject>
   </div>
 </template>
 
 <style scoped>
 .ProjectView {
   width: 100%;
-  flex: 1;
+  height: 100%;
   color: var(--color-text);
   font-family: var(--font-sans);
   font-weight: 500;
@@ -84,12 +101,6 @@ onDeactivated(() => (visible.value = false))
   -moz-osx-font-smoothing: grayscale;
   pointer-events: all;
   cursor: default;
-}
-
-:deep(*),
-:deep(*)::before,
-:deep(*)::after {
-  box-sizing: border-box;
 }
 
 :deep(.icon) {
@@ -133,9 +144,5 @@ onDeactivated(() => (visible.value = false))
 
 :deep(.draggable) {
   cursor: grab;
-}
-
-:deep(.clickable) {
-  cursor: pointer;
 }
 </style>

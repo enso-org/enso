@@ -10,6 +10,7 @@ import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 
 /** Represents a type constructor definition. */
 @NodeInfo(shortName = "Cons", description = "Represents a constructor definition")
+@SuppressWarnings("truffle-splitting")
 public abstract class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;
 

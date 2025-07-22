@@ -1,12 +1,13 @@
 package org.enso.table.data.table;
 
-import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.operation.masks.IndexMapper;
+import org.enso.table.data.column.operation.masks.MaskOperation;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.StorageListView;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.problems.ProblemAggregator;
@@ -14,9 +15,9 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
-public class Column {
+public final class Column {
   private final String name;
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
 
   /**
    * Creates a new column.
@@ -24,7 +25,7 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Storage<?> storage) {
+  public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
     this.storage = storage;
@@ -50,15 +51,6 @@ public class Column {
   }
 
   /**
-   * Converts this column to a single-column table.
-   *
-   * @return a table containing only this column
-   */
-  public Table toTable() {
-    return new Table(new Column[] {this});
-  }
-
-  /**
    * @return the column name
    */
   public String getName() {
@@ -68,8 +60,20 @@ public class Column {
   /**
    * @return the underlying storage
    */
-  public Storage<?> getStorage() {
+  public ColumnStorage<?> getStorage() {
     return storage;
+  }
+
+  /* Gets the value at a given index. */
+  public Object getItem(long index) {
+    return storage.getItemBoxed(index);
+  }
+
+  /**
+   * @return the type of the underlying storage
+   */
+  public StorageType<?> getType() {
+    return storage.getType();
   }
 
   /**
@@ -78,17 +82,6 @@ public class Column {
   public int getSize() {
     // ToDo: Work through changing to long.
     return Math.toIntExact(getStorage().getSize());
-  }
-
-  /**
-   * Return a new column, containing only the items marked true in the mask.
-   *
-   * @param filterMask the mask to use
-   * @param newLength the number of true values in mask
-   * @return a new column, masked with the given mask
-   */
-  public Column applyFilter(BitSet filterMask, int newLength) {
-    return new Column(name, storage.applyFilter(filterMask, newLength));
   }
 
   /**
@@ -159,55 +152,69 @@ public class Column {
    * @param item the item repeated in the column
    * @return a column with given name and items
    */
-  public static Column fromRepeatedItem(
-      String name, Value item, int repeat, ProblemAggregator problemAggregator) {
-    return new Column(name, Storage.fromRepeatedItem(item, repeat, problemAggregator));
+  public static Column fromRepeatedItem(String name, Value item, int repeat) {
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
+    return new Column(name, Builder.fromRepeatedItem(converted, repeat));
   }
 
   /**
-   * @param mask the reordering to apply
-   * @return a new column, resulting from reordering this column according to {@code mask}.
+   * Create a new column with a slice of the original data.
+   *
+   * @return a sliced column.
    */
-  public Column applyMask(OrderMask mask) {
-    Storage<?> newStorage = storage.applyMask(mask);
-    return new Column(name, newStorage);
+  public Column slice(long offset, long limit) {
+    return offset >= getSize()
+        ? MaskOperation.slice(this, 0, 0)
+        : MaskOperation.slice(this, offset, limit);
   }
 
   /**
-   * @return a copy of the Column containing a slice of the original data
-   */
-  public Column slice(int offset, int limit) {
-    return new Column(name, storage.slice(offset, limit));
-  }
-
-  /**
-   * @return a copy of the Column consisting of slices of the original data
+   * Creates a new column with a set of slices of the original data.
+   *
+   * @return a sliced column.
    */
   public Column slice(List<SliceRange> ranges) {
-    return new Column(name, storage.slice(ranges));
-  }
-
-  /**
-   * @return a column counting value repetitions in this column.
-   */
-  public Column duplicateCount() {
-    return new Column(name + "_duplicate_count", storage.duplicateCount());
-  }
-
-  /**
-   * Resizes the given column to the provided new length.
-   *
-   * <p>If the new length is smaller than the current length, the column is truncated. If the new
-   * length is larger than the current length, the column is padded with nulls.
-   */
-  public Column resize(int newSize) {
-    if (newSize == getSize()) {
-      return this;
-    } else if (newSize < getSize()) {
-      return slice(0, newSize);
-    } else {
-      int nullsToAdd = newSize - getSize();
-      return new Column(name, storage.appendNulls(nullsToAdd));
+    if (ranges.isEmpty()) {
+      // Creates an empty table
+      return slice(0, 0);
     }
+
+    if (ranges.size() == 1) {
+      // If there is only one range, we can use the existing slice method
+      SliceRange range = ranges.get(0);
+      return slice(range.start(), range.end() - range.start());
+    }
+
+    // If there are multiple ranges, we need to create a mask
+    long[] mask = SliceRange.createMask(ranges);
+    return mask(mask);
+  }
+
+  public Column mask(long[] mask) {
+    return MaskOperation.mask(this, mask);
+  }
+
+  public Column reverse() {
+    return mask(new IndexMapper.Reversed(0, getSize()));
+  }
+
+  /**
+   * Creates a column with the same name and storage, but with the order of items changed according
+   * to the given index mapper. This is an internal method used by the table for efficiency.
+   *
+   * @param indexMapper the index mapper to use for reordering
+   * @return a new column with reordered items
+   */
+  Column mask(IndexMapper indexMapper) {
+    var storage = getStorage();
+    var newStorage = MaskOperation.getSlicedStorage(storage, indexMapper);
+    return new Column(getName(), newStorage);
+  }
+
+  /**
+   * @return a list view of the column
+   */
+  public List<?> asList() {
+    return new StorageListView(this.getStorage());
   }
 }

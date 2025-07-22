@@ -1,30 +1,30 @@
 from Standard.Base import all
 
+import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
-import Standard.Database.SQL_Type.SQL_Type
 
 import project.Helpers
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Prepares the database table for visualization.
-
-   Arguments:
-   - x: The database table to prepare for visualization.
 
    For each interpolation it provides its value, its actual type name, its
    expected SQL type name and if it was possible to infer it, its expected Enso
    typename.
+   Expected Enso types are inferred based on known SQL types and their mapping to
+   Enso types.
 
-   Expected Enso types are inferred based on known SQL types and their mapping
-   to Enso types.
+   ## Arguments
+    - `table`: The database table to prepare for visualization.
 prepare_visualization : DB_Table -> Text
-prepare_visualization x =
-    prepared = x.to_sql.prepare
+prepare_visualization table =
+    prepared = (table:DB_Table|DB_Column).to_sql.prepare
     code = prepared.first
     interpolations = prepared.second
     mapped = interpolations.map value->
         enso_type = value.to Meta.Type . qualified_name
         JS_Object.from_pairs [["value", value], ["enso_type", enso_type]]
-    dialect = x.dialect_name
+    dialect = (table:DB_Table|DB_Column).dialect_name
     JS_Object.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text

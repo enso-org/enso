@@ -7,13 +7,13 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 
-from Standard.Table import Bits, Value_Type, Column_Ref, Column
+from Standard.Table import Column, Column_Ref, Value_Type
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Test import all
@@ -47,7 +47,7 @@ type Min_Max_Data
     t self = self.data.at 3
 
     setup table_builder = Min_Max_Data.Value <|
-        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] . sort "a"
+        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]], ["e", [1, Nothing, 10]]] . sort "a"
         a = t.at "a"
         b = t.at "b"
         c = t.at "c"
@@ -156,25 +156,25 @@ add_column_operation_specs suite_builder setup =
     pending_datetime = if (setup.flagged ..Date_Time).not then "Date/Time operations are not supported by this backend."
 
     suite_builder.group prefix+"(Column_Operations_Spec) Rounding numeric tests" group_builder->
-        round_one n dp=0 use_bankers=False =
+        round_one n dp=0 rounding_mode=Rounding_Mode.Half_Up =
             table = light_table_builder [["x", [n]]]
-            result = table.at "x" . round dp use_bankers
+            result = table.at "x" . round dp rounding_mode
             result.to_vector.at 0
 
-        round_batch n_vec dp_vec use_bankers =
+        round_batch n_vec dp_vec rounding_mode =
             name_for ix = "x"+ix.to_text
             n_columns = n_vec.map_with_index ix-> n-> [name_for ix, [n]]
             table = light_table_builder n_columns
             new_columns = dp_vec.map_with_index ix-> dp->
                 n_col = table.at (name_for ix)
-                n_col.round dp use_bankers . rename (name_for ix)
+                n_col.round dp rounding_mode . rename (name_for ix)
             # In new table input columns are replaced with results of output
             new_table = new_columns.fold table acc-> col-> acc.set col (set_mode=..Update)
             # We read all operations in a single query
             materialized = new_table.read
             Runtime.assert (materialized.row_count == 1)
             materialized.first_row.to_vector
-        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
+        Round_Spec.add_specs True group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument
@@ -188,8 +188,8 @@ add_column_operation_specs suite_builder setup =
                 + [[-12300, -2, -12300], [-12301, -2, -12300]]
             cases_transposed = cases.transpose
             bankers_cases_transposed = bankers_cases.transpose
-            round_batch (cases_transposed.at 0) (cases_transposed.at 1) False . should_equal (cases_transposed.at 2)
-            round_batch (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) True . should_equal (bankers_cases_transposed.at 2)
+            round_batch (cases_transposed.at 0) (cases_transposed.at 1) rounding_mode=Rounding_Mode.Half_Up . should_equal (cases_transposed.at 2)
+            round_batch (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) rounding_mode=Rounding_Mode.Bankers . should_equal (bankers_cases_transposed.at 2)
 
     build_sorted_table table_structure table_builder=setup.table_builder =
         # Workaround for https://github.com/enso-org/enso/issues/10321
@@ -1165,14 +1165,16 @@ add_column_operation_specs suite_builder setup =
 
         if setup.is_database.not then
             group_builder.specify "ceil, floor and truncate should work correctly on Floats outside the java Long range" <|
-                positive_values = [9223372036854775000.0, 9223372036854776000.0, 9223372036854775807000000.0]
+                positive_values = [9223372036854774784.0, 9223372036854776000.0, 9223372036854775807000000.0]
                 values = positive_values + positive_values.map .negate
-                values.map x->
-                    x_int = x.truncate
+                values.map x-> Test.with_clue "(x="+x.to_text+") " <|
                     c = table_builder [["x", [x, -x]]] . at "x"
-                    c.ceil . to_vector . should_equal [x_int, -x_int]
-                    c.floor . to_vector . should_equal [x_int, -x_int]
-                    c.truncate . to_vector . should_equal [x_int, -x_int]
+                    c.value_type.should_equal Value_Type.Float
+
+                    vec = [x.truncate, (-x).truncate]
+                    c.ceil . to_vector . should_equal vec
+                    c.floor . to_vector . should_equal vec
+                    c.truncate . to_vector . should_equal vec
 
         if setup.flagged ..Supports_Decimal_Type then
             group_builder.specify "ceil, floor and truncate should work correctly on Decimals" <|
@@ -1456,6 +1458,13 @@ add_column_operation_specs suite_builder setup =
             c10.to_vector . should_equal [True, False, True]
             c10.value_type.should_equal Value_Type.Boolean
 
+        group_builder.specify "should ignore null values" pending=(if setup.prefix.contains "SQLite" then "SQLite does not support ignoring NULL values in inputs to functions, so if any input value is NULL then the result will also be NULL.") <|
+            data.t.at "e" . min 5 . to_vector . should_equal [1, 5, 5]
+            data.t.at "e" . max [3, Nothing, Nothing, 4] . to_vector . should_equal [4, 4, 10]
+
+            # Will still return Nothing if all were Nothing
+            data.t.at "e" . max Nothing . to_vector . should_equal [1, Nothing, 10]
+
         group_builder.specify "should allow Date/Time columns" pending=pending_datetime <|
             dt_data = Min_Max_Datetime_Data.setup setup.table_builder
             c1 = dt_data.table.at "dates1" . min (Date.new 2021 1 2)
@@ -1608,7 +1617,7 @@ add_column_operation_specs suite_builder setup =
                 col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
                 col.text_replace (regex 'a[bcd]') 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
                 col.text_replace (regex 'a[/bcd]') 'hey' . name . should_equal "replace([x], r/a[\/bcd]/, 'hey')"
-            if supported_replace_params.contains (Replace_Params.Value DB_Column Case_Sensitivity.Default False) then
+            if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
                 col.text_replace patterns replacements . name . should_equal "replace([x], [patterns], [replacements])"
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column Operations - Text Replace (in-memory only)" group_builder->
@@ -1767,7 +1776,7 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "misc"
             data.t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"
             data.t.at "a" . max 33 . name . should_equal "max([a], 33)"
-            data.t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [1, 2, 3]"
+            data.t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [Vector]"
 
         group_builder.specify "composed operations" <|
             # These look a bit weird, but they are consistent with the column name escaping scheme.
@@ -1782,9 +1791,8 @@ add_column_operation_specs suite_builder setup =
                 t2 = table_builder [["X", ["1", "2", "3"]]]
                 t2.at "X" . parse . name . should_equal "X"
 
-            group_builder.specify "map and zip" <|
+            group_builder.specify "map" <|
                 data.t.at "a" . map (x -> x + 1) . name . should_equal "a"
-                data.t.at "a" . zip (data.t.at "b") [_, _] . name . should_equal "[a] x [b]"
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column.rename" group_builder->
         group_builder.specify "should not allow illegal names" <|
@@ -1826,9 +1834,9 @@ add_column_operation_specs suite_builder setup =
                     y = t.at "Y"
                     z = t.at "Z"
                     a = ((x - 2.3) * (y + 1)) + z
-                    b = (x - 2.3).let "xx" xx-> (xx * (y + 1)) + z
-                    c = (x - 2.3).let "xx" xx-> (y + 1).let "yy" yy-> (xx * yy) + z
-                    d = ((x - 2.3) * (y + 1)).let "xxyy" xxyy-> xxyy + z
+                    b = ((x - 2.3):DB_Column).let "xx" xx-> (xx * (y + 1)) + z
+                    c = ((x - 2.3):DB_Column).let "xx" xx-> ((y + 1):DB_Column).let "yy" yy-> (xx * yy) + z
+                    d = (((x - 2.3) * (y + 1)):DB_Column).let "xxyy" xxyy-> xxyy + z
 
                     r = t . set a "a" . set b "b" . set c "c" . set d "d" . order_by ["X"] . read
                     r.at "a" . to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]
@@ -1888,14 +1896,14 @@ add_column_operation_specs suite_builder setup =
             c3_prime.value_type.should_equal Value_Type.Time
 
         group_builder.specify "Should allow the creation of constant columns on a table with no rows" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+            t = table_builder [["x", ["1", "2", "3"]]] . order_by ["x"]
             empty = t.take 0
             constant = empty.make_constant_column 42
             empty2 = empty.set constant
             empty2.column_names.should_equal ['x', '42']
 
         group_builder.specify "Should create a column of the correct type on a table with no rows" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+            t = table_builder [["x", ["1", "2", "3"]]] . order_by ["x"]
             empty = t.take 0
 
             check value expected_type =
@@ -1912,7 +1920,7 @@ add_column_operation_specs suite_builder setup =
             setup.expect_integer_type c
 
         group_builder.specify "Should create a column of the correct type on a table with no rows" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+            t = table_builder [["x", ["1", "2", "3"]]] . order_by ["x"]
             empty = t.take 0
             c = empty.make_constant_column Nothing
             should_be_supported = setup.is_database.not || c.is_error.not
@@ -1977,7 +1985,7 @@ add_column_operation_specs suite_builder setup =
             (t.at "x" + 2^80) . to_vector . should_equal [Decimal.new "1208925819614652431951521.345345345"]
             (t.at "x" - 2^80) . to_vector . should_equal [Decimal.new "-1208925819614605917460830.654654655"]
             (t.at "x" * 2^80) . to_vector . should_equal [Decimal.new "28116284391100140971590625398136689.624350720"]
-            (t.at "y" / 2^80) . to_vector . should_equal [Decimal.new "0.0000000000000007813119964528366172913694049826337229003314632791443727910518646240234375"]
+            (t.at "y" / 2^80) . to_vector . should_equal [Decimal.new "0.0000000000000007813119964528366172913694049826337"]
 
             (t.at "x" + (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "23257245355.445345345"]
             (t.at "x" - (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "23257245335.245345345"]
@@ -1986,12 +1994,7 @@ add_column_operation_specs suite_builder setup =
             (t.at "x" ^ (Decimal.new "2.0")) . to_vector . should_equal [Decimal.new "5.408994610535877E20" . to_float]
 
         group_builder.specify "arithmetic errors" <|
-            t = table_builder [["x", [Decimal.new "1"]], ["y", [Decimal.new "3"]], ["z", [Decimal.new "0"]]]
-
-            r0 = t.at "x" / t.at "y"
-            r0 . to_vector . should_equal [Nothing]
-            nt_error = Arithmetic_Error.Error "Non-terminating decimal expansion; no exact representable decimal result. Please use `.divide` with an explicit `Math_Context` to limit the numeric precision. (at rows [0])."
-            Problems.expect_only_warning nt_error r0
+            t = table_builder [["x", [Decimal.new "1"]], ["z", [Decimal.new "0"]]]
 
             r1 = t.at "x" / t.at "z"
             r1 . to_vector . should_equal [Nothing]

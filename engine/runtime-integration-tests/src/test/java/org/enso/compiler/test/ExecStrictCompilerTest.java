@@ -1,68 +1,42 @@
 package org.enso.compiler.test;
 
+import static org.enso.compiler.test.ExecCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
+import org.hamcrest.core.AllOf;
 import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ExecStrictCompilerTest {
-  private static Context ctx;
-  private static final ByteArrayOutputStream MESSAGES = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void initEnsoContext() {
-    ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .out(MESSAGES)
-            .err(MESSAGES)
-            .allowAllAccess(true)
-            .build();
-    assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
-  }
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
+          .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.STRICT_ERRORS, "true"))
+          .build();
 
   @After
   public void cleanMessages() {
-    MESSAGES.reset();
-  }
-
-  @AfterClass
-  public static void closeEnsoContext() {
-    ctx.close();
-    ctx = null;
+    ctxRule.resetOut();
   }
 
   @Test
   public void redefinedArgument() {
     try {
-      var module = ctx.eval("enso", """
+      var module = ctxRule.eval("enso", """
       type My_Type
           Value a b c a
       """);
@@ -70,12 +44,13 @@ public class ExecStrictCompilerTest {
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
-      assertEquals(
-          "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
-              + " times.",
-          ex.getMessage());
+      assertThat(
+          ex.getMessage(),
+          containsString(
+              "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
+                  + " times."));
 
-      var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
+      var errors = ctxRule.getOut();
       assertNotEquals(
           "Errors reported in " + errors,
           -1,
@@ -98,7 +73,7 @@ public class ExecStrictCompilerTest {
                 "wrong_cons.enso")
             .build();
     try {
-      var module = ctx.eval(code);
+      var module = ctxRule.eval(code);
       fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
@@ -106,7 +81,7 @@ public class ExecStrictCompilerTest {
       assertThat(
           ex.getMessage(), containsString("The name `Index_Sub_Range.Sample` could not be found."));
 
-      var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
+      var errors = ctxRule.getOut();
       assertNotEquals(
           "Errors reported in " + errors,
           -1,
@@ -124,7 +99,7 @@ public class ExecStrictCompilerTest {
     """;
     var src = Source.newBuilder("enso", code, "extension.enso").build();
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       fail("Unexpected result: " + module);
     } catch (PolyglotException ex) {
       var firstLine = ex.getMessage().split("\n")[0];
@@ -146,27 +121,51 @@ public class ExecStrictCompilerTest {
         main =
             bar foo
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertTrue("Compiles and returns result", res.isNumber());
     assertEquals("Returns correct result", 11, res.asInt());
   }
 
-  // https://github.com/enso-org/enso/issues/12376
+  /*
+   * https://github.com/enso-org/enso/issues/12376
+   * naming_helper was removed in a refactor. Replaced with a similar situation
+   * where `parse_simple_date_pattern` is both a method on a type and standalone
+   * method with same name in the same module.
+   */
   @Test
   public void noDuplicateImportWarning() {
     var code =
         """
-        from Standard.Table.Column import naming_helper
+        from Standard.Base.Internal.Time.Format.Parser import parse_simple_date_pattern
 
         main =
-            naming_helper
+            parse_simple_date_pattern
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertThat(res, is(notNullValue()));
-    var errors = MESSAGES.toString(StandardCharsets.UTF_8);
+    var errors = ctxRule.getOut();
     assertThat(
         "There should be no errors or warnings. But there was: " + errors,
         errors.isEmpty(),
         is(true));
+  }
+
+  @Test
+  public void castToUnresolvedType() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn f = (f : Unknown).to_text
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute(0);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("Unknown"), containsString("could not be found")));
+    }
   }
 }

@@ -767,7 +767,7 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String = {
         "VisualizationUpdate(" +
         s"visualizationContext=$visualizationContext,data=" +
-        (if (shouldMask) STUB else data.toString()) +
+        (if (shouldMask) STUB else new String(data)) +
         ")"
       }
     }
@@ -901,7 +901,8 @@ object Runtime {
     @named("pushContextRequest")
     final case class PushContextRequest(
       contextId: ContextId,
-      stackItem: StackItem
+      stackItem: StackItem,
+      execute: Boolean = true
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PushContextRequest]]

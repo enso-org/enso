@@ -1,6 +1,10 @@
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import {
+  ComputedValueRegistry,
+  TypeInfo,
+  type ExpressionInfo,
+} from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
@@ -38,7 +42,10 @@ const prefixFixture = {
       'a',
       { kind: 'Multiple_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
     ],
-    ['b', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
+    [
+      'b',
+      { kind: 'Single_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
+    ],
     ['c', { kind: 'Boolean_Input', display: widgetCfg.DisplayMode.Always }],
   ]),
 }
@@ -52,7 +59,10 @@ const infixFixture = {
       'lhs',
       { kind: 'Multiple_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
     ],
-    ['rhs', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
+    [
+      'rhs',
+      { kind: 'Single_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
+    ],
   ]),
 }
 
@@ -210,11 +220,11 @@ test.each<TestCase>([
     const subApplication = nthSubapplication(ast, subapplicationIndex)
     assert(subApplication)
     setExpressionInfo(subApplication.id, {
-      typename: undefined,
-      rawTypename: undefined,
+      typeInfo: TypeInfo.fromParsedTypes([], [])!,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' },
       profilingInfo: [],
+      evaluationId: 0,
     })
 
     const info = getMethodCallInfoRecursively(ast, db)
@@ -350,11 +360,11 @@ test.each<ArgsTestCase>([
     assert(subApplication)
     db.updateExternalIds(ast)
     setExpressionInfo(subApplication.id, {
-      typename: undefined,
-      rawTypename: undefined,
+      typeInfo: TypeInfo.fromParsedTypes([], [])!,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' } as ExpressionUpdatePayload,
       profilingInfo: [],
+      evaluationId: 0,
     })
 
     const info = getMethodCallInfoRecursively(ast, db)

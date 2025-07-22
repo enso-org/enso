@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
-import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -9,8 +8,8 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table, Match_Columns, Excel_Format, Excel_Range, Data_Formatter, Delimited_Format, Excel_Workbook, Value_Type
-from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet, No_Rows, No_Common_Type
+from Standard.Table import Table, Match_Columns, Excel_Range, Excel_Workbook, Value_Type
+from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet, No_Rows, No_Common_Type
 from Standard.Table.Extensions.Excel_Extensions import all
 import Standard.Table.Excel.Excel_Workbook.Return_As as Old_Return_As
 
@@ -27,21 +26,46 @@ polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.table_test_helpers.RandomHelpers
 polyglot java import org.enso.table.excel.ExcelConnectionPool
 
-spec_fmt suite_builder header file read_method sheet_count=5 =
+spec_fmt suite_builder header file =
     suite_builder.group header group_builder->
         group_builder.specify "should read a workbook in" <|
-            wb = read_method file
-            wb.sheet_count . should_equal sheet_count
+            wb = file.read
+            wb.sheet_count . should_equal 5
 
         group_builder.specify "should read the specified sheet by index and use correct headers" <|
-            t = read_method file (..Sheet 1)
+            t = file.read (..Sheet 1)
             t.columns.map .name . should_equal ['Name', 'Quantity', 'Price']
             t.at 'Name' . to_vector . should_equal ['blouse', 't-shirt', 'trousers', 'shoes', 'skirt', 'dress']
             t.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
+            wb = file.read
+            t2 = wb.read 1
+            t2.should_equal t
+
+        group_builder.specify "can read the last sheet by index" <|
+            t = file.read (..Sheet 5)
+            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
+            wb = file.read
+            t2 = wb.read 5
+            t2.should_equal t
+
+        group_builder.specify "out of range sheet index should error" <|
+            t0 = file.read (..Sheet 0)
+            t0.should_fail_with Invalid_Location
+            t0.catch.to_display_text . should_contain 'Sheet 0 is out of range (1 to 5 inclusive).'
+            t6 = file.read (..Sheet 6)
+            t6.should_fail_with Invalid_Location
+            t6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
+            wb = file.read
+            t0a = wb.read 0
+            t0a.should_fail_with Invalid_Location
+            t0a.catch.to_display_text . should_contain 'Sheet 0 is out of range (1 to 5 inclusive).'
+            t6a = wb.read 6
+            t6a.should_fail_with Invalid_Location
+            t6a.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
 
         group_builder.specify "should read the specified sheet by index and properly format a table" <|
-            t = read_method file (..Sheet 2 headers=False)
+            t = file.read (..Sheet 2 headers=False)
             t.columns.map .name . should_equal ['A', 'B', 'C', 'D', 'E']
             t.at 'A' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             t.at 'B' . to_vector . should_equal [Nothing, Nothing, 10, Nothing, Nothing, Nothing, Nothing]
@@ -50,21 +74,21 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t.at 'E' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
 
         group_builder.specify "should read the specified sheet by name and properly handle dates" <|
-            t = read_method file (..Sheet 'Dates')
+            t = file.read (..Sheet 'Dates')
             t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
             t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
 
         group_builder.specify "should give an informative error when reading an empty table" <|
-            t = read_method file (..Sheet "Empty")
+            t = file.read (..Sheet "Empty")
             t.should_fail_with Empty_Sheet
 
         group_builder.specify "should gracefully handle duplicate column names and formulas" <|
-            t = read_method file (..Sheet "Duplicate Columns")
+            t = file.read (..Sheet "Duplicate Columns")
             t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
             t.at 'Price 1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
         group_builder.specify "should allow reading with limited rows and skipping rows from workbook" <|
-            wb = read_method file
+            wb = file.read
             t = wb.read 1 headers=..No_Headers
             t.column_names.should_equal ['A', 'B', 'C']
 
@@ -90,24 +114,24 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
         group_builder.specify "should allow reading with cell range specified" <|
-            t_1 = read_method file (..Range "Simple!B:C")
+            t_1 = file.read (..Range "Simple!B:C")
             t_1.columns.map .name . should_equal ['Quantity', 'Price']
             t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
-            t_2 = read_method file (..Range "Simple!3:5" headers=False)
+            t_2 = file.read (..Range "Simple!3:5" headers=False)
             t_2.column_count.should_equal 3
             t_2.at 'A' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
             t_2.at 'B' . to_vector . should_equal [20, Nothing, 30]
             t_2.at 'C' . to_vector . should_equal [32, 43.2, 54]
 
-            t_3 = read_method file (..Range "Simple!B4:C5" headers=False)
+            t_3 = file.read (..Range "Simple!B4:C5" headers=False)
             t_3.column_count.should_equal 2
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
         group_builder.specify "should let you read all sheets into a single table" <|
-            wb = read_method file
+            wb = file.read
             r1 = wb.read_many on_problems=..Report_Error
             r1.should_fail_with Empty_Sheet
 
@@ -124,7 +148,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             w2.column_names . should_equal ["Price"]
 
         group_builder.specify "should let you read all sheets into a table of tables" <|
-            wb = read_method file
+            wb = file.read
             action = wb.read_many return=..With_New_Column on_problems=_
             tester table =
                 table.row_count . should_equal 5
@@ -133,7 +157,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             Problems.test_problem_handling action problems tester ignore_warning_cardinality=True
 
         group_builder.specify "should still support the old options for compatibility" <|
-            wb = read_method file
+            wb = file.read
             table1 = wb.read_many return=..Table_Of_Tables
             table1.row_count . should_equal 5
             table1.column_names . should_equal ["Sheet Name", "Table"]
@@ -148,14 +172,14 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             Problems.expect_warning Deprecated table3
 
         group_builder.specify "should let you read some sheets from xlsx" <|
-            wb = read_method file
+            wb = file.read
             single_table = wb.read_many ["Simple", "Dates"]
             single_table.row_count . should_equal 12
             single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
             Problems.assume_no_problems single_table
 
         group_builder.specify "should let you read some sheets with a bad name from xlsx" <|
-            wb = read_method file
+            wb = file.read
             single_table = wb.read_many ["Simple", "Dates", "Not A Sheet"]
             single_table.row_count . should_equal 12
             single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
@@ -1057,15 +1081,15 @@ add_specs suite_builder =
                     r2.column_names . should_equal ["Path", "Sheet Name", "A", "B", "C"]
 
                     # We transform the Path to just file name for easier testing
-                    rows = (r2.set (r2.at "Path" . map .name) "Path").rows.map .to_vector
-                    rows.at 0 . should_equal ["1.tsv",      Nothing,   1,       3, Nothing]
-                    rows.at 1 . should_equal ["1.tsv",      Nothing,   2,       4, Nothing]
-                    rows.at 2 . should_equal ["2.xlsx", "EnsoSheet",  10,      30, Nothing]
-                    rows.at 3 . should_equal ["2.xlsx", "EnsoSheet",  20,      40, Nothing]
-                    rows.at 4 . should_equal ["3.xlsx",      "nr 1", 100,     200,     300]
-                    rows.at 5 . should_equal ["3.xlsx",      "nr 2", 400, Nothing, Nothing]
-                    rows.at 6 . should_equal ["3.xlsx",      "nr 2", 500, Nothing, Nothing]
-                    rows.at 7 . should_equal ["3.xlsx",      "nr 2", 600, Nothing, Nothing]
+                    rows = r2.rows.map .to_vector
+                    rows.at 0 . should_equal [(base_dir / "1.tsv") . path,      Nothing,   1,       3, Nothing]
+                    rows.at 1 . should_equal [(base_dir / "1.tsv") . path,      Nothing,   2,       4, Nothing]
+                    rows.at 2 . should_equal [(base_dir / "2.xlsx") . path, "EnsoSheet",  10,      30, Nothing]
+                    rows.at 3 . should_equal [(base_dir / "2.xlsx") . path, "EnsoSheet",  20,      40, Nothing]
+                    rows.at 4 . should_equal [(base_dir / "3.xlsx") . path,      "nr 1", 100,     200,     300]
+                    rows.at 5 . should_equal [(base_dir / "3.xlsx") . path,      "nr 2", 400, Nothing, Nothing]
+                    rows.at 6 . should_equal [(base_dir / "3.xlsx") . path,      "nr 2", 500, Nothing, Nothing]
+                    rows.at 7 . should_equal [(base_dir / "3.xlsx") . path,      "nr 2", 600, Nothing, Nothing]
 
                 # Test loading only Excel files and alternate matching mode to weed out edge cases
                 r3 = Data.read_many (Data.list base_dir name_filter="*.xlsx" . sort on=(.name)) return=..As_Merged_Table
@@ -1091,18 +1115,18 @@ add_specs suite_builder =
                 r1.should_be_a Table
                 within_table r1 <|
                     # We transform the Path to just file name for easier testing
-                    rows = (r1.set (r1.at "Path" . map .name) "Path").rows.map .to_vector
+                    rows = r1.rows.map .to_vector
 
                     # Each Sheet Name column comes out as separate: 1 - input, 2 - metadata, 3 - data
                     # The order of columns is as they appear in the input, and they are matched by name
                     r1.column_names . should_equal [  "Path", "Sheet Name", "Sheet Name 1",     "Z", "Sheet Name 2",     "X",     "Y"]
-                    rows.at 0 . should_equal       [ "1.tsv",    "input 1",        Nothing,       1,  "data column", Nothing, Nothing]
-                    rows.at 1 . should_equal       [ "1.tsv",    "input 1",        Nothing,       2,  "data column", Nothing, Nothing]
-                    rows.at 2 . should_equal       ["2.xlsx",    "input 2",    "EnsoSheet",      10,        Nothing,      20, Nothing]
-                    rows.at 3 . should_equal       ["3.xlsx",    "input 3",         "nr 1",     300,        Nothing,     100,     200]
-                    rows.at 4 . should_equal       ["3.xlsx",    "input 3",         "nr 2", Nothing,          "400", Nothing, Nothing]
-                    rows.at 5 . should_equal       ["3.xlsx",    "input 3",         "nr 2", Nothing,          "500", Nothing, Nothing]
-                    rows.at 6 . should_equal       ["3.xlsx",    "input 3",         "nr 2", Nothing,          "600", Nothing, Nothing]
+                    rows.at 0 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,       1,  "data column", Nothing, Nothing]
+                    rows.at 1 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,       2,  "data column", Nothing, Nothing]
+                    rows.at 2 . should_equal       [(base_dir / "2.xlsx").path,    "input 2",    "EnsoSheet",      10,        Nothing,      20, Nothing]
+                    rows.at 3 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 1",     300,        Nothing,     100,     200]
+                    rows.at 4 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", Nothing,          "400", Nothing, Nothing]
+                    rows.at 5 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", Nothing,          "500", Nothing, Nothing]
+                    rows.at 6 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", Nothing,          "600", Nothing, Nothing]
 
                     Problems.expect_warning Duplicate_Output_Column_Names r1
                     Problems.expect_warning No_Common_Type r1
@@ -1110,18 +1134,18 @@ add_specs suite_builder =
                 r2 = Data.read_many input return=(..As_Merged_Table match=..By_Position)
                 r2.should_be_a Table
                 within_table r2 <|
-                    rows = (r2.set (r2.at "Path" . map .name) "Path").rows.map .to_vector
+                    rows = r2.rows.map .to_vector
 
                     # Two Sheet Name column comes out as separate: 1 - input, 2 - metadata, the third one (data) gets renamed due to positional matching
                     # The column names come from the first table that had all the columns - in this case, first sheet of 3.xlsx
                     r2.column_names . should_equal [  "Path", "Sheet Name", "Sheet Name 1", "X",           "Y",     "Z"]
-                    rows.at 0 . should_equal       [ "1.tsv",    "input 1",        Nothing,   1, "data column", Nothing]
-                    rows.at 1 . should_equal       [ "1.tsv",    "input 1",        Nothing,   2, "data column", Nothing]
-                    rows.at 2 . should_equal       ["2.xlsx",    "input 2",    "EnsoSheet",  10,          "20", Nothing]
-                    rows.at 3 . should_equal       ["3.xlsx",    "input 3",         "nr 1", 100,         "200",     300]
-                    rows.at 4 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 400,       Nothing, Nothing]
-                    rows.at 5 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 500,       Nothing, Nothing]
-                    rows.at 6 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 600,       Nothing, Nothing]
+                    rows.at 0 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   1, "data column", Nothing]
+                    rows.at 1 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   2, "data column", Nothing]
+                    rows.at 2 . should_equal       [(base_dir / "2.xlsx").path,    "input 2",    "EnsoSheet",  10,          "20", Nothing]
+                    rows.at 3 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 1", 100,         "200",     300]
+                    rows.at 4 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 400,       Nothing, Nothing]
+                    rows.at 5 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 500,       Nothing, Nothing]
+                    rows.at 6 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 600,       Nothing, Nothing]
 
                     Problems.expect_warning Duplicate_Output_Column_Names r2
                     Problems.expect_warning No_Common_Type r2
@@ -1129,18 +1153,18 @@ add_specs suite_builder =
                 r3 = Data.read_many input return=(..As_Merged_Table columns_to_keep=..In_All match=..By_Position)
                 r3.should_be_a Table
                 within_table r3 <|
-                    rows = (r3.set (r3.at "Path" . map .name) "Path").rows.map .to_vector
+                    rows = r3.rows.map .to_vector
 
                     # Same as with `r2`, but now we keep only columns that are present in all tables, then the column names come from the first table (so we get column Z).
                     # But the `Sheet Name` metadata column is still kept, as its matching is independent of data.
                     r3.column_names . should_equal [  "Path", "Sheet Name", "Sheet Name 1", "Z"]
-                    rows.at 0 . should_equal       [ "1.tsv",    "input 1",        Nothing,   1]
-                    rows.at 1 . should_equal       [ "1.tsv",    "input 1",        Nothing,   2]
-                    rows.at 2 . should_equal       ["2.xlsx",    "input 2",    "EnsoSheet",  10]
-                    rows.at 3 . should_equal       ["3.xlsx",    "input 3",         "nr 1", 100]
-                    rows.at 4 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 400]
-                    rows.at 5 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 500]
-                    rows.at 6 . should_equal       ["3.xlsx",    "input 3",         "nr 2", 600]
+                    rows.at 0 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   1]
+                    rows.at 1 . should_equal       [(base_dir / "1.tsv").path,    "input 1",        Nothing,   2]
+                    rows.at 2 . should_equal       [(base_dir / "2.xlsx").path,    "input 2",    "EnsoSheet",  10]
+                    rows.at 3 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 1", 100]
+                    rows.at 4 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 400]
+                    rows.at 5 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 500]
+                    rows.at 6 . should_equal       [(base_dir / "3.xlsx").path,    "input 3",         "nr 2", 600]
 
                     Problems.expect_warning Duplicate_Output_Column_Names r3
                     Problems.expect_warning Column_Count_Mismatch r3
@@ -1156,8 +1180,8 @@ add_specs suite_builder =
                 r.row_count . should_equal 2+25
                 r.column_names . should_equal ["Path", "Sheet Name", "A", "B", "Name", "Quantity", "Price", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
                 # First two rows come from TSV, the rest from Excel sheets
-                r.at "Path" . to_vector . map .name . should_equal <|
-                    (Vector.fill 2 tsv_file.name) + (Vector.fill 25 xls_file.name)
+                r.at "Path" . to_vector . should_equal <|
+                    (Vector.fill 2 tsv_file.path) + (Vector.fill 25 xls_file.path)
                 r.at "Sheet Name" . to_vector . should_equal <|
                     (Vector.fill 2 Nothing) + (Vector.fill 6 "Simple") + (Vector.fill 7 "Strange Dimensions") + (Vector.fill 6 "Dates") + (Vector.fill 6 "Duplicate Columns")
 
@@ -1179,7 +1203,7 @@ add_specs suite_builder =
                 # But when not expanding rows, the workbook with all-empty sheets is normally loaded into a cell
                 r3 = Data.read_many [tsv_file, empty_xls_file] return=..With_New_Column
                 r3.should_be_a Table
-                r3.at "Path" . to_vector . map .name . should_equal [tsv_file.name, empty_xls_file.name]
+                r3.at "Path" . to_vector . should_equal [tsv_file.path, empty_xls_file.path]
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
@@ -1465,9 +1489,9 @@ add_specs suite_builder =
             workbook.close
             big_file.delete_if_exists . should_succeed
 
-    spec_fmt suite_builder 'XLSX reading' Examples.xlsx .read
+    spec_fmt suite_builder 'XLSX reading' Examples.xlsx
 
-    spec_fmt suite_builder 'XLS reading' Examples.xls .read
+    spec_fmt suite_builder 'XLS reading' Examples.xls
 
     suite_builder.group "Reading single cells correctly" group_builder->
         file = enso_project.data / "RangeTests.xlsx"

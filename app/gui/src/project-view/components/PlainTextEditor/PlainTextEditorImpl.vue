@@ -4,20 +4,34 @@ import { linkifyUrls } from '@/components/PlainTextEditor/linkifyUrls'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { useLinkTitles } from '@/util/codemirror/links'
+import { Extension } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
 import { useTemplateRef, type ComponentInstance } from 'vue'
-import * as Y from 'yjs'
 
-const { content } = defineProps<{ content: Y.Text | string }>()
+const {
+  extensions = [],
+  readonly = false,
+  contentTestId,
+  onEditorReady = () => {},
+} = defineProps<{
+  extensions?: Extension | undefined
+  readonly?: boolean | undefined
+  contentTestId?: string | undefined
+  onEditorReady: (view: EditorView) => void
+}>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const vueHost = new VueHostInstance()
-const { editorView, readonly, contentElement } = useCodeMirror(editorRoot, {
-  content: () => content,
-  extensions: [linkifyUrls],
+const { editorView, contentElement } = useCodeMirror(editorRoot, {
+  extensions: [linkifyUrls, EditorView.lineWrapping, extensions],
   vueHost: () => vueHost,
+  contentTestId,
+  lineMode: 'single',
 })
 
 useLinkTitles(editorView, { readonly })
+
+onEditorReady(editorView)
 
 defineExpose({
   contentElement,
@@ -25,8 +39,9 @@ defineExpose({
 </script>
 
 <template>
-  <CodeMirrorRoot ref="editorRoot" v-bind="$attrs" />
-  <VueHostRender :host="vueHost" />
+  <CodeMirrorRoot ref="editorRoot" @keydown.enter.stop @keydown.up.stop @keydown.down.stop>
+    <VueHostRender :host="vueHost" />
+  </CodeMirrorRoot>
 </template>
 
 <style scoped>

@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.pass.analyse.FramePointer
-import org.enso.compiler.context.{InlineContext, LocalScope, ModuleContext}
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.Name.GenericAnnotation
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.expression.{Application, Case}
@@ -52,14 +52,14 @@ case object FramePointerAnalysis extends IRPass {
                 graph
               ) =>
             processExpression(m.body, graph)
-            updateSymbolNames(m, graph.rootScope)
+            FrameAnalysisMeta.updateSymbolNames(m, graph.rootScope)
           case _ => ()
         }
       case m: Method.Conversion =>
         getAliasAnalysisGraph(m) match {
           case Some(graph) =>
             processExpression(m.body, graph)
-            updateSymbolNames(m, graph.rootScope)
+            FrameAnalysisMeta.updateSymbolNames(m, graph.rootScope)
           case _ => ()
         }
       case t: Definition.Type =>
@@ -76,9 +76,9 @@ case object FramePointerAnalysis extends IRPass {
               member.annotations.foreach { annotation =>
                 processAnnotation(annotation, memberGraph)
               }
-              updateSymbolNames(member, memberGraph.rootScope)
+              FrameAnalysisMeta.updateSymbolNames(member, memberGraph.rootScope)
             }
-            updateSymbolNames(t, graph.rootScope)
+            FrameAnalysisMeta.updateSymbolNames(t, graph.rootScope)
           case _ => ()
         }
       case annot: GenericAnnotation =>
@@ -94,11 +94,6 @@ case object FramePointerAnalysis extends IRPass {
     }
   }
 
-  private def updateSymbolNames(e: IR, s: Graph.Scope): Unit = {
-    val symbols = s.allDefinitions.map(_.symbol)
-    updateMeta(e, FrameVariableNames.create(symbols))
-  }
-
   private def processAnnotation(
     annot: GenericAnnotation,
     graph: Graph
@@ -108,7 +103,7 @@ case object FramePointerAnalysis extends IRPass {
         rootScope.graph
       case None => graph
     }
-    updateSymbolNames(annot, annotGraph.rootScope)
+    FrameAnalysisMeta.updateSymbolNames(annot, annotGraph.rootScope)
     processExpression(annot.expression, annotGraph)
   }
 
@@ -121,7 +116,7 @@ case object FramePointerAnalysis extends IRPass {
         case Name.Self(loc, synthetic, _) if loc == null && synthetic =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
-          updateMeta(arg, new FramePointer(0, 1))
+          FrameAnalysisMeta.updateMetadata(arg, new FramePointer(0, 1))
         case _ =>
           maybeAttachFramePointer(arg, graph)
       }
@@ -211,7 +206,7 @@ case object FramePointerAnalysis extends IRPass {
       case _: Pattern.Documentation => ()
       case _                        => ()
     }
-    updateSymbolNames(pattern, graph.rootScope)
+    FrameAnalysisMeta.updateSymbolNames(pattern, graph.rootScope)
   }
 
   private def processApplication(
@@ -253,9 +248,11 @@ case object FramePointerAnalysis extends IRPass {
 
   private def maybAttachFrameVariableNames(ir: IR): Unit = {
     getAliasRootScope(ir).foreach(root =>
-      updateSymbolNames(ir, root.graph.rootScope)
+      FrameAnalysisMeta.updateSymbolNames(ir, root.graph.rootScope)
     )
-    getAliasChildScope(ir).foreach(child => updateSymbolNames(ir, child.scope))
+    getAliasChildScope(ir).foreach(child =>
+      FrameAnalysisMeta.updateSymbolNames(ir, child.scope)
+    )
   }
 
   /** Attaches [[FramePointerMeta]] metadata to the given `ir` if there is an
@@ -270,112 +267,19 @@ case object FramePointerAnalysis extends IRPass {
     graph: Graph
   ): Unit = {
     getAliasAnalysisMeta(ir) match {
-      case Some(AliasMetadata.Occurrence(_, id)) =>
+      case Some(occ: AliasMetadata.Occurrence) =>
+        val id = occ.id()
         graph.scopeFor(id) match {
           case Some(scope) =>
             graph.getOccurrence(id) match {
-              case Some(use: GraphOccurrence.Use) =>
-                // Use is allowed to read a variable from some parent scope
-                graph.defLinkFor(use.id) match {
-                  case Some(defLink) =>
-                    val defId = defLink.target
-                    val defOcc = graph
-                      .getOccurrence(defId)
-                      .get
-                      .asInstanceOf[GraphOccurrence.Def]
-                    val defScope    = graph.scopeFor(defId).get
-                    val parentLevel = getScopeDistance(defScope, scope)
-                    val frameSlotIdx =
-                      getFrameSlotIdxInScope(graph, defScope, defOcc)
-                    updateMeta(
-                      ir,
-                      new FramePointer(parentLevel, frameSlotIdx)
-                    )
-                  case None =>
-                    // It is possible that there is no Def for this Use. It can, for example, be
-                    // Use for some global symbol. In `IrToTruffle`, an UnresolvedSymbol will be
-                    // generated for it.
-                    // We will not attach any metadata in this case.
-                    ()
-                }
-              case Some(defn: GraphOccurrence.Def) =>
-                // The definition cannot write to parent's frame slots.
-                val parentLevel  = 0
-                val frameSlotIdx = getFrameSlotIdxInScope(graph, scope, defn)
-                updateMeta(
-                  ir,
-                  new FramePointer(parentLevel, frameSlotIdx)
-                )
+              case Some(occ: GraphOccurrence) =>
+                FrameAnalysisMeta.updateOccurrance(ir, graph, scope, occ)
               case _ => ()
             }
           case _ => ()
         }
       case _ => ()
     }
-  }
-
-  private def updateMeta(
-    ir: IR,
-    newMeta: FrameAnalysisMeta
-  ): Unit = {
-    ir.passData().get(this) match {
-      case None =>
-        ir.passData()
-          .update(this, newMeta)
-      case Some(meta) =>
-        val ex = new IllegalStateException(
-          "Unexpected FrameAnalysisMeta associated with IR " + ir + "\nOld: " + meta + " new " + newMeta
-        )
-        ex.setStackTrace(ex.getStackTrace().slice(0, 10))
-        throw ex
-    }
-  }
-
-  /** Returns the index of the given `defOcc` definition in the given `scope`
-    * @param scope This scope must contain the given `defOcc`
-    * @param defOcc This occurrence must be in the given `scope`
-    */
-  private def getFrameSlotIdxInScope(
-    graph: Graph,
-    scope: Graph.Scope,
-    defOcc: GraphOccurrence.Def
-  ): Int = {
-    org.enso.common.Asserts.assertInJvm(
-      graph.scopeFor(defOcc.id).contains(scope),
-      "Def occurrence must be in the given scope"
-    )
-    org.enso.common.Asserts.assertInJvm(
-      scope.allDefinitions.contains(defOcc),
-      "The given scope must contain the given Def occurrence"
-    )
-    val idxInScope = scope.allDefinitions.zipWithIndex
-      .find { case (def_, _) => def_.id == defOcc.id }
-      .map(_._2)
-      .getOrElse(
-        throw new IllegalStateException(
-          "Def occurrence must be in the given scope"
-        )
-      )
-    idxInScope + LocalScope.internalSlotsSize
-  }
-
-  /** Returns the *scope distance* of the given `childScope` to the given `parentScope`.
-    * Scope distance is the number of parents from the `childScope`.
-    * @param parentScope Some of the parent scopes of `childScope`.
-    * @param childScope Nested child scope of `parentScope`.
-    * @return
-    */
-  private def getScopeDistance(
-    parentScope: Graph.Scope,
-    childScope: Graph.Scope
-  ): Int = {
-    var currScope: Option[Graph.Scope] = Some(childScope)
-    var scopeDistance                  = 0
-    while (currScope.isDefined && currScope.get != parentScope) {
-      currScope = currScope.get.parent
-      scopeDistance += 1
-    }
-    scopeDistance
   }
 
   private def getAliasAnalysisMeta(

@@ -11,7 +11,6 @@ export project.Column_Operation.Column_Operation
 export project.Column_Ref.Column_Ref
 
 export project.Constants.Previous_Value
-export project.Constants.Report_Unmatched
 
 export project.Data_Formatter.Data_Formatter
 
@@ -33,6 +32,11 @@ export project.Extensions.Table_Conversions.write_table
 
 export project.Fill_With.Fill_With
 
+export project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Column_Description
+export project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
+export project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+export project.Fixed_Width.On_Empty_Field.On_Empty_Field
+
 export project.Generate_Rows_Range.Generate_Rows_Range
 
 export project.Grouping_Method.Grouping_Method
@@ -48,6 +52,8 @@ export project.Match_Columns.Match_Columns
 export project.Position.Position
 
 export project.Prefix_Name.Prefix_Name
+
+export project.Refined_Types.Numeric_Column.Numeric_Column
 
 export project.Set_Mode.Set_Mode
 
