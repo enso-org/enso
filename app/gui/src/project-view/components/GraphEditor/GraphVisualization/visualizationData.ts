@@ -13,7 +13,7 @@ import {
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
-import { ProjectPath } from '@/util/projectPath'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { wait } from 'lib0/promise.js'
@@ -37,7 +37,7 @@ export type RawDataSource = { type: 'raw'; data: any }
 
 export interface UseVisualizationDataOptions {
   selectedVis: ToValue<Opt<VisualizationIdentifier>>
-  typename: ToValue<ProjectPath | undefined>
+  typeInfo: ToValue<TypeInfo | undefined>
   dataSource: ToValue<VisualizationDataSource | RawDataSource | undefined>
 }
 
@@ -52,7 +52,7 @@ export interface UseVisualizationDataOptions {
 export function useVisualizationData({
   selectedVis,
   dataSource,
-  typename,
+  typeInfo,
 }: UseVisualizationDataOptions) {
   const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
   const vueError = ref<Error>()
@@ -104,8 +104,8 @@ export function useVisualizationData({
     if (dataSourceValue?.type !== 'node') return
 
     const graphDb = graph.db
-    const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
-    const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
+    const nodeFirstOutputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
+    const identifier = graphDb.getOutputPortIdentifier(nodeFirstOutputPort)
     if (identifier === undefined) return
 
     const contextId =
@@ -128,7 +128,7 @@ export function useVisualizationData({
     if (selectedTypeValue) return selectedTypeValue
     if (defaultVisualizationForCurrentNodeSource.value)
       return defaultVisualizationForCurrentNodeSource.value
-    const [id] = visualizationStore.byType(toValue(typename))
+    const [id] = visualizationStore.byType(toValue(typeInfo))
     return id ?? DEFAULT_VISUALIZATION_IDENTIFIER
   })
 
@@ -257,7 +257,7 @@ export function useVisualizationData({
     preprocessorLoading.value = false
   })
 
-  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typename))))
+  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeInfo))))
 
   const effectiveVisualization = computed(() => {
     if (

@@ -25,11 +25,11 @@ import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { isIconName } from '@/util/iconMetadata/iconName'
-import { ProjectPath } from '@/util/projectPath'
 import { computed, reactive } from 'vue'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'ydoc-shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'ydoc-shared/languageServerTypes'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
+import { TypeInfo } from '../project/computedValueRegistry'
 
 /** The directory in the project under which custom visualizations can be found. */
 const customVisualizationsDirectory = 'visualizations'
@@ -250,15 +250,17 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       }
     })
 
-    function* byType(type: Opt<ProjectPath>): IterableIterator<VisualizationIdentifier> {
-      const types =
-        type == null ?
+    function* byType(typeInfo: Opt<TypeInfo>): IterableIterator<VisualizationIdentifier> {
+      const types = [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+      const vizzes =
+        types.length === 0 ?
           metadata.keys()
         : new Set([
-            ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ...types.flatMap((type) => [...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? [])]),
             ...(metadata.visualizationIdToType.reverseLookup(ANY_TYPE_QN) ?? []),
           ])
-      for (const type of types) yield fromVisualizationId(type)
+      console.log(vizzes, types)
+      for (const viz of vizzes) yield fromVisualizationId(viz)
     }
 
     function icon(type: VisualizationIdentifier) {
