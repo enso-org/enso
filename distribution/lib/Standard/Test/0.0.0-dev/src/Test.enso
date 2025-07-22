@@ -4,16 +4,13 @@ from Standard.Base.Errors.Common import Uninitialized_State
 from Standard.Base.Runtime import State
 
 import project.Clue.Clue
-import project.Group.Group
-import project.Spec.Spec
+import project.Frame_Hider
 import project.Spec_Result.Spec_Result
 import project.Suite.Suite
 import project.Suite.Suite_Builder
 import project.Test_Result.Test_Result
 
-
 polyglot java import java.lang.Thread
-
 
 ## Contains only static methods
 type Test
@@ -26,25 +23,25 @@ type Test
         Suite.Impl groups_vec
 
     ## Expect a function to fail with the provided panic.
-
        It returns the caught panic if it matches the expected panic type,
        otherwise it fails the test.
 
-       Arguments:
-       - action: The action to evaluate that is expected to fail with a panic.
-       - matcher: The expected type of the panic thrown by `action`.
+       ## Arguments
+        - `action`: The action to evaluate that is expected to fail with a panic.
+        - `matcher`: The expected type of the panic thrown by `action`.
 
-       > Example
-         Expect that a computation should panic as part of a test.
+       ## Examples
+       ### Expect that a computation should panic as part of a test.
 
+       ```
              import Standard.Examples
              from Standard.Test import Test
 
              example_expect_panic_with =
                  Test.expect_panic_with Examples.throw_panic Examples.My_Error
-    expect_panic_with : Any -> Any -> Integer -> Test_Result
-    expect_panic_with ~action matcher frames_to_skip=0 =
-        loc = Meta.get_source_location 1+frames_to_skip
+       ```
+    expect_panic_with : Any -> Any -> Test_Result
+    expect_panic_with ~action matcher = Frame_Hider.hide <|
         handle_panic caught_panic =
             payload = caught_panic.payload
             is_internal_test_panic = payload.is_a Spec_Result
@@ -55,31 +52,31 @@ type Test
             is_panic_matching = payload.is_a matcher
             if is_panic_matching then payload else
                 stack_trace = caught_panic.convert_to_dataflow_error.get_stack_trace_text
-                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at " + loc + ").") details=stack_trace
+                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at " + Frame_Hider.get_top_stack_frame + ").") details=stack_trace
         Panic.catch Any handler=handle_panic <|
             res = action
 
             # If the action did not panic above, we fail the test.
             case res.is_error of
                 True ->
-                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at " + loc + ").")
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at " + Frame_Hider.get_top_stack_frame + ").")
                 False ->
-                    return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
-                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at " + loc + ").")
+                    return_suffix = if Nothing == res then "" else " and returned ["+res.to_text+"]"
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at " + Frame_Hider.get_top_stack_frame + ").")
 
 
     ## Expect a function to fail with the provided panic.
-
        An alternative API to `expect_panic_with` where the order of arguments is
        more natural - as it allows blocks without reordering the arguments.
 
-       Arguments:
-       - matcher: The expected type of the panic thrown by `action`.
-       - action: The action to evaluate that is expected to fail with a panic.
+       ## Arguments
+        - `matcher`: The expected type of the panic thrown by `action`.
+        - `action`: The action to evaluate that is expected to fail with a panic.
 
-       > Example
-         Expect that a computation should panic as part of a test.
+       ## Examples
+       ### Expect that a computation should panic as part of a test.
 
+       ```
               import Standard.Examples
               from Standard.Test import Test
 
@@ -89,40 +86,43 @@ type Test
                       Examples.throw_panic
 
                       IO.println 'this is not reached'
+       ```
     expect_panic : Any -> Any -> Test_Result
-    expect_panic matcher ~action = Test.expect_panic_with action matcher frames_to_skip=1
+    expect_panic matcher ~action = Frame_Hider.hide <| Test.expect_panic_with action matcher
 
 
     ## Checks that the provided action returns without any errors or warnings.
-
        If you just want to check for errors, usage of the `.should_succeed`
        extension function is preferred.
-    assert_no_problems value frames_to_skip=0 =
+    assert_no_problems value = Frame_Hider.hide <|
         value.catch Any _->
-            Test.fail_match_on_unexpected_error value 2+frames_to_skip
+            Test.fail_match_on_unexpected_error value
         warnings = Warning.get_all value . map .value
         if warnings.not_empty then
-            loc = Meta.get_source_location 2+frames_to_skip
-            msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + loc + ")."
+            msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
 
     ## Fail a test with the given message.
 
-       Arguments:
-       - message: The message printed when failing the test.
+       ## Arguments
+        - `message`: The message printed when failing the test.
 
-       > Example
-         Failing a test manually.
+       ## Examples
+       ### Failing a test manually.
 
+       ```
              from Standard.Test import Test
 
              example_fail = Test.fail "Something went wrong."
+       ```
     fail : Text -> Nothing|Text -> Spec_Result
     fail message details=Nothing =
         failure = Spec_Result.Failure (Test.enrich_message_with_clue message) details
         Panic.throw failure
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     enrich_message_with_clue : Text -> Text
     enrich_message_with_clue message =
         clue = Panic.catch Uninitialized_State (State.get Clue) handler=(_-> Nothing)
@@ -130,26 +130,28 @@ type Test
             Clue.Value add_clue -> add_clue message
             _                   -> message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Reports an unexpected dataflow error has occurred.
-    fail_match_on_unexpected_error : Error -> Integer -> Nothing
-    fail_match_on_unexpected_error error frames_to_skip =
+    fail_match_on_unexpected_error : Error -> Nothing
+    fail_match_on_unexpected_error error = Frame_Hider.hide <|
         payload = error.catch
-        loc = Meta.get_source_location 1+frames_to_skip
-        msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
+        msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + Frame_Hider.get_top_stack_frame + ")."
         Test.fail msg details=error.get_stack_trace_text
 
-    ## Executes the block of code passed as behavior and adds a clue modifier which
-       changes how assertion failures are reported.
-
+    ## Executes the block of code passed as behavior and adds a clue modifier
+       which changes how assertion failures are reported.
        Nesting with_clue invocations results in clue aggregation.
 
-       Arguments:
-       - clue: either a text which gets prepended to the failure or a function which transforms the failure message
-       - behavior: the behavior to test
+       ## Arguments
+        - `clue`: either a text which gets prepended to the failure or a function
+          which transforms the failure message
+        - `behavior`: the behavior to test
 
-       > Example
-         Add a clue to a test
+       ## Examples
+       ### Add a clue to a test
+       ```
             from Standard.Test import Test, Test_Suite
             import Standard.Test.Extensions
             main = Test_Suite.run_main <|
@@ -159,6 +161,7 @@ type Test
                         xs.each x->
                             Test.with_clue ("["+x.to_text+"] ") <|
                                 x . should_equal 0
+       ```
     with_clue : Text|(Text -> Text) -> Any -> Any
     with_clue ~clue ~behavior =
         add_clue x = case clue of
@@ -178,22 +181,17 @@ type Test
 
     ## A helper method that retries the action a few times if it panics.
        It allows to make flaky tests more robust.
-
        It waits for a short period of time between retries (in case the failures
        are related e.g. to network conditions or propagation delays).
-
        This function should be placed inside of the `specify` block. It can be
        used to retry the whole test, or it can be applied to a specific block
        inside of the test to only re-run that specific block (in such case, any
        side-effects must be considered carefully).
-
-       The method returns the first successful value returned by the action,
-       or fails with the last error thrown by the action after exhausting retry
+       The method returns the first successful value returned by the action, or
+       fails with the last error thrown by the action after exhausting retry
        attempts.
     with_retries : Any -> Any
     with_retries ~action =
-        loc = Meta.get_source_location 1
-
         milliseconds_between_attempts = 100
         ## We give the CI a bit more attempts, as failures are more annoying there.
            For local development, a bit less retries is enough - there it is more
@@ -201,12 +199,14 @@ type Test
            don't want to spend too much time retrying when debugging the tests locally.
         max_retries = if Environment.get "CI" . is_nothing . not then 100 else 20
 
-        go i =
-            Panic.catch Any action caught_panic->
+        ## The `hide` is here because if it were at the top of the function, the
+           tail call confuses the location finder.
+        go i = Frame_Hider.hide <|
+            Panic.catch Any (Frame_Hider.unhide action) caught_panic->
                 # If the iterations are exhausted, we rethrow the panic.
                 if i > max_retries then Panic.throw caught_panic else
                     if i % 10 == 0 then
-                        IO.println 'Still failing after '+i.to_text+' retries ('+loc.to_display_text+'):\n'+caught_panic.payload.to_display_text
+                        IO.println 'Still failing after '+i.to_text+' retries ('+Frame_Hider.get_top_stack_frame.to_display_text+'):\n'+caught_panic.payload.to_display_text
                     Thread.sleep milliseconds_between_attempts
                     @Tail_Call go (i+1)
         go 1

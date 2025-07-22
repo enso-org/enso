@@ -9,7 +9,6 @@ import project.Data.Vector.Vector
 import project.Enso_Cloud.Cloud_Caching_Settings
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
-import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
@@ -21,8 +20,7 @@ import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Runtime.Context
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import data_link_extension
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
@@ -104,17 +102,12 @@ type Existing_Enso_Asset
             . catch Not_Found _-> if_not_found
 
     ## PRIVATE
-    is_directory self = self.asset_type == Enso_Asset_Type.Directory
-
-    ## PRIVATE
-    is_regular_file self = self.asset_type == Enso_Asset_Type.File
-
-    ## PRIVATE
     list_directory self =
         if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
-             response = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
-             assets = get_required_field "assets" response expected_type=Vector
-             assets.map Existing_Enso_Asset.from_json
+            if self.id == "" then Error.throw (Illegal_Argument.Error "Cannot list the Users or Teams directory.") else
+                 response = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
+                 assets = get_required_field "assets" response expected_type=Vector
+                 assets.map Existing_Enso_Asset.from_json
 
     ## PRIVATE
     from_json json -> Existing_Enso_Asset =
@@ -129,13 +122,13 @@ type Existing_Enso_Asset
 
 ## PRIVATE
 asset_type_from_id id:Text -> Enso_Asset_Type =
-    Enso_Asset_Type.from (id.take (..Before "-"))
+    Enso_Asset_Type.from_text (id.take (..Before "-"))
 
 ## PRIVATE
    The asset metadata that is currently automatically included as part of the path resolution response.
 type Asset_Metadata
     ## PRIVATE
-    Value modified_at:Date_Time description:Text|Nothing labels:Vector
+    Value modified_at:Date_Time description:Text|Nothing labels:Vector credential_metadata:Credential_Secret_Metadata|Nothing
 
     ## PRIVATE
     from_json json -> Asset_Metadata =
@@ -144,7 +137,21 @@ type Asset_Metadata
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
         description = get_optional_field "description" json expected_type=Text
         labels = get_optional_field "labels" json expected_type=Vector if_missing=[]
-        Asset_Metadata.Value modified_at description labels
+
+        credential_metadata_field = get_optional_field "credentialMetadata" json expected_type=JS_Object
+        credential_metadata = credential_metadata_field.if_not_nothing <|
+            service_name = get_required_field "serviceName" credential_metadata_field expected_type=Text
+            state = get_required_field "state" credential_metadata_field expected_type=Text
+            expiration_date_text = get_optional_field "expirationDate" credential_metadata_field expected_type=Text
+            expiration_date = expiration_date_text.if_not_nothing <|
+                Date_Time.parse expiration_date_text Date_Time_Formatter.iso_offset_date_time
+                    . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+            Credential_Secret_Metadata.Value service_name state expiration_date
+        Asset_Metadata.Value modified_at description labels credential_metadata
+
+## PRIVATE
+type Credential_Secret_Metadata
+    Value service_name:Text state:Text expiration_date:Date_Time|Nothing
 
 ## PRIVATE
 type Asset_Cache
@@ -173,14 +180,18 @@ type Asset_Cache
 ## PRIVATE
    Returns the cached reference or fetches it from the cloud.
 fetch_asset_reference (file : Enso_File) (want_metadata : Boolean) -> Existing_Enso_Asset ! File_Error = file.if_not_error <|
-    path = file.enso_path.to_text
-    on_not_found =
-        Error.throw (File_Error.Not_Found file)
-    r = Utils.get_cached (Asset_Cache.asset_key file) cache_duration=Cloud_Caching_Settings.get_file_cache_ttl <|
-        Existing_Enso_Asset.resolve_path path if_not_found=on_not_found
+    case file.enso_path.to_text of
+        "enso://" -> Existing_Enso_Asset.Value "" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso root directory." [] Nothing)
+        "enso://Users" -> Existing_Enso_Asset.Value "Users" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso User home directories." [] Nothing)
+        "enso://Teams" -> Existing_Enso_Asset.Value "Teams" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso Team home directories." [] Nothing)
+        path ->
+            on_not_found =
+                Error.throw (File_Error.Not_Found file)
+            r = Utils.get_cached (Asset_Cache.asset_key file) cache_duration=Cloud_Caching_Settings.get_file_cache_ttl <|
+                Existing_Enso_Asset.resolve_path path if_not_found=on_not_found
 
-    needs_refetch = want_metadata && r.metadata.is_nothing
-    if needs_refetch.not then r else
-        with_metadata = Existing_Enso_Asset.resolve_path path if_not_found=on_not_found
-        Asset_Cache.update file with_metadata
-        with_metadata
+            needs_refetch = want_metadata && r.metadata.is_nothing
+            if needs_refetch.not then r else
+                with_metadata = Existing_Enso_Asset.resolve_path path if_not_found=on_not_found
+                Asset_Cache.update file with_metadata
+                with_metadata

@@ -1,0 +1,14 @@
+private
+
+## PRIVATE
+
+   Returns a raw representation of the current execution stack trace.
+   You probably want `Runtime.get_stack_trace` instead.
+primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
+
+gc = @Builtin_Method "Runtime.gc"
+assertions_enabled = @Builtin_Method "Runtime.assertions_enabled"
+no_inline ~action = @Builtin_Method "Runtime.no_inline"
+no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
+
+

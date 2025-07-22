@@ -1,6 +1,7 @@
 package org.enso.runner;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -13,6 +14,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -33,7 +35,9 @@ import org.enso.common.LanguageInfo;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
+import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
+import org.enso.logger.Converter;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -52,7 +56,9 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
 import org.graalvm.polyglot.io.MessageTransport;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.slf4j.event.Level;
 import scala.Option$;
 import scala.concurrent.ExecutionContext;
@@ -78,6 +84,7 @@ public class Main {
   private static final String PROFILING_PATH = "profiling-path";
   private static final String PROFILING_TIME = "profiling-time";
   private static final String LANGUAGE_SERVER_OPTION = "server";
+  private static final String LANGUAGE_SERVER_NATIVE_OPTION = "native-server";
   private static final String IN_PROJECT_OPTION = "in-project";
   private static final String VERSION_OPTION = "version";
   private static final String JSON_OPTION = "json";
@@ -86,6 +93,7 @@ public class Main {
   private static final String NO_READ_IR_CACHES_OPTION = "no-read-ir-caches";
   private static final String DISABLE_PRIVATE_CHECK_OPTION = "disable-private-check";
   private static final String ENABLE_STATIC_ANALYSIS_OPTION = "enable-static-analysis";
+  private static final String TREAT_WARNINGS_AS_ERRORS_OPTION = "Werror";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
   private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
@@ -103,7 +111,7 @@ public class Main {
 
   private static final String DEFAULT_MAIN_METHOD_NAME = "main";
 
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Main.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
   Main() {}
 
@@ -145,8 +153,13 @@ public class Main {
             .build();
     var docs =
         cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .optionalArg(true)
             .longOpt(DOCS_OPTION)
-            .desc("Runs the Enso documentation generator.")
+            .desc(
+                "Runs the Enso documentation generator. Additional argument may specify format -"
+                    + " either the default `md` or `api`.")
             .build();
     var preinstall =
         cliOptionBuilder()
@@ -215,6 +228,11 @@ public class Main {
             .build();
     var lsOption =
         cliOptionBuilder().longOpt(LANGUAGE_SERVER_OPTION).desc("Runs Language Server").build();
+    var lsNativeOption =
+        cliOptionBuilder()
+            .longOpt(LANGUAGE_SERVER_NATIVE_OPTION)
+            .desc("Runs Language Server in native-image mode")
+            .build();
     var lsProfilingPathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -284,6 +302,14 @@ public class Main {
             .longOpt(LanguageServerApi.ROOT_ID_OPTION)
             .desc("Content root id.")
             .build();
+    var projectIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("uuid")
+            .longOpt(LanguageServerApi.PROJECT_ID_OPTION)
+            .desc("Project id.")
+            .build();
     var pathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -319,8 +345,9 @@ public class Main {
             .argName("log-level")
             .longOpt(LOG_LEVEL)
             .desc(
-                "Sets the runtime log level. Possible values are: OFF, ERROR, "
-                    + "WARNING, INFO, DEBUG and TRACE. Default: INFO.")
+                "Sets the runtime log level. Possible values are: "
+                    + getPossibleLogLevels()
+                    + ". Default: info.")
             .build();
     var loggerConnectOption =
         cliOptionBuilder()
@@ -455,6 +482,11 @@ public class Main {
             .longOpt(ENABLE_STATIC_ANALYSIS_OPTION)
             .desc("Enable static analysis (Experimental type inference).")
             .build();
+    var treatWarningsAsErrorsOption =
+        cliOptionBuilder()
+            .option(TREAT_WARNINGS_AS_ERRORS_OPTION)
+            .desc("Treat compiler warnings as errors.")
+            .build();
 
     var systemPropOption =
         cliOptionBuilder()
@@ -483,6 +515,7 @@ public class Main {
         .addOption(newProjectAuthorNameOpt)
         .addOption(newProjectAuthorEmailOpt)
         .addOption(lsOption)
+        .addOption(lsNativeOption)
         .addOption(lsProfilingPathOption)
         .addOption(lsProfilingTimeOption)
         .addOption(deamonizeOption)
@@ -492,6 +525,7 @@ public class Main {
         .addOption(secureRpcPortOption)
         .addOption(secureDataPortOption)
         .addOption(uuidOption)
+        .addOption(projectIdOption)
         .addOption(pathOption)
         .addOption(inProjectOption)
         .addOption(version)
@@ -514,7 +548,8 @@ public class Main {
         .addOption(warningsLimitOption)
         .addOption(disablePrivateCheckOption)
         .addOption(systemPropOption)
-        .addOption(enableStaticAnalysisOption);
+        .addOption(enableStaticAnalysisOption)
+        .addOption(treatWarningsAsErrorsOption);
 
     return options;
   }
@@ -524,8 +559,16 @@ public class Main {
     new HelpFormatter().printHelp(LanguageInfo.ID, CLI_OPTIONS);
   }
 
-  /** Terminates the process with a failure exit code. */
-  private RuntimeException exitFail() {
+  /**
+   * Terminates the process with a failure exit code.
+   *
+   * @param error the error message to send to stderr before terminating the process, can be {@code
+   *     null}
+   */
+  private RuntimeException exitFail(String error) {
+    if (error != null) {
+      stderr(error);
+    }
     return doExit(1);
   }
 
@@ -570,21 +613,19 @@ public class Main {
             : join(new Contact(authorName, authorEmail), nil());
 
     var edition = DefaultEdition.getDefaultEdition();
-    if (logger.isTraceEnabled()) {
+    if (LOGGER.isTraceEnabled()) {
       var baseEdition = edition.parent().getOrElse(() -> "<no-base>");
-      logger.trace("Creating a new project " + name + " based on edition [" + baseEdition + "].");
+      LOGGER.trace("Creating a new project " + name + " based on edition [" + baseEdition + "].");
     }
 
     var template =
         templateOption.map(
-            (n) -> {
-              return Template.fromString(n)
-                  .getOrElse(
-                      () -> {
-                        logger.error("Unknown project template name: '" + n + "'.");
-                        throw exitFail();
-                      });
-            });
+            (n) ->
+                Template.fromString(n)
+                    .getOrElse(
+                        () -> {
+                          throw exitFail("Unknown project template name: '" + n + "'.");
+                        }));
 
     PackageManager$.MODULE$
         .Default()
@@ -599,6 +640,8 @@ public class Main {
             authors,
             nil(),
             "",
+            Option$.MODULE$.empty(),
+            nil(),
             Option$.MODULE$.empty());
     throw exitSuccess();
   }
@@ -606,51 +649,72 @@ public class Main {
   /**
    * Handles the `--compile` CLI option.
    *
-   * @param packagePath the path to the package being compiled
+   * @param path the path to the package or file being compiled
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
    *     global cache
    * @param shouldUseIrCaches whether or not IR caches should be used.
-   * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param disablePrivateCheck whether or not the private check should be disabled
+   * @param enableStaticAnalysis whether or not static type checking, and other static analysis,
+   *     should be enabled
+   * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
    */
   private void compile(
-      String packagePath,
+      String cwd,
+      String path,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
+      boolean disablePrivateCheck,
       boolean enableStaticAnalysis,
+      boolean treatWarningsAsErrors,
       Level logLevel,
-      boolean logMasking) {
-    var file = new File(packagePath);
-    if (!file.exists() || !file.isDirectory()) {
-      println("No package exists at " + file + ".");
-      throw exitFail();
-    }
+      boolean logMasking)
+      throws IOException {
+    var fileAndProject = Utils.findFileAndProject(cwd, path, null);
+    assert fileAndProject != null;
 
+    boolean isProjectMode = fileAndProject._1();
+    String projectPath = fileAndProject._3();
     var context =
         new PolyglotContext(
             ContextFactory.create()
-                .projectRoot(packagePath)
+                .projectRoot(projectPath)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(shouldUseIrCaches)
+                .disablePrivateCheck(disablePrivateCheck)
                 .enableStaticAnalysis(enableStaticAnalysis)
+                .treatWarningsAsErrors(treatWarningsAsErrors)
                 .strictErrors(true)
                 .useGlobalIrCacheLocation(shouldUseGlobalCache)
                 .build());
 
-    var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies);
+      if (isProjectMode) {
+        var topScope = context.getTopScope();
+        topScope.compile(shouldCompileDependencies, scala.Option.empty());
+      } else {
+        context.evalModule(fileAndProject._2());
+      }
       throw exitSuccess();
     } catch (Throwable t) {
-      logger.error("Unexpected internal error", t);
-      throw exitFail();
+      boolean compilationFailed =
+          t instanceof PolyglotException polyglotException && polyglotException.isSyntaxError();
+      if (compilationFailed) {
+        var reason = treatWarningsAsErrors ? "warnings or errors" : "errors";
+        throw exitFail("Compilation failed due to " + reason + ".");
+      } else {
+        String message = "Unexpected internal error: " + t.getMessage();
+        LOGGER.error(message, t);
+        throw exitFail(message);
+      }
+
     } finally {
       context.context().close();
     }
@@ -670,11 +734,13 @@ public class Main {
    * @param disablePrivateCheck Is private modules check disabled. If yes, `private` keyword is
    *     ignored.
    * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    * @param inspect shall inspect option be enabled
    * @param executionEnvironment name of the execution environment to use during execution or {@code
    *     null}
    */
   private void handleRun(
+      String cwd,
       String path,
       List<String> additionalArgs,
       String projectPath,
@@ -684,32 +750,28 @@ public class Main {
       boolean disablePrivateCheck,
       boolean enableAutoParallelism,
       boolean enableStaticAnalysis,
+      boolean treatWarningsAsErrors,
       boolean enableDebugServer,
       boolean inspect,
       String executionEnvironment,
       int warningsLimit)
       throws IOException {
-    var fileAndProject = Utils.findFileAndProject(path, projectPath);
-    if (fileAndProject == null) {
-      throw exitFail();
-    }
+    var fileAndProject = Utils.findFileAndProject(cwd, path, projectPath);
+    assert fileAndProject != null;
     var projectMode = fileAndProject._1();
     var file = fileAndProject._2();
     var mainFile = file;
     if (projectMode) {
       var result = PackageManager$.MODULE$.Default().loadPackage(file);
       if (result.isSuccess()) {
-        @SuppressWarnings("unchecked")
-        var pkg = (org.enso.pkg.Package<java.io.File>) result.get();
+        var pkg = result.get();
 
         mainFile = pkg.mainFile();
         if (!mainFile.exists()) {
-          println("Main file does not exist.");
-          throw exitFail();
+          throw exitFail("Main file does not exist.");
         }
       } else {
-        println(result.failed().get().getMessage());
-        throw exitFail();
+        throw exitFail(result.failed().get().getMessage());
       }
     }
 
@@ -719,21 +781,21 @@ public class Main {
     var factory =
         ContextFactory.create()
             .projectRoot(projectRoot)
-            .logLevel(logLevel)
+            .logLevel(Converter.toJavaLevel(logLevel))
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
+            .treatWarningsAsErrors(treatWarningsAsErrors)
             .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
             .warningsLimit(warningsLimit)
             .options(options);
 
     if (inspect) {
       if (enableDebugServer) {
-        println("Cannot use --inspect and --repl and --run at once");
-        throw exitFail();
+        throw exitFail("Cannot use --inspect and --repl and --run at once");
       }
       options.put("inspect", "");
     }
@@ -748,14 +810,11 @@ public class Main {
       if (projectMode) {
         var result = PackageManager$.MODULE$.Default().loadPackage(file);
         if (result.isSuccess()) {
-          var s = (scala.util.Success) result;
-          @SuppressWarnings("unchecked")
-          var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
+          var pkg = result.get();
           var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
           runPackage(context, mainModuleName, file, additionalArgs);
         } else {
-          println(((scala.util.Failure) result).exception().getMessage());
-          throw exitFail();
+          throw exitFail(result.failed().get().getMessage());
         }
       } else {
         runSingleFile(context, file, additionalArgs);
@@ -763,7 +822,7 @@ public class Main {
     } catch (RuntimeException e) {
       // forces computation of the exception message sooner than context is closed
       // should work around issues seen at #11127
-      logger.debug("Execution failed with " + e.getMessage());
+      LOGGER.debug("Execution failed with " + e.getMessage());
       throw e;
     } finally {
       context.context().close();
@@ -782,12 +841,21 @@ public class Main {
    * @param enableIrCaches are the IR caches enabled
    */
   private void genDocs(
-      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
-    if (projectPath.isEmpty()) {
-      println("Path hasn't been provided.");
-      throw exitFail();
+      String docsFormat,
+      String cwd,
+      String projectPath,
+      Level logLevel,
+      boolean logMasking,
+      boolean enableIrCaches)
+      throws IOException {
+    if (projectPath == null || projectPath.isEmpty()) {
+      throw exitFail("Specify path to a project with --in-project option");
     }
-    generateDocsFrom(projectPath, logLevel, logMasking, enableIrCaches);
+    var fileAndProject = Utils.findFileAndProject(cwd, projectPath, null);
+    if (fileAndProject == null) {
+      throw exitFail("Project specified in --in-project option does not exist: " + projectPath);
+    }
+    generateDocsFrom(docsFormat, projectPath, logLevel, logMasking, enableIrCaches);
     throw exitSuccess();
   }
 
@@ -796,14 +864,14 @@ public class Main {
    * path.
    */
   private void generateDocsFrom(
-      String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
+      String docsFormat, String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var executionContext =
         new PolyglotContext(
             ContextFactory.create()
                 .projectRoot(path)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
                 .build());
@@ -813,17 +881,8 @@ public class Main {
     var main = pkg.map(x -> x.mainFile());
 
     if (main.exists(x -> x.exists())) {
-      var mainFile = main.get();
-      var mainModuleName = pkg.get().moduleNameForFile(mainFile).toString();
       var topScope = executionContext.getTopScope();
-      var mainModule = topScope.getModule(mainModuleName);
-      var generated = mainModule.generateDocs();
-      println(generated.toString());
-
-      // TODO:
-      // - go through executed code and get all HTML docs
-      //   with their corresponding atoms/methods etc.
-      // - Save those to files
+      topScope.compile(false, scala.Option.apply(docsFormat == null ? "md" : docsFormat));
     }
   }
 
@@ -837,15 +896,14 @@ public class Main {
    */
   private void preinstallDependencies(String projectPath, Level logLevel) {
     if (projectPath == null) {
-      println("Dependency installation is only available for projects.");
-      throw exitFail();
+      throw exitFail("Dependency installation is only available for projects.");
     }
     try {
       DependencyPreinstaller.preinstallDependencies(new File(projectPath), logLevel);
       throw exitSuccess();
     } catch (RuntimeException error) {
-      logger.error("Dependency installation failed: " + error.getMessage(), error);
-      throw exitFail();
+      LOGGER.error("Dependency installation failed: " + error.getMessage(), error);
+      throw exitFail("Dependency installation failed: " + error.getMessage());
     }
   }
 
@@ -875,12 +933,11 @@ public class Main {
       var mainType = mainModule.getAssociatedType();
       var mainFun = mainModule.getMethod(mainType, mainMethodName);
       if (mainFun.isEmpty()) {
-        System.err.println(
+        throw exitFail(
             "The module "
                 + mainModule.getName()
                 + " does not contain a `main` "
                 + "function. It could not be run.");
-        throw exitFail();
       }
       var main = mainFun.get();
       if (!DEFAULT_MAIN_METHOD_NAME.equals(mainMethodName)) {
@@ -888,25 +945,22 @@ public class Main {
       } else {
         // Opportunistically parse arguments and convert to ints.
         // This avoids conversions in main function.
-        var parsedArgs =
-            additionalArgs.stream()
-                .map(
-                    arg -> {
-                      try {
-                        return Integer.valueOf(arg);
-                      } catch (NumberFormatException ex) {
-                        return arg;
-                      }
-                    })
-                .toList();
         var listOfArgs = nil();
-        for (var e : parsedArgs) {
+        for (var arg : additionalArgs) {
+          Object e;
+          try {
+            e = Integer.valueOf(arg);
+          } catch (NumberFormatException ex) {
+            e = arg;
+          }
           listOfArgs = join(e, listOfArgs);
         }
-        var res = main.execute(listOfArgs.reverse());
+        listOfArgs = listOfArgs.reverse();
+        LOGGER.debug("Executing the main function with arguments {}", listOfArgs.mkString(", "));
+        var res = main.execute(listOfArgs);
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
-          println(textRes);
+          stdout(textRes);
           if (res.isException()) {
             try {
               throw res.throwException();
@@ -923,7 +977,7 @@ public class Main {
         throw doExit(e.getExitStatus());
       } else {
         printPolyglotException(e, rootPkgPath);
-        throw exitFail();
+        throw exitFail(e.getMessage());
       }
     }
   }
@@ -936,13 +990,15 @@ public class Main {
    * @param logMasking is the log masking enabled
    * @param enableIrCaches are IR caches enabled
    * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    */
   private void runRepl(
       String projectPath,
       Level logLevel,
       boolean logMasking,
       boolean enableIrCaches,
-      boolean enableStaticAnalysis) {
+      boolean enableStaticAnalysis,
+      boolean treatWarningsAsErrors) {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
@@ -961,12 +1017,13 @@ public class Main {
                 .projectRoot(projectRoot)
                 .messageTransport(replTransport())
                 .enableDebugServer(true)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .executionEnvironment("live")
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
                 .disableLinting(true)
                 .enableStaticAnalysis(enableStaticAnalysis)
+                .treatWarningsAsErrors(treatWarningsAsErrors)
                 .build());
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
@@ -984,7 +1041,7 @@ public class Main {
               var repl = futureRepl.get();
               return new DebuggerSessionManagerEndpoint(repl, peer);
             } catch (InterruptedException | ExecutionException ex) {
-              logger.error("Cannot initialize REPL transport", ex);
+              LOGGER.error("Cannot initialize REPL transport", ex);
             }
           }
           return null;
@@ -1001,7 +1058,7 @@ public class Main {
     var customVersion = CurrentVersion.getVersion().toString();
     var versionDescription =
         VersionDescription.make("Enso Compiler and Runtime", true, false, List.of(), customVersion);
-    println(versionDescription.asString(useJson));
+    stdout(versionDescription.asString(useJson));
   }
 
   /** Parses the log level option. */
@@ -1010,15 +1067,16 @@ public class Main {
     var found =
         Stream.of(Level.values()).filter(x -> name.equals(x.name().toLowerCase())).findFirst();
     if (found.isEmpty()) {
-      var possible =
-          Stream.of(Level.values())
-              .map(x -> x.toString().toLowerCase())
-              .collect(Collectors.joining(", "));
-      System.err.println("Invalid log level. Possible values are " + possible + ".");
-      throw exitFail();
+      throw exitFail("Invalid log level. Possible values are " + getPossibleLogLevels() + ".");
     } else {
       return found.get();
     }
+  }
+
+  private static String getPossibleLogLevels() {
+    return Stream.of(Level.values())
+        .map(x -> x.toString().toLowerCase())
+        .collect(Collectors.joining(", "));
   }
 
   /** Parses an URI that specifies the logging service connection. */
@@ -1026,8 +1084,7 @@ public class Main {
     try {
       return new URI(string);
     } catch (URISyntaxException ex) {
-      System.err.println("`" + string + "` is not a valid URI.");
-      throw exitFail();
+      throw exitFail("`" + string + "` is not a valid URI.");
     }
   }
 
@@ -1046,11 +1103,13 @@ public class Main {
   /**
    * Main entry point for the CLI program.
    *
+   * @param cwd current working directory to use
    * @param line the provided command line arguments
    * @param logLevel the provided log level
    * @param logMasking the flag indicating if the log masking is enabled
    */
-  final void mainEntry(CommandLine line, Level logLevel, boolean logMasking) throws IOException {
+  final void mainEntry(String cwd, CommandLine line, Level logLevel, boolean logMasking)
+      throws IOException {
     if (line.hasOption(HELP_OPTION)) {
       printHelp();
       throw exitSuccess();
@@ -1076,12 +1135,11 @@ public class Main {
               .map(x -> Path.of(x))
               .getOrElse(
                   () -> {
-                    logger.error(
+                    throw exitFail(
                         "When uploading, the "
                             + IN_PROJECT_OPTION
                             + " is mandatory "
                             + "to specify which project to upload.");
-                    throw exitFail();
                   });
 
       try {
@@ -1095,7 +1153,7 @@ public class Main {
       } catch (UploadFailedError ex) {
         // We catch this error to avoid printing an unnecessary stack trace.
         // The error itself is already logged.
-        throw exitFail();
+        throw exitFail(ex.getMessage());
       }
     }
 
@@ -1105,14 +1163,13 @@ public class Main {
               .map(x -> Path.of(x))
               .getOrElse(
                   () -> {
-                    logger.error("The " + IN_PROJECT_OPTION + " is mandatory.");
-                    throw exitFail();
+                    throw exitFail("The " + IN_PROJECT_OPTION + " is mandatory.");
                   });
       try {
         ProjectUploader.updateManifest(projectRoot, logLevel);
       } catch (Throwable err) {
         err.printStackTrace();
-        throw exitFail();
+        throw exitFail(err.getMessage());
       }
       throw exitSuccess();
     }
@@ -1121,20 +1178,24 @@ public class Main {
       var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
-      var shouldUseIrCaches = !line.hasOption(NO_IR_CACHES_OPTION);
 
       compile(
+          cwd,
           packagePath,
           shouldCompileDependencies,
           shouldUseGlobalCache,
-          shouldUseIrCaches,
+          shouldEnableIrCaches(line),
+          line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
           logLevel,
           logMasking);
     }
 
+    LOGGER.debug("Original working directory={}, cwd={}", cwd, System.getProperty("user.dir"));
     if (line.hasOption(RUN_OPTION)) {
       handleRun(
+          cwd,
           line.getOptionValue(RUN_OPTION),
           Arrays.asList(line.getArgs()),
           line.getOptionValue(IN_PROJECT_OPTION),
@@ -1144,6 +1205,7 @@ public class Main {
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(AUTO_PARALLELISM_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
           line.hasOption(REPL_OPTION),
           line.hasOption(INSPECT_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
@@ -1157,18 +1219,24 @@ public class Main {
           logLevel,
           logMasking,
           shouldEnableIrCaches(line),
-          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION));
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION));
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
-          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
+          line.getOptionValue(DOCS_OPTION),
+          cwd,
+          line.getOptionValue(IN_PROJECT_OPTION),
+          logLevel,
+          logMasking,
+          shouldEnableIrCaches(line));
     }
     if (line.hasOption(PREINSTALL_OPTION)) {
       preinstallDependencies(line.getOptionValue(IN_PROJECT_OPTION), logLevel);
     }
     if (line.getOptions().length == 0) {
       printHelp();
-      throw exitFail();
+      throw exitFail(null);
     }
   }
 
@@ -1181,7 +1249,21 @@ public class Main {
    * @param line the command-line
    * @return `true` if caching should be enabled, `false`, otherwise
    */
-  private static boolean shouldEnableIrCaches(CommandLine line) {
+  private boolean shouldEnableIrCaches(CommandLine line) {
+    // Temporarily, enabling static analysis disables IR caches.
+    if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
+      if (line.hasOption(IR_CACHES_OPTION)) {
+        throw exitFail(
+            "Currently --"
+                + ENABLE_STATIC_ANALYSIS_OPTION
+                + " requires IR caches to be disabled, so --"
+                + IR_CACHES_OPTION
+                + " option cannot be used in combination with this flag.");
+      }
+
+      return false;
+    }
+
     if (line.hasOption(IR_CACHES_OPTION)) {
       return true;
     } else if (line.hasOption(NO_IR_CACHES_OPTION)) {
@@ -1218,7 +1300,7 @@ public class Main {
           try {
             sampler.stop();
           } catch (IOException ex) {
-            logger.error("Error stopping sampler", ex);
+            LOGGER.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
@@ -1250,8 +1332,8 @@ public class Main {
         } else if (items.length == 1) {
           props.put(items[0], "true");
         } else {
-          println("Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
-          throw exitFail();
+          throw exitFail(
+              "Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
         }
       }
       return props;
@@ -1295,7 +1377,7 @@ public class Main {
         exception.isSyntaxError(),
         msg,
         relativeTo,
-        this::println,
+        this::stderr,
         fnLangId,
         fnRootName,
         fnSourceSection);
@@ -1311,16 +1393,154 @@ public class Main {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  void println(String msg) {
+  void stdout(String msg) {
     System.out.println(msg);
+  }
+
+  void stderr(String msg) {
+    System.err.println(msg);
+  }
+
+  /**
+   * Checks if JVM mode should be enabled in a project defined by arguments, based on a project's
+   * config file, if any.
+   *
+   * @param line parsed command line arguments
+   * @return true, if project should be launched in JVM mode, false otherwise
+   */
+  private boolean isJvmModeEnabled(CommandLine line) {
+    var target = line.getOptionValue(RUN_OPTION);
+    if (target == null) {
+      return false;
+    }
+
+    var f = new File(target);
+    // Guess project's root directory
+    File configFile = null;
+    while (configFile == null && f != null) {
+      var testFile = f.toPath().resolve(org.enso.pkg.Config.ensoPackageConfigName());
+      if (testFile.toFile().exists()) {
+        configFile = testFile.toFile();
+      } else {
+        f = f.getParentFile();
+      }
+    }
+    if (configFile == null) {
+      return false;
+    } else {
+      try (FileReader fileReader = new FileReader(configFile)) {
+        return org.enso.pkg.Config.fromYaml(fileReader)
+            .map(c -> c.jvm().getOrElse(() -> false))
+            .getOrElse(() -> false);
+      } catch (IOException e) {
+        return false;
+      }
+    }
+  }
+
+  private void launchJvm(
+      String originalCwdOrNull,
+      CommandLine line,
+      Map<String, String> props,
+      File component,
+      File javaExecutable)
+      throws IOException, InterruptedException {
+    var useJNI = true;
+    var commandAndArgs = new ArrayList<String>();
+    if (originalCwdOrNull != null) {
+      commandAndArgs.add("-Denso.user.dir=" + originalCwdOrNull);
+    }
+    if (!useJNI) {
+      commandAndArgs.add(javaExecutable.getPath());
+    }
+    var assertsOn = false;
+    assert assertsOn = true;
+    if (assertsOn) {
+      commandAndArgs.add("-ea");
+    }
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
+      }
+    }
+    commandAndArgs.add("--sun-misc-unsafe-memory-access=allow");
+    commandAndArgs.add("--enable-native-access=org.graalvm.truffle");
+    commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+    if (!component.isDirectory()) {
+      throw new IOException("Cannot find " + component + " directory");
+    }
+    JVM jvm;
+    if (useJNI) {
+      commandAndArgs.add("--module-path=" + component.getPath());
+      commandAndArgs.add("-Djdk.module.main=org.enso.runner");
+      var javaHome = javaExecutable.getParentFile().getParentFile();
+      jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+      commandAndArgs.clear();
+    } else {
+      commandAndArgs.add("--module-path");
+      commandAndArgs.add(component.getPath());
+      commandAndArgs.add("-m");
+      commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+      jvm = null;
+    }
+    var it = line.iterator();
+    while (it.hasNext()) {
+      var op = it.next();
+      if (JVM_OPTION.equals(op.getLongOpt())) {
+        continue;
+      }
+      if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
+        continue;
+      }
+      var longName = op.getLongOpt();
+      if (longName != null) {
+        commandAndArgs.add("--" + longName);
+      } else {
+        commandAndArgs.add("-" + op.getOpt());
+      }
+      var values = op.getValuesList();
+      if (values != null) {
+        commandAndArgs.addAll(values);
+      }
+    }
+    commandAndArgs.addAll(line.getArgList());
+    int exitCode;
+    if (jvm != null) {
+      jvm.executeMain("org/enso/runner/Main", commandAndArgs.toArray(new String[0]));
+      // the above call should never return
+      exitCode = 1;
+    } else {
+      var pb = new ProcessBuilder();
+      pb.inheritIO();
+      pb.command(commandAndArgs);
+      var p = pb.start();
+      exitCode = p.waitFor();
+    }
+    if (exitCode == 0) {
+      throw exitSuccess();
+    } else {
+      throw doExit(exitCode);
+    }
   }
 
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var line = preprocessArguments(args);
 
+    String originalCwdOrNull = null;
+    if (line.hasOption(IN_PROJECT_OPTION)) {
+      originalCwdOrNull = Utils.adjustCwdToProject(line.getOptionValue(IN_PROJECT_OPTION));
+    } else if (line.hasOption(RUN_OPTION)) {
+      originalCwdOrNull = Utils.adjustCwdToProject(line.getOptionValue(RUN_OPTION));
+    }
+
     var logMasking = new boolean[1];
-    var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
+      }
+    }
+    var logLevel = setupLogging(line, logMasking);
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
     var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
@@ -1328,7 +1548,9 @@ public class Main {
       component = new File(component, "component");
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
-    if (line.hasOption(JVM_OPTION)) {
+    var hasJVMOption = line.hasOption(JVM_OPTION);
+    var jvmInProjectEnforced = isJvmModeEnabled(line);
+    if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
@@ -1336,87 +1558,37 @@ public class Main {
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
       if (!shouldLaunchJvm) {
-        println(JVM_OPTION + " option has no effect - already running in JVM " + current);
+        if (hasJVMOption) {
+          stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
+        }
       } else {
-        var commandAndArgs = new ArrayList<String>();
         if (jvm == null) {
           var javaExe = JavaFinder.findJavaExecutable();
           if (javaExe == null) {
-            println("Cannot find java executable");
-            throw exitFail();
-          }
-          commandAndArgs.add(javaExe);
-        } else {
-          commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
-        }
-        var jvmOptions = System.getenv("JAVA_OPTS");
-        if (jvmOptions != null) {
-          for (var op : jvmOptions.split(" ")) {
-            if (op.isEmpty()) {
-              continue;
+            // Try your best if `jvm` mode enabled in a project
+            if (!jvmInProjectEnforced) {
+              throw exitFail("Cannot find java executable");
             }
-            commandAndArgs.add(op);
-          }
-        }
-        var assertsOn = false;
-        assert assertsOn = true;
-        if (assertsOn) {
-          commandAndArgs.add("-ea");
-        }
-        if (props != null) {
-          for (var e : props.entrySet()) {
-            commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
-          }
-        }
-        commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
-        commandAndArgs.add("--module-path");
-        if (!component.isDirectory()) {
-          throw new IOException("Cannot find " + component + " directory");
-        }
-        commandAndArgs.add(component.getPath());
-        commandAndArgs.add("-m");
-        commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
-        var it = line.iterator();
-        while (it.hasNext()) {
-          var op = it.next();
-          if (JVM_OPTION.equals(op.getLongOpt())) {
-            continue;
-          }
-          if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
-            continue;
-          }
-          var longName = op.getLongOpt();
-          if (longName != null) {
-            commandAndArgs.add("--" + longName);
           } else {
-            commandAndArgs.add("-" + op.getOpt());
+            launchJvm(originalCwdOrNull, line, props, component, javaExe);
           }
-          var values = op.getValuesList();
-          if (values != null) {
-            commandAndArgs.addAll(values);
-          }
-        }
-        commandAndArgs.addAll(line.getArgList());
-        var pb = new ProcessBuilder();
-        pb.inheritIO();
-        pb.command(commandAndArgs);
-        var p = pb.start();
-        var exitCode = p.waitFor();
-        if (exitCode == 0) {
-          throw exitSuccess();
         } else {
-          throw doExit(exitCode);
+          var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
+          launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
         }
       }
     }
 
-    if (props != null) {
-      for (var e : props.entrySet()) {
-        System.setProperty(e.getKey(), e.getValue());
+    if (System.getProperty("java.home") == null) {
+      assert HostEnsoUtils.isAot() : "Otherwise java.home would be defined";
+      var exe = JavaFinder.findJavaExecutable();
+      if (exe != null) {
+        var path = exe.getParentFile().getParentFile().getAbsolutePath();
+        System.setProperty("java.home", path);
+        LOGGER.debug("Setting java.home property for AOT mode to {}", path);
       }
     }
-
-    launch(line, logLevel, logMasking[0]);
+    handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
   }
 
   final CommandLine preprocessArguments(String... args) {
@@ -1424,14 +1596,13 @@ public class Main {
     try {
       var startParsing = System.currentTimeMillis();
       var line = parser.parse(CLI_OPTIONS, args);
-      logger.trace(
+      LOGGER.trace(
           "Parsing Language Server arguments took {0}ms",
           System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
-      println(e.getMessage());
       printHelp();
-      throw exitFail();
+      throw exitFail(e.getMessage());
     }
   }
 
@@ -1447,21 +1618,42 @@ public class Main {
       connectionUri = null;
     }
     logMasking[0] = !line.hasOption(NO_LOG_MASKING);
+    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
+    String projectId;
+    try {
+      // sanity check
+      projectId =
+          projectIdOptional != null
+              ? UUID.fromString(projectIdOptional).toString()
+              : "00000000-0000-0000-0000-000000000000";
+    } catch (IllegalArgumentException e) {
+      projectId = "00000000-0000-0000-0000-000000000000";
+    }
+
+    MDC.put("project.id", projectId);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
   }
 
-  private void launch(CommandLine line, Level logLevel, boolean logMasking) {
+  private final void handleLaunch(
+      String cwd, CommandLine line, Level logLevel, boolean logMasking) {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       try {
         var conf = parseProfilingConfig(line);
         LanguageServerApi.launchLanguageServer(line, conf, logLevel);
         throw exitSuccess();
       } catch (WrongOption e) {
-        System.err.println(e.getMessage());
-        throw exitFail();
+        throw exitFail(e.getMessage());
       }
     } else {
+      if (line.hasOption(LANGUAGE_SERVER_NATIVE_OPTION)) {
+        stderr(
+            "\"--"
+                + LANGUAGE_SERVER_NATIVE_OPTION
+                + "\" has no effect without --\""
+                + LANGUAGE_SERVER_OPTION
+                + "\"");
+      }
       try {
         var conf = parseProfilingConfig(line);
         try {
@@ -1469,25 +1661,21 @@ public class Main {
               conf,
               ExecutionContext.global(),
               () -> {
-                mainEntry(line, logLevel, logMasking);
+                mainEntry(cwd, line, logLevel, logMasking);
                 return BoxedUnit.UNIT;
               });
+        } catch (ExitCode ex) {
+          throw exitFail(ex.getMessage());
         } catch (IOException ex) {
-          if (logger.isDebugEnabled()) {
-            logger.error("Error during execution", ex);
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.error("Error during execution", ex);
           }
-          System.out.println("Command failed with an error: " + ex);
-          throw exitFail();
+          throw exitFail("Command failed with an error: " + ex.getMessage());
         }
       } catch (WrongOption e) {
-        System.err.println(e.getMessage());
-        throw exitFail();
+        throw exitFail(e.getMessage());
       }
     }
-  }
-
-  protected String getLanguageId() {
-    return LanguageInfo.ID;
   }
 
   /**
@@ -1497,7 +1685,7 @@ public class Main {
    * @param dir directory with other files that should be older than base
    * @return
    */
-  private static boolean checkOutdatedLauncher(File base, File dir) {
+  private boolean checkOutdatedLauncher(File base, File dir) {
     var needsCheck = base.canExecute();
     if (needsCheck) {
       var files = dir.listFiles();
@@ -1505,8 +1693,7 @@ public class Main {
         var baseTime = base.lastModified();
         for (var f : files) {
           if (baseTime < f.lastModified()) {
-            System.err.println(
-                "File " + base + " is older than " + f + " consider running in --jvm mode");
+            stderr("File " + base + " is older than " + f + " consider running in --jvm mode");
             return false;
           }
         }

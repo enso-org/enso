@@ -1,11 +1,11 @@
 import { Ast, RawAst } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { visitRecursive } from '@/util/ast/raw'
+import { parsedTreeRange, visitRecursive } from '@/util/ast/raw'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
-import type { AstId } from 'ydoc-shared/ast'
-import type { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import { type AstId } from 'ydoc-shared/ast'
+import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import { assert, assertDefined } from 'ydoc-shared/util/assert'
-import { type SourceRange, sourceRangeKey, type SourceRangeKey } from 'ydoc-shared/yjsModel'
+import { type SourceRange, sourceRangeKey, type SourceRangeKey } from 'ydoc-shared/util/data/text'
 
 /** A variable name, and information about its usages. */
 export interface BindingInfo {
@@ -20,10 +20,8 @@ export function analyzeBindings(
 ): Map<Ast.AstId, BindingInfo> {
   const toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
   visitRecursive(Ast.rawParseModule(moduleSource.text), (node) => {
-    if (node.type === RawAst.Tree.Type.Function) {
-      const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
-      const end = start + node.childrenLengthInCodeParsed
-      toRaw.set(sourceRangeKey([start, end]), node)
+    if (RawAst.Tree.isInstance(node) && node.type === RawAst.Tree.Type.Function) {
+      toRaw.set(sourceRangeKey(parsedTreeRange(node)), node)
       return false
     }
     return true

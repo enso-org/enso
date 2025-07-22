@@ -4,12 +4,13 @@ from Standard.Table import Table
 
 import project.Helpers
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Construct JSON describing table geo map visualization.
 
-   Arguments:
-   - table: the Table to be visualized.
+   ## Arguments
+    - `table`: the Table to be visualized.
 json_from_table : Table -> JS_Object
 json_from_table table =
     names = ['label', 'latitude', 'longitude', 'radius', 'color']
@@ -19,13 +20,14 @@ json_from_table table =
 
     JS_Object.from_pairs <| pairs.filter (x -> x.is_nothing.not)
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Default preprocessor for the geo map visualization, generating JSON text
    describing the geo map visualization.
 
-   Arguments:
-   - value: the value to be visualized.
+   ## Arguments
+    - `value`: the value to be visualized.
 process_to_json_text : Any -> Text
 process_to_json_text value = case value of
     _ : Table -> json_from_table value . to_text

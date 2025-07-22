@@ -2,8 +2,6 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
-import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -106,6 +104,7 @@ type Date_Time
     ## ALIAS current time
        GROUP DateTime
        ICON time
+       SUGGESTED 11
 
        Obtains the current date-time from the system clock in the system timezone.
 
@@ -118,7 +117,7 @@ type Date_Time
     now : Date_Time
     now = @Builtin_Method "Date_Time.now"
 
-    ## GROUP DateTime
+    ## GROUP Constants
        ICON time
        Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
        second, nanosecond and timezone.

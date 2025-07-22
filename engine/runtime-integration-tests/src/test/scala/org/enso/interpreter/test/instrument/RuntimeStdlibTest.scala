@@ -82,9 +82,6 @@ class RuntimeStdlibTest
     def toPackagesPath(paths: String*): String =
       paths.mkString(File.pathSeparator)
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
@@ -92,8 +89,6 @@ class RuntimeStdlibTest
       val file = new File(pkg.sourceDir, s"$moduleName.enso")
       Files.write(file.toPath, contents.getBytes).toFile
     }
-
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
     override def receive: Option[Api.Response] = {
       Option(messageQueue.poll(3, TimeUnit.SECONDS))
@@ -136,9 +131,6 @@ class RuntimeStdlibTest
       out.reset()
       result.linesIterator.toList
     }
-
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
 
     def analyzeJobFinished: Api.Response =
       Api.Response(Api.AnalyzeModuleInScopeJobFinished())

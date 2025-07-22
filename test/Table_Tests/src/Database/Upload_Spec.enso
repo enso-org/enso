@@ -10,11 +10,11 @@ import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import all
 from Standard.Table.Errors import all
+import Standard.Table.Internal.Java_Exports
 
 from Standard.Database import all
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import default_key_columns
-import Standard.Database.Column_Constraint.Column_Constraint
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -134,7 +134,9 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should fail if an unsupported type is specified" <|
             run_with_and_without_output <|
                 r1 = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Mixed] temporary=True
-                r1.should_fail_with Unsupported_Database_Type
+                r1.should_fail_with Illegal_Argument
+                r1.to_display_text . should_contain "Definition for column [Y] is invalid"
+                r1.to_display_text . should_contain "do not support Mixed types"
 
         group_builder.specify "should fail if empty structure is provided" <|
             run_with_and_without_output <|
@@ -242,7 +244,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should not issue a DELETE statement for the original table name in dry run mode, even if the table does not exist" <|
             original_table_name = Name_Generator.random_name "no-delete-test"
 
-            log_file = enso_project.data / "transient" / "sql.log"
+            log_file = (Project_Description.new enso_dev.Table_Tests).data / "transient" / "sql.log"
             log_file.delete_if_exists
             Test_Environment.unsafe_with_environment_override "ENSO_SQL_LOG_PATH" log_file.absolute.path <|
                 Context.Output.with_disabled <|
@@ -498,7 +500,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             copied_table = db_table.select_into_database_table tmp_connection (Name_Generator.random_name "copied-table") temporary=False
             copied_table.is_trivial_query . should_be_true
             name = copied_table.name
-            Panic.with_finalizer (data.connection.drop_table name) <|
+            Panic.with_finalizer (data.connection.drop_table name if_exists=True) <|
                 setup.expect_integer_type <| copied_table.at "X"
                 copied_table.at "Y" . value_type . is_text . should_be_true
                 copied_table.at "Z" . value_type . is_floating_point . should_be_true
@@ -518,7 +520,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             db_table_3 = db_table_1.aggregate ["X"] [Aggregate_Column.Sum (expr "[Y]*[Y]") "C3"] . set (expr "[X] + 1") "X"
 
             db_table_4 = db_table_2.join db_table_3 join_kind=Join_Kind.Left_Outer
-            db_table_4.is_trivial_query . should_be_false
+            (db_table_4:DB_Table).is_trivial_query . should_be_false
 
             copied_table = db_table_4.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
             copied_table.column_names . should_equal ["X", "Y", "C1", "C2", "Right X", "C3"]
@@ -840,8 +842,8 @@ test_table_append setup group_builder (data : Data) source_table_builder target_
         result = dest.update_rows src key_columns=["X"]
         result.column_names . should_equal ["X", "Y"]
 
-        result.is_trivial_query . should_be_true
-        (result == dest) . should_be_true
+        (result:DB_Table).is_trivial_query . should_be_true    
+        (result == dest:Table) . should_be_true
 
         expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
         rows1 = result.rows.to_vector.map .to_vector
@@ -1428,10 +1430,10 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
             Problems.expect_only_warning Dry_Run_Operation r1
             r1.column_names . should_equal ["X"]
             # The target table is returned, as usually.
-            r1.name . should_equal dest.name
+            (r1:DB_Table).name . should_equal dest.name
             # But the data is not appended due to the dry-run - the table is unmodified.
             r1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
-            r1.is_trivial_query . should_be_true
+            (r1:DB_Table).is_trivial_query . should_be_true
 
     group_builder.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged"+suffix <|
         v = [1, 2, 3, 4, 4, 4, 1]
@@ -1500,7 +1502,7 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
    If `exploding_index` is accessed, an exception will be thrown.
 make_mock_column name values exploding_index =
     storage = ExplodingStorage.new values exploding_index
-    Column.from_storage name storage
+    Java_Exports.make_column_from_storage name storage
 
 
 ## PRIVATE

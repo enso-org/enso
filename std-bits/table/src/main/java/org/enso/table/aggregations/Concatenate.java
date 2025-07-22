@@ -1,7 +1,7 @@
 package org.enso.table.aggregations;
 
 import java.util.List;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -10,8 +10,8 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class Concatenate extends Aggregator {
-  private final Storage<?> storage;
+public class Concatenate extends KnownTypeAggregator {
+  private final ColumnStorage<?> storage;
   private final String separator;
   private final String prefix;
   private final String suffix;
@@ -39,7 +39,7 @@ public class Concatenate extends Aggregator {
       if (value == null || value instanceof String) {
         String textValue = toQuotedString(value, quote, separator);
 
-        if (!separator.equals("") && quote.equals("") && textValue.contains(separator)) {
+        if (!separator.isEmpty() && quote.isEmpty() && textValue.contains(separator)) {
           innerAggregator.reportColumnAggregatedProblem(
               new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }

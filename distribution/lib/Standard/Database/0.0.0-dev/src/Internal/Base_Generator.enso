@@ -3,54 +3,57 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Column_Constraint.Column_Constraint
-import project.Dialect.Dialect
-import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.Traversal_Helpers
+import project.Internal.SQL_Part.SQL_Part
 import project.SQL.SQL_Builder
-import project.SQL_Statement.SQL_Statement
-from project.Dialect import Temp_Table_Style
+import project.SQL.SQL_Statement
+from project.Dialects.Dialect import Dialect, Temp_Table_Style
 from project.Errors import Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
 type Dialect_Operations
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Operations supported by a particular SQL dialect and how they are
        implemented.
 
-       Arguments:
-       - operations_dict: Dictionary mapping operation names to their
-         implementations; each implementation is a function which takes SQL
-         builders for the arguments, and optionally an additional metadata
-         argument, and should return a SQL builder yielding code for the whole
-         operation.
+       ## Arguments
+        - `operations_dict`: Dictionary mapping operation names to their
+          implementations; each implementation is a function which takes SQL
+          builders for the arguments, and optionally an additional metadata
+          argument, and should return a SQL builder yielding code for the whole
+          operation.
     Value (operations_dict:(Dictionary Text (Vector (SQL_Builder->SQL_Builder))))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
-
-       # extend_with : Vector [Text, Vector SQL_Builder -> SQL_Builder] -> Dialect_Operations
     extend_with : Vector Any -> Dialect_Operations
     extend_with self mappings =
         new_dict = mappings.fold self.operations_dict (m -> el -> m.insert (el.at 0) (el.at 1))
         Dialect_Operations.Value new_dict
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
         self.operations_dict.contains_key operation
 
-## PRIVATE
-
-   Generates SQL from a `Query`.
-
+## ---
+   private: true
+   ---
+   Generates SQL from a `SQL_IR_Statement`.
    SQL generation requires some state threaded through the generation process,
    and that state is stored in the fields of this type. This type only contains
    the mutually recursive generators for the SQL IR that require this state.
@@ -59,30 +62,33 @@ type SQL_Generator
        to be distinct and not result in any shadowing.
     private Value (let_bindings_ref : Ref Hashset)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private new -> SQL_Generator = SQL_Generator.Value (Ref.new Hashset.empty)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Builds code for an expression.
 
-       Arguments:
-       - dialect: The SQL dialect in which the expression is being generated.
-       - expr: The expression to generate SQL code for.
-    generate_expression : Dialect -> SQL_Expression | Order_Descriptor | Query -> SQL_Builder
+       ## Arguments
+        - `dialect`: The SQL dialect in which the expression is being generated.
+        - `expr`: The expression to generate SQL code for.
+    generate_expression : Dialect -> SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement -> SQL_Builder
     generate_expression self dialect expr = case expr of
-        SQL_Expression.Column origin name ->
+        SQL_IR_Expression.Column origin name ->
             dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-        SQL_Expression.Constant value -> SQL_Builder.interpolation value
-        SQL_Expression.Literal value -> SQL_Builder.code value
-        SQL_Expression.Text_Literal value ->
+        SQL_IR_Expression.Constant value -> SQL_Builder.interpolation value
+        SQL_IR_Expression.Literal value -> SQL_Builder.code value
+        SQL_IR_Expression.Text_Literal value ->
             escaped = value.replace "'" "''"
             SQL_Builder.code ("'" + escaped + "'")
-        SQL_Expression.Operation kind arguments metadata ->
+        SQL_IR_Expression.Operation kind arguments metadata ->
             op = dialect.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
             parsed_args = arguments.map (self.generate_expression dialect)
             self.apply_op_generator_with_metadata op parsed_args metadata
-        SQL_Expression.Let _ binder bindee body ->
+        SQL_IR_Expression.Let _ binder bindee body ->
             wrapped_binder = dialect.wrap_identifier binder
             bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression dialect bindee).paren ++ " AS " ++ "x"
 
@@ -91,7 +97,7 @@ type SQL_Generator
 
             body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
             (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp).paren
-        SQL_Expression.Let_Ref _ binder standalone_expression ->
+        SQL_IR_Expression.Let_Ref _ binder standalone_expression ->
             binding_state = self.let_bindings_ref.get
             case binding_state.contains binder of
                 True ->
@@ -99,10 +105,15 @@ type SQL_Generator
                     wrapped_binder ++ "." ++ "x"
                 False ->
                     self.generate_expression dialect standalone_expression
-        query : Query -> self.generate_sub_query dialect query
+        SQL_IR_Expression.List values ->
+            parsed_values = values.map (self.generate_expression dialect)
+            SQL_Builder.join ", " parsed_values
+        query : SQL_IR_Statement -> self.generate_sub_query dialect query
         descriptor : Order_Descriptor -> self.generate_order dialect descriptor
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     apply_op_generator_with_metadata self op arguments metadata =
         result = op arguments
         # If the function expects more arguments, we pass the metadata as the last argument.
@@ -110,51 +121,53 @@ type SQL_Generator
             _ : Function -> result metadata
             _ -> result
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Builds code for the FROM clause.
 
-       Arguments:
-       - dialect: The SQL dialect for which the code is generated.
-       - from_spec: A description of the FROM clause.
-    generate_from_part : Dialect -> From_Spec -> SQL_Builder
+       ## Arguments
+        - `dialect`: The SQL dialect for which the code is generated.
+        - `from_spec`: A description of the FROM clause.
+    generate_from_part : Dialect -> SQL_IR_From_Part -> SQL_Builder
     generate_from_part self dialect from_spec = case from_spec of
-        From_Spec.Table name as_name _ ->
+        SQL_IR_From_Part.Table name as_name _ ->
             dialect.wrap_identifier name ++ alias dialect as_name
-        From_Spec.Query raw_sql as_name ->
+        SQL_IR_From_Part.Query raw_sql as_name ->
             subquery = case raw_sql of
                 prepared_statement : SQL_Statement ->
                     SQL_Builder.from_fragments prepared_statement.fragments
                 raw_code : Text ->
                     SQL_Builder.code raw_code
             subquery.paren ++ alias dialect as_name
-        From_Spec.Literal_Values vecs column_names as_name ->
+        SQL_IR_From_Part.Literal_Values vecs column_names as_name ->
             Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
             dialect.make_table_literal vecs column_names as_name
-        From_Spec.Join kind left_spec right_spec on ->
+        SQL_IR_From_Part.Join kind left_spec right_spec on ->
             left = self.generate_from_part dialect left_spec
             right = self.generate_from_part dialect right_spec
             ons = SQL_Builder.join " AND " (on.map (self.generate_expression dialect)) . prefix_if_present " ON "
             left ++ (" " + kind.to_sql + " ") ++ right ++ ons
-        From_Spec.Union queries as_name ->
+        SQL_IR_From_Part.Union queries as_name ->
             built_queries = queries.map query->
                 case query of
-                    Query.Select _ _ -> Nothing
+                    SQL_IR_Statement.Select _ _ -> Nothing
                     _ -> Panic.throw <| Illegal_State.Error "Only SELECT queries can be used in a UNION. This is a bug in the Database library."
                 self.generate_sub_query dialect query
             joined = SQL_Builder.join " UNION ALL " built_queries
             joined.paren ++ alias dialect as_name
-        From_Spec.Sub_Query columns context as_name ->
-            sub = self.generate_sub_query dialect (Query.Select columns context)
+        SQL_IR_From_Part.Sub_Query columns context as_name ->
+            sub = self.generate_sub_query dialect (SQL_IR_Statement.Select columns context)
             sub.paren ++ alias dialect as_name
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Builds code for an ordering.
 
-       Arguments:
-       - dialect: The SQL dialect for which the code is generated.
-       - order_descriptor: A description of the ORDER clause.
+       ## Arguments
+        - `dialect`: The SQL dialect for which the code is generated.
+        - `order_descriptor`: A description of the ORDER clause.
     generate_order : Dialect -> Order_Descriptor -> SQL_Builder
     generate_order self dialect order_descriptor =
         order_suffix = case order_descriptor.direction of
@@ -170,15 +183,17 @@ type SQL_Generator
         base_expression = self.generate_expression dialect order_descriptor.expression
         base_expression ++ collation ++ order_suffix ++ nulls_suffix
 
-    ## PRIVATE
-        Generates SQL code corresponding to a SELECT statement.
-
-        Arguments:
-        - dialect: The SQL dialect for which the code is being generated.
-        - ctx: A description of the SELECT clause.
-    generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
+    ## ---
+       private: true
+       ---
+       Generates SQL code corresponding to a SELECT statement.
+       Arguments:
+       - dialect: The SQL dialect for which the code is being generated.
+       - ctx: A description of the SELECT clause.
+    generate_select_query_sql : Dialect -> Vector (Pair Text SQL_IR_Expression) -> SQL_IR_Source -> SQL_Builder
     generate_select_query_sql self dialect columns ctx =
         gen_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=False)
+        gen_group_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=True)
         gen_column pair = (dialect.generate_expression self expr=pair.second for_select=True) ++ alias dialect pair.first
 
         generated_columns = case columns of
@@ -187,38 +202,41 @@ type SQL_Generator
 
         from_part = self.generate_from_part dialect ctx.from_spec
         where_part = (SQL_Builder.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
-        group_part = (SQL_Builder.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+        group_part = (SQL_Builder.join ", " (gen_group_exprs ctx.groups)) . prefix_if_present " GROUP BY "
 
         orders = ctx.orders.map (self.generate_order dialect)
         order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
 
+        limit_part = dialect.get_limit_sql_modifier ctx.limit
+
         extensions = ctx.extensions.map extension->
             part = extension.run_generator (gen_exprs extension.expressions)
-            [extension.position, part]
+            [extension.part_name, part]
 
         parts = Vector.build builder->
-            builder.append [100, SQL_Builder.code "SELECT "]
-            builder.append [200, generated_columns]
-            builder.append [300, SQL_Builder.code " FROM " ++ from_part]
-            builder.append [400, where_part]
-            builder.append [500, group_part]
-            builder.append [600, order_part]
-            case ctx.limit of
-                Nothing -> _
-                _ : Integer -> builder.append (dialect.get_limit_sql_modifier ctx.limit)
+            builder.append [SQL_Part.Select, SQL_Builder.code "SELECT "]
+            builder.append [SQL_Part.Columns, generated_columns]
+            builder.append [SQL_Part.From, SQL_Builder.code " FROM " ++ from_part]
+            builder.append [SQL_Part.Where, where_part]
+            builder.append [SQL_Part.Group, group_part]
+            builder.append [SQL_Part.Order, order_part]
+            builder.append [SQL_Part.Limit, limit_part]
+
             extensions.each builder.append
 
-        SQL_Builder.join "" <| parts.sort on=(.first) . map .second
+        SQL_Builder.join "" <| parts.sort on=(pair->(dialect.get_part_order pair.first)) . map .second
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Generates the SQL code corresponding to an INSERT query.
 
-       Arguments:
-       - dialect: The SQL dialect for which the code is being generated.
-       - table_name: The name of the table into which the values are being inserted.
-       - pairs: The values to insert into the table, consisting of pairs of key, and
-         expression returning a value.
+       ## Arguments
+        - `dialect`: The SQL dialect for which the code is being generated.
+        - `table_name`: The name of the table into which the values are being
+          inserted.
+        - `pairs`: The values to insert into the table, consisting of pairs of
+          key, and expression returning a value.
     generate_insert_query : Dialect -> Text -> Vector Any -> SQL_Builder
     generate_insert_query self dialect table_name pairs =
         names = SQL_Builder.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
@@ -227,39 +245,40 @@ type SQL_Generator
 
         SQL_Builder.code "INSERT INTO " ++ into ++ " (" ++ names ++ ") VALUES (" ++ values ++ ")"
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Builds code for a whole query.
 
-       Arguments:
-       - dialect: The SQL dialect for which the code is being generated.
-       - query: An IR describing the query.
-    generate_sub_query : Dialect -> Query -> SQL_Builder
+       ## Arguments
+        - `dialect`: The SQL dialect for which the code is being generated.
+        - `query`: An IR describing the query.
+    generate_sub_query : Dialect -> SQL_IR_Statement -> SQL_Builder
     generate_sub_query self dialect query = case query of
-        Query.Select columns ctx ->
+        SQL_IR_Statement.Select columns ctx ->
             self.generate_select_query_sql dialect columns ctx
-        Query.Insert table_name pairs ->
+        SQL_IR_Statement.Insert table_name pairs ->
             self.generate_insert_query dialect table_name pairs
-        Query.Create_Table name columns primary_key temporary ->
+        SQL_IR_Statement.Create_Table name columns primary_key temporary ->
             generate_create_table dialect name columns primary_key temporary
-        Query.Drop_Table name if_exists ->
+        SQL_IR_Statement.Drop_Table name if_exists ->
             maybe_if_exists = if if_exists then SQL_Builder.code "IF EXISTS " else SQL_Builder.empty
             SQL_Builder.code "DROP TABLE " ++ maybe_if_exists ++ dialect.wrap_identifier name
-        Query.Truncate_Table name ->
+        SQL_IR_Statement.Truncate_Table name ->
             dialect.generate_truncate_table_sql name
-        Query.Insert_From_Select table_name column_names select_query -> case select_query of
-            Query.Select _ _ ->
+        SQL_IR_Statement.Insert_From_Select table_name column_names select_query -> case select_query of
+            SQL_IR_Statement.Select _ _ ->
                 inner_query = self.generate_sub_query dialect select_query
                 columns_part = SQL_Builder.join ", " (column_names.map dialect.wrap_identifier) . paren
                 SQL_Builder.code "INSERT INTO " ++ dialect.wrap_identifier table_name ++ " " ++ columns_part ++ " " ++ inner_query
-            _ -> Panic.throw (Illegal_State.Error "The inner query of `Query.Insert_From_Select` must be `Query.Select`, but it was "+select_query.to_display_text+". This is a bug in the Database library.")
-        Query.Update_From_Table target_table_name source_table_name column_names key_columns ->
+            _ -> Panic.throw (Illegal_State.Error "The inner query of `SQL_IR_Statement.Insert_From_Select` must be `SQL_IR_Statement.Select`, but it was "+select_query.to_display_text+". This is a bug in the Database library.")
+        SQL_IR_Statement.Update_From_Table target_table_name source_table_name column_names key_columns ->
             target = dialect.wrap_identifier target_table_name
             source = dialect.wrap_identifier source_table_name
             if column_names.is_empty then
-                Panic.throw (Illegal_State.Error "Invalid IR: `Query.Update_From_Table` must have at least one column to update. This is a bug in the Database library.")
+                Panic.throw (Illegal_State.Error "Invalid IR: `SQL_IR_Statement.Update_From_Table` must have at least one column to update. This is a bug in the Database library.")
             if key_columns.is_empty then
-                Panic.throw (Illegal_State.Error "Invalid IR: `Query.Update_From_Table` must have at least one key column. This is a bug in the Database library.")
+                Panic.throw (Illegal_State.Error "Invalid IR: `SQL_IR_Statement.Update_From_Table` must have at least one key column. This is a bug in the Database library.")
             set_part = SQL_Builder.join ", " <| column_names.map column_name->
                 id = dialect.wrap_identifier column_name
                 id ++ "=" ++ source ++ "." ++ id
@@ -267,47 +286,57 @@ type SQL_Generator
                 id = dialect.wrap_identifier column_name
                 target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
             SQL_Builder.code "UPDATE " ++ target ++ " SET " ++ set_part ++ " FROM " ++ source ++ " WHERE " ++ key_part
-        Query.Delete_Unmatched_Rows target_table_name source_table_name key_columns ->
+        SQL_IR_Statement.Delete_Unmatched_Rows target_table_name source_table_name key_columns ->
             target = dialect.wrap_identifier target_table_name
             source = dialect.wrap_identifier source_table_name
             if key_columns.is_empty then
-                Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Unmatched_Rows` must have at least one key column. This is a bug in the Database library.")
+                Panic.throw (Illegal_State.Error "Invalid IR: `SQL_IR_Statement.Delete_Unmatched_Rows` must have at least one key column. This is a bug in the Database library.")
             conditions = SQL_Builder.join " AND " <| key_columns.map name->
                 id = dialect.wrap_identifier name
                 target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
             SQL_Builder.code "DELETE FROM " ++ target ++ " WHERE NOT EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
-        Query.Delete_Matching_Rows target_table_name source_table_name key_columns ->
+        SQL_IR_Statement.Delete_Matching_Rows target_table_name source_table_name key_columns ->
             target = dialect.wrap_identifier target_table_name
             source = dialect.wrap_identifier source_table_name
             if key_columns.is_empty then
-                Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Matching_Rows` must have at least one key column. This is a bug in the Database library.")
+                Panic.throw (Illegal_State.Error "Invalid IR: `SQL_IR_Statement.Delete_Matching_Rows` must have at least one key column. This is a bug in the Database library.")
             conditions = SQL_Builder.join " AND " <| key_columns.map name->
                 id = dialect.wrap_identifier name
                 target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
             SQL_Builder.code "DELETE FROM " ++ target ++ " WHERE EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
         _ -> Error.throw <| Unsupported_Database_Operation.Error query.to_text
 
-## PRIVATE
+## ---
+   private: true
+   ---
+   Returns an ordering of SQL_Part's that determine what order each part gets
+   written in for the final SQL output If you add extensions using
+   SQL_IR_Source_Extension you have to provide an order for them here
+default_get_part_order part:SQL_Part -> Integer =
+    [SQL_Part.Select, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order, SQL_Part.Limit] . index_of part
+
+## ---
+   private: true
+   ---
    Builds code for a whole query.
-
    Also preprocesses the query.
-
    This is the entry-point to using SQL_Builder.
 
-   Arguments:
-   - dialect: The SQL dialect for which the code is being generated.
-   - query: An IR describing the query.
-generate_query : Dialect -> Query -> SQL_Builder
+   ## Arguments
+    - `dialect`: The SQL dialect for which the code is being generated.
+    - `query`: An IR describing the query.
+generate_query : Dialect -> SQL_IR_Statement -> SQL_Builder
 generate_query dialect query =
     preprocessed = preprocess_query query
     SQL_Generator.new . generate_sub_query dialect preprocessed
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create a binary operator.
 
-   Arguments:
-   - name: The name of the binary operator.
+   ## Arguments
+    - `name`: The name of the binary operator.
 make_binary_op : Text -> (Vector SQL_Builder -> SQL_Builder)
 make_binary_op name =
     arguments ->
@@ -318,12 +347,13 @@ make_binary_op name =
             False ->
                 Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name)
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create a unary operator.
 
-   Arguments:
-   - name: The name of the unary operator.
+   ## Arguments
+    - `name`: The name of the unary operator.
 make_unary_op : Text -> (Vector SQL_Builder -> SQL_Builder)
 make_unary_op name =
     arguments ->
@@ -333,15 +363,16 @@ make_unary_op name =
             False ->
                 Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name)
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create an unary operation from a function.
 
-   Arguments:
-   - name: Name of the operation, used for error reporting.
-   - function: A function taking exactly one argument: the generated SQL code
-     for the argument of the operation, and returning the generated SQL code for
-     the whole operation.
+   ## Arguments
+    - `name`: Name of the operation, used for error reporting.
+    - `function`: A function taking exactly one argument: the generated SQL code
+      for the argument of the operation, and returning the generated SQL code for
+      the whole operation.
 lift_unary_op : Text -> (SQL_Builder -> SQL_Builder) -> Pair Text (Vector SQL_Builder -> SQL_Builder)
 lift_unary_op name function =
     generator = arguments -> case arguments.length == 1 of
@@ -349,15 +380,16 @@ lift_unary_op name function =
         True -> function (arguments.at 0)
     [name, generator]
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create a binary operation from a function.
 
-   Arguments:
-   - name: Name of the operation, used for error reporting.
-   - function: A function taking exactly two arguments: the generated SQL code
-     for the argument of the operation, and returning the generated SQL code for
-     the whole operation.
+   ## Arguments
+    - `name`: Name of the operation, used for error reporting.
+    - `function`: A function taking exactly two arguments: the generated SQL code
+      for the argument of the operation, and returning the generated SQL code for
+      the whole operation.
 lift_binary_op : Text -> (SQL_Builder -> SQL_Builder -> SQL_Builder) -> Pair Text (Vector SQL_Builder -> SQL_Builder)
 lift_binary_op name function =
     generator = arguments -> case arguments.length == 2 of
@@ -365,13 +397,14 @@ lift_binary_op name function =
         True -> function (arguments.at 0) (arguments.at 1)
     [name, generator]
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create a binary operation from a SQL function name.
 
-   Arguments:
-   - name: Name of the operation, used for error reporting.
-   - sql_function: SQL function taking two arguments.
+   ## Arguments
+    - `name`: Name of the operation, used for error reporting.
+    - `sql_function`: SQL function taking two arguments.
 lift_binary_sql_function : Text -> Text -> Pair Text (Vector SQL_Builder -> SQL_Builder)
 lift_binary_sql_function name:Text sql_function:Text =
     function first second =
@@ -379,13 +412,14 @@ lift_binary_sql_function name:Text sql_function:Text =
         res.paren
     lift_binary_op name function
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create a unary operator which is added to the right of
    the expression.
 
-   Arguments:
-   - name: The name of the unary operator.
+   ## Arguments
+    - `name`: The name of the unary operator.
 make_right_unary_op : Text -> (Vector SQL_Builder -> SQL_Builder)
 make_right_unary_op name =
     arguments ->
@@ -395,48 +429,51 @@ make_right_unary_op name =
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create a functional operation.
 
-   Arguments:
-   - name: The name of the function.
+   ## Arguments
+    - `name`: The name of the function.
 make_function : Text -> (Vector SQL_Builder -> SQL_Builder)
 make_function name =
     arguments ->
         (SQL_Builder.code name) ++ (SQL_Builder.join ", " arguments . paren)
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A helper function to create an operation that takes no arguments.
 
-   Arguments:
-   - sql_code: The SQL code for the constant.
+   ## Arguments
+    - `sql_code`: The SQL code for the constant.
 make_constant : Text -> (Vector SQL_Builder -> SQL_Builder)
 make_constant sql_code =
     arguments ->
         if arguments.not_empty then Error.throw <| Illegal_State.Error "No arguments were expected" else
             SQL_Builder.code sql_code
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Wraps the identifier name in quotes and escapes any quotes within the name
    with double-quote.
 
-   Arguments:
-   - identifier: The identifier to wrap and escape.
-
    This is the simplest way of escaping identifiers that should work across most
    dialects.
+
+   ## Arguments
+    - `identifier`: The identifier to wrap and escape.
 wrap_in_quotes : Text -> SQL_Builder
 wrap_in_quotes identifier =
     escaped = identifier.replace '"' '""'
     SQL_Builder.code ('"'+escaped+'"')
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    The base SQL dialect that is shared between most SQL implementations.
-
    It is a base to help creating concrete dialects. It can be extended or
    completely overridden.
 base_dialect_operations =
@@ -444,7 +481,7 @@ base_dialect_operations =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["MOD", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"]]
+    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["MOD", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"], ["ABS", make_function "ABS"], ["SIGNUM", make_function "SIGN"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
@@ -456,17 +493,22 @@ base_dialect_operations =
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
-    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
+    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
+    leadlag = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
+    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag)
     Dialect_Operations.Value base_dict
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_empty = lift_unary_op "IS_EMPTY" arg->
     is_null = (arg ++ " IS NULL").paren
     is_empty = (arg ++ " = ''").paren
     (is_null ++ " OR " ++ is_empty).paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_iif : Vector SQL_Builder -> SQL_Builder
 make_iif arguments = case arguments.length of
     3 ->
@@ -477,7 +519,9 @@ make_iif arguments = case arguments.length of
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    For Internal use.
    An IR expression for constructing SQL `CASE` expressions.
 case_when : Vector SQL_Builder -> SQL_Builder
@@ -493,11 +537,15 @@ case_when arguments =
                 SQL_Builder.code "WHEN " ++ condition ++ " THEN " ++ result
             SQL_Builder.code "CASE " ++ SQL_Builder.join " " cases_exprs ++ " ELSE " ++ fallback ++ " END"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 simple_cast = Base_Generator.lift_binary_op "CAST" a-> b->
     SQL_Builder.code "CAST(" ++ a ++ " AS " ++ b ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_between : Vector SQL_Builder -> SQL_Builder
 make_between arguments = case arguments.length of
     3 ->
@@ -508,7 +556,9 @@ make_between arguments = case arguments.length of
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation BETWEEN")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_is_in : Vector SQL_Builder -> SQL_Builder
 make_is_in arguments = case arguments.length of
     0 -> Error.throw <| Illegal_State.Error ("The operation IS_IN requires at least one argument.")
@@ -520,7 +570,9 @@ make_is_in arguments = case arguments.length of
         list = arguments.drop 1
         expr ++ " IN (" ++ (SQL_Builder.join ", " list) ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_is_in_column : Vector SQL_Builder -> SQL_Builder
 make_is_in_column arguments = case arguments.length of
     2 ->
@@ -529,7 +581,9 @@ make_is_in_column arguments = case arguments.length of
         SQL_Builder.code "(" ++ expr ++ " IN (" ++ in_query ++ "))"
     _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 2 arguments: the expression and the IN subquery.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_row_number : Vector SQL_Builder -> Row_Number_Metadata -> SQL_Builder
 make_row_number (arguments : Vector) (metadata : Row_Number_Metadata) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in ROW_NUMBER IR. This is a bug in the Database library.") else
     offset = arguments.at 0
@@ -543,7 +597,47 @@ make_row_number (arguments : Vector) (metadata : Row_Number_Metadata) = if argum
         SQL_Builder.code "PARTITION BY " ++ SQL_Builder.join ", " grouping
     SQL_Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ SQL_Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
+make_group_number : Vector SQL_Builder -> SQL_Builder
+make_group_number (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+
+    grouping = arguments.drop 2
+
+    ## ORDER BY is used here because DENSE_RANK() over an empty partition list
+       treats the entire table as a single partition. Within that partition,
+       rank values are assigned to each unique group, where a group is defined
+       as the set of rows that have the same values for the ORDER BY fields. The
+       output is also ordered by the ORDER BY fields, but that is a side-effect
+       unrelated to the ranking.
+    group_part = if grouping.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " grouping
+    SQL_Builder.code "(dense_rank() OVER (" ++ group_part ++  ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
+
+## ---
+   private: true
+   ---
+make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
+make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+    group_count = arguments.at 2
+
+    ordering = arguments.drop 3
+
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
+    group_size = SQL_Builder.code "(((count(*) over ()) + (" ++ group_count.paren ++ " - 1)) / " ++ group_count.paren ++ ")"
+    base_value = SQL_Builder.code "(" ++ row_number_minus_1 ++ " / " ++ group_size ++ " + 1)"
+    SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
+
+## ---
+   private: true
+   ---
    A helper for `lookup_and_replace`, and perhaps other operation.
    It creates an expression that returns a row number within a group.
 make_row_number_in_group arguments =
@@ -551,108 +645,116 @@ make_row_number_in_group arguments =
         Panic.throw <| Illegal_State.Error "The operation ROW_NUMBER_IN_GROUP requires at least one argument."
     SQL_Builder.code "row_number() OVER (PARTITION BY " ++ (SQL_Builder.join ", " arguments) ++ ")"
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Adds an alias for the expression, applicable for expressions that represent
    columns or sub-queries.
 
-   Arguments:
-   - dialect: The dialect for which to add the alias.
-   - name: The name of the alias.
+   ## Arguments
+    - `dialect`: The dialect for which to add the alias.
+    - `name`: The name of the alias.
 alias : Dialect -> Text -> SQL_Builder
 alias dialect name =
     wrapped = dialect.wrap_identifier name
     SQL_Builder.code " AS " ++ wrapped
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_make_table_literal wrap_identifier vecs column_names as_name =
     values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
     structure = (wrap_identifier as_name) ++ (SQL_Builder.join ", " (column_names.map wrap_identifier) . paren)
     SQL_Builder.code "(VALUES " ++ values ++ ") AS " ++ structure
 
-## PRIVATE
+## ---
+   private: true
+   ---
 fold_case = lift_unary_op "FOLD_CASE" arg->
     SQL_Builder.code "LOWER(UPPER(" ++ arg ++ "))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 length = lift_unary_op "LENGTH" str->
     SQL_Builder.code "length(" ++ str ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
     Error.throw <| Unsupported_Database_Operation.Error ("Case sensitive operations")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 simple_equals_ignore_case = Base_Generator.lift_binary_op "EQUALS_IGNORE_CASE" a-> b->
     SQL_Builder.code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_equals a b =
     a.paren ++ " = " ++ b.paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_not_equals a b =
     a.paren ++ " != " ++ b.paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Collect all table names / aliases in a query. Used to generate unused names
    for WITH clauses.
-collect_table_names : Query -> Vector Text
-collect_table_names (query : Query) -> Vector Text =
+collect_table_names : SQL_IR_Statement -> Vector Text
+collect_table_names (query : SQL_IR_Statement) -> Vector Text =
     table_name_collector node = case node of
-        Query.Insert table_name _ -> [table_name]
-        Query.Create_Table table_name _ _ _ -> [table_name]
-        Query.Drop_Table table_name _ -> [table_name]
-        Query.Truncate_Table table_name -> [table_name]
-        Query.Insert_From_Select table_name _ _ -> [table_name]
-        Query.Update_From_Table target_table_name source_table_name _ _ -> [target_table_name, source_table_name]
-        Query.Delete_Unmatched_Rows target_table_name source_table_name _ -> [target_table_name, source_table_name]
-        Query.Delete_Matching_Rows  target_table_name source_table_name _ -> [target_table_name, source_table_name]
-        SQL_Expression.Column origin _ -> [origin]
-        From_Spec.Table table_name alias _ -> [table_name, alias]
-        From_Spec.Query _ alias -> [alias]
-        From_Spec.Literal_Values _ _ alias -> [alias]
-        From_Spec.Union _ alias -> [alias]
-        From_Spec.Sub_Query _ _ alias -> [alias]
+        SQL_IR_Statement.Insert table_name _ -> [table_name]
+        SQL_IR_Statement.Create_Table table_name _ _ _ -> [table_name]
+        SQL_IR_Statement.Drop_Table table_name _ -> [table_name]
+        SQL_IR_Statement.Truncate_Table table_name -> [table_name]
+        SQL_IR_Statement.Insert_From_Select table_name _ _ -> [table_name]
+        SQL_IR_Statement.Update_From_Table target_table_name source_table_name _ _ -> [target_table_name, source_table_name]
+        SQL_IR_Statement.Delete_Unmatched_Rows target_table_name source_table_name _ -> [target_table_name, source_table_name]
+        SQL_IR_Statement.Delete_Matching_Rows  target_table_name source_table_name _ -> [target_table_name, source_table_name]
+        SQL_IR_Expression.Column origin _ -> [origin]
+        SQL_IR_From_Part.Table table_name alias _ -> [table_name, alias]
+        SQL_IR_From_Part.Query _ alias -> [alias]
+        SQL_IR_From_Part.Literal_Values _ _ alias -> [alias]
+        SQL_IR_From_Part.Union _ alias -> [alias]
+        SQL_IR_From_Part.Sub_Query _ _ alias -> [alias]
         _ -> Nothing
     Traversal_Helpers.traverse_and_accumulate table_name_collector query
 
-## PRIVATE
-   Preprocessing step before converting Query to SQL.
-
+## ---
+   private: true
+   ---
+   Preprocessing step before converting SQL_IR_Statement to SQL.
    This preprocessing step replaces the long UUID binder names in `WITH` clauses
    with shorter names.
-
    For `Let_Ref` nodes that are not inside a containing `WITH` nodes, the
-   substitution is performed, but it is not used, since the binder is not used
-   in those cases.
-preprocess_query (query : Query) -> Query =
+   substitution is performed, but it is not used, since the binder is not used in
+   those cases.
+preprocess_query (query : SQL_IR_Statement) -> SQL_IR_Statement =
     table_names = collect_table_names query . distinct
     renamer = Let_Binder_Renamer.new table_names
 
     transform node = case node of
-        SQL_Expression.Let name binder bindee body ->
+        SQL_IR_Expression.Let name binder bindee body ->
             new_binder = renamer.rename name binder
-            SQL_Expression.Let name new_binder bindee body
-        SQL_Expression.Let_Ref name binder standalone_expression ->
+            SQL_IR_Expression.Let name new_binder bindee body
+        SQL_IR_Expression.Let_Ref name binder standalone_expression ->
             new_binder = renamer.rename name binder
-            SQL_Expression.Let_Ref name new_binder standalone_expression
+            SQL_IR_Expression.Let_Ref name new_binder standalone_expression
         _ -> node
 
     query.traverse transform
 
-## PRIVATE
-   Arguments:
-   - make_raw_concat_expr: a function which takes two expressions - a (possibly
-     processed) column expression and a separator and returns a SQL expression
-     which concatenates the expressions with separators.
-   - make_contains_expr: a function which takes two expressions - a string to
-     search in and a substring to search for and returns an expression which is
-     true if the string contains the substring.
-   - has_quote: specifies whether it should expect an additional SQL argument
-     containing a quote character.
-   - args: the processed SQL arguments from the generator.
-
+## ---
+   private: true
+   ---
    It takes 4 or 5 SQL arguments depending on `has_quote`.
    The SQL arguments are following:
    - the column expression to concatenate,
@@ -663,14 +765,25 @@ preprocess_query (query : Query) -> Query =
      column expression; it should be provided only if `has_quote` is `True` and
      must not be empty then. If the quote character occurs in the expression, it
      is escaped by doubling each occurrence.
-make_concat make_raw_concat_expr make_contains_expr has_quote args =
+
+   ## Arguments
+    - `make_raw_concat_expr`: a function which takes two expressions - a
+      (possibly processed) column expression and a separator and returns a SQL
+      expression which concatenates the expressions with separators.
+    - `make_contains_expr`: a function which takes two expressions - a string to
+      search in and a substring to search for and returns an expression which is
+      true if the string contains the substring.
+    - `has_quote`: specifies whether it should expect an additional SQL argument
+      containing a quote character.
+    - `args`: the processed SQL arguments from the generator.
+make_concat make_raw_concat_expr make_contains_expr has_quote args append_char="||" =
     expected_args = if has_quote then 5 else 4
     if args.length != expected_args then Error.throw (Illegal_State.Error "Unexpected number of arguments for the concat operation.") else
         expr = args.at 0
         separator = args.at 1
         prefix = args.at 2
         suffix = args.at 3
-        append = " || "
+        append = " " + append_char + " "
         possibly_quoted = case has_quote of
             True ->
                 quote = args.at 4
@@ -687,7 +800,9 @@ make_concat make_raw_concat_expr make_contains_expr has_quote args =
         concatenated = make_raw_concat_expr transformed_expr separator
         prefix.paren ++ append ++ concatenated ++ append ++ suffix.paren
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Generates the SQL code corresponding to a CREATE TABLE query.
 generate_create_table dialect name columns primary_key temporary =
     column_definitions = columns.map (generate_column_description dialect)
@@ -698,7 +813,9 @@ generate_create_table dialect name columns primary_key temporary =
     create_body = (SQL_Builder.join ", " column_definitions) ++ (SQL_Builder.join "" modifiers)
     create_prefix ++ " (" ++ create_body ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Generates a description of a single column for a CREATE TABLE query.
 generate_column_description dialect descriptor =
     modifiers = descriptor.constraints.map constraint-> case constraint of
@@ -708,42 +825,98 @@ generate_column_description dialect descriptor =
         SQL_Builder.code " " ++ (SQL_Builder.join " " modifiers)
     (dialect.wrap_identifier descriptor.name) ++ " " ++ descriptor.sql_type ++ suffix
 
-## PRIVATE
+## ---
+   private: true
+   ---
    option for implementing generate_truncate_table_sql
 truncate_table_delete_from_style : Dialect -> Text -> SQL_Builder
 truncate_table_delete_from_style dialect table_name =
     SQL_Builder.code "DELETE FROM " ++ dialect.wrap_identifier table_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
    option for implementing generate_truncate_table_sql
 truncate_table_truncate_table_style : Dialect -> Text -> SQL_Builder
 truncate_table_truncate_table_style dialect table_name =
     SQL_Builder.code "TRUNCATE TABLE " ++ dialect.wrap_identifier table_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_fetch_types_query dialect expression context where_filter_always_false_literal="FALSE" =
-    empty_context = context.add_where_filters [SQL_Expression.Literal where_filter_always_false_literal]
-    dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
+    empty_context = context.add_where_filters [SQL_IR_Expression.Literal where_filter_always_false_literal]
+    dialect.generate_sql (SQL_IR_Statement.Select [["typed_column", expression]] empty_context)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_generate_collate collation_name:Text quote_char:Text='"' -> Text = ' COLLATE ' + quote_char + collation_name + quote_char
 
-## PRIVATE
-   Helper class for shortening the binder names generated for WITH clauses.
+## ---
+   private: true
+   ---
+_build_partition_sql grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
+    group_part = if grouping.is_empty then "" else
+        SQL_Builder.code "PARTITION BY " ++ grouping
+    SQL_Builder.code "OVER(" ++ group_part ++ " ORDER BY " ++ ordering ++ ")"
 
+## ---
+   private: true
+   ---
+_build_lead_lag_sql lead_lag:Text n:SQL_Builder colName:SQL_Builder grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
+    partition_sql = _build_partition_sql grouping ordering
+    SQL_Builder.code "(" ++ lead_lag ++ "(" ++ colName ++ ", " ++ n ++ ", NULL) " ++ partition_sql ++ ")"
+
+## ---
+   private: true
+   ---
+_make_lead_lag lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+    n = arguments.at 0
+    colName = arguments.at 1
+    grouping = arguments.at 2
+    ordering = arguments.at 3
+    _build_lead_lag_sql lead_lag n colName grouping ordering
+
+## ---
+   private: true
+   ---
+_make_lead_lag_closest_value lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 5 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+    n = arguments.at 0
+    colName = arguments.at 1
+    grouping = arguments.at 2
+    ordering_for_lead_lag = arguments.at 3
+    ordering_for_row_number = arguments.at 4
+
+    lead_lag_sql = _build_lead_lag_sql lead_lag n colName grouping ordering_for_lead_lag     
+    partition_sql_for_row_number = _build_partition_sql grouping ordering_for_row_number
+    fill_sql = SQL_Builder.code "FIRST_VALUE(" ++ colName ++ ") " ++ partition_sql_for_row_number
+    SQL_Builder.code "CASE WHEN ROW_NUMBER() " ++ partition_sql_for_row_number ++ " <= " ++ n ++ " THEN " ++ fill_sql ++ " ELSE " ++ lead_lag_sql ++ " END"
+
+
+## ---
+   private: true
+   ---
+   Helper class for shortening the binder names generated for WITH clauses.
    Each time `rename` is called on an identifier it hasn't seen before, it
    generates a new, short identifier. The short identifier consists of the `name`
    string and a unique (serial) number. The short name is saved and returned the
    next time that same identifier is passed in.
 type Let_Binder_Renamer
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (existing_tables : Hashset Text) (binders_ref : Ref Dictionary) (serial_ref : Ref Integer)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new (existing_tables : Vector Text) -> Let_Binder_Renamer =
         Let_Binder_Renamer.Value (Hashset.from_vector existing_tables) (Ref.new Dictionary.empty) (Ref.new 0)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the short identifier that this binder maps to, and generates one
        if it hasn't been mapped yet.
     rename self (name : Text) (binder : Text) =

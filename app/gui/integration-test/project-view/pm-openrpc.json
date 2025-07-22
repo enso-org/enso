@@ -54,7 +54,11 @@
     {
       "name": "project/list",
       "params": [
-        { "name": "numberOfProjects", "schema": { "type": "integer" }, "required": false }
+        {
+          "name": "numberOfProjects",
+          "schema": { "type": "integer" },
+          "required": false
+        }
       ],
       "result": {
         "name": "listProject",
@@ -69,9 +73,13 @@
                   "name": { "type": "string" },
                   "namespace": { "type": "string" },
                   "id": { "type": "string" },
-                  "engineVersion": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+                  "engineVersion": {
+                    "anyOf": [{ "type": "string" }, { "type": "null" }]
+                  },
                   "created": { "type": "string" },
-                  "lastOpened": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+                  "lastOpened": {
+                    "anyOf": [{ "type": "string" }, { "type": "null" }]
+                  }
                 }
               }
             }

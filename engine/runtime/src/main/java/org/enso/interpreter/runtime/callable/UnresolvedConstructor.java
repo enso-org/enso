@@ -71,10 +71,16 @@ public final class UnresolvedConstructor extends EnsoObject {
     this.args = args;
   }
 
-  final String getName() {
+  /** Name of the constructor symbol to invoke - without initial {@code ..}. */
+  public final String getName() {
     return name;
   }
 
+  /**
+   * Textual representation of the symbol to invoke - prefixed by {@code ..}.
+   *
+   * @return {@code ".." + getName()}
+   */
   @Override
   @TruffleBoundary
   public String toString() {
@@ -264,7 +270,7 @@ public final class UnresolvedConstructor extends EnsoObject {
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
       args[0] = fn;
-      var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
+      var helper = Function.ArgumentsHelper.buildArguments(fn, null, args);
       var r = callNode.call(helper);
       if (r instanceof Atom) {
         return r;
@@ -297,7 +303,7 @@ public final class UnresolvedConstructor extends EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     var ctx = EnsoContext.get(node);
     return ctx.getBuiltins().function();
   }

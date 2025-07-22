@@ -48,8 +48,7 @@ case v of
   v3:Vector -> print v3.x
 ```
 
-> [!WARNING]
-> **Unsupported:** Name Matching on Labels
+> [!WARNING] > **Unsupported:** Name Matching on Labels
 >
 > Matching on the labels defined within a type for both atoms and typesets, with
 > renaming.

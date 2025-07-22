@@ -1,12 +1,18 @@
 import type { NodeDataFromAst } from '@/stores/graph'
+import { emptyPrimaryApplication, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
+import { computed } from 'vue'
 import * as Y from 'yjs'
 
-export const prefixes = Prefixes.FromLines({
-  enableRecording:
-    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-})
+// Computed used here intentionally to delay initialization until first use. Otherwise we get issues
+// related to module load order or calling wasm parser too early.
+export const prefixes = computed(() =>
+  Prefixes.FromLines({
+    enableRecording:
+      'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  }),
+)
 
 /** Given a node's outer expression, find the root expression and any statements wrapping it. */
 export function nodeRootExpr(ast: Ast.Statement | Ast.Expression): {
@@ -29,11 +35,11 @@ export function inputNodeFromAst(ast: Ast.Expression, argIndex: number): NodeDat
   return {
     type: 'input',
     outerAst: ast,
-    pattern: undefined,
+    pattern: ast,
     rootExpr: ast,
     innerExpr: ast,
     prefixes: { enableRecording: undefined },
-    primarySubject: undefined,
+    primaryApplication: { function: null, accessChain: null, selfArgument: null },
     conditionalPorts: new Set(),
     argIndex,
   }
@@ -43,8 +49,8 @@ export function inputNodeFromAst(ast: Ast.Expression, argIndex: number): NodeDat
 export function nodeFromAst(ast: Ast.Statement, isOutput: boolean): NodeDataFromAst | undefined {
   const { root, assignment } = nodeRootExpr(ast)
   if (!root) return
-  const { innerExpr, matches } = prefixes.extractMatches(root)
-  const primaryApplication = primaryApplicationSubject(innerExpr)
+  const { innerExpr, matches } = prefixes.value.extractMatches(root)
+  const primaryApp = primaryApplication(innerExpr)
   return {
     type: assignment == null && isOutput ? 'output' : 'component',
     outerAst: ast,
@@ -52,33 +58,45 @@ export function nodeFromAst(ast: Ast.Statement, isOutput: boolean): NodeDataFrom
     rootExpr: root,
     innerExpr,
     prefixes: matches,
-    primarySubject: primaryApplication?.subject,
-    conditionalPorts: new Set(primaryApplication?.accessChain ?? []),
+    primaryApplication: primaryApp,
+    conditionalPorts: new Set(primaryApp?.accessChain ?? []),
     argIndex: undefined,
   }
 }
 
 /**
- * Given a node root, find a child AST that is the root of the access chain that is the subject of the primary
- *  application.
+ * Given a node root, find the primary application of the node, if any.
+ * Returns empty primary application information otherwise.
  */
-export function primaryApplicationSubject(
-  ast: Ast.Expression,
-): { subject: Ast.AstId; accessChain: Ast.AstId[] } | undefined {
+export function primaryApplication(ast: Ast.Expression): PrimaryApplication {
   // Descend into LHS of any sequence of applications.
   while (ast instanceof Ast.App) ast = ast.function
-  const { subject, accessChain } = Ast.accessChain(ast)
+  const unrolledChain = Ast.accessChain(ast)
+  let subject = unrolledChain.subject
+  const accessChain = unrolledChain.accessChain
   // Require at least one property access.
-  if (accessChain.length === 0) return
-  // The leftmost element must be an identifier or a placeholder.
-  if (
-    !(
-      (subject instanceof Ast.Ident && !subject.isTypeOrConstructor()) ||
-      subject instanceof Ast.Wildcard
-    )
-  )
-    return
-  return { subject: subject.id, accessChain: accessChain.map((ast) => ast.id) }
+  if (accessChain.length === 0) return emptyPrimaryApplication()
+
+  const isAcceptableSubject = (subject: Ast.Ast) =>
+    (subject instanceof Ast.Ident && !subject.isTypeOrConstructor()) ||
+    subject instanceof Ast.Wildcard
+
+  // Descend into any sequence of groups or type annotations.
+  while (subject instanceof Ast.Group || subject instanceof Ast.TypeAnnotated) {
+    if (subject instanceof Ast.Group && subject.expression) {
+      subject = subject.expression
+    } else if (subject instanceof Ast.TypeAnnotated && subject.expression) {
+      subject = subject.expression
+    } else {
+      break
+    }
+  }
+  if (!isAcceptableSubject(subject)) return emptyPrimaryApplication()
+  return {
+    selfArgument: subject.id,
+    function: ast.id,
+    accessChain: accessChain.map((ast) => ast.id),
+  }
 }
 
 /** @returns The node's documentation, if this type of node is documentable (currently, this excludes input nodes). */

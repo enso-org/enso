@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.Node.Child;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.math.BigInteger;
@@ -16,7 +17,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     description = """
 Parse integer number""",
     autoRegister = false)
-public final class ParseIntegerNode extends IntegerNode {
+public final class ParseIntegerNode extends Node {
   @Child ToJavaStringNode toJavaString = ToJavaStringNode.build();
   private final BranchProfile noEx1 = BranchProfile.create();
   private final BranchProfile noEx2 = BranchProfile.create();

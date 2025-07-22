@@ -11,6 +11,10 @@ type Lazy
     new ~computation = Lazy.Value computation
     new_eager computation = Lazy.Value computation
 
+type Generator
+    Value n ~next
+
+
 add_specs suite_builder = suite_builder.group "Lazy" group_builder->
     group_builder.specify "should compute the result only once" <|
         ref = Ref.new 0
@@ -95,6 +99,16 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
 
         Test.expect_panic_with matcher=Illegal_Argument <|
             Lazy.new_eager (Panic.throw (Illegal_Argument.Error "FOO"))
+
+    group_builder.specify "to_text does not evaluate second lazy field" <|
+        gen n = Generator.Value n (gen n+1)
+        two = gen 2
+        two.to_text . should_equal "(Generator.Value 2 ~next)"
+
+    group_builder.specify "to_text print already evaluated lazy field" <|
+        atom = Lazy.new (1+1)
+        atom.get . should_equal 2 # Force evaluation
+        atom.to_text . should_equal "(Lazy.Value 2)"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

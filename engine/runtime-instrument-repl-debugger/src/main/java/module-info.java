@@ -5,6 +5,7 @@ module org.enso.runtime.instrument.repl.debugger {
   requires org.enso.runtime;
   requires org.enso.polyglot.api;
   requires org.enso.runtime.compiler;
+  requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
 
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider with

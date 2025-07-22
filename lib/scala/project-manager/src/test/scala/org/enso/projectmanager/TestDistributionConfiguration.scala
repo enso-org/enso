@@ -25,7 +25,7 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
-import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
+import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaExecCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestLocalLockManager
@@ -60,7 +60,7 @@ class TestDistributionConfiguration(
   lazy val distributionManager = new DistributionManager(environment)
 
   lazy val graalVersionManager =
-    new GraalVersionManager(distributionManager, environment)
+    new GraalVersionManager(distributionManager)
 
   lazy val lockManager = new TestLocalLockManager
 
@@ -94,7 +94,7 @@ class TestDistributionConfiguration(
   override def defaultJVMSettings: JVMSettings = {
     val currentProcess =
       ProcessHandle.current().info().command().toScala.getOrElse("java")
-    val javaCommand = JavaCommand(currentProcess, None)
+    val javaCommand = new JavaExecCommand(currentProcess, None)
     new JVMSettings(
       javaCommandOverride = Some(javaCommand),
       jvmOptions          = Seq(),

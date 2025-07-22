@@ -21,6 +21,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.Objects;
 import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -31,15 +32,12 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.polyglot.debugger.IdExecutionService;
@@ -69,7 +67,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final CallTarget entryCallTarget;
     private final Callbacks callbacks;
     private final Timer timer;
-
     private final EvalNode evalNode = EvalNode.build();
 
     /**
@@ -85,6 +82,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       this.timer = timer;
     }
 
+    /**
+     * Creates a new even node. If the event node replaces an invalidated one, it inherits its state
+     * (execution environment).
+     *
+     * @param context the current context where this event node should get created.
+     * @return a new event node wrapping a regular node
+     */
     @Override
     public ExecutionEventNode create(EventContext context) {
       return new IdExecutionEventNode(context);
@@ -165,7 +169,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             new CallerInfo(
                 materializedFrame, ensoRootNode.getLocalScope(), ensoRootNode.getModuleScope());
 
-        return evalNode.execute(callerInfo, State.create(EnsoContext.get(null)), Text.create(code));
+        return evalNode.execute(callerInfo, Text.create(code));
       }
 
       private static UUID getNodeId(Node node) {
@@ -183,10 +187,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private final EventContext context;
       private long nanoTimeElapsed = 0;
-      private ExecutionEnvironment originalExecutionEnvironment = null;
 
       /**
-       * Creates a new event node.
+       * Creates a new event node for instrumentation.
        *
        * @param context location where the node is being inserted
        */
@@ -212,7 +215,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           throw context.createUnwind(result);
         }
         setExecutionEnvironment(info);
-
         nanoTimeElapsed = timer.getTime();
       }
 
@@ -254,31 +256,32 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           callbacks.updateCachedResult(info);
-          resetExecutionEnvironment();
+          resetExecutionEnvironment(info.getId());
 
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
-        } else if (node instanceof ExpressionNode) {
-          resetExecutionEnvironment();
+        } else if (node instanceof ExpressionNode expressionNode) {
+          resetExecutionEnvironment(expressionNode.getId());
         }
       }
 
       @Override
       public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
         if (exception instanceof TailCallException) {
-          onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
-        } else if (exception instanceof PanicException panicException) {
-          onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
-        } else if (exception instanceof AbstractTruffleException) {
+          onTailCallReturn(exception);
+        } else if (exception instanceof PanicSentinel) {
           onReturnValue(frame, exception);
+        } else if (exception instanceof AbstractTruffleException ex) {
+          onReturnValue(frame, new PanicSentinel(ex, context.getInstrumentedNode()));
         }
       }
 
       @CompilerDirectives.TruffleBoundary
-      private void onTailCallReturn(Throwable exception, State state) {
+      private void onTailCallReturn(Throwable exception) {
         try {
           TailCallException tailCallException = (TailCallException) exception;
+          var state = EnsoContext.get(this).currentState();
           FunctionCallInstrumentationNode.FunctionCall functionCall =
               new FunctionCallInstrumentationNode.FunctionCall(
                   tailCallException.getFunction(), state, tailCallException.getArguments());
@@ -323,18 +326,28 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       private void setExecutionEnvironment(IdExecutionService.Info info) {
         ExecutionEnvironment nodeEnvironment =
             (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
-        if (nodeEnvironment != null && originalExecutionEnvironment == null) {
-          EnsoContext context = EnsoContext.get(this);
-          originalExecutionEnvironment = context.getGlobalExecutionEnvironment();
-          context.setExecutionEnvironment(nodeEnvironment);
+        if (nodeEnvironment != null) {
+          callbacks.updateLocalExecutionEnvironment(
+              info.getId(),
+              Objects::isNull,
+              (savedEnvironment) -> {
+                EnsoContext context = EnsoContext.get(this);
+                var old = context.getExecutionEnvironment();
+                context.setExecutionEnvironment(nodeEnvironment);
+                return old;
+              });
         }
       }
 
-      private void resetExecutionEnvironment() {
-        if (originalExecutionEnvironment != null) {
-          EnsoContext.get(this).setExecutionEnvironment(originalExecutionEnvironment);
-          originalExecutionEnvironment = null;
-        }
+      private void resetExecutionEnvironment(UUID uuid) {
+        callbacks.updateLocalExecutionEnvironment(
+            uuid,
+            Objects::nonNull,
+            (originalExecutionEnvironment) -> {
+              EnsoContext context = EnsoContext.get(this);
+              context.setExecutionEnvironment((ExecutionEnvironment) originalExecutionEnvironment);
+              return null;
+            });
       }
     }
   }

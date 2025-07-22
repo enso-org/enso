@@ -10,11 +10,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.enso.common.MethodNames;
@@ -23,29 +25,45 @@ import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class MetaObjectTest {
-  private static Context ctx;
+  private static Value sn;
   private static ValuesGenerator generator;
+
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext();
+    var ctx = ctxRule.context();
+    var code =
+        """
+        from Standard.Base import Meta, Error
+
+        sn v = v.to Meta.Type . catch handler=(_-> Meta.meta Error) . name
+        """;
+    Source src = null;
+    try {
+      src = Source.newBuilder("enso", code, "simple_name.enso").build();
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+    sn = ctx.eval(src).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    assertTrue("It is a function", sn.canExecute());
   }
 
   @AfterClass
   public static void disposeCtx() {
     if (generator != null) {
-      generator.dispose();
+      generator.close();
       generator = null;
     }
-    ctx.close();
+    sn = null;
   }
 
   /**
@@ -54,13 +72,13 @@ public class MetaObjectTest {
    * @param context the context to allocate values in
    * @return an instance of values generator
    */
-  ValuesGenerator createGenerator(Context context) {
+  ValuesGenerator createGenerator(ContextUtils context) {
     return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
   }
 
   private ValuesGenerator generator() {
     if (generator == null) {
-      generator = createGenerator(ctx);
+      generator = createGenerator(ctxRule);
     }
     return generator;
   }
@@ -83,7 +101,7 @@ public class MetaObjectTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var data = module.invokeMember("eval_expression", "data");
     assertFalse("Non-null result", data.isNull());
@@ -113,6 +131,7 @@ public class MetaObjectTest {
       }
     }
     expecting.remove(ConstantsGen.ARRAY_LIKE_HELPERS);
+    expecting.remove(ConstantsGen.INSTRUMENTOR);
     var w = new StringBuilder();
     var f = new StringWriter();
     var err = new PrintWriter(f);
@@ -153,7 +172,7 @@ public class MetaObjectTest {
 
   @Test
   public void warningIsTransparent() {
-    ValuesGenerator g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    ValuesGenerator g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO);
     for (var v : g.warnings()) {
       assertTrue("Warning is string: " + v, v.isString());
       assertEquals("value", v.asString());
@@ -163,7 +182,7 @@ public class MetaObjectTest {
 
   @Test
   public void checkArraysAreArrays() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO);
     for (var v : g.arrayLike()) {
       var isVector = v.getMetaObject().equals(g.typeVector());
       var isArray = v.getMetaObject().equals(g.typeArray());
@@ -181,7 +200,7 @@ public class MetaObjectTest {
 
   @Test
   public void errorsAreWeird() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO);
     for (var v : g.errors()) {
       Value vMeta = v.getMetaObject();
       var isError = vMeta.equals(g.typeError());
@@ -204,7 +223,7 @@ public class MetaObjectTest {
   }
 
   @Test
-  public void typesOfConstructors() throws Exception {
+  public void typesOfConstructors() {
     var g = generator();
     var types = new java.util.HashSet<Value>();
     for (var c : g.constructorsAndValuesAndSumType()) {
@@ -224,8 +243,10 @@ public class MetaObjectTest {
 
   @Test
   public void nothingIsNotMeta() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    var nothing = g.typeNothing();
+    Value nothing;
+    try (ValuesGenerator g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO)) {
+      nothing = g.typeNothing();
+    }
     assertThat("Nothing is not meta", nothing.isMetaObject(), is(false));
   }
 
@@ -238,7 +259,7 @@ import Standard.Base.Nothing.Nothing
 
 main = Warning.attach "foo" Nothing
 """;
-    var nothingWithWarn = ContextUtils.evalModule(ctx, src);
+    var nothingWithWarn = ctxRule.evalModule(src);
     assertThat(nothingWithWarn.isMetaObject(), is(false));
   }
 
@@ -248,22 +269,13 @@ main = Warning.attach "foo" Nothing
 import Standard.Base.Nothing.Nothing
 main = Nothing
 """;
-    var nothing = ContextUtils.evalModule(ctx, src);
+    var nothing = ctxRule.evalModule(src);
     assertThat(nothing.isNull(), is(true));
   }
 
   @Test
   public void numbersAreEitherIntegerOrFloat() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     for (var v : g.numbers()) {
       var simpleName = sn.execute(v).asString();
       var ok =
@@ -282,38 +294,26 @@ main = Nothing
    */
   @Test
   public void allEnsoNonPrimitiveValuesHaveLanguage() throws Exception {
-    var gen = ValuesGenerator.create(ctx, Language.ENSO);
     Predicate<Value> isPrimitiveOrException =
         (val) -> val.fitsInInt() || val.fitsInDouble() || val.isBoolean() || val.isException();
-    var nonPrimitiveValues =
-        gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
+    List<Value> nonPrimitiveValues;
+    try (ValuesGenerator gen = ValuesGenerator.create(ctxRule, Language.ENSO)) {
+      nonPrimitiveValues =
+          gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
+    }
     var interop = InteropLibrary.getUncached();
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          for (var value : nonPrimitiveValues) {
-            var unwrappedValue = ContextUtils.unwrapValue(ctx, value);
-            assertThat(
-                "Value " + unwrappedValue + " should have associated language",
-                interop.hasLanguage(unwrappedValue),
-                is(true));
-          }
-          return null;
-        });
+    for (var value : nonPrimitiveValues) {
+      var unwrappedValue = ctxRule.unwrapValue(value);
+      assertThat(
+          "Value " + unwrappedValue + " should have associated language",
+          interop.hasLanguage(unwrappedValue),
+          is(true));
+    }
   }
 
   @Test
   public void compareQualifiedAndSimpleTypeName() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var v : g.allValues()) {
       compareQualifiedNameOfValue(sn, v, sb);
@@ -338,6 +338,9 @@ main = Nothing
     }
     var meta = v.getMetaObject();
     var metaName = meta != null ? meta.getMetaSimpleName() : "null";
+    if (metaName.endsWith(".type")) {
+      metaName = metaName.substring(0, metaName.length() - 5);
+    }
     if (!simpleName.equals(metaName)) {
       if (v.isHostObject()) {
         if (v.hasArrayElements()) {
@@ -385,10 +388,14 @@ main = Nothing
         assertEquals("Nothing", simpleName);
         return true;
       }
+      if (v.isHostObject()) {
+        assertEquals("Any", simpleName);
+        return true;
+      }
       sb.append("\n")
           .append("Simple names shall be the same for ")
           .append(v)
-          .append(" get_simple_type_name: ")
+          .append(" Enso simple name: ")
           .append(simpleName)
           .append(" getMetaSimpleName: ")
           .append(metaName);
@@ -399,34 +406,25 @@ main = Nothing
   @Test
   public void compareQualifiedAndSimpleTypeNameForTypes() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var typ : g.allTypes()) {
       if (!typ.isMetaObject()) {
         // skip Nothing
         continue;
       }
-      var type = (Type) ContextUtils.unwrapValue(ctx, typ);
+      var type = (Type) ctxRule.unwrapValue(typ);
       if (type.isEigenType()) {
         // Skip singleton types
         continue;
       }
 
       var simpleName = sn.execute(typ).asString();
-      var metaName = typ.getMetaSimpleName() + ".type";
+      var metaName = typ.getMetaSimpleName();
       if (!simpleName.equals(metaName)) {
         sb.append("\n")
             .append("Simple names shall be the same for ")
             .append(typ)
-            .append(" get_simple_type_name: ")
+            .append(" Enso simple name: ")
             .append(simpleName)
             .append(" getMetaSimpleName: ")
             .append(metaName);
@@ -446,7 +444,7 @@ main = Nothing
       if (t.isNull()) {
         continue;
       }
-      var type = (Type) ContextUtils.unwrapValue(ctx, t);
+      var type = (Type) ctxRule.unwrapValue(t);
       if (type.isEigenType()) {
         // Skip checking singleton types
         continue;

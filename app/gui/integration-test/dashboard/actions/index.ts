@@ -1,10 +1,19 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
+
+import { TEXTS, getText as baseGetText, type Replacements, type TextId } from 'enso-common/src/text'
+
 import path from 'node:path'
+import url from 'node:url'
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
-import { TEXTS } from 'enso-common/src/text'
-
+import {
+  INITIAL_LOCAL_CALLS_OBJECT,
+  mockLocalApi,
+  type LocalMockApi,
+  type LocalTrackedCalls,
+  type SetupLocalAPI,
+} from 'integration-test/dashboard/actions/localApi'
 import {
   INITIAL_CALLS_OBJECT,
   mockApi,
@@ -15,7 +24,6 @@ import {
 import DrivePageActions from './DrivePageActions'
 import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
 import LoginPageActions from './LoginPageActions'
-import StartModalActions from './StartModalActions'
 
 /** An example password that does not meet validation requirements. */
 export const INVALID_PASSWORD = 'password'
@@ -25,9 +33,13 @@ export const VALID_PASSWORD = 'Password0!'
 export const VALID_EMAIL = 'email@example.com'
 export const TEXT = TEXTS.english
 
+export const getText = (key: TextId, ...replacements: Replacements[TextId]) => {
+  return baseGetText(TEXT, key, ...replacements)
+}
+
 /** Get the path to the auth file. */
 export function getAuthFilePath() {
-  const __dirname = path.dirname(new URL(import.meta.url).pathname)
+  const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
   return path.join(__dirname, '../../../playwright/.auth/user.json')
 }
 
@@ -67,8 +79,8 @@ async function login({ page }: MockParams, email = 'email@example.com', password
 async function waitForLoaded(page: Page) {
   await page.waitForLoadState()
 
-  await expect(page.getByTestId('spinner')).toHaveCount(0)
-  await expect(page.getByTestId('loading-app-message')).not.toBeVisible({ timeout: 30_000 })
+  await expect(page.getByTestId(/^(before|after)-auth-layout$/)).toBeAttached({ timeout: 30_000 })
+  await expect(page.getByTestId('loading-screen')).toHaveCount(0, { timeout: 30_000 })
 }
 
 /** Wait for the dashboard to load. */
@@ -82,8 +94,10 @@ const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
 /** Parameters for {@link mockDate}. */
 interface MockParams {
+  readonly goToCloudFirst?: boolean
   readonly page: Page
   readonly setupAPI?: SetupAPI | undefined
+  readonly setupLocalAPI?: SetupLocalAPI | undefined
 }
 
 /** Replace `Date` with a version that returns a fixed time. */
@@ -125,20 +139,27 @@ export async function passAgreementsDialog({ page }: MockParams) {
 
 interface Context {
   readonly api: MockApi
+  readonly localApi: LocalMockApi
   calls: TrackedCalls
+  localCalls: LocalTrackedCalls
 }
 
 /** Set up all mocks, without logging in. */
-export function mockAll({ page, setupAPI }: MockParams) {
+export function mockAll({ page, setupAPI, setupLocalAPI }: MockParams) {
   const context: { -readonly [K in keyof Context]: Context[K] } = {
     api: undefined!,
+    localApi: undefined!,
     calls: INITIAL_CALLS_OBJECT,
+    localCalls: INITIAL_LOCAL_CALLS_OBJECT,
   }
   return new LoginPageActions<Context>(page, context)
     .step('Execute all mocks', async (page) => {
       await Promise.all([
         mockApi({ page, setupAPI }).then((api) => {
           context.api = api
+        }),
+        mockLocalApi({ page, setupLocalAPI }).then((localApi) => {
+          context.localApi = localApi
         }),
         mockDate({ page }),
         mockAllAnimations({ page }),
@@ -151,19 +172,22 @@ export function mockAll({ page, setupAPI }: MockParams) {
     })
 }
 
+export interface MockAllAndLoginParams extends MockParams {}
+
 /** Set up all mocks, and log in with dummy credentials. */
-export function mockAllAndLogin({ page, setupAPI }: MockParams) {
-  const actions = mockAll({ page, setupAPI })
-  return actions
+export function mockAllAndLogin({
+  page,
+  setupAPI,
+  setupLocalAPI,
+  goToCloudFirst = true,
+}: MockAllAndLoginParams) {
+  const actions = mockAll({ page, setupAPI, setupLocalAPI })
+
+  const driveActions = actions
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
-    .step('Check if start modal is shown', async (page) => {
-      // @ts-expect-error This is the only place in which the private member `.context`
-      // should be accessed.
-      const context = actions.context
-      await new StartModalActions(page, context).close()
-    })
     .into(DrivePageActions<Context>)
+  return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
 }
 
 /** Mock all animations. */

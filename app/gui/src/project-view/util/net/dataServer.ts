@@ -1,5 +1,4 @@
 import { ObservableV2 } from 'lib0/observable'
-import * as random from 'lib0/random'
 import {
   Builder,
   ByteBuffer,
@@ -146,7 +145,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     payloadOffset: Offset<AnyInboundPayload>,
     waitForInit: boolean = true,
   ): Promise<T | Error> {
-    const messageUuid = random.uuidv4()
+    const messageUuid = crypto.randomUUID()
     const rootTable = InboundMessage.createInboundMessage(
       builder,
       this.createUUID(messageUuid),

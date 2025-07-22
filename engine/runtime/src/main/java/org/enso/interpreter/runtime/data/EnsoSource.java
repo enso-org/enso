@@ -5,6 +5,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -43,15 +44,24 @@ public final class EnsoSource extends EnsoObject {
   @ExportMessage
   Object readMember(String name, @CachedLibrary("this") InteropLibrary node) {
     return switch (name) {
-      case "getLanguage" -> Text.create(source.getLanguage());
-      case "getName" -> Text.create(source.getName());
-      case "getPath" -> Text.create(source.getPath());
+      case "getLanguage" -> textOrNull(node, source.getLanguage());
+      case "getName" -> textOrNull(node, source.getName());
+      case "getPath" -> textOrNull(node, source.getPath());
       case "isInternal" -> source.isInternal();
-      case "getCharacters" -> Text.create(source.getCharacters().toString());
+      case "getCharacters" -> textOrNull(node, source.getCharacters().toString());
       case "getLength" -> source.getLength();
       case "getLineCount" -> source.getLineCount();
       default -> throw EnsoContext.get(node).raiseAssertionPanic(node, name, null);
     };
+  }
+
+  private static EnsoObject textOrNull(Node where, String text) {
+    if (text != null) {
+      return Text.create(text);
+    } else {
+      var ctx = EnsoContext.get(where);
+      return ctx.getNothing();
+    }
   }
 
   @ExportMessage

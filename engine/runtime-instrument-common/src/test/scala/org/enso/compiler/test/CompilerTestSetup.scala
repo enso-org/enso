@@ -49,7 +49,8 @@ trait CompilerTestSetup {
         // IR on the runtime module, as the pass manager will not do this for us.
         // This is to ensure consistency between the curIr and IR stored in moduleContext
         ModuleTestUtils.unsafeSetIr(runtimeMod, curIr)
-        val newIr = passManager.runPassesOnModule(curIr, moduleContext, group)
+        val newIr =
+          passManager.runPassesOnModule(curIr, moduleContext, group, None)
         newIr
       })
     }
@@ -178,7 +179,7 @@ trait CompilerTestSetup {
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,
-            BindingsMap(
+            new BindingsMap(
               List(),
               ModuleReference.Concrete(mod.asCompilerModule())
             )
@@ -194,7 +195,7 @@ trait CompilerTestSetup {
       compilerConfig = compilerConfig
     )
     InlineContext(
-      module            = mc,
+      moduleContext     = mc,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       localScope        = localScope,
@@ -203,5 +204,5 @@ trait CompilerTestSetup {
     )
   }
 
-  val defaultConfig: CompilerConfig = CompilerConfig()
+  val defaultConfig: CompilerConfig = CompilerConfig.createDefault()
 }

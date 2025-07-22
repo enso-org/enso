@@ -1,12 +1,10 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,37 +14,21 @@ import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "date", name = "Duration", stdlibName = "Standard.Base.Data.Time.Duration.Duration")
-public final class EnsoDuration extends EnsoObject {
+public final class EnsoDuration extends BuiltinObject {
   private final Duration duration;
 
   public EnsoDuration(Duration duration) {
     this.duration = duration;
   }
 
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().duration();
-  }
-
-  @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().duration();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
+  @Override
+  protected String builtinName() {
+    return "Duration";
   }
 
   @Builtin.Method(

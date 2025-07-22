@@ -13,7 +13,7 @@ export * from './tree'
 
 /** Returns the given IDs, and the IDs of all their ancestors. */
 export function subtrees(module: Module, ids: Iterable<AstId>) {
-  return reachable(ids, id => {
+  return reachable(ids, (id) => {
     const parent = module.tryGet(id)?.parent()
     return parent ? [id, parent.id] : [id]
   })

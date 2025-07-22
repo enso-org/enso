@@ -13,6 +13,6 @@ public class IsANode extends Node {
   private @Child IsValueOfTypeNode check = IsValueOfTypeNode.build();
 
   public boolean execute(@AcceptsError Object value, Object type) {
-    return check.execute(type, value);
+    return check.execute(type, value, true);
   }
 }

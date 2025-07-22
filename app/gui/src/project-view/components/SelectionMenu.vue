@@ -1,34 +1,34 @@
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
-import SelectionButton from '@/components/SelectionButton.vue'
-import { injectSelectionButtons } from '@/providers/selectionButtons'
+import { resolveAction } from '@/providers/action'
+import { injectGraphSelection } from '@/providers/graphSelection'
+import { toValue } from 'vue'
 
-const { selectedNodeCount, buttons } = injectSelectionButtons()
-const { pickColorMulti } = buttons
+const selection = injectGraphSelection()
+const pickColorMulti = resolveAction('components.pickColorMulti')
 </script>
 
 <template>
-  <Transition>
-    <div v-if="selectedNodeCount > 1" class="SelectionMenu">
-      <span v-text="`${selectedNodeCount} components selected`" />
-      <SelectionButton button="collapse" />
-      <SelectionButton
-        button="pickColorMulti"
-        :class="{
-          // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
-          // picker is open, so that it isn't toggled back open.
-          disableInput: pickColorMulti.state,
-        }"
-      />
-      <SelectionButton button="copy" />
-      <SelectionButton button="deleteSelected" />
-      <ColorPickerMenu
-        v-if="pickColorMulti.state"
-        class="submenu"
-        @close="pickColorMulti.state = false"
-      />
-    </div>
-  </Transition>
+  <div class="SelectionMenu">
+    <span v-text="`${selection.selected.size} components selected`" />
+    <ActionButton action="components.collapse" />
+    <ActionButton
+      action="components.pickColorMulti"
+      :class="{
+        // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
+        // picker is open, so that it isn't toggled back open.
+        disableInput: toValue(pickColorMulti.toggled),
+      }"
+    />
+    <ActionButton action="components.copy" />
+    <ActionButton action="components.deleteSelected" />
+    <ColorPickerMenu
+      v-if="toValue(pickColorMulti.toggled)"
+      class="submenu"
+      @close="pickColorMulti.action?.()"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -52,21 +52,7 @@ const { pickColorMulti } = buttons
   backdrop-filter: var(--blur-app-bg);
 }
 
-.toggledOff svg {
-  opacity: 0.6;
-}
-
 .disableInput {
   pointer-events: none;
-}
-
-.v-enter-active,
-.v-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.v-enter-from,
-.v-leave-to {
-  opacity: 0;
 }
 </style>

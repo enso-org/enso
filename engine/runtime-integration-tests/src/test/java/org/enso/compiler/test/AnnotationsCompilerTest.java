@@ -67,7 +67,7 @@ public class AnnotationsCompilerTest extends CompilerTests {
     type Foo
         @a foo
         @b bar
-        Cons a b = a b
+        Cons a b
     """);
 
     var typeDefinition = (Definition.SugaredType) ir.bindings().apply(0);

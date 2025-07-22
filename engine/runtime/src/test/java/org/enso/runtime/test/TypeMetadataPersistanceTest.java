@@ -4,27 +4,26 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.List;
-import org.enso.compiler.data.BindingsMap;
-import org.enso.compiler.pass.analyse.types.AtomTypeInterfaceFromBindingsMap;
 import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
+import org.enso.scala.wrapper.ScalaConversions;
 import org.junit.Test;
-import scala.jdk.javaapi.CollectionConverters$;
 
 /**
  * Currently the static type inference pass is optional and it is not computed as part of the cache
  * indexing.
  */
 public class TypeMetadataPersistanceTest {
-  private static <T> scala.collection.immutable.List<T> makeScalaList(List<T> list) {
-    return CollectionConverters$.MODULE$.asScala(list).toList();
-  }
+  private static final Persistance.Pool POOL =
+      Persistance.Pool.merge(
+          org.enso.compiler.core.ir.Persistables.POOL,
+          org.enso.compiler.pass.analyse.types.Persistables.POOL);
 
   private static <T> T serde(Class<T> clazz, T l) throws IOException {
-    var arr = Persistance.write(l, null);
-    var ref = Persistance.read(arr, null);
+    var arr = POOL.write(l);
+    var ref = POOL.read(arr);
     return ref.get(clazz);
   }
 
@@ -41,17 +40,7 @@ public class TypeMetadataPersistanceTest {
   }
 
   private TypeRepresentation.TypeObject mockObject() {
-    var fqn = new QualifiedName(makeScalaList(List.of("mod")), "Test");
-    return new TypeRepresentation.TypeObject(fqn, mockAtomType());
-  }
-
-  private AtomTypeInterfaceFromBindingsMap mockAtomType() {
-    scala.collection.immutable.List<String> params = makeScalaList(List.of());
-    var ctorArgs =
-        makeScalaList(
-            List.of(new BindingsMap.Argument("arg", false, Persistance.Reference.none())));
-    var constructors = makeScalaList(List.of(new BindingsMap.Cons("ctor", ctorArgs, false)));
-    return new AtomTypeInterfaceFromBindingsMap(
-        new BindingsMap.Type("Test", params, constructors, false));
+    var fqn = new QualifiedName(ScalaConversions.seq(List.of("mod")).toList(), "Test");
+    return new TypeRepresentation.TypeObject(fqn);
   }
 }

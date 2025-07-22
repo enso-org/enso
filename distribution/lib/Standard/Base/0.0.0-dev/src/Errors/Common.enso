@@ -5,12 +5,13 @@ import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Function.Function
+import project.Internal.Meta_Helpers
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import False, True
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
@@ -63,23 +64,35 @@ type Type_Error
        - actual: The actual type at the error location.
        - comment: Description of the value that was being checked,
          e.g. function argument, result or an arbitrary expression.
-    Error expected actual comment
+    private Error expected actual comment
 
     ## PRIVATE
        Convert the Type_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self =
+        err_simple v = Meta.type_of v . to_text
+        err_with_args v missing_args =
+            fn_info = v.to_text
+            fn_info + case missing_args.length of
+                0 -> ""
+                1 -> ". Try to apply " + (missing_args.at 0) + " argument"
+                _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
+
         type_of_actual =
-           tpe = Meta.type_of self.actual
-           if tpe.is_error then self.actual.to_display_text else case self.actual of
-               fn:Function ->
-                    fn_info = fn.to_text
-                    missing_args = fn_info.split " " . filter (_.ends_with "=_") . map (_.split "=") . map (_.at 0)
-                    fn_info + case missing_args.length of
-                        0 -> ""
-                        1 -> ". Try to apply " + (missing_args.at 0) + " argument"
-                        _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
-               _ -> tpe.to_text
+            m = Meta.meta self.actual
+            case m of
+               e : Meta.Error -> e.to_display_text
+               fn : Meta.Function ->
+                  missing_args = fn . arguments pending=True
+                  err_with_args fn.value missing_args
+               _ : Meta.Constructor ->
+                  fn = self.actual
+                  missing_args = Meta_Helpers.get_argument_names_builtin fn True False False False
+                  err_with_args fn missing_args
+               u : Meta.Unresolved ->
+                  if u.is_constructor then ".."+u.name else
+                     err_simple self.actual
+               _ -> err_simple self.actual
 
         got = if type_of_actual.is_a Text then type_of_actual else "<ERR>"
         exp = self.expected.to_display_text
@@ -201,7 +214,7 @@ type No_Such_Method
     to_display_text self =
         target_name =
           is_poly = Meta.is_polyglot self.target
-          is_fn = Meta.type_of self.target == Function
+          is_fn = Meta.is_same_object Function (Meta.type_of self.target)
           if is_poly then "type " + self.target.to_display_text else
              if is_fn then self.target.to_text else
                 "type " + (Meta.type_of self.target).to_display_text
@@ -298,7 +311,7 @@ type Invalid_Array_Index
     Error array index
 
     ## PRIVATE
-       Convert the Forbidden_Operation error to a human-readable format.
+       Convert the Invalid_Array_Index error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Invalid array index: "+self.index.to_text+"."
 
@@ -310,12 +323,32 @@ type Not_Invokable
 
        Arguments:
        - target: The called object.
-    Error target
+       - cause: Additional information about what may have caused the error.
+    Error target cause
 
     ## PRIVATE
        Convert the Not_Invokable error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
+    to_display_text self =
+        suffix = case self.cause of
+            Nothing -> ""
+            _ -> " Caused by: "+self.cause.to_display_text
+        "Type error: expected a function, but got "+self.target.to_display_text+"."+suffix
+
+@Builtin_Type
+type No_Such_Argument
+    ## PRIVATE
+       Indicates that an argument was passed by name, but the function being
+       called did not take any argument that matched that name.
+
+       Arguments:
+       - argument_name: The name of the argument that was not found.
+    Error argument_name
+
+    ## PRIVATE
+       Convert the No_Such_Argument error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
 @Builtin_Type
 type Private_Access
@@ -327,12 +360,19 @@ type Private_Access
        - this_project_name: Optional qualified name of the current (caller) project.
        - target_project_name: Optional qualified name name of the project of callee.
        - target_method_name: The name of the target method call that is project-private and thus cannot be called.
-    Error (this_project_name : (Text | Nothing)) (target_project_name : (Text | Nothing)) (target_method_name : Text)
+    private Error
+        (this_project_name : (Text | Nothing))
+        (target_project_name : (Text | Nothing))
+        (target_method_name : Text)
+        (msg : (Text | Nothing) = Nothing)
 
     ## PRIVATE
        Convert the Private_Access error to a human-readable format.
     to_display_text : Text
     to_display_text self =
+        self.msg.if_nothing self.default_to_text
+
+    private default_to_text self =
         this_proj = if self.this_project_name.is_nothing then "unknown project" else "project '"+self.this_project_name+"'"
         target_proj = if self.target_project_name.is_nothing then "unknown project" else "project '"+self.target_project_name+"'"
         "Private access error: The project-private method '"
@@ -474,41 +514,26 @@ type Missing_Argument
     ## PRIVATE
        Indicates that an expression cannot be evaluated because somewhere within
        it, a function does not have all required arguments provided.
-    Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing)
+    Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing) (message : Text = "Provide a value for the argument `" + argument_name + "`.")
 
     ## PRIVATE
     to_display_text : Text
-    to_display_text self = case self.function_name of
-        Nothing -> "Provide a value for the argument `" + self.argument_name + "`."
-        _ -> "Missing required argument `" + self.argument_name + "` in function `" + self.function_name + "`."
+    to_display_text self = self.message
 
     ## PRIVATE
        Throws an error saying that a required argument has not been provided.
-    throw : Text -> Nothing ! Missing_Argument
-    throw argument_name:Text =
-        Error.throw (Missing_Argument.Error argument_name)
-
-    ## PRIVATE
-       Throws an error saying that a required argument has not been provided.
-
-       This function is supposed to be used as a default value for arguments
-       that are supposed to be required and should prevent errors stemming from
-       a not-fully-applied function being passed around. Instead, this error is
-       raised and propagated to the top, so that the IDE can see that the node
-       still has some missing arguments within it.
-
-       > Example
-
-         my_function (arg1 = Missing_Argument.ensure_present "arg1") (arg2 = 100) = arg1+arg2
-    ensure_present : Text -> Nothing ! Missing_Argument
-    ensure_present (argument_name : Text = Missing_Argument.ensure_present "argument_name") =
+    throw : Text -> Text|Nothing -> Nothing ! Missing_Argument
+    throw argument_name:Text message_override:Text|Nothing=Nothing =
         stack_trace = Runtime.get_stack_trace
         function_frame = stack_trace . at 1
         caller_frame = stack_trace . at 2
 
         function_name = function_frame.name
         call_location = caller_frame.source_location
-        Error.throw (Missing_Argument.Error argument_name function_name call_location)
+
+        error = if message_override.is_nothing then Missing_Argument.Error argument_name function_name call_location else
+            Missing_Argument.Error argument_name function_name call_location message_override
+        Error.throw error
 
 ## Warning when additional warnings occurred.
 @Builtin_Type
@@ -557,7 +582,7 @@ type Out_Of_Range
         extra = if self.message.is_nothing then "" else " (message = "+self.message.to_text+")"
         "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"
 
-## Indiciates that the response from a remote endpoint is over the size limit.
+## Indicates that the response from a remote endpoint is over the size limit.
 type Response_Too_Large
     ## PRIVATE
     Error actual_size:Integer|Nothing limit:Integer
@@ -607,3 +632,33 @@ type Floating_Point_Equality
             "(Error  (location = "+location+"))"
         Floating_Point_Equality.Used_As_Dictionary_Key value ->
             "(Used_As_Dictionary_Key (value = "+value.to_text+"))"
+
+## A warning indicating that a file failed to be loaded.
+type Failed_To_Load
+    ## PRIVATE
+    Warning path cause
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text
+
+type Length_Mismatch
+    ## Indicates that the lengths of zipped Vectors do not match.
+    private Error (left_length : Integer) (right_length : Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The Vector lengths do not match: "+self.left_length.to_text+" does not equal "+self.right_length.to_text+"."
+
+type Mixed_Signed_And_Unsigned_Bytes
+    ## PRIVATE
+       Indicates that a collection of bytes contains both unsigned and signed bytes.
+    Error
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Collection contains both signed (value < 0) and unsigned (value > 127) bytes. Please use one convention consistently."

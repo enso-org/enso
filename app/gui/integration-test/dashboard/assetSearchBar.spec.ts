@@ -1,7 +1,5 @@
 /** @file Test the search bar and its suggestions. */
-import { expect, test, type Page } from '@playwright/test'
-
-import { COLORS } from '#/services/Backend'
+import { expect, test, type Page } from 'playwright/test'
 
 import { mockAllAndLogin } from './actions'
 
@@ -63,10 +61,10 @@ test('labels', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {
-      api.addLabel('aaaa', COLORS[0])
-      api.addLabel('bbbb', COLORS[1])
-      api.addLabel('cccc', COLORS[2])
-      api.addLabel('dddd', COLORS[3])
+      api.addLabel('aaaa', { lightness: 50, chroma: 66, hue: 7 })
+      api.addLabel('bbbb', { lightness: 50, chroma: 66, hue: 34 })
+      api.addLabel('cccc', { lightness: 50, chroma: 66, hue: 80 })
+      api.addLabel('dddd', { lightness: 50, chroma: 66, hue: 139 })
     },
   }).withSearchBar(async (searchBar) => {
     const labels = locateSearchBarLabels(page)

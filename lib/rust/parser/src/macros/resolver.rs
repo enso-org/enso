@@ -25,6 +25,7 @@
 use crate::prelude::*;
 
 use crate::im_list::List;
+use crate::lexer::GroupDelimiterConsumer;
 use crate::macros;
 use crate::macros::pattern;
 use crate::source::Code;
@@ -33,14 +34,12 @@ use crate::syntax::token;
 use crate::syntax::token::Token;
 use crate::syntax::BlockHierarchyConsumer;
 use crate::syntax::Finish;
-use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::Item;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::TokenConsumer;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
-
 
 
 // ================
@@ -129,19 +128,19 @@ impl<'a> SegmentMap<'a> {
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 struct ResolverState<'s> {
-    blocks:       Vec<Block>,
+    blocks:            Vec<Block>,
     /// The lines of all currently-open blocks. This is partitioned by `blocks`.
-    lines:        Vec<syntax::item::Line<'s>>,
-    groups:       Vec<OpenGroup<'s>>,
+    lines:             Vec<syntax::item::Line<'s>>,
+    groups:            Vec<OpenGroup<'s>>,
     /// All currently-open macros. These are partitioned into scopes by `blocks`.
-    macros:       Vec<PartiallyMatchedMacro<'s>>,
+    macros:            Vec<PartiallyMatchedMacro<'s>>,
     /// Segments of all currently-open macros. These are partitioned by `macros`.
-    segments:     Vec<MatchedSegment<'s>>,
+    segments:          Vec<MatchedSegment<'s>>,
     /// Items of all segments of all currently-open macros. These are partitioned by `segments`.
-    items:        Vec<Item<'s>>,
-    context:      Context,
-    root_context: RootContext,
-    precedence:   syntax::operator::Precedence<'s>,
+    items:             Vec<Item<'s>>,
+    context:           Context,
+    root_context:      RootContext,
+    expression_parser: syntax::expression::ExpressionParser<'s>,
 }
 
 
@@ -153,7 +152,7 @@ impl<'s> ResolverState<'s> {
         Self {
             context,
             root_context,
-            precedence: syntax::operator::Precedence::new(),
+            expression_parser: syntax::expression::ExpressionParser::new(),
             blocks: default(),
             lines: vec![initial_line()],
             groups: default(),
@@ -178,9 +177,9 @@ impl<'s> Finish for ResolverState<'s> {
         self.finish_current_line();
         let tree = match self.root_context {
             RootContext::Module =>
-                syntax::tree::block::parse_module(&mut self.lines, &mut self.precedence),
+                syntax::tree::block::parse_module(&mut self.lines, &mut self.expression_parser),
             RootContext::Block =>
-                syntax::tree::block::parse_block(&mut self.lines, &mut self.precedence),
+                syntax::tree::block::parse_block(&mut self.lines, &mut self.expression_parser),
         };
         debug_assert!(self.blocks.is_empty());
         debug_assert!(self.lines.is_empty());
@@ -239,12 +238,12 @@ impl<'s, 'macros> BlockHierarchyConsumer for Resolver<'s, 'macros> {
     }
 }
 
-impl<'s, 'macros> GroupHierarchyConsumer<'s> for Resolver<'s, 'macros> {
-    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+impl<'s, 'macros> GroupDelimiterConsumer<'s> for Resolver<'s, 'macros> {
+    fn open_group(&mut self, open: token::OpenSymbol<'s>) {
         self.resolver.start_group(open);
     }
 
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+    fn close_group(&mut self, close: token::CloseSymbol<'s>) {
         self.resolver.close_group(close);
     }
 }
@@ -350,7 +349,7 @@ impl<'s> ResolverState<'s> {
 
     fn close_group(&mut self, close: token::CloseSymbol<'s>) {
         match self.groups.pop() {
-            Some(group) => self.end_group(group, close.into()),
+            Some(group) => self.end_group(group, Some(close)),
             None => self.items.push(Item::Token(close.into())),
         }
     }
@@ -488,7 +487,7 @@ impl<'s> ResolverState<'s> {
                 let match_result: Result<pattern::MatchResult, VecDeque<Item>> = match_result;
                 pattern::MatchedSegment::new(header, match_result.unwrap().matched)
             };
-            let parser = &mut self.precedence;
+            let parser = &mut self.expression_parser;
             (macro_def.body)(pattern_matched_segments.mapped(unwrap_match), parser)
         } else {
             // The input matched a macro invocation pattern, except extra tokens were found in
@@ -507,11 +506,11 @@ impl<'s> ResolverState<'s> {
                     }
                     Err(tokens) => tokens,
                 };
-                if let Some(excess) = self.precedence.resolve(&mut excess.into()) {
+                if let Some(excess) = self.expression_parser.parse(&mut excess.into()) {
                     let excess = excess.with_error("Unexpected tokens in macro invocation.");
                     tokens.push(excess.into());
                 }
-                let body = self.precedence.resolve(&mut tokens);
+                let body = self.expression_parser.parse(&mut tokens);
                 syntax::tree::MultiSegmentAppSegment { header, body }
             });
             syntax::Tree::multi_segment_app(segments)

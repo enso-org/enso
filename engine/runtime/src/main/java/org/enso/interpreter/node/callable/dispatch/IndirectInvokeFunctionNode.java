@@ -41,7 +41,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
   public abstract Object execute(
       Function callable,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,

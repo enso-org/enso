@@ -1,0 +1,30 @@
+## Enso Signatures 1.0
+## module Standard.Table.Internal.Widget_Helpers
+- type Types_To_Include
+    - boolean self -> Standard.Base.Any.Any
+    - date self -> Standard.Base.Any.Any
+    - date_time self -> Standard.Base.Any.Any
+    - number self -> Standard.Base.Any.Any
+    - text self -> Standard.Base.Any.Any
+    - time self -> Standard.Base.Any.Any
+- make_aggregate_column_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+- make_aggregate_column_vector_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+- make_column_name_multi_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= add_regex:Standard.Base.Data.Boolean.Boolean= add_by_type:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- make_column_name_selector table:Standard.Base.Any.Any add_expression:Standard.Base.Data.Boolean.Boolean= display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+- make_column_name_vector_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+- make_column_ref_by_name_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= add_text:Standard.Base.Data.Boolean.Boolean= add_regex:Standard.Base.Data.Boolean.Boolean= add_number:Standard.Base.Data.Boolean.Boolean= add_boolean:Standard.Base.Data.Boolean.Boolean= add_named_pattern:Standard.Base.Data.Boolean.Boolean= add_date:Standard.Base.Data.Boolean.Boolean= add_time:Standard.Base.Data.Boolean.Boolean= add_date_time:Standard.Base.Data.Boolean.Boolean= add_nothing:Standard.Base.Data.Boolean.Boolean= columns_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- make_column_ref_by_name_selector_for_type table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= value_type:Standard.Table.Value_Type.Value_Type add_nothing:Standard.Base.Data.Boolean.Boolean= if_value_type_numeric_include_all_numeric:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- make_fill_default_value_selector column_source:Standard.Base.Any.Any= display:Standard.Base.Metadata.Display= value_types:Standard.Base.Any.Any= add_nothing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- make_filter_condition_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- make_format_chooser_for_parse table:Standard.Base.Any.Any cache:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_format_chooser_for_selection table:Standard.Base.Any.Any cache:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_format_chooser_for_type value_types:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_grouping_method_selector table:Standard.Table.Table.Table display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+- make_join_condition_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- make_keep_unmatched_selector -> Standard.Base.Any.Any
+- make_order_by_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= name_only:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- make_rename_name_vector_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- make_replace_selector display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+- make_value_type_vector_selector -> Standard.Base.Any.Any
+- parse_type_selector include_auto:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- write_table_selector -> Standard.Base.Any.Any

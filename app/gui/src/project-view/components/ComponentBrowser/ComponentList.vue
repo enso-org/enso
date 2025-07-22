@@ -1,210 +1,189 @@
 <script setup lang="ts">
-import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
-import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { useScrolling } from '@/components/ComponentBrowser/scrolling'
+import {
+  useProjectNames,
+  useProjectStore,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
+import { makeComponentLists, type Component } from '@/components/ComponentBrowser/component'
+import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
+import { Filter, Filtering } from '@/components/ComponentBrowser/filtering'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useApproach } from '@/composables/animation'
-import { useResizeObserver } from '@/composables/events'
+import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { Ast } from '@/util/ast'
+import { substituteQualifiedName } from '@/util/ast/abstract'
 import { tryGetIndex } from '@/util/data/array'
-import { allRanges } from '@/util/data/range'
+import { qnLastSegment } from '@/util/qualifiedName'
+import * as map from 'lib0/map'
 import { computed, ref, watch } from 'vue'
+import type { ComponentExposed } from 'vue-component-type-helpers'
+import { parseExpression } from 'ydoc-shared/ast'
+import ActionButton from '../ActionButton.vue'
 
-const ITEM_SIZE = 32
+const ITEM_SIZE = 24
+const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
+const MOUSE_SELECTION_DEBOUNCE = 200
 
 const props = defineProps<{
-  filtering: Filtering
-  autoSelectFirstComponent: boolean
+  filter: Filter
+  literal?: Ast.Ast | undefined
 }>()
 const emit = defineEmits<{
   acceptSuggestion: [suggestion: Component]
   'update:selectedComponent': [selected: Component | null]
 }>()
 
-const suggestionDbStore = useSuggestionDbStore()
+const projectStore = useProjectStore()
+const root = ref<HTMLElement>()
+const groupsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
+const componentsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
+const panels = { groupsPanel, componentsPanel }
+export type ComponentListPanel = keyof typeof panels
 
-// === Components List and Positions ===
+const selectedGroupIndex = ref<number | null>(0)
+const selectedComponentIndex = ref<number | null>(0)
+const focusedPanel = ref<ComponentListPanel>('componentsPanel')
 
-const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
-
-const visibleComponents = computed(() => {
-  if (scroller.value == null) return []
-  const scrollPos = scrolling.scrollPosition.value
-  const topmostVisible = componentAtY(scrollPos)
-  const bottommostVisible = Math.max(0, componentAtY(scrollPos + scrollerSize.value.y))
-  return components.value.slice(topmostVisible, bottommostVisible + 1).map((component, i) => {
-    return { component, index: i + topmostVisible }
-  })
+const displayedSelectedComponentIndex = computed({
+  get: () => (focusedPanel.value === 'groupsPanel' ? null : selectedComponentIndex.value),
+  set: (index) => {
+    selectedComponentIndex.value = index
+    if (index != null) {
+      focusedPanel.value = 'componentsPanel'
+    }
+  },
 })
 
-function componentPos(index: number) {
-  return index * ITEM_SIZE
-}
+const filtering = computed(() => {
+  const currentModule = projectStore.moduleProjectPath
+  return new Filtering(props.filter, currentModule?.ok ? currentModule.value : undefined)
+})
 
-function componentAtY(pos: number) {
-  return Math.floor(pos / ITEM_SIZE)
-}
+watch(filtering, () => (displayedSelectedComponentIndex.value = 0))
+watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 
-function componentStyle(index: number) {
-  return { transform: `translateY(${componentPos(index)}px)` }
-}
+const suggestionDbStore = useSuggestionDbStore()
+const projectNames = useProjectNames()
+const components = computed(() => {
+  const lists = makeComponentLists(suggestionDbStore.entries, filtering.value)
+  if (props.literal != null) {
+    map
+      .setIfUndefined(lists, 'all', (): Component[] => [])
+      .unshift({
+        label: props.literal.code(),
+        icon: props.literal instanceof Ast.TextLiteral ? 'text_input' : 'input_number',
+      })
+  }
+  return lists
+})
+const currentGroups = computed(() => {
+  return Array.from(components.value.entries(), ([id, components]) => ({
+    id,
+    ...(id === 'all' ? { name: 'all' }
+    : id === 'suggestions' ? { name: 'suggestions' }
+    : (suggestionDbStore.groups[id] ?? { name: 'unknown' })),
+    ...(filtering.value?.pattern != null ? { displayedNumber: components.length } : {}),
+  }))
+})
+const displayedGroupId = computed(() =>
+  selectedGroupIndex.value != null ? currentGroups.value[selectedGroupIndex.value]?.id : null,
+)
+
+const currentComponents = computed(() => {
+  if (displayedGroupId.value == null) return components.value.get('all') ?? []
+  else return components.value.get(displayedGroupId.value) ?? []
+})
 
 /** Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created. */
 function componentColor(component: Component): string {
   return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
 
-// === Highlight ===
-
-const selected = ref<number | null>(null)
-const highlightPosition = ref(0)
-const selectedPosition = computed(() =>
-  selected.value != null ? componentPos(selected.value) : null,
+const selectedComponent = computed(() =>
+  selectedComponentIndex.value == null ?
+    null
+  : (currentComponents.value[selectedComponentIndex.value] ?? null),
 )
-const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
-const animatedHighlightPosition = useApproach(highlightPosition)
-const animatedHighlightHeight = useApproach(highlightHeight)
 
-const selectedComponent = computed(() => {
-  if (selected.value === null) return null
-  return components.value[selected.value] ?? null
+const selectedSuggestion = computed(() => {
+  if (selectedComponent.value?.suggestionId == null) return null
+  return suggestionDbStore.entries.get(selectedComponent.value.suggestionId)
 })
 
-watch(selectedComponent, (component) => emit('update:selectedComponent', component))
+const selectedSuggestionReturnType = computed(() => {
+  if (selectedSuggestion.value == null) return undefined
+  const typename = selectedSuggestion.value.returnType(projectNames)
 
-watch(selectedPosition, (newPos) => {
-  if (newPos == null) return
-  highlightPosition.value = newPos
+  const parsedType = parseExpression(typename)
+  if (parsedType == null) return typename
+  const substituted = substituteQualifiedName(parsedType, (qn) => qnLastSegment(qn))
+  return substituted.code()
 })
 
-const highlightClipPath = computed(() => {
-  const height = animatedHighlightHeight.value
-  const position = animatedHighlightPosition.value
-  const top = position + ITEM_SIZE - height
-  const bottom = listContentHeight.value - position - ITEM_SIZE
-  return `inset(${top}px 0px ${bottom}px 0px round 16px)`
+watch(selectedComponent, (component) => emit('update:selectedComponent', component), {
+  immediate: true,
 })
-
-function selectWithoutScrolling(index: number) {
-  const scrollPos = scrolling.scrollPosition.value
-  scrolling.targetScroll.value = { type: 'offset', offset: scrollPos }
-  selected.value = index
-}
-
-// === Scrolling ===
-
-const scroller = ref<HTMLElement>()
-const scrollerSize = useResizeObserver(scroller)
-const listContentHeight = computed(() =>
-  Math.max(components.value.length * ITEM_SIZE, scrollerSize.value.y),
-)
-const scrolling = useScrolling(() =>
-  Math.min(animatedHighlightPosition.value, listContentHeight.value - scrollerSize.value.y),
-)
-
-const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
-
-function updateScroll() {
-  // If the scrollTop value changed significantly, that means the user is scrolling.
-  if (scroller.value && Math.abs(scroller.value.scrollTop - scrolling.scrollPosition.value) > 1.0) {
-    scrolling.targetScroll.value = { type: 'offset', offset: scroller.value.scrollTop }
-  }
-}
-
-// === Filtering Changes ===
-
-watch(
-  () => props.filtering,
-  () => {
-    selected.value = props.autoSelectFirstComponent ? 0 : null
-    scrolling.targetScroll.value = { type: 'top' }
-
-    // Update `highlightPosition` synchronously, so the subsequent animation `skip` have an effect.
-    if (selectedPosition.value != null) {
-      highlightPosition.value = selectedPosition.value
-    }
-    animatedHighlightPosition.skip()
-    animatedHighlightHeight.skip()
-  },
-)
-
-// === Expose ===
 
 defineExpose({
-  moveUp() {
-    if (selected.value != null && selected.value > 0) {
-      selected.value -= 1
+  switchPanelFocus: () => {
+    switch (focusedPanel.value) {
+      case 'componentsPanel':
+        focusedPanel.value = 'groupsPanel'
+        break
+      case 'groupsPanel':
+        focusedPanel.value = 'componentsPanel'
+        // VirtualizedList component may have set selection to null on item list update.
+        selectedComponentIndex.value = 0
+        break
     }
-    scrolling.scrollWithTransition({ type: 'selected' })
   },
-  moveDown() {
-    if (selected.value == null) {
-      selected.value = 0
-    } else if (selected.value < components.value.length - 1) {
-      selected.value += 1
-    }
-    scrolling.scrollWithTransition({ type: 'selected' })
-  },
+  moveUp: () => panels[focusedPanel.value].value?.moveUp(),
+  moveDown: () => panels[focusedPanel.value].value?.moveDown(),
 })
 </script>
 
 <template>
-  <div class="ComponentList" :style="{ '--list-height': listContentHeightPx }">
-    <div
-      ref="scroller"
-      class="list"
-      :scrollTop.prop="scrolling.scrollPosition.value"
-      @wheel.stop.passive
-      @scroll="updateScroll"
+  <div ref="root" class="ComponentList">
+    <VirtualizedList
+      v-slot="{ item: group, selected }"
+      ref="groupsPanel"
+      v-model:selected="selectedGroupIndex"
+      class="groups"
+      :items="currentGroups"
+      :itemHeight="ITEM_SIZE"
+      :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
+      :autoSelectFirst="true"
+      :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
     >
-      <div class="list-variant">
-        <div
-          v-for="item in visibleComponents"
-          :key="item.component.suggestionId"
-          class="component"
-          :style="componentStyle(item.index)"
-          @mousemove="selectWithoutScrolling(item.index)"
-          @click="emit('acceptSuggestion', item.component)"
-        >
-          <SvgIcon :name="item.component.icon" :style="{ color: componentColor(item.component) }" />
-          <span>
-            <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
-            <span
-              v-for="range in allRanges(item.component.matchedRanges, item.component.label.length)"
-              v-else
-              :key="`${range.start},${range.end}`"
-              class="component-label-segment"
-              :class="{ match: range.isMatch }"
-              v-text="item.component.label.slice(range.start, range.end)"
-            ></span>
-          </span>
-        </div>
+      <div class="groupEntry">
+        <span class="groupEntryLabel">
+          {{ group.name }}{{ group.displayedNumber ? ` (${group.displayedNumber})` : '' }}
+        </span>
+        <SvgIcon v-if="selected" class="groupEntryIcon" name="folder_closed" />
       </div>
-      <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
-        <div
-          v-for="item in visibleComponents"
-          :key="item.component.suggestionId"
-          class="component"
-          :style="{
-            backgroundColor: componentColor(item.component),
-            ...componentStyle(item.index),
-          }"
-          @click="emit('acceptSuggestion', item.component)"
-        >
-          <SvgIcon :name="item.component.icon" />
-          <span>
-            <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
-            <span
-              v-for="range in allRanges(item.component.matchedRanges, item.component.label.length)"
-              v-else
-              :key="`${range.start},${range.end}`"
-              class="component-label-segment"
-              :class="{ match: range.isMatch }"
-              v-text="item.component.label.slice(range.start, range.end)"
-            ></span>
-          </span>
+    </VirtualizedList>
+    <div class="rightPane">
+      <VirtualizedList
+        ref="componentsPanel"
+        v-slot="{ item: component }"
+        v-model:selected="displayedSelectedComponentIndex"
+        class="components"
+        :items="currentComponents"
+        :itemHeight="ITEM_SIZE"
+        :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
+        :autoSelectFirst="focusedPanel === 'componentsPanel'"
+        :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
+        @itemAccepted="emit('acceptSuggestion', $event)"
+      >
+        <ComponentEntry :component="component" :color="componentColor(component)" />
+      </VirtualizedList>
+      <div class="documentation">
+        <div class="documentationContent">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
+          <p v-if="selectedSuggestion" v-text="`Returns: ${selectedSuggestionReturnType}`" />
         </div>
+        <ActionButton class="helpButton" action="graphEditor.showHelp" />
       </div>
     </div>
   </div>
@@ -212,51 +191,85 @@ defineExpose({
 
 <style scoped>
 .ComponentList {
-  --list-height: 0px;
-  width: 100%;
-  height: 380px;
-  /* position: absolute; */
+  width: 661px;
+  height: 386px;
   border: none;
   border-radius: var(--radius-default);
   background-color: var(--background-color);
-}
-
-.list {
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  position: relative;
-}
-
-.list-variant {
-  top: 0px;
-  width: 100%;
-  height: var(--list-height);
-  position: absolute;
-}
-
-.component {
-  width: 100%;
-  height: 32px;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 9px;
   display: flex;
-  position: absolute;
+  flex-direction: row;
+}
+
+.groups {
+  width: 129px;
+  min-width: 129px;
+  height: 100%;
+  flex-grow: 0;
+  padding: 9px;
+  border-radius: var(--radius-default) 0 0 var(--radius-default);
+  background-color: #dadada;
+}
+
+.groupEntry {
+  width: 100%;
+  height: 24px;
+  border-radius: 12px;
+  align-content: center;
+  padding: 7px;
   line-height: 1;
   font-family: var(--font-code);
-}
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 
-.selected {
-  color: white;
-  & svg {
-    color: white;
+  &.selected {
+    background-color: white;
   }
 }
 
-.component-label-segment.match {
-  font-weight: bold;
+.groupEntryLabel {
+  flex-grow: 1;
+}
+
+.groupEntryIcon {
+  --icon-size: 12px;
+}
+
+.rightPane {
+  flex-grow: 1;
+  padding: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.components {
+  flex-grow: 1;
+}
+
+.documentation {
+  border-top: 1px solid #d9d9d9;
+  padding-top: 9px;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.documentationContent {
+  min-width: 0;
+  flex-grow: 1;
+  p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* If help contains <code> tags, it is a bit higher, resulting in panel hight jump. */
+    height: 23px;
+  }
+}
+
+.helpButton {
+  width: 24px;
+  height: 24px;
 }
 </style>

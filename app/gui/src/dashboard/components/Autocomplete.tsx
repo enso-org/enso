@@ -1,4 +1,11 @@
 /** @file A select menu with a dropdown. */
+import CloseIcon from '#/assets/cross.svg'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
+import FocusRing from '#/components/styled/FocusRing'
+import { Text } from '#/components/Text'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import {
   useMemo,
   useRef,
@@ -8,27 +15,14 @@ import {
   type MutableRefObject,
 } from 'react'
 
-import CloseIcon from '#/assets/cross.svg'
-import { Button, Form, Input, Text } from '#/components/AriaComponents'
-import FocusRing from '#/components/styled/FocusRing'
-import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-
-// =================
-// === Constants ===
-// =================
-
 /** A zero-width space. Useful to make a `div` take up at least one line. */
 const ZWSP = '\u200b'
-
-// ====================
-// === Autocomplete ===
-// ====================
 
 /** Base props for a {@link Autocomplete}. */
 interface InternalBaseAutocompleteProps<T> {
   readonly multiple?: boolean
   readonly type?: HTMLInputTypeAttribute
-  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
+  readonly inputRef?: MutableRefObject<HTMLDivElement | null>
   readonly placeholder?: string
   readonly values: readonly T[]
   readonly autoFocus?: boolean
@@ -58,7 +52,7 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
    * This is `null` when multiple values are selected, causing the input to switch to a
    * {@link HTMLTextAreaElement}.
    */
-  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
+  readonly inputRef?: MutableRefObject<HTMLDivElement | null>
   readonly setValues: (value: readonly T[]) => void
   readonly itemsToString: (items: readonly T[]) => string
 }
@@ -97,7 +91,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     [items, matches, text],
   )
 
-  const fallbackInputRef = useRef<HTMLFieldSetElement>(null)
+  const fallbackInputRef = useRef<HTMLDivElement>(null)
   const inputRef = rawInputRef ?? fallbackInputRef
   const containerRef = useRef<HTMLDivElement>(null)
 

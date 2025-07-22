@@ -1,6 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
-import Standard.Base.Errors.Deprecated.Deprecated
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
@@ -11,19 +10,27 @@ import project.Column_Ref.Column_Ref
 import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Value_Type.Value_Type
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
 type Simple_Expression
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A simple expression based off an input column and an operation to perform.
     Simple_Expr (input : Column_Ref|Expression|Any = (..Index 0)) (operation : Simple_Calculation = ..Copy)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A simple expression based off an input column and an operation to perform.
     From (input : Column_Ref|Expression|Any = (..Index 0)) (operation : Simple_Calculation = ..Copy)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Interprets the `Simple_Expression` as operation on columns of a provided
        table, resolving the column references.
        It creates a new column instance which can be added to the table.
@@ -42,7 +49,7 @@ type Simple_Expression
             Simple_Calculation.Divide rhs -> input_column / (table.resolve rhs)
             Simple_Calculation.Mod rhs -> input_column % (table.resolve rhs)
             Simple_Calculation.Power rhs -> input_column ^ (table.resolve rhs)
-            Simple_Calculation.Round precision use_bankers -> input_column.round precision use_bankers
+            Simple_Calculation.Round precision rounding_mode -> input_column.round precision rounding_mode
             Simple_Calculation.Ceil -> input_column.ceil
             Simple_Calculation.Floor -> input_column.floor
             Simple_Calculation.Truncate -> input_column.truncate
@@ -60,11 +67,16 @@ type Simple_Expression
             Simple_Calculation.Text_Length -> input_column.text_length
             Simple_Calculation.Format format -> input_column.format format
             Simple_Calculation.If condition true_value false_value ->
-                condition_column =  make_filter_column input_column (table.resolve_condition condition) on_problems
+                condition_column = case condition of
+                    Filter_Condition.Predicate _ ->
+                        Error.throw (Illegal_Argument.Error "Predicate filter conditions cannot be used in expressions.")
+                    _ -> make_filter_column input_column (table.resolve_condition condition) on_problems
                 condition_column.iif (table.resolve true_value) (table.resolve false_value)
         if use_input_name then derived.rename input_column.name else derived
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a widget for operation
     default_widget table:Table_Ref display:Display=..Always -> Widget =
         with_everything = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
@@ -115,7 +127,9 @@ type Text_Operation
     ## Does the input contain the specified substring.
     Contains (substring:Column_Ref|Expression|Text = "")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     create_widget : Table_Ref -> Display -> Widget
     create_widget table:Table_Ref display:Display=Display.Always =
         with_number = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
@@ -131,7 +145,9 @@ type Text_Operation
             builder.append (Option "contains" "..Contains" [["substring", with_text]])
         Single_Choice options display=display
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Evaluate the operation - will be passed a Column or DB_Column
     evaluate : Any -> Table_Ref -> Any
     evaluate self column table:Table_Ref =
@@ -158,15 +174,15 @@ type Math_Operation
     ## Negate a column.
     Negate
 
-    ## Compute the remainder of a fixed value or column divided by another
-       value or column.
+    ## Compute the remainder of a fixed value or column divided by another value
+       or column.
     Mod (rhs : Column_Ref|Expression|Number = 1)
 
     ## Raise a fixed value or column to the power of another value or column.
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (precision:Integer = 0) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil
@@ -177,7 +193,15 @@ type Math_Operation
     ## Truncates the fractional part of values in the column.
     Truncate
 
-    ## PRIVATE
+    ## Returns the absolute value of each element in the column.
+    Absolute
+
+    ## Returns the sign of each element in the column.
+    Signum
+
+    ## ---
+       private: true
+       ---
     create_widget : Table_Ref -> Display -> Widget
     create_widget table:Table_Ref display:Display=Display.Always =
         with_number = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
@@ -193,9 +217,13 @@ type Math_Operation
             builder.append (Option "ceil" "..Ceil")
             builder.append (Option "floor" "..Floor")
             builder.append (Option "truncate" "..Truncate")
+            builder.append (Option "absolute" "..Absolute")
+            builder.append (Option "signum" "..Signum")
         Single_Choice options display=display
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Evaluate the operation - will be passed a Column or DB_Column
     evaluate : Any -> Table_Ref -> Any
     evaluate self column table:Table_Ref =
@@ -206,10 +234,14 @@ type Math_Operation
             Math_Operation.Negate -> column * -1
             Math_Operation.Mod rhs -> column % (table.resolve rhs)
             Math_Operation.Power rhs -> column ^ (table.resolve rhs)
-            Math_Operation.Round precision use_bankers -> column.round precision use_bankers
+            Math_Operation.Round precision rounding_mode -> column.round precision rounding_mode
             Math_Operation.Ceil -> column.ceil
             Math_Operation.Floor -> column.floor
             Math_Operation.Truncate -> column.truncate
+            Math_Operation.Absolute -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).abs
+            Math_Operation.Signum -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).signum
 
 ## Defines a set of Date based operations.
 type Date_Operation
@@ -243,7 +275,9 @@ type Date_Operation
     ## Returns the second of a Time or a Date_Time column.
     Second
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     create_widget : Table_Ref -> Display -> Widget
     create_widget table:Table_Ref display:Display=Display.Always =
         with_number = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
@@ -262,7 +296,9 @@ type Date_Operation
             builder.append (Option "second" "..Second")
         Single_Choice options display=display
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Evaluate the operation - will be passed a Column or DB_Column
     evaluate : Any -> Table_Ref -> Any
     evaluate self column table:Table_Ref =
@@ -289,7 +325,9 @@ type Logical_Operation
     ## Boolean OR on two boolean columns.
     Or (rhs : Column_Ref|Expression|Boolean =  False)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     create_widget : Table_Ref -> Display -> Widget
     create_widget table:Table_Ref display:Display=Display.Always =
         with_boolean = Widget_Helpers.make_column_ref_by_name_selector table add_boolean=True
@@ -300,7 +338,9 @@ type Logical_Operation
             builder.append (Option "or" "..Or" [["rhs", with_boolean]])
         Single_Choice options display=display
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Evaluate the operation - will be passed a Column or DB_Column
     evaluate : Any -> Table_Ref -> Any
     evaluate self column table:Table_Ref =
@@ -338,15 +378,15 @@ type Simple_Calculation
     ## Divide a fixed value or column by another value or column.
     Divide (rhs : Column_Ref|Expression|Number = 1)
 
-    ## Compute the remainder of a fixed value or column divided by another
-       value or column.
+    ## Compute the remainder of a fixed value or column divided by another value
+       or column.
     Mod (rhs : Column_Ref|Expression|Number = 1)
 
     ## Raise a fixed value or column to the power of another value or column.
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (precision:Integer = 0) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil

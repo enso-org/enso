@@ -5,15 +5,7 @@ import * as v from 'vitest'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 
-// =================
-// === Constants ===
-// =================
-
 const AJV = new Ajv()
-
-// =============
-// === Tests ===
-// =============
 
 fc.test.prop({
   value: fc.fc.anything({ withNullPrototype: true }),

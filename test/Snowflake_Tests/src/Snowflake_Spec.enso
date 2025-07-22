@@ -3,16 +3,12 @@ import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
-from Standard.Base.Enso_Cloud.Data_Link_Helpers import secure_value_to_json
 
-from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
-from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
+from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits, expr
+from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
-import Standard.Database.DB_Column.DB_Column
-import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Feature.Feature
-import Standard.Database.Dialect_Flag.Dialect_Flag
-import Standard.Database.SQL_Type.SQL_Type
+import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
@@ -34,6 +30,8 @@ import enso_dev.Table_Tests.Common_Table_Operations
 from enso_dev.Table_Tests.Common_Table_Operations.Util import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+import project.Auth_Spec
 
 type Snowflake_Info_Data
     Value ~data
@@ -473,9 +471,9 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             col . cast Value_Type.Integer . round 1 . value_type . should_equal (Value_Type.Decimal 38 0)
             col . cast Value_Type.Decimal . round 1 . value_type . should_equal (Value_Type.Decimal 38 1)
 
-            col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Float . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
 
             col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . ceil . value_type . should_equal (Value_Type.Decimal 38 0)
@@ -494,7 +492,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             result = table.at "x" |> op
             result.to_vector.at 0
 
-        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+        do_round n dp=0 rounding_mode=Rounding_Mode.Half_Up = do_op n (_.round dp rounding_mode)
 
         group_builder.specify "Can round correctly near the precision limit" <|
             do_round 1.2222222222222225 15 . should_equal 1.222222222222223
@@ -503,10 +501,10 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             do_round -1.2222222222222235 15 . should_equal -1.222222222222224
 
         group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
-            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
-            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
-            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
-            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+            do_round 1.2222222222222225 15 rounding_mode=Rounding_Mode.Bankers . should_equal 1.222222222222222
+            do_round -1.2222222222222225 15 rounding_mode=Rounding_Mode.Bankers . should_equal -1.222222222222222
+            do_round 1.2222222222222235 15 rounding_mode=Rounding_Mode.Bankers . should_equal 1.222222222222224
+            do_round -1.2222222222222235 15 rounding_mode=Rounding_Mode.Bankers . should_equal -1.222222222222224
 
         group_builder.specify "Can handle NaN/Infinity" <|
             ops = [.round, .truncate, .ceil, .floor]
@@ -556,6 +554,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
     Common_Table_Operations.Main.add_specs suite_builder setup
     Upload_Spec.add_specs suite_builder setup create_connection_fn
     IR_Spec.add_specs suite_builder setup prefix default_connection.get
+    Auth_Spec.add_specs suite_builder default_connection.get
 
 ## PRIVATE
 is_snowflake_integer value_type = case value_type of
@@ -570,7 +569,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 transform_file base_file connection_details =

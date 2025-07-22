@@ -8,6 +8,8 @@ module org.enso.runner {
   requires org.enso.librarymanager;
   requires org.enso.logging.config;
   requires org.enso.logging.utils;
+  requires org.enso.jvm.channel;
+  requires org.enso.os.environment;
   requires org.enso.runtime.parser;
   requires org.enso.runtime.version.manager;
   requires org.enso.runner.common;
@@ -18,7 +20,11 @@ module org.enso.runner {
   requires org.enso.version.output;
   requires org.graalvm.nativeimage;
   requires org.graalvm.polyglot;
-  requires org.jline;
+  requires org.jline.terminal;
+  requires org.jline.reader;
   requires scala.library;
   requires org.slf4j;
+
+  // required by Snowflake
+  requires java.rmi;
 }

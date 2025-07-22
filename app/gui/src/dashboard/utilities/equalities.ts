@@ -3,6 +3,7 @@
  *
  * This file contains functions for checking equality between values.
  */
+import { shallow } from 'zustand/shallow'
 
 /**
  * Strict equality check.
@@ -22,30 +23,5 @@ export function objectEquality<T>(a: T, b: T) {
  * Shallow equality check.
  */
 export function shallowEquality<T>(a: T, b: T) {
-  if (Object.is(a, b)) {
-    return true
-  }
-
-  if (typeof a !== 'object' || a == null || typeof b !== 'object' || b == null) {
-    return false
-  }
-
-  const keysA = Object.keys(a)
-
-  if (keysA.length !== Object.keys(b).length) {
-    return false
-  }
-
-  for (let i = 0; i < keysA.length; i++) {
-    const key = keysA[i]
-
-    if (key != null) {
-      // @ts-expect-error Typescript doesn't know that key is in a and b, but it doesn't matter here
-      if (!Object.prototype.hasOwnProperty.call(b, key) || !Object.is(a[key], b[key])) {
-        return false
-      }
-    }
-  }
-
-  return true
+  return shallow(a, b)
 }

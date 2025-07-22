@@ -79,6 +79,7 @@ object LauncherApplication {
         versionOverride,
         systemJVMOverride,
         jvmOpts,
+        jvm,
         additionalArgs
       ) mapN {
         (
@@ -89,6 +90,7 @@ object LauncherApplication {
           versionOverride,
           systemJVMOverride,
           jvmOpts,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).newProject(
@@ -99,6 +101,7 @@ object LauncherApplication {
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
+            jvm                 = Option(jvm),
             additionalArguments = additionalArgs
           )
       }
@@ -108,6 +111,13 @@ object LauncherApplication {
     Opts.prefixedParameters(
       "jvm",
       "These parameters will be passed to the launched JVM as -DKEY=VALUE."
+    )
+  private def jvm =
+    Opts.optionalParameter[Path](
+      "jvm",
+      "path",
+      "Runs Enso in JVM mode rather than the default native one.",
+      true
     )
   private def systemJVMOverride =
     Opts.flag(
@@ -157,6 +167,7 @@ object LauncherApplication {
         engineLogLevel,
         systemJVMOverride,
         jvmOpts,
+        jvm,
         additionalArgs
       ) mapN {
         (
@@ -165,6 +176,7 @@ object LauncherApplication {
           engineLogLevel,
           systemJVMOverride,
           jvmOpts,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).runRun(
@@ -172,6 +184,7 @@ object LauncherApplication {
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
+            jvm                 = Option(jvm),
             additionalArguments = additionalArgs,
             logLevel            = engineLogLevel
           )
@@ -186,7 +199,8 @@ object LauncherApplication {
       "runtimes without asking.",
       related = Seq("server")
     ) {
-      val rootId = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
+      val rootId    = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
+      val projectId = Opts.parameter[UUID]("project-id", "UUID", "Project id.")
       val path =
         Opts.parameter[Path]("path", "PATH", "Path to the content root.")
       val interface =
@@ -231,6 +245,7 @@ object LauncherApplication {
       val additionalArgs = Opts.additionalArguments()
       (
         rootId,
+        projectId,
         path,
         interface,
         rpcPort,
@@ -241,10 +256,12 @@ object LauncherApplication {
         engineLogLevel,
         systemJVMOverride,
         jvmOpts,
+        jvm,
         additionalArgs
       ) mapN {
         (
           rootId,
+          projectId,
           path,
           interface,
           rpcPort,
@@ -255,16 +272,19 @@ object LauncherApplication {
           engineLogLevel,
           systemJVMOverride,
           jvmOpts,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
               rootId         = rootId,
+              projectId      = projectId,
               interface      = interface,
               rpcPort        = rpcPort,
               secureRpcPort  = secureRpcPort,
               dataPort       = dataPort,
-              secureDataPort = secureDataPort
+              secureDataPort = secureDataPort,
+              jvm            = Option(jvm)
             ),
             contentRoot         = path,
             versionOverride     = versionOverride,
@@ -297,6 +317,7 @@ object LauncherApplication {
         engineLogLevel,
         systemJVMOverride,
         jvmOpts,
+        jvm,
         additionalArgs
       ) mapN {
         (
@@ -305,6 +326,7 @@ object LauncherApplication {
           engineLogLevel,
           systemJVMOverride,
           jvmOpts,
+          jvm,
           additionalArgs
         ) => (config: Config) =>
           Launcher(config).runRepl(
@@ -312,6 +334,7 @@ object LauncherApplication {
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
+            jvm                 = Option(jvm),
             additionalArguments = additionalArgs,
             logLevel            = engineLogLevel
           )

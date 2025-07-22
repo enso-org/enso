@@ -6,48 +6,31 @@ import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import org.enso.common.CompilationStage;
-import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.CompilerTests;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ModuleCacheTest {
-  private static Context ctx;
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
+          .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
+          .build();
 
   public ModuleCacheTest() {}
 
-  @BeforeClass
-  public static void initializeContext() throws Exception {
-    ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .build();
-  }
-
-  @AfterClass
-  public static void disposeContext() {
-    ctx.close();
-    ctx = null;
-  }
-
   @Test
   public void testCompareList() throws Exception {
-    var ensoCtx =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    var ensoCtx = ctxRule.ensoContext();
     var name = "Standard.Base.Data.List";
 
     var v =
-        ctx.eval("enso", """
+        ctxRule
+            .eval("enso", """
     import Standard.Base.Data.List
 
     empty = List.List.Nil
@@ -72,18 +55,15 @@ public class ModuleCacheTest {
 
   @Test
   public void testCompareWithWarning() throws Exception {
-    var ensoCtx =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    var ensoCtx = ctxRule.ensoContext();
     var name = "TestWarning";
     var code =
         Source.newBuilder("enso", """
       empty x = 42
       """, "TestWarning.enso").build();
 
-    var v = ctx.eval(code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "empty").execute(-1);
+    var v =
+        ctxRule.eval(code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "empty").execute(-1);
     assertEquals(42, v.asInt());
 
     var option = ensoCtx.findModule(name);

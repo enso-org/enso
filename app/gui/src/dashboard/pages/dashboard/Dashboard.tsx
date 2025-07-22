@@ -2,80 +2,38 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
-import { DashboardTabBar } from './DashboardTabBar'
-
-import * as eventCallbacks from '#/hooks/eventCallbackHooks'
+import Page from '#/components/Page'
+import { usePaywall } from '#/hooks/billing'
 import * as projectHooks from '#/hooks/projectHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
+import { CategoriesProvider } from '#/layouts/Drive/Categories'
+import { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, {
-  TabType,
-  useClearLaunchedProjects,
-  useLaunchedProjects,
-  usePage,
-  useProjectsStore,
-  useSetPage,
-  type LaunchedProject,
-} from '#/providers/ProjectsProvider'
-
-import AssetListEventType from '#/events/AssetListEventType'
-
-import type * as assetTable from '#/layouts/AssetsTable'
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import Chat from '#/layouts/Chat'
-import ChatPlaceholder from '#/layouts/ChatPlaceholder'
-import EventListProvider, * as eventListProvider from '#/layouts/Drive/EventListProvider'
-import type * as editor from '#/layouts/Editor'
-import UserBar from '#/layouts/UserBar'
-
-import * as aria from '#/components/aria'
-import Page from '#/components/Page'
-
-import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
-
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
-
-import { useSetCategory } from '#/providers/DriveProvider'
 import { baseName } from '#/utilities/fileInfo'
-import { tryFindSelfPermission } from '#/utilities/permissions'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { vueComponent } from '#/utilities/vue'
+import AppContainerInnerVue from '$/components/AppContainer/AppContainerInner.vue'
+import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import { useLaunchedProjects } from '$/providers/react/container'
 import { usePrefetchQuery } from '@tanstack/react-query'
-import { DashboardTabPanels } from './DashboardTabPanels'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 
-// =================
-// === Dashboard ===
-// =================
-
-/** Props for {@link Dashboard}s that are common to all platforms. */
+/** Dashboard properties */
 export interface DashboardProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
-  readonly appRunner: editor.GraphEditorRunner | null
-  readonly initialProjectName: string | null
-  readonly ydocUrl: string | null
+  readonly projectToOpen?:
+    | { readonly asset: backendModule.ProjectAsset; readonly backend: backendModule.BackendType }
+    | undefined
 }
 
-/** The component that contains the entire UI. */
-export default function Dashboard(props: DashboardProps) {
-  return (
-    <EventListProvider>
-      <ProjectsProvider>
-        <DashboardInner {...props} />
-      </ProjectsProvider>
-    </EventListProvider>
-  )
-}
+// This is a component, not a mere constant
+// eslint-disable-next-line no-restricted-syntax
+const AppContainerInner = vueComponent(AppContainerInnerVue).default
 
 /** Extract proper path from `file://` URL. */
 function fileURLToPath(url: string): string | null {
@@ -97,116 +55,82 @@ function fileURLToPath(url: string): string | null {
 }
 
 /** The component that contains the entire UI. */
-function DashboardInner(props: DashboardProps) {
-  const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
-  const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const { modalRef } = modalProvider.useModalRef()
-  const { updateModal, unsetModal, setModal } = modalProvider.useSetModal()
+export function Dashboard(props: DashboardProps) {
+  const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-
-  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
-
-  const initialLocalProjectPath =
-    initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
-  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
-
-  const [category, setCategoryRaw, resetCategory] =
-    searchParamsState.useSearchParamsState<categoryModule.Category>(
-      'driveCategory',
-      () => (localBackend != null ? { type: 'local' } : { type: 'cloud' }),
-      (value): value is categoryModule.Category =>
-        categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
-    )
-
-  const initialCategory = React.useRef(category)
-  const setStoreCategory = useSetCategory()
-  React.useEffect(() => {
-    setStoreCategory(initialCategory.current)
-  }, [setStoreCategory])
-
-  const setCategory = eventCallbacks.useEventCallback((newCategory: categoryModule.Category) => {
-    setCategoryRaw(newCategory)
-    setStoreCategory(newCategory)
-  })
-  const backend = backendProvider.useBackend(category)
-
-  const projectsStore = useProjectsStore()
-  const page = usePage()
+  const config = useConfig()
+  const initialProjectNameRaw = useVueValue(
+    React.useCallback(() => config.params.startup.project, [config]),
+  )
+  const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const launchedProjects = useLaunchedProjects()
-  // There is no shared enum type, but the other union member is the same type.
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-  const selectedProject = launchedProjects.find((p) => p.id === page) ?? null
-
-  const setPage = useSetPage()
-  const openEditor = projectHooks.useOpenEditor()
-  const openProject = projectHooks.useOpenProject()
-  const closeProject = projectHooks.useCloseProject()
-  const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = useClearLaunchedProjects()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
+  const initialAlreadyLaunchedProject = launchedProjects.find(
+    (lp) => lp.id === props.projectToOpen?.asset.id,
+  )
+  const initialAlreadyLaunchedHybridProject = launchedProjects.find(
+    (lp) => lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
+  )
 
   usePrefetchQuery({
-    queryKey: ['loadInitialLocalProject'],
+    queryKey: ['loadInitialProject'],
     networkMode: 'always',
     ...STATIC_QUERY_OPTIONS,
     queryFn: async () => {
-      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+      if (props.projectToOpen) {
+        if (
+          // If project is already on launched list, then the Editor.tsx will handle opening it.
+          !initialAlreadyLaunchedProject &&
+          !initialAlreadyLaunchedHybridProject &&
+          !projectHooks.BUSY_PROJECT_STATES.has(props.projectToOpen.asset.projectState.type)
+        ) {
+          await openProjectLocally(props.projectToOpen.asset, props.projectToOpen.backend)
+        }
+      } else if (initialLocalProjectPath != null && window.backendApi && localBackend) {
         const projectName = baseName(initialLocalProjectPath)
-        const { id } = await window.backendApi.importProjectFromPath(
+        const { id, projectRoot } = await window.backendApi.importProjectFromPath(
           initialLocalProjectPath,
           localBackend.rootPath(),
           projectName,
         )
-        openProject({
-          type: backendModule.BackendType.local,
-          id: localBackendModule.newProjectId(projectManager.UUID(id)),
-          title: projectName,
-          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
-        })
+        await openProjectLocally(
+          {
+            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            title: projectName,
+            parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+            ensoPath: backendModule.EnsoPath(projectRoot),
+          },
+          backendModule.BackendType.local,
+        )
       }
       return null
     },
-    staleTime: Infinity,
   })
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      setCategory({ type: 'local' })
-      const projectId = localBackendModule.newProjectId(projectManager.UUID(project.id))
-      openProject({
-        type: backendModule.BackendType.local,
-        id: projectId,
-        title: project.name,
-        parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
-      })
+      setDriveLocation(null, 'local')
+
+      const projectId = localBackendModule.newProjectId(
+        projectManager.UUID(project.id),
+        projectManager.Path(project.parentDirectory),
+      )
+
+      void openProjectLocally(
+        {
+          id: projectId,
+          title: project.name,
+          parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+          ensoPath: backendModule.EnsoPath(project.projectRoot),
+        },
+        backendModule.BackendType.local,
+      )
     })
+
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [dispatchAssetListEvent, openEditor, openProject, setCategory])
-
-  React.useEffect(
-    () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        closeModal: () => {
-          updateModal((oldModal) => {
-            if (oldModal == null) {
-              const currentPage = projectsStore.getState().page
-              if (currentPage === TabType.settings) {
-                setPage(TabType.drive)
-              }
-            }
-            return null
-          })
-          if (modalRef.current == null) {
-            return false
-          }
-        },
-      }),
-    [inputBindings, modalRef, updateModal, setPage, projectsStore],
-  )
+  }, [openProjectLocally])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {
@@ -222,99 +146,36 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doRemoveSelf = eventCallbacks.useEventCallback((project: LaunchedProject) => {
-    dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id: project.id })
-    closeProject(project)
-  })
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => modalProvider.unsetModal(),
+      }),
+    [inputBindings],
+  )
 
-  const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage(TabType.drive)
-    closeAllProjects()
-    clearLaunchedProjects()
-  })
-
-  const doOpenShareModal = eventCallbacks.useEventCallback(() => {
-    if (assetManagementApiRef.current != null && selectedProject != null) {
-      const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
-      const self = tryFindSelfPermission(user, asset?.permissions)
-
-      if (asset != null && self != null) {
-        setModal(
-          <ManagePermissionsModal
-            backend={backend}
-            category={category}
-            item={asset}
-            self={self}
-            doRemoveSelf={() => {
-              doRemoveSelf(selectedProject)
-            }}
-            eventTarget={null}
-          />,
-        )
-      }
-    }
-  })
-
-  const goToSettings = eventCallbacks.useEventCallback(() => {
-    setPage(TabType.settings)
-  })
+  const closeProject = projectHooks.useCloseProject()
+  const closeAllProjects = projectHooks.useCloseAllProjects()
+  const { user } = useFullUserSession()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   return (
-    <Page hideInfoBar hideChat>
-      <div
-        className="flex min-h-full flex-col text-xs text-primary"
-        onContextMenu={(event) => {
-          event.preventDefault()
-          unsetModal()
-        }}
-      >
-        <aria.Tabs
-          className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={page}
-          onSelectionChange={(newPage) => {
-            // This is safe as we render only valid pages.
-            // eslint-disable-next-line no-restricted-syntax
-            setPage(newPage as TabType)
+    <CategoriesProvider>
+      <Page hideInfoBar>
+        <div
+          className="flex min-h-full flex-col text-xs text-primary"
+          onContextMenu={(event) => {
+            event.preventDefault()
+            modalProvider.unsetModal()
           }}
         >
-          <div className="flex">
-            <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
-
-            <UserBar
-              onShareClick={selectedProject ? doOpenShareModal : undefined}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              goToSettingsPage={goToSettings}
-              onSignOut={onSignOut}
-            />
-          </div>
-
-          <DashboardTabPanels
-            appRunner={appRunner}
-            initialProjectName={initialProjectName}
-            ydocUrl={ydocUrl}
-            assetManagementApiRef={assetManagementApiRef}
-            category={category}
-            setCategory={setCategory}
-            resetCategory={resetCategory}
+          <AppContainerInner
+            onCloseProject={closeProject}
+            onCloseAllProjects={closeAllProjects}
+            isFeatureUnderPaywall={isFeatureUnderPaywall}
           />
-        </aria.Tabs>
-
-        {process.env.ENSO_CLOUD_CHAT_URL != null ?
-          <Chat
-            isOpen={isHelpChatOpen}
-            doClose={() => {
-              setIsHelpChatOpen(false)
-            }}
-            endpoint={process.env.ENSO_CLOUD_CHAT_URL}
-          />
-        : <ChatPlaceholder
-            isOpen={isHelpChatOpen}
-            doClose={() => {
-              setIsHelpChatOpen(false)
-            }}
-          />
-        }
-      </div>
-    </Page>
+        </div>
+      </Page>
+    </CategoriesProvider>
   )
 }

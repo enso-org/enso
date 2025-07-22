@@ -3,7 +3,6 @@ import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
 import type { WebSocketHandler } from '@/util/net'
 import type { QualifiedName } from '@/util/qualifiedName'
-import * as random from 'lib0/random'
 import {
   Builder,
   EnsoUUID,
@@ -30,7 +29,7 @@ import { mockFsDirectoryHandle, type FileTree } from '../util/convert/fsAccess'
 import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
 import mockDb from './mockSuggestions.json' with { type: 'json' }
 
-const mockProjectId = random.uuidv4() as Uuid
+const mockProjectId = crypto.randomUUID() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
 
 function placeholderGroups(): LibraryComponentGroup[] {
@@ -49,7 +48,7 @@ const mainFile = `\
 ## Module documentation
 from Standard.Base import all
 
-## A collapsed function
+## A User Defined Function
 func1 arg =
     f2 = Main.func2 arg
     result = f2 - 5
@@ -66,8 +65,18 @@ func2 a =
    ![Image](/images/image.png)
    ![Image](../images/image.png)
    ![Image](</images/image.png>)
+   
+   This is a video:
+
+   ![Video](<https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ>)
 
    Here is a link: <https://example.com>
+
+   Nested lists:
+    - List element
+      - Nested list element
+        - Very nested list element
+    - Outer list element
 main =
     five = 5
     ten = 10
@@ -84,6 +93,8 @@ main =
     aggregated = data.aggregate
     autoscoped = data.aggregate [..Group_By]
     selected = data.select_columns
+
+# To test for regressions in #12476, this line is really long and we test that the code editor doesn't resize to fit it. This line is really really long. This line is really REALLY long.
 `
 
 const fileTree = {
@@ -363,7 +374,7 @@ function mockWidgetConfiguration(method: string | undefined) {
 }
 
 function createMessageId(builder: Builder) {
-  const messageUuid = random.uuidv4()
+  const messageUuid = crypto.randomUUID()
   const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
   return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
 }
@@ -373,15 +384,29 @@ function createId(id: Uuid) {
   return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, low, high)
 }
 
-function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
-  const vizDataHandler =
+type VizRequest = { type: 'widget'; id: string | undefined } | { type: 'visualization'; id: string }
+function recognizeVizRequest(config: VisualizationConfiguration): VizRequest {
+  return (
     typeof config.expression === 'string' ?
       // Getting widget configuration is a special case, where we sometimes pass lambda as
       // expression to discard the input value
       /^[a-z_]+ *->.*get_widget_json/.test(config.expression) ?
-        mockWidgetConfiguration(config.positionalArgumentsExpressions?.at(0))
-      : mockVizPreprocessors[`${config.visualizationModule}.${config.expression}`]
-    : mockVizPreprocessors[`${config.expression.definedOnType}.${config.expression.name}`]
+        ({ type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } satisfies VizRequest)
+      : ({
+          type: 'visualization',
+          id: `${config.visualizationModule}.${config.expression}`,
+        } satisfies VizRequest)
+    : ({
+        type: 'visualization',
+        id: `${config.expression.definedOnType}.${config.expression.name}`,
+      } satisfies VizRequest)
+  )
+}
+
+function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
+  const req = recognizeVizRequest(config)
+  const vizDataHandler =
+    req.type === 'visualization' ? mockVizPreprocessors[req.id] : mockWidgetConfiguration(req.id)
   if (!vizDataHandler || !sendData) return
   const vizData =
     vizDataHandler instanceof Uint8Array ? vizDataHandler : (
@@ -566,6 +591,17 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       return Promise.reject(`Method '${method}' not mocked`)
   }
 }
+
+function updateVisualization(preprocessor: string, data: unknown) {
+  for (const [id, config] of visualizations.entries()) {
+    if (recognizeVizRequest(config).id === preprocessor) {
+      const exprId = visualizationExprIds.get(id)
+      const vizData = encodeJSON(data)
+      sendVizUpdate(id, config.executionContextId, exprId, vizData)
+    }
+  }
+}
+;(window as any)._mockVisualizationDataUpdate = updateVisualization
 
 const directory = mockFsDirectoryHandle(fileTree, '(root)')
 

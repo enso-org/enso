@@ -361,7 +361,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
         u.ir(null);
         u.compilationStage(CompilationStage.INITIAL);
       });
-      getCompiler().ensureParsed(mod, false);
+      getCompiler().ensureParsed(mod, false, false);
       bindingsMap = mod.getBindingsMap();
     }
     return bindingsMap;

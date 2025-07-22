@@ -66,7 +66,7 @@ record ModuleSources(TruffleFile file, Rope rope, Source source) {
     if (source != null) {
       return this;
     }
-    if (rope() != null) {
+    if (rope != null) {
       Source src = Source.newBuilder(LanguageInfo.ID, rope.characters(), name.toString()).build();
       return new ModuleSources(file, rope, src);
     } else if (file != null) {
@@ -112,9 +112,21 @@ record ModuleSources(TruffleFile file, Rope rope, Source source) {
       return;
     }
     var libName = root.getParent();
+    if (libName == null) {
+      return;
+    }
     var libNamespace = libName.getParent();
+    if (libNamespace == null) {
+      return;
+    }
     var libVersion = libNamespace.getParent().getParent();
+    if (libVersion == null || libVersion.getParent() == null) {
+      return;
+    }
     var builtDistribution = libVersion.getParent().getParent();
+    if (builtDistribution == null) {
+      return;
+    }
     if ("built-distribution".equals(builtDistribution.getName())) {
       var repositoryRoot = builtDistribution.getParent();
       var distRoot = repositoryRoot.resolve("distribution").resolve("lib");

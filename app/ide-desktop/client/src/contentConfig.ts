@@ -38,4 +38,4 @@ export const VERSION = {
 
 import CONFIG from './config.json' with { type: 'json' }
 
-export const OPTIONS = linkedDist.config.options.merge(linkedDist.config.objectToGroup(CONFIG))
+export const OPTIONS = linkedDist.config.objectToGroup(CONFIG)

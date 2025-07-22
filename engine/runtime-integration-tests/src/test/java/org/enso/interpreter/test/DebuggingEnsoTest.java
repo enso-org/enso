@@ -42,23 +42,23 @@ import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public class DebuggingEnsoTest {
-  private Context context;
-  private Engine engine;
-  private Debugger debugger;
-  private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private static Context context;
+  private static Engine engine;
+  private static Debugger debugger;
+  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-  @Before
-  public void initContext() {
-    out.reset();
+  @BeforeClass
+  public static void initContext() {
     engine =
         Engine.newBuilder()
             .allowExperimentalOptions(true)
@@ -85,12 +85,19 @@ public class DebuggingEnsoTest {
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
   }
 
-  @After
-  public void disposeContext() throws IOException {
+  @AfterClass
+  public static void disposeContext() throws IOException {
     context.close();
     context = null;
     engine.close();
     engine = null;
+    debugger = null;
+    out.close();
+  }
+
+  @Before
+  public void resetOut() {
+    out.reset();
   }
 
   /** Only print warnings from the compiler if a test fails. */
@@ -307,10 +314,10 @@ public class DebuggingEnsoTest {
 
         foo _ =
             d_enso = Date.new 2024 12 15
-            d_js = js_date
             d_java = Date.parse "2024-12-15"
             dt_enso = Date_Time.now
             dt_java = Date_Time.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
+            dt_js = js_date
             str_enso = "Hello_World"
             str_js = js_str
             str_java = String.new "Hello_World"
@@ -335,13 +342,13 @@ public class DebuggingEnsoTest {
 
                   DebugValue ensoDate = scope.getDeclaredValue("d_enso");
                   DebugValue javaDate = scope.getDeclaredValue("d_java");
-                  DebugValue jsDate = scope.getDeclaredValue("d_js");
                   assertSameProperties(ensoDate.getProperties(), javaDate.getProperties());
-                  assertSameProperties(ensoDate.getProperties(), jsDate.getProperties());
 
                   DebugValue ensoDateTime = scope.getDeclaredValue("dt_enso");
                   DebugValue javaDateTime = scope.getDeclaredValue("dt_java");
+                  DebugValue jsDateTime = scope.getDeclaredValue("dt_js");
                   assertSameProperties(ensoDateTime.getProperties(), javaDateTime.getProperties());
+                  assertSameProperties(ensoDateTime.getProperties(), jsDateTime.getProperties());
 
                   DebugValue ensoString = scope.getDeclaredValue("str_enso");
                   DebugValue javaString = scope.getDeclaredValue("str_java");
@@ -637,18 +644,10 @@ public class DebuggingEnsoTest {
                   assertThat(objValue.isInternal(), is(false));
                   assertThat(objValue.hasReadSideEffects(), is(false));
 
-                  var field1Prop = objValue.getProperty("field_1");
-                  assertThat(field1Prop.isReadable(), is(true));
-                  assertThat(field1Prop.isNumber(), is(true));
-                  assertThat(field1Prop.asInt(), is(1));
-
-                  assertThat(objValue.getProperties().size(), is(2));
-                  for (var prop : objValue.getProperties()) {
-                    assertThat(
-                        "Property '" + prop.getName() + "' should be readable",
-                        prop.isReadable(),
-                        is(true));
-                    assertThat(prop.isNumber(), is(true));
+                  for (var propName : List.of("field_1", "field_2")) {
+                    var fieldProp = objValue.getProperty(propName);
+                    assertThat(fieldProp.isReadable(), is(true));
+                    assertThat(fieldProp.isNumber(), is(true));
                   }
                 }
               }
@@ -684,13 +683,10 @@ public class DebuggingEnsoTest {
                   assertThat(objValue.isInternal(), is(false));
                   assertThat(objValue.hasReadSideEffects(), is(false));
 
-                  assertThat("Has fields f1 and f2", objValue.getProperties().size(), is(2));
-                  for (var prop : objValue.getProperties()) {
-                    assertThat(
-                        "Property '" + prop.getName() + "' should be readable",
-                        prop.isReadable(),
-                        is(true));
-                    assertThat(prop.isNumber(), is(true));
+                  for (var propName : List.of("f1", "f2")) {
+                    var fieldProp = objValue.getProperty(propName);
+                    assertThat(fieldProp.isReadable(), is(true));
+                    assertThat(fieldProp.isNumber(), is(true));
                   }
                 }
               }
@@ -854,6 +850,47 @@ public class DebuggingEnsoTest {
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));
     testStepping(src, "foo", new Object[] {0}, steps, expectedLineNumbers);
+  }
+
+  @Test
+  public void testEvaluateLazyField() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        from Standard.Base.Any import all
+
+        type Generator
+            Value n ~next
+
+        natural =
+            gen n = Generator.Value n (gen n+1)
+            gen 2
+
+        foo x =
+            two = natural
+            three = two.next
+            end = 0
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "end = 0" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  var twoValue = scope.getDeclaredValue("two");
+                  assertThat(twoValue.isReadable(), is(true));
+                  var nProp = twoValue.getProperty("n");
+                  assertThat("n property should be readable", nProp.asInt(), is(2));
+                  var nextProp = twoValue.getProperty("next");
+                  assertThat("next property is readable", nextProp.isReadable(), is(true));
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
   }
 
   private static final class FrameEntry {

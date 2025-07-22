@@ -10,6 +10,7 @@ import type * as accessToken from 'enso-common/src/accessToken'
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as projectManagement from '@/projectManagement'
+import { FileFilter } from './fileBrowser'
 
 // Even though this is already built as an mjs module, we are "faking" cjs format on preload script
 // due to missing module support. Since this is the only module that's treated as external by
@@ -31,13 +32,14 @@ const NAVIGATION_API_KEY = 'navigationApi'
 const MENU_API_KEY = 'menuApi'
 const SYSTEM_API_KEY = 'systemApi'
 const VERSION_INFO_KEY = 'versionInfo'
+const MAPBOX_API_TOKEN_KEY = 'mapBoxApiToken'
 
 // =========================
 // === exposeInMainWorld ===
 // =========================
 
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
-function exposeInMainWorld<Key extends string & keyof typeof window>(
+function exposeInMainWorld<Key extends string & keyof Window>(
   key: Key,
   value: NonNullable<(typeof window)[Key]>,
 ) {
@@ -56,7 +58,7 @@ const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
 exposeInMainWorld(BACKEND_API_KEY, {
   importProjectFromPath: (projectPath: string, directory: string | null = null, title: string) => {
     electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory, title)
-    return new Promise<projectManagement.ProjectInfo>(resolve => {
+    return new Promise<projectManagement.ProjectInfo>((resolve) => {
       IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
     })
   },
@@ -146,8 +148,11 @@ exposeInMainWorld(AUTHENTICATION_API_KEY, {
 // ========================
 
 exposeInMainWorld(FILE_BROWSER_API_KEY, {
-  openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
-    electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
+  openFileBrowser: (
+    kind: 'any' | 'directory' | 'file' | 'filePath',
+    defaultPath?: string,
+    filters?: FileFilter[],
+  ) => electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath, filters),
 })
 
 // ==============================
@@ -192,11 +197,14 @@ exposeInMainWorld(MENU_API_KEY, {
 // ==================
 
 exposeInMainWorld(SYSTEM_API_KEY, {
-  downloadURL: (url: string, headers?: Record<string, string>) => {
-    electron.ipcRenderer.send(ipc.Channel.downloadURL, url, headers)
+  downloadURL: (options) => {
+    return electron.ipcRenderer.invoke(ipc.Channel.downloadURL, options)
   },
   showItemInFolder: (fullPath: string) => {
     electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)
+  },
+  getFilePath: (item: File) => {
+    return electron.webUtils.getPathForFile(item)
   },
 })
 
@@ -205,3 +213,9 @@ exposeInMainWorld(SYSTEM_API_KEY, {
 // ====================
 
 exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
+
+// ==================
+// === MapBox API ===
+// ==================
+
+exposeInMainWorld(MAPBOX_API_TOKEN_KEY, () => process.env.ENSO_IDE_MAPBOX_API_TOKEN || '')

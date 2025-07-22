@@ -2,7 +2,7 @@ package org.enso.table.aggregations;
 
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -11,7 +11,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the standard deviation of a group. */
-public class StandardDeviation extends Aggregator {
+public class StandardDeviation extends KnownTypeAggregator {
   private static class Calculation {
     public long count;
     public double total;
@@ -24,7 +24,7 @@ public class StandardDeviation extends Aggregator {
     }
   }
 
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
   private final boolean population;
 
   public StandardDeviation(String name, Column column, boolean population) {

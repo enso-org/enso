@@ -1,11 +1,17 @@
 from Standard.Base import all
+
 from Standard.Table import Table
+
 import project.Helpers
 
-## PRIVATE
+## ---
+   private: true
+   ---
 goal_placeholder = "__$$GOAL$$__"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Table.build_ai_prompt self =
     ops = ["aggregate","filter_by_expression","sort","row_count","set","select_columns","transpose","join"]
     aggs = ["Count","Average","Sum","Median","First","Last","Maximum","Minimum"]
@@ -29,12 +35,15 @@ Table.build_ai_prompt self =
     goal_line = "goal=" + goal_placeholder + "==>>`"
     base_prompt + '\n' + columns + goal_line
 
-# TODO [ao]: commented, because it caused weird responses in GUI - see https://github.com/enso-org/enso/issues/9518
-# ## PRIVATE
-# Any.build_ai_prompt self = "````"
-
-## PRIVATE
+## TODO [ao]: commented, because it caused weird responses in GUI - see https://github.com/enso-org/enso/issues/9518
+## ## PRIVATE
+## Any.build_ai_prompt self = "````"
+## ---
+   private: true
+   ---
 build_ai_prompt subject = subject.build_ai_prompt
 
-## PRIVATE
+## ---
+   private: true
+   ---
 print subject = subject.to_default_visualization_data

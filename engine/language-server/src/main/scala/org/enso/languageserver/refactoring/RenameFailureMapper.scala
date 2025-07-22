@@ -15,6 +15,9 @@ object RenameFailureMapper {
       case error: Api.SymbolRenameFailed.ExpressionNotFound =>
         RefactoringApi.ExpressionNotFoundError(error.expressionId)
 
+      case error: Api.SymbolRenameFailed.DefinitionAlreadyExists =>
+        RefactoringApi.DefinitionAlreadyExists(error.name)
+
       case error: Api.SymbolRenameFailed.FailedToApplyEdits =>
         RefactoringApi.FailedToApplyEdits(error.module)
 

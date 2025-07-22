@@ -1,0 +1,25 @@
+from Standard.Base import all
+
+## ---
+   private: true
+   ---
+   Type to specify the maximum number of rows or unlimited.
+type Row_Limit
+    ## Allow unlimited.
+    No_Limit
+
+    ## Limit to a specific number of rows.
+    Limit n:Integer=100
+
+## ---
+   private: true
+   ---
+Row_Limit.from (that:Nothing) =
+    _ = that
+    Row_Limit.No_Limit
+
+## ---
+   private: true
+   ---
+Row_Limit.from (that:Integer) =
+    Row_Limit.Limit that

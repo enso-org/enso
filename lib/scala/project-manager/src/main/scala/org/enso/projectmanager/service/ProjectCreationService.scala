@@ -23,7 +23,8 @@ class ProjectCreationService[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
 ](
   distributionConfiguration: DistributionConfiguration,
-  loggingServiceDescriptor: LoggingServiceDescriptor
+  loggingServiceDescriptor: LoggingServiceDescriptor,
+  jvm: Option[Option[Path]]
 ) extends ProjectCreationServiceApi[F] {
 
   private lazy val logger = Logger[ProjectCreationService[F]]
@@ -61,6 +62,7 @@ class ProjectCreationService[
             path,
             name,
             engineVersion,
+            jvm,
             None,
             projectTemplate,
             None,

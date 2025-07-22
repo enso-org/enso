@@ -1,15 +1,13 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.enso.common.MethodNames.Module;
 import org.enso.compiler.benchmarks.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -32,7 +30,7 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 @State(Scope.Benchmark)
 public class IfVsCaseBenchmarks {
   private static final int INPUT_VEC_SIZE = 100_000;
-  private Context ctx;
+  private ContextUtils ctx;
   private Value ifBench3;
   private Value caseBench3;
   private Value ifBench6;
@@ -43,8 +41,7 @@ public class IfVsCaseBenchmarks {
 
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {
-    OutputStream out = new ByteArrayOutputStream();
-    ctx = Utils.createDefaultContextBuilder().out(out).err(out).build();
+    ctx = Utils.createDefaultContextBuilder().build();
 
     var code =
         """

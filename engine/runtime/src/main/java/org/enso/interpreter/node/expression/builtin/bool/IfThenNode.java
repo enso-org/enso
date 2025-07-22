@@ -9,7 +9,6 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Boolean",
@@ -24,13 +23,13 @@ public abstract class IfThenNode extends Node {
     return IfThenNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, State state, boolean self, @Suspend Object if_true);
+  abstract Object execute(VirtualFrame frame, boolean self, @Suspend Object if_true);
 
   @Specialization
-  Object doExecute(VirtualFrame frame, State state, boolean self, Object if_true) {
+  Object doExecute(VirtualFrame frame, boolean self, Object if_true) {
     if (condProfile.profile(self)) {
       return leftThunkExecutorNode.executeThunk(
-          frame, if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
+          frame, if_true, EnsoContext.get(this).currentState(), BaseNode.TailStatus.TAIL_DIRECT);
     } else {
       return EnsoContext.get(this).getNothing();
     }

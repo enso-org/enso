@@ -10,7 +10,11 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 // Before moving this definition to the `bool` package, as we should, one would have to address that
 // problem first.
 @BuiltinType(name = "Standard.Base.Data.Boolean.Boolean")
-public class Boolean extends Builtin {
+public final class Boolean extends Builtin {
+  public Boolean() {
+    super(java.lang.Boolean.class);
+  }
+
   @Override
   protected List<Cons> getDeclaredConstructors() {
     return List.of(new Cons("False"), new Cons("True"));

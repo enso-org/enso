@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
@@ -18,8 +18,8 @@ import org.graalvm.polyglot.Context;
  * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,
  * does count when all items are null.
  */
-public class CountDistinct extends Aggregator {
-  private final Storage<?>[] storage;
+public class CountDistinct extends KnownTypeAggregator {
+  private final ColumnStorage<?>[] storage;
   private final List<TextFoldingStrategy> textFoldingStrategy;
   private final boolean ignoreAllNull;
 
@@ -32,7 +32,7 @@ public class CountDistinct extends Aggregator {
    */
   public CountDistinct(String name, Column[] columns, boolean ignoreAllNull) {
     super(name, IntegerType.INT_64);
-    this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     this.ignoreAllNull = ignoreAllNull;
     textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, storage.length);

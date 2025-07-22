@@ -1,14 +1,11 @@
-/// <reference types="histoire" />
-
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
-import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
-import { defineConfig, type Plugin } from 'vite'
+import { defaultClientConditions, defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
@@ -17,38 +14,33 @@ import reactCompiler from 'babel-plugin-react-compiler'
 // @ts-expect-error We don't need to typecheck this file
 import syntaxImportAttributes from '@babel/plugin-syntax-import-attributes'
 
-const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
-const projectManagerUrl = dynHostnameWsUrl(process.env.INTEGRATION_TEST === 'true' ? 30536 : 30535)
-const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER_URL =
-  process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
-  : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
-  : undefined
+const isDevMode = process.env.NODE_ENV === 'development'
+const isE2E = process.env.INTEGRATION_TEST === 'true'
+const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
-await readEnvironmentFromFile()
+const entrypoint = isE2E ? './src/project-view/test-entrypoint.ts' : './src/entrypoint.ts'
 
-const entrypoint =
-  process.env.INTEGRATION_TEST === 'true' ?
-    './src/project-view/test-entrypoint.ts'
-  : './src/entrypoint.ts'
+if (isDevMode) {
+  process.env.ENSO_IDE_YDOC_SERVER_URL ||= 'ws://__HOSTNAME__:5976'
+}
 
-// NOTE(Frizi): This rename is for the sake of forward compatibility with not yet merged config refactor on bazel branch,
-// and because Vite's HTML env replacements only work with import.meta.env variables, not defines.
-process.env.ENSO_IDE_VERSION ??= process.env.ENSO_CLOUD_DASHBOARD_VERSION
-console.info(`Building IDE version: ${process.env.ENSO_IDE_VERSION}`)
-
-const isCI = process.env.CI === 'true'
+// Used by vite middleware inside devtools plugin. Specifying this by an option doesn't work when `componentInspector` is false.
+process.env.LAUNCH_EDITOR ??= 'code'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: fileURLToPath(new URL('.', import.meta.url)),
+  ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
-  publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  envDir: fileURLToPath(new URL('.', import.meta.url)),
-  logLevel: isCI ? 'error' : 'info',
   plugins: [
     wasm(),
-    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
+    ...(isDevMode ?
+      [
+        await VueDevTools({
+          // The JSX transform used by the inspector is causing react to complain and adds significant load time.
+          componentInspector: false,
+        }),
+      ]
+    : []),
     vue({
       customElement: ['**/components/visualizations/**', '**/components/shared/**'],
       template: {
@@ -58,7 +50,11 @@ export default defineConfig({
       },
     }),
     react({
-      include: fileURLToPath(new URL('./src/dashboard/**/*.tsx', import.meta.url)),
+      include: [
+        fileURLToPath(new URL('./src/**/*.tsx', import.meta.url)),
+        fileURLToPath(new URL('./src/dashboard/**/use*.ts', import.meta.url)),
+        fileURLToPath(new URL('./src/dashboard/**/*Hooks.ts', import.meta.url)),
+      ],
       babel: {
         plugins: [
           syntaxImportAttributes,
@@ -66,36 +62,62 @@ export default defineConfig({
         ],
       },
     }),
-    ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
+    ...(process.env.DASHBOARD_TESTS !== 'true' ? [await projectManagerShim()] : []),
+    ...((
+      process.env.SENTRY_AUTH_TOKEN != null &&
+      process.env.ENSO_IDE_SENTRY_ORGANIZATION != null &&
+      process.env.ENSO_IDE_SENTRY_PROJECT != null
+    ) ?
+      [
+        sentryVitePlugin({
+          org: process.env.ENSO_IDE_SENTRY_ORGANIZATION,
+          project: process.env.ENSO_IDE_SENTRY_PROJECT,
+          ...(process.env.ENSO_IDE_VERSION != null ?
+            { release: { name: process.env.ENSO_IDE_VERSION } }
+          : {}),
+        }),
+      ]
+    : []),
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
+    exclude: ['enso-common'],
+    holdUntilCrawlEnd: true,
   },
   server: {
-    headers: Object.fromEntries(COOP_COEP_CORP_HEADERS),
+    warmup: {
+      // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
+      clientFiles: [
+        './src/**/*.vue',
+        './src/**/*.tsx',
+        './src/dashboard/hooks/**/*.ts',
+        './src/dashboard/tailwind.css',
+        './node_modules/@tanstack/**/*.js',
+      ],
+    },
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Resource-Policy': 'same-origin',
+    },
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: ['source'],
+    conditions: isDevMode ? ['source', ...defaultClientConditions] : [...defaultClientConditions],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
+      $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   envPrefix: 'ENSO_IDE_',
   define: {
-    ...getDefines(),
-    IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
-    PROJECT_MANAGER_URL: projectManagerUrl,
-    YDOC_SERVER_URL: YDOC_SERVER_URL,
-    'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
   esbuild: {
-    dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+    dropLabels: isDevMode ? [] : ['DEV'],
     supported: {
       'top-level-await': true,
     },
@@ -106,16 +128,33 @@ export default defineConfig({
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
+  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          config: ['./src/config'],
+          entrypoint: ['./src/entrypoint'],
+        },
+      },
+    },
+  },
+  preview: {
+    port: 5173,
   },
 })
+
 async function projectManagerShim(): Promise<Plugin> {
   const module = await import('./project-manager-shim-middleware')
   return {
     name: 'project-manager-shim',
     configureServer(server) {
+      server.middlewares.use(module.default)
+    },
+    configurePreviewServer(server) {
       server.middlewares.use(module.default)
     },
   }

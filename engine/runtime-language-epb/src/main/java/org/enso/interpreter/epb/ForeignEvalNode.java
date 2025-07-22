@@ -9,6 +9,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import java.util.Arrays;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -27,6 +28,11 @@ final class ForeignEvalNode extends RootNode {
   static ForeignEvalNode parse(EpbLanguage epb, Source langAndCode, List<String> args) {
     var node = new ForeignEvalNode(epb, langAndCode, args);
     return node;
+  }
+
+  @Override
+  public boolean isInternal() {
+    return true;
   }
 
   private String truffleId(Source langAndCode) {
@@ -74,13 +80,17 @@ final class ForeignEvalNode extends RootNode {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var id = truffleId(langAndCode);
       var context = EpbContext.get(this);
-      var installedLanguages = context.getEnv().getInternalLanguages();
+      var installedLanguages = context.getEnv().getPublicLanguages();
       var node =
           switch (installedLanguages.containsKey(id) ? 1 : 0) {
-            case 0 -> {
-              var ex = new ForeignParsingException(id, installedLanguages.keySet(), this);
-              yield new ExceptionForeignNode(ex);
-            }
+            case 0 -> switch (id) {
+              case "java" -> parseJava();
+              default -> {
+                var sortedLangs = new TreeSet<>(installedLanguages.keySet());
+                var ex = new ForeignParsingException(id, sortedLangs, this);
+                yield new ExceptionForeignNode(ex);
+              }
+            };
             default -> {
               context.log(
                   Level.FINE,
@@ -101,6 +111,16 @@ final class ForeignEvalNode extends RootNode {
       return toRet;
     } catch (InteropException ex) {
       throw new ForeignParsingException(ex.getMessage(), this);
+    }
+  }
+
+  private ForeignFunctionCallNode parseJava() {
+    var code = foreignSource(langAndCode);
+    var context = EpbContext.get(this);
+    if ("hosted".equals(code)) {
+      return JavaPolyglotNode.createHosted(context);
+    } else {
+      return JavaPolyglotNode.create(context);
     }
   }
 

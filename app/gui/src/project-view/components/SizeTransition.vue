@@ -14,6 +14,7 @@
 export default {}
 </script>
 <script setup lang="ts">
+import { useLayoutAnimationReporter } from '@/providers/animationCounter'
 import { hookBeforeFunctionCall } from '@/util/patching'
 import { nextTick } from 'vue'
 
@@ -34,6 +35,8 @@ const props = withDefaults(
   }>(),
   { duration: 200, easing: 'ease-out' },
 )
+
+const animReporter = useLayoutAnimationReporter()
 
 type Done = (cancelled: boolean) => void
 type StyleSnapshot = { width: string; height: string; marginLeft: string; progress: string }
@@ -125,13 +128,19 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
     cleanup(e)
     done(true)
   })
+  animation.addEventListener('remove', () => {
+    cleanup(e)
+    done(true)
+  })
   e.dataset['transitioning'] = isEnter ? 'enter' : 'leave'
+  animReporter.reportAnimationStarted()
   animation.play()
   animationsMap.set(e, animation)
 }
 
 function cleanup(e: HTMLElement) {
   delete e.dataset['transitioning']
+  animReporter.reportAnimationEnded()
 }
 </script>
 

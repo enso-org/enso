@@ -4,14 +4,20 @@ import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
 import { Pattern } from '@/util/ast/match'
+import { partition } from '@/util/data/array'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { ToolbarItem } from './toolbar'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
-export const inputType = 'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector'
-const DEFAULT_LIMIT = 1024
+export const inputType =
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Base.Data.Vector.Vector'
+
+// The number of points to display by default.
+const DEFAULT_LIMIT = 15000
+
 export const defaultPreprocessor = [
   'Standard.Visualization.Scatter_Plot',
   'process_to_json_text',
@@ -127,7 +133,7 @@ const POINT_LABEL_PADDING_Y_PX = 2
 const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
-const SIZE_SCALE_MULTIPLER = 100
+const SIZE_SCALE_MULTIPLER = 50
 const DEFAULT_FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
 
 const ZOOM_EXTENT = [0.5, 20] satisfies d3.BrushSelection
@@ -147,7 +153,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
 const createDateTime = (x: DateObj) => {
   const dateTime = new Date()
   if (x.day != null) dateTime.setDate(x.day)
-  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.month != null) dateTime.setMonth(x.month - 1)
   if (x.year != null) dateTime.setFullYear(x.year)
   if (x.hour != null) dateTime.setHours(x.hour)
   if (x.minute != null) dateTime.setMinutes(x.minute)
@@ -161,7 +167,7 @@ const data = computed<Data>(() => {
     Array.isArray(rawData) ?
       // eslint-disable-next-line camelcase
       rawData.map((y, index) => ({ x: index, y, row_number: index }))
-    : rawData.data ?? []
+    : (rawData.data ?? [])
   let data: Point[]
   const isTimeSeries: boolean =
     'x_value_type' in rawData ?
@@ -507,6 +513,7 @@ const brush = computed(() => {
     ])
     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
+      createNewFilterNodeEnabled.value = true
     })
 })
 
@@ -526,7 +533,7 @@ watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
 function matchShape(d: Point) {
-  return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
+  return d.shape != null ? (SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle) : d3.symbolCircle
 }
 
 watchEffect(() => {
@@ -570,7 +577,7 @@ watchPostEffect(() =>
     .call(d3.axisLeft(yScale.value).ticks(yTicks.value)),
 )
 
-function getPlotData(data: Data) {
+function getPlotData(data: Data): Point[] {
   const axis = data.axis
   if (data.is_multi_series) {
     const series = Object.keys(axis).filter((s) => s != 'x')
@@ -578,7 +585,7 @@ function getPlotData(data: Data) {
       data.data.map((d) => ({
         ...d,
         x: d.x,
-        y: d[s as keyof Point],
+        y: d[s as keyof Point] as number,
         series: s,
       })),
     )
@@ -680,7 +687,7 @@ function formatXPoint(x: Date | number | DateObj) {
       case 'Time':
         return x.toTimeString()
       case 'Date':
-        return x.toDateString()
+        return x.toISOString()
       default:
         return x.toString()
     }
@@ -695,9 +702,9 @@ function getTooltipMessage(point: Point) {
       point.series && point.series in axis ?
         axis[point.series as keyof AxesConfiguration].label
       : ''
-    return `${formatXPoint(point.x)}, ${point.y}, ${label}- Double click to inspect point`
+    return `${formatXPoint(point.x)}, ${point.y}, ${label} - Double click to inspect point`
   }
-  return `${formatXPoint(point.x)}, ${point.y}- Double click to inspect point`
+  return `${formatXPoint(point.x)}, ${point.y} - Double click to inspect point`
 }
 
 // === Update contents ===
@@ -705,84 +712,102 @@ function getTooltipMessage(point: Point) {
 watchPostEffect(() => {
   const xScale_ = data.value.isTimeSeries ? xScaleTime.value : xScale.value
   const yScale_ = yScale.value
-  const plotData = getPlotData(data.value) as Point[]
+
+  const allPlotData = getPlotData(data.value)
+  const [circleData, symbolData] = partition(allPlotData, (p) => (p.shape || 'circle') === 'circle')
+  const labelsData =
+    data.value.points.labels === VISIBLE_POINTS ?
+      []
+    : allPlotData.filter((d) => d.label != null && d.label !== '')
+
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
-  const colorScale = (d: string) => {
-    const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
-    if (data.value.is_multi_series) {
-      return color(d)
-    }
-    return DEFAULT_FILL_COLOR
-  }
+  const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
+
+  const colorScale =
+    data.value.is_multi_series ?
+      (d: Point) => color(d.series ?? '')
+    : (d: Point) => d.color ?? DEFAULT_FILL_COLOR
+
+  // Circles
   d3Points.value
-    .selectAll<SVGPathElement, unknown>('path')
-    .data(plotData)
-    .join((enter) => enter.append('path'))
-    .call((data) => {
-      return data.append('title').text((d) => getTooltipMessage(d))
-    })
-    .on('dblclick', (d) => {
-      createNode(d.srcElement.__data__.row_number)
-    })
-    .transition()
-    .duration(animationDuration.value)
+    .selectAll<SVGCircleElement, Point>('circle')
+    .data(circleData, (pt) => pt.row_number)
+    .join((enter) =>
+      enter
+        .append('circle')
+        .attr('class', 'scatterPoint')
+        .on('dblclick', (d: any) => {
+          createNode(d.srcElement.__data__.row_number)
+        })
+        .on('mouseover', (event, d) => {
+          d3.select(event.currentTarget).append('title').text(getTooltipMessage(d))
+        })
+        .on('mouseout', (event) => {
+          d3.select(event.currentTarget).select('title').remove()
+        }),
+    )
+    .style('fill', colorScale)
+    .attr('r', (d) => ((d.size ?? 0.15) * SIZE_SCALE_MULTIPLER) / 5)
+    .attr('cx', (d: Point) => xScale_(Number(d.x)))
+    .attr('cy', (d: Point) => yScale_(d.y))
+
+  // Symbols
+  d3Points.value
+    .selectAll<SVGPathElement, Point>('path')
+    .data(symbolData, (pt) => pt.row_number)
+    .join((enter) =>
+      enter
+        .append('path')
+        .attr('class', 'scatterPoint')
+        .on('dblclick', (d: any) => {
+          createNode(d.srcElement.__data__.row_number)
+        })
+        .on('mouseover', (event, d) => {
+          d3.select(event.currentTarget).append('title').text(getTooltipMessage(d))
+        })
+        .on('mouseout', (event) => {
+          d3.select(event.currentTarget).select('title').remove()
+        }),
+    )
+    .style('--color', colorScale)
     .attr(
       'd',
       symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => colorScale(d.series || ''))
-    .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
-  if (data.value.points.labels === VISIBLE_POINTS) {
-    d3Points.value
-      .selectAll<SVGPathElement, unknown>('text')
-      .data(plotData)
-      .join((enter) => enter.append('text').attr('class', 'label'))
-      .transition()
-      .duration(animationDuration.value)
-      .text((d) => d.label ?? '')
-      .attr('x', (d) => xScale_(Number(d.x)) + POINT_LABEL_PADDING_X_PX)
-      .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
-  }
-})
+    .attr('transform', (d: Point) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
 
-watchPostEffect(() => {
+  // Render the points labels
+  d3Points.value
+    .selectAll<SVGPathElement, Point>('text')
+    .data(labelsData, (pt) => pt.row_number)
+    .join((enter) => enter.append('text').attr('class', 'label'))
+    .text((d) => d.label ?? '')
+    .attr('x', (d) => xScale_(Number(d.x)) + POINT_LABEL_PADDING_X_PX)
+    .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
+
+  // Render the Legend
   if (data.value.is_multi_series) {
-    const formatLabel = (string: string) =>
-      string.length > 10 ? `${string.substr(0, 10)}...` : string
-
-    const color = d3
-      .scaleOrdinal<string>()
-      .domain(seriesLabels.value)
-      .range(d3.schemeCategory10)
-      .domain(seriesLabels.value)
-
-    d3Legend.value.selectAll('circle').remove()
-    d3Legend.value.selectAll('text').remove()
+    const formatLabel = (lbl: string) => (lbl.length > 15 ? `${lbl.substring(0, 15)}...` : lbl)
 
     d3Legend.value
-      .selectAll('dots')
+      .selectAll('circle')
       .data(seriesLabels.value)
-      .enter()
-      .append('circle')
-      .attr('cx', function (d, i) {
-        return 90 + i * 120
-      })
-      .attr('cy', 10)
-      .attr('r', 6)
+      .join((enter) => enter.append('circle').attr('r', 5).attr('cy', 9))
+      .attr('cx', (d, i) => 90 + i * 120)
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     d3Legend.value
-      .selectAll('labels')
+      .selectAll('text')
       .data(seriesLabels.value)
-      .enter()
-      .append('text')
-      .attr('x', function (d, i) {
-        return 100 + i * 120
-      })
-      .attr('y', 10)
-      .style('font-size', '15px')
+      .join((enter) =>
+        enter
+          .append('text')
+          .attr('y', 10)
+          .style('font-size', LABEL_FONT_STYLE)
+          .attr('alignment-baseline', 'middle'),
+      )
+      .attr('x', (d, i) => 100 + i * 120)
       .text((d) => formatLabel(d))
-      .attr('alignment-baseline', 'middle')
       .call((labels) => labels.append('title').text((d) => d))
   }
 })
@@ -865,42 +890,49 @@ const makeSeriesLabelOptions = () => {
   return seriesOptions
 }
 
-config.setToolbar([
-  {
-    icon: 'select',
-    title: 'Enable Selection',
-    toggle: selectionEnabled,
-  },
-  {
-    icon: 'show_all',
-    title: 'Fit All',
-    onClick: () => zoomToSelected(false),
-  },
-  {
-    icon: 'zoom',
-    title: 'Zoom to Selected',
-    disabled: () => brushExtent.value == null,
-    onClick: zoomToSelected,
-  },
-  {
-    icon: 'add_to_graph_editor',
-    title: 'Create component of selected points',
-    disabled: () => !createNewFilterNodeEnabled.value,
-    onClick: createNewFilterNode,
-  },
-  {
-    type: 'textSelectionMenu',
-    selectedTextOption: yAxisSelected,
-    title: 'Choose Y Axis Label',
-    heading: 'Y Axis Label: ',
-    options: {
-      none: {
-        label: 'No Label',
-      },
-      ...makeSeriesLabelOptions(),
+const createTextSelectionButton = (): ToolbarItem => ({
+  type: 'textSelectionMenu',
+  selectedTextOption: yAxisSelected,
+  title: 'Choose Y Axis Label',
+  heading: 'Y Axis Label: ',
+  options: {
+    none: {
+      label: 'No Label',
     },
+    ...makeSeriesLabelOptions(),
   },
-])
+})
+
+function useScatterplotVizToolbar() {
+  const textSelectionButton = createTextSelectionButton()
+  return computed<ToolbarItem[]>(() => [
+    {
+      icon: 'select',
+      title: 'Enable Selection',
+      toggle: selectionEnabled,
+    },
+    {
+      icon: 'zoom',
+      title: 'Zoom to Selected',
+      disabled: () => brushExtent.value == null,
+      onClick: zoomToSelected,
+    },
+    {
+      icon: 'show_all',
+      title: 'Reset scatterplot view',
+      onClick: () => zoomToSelected(false),
+    },
+    {
+      icon: 'add_to_graph_editor',
+      title: 'Create component of selected points',
+      disabled: () => !createNewFilterNodeEnabled.value,
+      onClick: createNewFilterNode,
+    },
+    ...(data.value.is_multi_series ? [textSelectionButton] : []),
+  ])
+}
+
+config.setToolbar(useScatterplotVizToolbar())
 </script>
 
 <template>
@@ -947,6 +979,16 @@ config.setToolbar([
   user-select: none;
   display: flex;
   flex-direction: column;
+
+  &:deep(path.scatterPoint) {
+    fill: var(--color);
+    stroke: transparent;
+    stroke-width: 5px;
+    transition: stroke 200ms;
+    &:hover {
+      stroke: color-mix(in srgb, var(--color) 50%, transparent 50%);
+    }
+  }
 }
 
 .WarningsScatterplotVisualization {

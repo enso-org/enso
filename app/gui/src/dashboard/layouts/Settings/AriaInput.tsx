@@ -1,13 +1,8 @@
 /** @file A styled input for settings pages. */
-import {
-  Form,
-  Input,
-  Password,
-  TEXT_STYLE,
-  type FieldPath,
-  type InputProps,
-  type TSchema,
-} from '#/components/AriaComponents'
+import { Form, type FieldPath, type TSchema } from '#/components/Form'
+import { Input, type InputProps } from '#/components/Inputs/Input'
+import { Password } from '#/components/Inputs/Password'
+import { TEXT_STYLE } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
 
 const SETTINGS_FIELD_STYLES = tv({
@@ -23,35 +18,42 @@ const SETTINGS_FIELD_STYLES = tv({
   },
 })
 
-// =========================
-// === SettingsAriaInput ===
-// =========================
-
 /** Props for a {@link SettingsAriaInput}. */
-export type SettingsAriaInputProps<
+export interface SettingsAriaInputProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> = Omit<InputProps<Schema, TFieldName>, 'fieldVariants' | 'size' | 'variant' | 'variants'>
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+> extends Omit<
+    InputProps<Schema, TFieldName, Constraint>,
+    'fieldVariants' | 'size' | 'variant' | 'variants'
+  > {}
 
 /** A styled input for settings pages. */
-export function SettingsAriaInput<Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
-  props: SettingsAriaInputProps<Schema, TFieldName>,
-) {
+export function SettingsAriaInput<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, number | string>,
+>(props: SettingsAriaInputProps<Schema, TFieldName>) {
   return <Input fieldVariants={SETTINGS_FIELD_STYLES} {...props} />
 }
 
 /** A styled password input for settings pages. */
 export function SettingsAriaInputPassword<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: SettingsAriaInputProps<Schema, TFieldName>) {
+  TFieldName extends FieldPath<Schema, string>,
+>(props: SettingsAriaInputProps<Schema, TFieldName, string>) {
   return <Password fieldVariants={SETTINGS_FIELD_STYLES} {...props} />
 }
 
 /** A styled email input for settings pages. */
 export function SettingsAriaInputEmail<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: SettingsAriaInputProps<Schema, TFieldName>) {
-  return <Input fieldVariants={SETTINGS_FIELD_STYLES} type="email" {...props} />
+  TFieldName extends FieldPath<Schema, string>,
+>(props: SettingsAriaInputProps<Schema, TFieldName, string>) {
+  return (
+    <Input<Schema, TFieldName, string>
+      fieldVariants={SETTINGS_FIELD_STYLES}
+      type="email"
+      {...props}
+    />
+  )
 }

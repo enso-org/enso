@@ -13,7 +13,7 @@
 private
 
 from Standard.Base import all
-import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Data.Vector.Builder as Vector_Builder
 import Standard.Base.System.Process.Process_Builder.Process_Result
 
 from Standard.Test import all
@@ -59,30 +59,35 @@ enso_bin -> File =
    Arguments:
    - nesting_level How many times should the vector be nested
 generate_code nesting_level:Integer -> Text =
-    bldr = Vector.Builder.new
+    bldr = Vector_Builder.new
     bldr.append "from Standard.Base import all"
     bldr.append "import Standard.Base.Internal.Extra_Imports.RuntimeException"
     bldr.append '\n'
     bldr.append <| "main = "
-    bldr.append <| "    "
-                   + "vec = "
-                   + ("[" * nesting_level)
-                   + "42"
-                   + ("]" * nesting_level)
-    bldr.append <| "    "
-                   + "vec.map e0->"
+    bldr.append <|
+        "    "
+            + "vec = "
+            + ("[" * nesting_level)
+            + "42"
+            + ("]" * nesting_level)
+    bldr.append <|
+        "    "
+            + "vec.map e0->"
     0.up_to (nesting_level - 1) . each \i ->
-        bldr.append <| ("    " * (i + 2))
-                       + "e"
-                       + i.to_text
-                       + ".map e"
-                       + (i + 1).to_text
-                       + "-> "
-    bldr.append <| ("    " * (nesting_level + 1))
-                   + "cnt = RuntimeException.new.getStackTrace.length"
-    bldr.append <| ("    " * (nesting_level + 1))
-                   + "IO.println <| 'java_stack_frames=' + cnt.to_text"
-                   + '\n'
+        bldr.append <|
+            "    " * (i + 2)
+                + "e"
+                + i.to_text
+                + ".map e"
+                + (i + 1).to_text
+                + "-> "
+    bldr.append <|
+        "    " * (nesting_level + 1)
+            + "cnt = RuntimeException.new.getStackTrace.length"
+    bldr.append <|
+        "    " * (nesting_level + 1)
+            + "IO.println <| 'java_stack_frames=' + cnt.to_text"
+            + '\n'
     bldr.to_vector.reduce \first_line:Text second_line:Text ->
         first_line + '\n' + second_line
 
@@ -95,10 +100,10 @@ generate_code nesting_level:Integer -> Text =
    The thread stack size is also set to a sufficiently large value
    to ensure there is no StackOverflow.
 run_without_compiler enso_args:Vector -> Process_Result =
-    java_opts = "-Dpolyglot.engine.Compilation=false "
+    JAVA_TOOL_OPTIONS = "-Dpolyglot.engine.Compilation=false "
                 + "-XX:MaxJavaStackTraceDepth=18000 "
                 + "-Xms16M"
-    args = ["JAVA_OPTS="+java_opts, enso_bin.path] + enso_args
+    args = ["JAVA_TOOL_OPTIONS="+JAVA_TOOL_OPTIONS, enso_bin.path] + enso_args
     Process.run "env" (args + enso_args)
 
 

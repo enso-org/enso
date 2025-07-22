@@ -1,0 +1,23 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Time.Duration
+- type Duration
+    - + self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - - self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - between start_inclusive:Standard.Base.Any.Any end_exclusive:Standard.Base.Any.Any timezone_aware:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - hours self -> Standard.Base.Any.Any
+    - milliseconds self -> Standard.Base.Any.Any
+    - minutes self -> Standard.Base.Any.Any
+    - nanoseconds self -> Standard.Base.Any.Any
+    - new hours:Standard.Base.Data.Numbers.Integer= minutes:Standard.Base.Data.Numbers.Integer= seconds:Standard.Base.Data.Numbers.Integer= milliseconds:Standard.Base.Data.Numbers.Integer= nanoseconds:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - seconds self -> Standard.Base.Any.Any
+    - time_execution ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - total_hours self -> Standard.Base.Any.Any
+    - total_milliseconds self -> Standard.Base.Any.Any
+    - total_minutes self -> Standard.Base.Any.Any
+    - total_seconds self -> Standard.Base.Any.Any
+    - zero -> Standard.Base.Any.Any
+- between_builtin start_inclusive:Standard.Base.Any.Any end_exclusive:Standard.Base.Any.Any timezone_aware:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- ensure_duration object:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- new_builtin hours:Standard.Base.Any.Any minutes:Standard.Base.Any.Any seconds:Standard.Base.Any.Any milliseconds:Standard.Base.Any.Any nanoseconds:Standard.Base.Any.Any -> Standard.Base.Any.Any

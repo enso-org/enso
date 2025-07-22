@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test'
+import { test, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
@@ -82,7 +82,7 @@ test('Conditional ports: Disabled', async ({ page }) => {
 
   // When a port is disabled, it doesn't react to hovering with a disconnected edge,
   // and any attempt to connect to it should open the CB.
-  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
+  const outputPort = await outputPortCoordinates(page, graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await expect(conditionalPort).not.toHaveClass(/isTarget/)
@@ -98,11 +98,12 @@ test('Conditional ports: Enabled', async ({ page }) => {
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
-  await page.keyboard.down(CONTROL_KEY)
-
-  await expect(conditionalPort).toHaveClass(/enabled/)
-  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
+  const outputPort = await outputPortCoordinates(page, graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
+
+  await page.keyboard.down(CONTROL_KEY)
+  await expect(conditionalPort).toHaveClass(/enabled/)
+
   await conditionalPort.hover()
   await expect(conditionalPort).toHaveClass(/isTarget/)
   // We need to force port clicks; see comment in 'Connect an node to a port via dragging the edge'
@@ -110,4 +111,19 @@ test('Conditional ports: Enabled', async ({ page }) => {
   await expect(node.locator('.WidgetToken')).toHaveText(['final'])
 
   await page.keyboard.up(CONTROL_KEY)
+})
+
+test('Edge drop prevents further handling of event', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const outputPort = await locate.outputPortCoordinates(
+    page,
+    locate.graphNodeByBinding(page, 'five'),
+  )
+  await page.mouse.click(outputPort.x, outputPort.y - 25)
+  await expect(page.getByTestId('mouse-edited-edge')).toExist()
+  await page.waitForTimeout(300) // Avoid double clicks
+  await page.mouse.click(outputPort.x, outputPort.y - 25)
+  await expect(page.getByTestId('mouse-edited-edge')).not.toExist()
+  await expect(locate.componentBrowser(page)).toExist()
 })

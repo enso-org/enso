@@ -1,0 +1,25 @@
+from Standard.Base import all
+
+
+from Standard.Test import Bench
+
+import project.Vector.Utils
+
+polyglot java import java.util.ArrayList
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 3) . set_measure (Bench.phase_conf 3 3)
+
+type Lazy
+    Value ~value
+
+collect_benches = Bench.build builder->
+    values = Lazy.Value (Vector.new 100000 (i->i))
+
+    [True, False].each skip_nothing-> [True, False, Report_Unmatched].each keep_unmatched->
+        builder.group "Zip_Benchmark_skip_nothing_"+skip_nothing.to_text+"_keep_unmatched_"+keep_unmatched.to_text options group_builder->
+            group_builder.specify "Make_Pair" <|
+                values.value.zip values.value [_, _] skip_nothing=skip_nothing keep_unmatched=keep_unmatched
+            group_builder.specify "Add" <|
+                values.value.zip values.value (+) skip_nothing=skip_nothing keep_unmatched=keep_unmatched
+
+main = collect_benches . run_main

@@ -8,8 +8,10 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param profilingPath the path to the profiling output file
   * @param profilingTime the time limiting the profiling duration
+  * @param jvm use JVM - default or with specific path
   */
 case class ProjectManagerOptions(
   profilingPath: Option[Path],
-  profilingTime: Option[FiniteDuration]
+  profilingTime: Option[FiniteDuration],
+  jvm: Option[Option[Path]]
 )

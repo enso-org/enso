@@ -1,3 +1,14 @@
+## The basic cons-list type.
+
+   A cons-list allows storage of an arbitrary number of elements.
+
+   Prepending to the list can be achieved by using the `Cons` constructor,
+   while an empty list is represented by `Nil`.
+
+   > Example
+     A list containing the elements `1`, `2`, and `3`, in this order is:
+         Cons 1 (Cons 2 (Cons 3 Nil))
+
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
@@ -9,25 +20,14 @@ import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
-import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.List.List import Cons, Nil
+from project.Internal.Predicate_Helpers import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Metadata import Display, Widget
 
-## The basic cons-list type.
-
-   A cons-list allows storage of an arbitrary number of elements.
-
-   Prepending to the list can be achieved by using the `Cons` constructor,
-   while an empty list is represented by `Nil`.
-
-   > Example
-     A list containing the elements `1`, `2`, and `3`, in this order is:
-         Cons 1 (Cons 2 (Cons 3 Nil))
 ## Cons lists.
 type List
 
@@ -39,7 +39,7 @@ type List
        Arguments:
        - x: The element at this position in the list.
        - xs: The rest of the list.
-    Cons x xs
+    Cons x xs:List
 
     ## GROUP Metadata
        ICON metadata
@@ -261,7 +261,22 @@ type List
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## GROUP Selections
+    ## ALIAS where
+       MACRO equals filter=..Equal
+       MACRO not_equals filter=..Not_Equal
+       MACRO not_nothing filter=..Not_Nothing
+       MACRO is_nothing filter=..Is_Nothing
+       MACRO is_in filter=..Is_In
+       MACRO less_than filter=..Less
+       MACRO greater_than filter=..Greater
+       MACRO between filter=..Between
+       MACRO contains filter=..Contains
+       MACRO starts_with filter=..Starts_With
+       MACRO ends_with filter=..Ends_With
+       MACRO like filter=..Like
+       MACRO regex_match filter=..Regex_Match
+       MACRO predicate filter=v->v==Nothing
+       GROUP Selections
        ICON preparation
        Selects all elements of this list which satisfy a condition.
 

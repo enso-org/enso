@@ -4,7 +4,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import java.util.Arrays;
 import java.util.stream.Collectors;
-import org.enso.interpreter.node.ExpressionNode;
 
 final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
 
@@ -19,7 +18,7 @@ final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
   @ExplodeLoop
   final Object findDirectMatch(VirtualFrame frame, Object value) {
     for (var n : checks) {
-      java.lang.Object result = n.findDirectMatch(frame, value);
+      var result = n.findDirectMatch(frame, value);
       if (result != null) {
         return result;
       }
@@ -29,13 +28,9 @@ final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
 
   @Override
   @ExplodeLoop
-  Object executeCheckOrConversion(VirtualFrame frame, Object value, ExpressionNode expr) {
-    java.lang.Object direct = findDirectMatch(frame, value);
-    if (direct != null) {
-      return direct;
-    }
+  Object executeConversion(VirtualFrame frame, Object value) {
     for (var n : checks) {
-      java.lang.Object result = n.executeCheckOrConversion(frame, value, expr);
+      var result = n.executeConversion(frame, value);
       if (result != null) {
         return result;
       }

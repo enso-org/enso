@@ -332,12 +332,12 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): Application = {
     application match {
-      case prefix @ Application.Prefix(fn, args, _, _, _) =>
-        val fnDep     = asStatic(fn)
+      case prefix: Application.Prefix =>
+        val fnDep     = asStatic(prefix.function)
         val prefixDep = asStatic(prefix)
         info.dependents.updateAt(fnDep, Set(prefixDep))
         info.dependencies.updateAt(prefixDep, Set(fnDep))
-        args.foreach(arg => {
+        prefix.arguments.foreach(arg => {
           val argDep = asStatic(arg)
           info.dependents.updateAt(argDep, Set(prefixDep))
           info.dependencies.updateAt(prefixDep, Set(argDep))
@@ -345,40 +345,40 @@ case object DataflowAnalysis extends IRPass {
 
         prefix
           .copy(
-            function  = analyseExpression(fn, info),
-            arguments = args.map(analyseCallArgument(_, info))
+            function  = analyseExpression(prefix.function, info),
+            arguments = prefix.arguments.map(analyseCallArgument(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
-      case force @ Application.Force(target, _, _) =>
-        val targetDep = asStatic(target)
+      case force: Application.Force =>
+        val targetDep = asStatic(force.target)
         val forceDep  = asStatic(force)
         info.dependents.updateAt(targetDep, Set(forceDep))
         info.dependencies.updateAt(forceDep, Set(targetDep))
 
         force
-          .copy(target = analyseExpression(target, info))
+          .copyWithTarget(analyseExpression(force.target, info))
           .updateMetadata(new MetadataPair(this, info))
-      case vector @ Application.Sequence(items, _, _) =>
+      case vector: Application.Sequence =>
         val vectorDep = asStatic(vector)
-        items.foreach(it => {
+        vector.items.foreach(it => {
           val itemDep = asStatic(it)
           info.dependents.updateAt(itemDep, Set(vectorDep))
           info.dependencies.updateAt(vectorDep, Set(itemDep))
         })
 
         vector
-          .copy(items = items.map(analyseExpression(_, info)))
+          .copyWithItems(vector.items.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
-      case tSet @ Application.Typeset(expr, _, _) =>
+      case tSet: Application.Typeset =>
         val tSetDep = asStatic(tSet)
-        expr.foreach(exp => {
+        tSet.expression.foreach(exp => {
           val exprDep = asStatic(exp)
           info.dependents.updateAt(exprDep, Set(tSetDep))
           info.dependencies.updateAt(tSetDep, Set(exprDep))
         })
 
         tSet
-          .copy(expression = expr.map(analyseExpression(_, info)))
+          .copyWithExpression(tSet.expression.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
       case _: Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")
@@ -605,8 +605,8 @@ case object DataflowAnalysis extends IRPass {
 
         expr
           .copy(
-            scrutinee = analyseExpression(expr.scrutinee, info),
-            branches  = expr.branches.map(analyseCaseBranch(_, info))
+            analyseExpression(expr.scrutinee, info),
+            expr.branches.map(analyseCaseBranch(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
       case _: Case.Branch =>
@@ -639,8 +639,9 @@ case object DataflowAnalysis extends IRPass {
 
     branch
       .copy(
-        pattern    = analysePattern(pattern, info),
-        expression = analyseExpression(expression, info)
+        analysePattern(pattern, info),
+        analyseExpression(expression, info),
+        branch.terminalBranch()
       )
       .updateMetadata(new MetadataPair(this, info))
   }
@@ -715,8 +716,9 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): DefinitionArgument = {
     argument match {
-      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _) =>
-        val specDep = asStatic(spec)
+      case spec: DefinitionArgument.Specified =>
+        val defValue = spec.defaultValue
+        val specDep  = asStatic(spec)
         defValue.foreach(expr => {
           val exprDep = asStatic(expr)
           info.dependents.updateAt(exprDep, Set(specDep))
@@ -724,8 +726,8 @@ case object DataflowAnalysis extends IRPass {
         })
 
         spec
-          .copy(
-            defaultValue = defValue.map(analyseExpression(_, info))
+          .copyWithDefaultValue(
+            defValue.map(analyseExpression(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
     }
@@ -745,12 +747,12 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): CallArgument = {
     argument match {
-      case spec @ CallArgument.Specified(name, value, _, _, _) =>
+      case spec: CallArgument.Specified =>
         val specDep  = asStatic(spec)
-        val valueDep = asStatic(value)
+        val valueDep = asStatic(spec.value)
         info.dependents.updateAt(valueDep, Set(specDep))
         info.dependencies.updateAt(specDep, Set(valueDep))
-        name.foreach(name => {
+        spec.name.foreach(name => {
           val nameDep = asStatic(name)
           info.dependents.updateAt(nameDep, Set(specDep))
           info.dependencies.updateAt(specDep, Set(nameDep))
@@ -758,7 +760,7 @@ case object DataflowAnalysis extends IRPass {
 
         spec
           .copy(
-            value = analyseExpression(value, info)
+            analyseExpression(spec.value, info)
           )
           .updateMetadata(new MetadataPair(this, info))
     }

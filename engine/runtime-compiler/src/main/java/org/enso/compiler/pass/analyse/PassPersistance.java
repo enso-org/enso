@@ -1,11 +1,14 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.UUID;
 import org.enso.common.CachePreferences;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
-import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
-import org.enso.compiler.pass.analyse.types.TypeInference;
+import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
+import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
 import org.enso.compiler.pass.resolve.ExpressionAnnotations$;
@@ -25,8 +28,6 @@ import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
-import org.openide.util.lookup.ServiceProvider;
-import scala.Tuple2$;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
 @Persistable(clazz = DataflowAnalysis.DependencyInfo.class, id = 1112)
@@ -62,14 +63,15 @@ import scala.Tuple2$;
 @Persistable(clazz = AliasMetadata.RootScope.class, id = 1262, allowInlining = false)
 @Persistable(clazz = AliasMetadata.ChildScope.class, id = 1263, allowInlining = false)
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
-@Persistable(clazz = TypeInference.class, id = 1280)
-@Persistable(clazz = FramePointerAnalysis$.class, id = 1281)
-@Persistable(clazz = TailCall.TailPosition.class, id = 1282)
-@Persistable(clazz = CachePreferences.class, id = 1284)
+@Persistable(clazz = TypeInferencePropagation.class, id = 1280)
+@Persistable(clazz = TypeInferenceSignatures.class, id = 1281)
+@Persistable(clazz = FramePointerAnalysis$.class, id = 1282)
+@Persistable(clazz = TailCall.TailPosition.class, id = 1284)
+@Persistable(clazz = StaticModuleScopeAnalysis.class, id = 1287)
 public final class PassPersistance {
   private PassPersistance() {}
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1101)
   public static final class PersistState extends Persistance<IgnoredBindings.State> {
     public PersistState() {
       super(IgnoredBindings.State.class, true, 1101);
@@ -90,75 +92,45 @@ public final class PassPersistance {
     }
   }
 
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
-  public static final class PersistAliasAnalysisGraphScope extends Persistance<Graph.Scope> {
-    public PersistAliasAnalysisGraphScope() {
-      super(Graph.Scope.class, false, 1267);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected Graph.Scope readObject(Input in) throws IOException {
-      var childScopes = in.readInline(scala.collection.immutable.List.class);
-      var occurrencesValues = (scala.collection.immutable.Set<GraphOccurrence>) in.readObject();
-      var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
-      var allDefinitions = in.readInline(scala.collection.immutable.List.class);
-      var parent = new Graph.Scope(childScopes, occurrences, allDefinitions);
-      childScopes.forall(
-          (object) -> {
-            var ch = (Graph.Scope) object;
-            ch.withParent(parent);
-            return null;
-          });
-      return parent;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected void writeObject(Graph.Scope obj, Output out) throws IOException {
-      out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
-      out.writeObject(obj.occurrences().values().toSet());
-      out.writeInline(scala.collection.immutable.List.class, obj.allDefinitions());
-    }
-  }
-
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
-  public static final class PersistAliasAnalysisGraph extends Persistance<Graph> {
-    public PersistAliasAnalysisGraph() {
-      super(Graph.class, false, 1268);
-    }
-
-    @SuppressWarnings("unchecked")
-    protected Graph readObject(Input in) throws IOException {
-
-      var rootScope = (Graph.Scope) in.readObject();
-      assignParents(rootScope);
-
-      var links =
-          (scala.collection.immutable.Set) in.readInline(scala.collection.immutable.Set.class);
-
-      var nextIdCounter = in.readInt();
-      var g = new Graph(rootScope, nextIdCounter, links);
-      return g;
+  @Persistable(id = 1289)
+  public static final class PersistCachePreferences
+      extends Persistance<org.enso.common.CachePreferences> {
+    public PersistCachePreferences() {
+      super(org.enso.common.CachePreferences.class, false, 1289);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    protected void writeObject(Graph obj, Output out) throws IOException {
-      out.writeObject(obj.rootScope());
-      out.writeInline(scala.collection.immutable.Set.class, obj.getLinks());
-      out.writeInt(obj.nextIdCounter());
+    protected CachePreferences readObject(Input in) throws IOException {
+      var map = new HashMap<UUID, org.enso.common.CachePreferences.Kind>();
+      var cnt = in.readInt();
+      while (cnt-- > 0) {
+        var id = in.readInline(UUID.class);
+        var kind =
+            switch (in.readByte()) {
+              case 1 -> CachePreferences.Kind.SELF_ARGUMENT;
+              case 2 -> CachePreferences.Kind.BINDING_EXPRESSION;
+              default -> throw new IOException();
+            };
+        map.put(id, kind);
+      }
+      return new CachePreferences(map);
     }
 
-    private static void assignParents(Graph.Scope scope) {
-      scope
-          .childScopes()
-          .foreach(
-              (ch) -> {
-                assignParents(ch);
-                ch.withParent(scope);
-                return null;
-              });
+    @SuppressWarnings("unchecked")
+    @Override
+    protected void writeObject(org.enso.common.CachePreferences obj, Output out)
+        throws IOException {
+      out.writeInt(obj.preferences().size());
+      for (var entry : obj.preferences().entrySet()) {
+        out.writeInline(UUID.class, entry.getKey());
+        out.writeByte(
+            switch (entry.getValue()) {
+              case SELF_ARGUMENT -> 1;
+              case BINDING_EXPRESSION -> 2;
+              default -> throw new IOException();
+            });
+      }
     }
   }
 }

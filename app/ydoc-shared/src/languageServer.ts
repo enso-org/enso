@@ -3,7 +3,6 @@ import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import debug from 'debug'
 import { ObservableV2 } from 'lib0/observable'
-import { uuidv4 } from 'lib0/random'
 import { z } from 'zod'
 import { walkFs } from './languageServer/files'
 import type {
@@ -155,15 +154,15 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     this.initialized = this.scheduleInitializationAfterConnect()
     const requestManager = new RequestManager([transport])
     this.client = new Client(requestManager)
-    this.client.onNotification(notification => {
+    this.client.onNotification((notification) => {
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
-    this.client.onError(error => {
+    this.client.onError((error) => {
       console.error('Unexpected Language Server connection error:', error)
     })
-    transport.on('error', error => {
+    transport.on('error', (error) => {
       if (this.shouldReconnect) {
-        console.error('Language Server transport error:', error)
+        console.error('Language Server transport error:', error.message, '\n', error)
       }
     })
     const onTransportClosed = () => {
@@ -187,7 +186,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   private scheduleInitializationAfterConnect() {
     if (this.initializationScheduled) return this.initialized
     this.initializationScheduled = true
-    this.initialized = new Promise(resolve => {
+    this.initialized = new Promise((resolve) => {
       this.transport.on(
         'open',
         () => {
@@ -200,7 +199,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
                 error,
               )
             },
-          }).then(result => {
+          }).then((result) => {
             if (!result.ok) {
               result.error.log('Error initializing Language Server RPC')
             }
@@ -220,7 +219,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
 
   /** The {@link ContentRoot}s of this {@link LanguageServer}. */
   get contentRoots(): Promise<ContentRoot[]> {
-    return this.initialized.then(result => (result.ok ? result.value.contentRoots : []))
+    return this.initialized.then((result) => (result.ok ? result.value.contentRoots : []))
   }
 
   /** Reconnect the underlying network transport. */
@@ -238,7 +237,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     if (this.isDisposed) {
       return Err(new LsRpcError('LanguageServer disposed', method, params))
     }
-    const uuid = uuidv4()
+    const uuid = crypto.randomUUID()
     const now = performance.now()
     try {
       debugLog('LS [%s] %s:\n%j', uuid, method, params)

@@ -125,10 +125,12 @@ const nodeMetadataKeys = allKeys<NodeMetadataFields>({
 export type NodeMetadata = FixedMapView<NodeMetadataFields & MetadataFields>
 export type MutableNodeMetadata = FixedMap<NodeMetadataFields & MetadataFields>
 
+export type AstType = (typeof astTypeConstructors)[number][0]
+
 /** @internal */
 interface RawAstFields {
   id: AstId
-  type: string
+  type: AstType
   parent: AstId | undefined
   metadata: FixedMap<MetadataFields>
 }
@@ -227,7 +229,7 @@ export abstract class Ast {
   }
 
   /** TODO: Add docs */
-  typeName(): string {
+  get typeName(): AstType {
     return this.fields.get('type')
   }
 
@@ -474,7 +476,7 @@ export abstract class MutableAst extends Ast {
   /** @internal */
   replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
     const replacementId = this.claimChild(replacement)
-    const changes = rewriteRefs(this, id => (id === target ? replacementId : undefined))
+    const changes = rewriteRefs(this, (id) => (id === target ? replacementId : undefined))
     assertEqual(changes, 1)
   }
 
@@ -705,8 +707,8 @@ function fieldEqual(field1: FieldData, field2: FieldData): boolean {
 }
 
 function applyMixins(derivedCtor: any, constructors: any[]) {
-  constructors.forEach(baseCtor => {
-    Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
+  constructors.forEach((baseCtor) => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
       Object.defineProperty(
         derivedCtor.prototype,
         name,
@@ -746,10 +748,13 @@ export interface MutableStatement extends BaseMutableStatement {
   mutableDocumentationText?: () => Y.Text
 }
 
+/** A base class for all {@link Expression} ASTs */
 abstract class BaseExpression extends Ast {
+  /** See {@link Ast.isAllowedInStatementContext}. */
   override isAllowedInStatementContext() {
     return false
   }
+  /** See {@link Ast.isAllowedInExpressionContext}. */
   override isAllowedInExpressionContext(): true {
     return true
   }
@@ -1166,7 +1171,7 @@ export class OprApp extends BaseExpression {
     rhs: Owned<MutableExpression> | undefined,
   ) {
     const operatorToken =
-      operator instanceof Token ? operator : Token.new(operator, TokenType.Operator)
+      typeof operator === 'string' ? Token.new(operator, TokenType.Operator) : operator
     return OprApp.concrete(module, unspaced(lhs), [autospaced(operatorToken)], autospaced(rhs))
   }
 
@@ -1177,7 +1182,7 @@ export class OprApp extends BaseExpression {
   /** TODO: Add docs */
   get operator(): Result<Token, NodeChild<Token>[]> {
     const operators = this.fields.get('operators')
-    const operators_ = operators.map(child => ({
+    const operators_ = operators.map((child) => ({
       ...child,
       node: this.module.getToken(child.node),
     }))
@@ -1270,22 +1275,22 @@ export class PropertyAccess extends BaseExpression {
 
   /** TODO: Add docs */
   static Sequence(
-    segments: [StrictIdentLike, ...StrictIdentLike[]],
+    segments: readonly [StrictIdentLike, ...StrictIdentLike[]],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
   /** TODO: Add docs */
   static Sequence(
-    segments: [StrictIdentLike, ...StrictIdentLike[], IdentLike],
+    segments: readonly [StrictIdentLike, ...StrictIdentLike[], IdentLike],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
   /** TODO: Add docs */
   static Sequence(
-    segments: IdentLike[],
+    segments: readonly IdentLike[],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
   /** TODO: Add docs */
   static Sequence(
-    segments: IdentLike[],
+    segments: readonly IdentLike[],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined {
     let path: Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
@@ -1358,6 +1363,78 @@ export interface MutablePropertyAccess extends PropertyAccess, MutableExpression
 }
 applyMixins(MutablePropertyAccess, [MutableAst])
 
+interface TypeAnnotatedFields<T extends TreeRefs = RawRefs> {
+  /** The expression whose type is being annotated. */
+  expression: T['ast']
+  /** The `:` token. */
+  colon: T['token']
+  /** The expression's type. */
+  typeNode: T['ast']
+}
+
+/** An expression with explicit type information attached. */
+export class TypeAnnotated extends BaseExpression {
+  declare fields: FixedMapView<AstFields & TypeAnnotatedFields>
+  /** Internal constructor. */
+  constructor(module: Module, fields: FixedMapView<AstFields & TypeAnnotatedFields>) {
+    super(module, fields)
+  }
+
+  /** Main constructor. */
+  static concrete(
+    module: MutableModule,
+    expression: NodeChild<Owned<MutableExpression>>,
+    colon: NodeChild<Token>,
+    typeNode: NodeChild<Owned<MutableExpression>>,
+  ) {
+    const base = module.baseObject('TypeAnnotated')
+    const id_ = base.get('id')
+    const fields = composeFieldData(base, {
+      expression: concreteChild(module, expression, id_),
+      colon,
+      typeNode: concreteChild(module, typeNode, id_),
+    })
+    return asOwned(new MutableTypeAnnotated(module, fields))
+  }
+
+  /** The expression whose type is being annotated. */
+  get expression(): Expression {
+    return this.module.get(this.fields.get('expression').node) as Expression
+  }
+  /** The expression's type. */
+  get typeNode(): Expression {
+    return this.module.get(this.fields.get('typeNode').node) as Expression
+  }
+
+  /** Children AST nodes. */
+  *concreteChildren({ verbatim }: PrintContext): IterableIterator<RawConcreteChild> {
+    const { expression, colon, typeNode } = getAll(this.fields)
+    yield firstChild(expression)
+    const spaced = (colon.whitespace ?? typeNode.whitespace ?? '') !== ''
+    yield ensureSpacedOnlyIf(colon, spaced, verbatim)
+    yield ensureSpacedOnlyIf(typeNode, spaced, verbatim)
+  }
+}
+
+/** Mutable version of {@link TypeAnnotated}. */
+export class MutableTypeAnnotated extends TypeAnnotated implements MutableExpression {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & TypeAnnotatedFields>
+
+  setExpression<T extends MutableExpression>(value: Owned<T>) {
+    setNode(this.fields, 'expression', this.claimChild(value))
+  }
+  setTypeNode<T extends MutableExpression>(value: Owned<T>) {
+    setNode(this.fields, 'typeNode', this.claimChild(value))
+  }
+}
+
+export interface MutableTypeAnnotated extends TypeAnnotated, MutableExpression {
+  get expression(): MutableExpression
+  get typeNode(): MutableExpression
+}
+applyMixins(MutableTypeAnnotated, [MutableAst])
+
 interface GenericFields {
   children: RawNodeChild[]
 }
@@ -1382,7 +1459,7 @@ export class Generic extends Ast implements Expression, Statement {
     const base = module.baseObject('Generic')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
-      children: children.map(child => concreteChild(module, child, id_)),
+      children: children.map((child) => concreteChild(module, child, id_)),
     })
     return asOwned(new MutableGeneric(module, fields))
   }
@@ -1768,7 +1845,7 @@ export class TextLiteral extends BaseExpression {
     const fields = composeFieldData(base, {
       open,
       newline,
-      elements: elements.map(e => mapRefs(e, ownedToRaw(module, id_))),
+      elements: elements.map((e) => mapRefs(e, ownedToRaw(module, id_))),
       close,
     })
     return asOwned(new MutableTextLiteral(module, fields))
@@ -1794,6 +1871,11 @@ export class TextLiteral extends BaseExpression {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  /** Check if this text literal is a block literal, i.e. can be multiline. */
+  get isBlock(): boolean {
+    return (this.open?.code().length ?? 1) > 1
+  }
+
   /** TODO: Add docs */
   *concreteChildren({ verbatim, indent }: PrintContext): IterableIterator<RawConcreteChild> {
     const { open, newline, elements, close } = getAll(this.fields)
@@ -1804,7 +1886,7 @@ export class TextLiteral extends BaseExpression {
     let nextTokenSpacing: 'unspaced' | 'maybe-spaced' | 'indented' = 'unspaced'
     let blockIndent: string | undefined = undefined
     for (const raw of rawChildren) {
-      const tokenType = isToken(raw.node) ? raw.node.tokenType_ : null
+      const tokenType = isTokenId(raw.node) ? raw.node.tokenType_ : null
       const specialToken =
         tokenType === TokenType.Newline ? 'newline'
         : tokenType === TokenType.OpenSymbol || tokenType === TokenType.CloseSymbol ?
@@ -1857,7 +1939,7 @@ export class TextLiteral extends BaseExpression {
 
   /** TODO: Add docs */
   get elements(): TextElement<ConcreteRefs>[] {
-    return this.fields.get('elements').map(e => mapRefs(e, rawToConcrete(this.module)))
+    return this.fields.get('elements').map((e) => mapRefs(e, rawToConcrete(this.module)))
   }
 }
 /** TODO: Add docs */
@@ -1867,13 +1949,27 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
 
   setBoundaries(code: string) {
     this.fields.set('open', unspaced(Token.new(code)))
-    this.fields.set('close', unspaced(Token.new(code)))
+    if (code.length > 1) {
+      this.fields.set('close', undefined)
+    } else {
+      this.fields.set('close', unspaced(Token.new(code)))
+    }
+  }
+
+  fixBoundaries() {
+    const open = this.open
+    const close = this.close
+    if (open != null && close == null && open.code().length === 1) {
+      this.fields.set('close', unspaced(Token.new(open.code())))
+    } else if (open == null && close != null) {
+      this.fields.set('open', unspaced(Token.new(close.code())))
+    }
   }
 
   setElements(elements: TextElement<OwnedRefs>[]) {
     this.fields.set(
       'elements',
-      elements.map(e => mapRefs(e, ownedToRaw(this.module, this.id))),
+      elements.map((e) => mapRefs(e, ownedToRaw(this.module, this.id))),
     )
   }
 
@@ -1882,23 +1978,43 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
    * transformed to use escape sequences when necessary.
    */
   setRawTextContent(rawText: string) {
-    let boundary = this.boundaryTokenCode()
-    const isInterpolated = this.isInterpolated()
-    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.match(/["\n\r]/))
-    if (mustBecomeInterpolated) {
-      boundary = "'"
-      this.setBoundaries(boundary)
-    }
-    const literalContents =
-      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
-    const parsed = parseExpression(`${boundary}${literalContents}${boundary}`)
-    assert(parsed instanceof TextLiteral)
-    const elements = parsed.elements.map(e => mapRefs(e, concreteToOwned(this.module)))
-    this.setElements(elements)
+    if (!this.boundaryTokenCode() || (this.boundaryTokenCode() === '"' && rawText.match(/["\n\r]/)))
+      this.setBoundaries("'")
+    const boundary = this.boundaryTokenCode()!
+    const isBlock = boundary.length > 1
+    const literalContents = this.isInterpolated() ? escapeTextLiteral(rawText, isBlock) : rawText
+
+    // As a simple way to ensure the text elements are consistent with what the parser would
+    // produce, instead of creating them directly we generate code and parse it.
+
+    const parsed = TextLiteral.tryParse(
+      isBlock ?
+        `${boundary}\n${literalContents.split('\n').join('\n    ')}`
+      : `${boundary}${literalContents}${boundary}`,
+      this.module,
+    )
+    assertDefined(parsed)
+    // First, we parse with the arbitrary concrete indentation level generated above.
+    const elementsWithArbitraryConcreteWhitespace = parsed.elements.map((e) =>
+      mapRefs(e, concreteToOwned(this.module)),
+    )
+    // Now strip indentation information to let the block be indented appropriately for its context.
+    const elementsWithAbstractWhitespace = elementsWithArbitraryConcreteWhitespace.map(
+      textElementRemoveConcreteWhitespace,
+    )
+    this.setElements(elementsWithAbstractWhitespace)
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableExpression {}
 applyMixins(MutableTextLiteral, [MutableAst])
+
+function textElementRemoveConcreteWhitespace<T extends TreeRefs>(
+  element: TextElement<T>,
+): TextElement<T> {
+  return element.type === 'token' && element.token.node.typeName === 'Newline' ?
+      { ...element, token: { node: element.token.node, whitespace: undefined } }
+    : element
+}
 
 interface ExpressionStatementFields {
   docLine: DocLine | undefined
@@ -2059,6 +2175,15 @@ export class Invalid extends Ast implements Statement, Expression {
     return asOwned(new MutableInvalid(module, invalidFields(module, base, expression)))
   }
 
+  /** Create an Invalid node with no inner expression. */
+  static empty(module?: MutableModule) {
+    const mod = module ?? MutableModule.Transient()
+    return Invalid.concrete(mod, {
+      whitespace: undefined,
+      node: BodyBlock.concrete(mod, []),
+    })
+  }
+
   /** TODO: Add docs */
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
@@ -2157,7 +2282,7 @@ export class Group extends BaseExpression {
     if (open) yield firstChild(open)
     const spaced = ((open && expression?.whitespace) ?? '') !== ''
     if (expression) yield open ? preferSpacedIf(expression, spaced) : firstChild(expression)
-    if (close) yield open ?? expression ? preferSpacedIf(close, spaced) : firstChild(close)
+    if (close) yield (open ?? expression) ? preferSpacedIf(close, spaced) : firstChild(close)
   }
 }
 /** TODO: Add docs */
@@ -2246,12 +2371,26 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+/**
+ * Create a new function argument definition using provided "name" string as argument's pattern expression.
+ */
+export function newArgumentDefinition(
+  name: string,
+  module?: MutableModule,
+): OwnedArgumentDefinition {
+  const expr = parseExpression(name, module)
+  assert(expr != null)
+  return {
+    pattern: autospaced(expr),
+  }
+}
+
 interface ArgumentDefault<T extends TreeRefs = RawRefs> {
   equals: T['token']
   expression: T['ast']
 }
 
-interface ArgumentType<T extends TreeRefs = RawRefs> {
+export interface ArgumentType<T extends TreeRefs = RawRefs> {
   operator: T['token']
   type: T['ast']
 }
@@ -2333,7 +2472,7 @@ export class FunctionDef extends BaseStatement {
   get argumentDefinitions(): ArgumentDefinition<ConcreteRefs>[] {
     return this.fields
       .get('argumentDefinitions')
-      .map(def => mapRefs(def, rawToConcrete(this.module)))
+      .map((def) => mapRefs(def, rawToConcrete(this.module)))
   }
 
   /** TODO: Add docs */
@@ -2351,13 +2490,13 @@ export class FunctionDef extends BaseStatement {
       docLine: fields.docLine && mapRefs(fields.docLine, ownedToRaw(module, id_)),
       docLineMarkdownHash: fields.docLineMarkdownHash,
       docMarkdown: fields.docMarkdown,
-      annotationLines: (fields.annotationLines ?? []).map(anno =>
+      annotationLines: (fields.annotationLines ?? []).map((anno) =>
         mapRefs(anno, ownedToRaw(module, id_)),
       ),
       signatureLine: fields.signatureLine && mapRefs(fields.signatureLine, ownedToRaw(module, id_)),
       private_: fields.private_,
       name: concreteChild(module, fields.name, id_),
-      argumentDefinitions: (fields.argumentDefinitions ?? []).map(def =>
+      argumentDefinitions: (fields.argumentDefinitions ?? []).map((def) =>
         mapRefs(def, ownedToRaw(module, id_)),
       ),
       equals: fields.equals,
@@ -2377,12 +2516,12 @@ export class FunctionDef extends BaseStatement {
     } = {},
   ): Owned<MutableFunctionDef> {
     const module = options.edit ?? MutableModule.Transient()
-    const argumentDefinitions = args.map(arg =>
-      typeof arg === 'string' || isToken(arg) ?
-        {
+    const argumentDefinitions = args.map((arg) =>
+      typeof arg === 'object' && 'pattern' in arg ?
+        arg
+      : {
           pattern: autospaced(Ident.new(module, arg)),
-        }
-      : arg,
+        },
     )
     return MutableFunctionDef.concrete(module, {
       docLine: undefined,
@@ -2398,7 +2537,10 @@ export class FunctionDef extends BaseStatement {
     })
   }
 
-  /** TODO: Add docs */
+  /**
+   * @returns The contents of the function's body; this will be a single expression if the function
+   * is defined inline, or zero or more statements if the function's body is a block.
+   */
   *bodyExpressions(): IterableIterator<Expression | Statement> {
     const body = this.body
     if (body instanceof BodyBlock) {
@@ -2435,7 +2577,7 @@ export class FunctionDef extends BaseStatement {
         return preferUnspaced(nodeChild)
       }
     }
-    const docs = functionDocsToConcrete(docMarkdown.toJSON(), docLineMarkdownHash, docLine, indent)
+    const docs = functionDocsToConcrete(docMarkdown, docLineMarkdownHash, docLine, indent)
     if (docs) {
       yield* docs
       prevIsNewline = true
@@ -2494,6 +2636,9 @@ function* argumentDefinitionToConcrete(def: DeepReadonly<ArgumentDefinition>, ve
   if (close2) yield ensureSpacedOnlyIf(close2, spacedInsideParen2 ?? false, verbatim)
   if (close) yield ensureSpacedOnlyIf(close, spacedInsideParen1 ?? false, verbatim)
 }
+
+type OwnedArgumentDefinition = ArgumentDefinition<OwnedRefs>
+
 /** TODO: Add docs */
 export class MutableFunctionDef extends FunctionDef implements MutableStatement {
   declare readonly module: MutableModule
@@ -2505,11 +2650,78 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   setBody<T extends MutableExpression | MutableBodyBlock>(value: Owned<T> | undefined) {
     this.fields.set('body', unspaced(this.claimChild(value)))
   }
-  setArgumentDefinitions(defs: ArgumentDefinition<OwnedRefs>[]) {
+  setArgumentDefinitions(defs: OwnedArgumentDefinition[]) {
     this.fields.set(
       'argumentDefinitions',
-      defs.map(def => mapRefs(def, ownedToRaw(this.module, this.id))),
+      defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
+  }
+
+  pushArgumentDefinition(value: OwnedArgumentDefinition) {
+    const defs = this.fields.get('argumentDefinitions')
+    const def = mapRefs(value, ownedToRaw(this.module, this.id))
+    this.fields.set('argumentDefinitions', [...defs, def])
+  }
+
+  /**
+   * Move an argument inside function definition.
+   * @param fromIndex index of moved argument.
+   * @param toIndex new index of moved argument.
+   *
+   * If any index is outside array index range, it's interpreted same as in {@link Array.prototype.splice|}.
+   */
+  moveArgumentDefinitions(fromIndex: number, toIndex: number) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const [def] = defs.splice(fromIndex, 1)
+    if (def != null) {
+      defs.splice(toIndex, 0, def)
+      this.fields.set('argumentDefinitions', defs)
+    }
+  }
+
+  spliceArgumentDefinitions(
+    start: number,
+    deletedCount: number,
+    ...newValues: OwnedArgumentDefinition[]
+  ) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
+    defs.splice(start, deletedCount, ...newDefs)
+    this.fields.set('argumentDefinitions', defs)
+  }
+
+  setArgumentType(index: number, typeExpr: Owned<MutableExpression> | undefined) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    if (defs.length > index) {
+      const def = defs[index]!
+      const type: ArgumentType | undefined =
+        typeExpr ?
+          {
+            operator:
+              def.type?.operator ?? unspaced(Token.new(':', TokenType.TypeAnnotationOperator)),
+            type: concreteChild(this.module, autospaced(typeExpr), this.id),
+          }
+        : undefined
+      defs[index] = { ...def, type }
+      this.fields.set('argumentDefinitions', defs)
+    }
+  }
+
+  setArgumentDefault(index: number, defaultExpr: Owned<MutableExpression> | undefined) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    if (defs.length > index) {
+      const def = defs[index]!
+      const defaultValue: ArgumentDefault | undefined =
+        defaultExpr ?
+          {
+            equals:
+              def.defaultValue?.equals ?? unspaced(Token.new('=', TokenType.AssignmentOperator)),
+            expression: concreteChild(this.module, autospaced(defaultExpr), this.id),
+          }
+        : undefined
+      defs[index] = { ...def, defaultValue }
+      this.fields.set('argumentDefinitions', defs)
+    }
   }
 
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */
@@ -2657,7 +2869,7 @@ export class BodyBlock extends BaseExpression {
     const base = module.baseObject('BodyBlock')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
-      lines: lines.map(line => lineToRaw(line, module, id_)),
+      lines: lines.map((line) => lineToRaw(line, module, id_)),
     })
     return asOwned(new MutableBodyBlock(module, fields))
   }
@@ -2669,7 +2881,7 @@ export class BodyBlock extends BaseExpression {
 
   /** TODO: Add docs */
   get lines(): BlockLine[] {
-    return this.fields.get('lines').map(line => lineFromRaw(line, this.module))
+    return this.fields.get('lines').map((line) => lineFromRaw(line, this.module))
   }
 
   /** TODO: Add docs */
@@ -2681,17 +2893,13 @@ export class BodyBlock extends BaseExpression {
 
   /** TODO: Add docs */
   *concreteChildren({ indent }: PrintContext): IterableIterator<RawConcreteChild> {
-    let linesIndent: string | undefined = undefined
     for (const line of this.fields.get('lines')) {
       yield preferUnspaced(line.newline)
       if (line.statement) {
         const whitespace: string =
-          linesIndent ??
           (line.statement.whitespace && line.statement.whitespace.length > (indent || '').length ?
             line.statement.whitespace
-          : undefined) ??
-          (indent != null ? indent + '    ' : '')
-        linesIndent = whitespace
+          : undefined) ?? (indent != null ? indent + '    ' : '')
         yield { whitespace, node: line.statement.node }
       }
     }
@@ -2706,19 +2914,19 @@ export class MutableBodyBlock extends BodyBlock implements MutableExpression {
     return this.setLines(map(this.takeLines()))
   }
   takeLines(): OwnedBlockLine[] {
-    return this.fields.get('lines').map(line => ownedLineFromRaw(line, this.module))
+    return this.fields.get('lines').map((line) => ownedLineFromRaw(line, this.module))
   }
   setLines(lines: OwnedBlockLine[]) {
     this.fields.set(
       'lines',
-      lines.map(line => lineToRaw(line, this.module, this.id)),
+      lines.map((line) => lineToRaw(line, this.module, this.id)),
     )
   }
 
   /** Remove statements matching the given predicate from the block and return them. */
   extractIf(predicate: (statement: Statement) => boolean): OwnedBlockLine[] {
     const extracted = new Array<OwnedBlockLine>()
-    this.updateLines(lines => {
+    this.updateLines((lines) => {
       const remaining: OwnedBlockLine[] = []
       for (const line of lines) {
         const ast = line.statement?.node
@@ -2733,7 +2941,7 @@ export class MutableBodyBlock extends BodyBlock implements MutableExpression {
   /** Insert the given statement(s) starting at the specified line index. */
   insert(index: number, ...statements: (Owned<MutableStatement> | undefined)[]) {
     const before = this.fields.get('lines').slice(0, index)
-    const insertions = statements.map(statement => ({
+    const insertions = statements.map((statement) => ({
       newline: unspaced(Token.new('\n', TokenType.Newline)),
       statement: statement && unspaced(this.claimChild(statement)),
     }))
@@ -2753,7 +2961,7 @@ export class MutableBodyBlock extends BodyBlock implements MutableExpression {
 
   filter(keep: (ast: MutableStatement) => boolean) {
     const oldLines = this.fields.get('lines')
-    const filteredLines = oldLines.filter(line => {
+    const filteredLines = oldLines.filter((line) => {
       if (!line.statement) return true
       return keep(this.module.get(line.statement.node) as MutableStatement)
     })
@@ -2984,7 +3192,7 @@ export class Vector extends BaseExpression {
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
       open: open ?? unspaced(Token.new('[', TokenType.OpenSymbol)),
-      elements: elements.map(delimitVectorElement).map(e => mapRefs(e, ownedToRaw(module, id_))),
+      elements: elements.map(delimitVectorElement).map((e) => mapRefs(e, ownedToRaw(module, id_))),
       close: close ?? unspaced(Token.new(']', TokenType.CloseSymbol)),
     })
     return asOwned(new MutableVector(module, fields))
@@ -2995,7 +3203,7 @@ export class Vector extends BaseExpression {
     return this.concrete(
       module,
       undefined,
-      elements.map(value => ({ value: autospaced(value) })),
+      elements.map((value) => ({ value: autospaced(value) })),
       undefined,
     )
   }
@@ -3067,6 +3275,11 @@ export class Vector extends BaseExpression {
     }
   }
 
+  /** Get element under given index. */
+  at(index: number): Expression | undefined {
+    return this.module.get(this.fields.get('elements')[index]?.value?.node) as Expression
+  }
+
   /** TODO: Add docs */
   get length() {
     return this.fields.get('elements').length
@@ -3107,7 +3320,7 @@ export class MutableVector extends Vector implements MutableExpression {
 
   splice(start: number, deletedCount: number, ...newValues: Owned[]) {
     const elements = [...this.fields.get('elements')]
-    const newElements = newValues.map(value => this.valueToElement(value))
+    const newElements = newValues.map((value) => this.valueToElement(value))
     elements.splice(start, deletedCount, ...newElements)
     MutableVector.autospaceElement(elements[start + newValues.length])
     this.fields.set('elements', elements)
@@ -3137,7 +3350,7 @@ export class MutableVector extends Vector implements MutableExpression {
     // Spacing around opening brackets should be preserved, as it's more natural (see tests).
     const firstSpacing = elements[0]?.value?.whitespace
     const filtered = elements.filter(
-      element =>
+      (element) =>
         element.value && predicate(this.module.get(element.value.node) as MutableExpression),
     )
     if (firstSpacing != null && filtered[0]?.value != null) {
@@ -3188,97 +3401,37 @@ export type Mutable<T extends Ast = Ast> =
   : T extends Expression ? MutableExpression
   : MutableAst
 
+const astTypeConstructors = [
+  ['App', MutableApp],
+  ['Assignment', MutableAssignment],
+  ['BodyBlock', MutableBodyBlock],
+  ['ExpressionStatement', MutableExpressionStatement],
+  ['FunctionDef', MutableFunctionDef],
+  ['Generic', MutableGeneric],
+  ['Group', MutableGroup],
+  ['Ident', MutableIdent],
+  ['Import', MutableImport],
+  ['Invalid', MutableInvalid],
+  ['NegationApp', MutableNegationApp],
+  ['NumericLiteral', MutableNumericLiteral],
+  ['OprApp', MutableOprApp],
+  ['PropertyAccess', MutablePropertyAccess],
+  ['TextLiteral', MutableTextLiteral],
+  ['UnaryOprApp', MutableUnaryOprApp],
+  ['AutoscopedIdentifier', MutableAutoscopedIdentifier],
+  ['Vector', MutableVector],
+  ['Wildcard', MutableWildcard],
+  ['TypeAnnotated', MutableTypeAnnotated],
+] as const
+
+export const astTypes = astTypeConstructors.map(([name]) => name)
+const mutableTypeMap = new Map(astTypeConstructors.map(([name, mutable]) => [name, mutable]))
+
 /** TODO: Add docs */
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')
-  const fieldsForType = fields as FixedMap<any>
-  switch (type) {
-    case 'App':
-      return new MutableApp(module, fieldsForType)
-    case 'Assignment':
-      return new MutableAssignment(module, fieldsForType)
-    case 'BodyBlock':
-      return new MutableBodyBlock(module, fieldsForType)
-    case 'ExpressionStatement':
-      return new MutableExpressionStatement(module, fieldsForType)
-    case 'FunctionDef':
-      return new MutableFunctionDef(module, fieldsForType)
-    case 'Generic':
-      return new MutableGeneric(module, fieldsForType)
-    case 'Group':
-      return new MutableGroup(module, fieldsForType)
-    case 'Ident':
-      return new MutableIdent(module, fieldsForType)
-    case 'Import':
-      return new MutableImport(module, fieldsForType)
-    case 'Invalid':
-      return new MutableInvalid(module, fieldsForType)
-    case 'NegationApp':
-      return new MutableNegationApp(module, fieldsForType)
-    case 'NumericLiteral':
-      return new MutableNumericLiteral(module, fieldsForType)
-    case 'OprApp':
-      return new MutableOprApp(module, fieldsForType)
-    case 'PropertyAccess':
-      return new MutablePropertyAccess(module, fieldsForType)
-    case 'TextLiteral':
-      return new MutableTextLiteral(module, fieldsForType)
-    case 'UnaryOprApp':
-      return new MutableUnaryOprApp(module, fieldsForType)
-    case 'AutoscopedIdentifier':
-      return new MutableAutoscopedIdentifier(module, fieldsForType)
-    case 'Vector':
-      return new MutableVector(module, fieldsForType)
-    case 'Wildcard':
-      return new MutableWildcard(module, fieldsForType)
-  }
-  bail(`Invalid type: ${type}`)
-}
-
-/** TODO: Add docs */
-export function materialize(module: Module, fields: FixedMapView<AstFields>): Ast {
-  const type = fields.get('type')
-  const fields_ = fields as FixedMapView<any>
-  switch (type) {
-    case 'App':
-      return new App(module, fields_)
-    case 'Assignment':
-      return new Assignment(module, fields_)
-    case 'BodyBlock':
-      return new BodyBlock(module, fields_)
-    case 'ExpressionStatement':
-      return new ExpressionStatement(module, fields_)
-    case 'FunctionDef':
-      return new FunctionDef(module, fields_)
-    case 'Generic':
-      return new Generic(module, fields_)
-    case 'Group':
-      return new Group(module, fields_)
-    case 'Ident':
-      return new Ident(module, fields_)
-    case 'Import':
-      return new Import(module, fields_)
-    case 'Invalid':
-      return new Invalid(module, fields_)
-    case 'NegationApp':
-      return new NegationApp(module, fields_)
-    case 'NumericLiteral':
-      return new NumericLiteral(module, fields_)
-    case 'OprApp':
-      return new OprApp(module, fields_)
-    case 'PropertyAccess':
-      return new PropertyAccess(module, fields_)
-    case 'TextLiteral':
-      return new TextLiteral(module, fields_)
-    case 'UnaryOprApp':
-      return new UnaryOprApp(module, fields_)
-    case 'AutoscopedIdentifier':
-      return new AutoscopedIdentifier(module, fields_)
-    case 'Vector':
-      return new Vector(module, fields_)
-    case 'Wildcard':
-      return new Wildcard(module, fields_)
-  }
+  const klass = mutableTypeMap.get(type)
+  if (klass) return new klass(module, fields as FixedMap<any>)
   bail(`Invalid type: ${type}`)
 }
 
@@ -3389,8 +3542,9 @@ function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | un
 function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined {
   return (
     ident ?
-      isToken(ident) ? ident
-      : (Token.new(ident, TokenType.Ident) as IdentifierToken)
+      typeof ident === 'string' ?
+        (Token.new(ident, TokenType.Ident) as IdentifierToken)
+      : ident
     : undefined
   )
 }
@@ -3401,8 +3555,9 @@ function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierTo
 function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined {
   return (
     ident ?
-      isToken(ident) ? ident
-      : (Token.new(ident, TokenType.Ident) as IdentifierOrOperatorIdentifierToken)
+      typeof ident === 'string' ?
+        (Token.new(ident, TokenType.Ident) as IdentifierOrOperatorIdentifierToken)
+      : ident
     : undefined
   )
 }

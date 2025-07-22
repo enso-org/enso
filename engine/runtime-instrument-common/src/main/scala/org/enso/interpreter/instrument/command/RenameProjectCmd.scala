@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.command
 
-import java.util.logging.Level
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.RuntimeContext
@@ -33,13 +32,11 @@ class RenameProjectCmd(
     } yield ()
 
   private def doRename(implicit ctx: RuntimeContext): Unit = {
-    val logger = ctx.executionService.getLogger
     ctx.locking.withWriteCompilationLock(
       this.getClass,
       () =>
         try {
-          logger.log(
-            Level.FINE,
+          logger.debug(
             s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
           )
           val packageRepository =
@@ -94,21 +91,18 @@ class RenameProjectCmd(
               newConfig.name
             )
           )
-          logger.log(
-            Level.INFO,
+          logger.info(
             s"Project renamed to ${request.namespace}.${request.newName}"
           )
         } catch {
           case ex: RenameProjectCmd.MainProjectPackageNotFound =>
-            logger.log(
-              Level.SEVERE,
+            logger.error(
               "Main project package is not found.",
               ex
             )
             reply(Api.ProjectRenameFailed(request.oldName, request.newName))
           case ex: RenameProjectCmd.FailedToReloadConfig =>
-            logger.log(
-              Level.SEVERE,
+            logger.error(
               "Failed to reload package config.",
               ex
             )

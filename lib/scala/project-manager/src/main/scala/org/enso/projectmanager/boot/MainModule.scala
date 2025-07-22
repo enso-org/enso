@@ -115,7 +115,8 @@ class MainModule[
   lazy val projectCreationService =
     new ProjectCreationService[F](
       distributionConfiguration,
-      loggingService
+      loggingService,
+      processConfig.jvm
     )
 
   lazy val globalConfigService =

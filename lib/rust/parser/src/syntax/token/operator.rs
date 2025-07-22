@@ -1,7 +1,7 @@
 use crate::syntax::token::*;
 
 use crate::lexer::analyze_non_syntactic_operator;
-use crate::syntax::operator::SectionTermination;
+use crate::syntax::expression::SectionTermination;
 
 
 

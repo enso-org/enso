@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.callable;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
@@ -12,13 +14,18 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.pkg.Package;
 import org.graalvm.collections.Pair;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
@@ -66,14 +73,62 @@ public final class UnresolvedSymbol extends EnsoObject {
    * @param type the type for which this symbol should be resolved
    * @return the resolved function definition and type it was resolved in, or null if not found
    */
+  @TruffleBoundary
   public Pair<Function, Type> resolveFor(Node node, Type type) {
     if (type != null) {
       for (var current : type.allTypes(EnsoContext.get(node))) {
         Function candidate = scope.lookupMethodDefinition(current, name);
         if (candidate != null) {
+          ensureIsAccessible(node, candidate);
           return Pair.create(candidate, current);
         }
       }
+    }
+    return null;
+  }
+
+  private void ensureIsAccessible(Node node, Function function) throws PanicException {
+    var isPrivateCheckDisabled = EnsoContext.get(node).isPrivateCheckDisabled();
+    CompilerAsserts.compilationConstant(isPrivateCheckDisabled);
+    if (!isPrivateCheckDisabled && function.getSchema().isProjectPrivate()) {
+      var thisPkg = getThisProject();
+      var targetPkg = getFunctionProject(function);
+      if (thisPkg != targetPkg) {
+        throw makePrivateAccessPanic(node, function);
+      }
+    }
+  }
+
+  private PanicException makePrivateAccessPanic(Node node, Function targetFunction) {
+    String thisProjName = getThisProject().libraryName().qualifiedName();
+    String targetProjName = null;
+    if (getFunctionProject(targetFunction) instanceof Package<TruffleFile> targetProj) {
+      targetProjName = targetProj.libraryName().qualifiedName();
+    }
+    var funcName = targetFunction.getName();
+    var err =
+        EnsoContext.get(node)
+            .getBuiltins()
+            .error()
+            .makePrivateAccessError(thisProjName, targetProjName, funcName, null);
+    return new PanicException(err, node);
+  }
+
+  private Package<TruffleFile> getThisProject() {
+    return scope.getModule().getPackage();
+  }
+
+  private static Package<TruffleFile> getFunctionProject(Function function) {
+    var cons = AtomConstructor.accessorFor(function);
+    if (cons != null) {
+      return cons.getDefinitionScope().getModule().getPackage();
+    }
+    cons = MethodRootNode.constructorFor(function);
+    if (cons != null) {
+      return cons.getDefinitionScope().getModule().getPackage();
+    }
+    if (function.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRootNode) {
+      return ensoRootNode.getModuleScope().getModule().getPackage();
     }
     return null;
   }
@@ -123,7 +178,7 @@ public final class UnresolvedSymbol extends EnsoObject {
         @CachedLibrary("symbol") InteropLibrary thisLib)
         throws ArityException {
       return interopMethodCallNode.execute(
-          symbol, EnsoContext.get(thisLib).emptyState(), arguments);
+          symbol, EnsoContext.get(thisLib).currentState(), arguments);
     }
   }
 
@@ -133,7 +188,7 @@ public final class UnresolvedSymbol extends EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     var ctx = EnsoContext.get(node);
     return ctx.getBuiltins().function();
   }

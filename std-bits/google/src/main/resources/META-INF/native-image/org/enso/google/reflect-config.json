@@ -1,0 +1,951 @@
+[
+    {
+        "name": "com.google.api.client.googleapis.javanet.GoogleNetHttpTransport"
+    },
+    {
+        "name": "com.google.api.client.json.gson.GsonFactory"
+    },
+    {
+        "name": "com.google.api.services.sheets.v4.Sheets",
+        "methods": [
+            {
+                "name": "spreadsheets"
+            }
+        ]
+    },
+    {
+        "name": "com.google.api.services.sheets.v4.Sheets.Builder"
+    },
+    {
+        "name": "com.google.api.services.sheets.v4.Sheets$Builder",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "com.google.api.client.http.HttpTransport",
+                    "com.google.api.client.json.JsonFactory",
+                    "com.google.api.client.http.HttpRequestInitializer"
+                ]
+            },
+            {
+                "name": "setApplicationName",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "build"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.census.InternalCensusStatsAccessor"
+    },
+    {
+        "name": "io.grpc.census.InternalCensusTracingAccessor"
+    },
+    {
+        "name": "io.grpc.internal.DnsNameResolverProvider"
+    },
+    {
+        "name": "io.grpc.internal.JndiResourceResolverFactory",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.internal.PickFirstLoadBalancerProvider"
+    },
+    {
+        "name": "io.grpc.internal.SerializingExecutor",
+        "fields": [
+            {
+                "name": "runState"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.NettyChannelProvider"
+    },
+    {
+        "name": "io.grpc.netty.UdsNettyChannelProvider"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.AbstractNettyHandler",
+        "methods": [
+            {
+                "name": "channelActive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "exceptionCaught",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Throwable"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.NettyClientHandler",
+        "methods": [
+            {
+                "name": "channelInactive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "close",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "write",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.ProtocolNegotiators"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.ProtocolNegotiators"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.ProtocolNegotiators$ClientTlsHandler"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.ProtocolNegotiators$GrpcNegotiationHandler",
+        "methods": [
+            {
+                "name": "userEventTriggered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.ProtocolNegotiators$ProtocolNegotiationHandler",
+        "methods": [
+            {
+                "name": "userEventTriggered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.ProtocolNegotiators$WaitUntilActiveHandler",
+        "methods": [
+            {
+                "name": "channelActive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.grpc.netty.WriteBufferingAndExceptionHandler",
+        "methods": [
+            {
+                "name": "channelInactive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelRead",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            },
+            {
+                "name": "close",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "connect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "exceptionCaught",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Throwable"
+                ]
+            },
+            {
+                "name": "flush",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "write",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.buffer.AbstractByteBufAllocator",
+        "queryAllDeclaredMethods": true
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.buffer.AbstractReferenceCountedByteBuf",
+        "fields": [
+            {
+                "name": "refCnt"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.AbstractChannelHandlerContext",
+        "fields": [
+            {
+                "name": "handlerState"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.ChannelDuplexHandler",
+        "methods": [
+            {
+                "name": "bind",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "close",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "connect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "deregister",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "disconnect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "flush",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "read",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "write",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.ChannelInboundHandlerAdapter",
+        "methods": [
+            {
+                "name": "channelActive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelInactive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelRead",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            },
+            {
+                "name": "channelReadComplete",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelRegistered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelUnregistered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelWritabilityChanged",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "exceptionCaught",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Throwable"
+                ]
+            },
+            {
+                "name": "userEventTriggered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.ChannelOutboundBuffer",
+        "fields": [
+            {
+                "name": "totalPendingSize"
+            },
+            {
+                "name": "unwritable"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.DefaultChannelConfig",
+        "fields": [
+            {
+                "name": "autoRead"
+            },
+            {
+                "name": "writeBufferWaterMark"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.DefaultChannelPipeline",
+        "fields": [
+            {
+                "name": "estimatorHandle"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.DefaultChannelPipeline$HeadContext",
+        "methods": [
+            {
+                "name": "bind",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "channelActive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelInactive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelRead",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            },
+            {
+                "name": "channelReadComplete",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelRegistered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelUnregistered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelWritabilityChanged",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "close",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "connect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "deregister",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "disconnect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "exceptionCaught",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Throwable"
+                ]
+            },
+            {
+                "name": "flush",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "read",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "userEventTriggered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            },
+            {
+                "name": "write",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.DefaultChannelPipeline$TailContext",
+        "methods": [
+            {
+                "name": "channelActive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelInactive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelRead",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            },
+            {
+                "name": "channelReadComplete",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelRegistered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelUnregistered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelWritabilityChanged",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "exceptionCaught",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Throwable"
+                ]
+            },
+            {
+                "name": "userEventTriggered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.DefaultFileRegion"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.epoll.Epoll",
+        "methods": [
+            {
+                "name": "isAvailable",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.epoll.EpollDomainSocketChannel"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "int",
+                    "java.util.concurrent.ThreadFactory"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.epoll.EpollSocketChannel",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.epoll.NativeDatagramPacketArray$NativeDatagramPacket"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.unix.DatagramSocketAddress"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.unix.DomainDatagramSocketAddress"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.unix.FileDescriptor",
+        "fields": [
+            {
+                "name": "state"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.channel.unix.PeerCredentials"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.handler.codec.ByteToMessageDecoder",
+        "methods": [
+            {
+                "name": "channelRead",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            },
+            {
+                "name": "userEventTriggered",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.handler.codec.http2.Http2ConnectionHandler",
+        "methods": [
+            {
+                "name": "bind",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "channelReadComplete",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelWritabilityChanged",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "connect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "deregister",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "disconnect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "flush",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "read",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler",
+        "methods": [
+            {
+                "name": "bind",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "channelActive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelInactive",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "channelReadComplete",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "close",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "connect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.net.SocketAddress",
+                    "java.net.SocketAddress",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "deregister",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "disconnect",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            },
+            {
+                "name": "exceptionCaught",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Throwable"
+                ]
+            },
+            {
+                "name": "flush",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "read",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext"
+                ]
+            },
+            {
+                "name": "write",
+                "parameterTypes": [
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext",
+                    "java.lang.Object",
+                    "io.grpc.netty.shaded.io.netty.channel.ChannelPromise"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.internal.tcnative.CertificateCallback"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.internal.tcnative.CertificateCallbackTask"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.internal.tcnative.SSLContext"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.internal.tcnative.SSLPrivateKeyMethodDecryptTask"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.internal.tcnative.SSLPrivateKeyMethodSignTask"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.internal.tcnative.SSLPrivateKeyMethodTask"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.internal.tcnative.SSLTask"
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.AbstractReferenceCounted",
+        "fields": [
+            {
+                "name": "refCnt"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.DefaultAttributeMap",
+        "fields": [
+            {
+                "name": "attributes"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.Recycler$DefaultHandle",
+        "fields": [
+            {
+                "name": "state"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.ReferenceCountUtil",
+        "queryAllDeclaredMethods": true
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.concurrent.DefaultPromise",
+        "fields": [
+            {
+                "name": "result"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.concurrent.SingleThreadEventExecutor",
+        "fields": [
+            {
+                "name": "state"
+            },
+            {
+                "name": "threadProperties"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.internal.NativeLibraryUtil",
+        "methods": [
+            {
+                "name": "loadLibrary",
+                "parameterTypes": [
+                    "java.lang.String",
+                    "boolean"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.internal.shaded.org.jctools.queues.BaseMpscLinkedArrayQueueColdProducerFields",
+        "fields": [
+            {
+                "name": "producerLimit"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.internal.shaded.org.jctools.queues.BaseMpscLinkedArrayQueueConsumerFields",
+        "fields": [
+            {
+                "name": "consumerIndex"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.internal.shaded.org.jctools.queues.BaseMpscLinkedArrayQueueProducerFields",
+        "fields": [
+            {
+                "name": "producerIndex"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.internal.shaded.org.jctools.queues.MpscArrayQueueConsumerIndexField",
+        "fields": [
+            {
+                "name": "consumerIndex"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.internal.shaded.org.jctools.queues.MpscArrayQueueProducerIndexField",
+        "fields": [
+            {
+                "name": "producerIndex"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.netty.shaded.io.netty.util.internal.shaded.org.jctools.queues.MpscArrayQueueProducerLimitField",
+        "fields": [
+            {
+                "name": "producerLimit"
+            }
+        ]
+    },
+    {
+        "name": "io.grpc.okhttp.OkHttpChannelProvider"
+    },
+    {
+        "name": "io.grpc.override.ContextStorageOverride"
+    },
+    {
+        "name": "io.grpc.util.SecretRoundRobinLoadBalancerProvider$Provider",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    }
+]

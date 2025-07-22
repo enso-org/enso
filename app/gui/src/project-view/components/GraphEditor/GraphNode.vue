@@ -1,58 +1,59 @@
+<script lang="ts">
+const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
+export const NODE_CONTENT_PADDING = 4
+export const NODE_CONTENT_PADDING_PX = `${NODE_CONTENT_PADDING}px`
+const MENU_CLOSE_TIMEOUT_MS = 300
+</script>
+
 <script setup lang="ts">
-import { graphBindings, nodeEditBindings } from '@/bindings'
-import ComponentContextMenu from '@/components/ComponentContextMenu.vue'
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
+import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_L,
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/ComponentWidgetTree.vue'
+import { useNodeMessage } from '@/components/GraphEditor/GraphNode/nodeMessage'
+import { useNodeVisualization } from '@/components/GraphEditor/GraphNode/nodeVisualization'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
-import GraphNodeMessage, {
-  colorForMessageType,
-  iconForMessageType,
-  type MessageType,
-} from '@/components/GraphEditor/GraphNodeMessage.vue'
-import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
+import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import PointFloatingMenu from '@/components/PointFloatingMenu.vue'
-import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
-import { provideComponentButtons } from '@/providers/componentButtons'
+import { useProgressBackground } from '@/composables/progressBar'
+import type { ActionHandler } from '@/providers/action'
+import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { injectKeyboard } from '@/providers/keyboard'
-import { useGraphStore, type Node } from '@/stores/graph'
+import { providePopoverRoot } from '@/providers/popoverRoot'
+import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
+import { type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
-import { useProjectStore } from '@/stores/project'
+import { evaluationProgress } from '@/stores/project/computedValueRegistry'
 import { useNodeExecution } from '@/stores/project/nodeExecution'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
 import { prefixes } from '@/util/ast/node'
+import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
-import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
-
-const MAXIMUM_CLICK_LENGTH_MS = 300
-const MAXIMUM_CLICK_DISTANCE_SQ = 50
-const CONTENT_PADDING = 4
-const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
-const MENU_CLOSE_TIMEOUT_MS = 300
+import { ComponentInstance, computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
-  padding: CONTENT_PADDING_PX,
+  padding: NODE_CONTENT_PADDING_PX,
 }
 
 const props = defineProps<{
   node: Node
   edited: boolean
-  graphNodeSelections: HTMLElement | undefined
 }>()
 
 const emit = defineEmits<{
@@ -60,15 +61,12 @@ const emit = defineEmits<{
   draggingCommited: []
   draggingCancelled: []
   replaceSelection: []
-  outputPortClick: [event: PointerEvent, portId: AstId]
-  outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   enterNode: []
   createNodes: [options: NodeCreationOptions[]]
   setNodeColor: [color: string | undefined]
   toggleDocPanel: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
-  'update:hoverAnim': [progress: number]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationEnabled': [enabled: boolean]
@@ -83,7 +81,7 @@ const navigator = injectGraphNavigator(true)
 const nodeExecution = useNodeExecution()
 
 const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
-const potentialSelfArgumentId = computed(() => props.node.primarySubject)
+const primaryApplication = computed(() => props.node.primaryApplication)
 
 const nodePosition = computed(() => {
   // Positions of nodes that are not yet placed are set to `Infinity`.
@@ -95,82 +93,29 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
+const widgetTree = ref<ComponentInstance<typeof ComponentWidgetTree>>()
 const nodeSize = useResizeObserver(rootNode)
+const widgetTreeSize = useResizeObserver(widgetTree)
 
-function inputExternalIds() {
-  const externalIds = new Array<ExternalId>()
-  for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
-    if (inputId) {
-      externalIds.push(inputId)
-    }
-  }
-  return externalIds
-}
+providePopoverRoot(rootNode)
 
-function getPanic(id: ExternalId) {
-  const info = projectStore.computedValueRegistry.db.get(id)
-  return info?.payload.type === 'Panic' ? info.payload.message : undefined
-}
-
-function getDataflowError(id: ExternalId) {
-  return projectStore.dataflowErrors.lookup(id)?.value?.message
-}
-
-interface Message {
-  type: MessageType
-  text: string
-  alwaysShow: boolean
-}
-const availableMessage = computed<Message | undefined>(() => {
-  const externalId = nodeId.value
-  if (!externalId) return undefined
-  const info = projectStore.computedValueRegistry.db.get(externalId)
-  switch (info?.payload.type) {
-    case 'Panic': {
-      const text = info.payload.message
-      const alwaysShow = !inputExternalIds().some((id) => getPanic(id) === text)
-      return { type: 'panic', text, alwaysShow } satisfies Message
-    }
-    case 'DataflowError': {
-      const rawText = getDataflowError(externalId)
-      const text = rawText?.split(' (at')[0]
-      if (!text) return undefined
-      const alwaysShow = !inputExternalIds().some((id) => getDataflowError(id) === rawText)
-      const type = rawText.includes('Missing_Argument') ? 'missing' : 'error'
-      return { type, text, alwaysShow } satisfies Message
-    }
-    case 'Value': {
-      const warning = info.payload.warnings?.value
-      if (!warning) return undefined
-      return {
-        type: 'warning',
-        text: 'Warning: ' + warning,
-        alwaysShow: false,
-      } satisfies Message
-    }
-    default:
-      return undefined
-  }
+const { visibleMessage, hiddenMessage } = useNodeMessage({
+  projectStore,
+  graphDb: graph.db,
+  passEvents: () => outputHovered.value,
+  expand: () => nodeHovered.value || selected.value,
+  nodeId,
 })
 
-const visibleMessage = computed(
-  () =>
-    (availableMessage.value?.alwaysShow || nodeHovered.value || selected.value) &&
-    availableMessage.value,
+const extended = computed<boolean>(
+  () => nodeSelection != null && nodeSelection.isSoleSelection(nodeId.value),
 )
+watch(extended, (extended) => graph.nodeExtended.set(nodeId.value, extended), { immediate: true })
 
 const nodeHovered = ref(false)
+watch(nodeHovered, (hovered) => graph.nodeHovered.set(nodeId.value, hovered))
 
-const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const selectionVisible = ref(false)
-
-const isOnlyOneSelected = computed(
-  () =>
-    nodeSelection?.committedSelection.size === 1 &&
-    nodeSelection?.committedSelection.has(nodeId.value),
-)
-
-const menuVisible = computed(() => menuEnabledByHover.value || isOnlyOneSelected.value)
+const menuVisible = computed(() => menuEnabledByHover.value || extended.value)
 const menuFull = ref(false)
 const menuHovered = ref(false)
 
@@ -195,8 +140,9 @@ watchEffect(() => {
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
     pos.sub(nodePosition.value).x <
-      CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
+      NODE_CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
+    nodeHovered.value ||
     menuHovered.value ||
     inZone(nodeHoverPos.value) ||
     (menuEnabledByHover.value && inZone(selectionHoverPos.value))
@@ -216,7 +162,6 @@ watch(menuVisible, (visible) => {
 
 function setSoleSelected() {
   nodeSelection?.setSelection(new Set([nodeId.value]))
-  graph.db.moveNodeToTop(nodeId.value)
 }
 
 function ensureSelected() {
@@ -225,28 +170,45 @@ function ensureSelected() {
   }
 }
 
-const outputHovered = ref(false)
-const keyboard = injectKeyboard()
+const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value))
 
-const visualizationWidth = computed(() => props.node.vis?.width ?? null)
-const visualizationHeight = computed(() => props.node.vis?.height ?? null)
-const isVisualizationEnabled = computed({
-  get: () => props.node.vis?.visible ?? false,
-  set: (enabled) => {
-    emit('update:visualizationEnabled', enabled)
-  },
+const scale = computed(() => navigator?.scale ?? 1)
+const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
+
+const {
+  visualizationWidth,
+  isVisualizationEnabled,
+  isVisualizationPreviewed,
+  visRect,
+  visualization,
+} = useNodeVisualization({
+  vis: () => props.node.vis,
+  nodeHovered: () => nodeHovered.value || outputHovered.value,
+  nodeRect,
+  scale,
+  isFocused: extended,
+  typeinfo: () => expressionInfo.value?.typeInfo,
+  dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
+  hidden: toRef(props, 'edited'),
+  emit,
 })
-const isVisualizationPreviewed = computed(
-  () => keyboard.mod && outputHovered.value && !isVisualizationEnabled.value,
-)
-const isVisualizationVisible = computed(
-  () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
-)
-watch(isVisualizationPreviewed, (newVal, oldVal) => {
-  if (newVal && !oldVal) {
+
+watch(isVisualizationPreviewed, (newVal) => {
+  if (newVal) {
     graph.db.moveNodeToTop(nodeId.value)
+  } else {
+    graph.nodeHovered.delete(nodeId.value)
   }
 })
+
+provideResizableWidgetRegistry(
+  computed({
+    get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
+    set: (width) => (visualizationWidth.value = width && width / scale.value),
+  }),
+  () => NODE_CONTENT_PADDING * scale.value,
+  () => widgetTreeSize.value.x,
+)
 
 const transform = computed(() => {
   const { x, y } = nodePosition.value
@@ -305,29 +267,16 @@ const isRecordingOverridden = computed({
       shouldOverride && !projectStore.isRecordingEnabled ?
         [Ast.TextLiteral.new(projectStore.executionMode, edit)]
       : undefined
-    prefixes.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
+    prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
-const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 
 const nodeEditHandler = nodeEditBindings.handler({
-  cancel(e) {
-    if (e.target instanceof HTMLElement) {
-      e.target.blur()
-    }
-  },
-  edit() {
-    startEditingNode()
-  },
+  edit: () => actionHandlers['component.startEditing'].action(),
 })
-
-function startEditingNode() {
-  emit('update:edited', props.node.rootExpr.code().length)
-}
 
 const handleNodeClick = useDoubleClick(
   (e: MouseEvent) => {
@@ -341,37 +290,12 @@ const handleNodeClick = useDoubleClick(
   },
 ).handleClick
 
-const visRect = shallowRef<Rect>()
-function updateVisualizationRect(rect: Rect | undefined) {
-  visRect.value = rect
-  emit('update:visualizationRect', rect)
-}
+const graphSelectionSize = computed(() => visRect.value?.size ?? nodeSize.value)
 
-const graphSelectionSize = computed(() =>
-  isVisualizationEnabled.value && visRect.value ? visRect.value.size : nodeSize.value,
-)
-
-const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
-const nodeOuterRect = computed(() =>
-  isVisualizationEnabled.value && visRect.value ? visRect.value : nodeRect.value,
-)
+const nodeOuterRect = computed(() => visRect.value ?? nodeRect.value)
 watchEffect(() => {
   if (!nodeOuterRect.value.size.isZero()) {
     emit('update:rect', nodeOuterRect.value)
-  }
-})
-
-const dataSource = computed(
-  () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
-)
-
-const pending = computed(() => {
-  switch (executionState.value) {
-    case 'Unknown':
-    case 'Pending':
-      return true
-    default:
-      return false
   }
 })
 
@@ -393,218 +317,234 @@ function useRecomputation() {
   return { recomputeOnce, isBeingRecomputed }
 }
 
+// === Style and colors ===
+
 const nodeStyle = computed(() => {
   return {
     transform: transform.value,
     minWidth: isVisualizationEnabled.value ? `${visualizationWidth.value ?? 200}px` : undefined,
-    '--node-group-color': color.value,
+    '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
     '--viz-below-node': `${graphSelectionSize.value.y - nodeSize.value.y}px`,
-    '--node-size-x': `${nodeSize.value.x}px`,
-    '--node-size-y': `${nodeSize.value.y}px`,
   }
 })
+
+const { baseColor, selected, pending } = useComponentColors(graph.db, nodeSelection, nodeId)
+
+const nodeProgress = computed(() => evaluationProgress(expressionInfo.value) ?? 100)
+const { progressStyles, watchProgress } = useProgressBackground(nodeProgress, {
+  progressId: () => expressionInfo.value?.evaluationId ?? 0,
+  initialColor: 'var(--color-node-background-pending)',
+  finalColor: 'var(--color-node-background)',
+})
+const { progressAnimating, backgroundProgressEvents } = watchProgress()
+
+const showProgressBar = computed(() => nodeProgress.value !== 100 || progressAnimating.value)
 
 const nodeClass = computed(() => {
   return {
     selected: selected.value,
-    selectionVisible: selectionVisible.value,
     pending: pending.value,
+    evaluating: showProgressBar.value,
     inputNode: props.node.type === 'input',
     outputNode: props.node.type === 'output',
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
+    edited: props.edited,
   }
 })
+
+const backgroundStyles = computed(() =>
+  composeTransition(showProgressBar.value ? progressStyles.value : {}, [
+    '--color-node-background 0.2s ease',
+    '--color-node-background-pending 0.2s ease',
+  ]),
+)
+
+/**
+ * Returns the provided CSS style properties, with the provided additional transitions combined with any existing
+ * `transition`.
+ */
+function composeTransition(style: Record<string, string>, additionalTransitions: string[]) {
+  return {
+    ...style,
+    transition: (style.transition ?
+      [style.transition, ...additionalTransitions]
+    : additionalTransitions
+    ).join(','),
+  }
+}
 
 // === Component actions ===
 
 const { getNodeColor, getNodeColors } = injectNodeColors()
+const nodeColor = computed(() => getNodeColor(nodeId.value))
+const matchableColors = getNodeColors((node) => node !== nodeId.value)
 const { recomputeOnce, isBeingRecomputed } = useRecomputation()
 
-const { editingComment } = provideComponentButtons(
-  {
-    graphBindings: graphBindings.bindings,
-    nodeEditBindings: nodeEditBindings.bindings,
-    onBeforeAction: setSoleSelected,
-  },
-  {
-    enterNode: {
+function selectBeforeAction<Handlers extends { [K in string]?: ActionHandler }>(
+  handlers: Handlers,
+) {
+  for (const actionName in handlers) {
+    const origAction = handlers[actionName]!.action
+    handlers[actionName]!.action = (...args) => {
+      setSoleSelected()
+      origAction?.(...args)
+    }
+  }
+  return handlers
+}
+
+const editingComment = ref(false)
+const colorPickerOpened = ref(false)
+
+const actionHandlers = registerHandlers(
+  selectBeforeAction({
+    'component.enterNode': {
+      available: computed(() => graph.nodeCanBeEntered(nodeId.value)),
       action: () => emit('enterNode'),
-      hidden: computed(() => !graph.nodeCanBeEntered(nodeId.value)),
     },
-    startEditing: {
-      action: startEditingNode,
+    'component.startEditing': {
+      action: () => emit('update:edited', props.node.rootExpr.code().length),
     },
-    editingComment: {
-      state: ref(false),
-    },
-    createNewNode: {
+    'component.editingComment': toggledAction(editingComment),
+    'component.createNewNode': {
       action: () => emit('createNodes', [{ commit: false, content: undefined }]),
     },
-    toggleDocPanel: {
+    'component.toggleDocPanel': {
       action: () => emit('toggleDocPanel'),
     },
-    toggleVisualization: {
-      state: isVisualizationEnabled,
+    'component.toggleVisualization': {
+      ...toggledAction(isVisualizationEnabled),
+      description: computed(() =>
+        isVisualizationEnabled.value ? 'Hide visualization' : 'Show visualization',
+      ),
     },
-    pickColor: {
-      state: ref(false),
-      actionData: {
-        currentColor: computed({
-          get: () => getNodeColor(nodeId.value),
-          set: (color) => emit('setNodeColor', color),
-        }),
-        matchableColors: getNodeColors((node) => node !== nodeId.value),
-      },
-    },
-    recompute: {
+    'component.pickColor': toggledAction(colorPickerOpened),
+    'component.recompute': {
+      enabled: computed(() => !isBeingRecomputed.value),
       action: recomputeOnce,
-      disabled: isBeingRecomputed,
     },
-  },
+  }),
 )
 
-const showMenuAt = ref<{ x: number; y: number }>()
+onWindowBlur(() => {
+  graph.nodeHovered.delete(nodeId.value)
+  updateNodeHover(undefined)
+})
+
+const nodeName = computed(() => props.node.pattern?.code())
 </script>
 
 <template>
   <div
-    v-show="!edited"
     ref="rootNode"
     class="GraphNode define-node-colors"
     :style="nodeStyle"
     :class="nodeClass"
     :data-node-id="nodeId"
-    @pointerenter="(nodeHovered = true), updateNodeHover($event)"
-    @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
-    @pointermove="updateNodeHover"
+    @pointerdown.stop
   >
-    <div class="binding" v-text="node.pattern?.code()" />
+    <div class="binding" v-text="nodeName" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
-      @click="(isRecordingOverridden = false), setSoleSelected()"
+      @click="((isRecordingOverridden = false), setSoleSelected())"
     >
-      <SvgIcon name="record" />
+      <SvgIcon name="workflow_play" />
     </button>
     <ComponentMenu
       v-if="menuVisible"
-      @pointerenter="menuHovered = true"
-      @pointerleave="menuHovered = false"
+      :colorPickerOpened="colorPickerOpened"
+      :currentNodeColor="nodeColor"
+      :matchableColors="matchableColors"
+      @setNodeColor="emit('setNodeColor', $event)"
+      @closeColorPicker="colorPickerOpened = false"
+      @update:hovered="menuHovered = $event"
       @click.capture="setSoleSelected"
     />
     <GraphVisualization
-      v-if="isVisualizationVisible"
-      :nodeSize="nodeSize"
-      :scale="navigator?.scale ?? 1"
-      :nodePosition="nodePosition"
-      :isCircularMenuVisible="menuVisible"
-      :currentType="props.node.vis?.identifier"
-      :dataSource="dataSource"
-      :typename="expressionInfo?.typename"
-      :width="visualizationWidth"
-      :height="visualizationHeight"
-      :isFocused="isOnlyOneSelected"
-      :isPreview="isVisualizationPreviewed"
-      :isFullscreenAllowed="true"
-      :isResizable="true"
-      @update:rect="updateVisualizationRect"
-      @update:id="emit('update:visualizationId', $event)"
-      @update:enabled="emit('update:visualizationEnabled', $event)"
-      @update:width="emit('update:visualizationWidth', $event)"
-      @update:height="emit('update:visualizationHeight', $event)"
+      v-if="visualization"
+      v-bind="visualization"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
       @click.capture="setSoleSelected"
     />
     <GraphNodeComment
-      v-model:editing="editingComment.state"
+      v-model:editing="editingComment"
       :node="node"
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <div
-      ref="contentNode"
-      :class="{ content: true, dragged: isDragged }"
-      :style="contentNodeStyle"
-      v-on="dragPointer.events"
-      @click="handleNodeClick"
-      @contextmenu.stop.prevent="ensureSelected(), (showMenuAt = $event)"
+    <ContextMenuTrigger
+      :actions="[
+        'component.toggleDocPanel',
+        'component.toggleVisualization',
+        'component.createNewNode',
+        'component.editingComment',
+        'component.recompute',
+        'component.pickColor',
+        'component.enterNode',
+        'component.startEditing',
+        'components.copy',
+        'components.deleteSelected',
+      ]"
+      @contextmenu="ensureSelected"
     >
-      <ComponentWidgetTree
-        :ast="props.node.innerExpr"
-        :nodeId="nodeId"
-        :rootElement="rootNode"
-        :nodeType="props.node.type"
-        :potentialSelfArgumentId="potentialSelfArgumentId"
-        :conditionalPorts="props.node.conditionalPorts"
-        :extended="isOnlyOneSelected"
-      />
-    </div>
+      <div
+        ref="contentNode"
+        :class="{ content: true, dragged: isDragged }"
+        :style="contentNodeStyle"
+        v-on="dragPointer.events"
+        @click="handleNodeClick"
+        @pointerenter="((nodeHovered = true), updateNodeHover($event))"
+        @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
+        @pointermove="updateNodeHover"
+      >
+        <ComponentWidgetTree
+          ref="widgetTree"
+          :ast="props.node.innerExpr"
+          :nodeId="nodeId"
+          :rootElement="rootNode"
+          :nodeType="props.node.type"
+          :primaryApplication="primaryApplication"
+          :conditionalPorts="props.node.conditionalPorts"
+          :extended="extended"
+        />
+      </div>
+    </ContextMenuTrigger>
     <div class="statuses">
-      <SvgIcon
-        v-if="availableMessage && !visibleMessage"
-        :name="iconForMessageType[availableMessage.type]"
-        :style="{ color: colorForMessageType[availableMessage.type] }"
-      />
+      <SvgIcon v-if="hiddenMessage" v-bind="hiddenMessage" />
     </div>
     <GraphNodeMessage
       v-if="visibleMessage"
+      v-bind="visibleMessage"
       class="afterNode shiftWhenMenuVisible"
-      :message="visibleMessage.text"
-      :type="visibleMessage.type"
     />
-    <svg class="bgPaths">
-      <rect class="bgFill" />
-      <GraphNodeOutputPorts
-        v-if="props.node.type !== 'output'"
-        :nodeId="nodeId"
-        :forceVisible="nodeHovered"
-        @portClick="(...args) => emit('outputPortClick', ...args)"
-        @portDoubleClick="(...args) => emit('outputPortDoubleClick', ...args)"
-        @update:hoverAnim="emit('update:hoverAnim', $event)"
-        @update:nodeHovered="outputHovered = $event"
-      />
-    </svg>
-    <SmallPlusButton
-      v-if="menuVisible"
-      :class="isVisualizationVisible ? 'afterNode' : 'belowMenu'"
-      @createNodes="setSoleSelected(), emit('createNodes', $event)"
-    />
+    <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
-  <PointFloatingMenu v-if="showMenuAt" :point="showMenuAt" @close="showMenuAt = undefined">
-    <ComponentContextMenu @close="showMenuAt = undefined" />
-  </PointFloatingMenu>
 </template>
 
 <style scoped>
-.bgPaths {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  overflow: visible;
-  top: 0;
-  left: 0;
-  display: flex;
-  --output-port-transform: translateY(var(--viz-below-node));
-}
-
-.bgFill {
-  width: var(--node-size-x);
-  height: var(--node-size-y);
-  rx: var(--node-border-radius);
-
-  fill: var(--color-node-background);
-  transition: fill 0.2s ease;
-}
-
 .GraphNode {
   position: absolute;
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  --z-index-component-menu: 20;
+  --z-index-selection-submenu: calc(var(--z-index-component-menu) + 1);
+}
+
+.nodeBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--node-border-radius);
+  background-color: var(--color-node-background);
+  transition: background-color 0.2s ease;
 }
 
 .content {
@@ -618,8 +558,6 @@ const showMenuAt = ref<{ x: number; y: number }>()
   align-items: center;
   white-space: nowrap;
   z-index: 24;
-  transition: outline 0.2s ease;
-  outline: 0px solid transparent;
 }
 
 .binding {
@@ -630,19 +568,25 @@ const showMenuAt = ref<{ x: number; y: number }>()
   color: black;
   position: absolute;
   right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
-.selectionVisible .binding {
+.menuVisible .binding {
+  margin-right: 50px;
+}
+
+.selected .binding {
   opacity: 1;
 }
 
-.CircularMenu {
-  z-index: 25;
+.ComponentMenu {
+  z-index: var(--z-index-component-menu);
   &.partial {
     z-index: 1;
   }
@@ -666,11 +610,14 @@ const showMenuAt = ref<{ x: number; y: number }>()
   position: absolute;
   top: 100%;
   margin-top: var(--node-vertical-gap);
+  /*noinspection CssUnresolvedCustomProperty*/
   transform: translateY(var(--viz-below-node));
 }
 .shiftWhenMenuVisible {
   left: 0;
-  transition: left 0.1s ease-out;
+  transition:
+    left 0.1s ease-out,
+    opacity 0.2s ease;
 }
 .menuVisible .shiftWhenMenuVisible {
   left: 40px;
@@ -694,7 +641,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
   transition: opacity 0.2s ease-in-out;
 }
 
-.GraphNode.selectionVisible .statuses {
+.GraphNode.selected .statuses {
   opacity: 0;
 }
 
@@ -714,5 +661,11 @@ const showMenuAt = ref<{ x: number; y: number }>()
 
 .dragged {
   cursor: grabbing !important;
+}
+
+/* We use this instead of "v-show", because we want the node content being still laid out,
+   so the edges won't jump. */
+.edited {
+  visibility: hidden;
 }
 </style>

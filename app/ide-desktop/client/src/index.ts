@@ -19,7 +19,6 @@ import * as electron from 'electron'
 import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
-import * as buildUtils from 'enso-common/src/buildUtils'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import * as authentication from '@/authentication'
@@ -38,7 +37,10 @@ import * as projectManager from '@/projectManager'
 import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
+import { FileFilter, toElectronFileFilter } from './fileBrowser'
 
+import * as download from 'electron-dl'
+import type { DownloadUrlOptions } from './globals'
 const logger = contentConfig.logger
 
 /** Convert path to proper `file://` URL. */
@@ -71,7 +73,7 @@ class App {
     log.addFileLog()
     urlAssociations.registerAssociations()
     // Register file associations for macOS.
-    fileAssociations.setOpenFileEventHandler(path => {
+    fileAssociations.setOpenFileEventHandler((path) => {
       if (electron.app.isReady()) {
         const project = fileAssociations.handleOpenFile(path)
         this.window?.webContents.send(ipc.Channel.openProject, project)
@@ -99,6 +101,10 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
 
+        this.onStart().catch((err) => {
+          logger.error(err)
+        })
+
         electron.app.on('before-quit', () => {
           this.isQuitting = true
         })
@@ -109,7 +115,7 @@ class App {
           const isWin = os.platform() === 'win32'
 
           if (isWin) {
-            const ensoLinkInArgs = argv.find(arg => arg.startsWith(common.DEEP_LINK_SCHEME))
+            const ensoLinkInArgs = argv.find((arg) => arg.startsWith(common.DEEP_LINK_SCHEME))
 
             if (ensoLinkInArgs != null) {
               electron.app.emit('open-url', new CustomEvent('open-url'), ensoLinkInArgs)
@@ -131,7 +137,7 @@ class App {
           async () => {
             logger.log('Electron application is ready.')
 
-            electron.protocol.handle('enso', request =>
+            electron.protocol.handle('enso', (request) =>
               projectManager.handleProjectProtocol(
                 decodeURIComponent(request.url.replace('enso://', '')),
               ),
@@ -139,7 +145,7 @@ class App {
 
             await this.main(windowSize)
           },
-          error => {
+          (error) => {
             logger.error('Failed to initialize Electron.', error)
           },
         )
@@ -149,6 +155,33 @@ class App {
         electron.app.quit()
       }
     }
+  }
+
+  /** Background tasks scheduled on the application startup. */
+  async onStart() {
+    const userData = electron.app.getPath('userData')
+    const versionInfoPath = pathModule.join(userData, 'version_info.json')
+    const versionInfoPathExists = await fs
+      .access(versionInfoPath, fs.constants.F_OK)
+      .then(() => true)
+      .catch(() => false)
+
+    if (versionInfoPathExists) {
+      const versionInfoText = await fs.readFile(versionInfoPath, 'utf8')
+      const versionInfoJson = JSON.parse(versionInfoText)
+
+      if (debug.VERSION_INFO.version === versionInfoJson.version && !contentConfig.VERSION.isDev())
+        return
+    }
+
+    const writeVersionInfoPromise = fs.writeFile(
+      versionInfoPath,
+      JSON.stringify(debug.VERSION_INFO),
+      'utf8',
+    )
+    const downloadSamplesPromise = projectManagement.downloadSamples()
+
+    return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise])
   }
 
   /** Process the command line arguments. */
@@ -318,7 +351,8 @@ class App {
         this.args.groups.debug.options.profile.value ?
           ['--profiling-path', 'profiling.npss', ...backendProfileTime]
         : []
-      const backendOpts = [...backendVerboseOpts, ...backendProfileOpts]
+      const backendJvmOpts = this.args.options.jvm.value ? ['--jvm'] : []
+      const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
       const backendEnv = Object.assign({}, process.env, {
         SERVER_HOST: this.projectManagerHost,
         SERVER_PORT: `${this.projectManagerPort}`,
@@ -388,7 +422,7 @@ class App {
         window.setMenuBarVisibility(false)
         const oldMenu = electron.Menu.getApplicationMenu()
         if (oldMenu != null) {
-          const items = oldMenu.items.map(item => {
+          const items = oldMenu.items.map((item) => {
             if (item.role !== 'help') {
               return item
             } else {
@@ -429,7 +463,7 @@ class App {
           },
         )
 
-        window.on('close', event => {
+        window.on('close', (event) => {
           if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
             event.preventDefault()
             window.hide()
@@ -464,8 +498,8 @@ class App {
       fs.readFile(path, 'utf8'),
     )
     const profilesPromise = Promise.all(profilePromises)
-    electron.ipcMain.on(ipc.Channel.loadProfiles, event => {
-      void profilesPromise.then(profiles => {
+    electron.ipcMain.on(ipc.Channel.loadProfiles, (event) => {
+      void profilesPromise.then((profiles) => {
         event.reply('profiles-loaded', profiles)
       })
     })
@@ -491,13 +525,46 @@ class App {
         event.reply(ipc.Channel.importProjectFromPath, path, info)
       },
     )
-    electron.ipcMain.on(
+    electron.ipcMain.handle(
       ipc.Channel.downloadURL,
-      (_event, url: string, headers?: Record<string, string>) => {
-        electron.BrowserWindow.getFocusedWindow()?.webContents.downloadURL(
-          url,
-          headers ? { headers } : {},
-        )
+      async (_event, options: DownloadUrlOptions) => {
+        const { url, path, name, shouldUnpackProject, showFileDialog } = options
+        // This should never happen, but we'll check for it anyway.
+        if (!this.window) {
+          throw new Error('Window is not available.')
+        }
+
+        await download.download(this.window, url, {
+          ...(path != null ? { directory: path } : {}),
+          ...(name != null ? { filename: name } : {}),
+          saveAs: showFileDialog != null ? showFileDialog : path == null,
+          onCompleted: (file) => {
+            const path = file.path
+            const clone = { path, filename: pathModule.basename(path) }
+
+            try {
+              if (
+                projectManagement.isProjectBundle(clone.path) ||
+                projectManagement.isProjectRoot(clone.path)
+              ) {
+                if (!shouldUnpackProject) {
+                  return
+                }
+                // in case we're importing a project bundle, we need to remove the extension
+                // from the filename
+                const filename = clone.filename.replace(pathModule.extname(clone.filename), '')
+                const directory = pathModule.dirname(clone.path)
+
+                projectManagement.importProjectFromPath(clone.path, directory, filename)
+                fsSync.unlinkSync(clone.path)
+              }
+            } catch (error) {
+              console.error('Error downloading URL', error)
+            }
+          },
+        })
+
+        return
       },
     )
     electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {
@@ -505,13 +572,19 @@ class App {
     })
     electron.ipcMain.handle(
       ipc.Channel.openFileBrowser,
-      async (_event, kind: 'default' | 'directory' | 'file' | 'filePath', defaultPath?: string) => {
-        logger.log('Request for opening browser for ', kind, defaultPath)
+      async (
+        _event,
+        kind: 'default' | 'directory' | 'file' | 'filePath',
+        defaultPath?: string,
+        filters?: FileFilter[],
+      ) => {
+        logger.log('Request for opening browser for ', kind, defaultPath, JSON.stringify(filters))
         let retval = null
         if (kind === 'filePath') {
           // "Accept", as the file won't be created immediately.
           const { canceled, filePath } = await electron.dialog.showSaveDialog({
             buttonLabel: 'Accept',
+            filters: filters?.map(toElectronFileFilter) ?? [],
             ...(defaultPath != null ? { defaultPath } : {}),
           })
           if (!canceled) {
@@ -527,6 +600,7 @@ class App {
             : ['openFile']
           const { canceled, filePaths } = await electron.dialog.showOpenDialog({
             properties,
+            filters: filters?.map(toElectronFileFilter) ?? [],
             ...(defaultPath != null ? { defaultPath } : {}),
           })
           if (!canceled) {
@@ -578,7 +652,7 @@ class App {
           void window.webContents.mainFrame
             // Get the HTML contents of `document.body`.
             .executeJavaScript('document.body.innerHTML')
-            .then(html => {
+            .then((html) => {
               // If `document.body` is empty, then `index.html` failed to load.
               if (html === '') {
                 console.warn('Loading failed, reloading...')
@@ -599,7 +673,7 @@ class App {
 
   /** Print the version of the frontend and the backend. */
   async printVersion(): Promise<void> {
-    const indent = ' '.repeat(buildUtils.INDENT_SIZE)
+    const indent = '    '
     let maxNameLen = 0
     for (const name in debug.VERSION_INFO) {
       maxNameLen = Math.max(maxNameLen, name.length)
@@ -616,7 +690,7 @@ class App {
     if (backend == null) {
       console.log(`${indent}No backend available.`)
     } else {
-      const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+      const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
       for (const line of lines) {
         console.log(`${indent}${line}`)
       }

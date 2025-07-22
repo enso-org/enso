@@ -23,8 +23,7 @@ needs to be as unobtrusive as possible.
 
 The high-level goals for the Enso type system are as follows:
 
-> [!WARNING] 
-> _Not a goal anymore_: Enso is a dynamic language. Static type
+> [!WARNING] _Not a goal anymore_: Enso is a dynamic language. Static type
 > inference is _not needed for execution_. As such _static typing_ is an
 > optional component - more a _linter_ than essential part of the system.
 >

@@ -1,12 +1,19 @@
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import { type GraphStore, type NodeId } from '@/stores/graph'
 import { type ProjectStore } from '@/stores/project'
+import { type ProjectNameStore } from '@/stores/projectNames'
+import { methodPointerEquals, type StackItem } from '@/util/methodPointer'
 import { computed, onMounted, ref } from 'vue'
-import { methodPointerEquals, type StackItem } from 'ydoc-shared/languageServerTypes'
 
 /** TODO: Add docs */
-export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphStore) {
+export function useStackNavigator(
+  projectStore: ProjectStore,
+  graphStore: GraphStore,
+  projectNames: ProjectNameStore,
+) {
   const breadcrumbs = ref<StackItem[]>([])
+
+  const hasBreadcrumbsBeyondRoot = computed(() => breadcrumbs.value.length > 1)
 
   const breadcrumbLabels = computed(() => {
     const activeStackLength = projectStore.executionContext.desiredStack.length
@@ -34,7 +41,7 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
   }
 
   function stackItemToLabel(item: StackItem, isStackRoot: boolean): string {
-    if (isStackRoot && isProjectEntryPoint(item)) return projectStore.displayName
+    if (isStackRoot && isProjectEntryPoint(item)) return projectNames.displayName.value
     const methodName = graphStore.db.stackItemToMethodName(item)
     return methodName ?? 'unknown'
   }
@@ -73,6 +80,7 @@ export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphS
 
   return {
     breadcrumbs,
+    hasBreadcrumbsBeyondRoot,
     breadcrumbLabels,
     allowNavigationLeft,
     allowNavigationRight,

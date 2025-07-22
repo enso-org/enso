@@ -1,17 +1,19 @@
 package org.enso.interpreter.instrument.execution
 
-import com.oracle.truffle.api.TruffleLogger
-
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.Callable
 import java.util.concurrent.locks.{Lock, ReentrantLock, ReentrantReadWriteLock}
-import java.util.logging.Level
+
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /** Provides locking capabilities for the runtime server. Ir uses reentrant
   * locks.
   */
-class ReentrantLocking(logger: TruffleLogger) extends Locking {
+class ReentrantLocking extends Locking {
+  private lazy val logger: Logger =
+    LoggerFactory.getLogger(classOf[ReentrantLocking])
 
   /** Lowest level lock obtainable at any time. */
   private val pendingEditsLock = new ReentrantLock()
@@ -37,7 +39,8 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       if (contextLocks.contains(contextId)) {
         contextLocks(contextId)
       } else {
-        val lock = new ContextLockImpl(new ReentrantLock(true), contextId)
+        val lock =
+          new ContextLockImpl(new ReentrantReadWriteLock(true), contextId)
         contextLocks += (contextId -> lock)
         lock
       }
@@ -93,22 +96,18 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       callable.call()
     } catch {
       case _: InterruptedException =>
-        logger.log(
-          Level.FINE,
-          "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+        logger.debug(
+          "Failed [{}] to acquire lock: interrupted",
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
       if (lockTimestamp != 0) {
         releaseWriteCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept write compilation lock [{0}] for {1}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+        logger.trace(
+          "Kept write compilation lock [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
@@ -140,22 +139,18 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       callable.call()
     } catch {
       case _: InterruptedException =>
-        logger.log(
-          Level.FINE,
-          "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+        logger.debug(
+          "Failed [{}] to acquire lock: interrupted",
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
       if (lockTimestamp != 0) {
         releaseReadCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept read compilation lock [{0}] for {1}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+        logger.trace(
+          "Kept read compilation lock [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
@@ -179,60 +174,88 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       callable.call()
     } catch {
       case _: InterruptedException =>
-        logger.log(
-          Level.FINE,
-          "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+        logger.debug(
+          "Failed [{}] to acquire lock: interrupted",
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
       if (lockTimestamp != 0) {
         releasePendingEditsLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept pending edits lock [{0}] for {1}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+        logger.trace(
+          s"Kept pending edits lock [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
   }
 
   /** @inheritdoc */
-  override def withContextLock[T](
+  override def withReadContextLock[T](
     lock: ContextLock,
     where: Class[_],
     callable: Callable[T]
   ): T = {
     val contextLock                = lock.asInstanceOf[ContextLockImpl]
     var contextLockTimestamp: Long = 0
+    val readLock                   = contextLock.lock.readLock()
     try {
       contextLockTimestamp = logLockAcquisition(
-        contextLock.lock,
-        "context lock",
+        readLock,
+        "read context lock",
         where
       )
       callable.call()
     } catch {
       case _: InterruptedException =>
-        logger.log(
-          Level.FINE,
-          "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+        logger.debug(
+          "Failed [{}] to acquire lock: interrupted",
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
       if (contextLockTimestamp != 0) {
-        contextLock.lock.unlock()
-        logger.log(
-          Level.FINEST,
-          s"Kept context lock [{0}] for {1}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - contextLockTimestamp
-          )
+        readLock.unlock()
+        logger.trace(
+          "Kept read context lock [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - contextLockTimestamp
+        )
+      }
+    }
+  }
+
+  /** @inheritdoc */
+  override def withWriteContextLock[T](
+    lock: ContextLock,
+    where: Class[_],
+    callable: Callable[T]
+  ): T = {
+    val contextLock                = lock.asInstanceOf[ContextLockImpl]
+    var contextLockTimestamp: Long = 0
+    val writeLock                  = contextLock.lock.writeLock()
+    try {
+      contextLockTimestamp = logLockAcquisition(
+        writeLock,
+        "write context lock",
+        where
+      )
+      callable.call()
+    } catch {
+      case _: InterruptedException =>
+        logger.debug(
+          "Failed [{}] to acquire lock: interrupted",
+          where.getSimpleName
+        )
+        null.asInstanceOf[T]
+    } finally {
+      if (contextLockTimestamp != 0) {
+        writeLock.unlock()
+        logger.trace(
+          "Kept write context lock [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - contextLockTimestamp
         )
       }
     }
@@ -246,6 +269,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       if (contextLocks.contains(contextLock.uuid)) {
         assertNotLocked(
           contextLock.lock,
+          true,
           s"Cannot remove context ${contextLock.uuid} lock when having a lock on it"
         )
         contextLocks -= contextLock.uuid
@@ -279,22 +303,18 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
       callable.call()
     } catch {
       case _: InterruptedException =>
-        logger.log(
-          Level.FINE,
-          "Failed [{0}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+        logger.debug(
+          "Failed [{}] to acquire lock: interrupted",
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
       if (lockTimestamp != 0) {
         releaseFileLock(file)
-        logger.log(
-          Level.FINEST,
-          s"Kept file lock [{0}] for {1}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+        logger.trace(
+          s"Kept file lock [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
@@ -308,10 +328,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     val now = System.currentTimeMillis()
     lock.lockInterruptibly()
     val now2 = System.currentTimeMillis()
-    logger.log(
-      Level.FINEST,
-      "Waited [{0}] {1}ms for the {2}",
-      Array[Any](where.getSimpleName, now2 - now, msg)
+    logger.trace(
+      "Waited [{}] {}ms for the {}",
+      where.getSimpleName,
+      now2 - now,
+      msg
     )
     now2
   }
@@ -352,6 +373,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         val contextLock = ctx._2.asInstanceOf[ContextLockImpl]
         assertNotLocked(
           contextLock.lock,
+          true,
           msg + s" lock when having context ${ctx._1} lock"
         )
       }
@@ -379,6 +401,6 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     getContextLock(contextId)
   }
 
-  private case class ContextLockImpl(lock: ReentrantLock, uuid: UUID)
+  private case class ContextLockImpl(lock: ReentrantReadWriteLock, uuid: UUID)
       extends ContextLock
 }

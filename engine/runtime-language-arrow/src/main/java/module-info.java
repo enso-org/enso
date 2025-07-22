@@ -1,4 +1,5 @@
 open module org.enso.interpreter.arrow {
+  requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
 
   provides com.oracle.truffle.api.provider.TruffleLanguageProvider with

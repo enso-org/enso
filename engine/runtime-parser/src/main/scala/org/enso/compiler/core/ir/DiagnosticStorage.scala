@@ -61,3 +61,7 @@ final class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     new DiagnosticStorage(this.diagnostics)
   }
 }
+
+object DiagnosticStorage {
+  def createEmpty(): DiagnosticStorage = new DiagnosticStorage()
+}

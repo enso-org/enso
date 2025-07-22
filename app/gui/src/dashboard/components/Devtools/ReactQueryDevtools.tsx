@@ -27,7 +27,7 @@ export function ReactQueryDevtools() {
         return null
       }}
     >
-      {showDevtools && (
+      {showDevtools === true && (
         <React.Suspense fallback={null}>
           <ReactQueryDevtoolsProduction client={client} />
         </React.Suspense>

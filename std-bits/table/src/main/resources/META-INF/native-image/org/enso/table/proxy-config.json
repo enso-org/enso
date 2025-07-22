@@ -1,0 +1,22 @@
+[
+    {
+        "interfaces": [
+            "org.enso.table.util.NamingProperties"
+        ]
+    },
+    {
+        "interfaces": [
+            "java.util.function.BiFunction"
+        ]
+    },
+    {
+        "interfaces": [
+            "org.enso.table.data.mask.SliceRange"
+        ]
+    },
+    {
+        "interfaces": [
+            "org.enso.table.util.FunctionWithException"
+        ]
+    }
+]

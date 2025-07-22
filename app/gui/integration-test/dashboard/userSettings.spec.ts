@@ -1,5 +1,5 @@
 /** @file Test the user settings tab. */
-import { expect, test } from '@playwright/test'
+import { expect, test } from 'playwright/test'
 
 import { INVALID_PASSWORD, TEXT, VALID_PASSWORD, mockAllAndLogin } from './actions'
 
@@ -33,27 +33,17 @@ test('change password form', ({ page }) =>
     .fillCurrentPassword(VALID_PASSWORD)
     .fillNewPassword(INVALID_PASSWORD)
     .fillConfirmNewPassword(INVALID_PASSWORD)
-    .save()
+    .save(false)
     .step('Invalid new password should fail', async (page) => {
-      await expect(
-        page
-          .getByRole('group', { name: /^New password/, exact: true })
-          .locator('.text-danger')
-          .last(),
-      ).toHaveText(TEXT.passwordValidationError)
+      await expect(page.getByTestId('error')).toHaveText(TEXT.passwordValidationError)
     })
     .changePasswordForm()
     .fillCurrentPassword(VALID_PASSWORD)
     .fillNewPassword(VALID_PASSWORD)
     .fillConfirmNewPassword(VALID_PASSWORD + 'a')
-    .save()
+    .save(false)
     .step('Invalid new password confirmation should fail', async (page) => {
-      await expect(
-        page
-          .getByRole('group', { name: /^Confirm new password/, exact: true })
-          .locator('.text-danger')
-          .last(),
-      ).toHaveText(TEXT.passwordMismatchError)
+      await expect(page.getByTestId('error')).toHaveText(TEXT.passwordMismatchError)
     })
     .changePasswordForm()
     .fillCurrentPassword(VALID_PASSWORD)

@@ -110,6 +110,7 @@ class ProjectFileRepository[
       pkg  <- pkgOpt
       meta <- metaOpt
     } yield {
+      val cfg = pkg.getConfig()
       Project(
         id                    = meta.id,
         name                  = pkg.name,
@@ -117,10 +118,11 @@ class ProjectFileRepository[
         namespace             = pkg.namespace,
         kind                  = meta.kind,
         created               = meta.created,
-        edition               = pkg.getConfig().edition,
+        edition               = cfg.edition,
         lastOpened            = meta.lastOpened,
         path                  = directory,
-        directoryCreationTime = directoryCreationTime
+        directoryCreationTime = directoryCreationTime,
+        jvmModeEnabled        = cfg.jvm
       )
     }
   }
@@ -367,9 +369,9 @@ class ProjectFileRepository[
     Traverse[List].traverse(clashing) { case (isClashing, project) =>
       if (isClashing) {
         for {
-          newId <- gen.randomUUID()
-          updatedProject = project.copy(id = newId)
-          _ <- update(updatedProject)
+          newId          <- gen.randomUUID()
+          updatedProject <- Applicative[F].pure(project.copy(id = newId))
+          _              <- update(updatedProject)
         } yield updatedProject
       } else {
         Applicative[F].pure(project)
@@ -394,5 +396,9 @@ class ProjectFileRepository[
             (false, project) :: clashingProjects.map((true, _)) ::: acc
         }
     }
+  }
+
+  override def toString: String = {
+    "ProjectFileRepository[path=" + projectsPath + ", metadata=" + metadataStorageConfig + "]"
   }
 }

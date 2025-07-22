@@ -7,8 +7,10 @@ import { frame, useMotionValue } from 'framer-motion'
 
 import { useEffect, useRef, useState } from 'react'
 import { unsafeMutable } from '../utilities/object'
-import { useDebouncedCallback } from './debounceCallbackHooks'
+import { findScrollContainers, type HTMLOrSVGElement } from '../utilities/scrollContainers'
+import { useDebouncedCallback, type DebouncedFunction } from './debounceCallbackHooks'
 import { useEventCallback } from './eventCallbackHooks'
+import { useEventListener } from './eventListenerHooks'
 import { useUnmount } from './unmountHooks'
 
 /**
@@ -24,11 +26,6 @@ export interface RectReadOnly {
   readonly bottom: number
   readonly left: number
 }
-
-/**
- * A type that represents an HTML or SVG element.
- */
-type HTMLOrSVGElement = HTMLElement | SVGElement
 
 /**
  * A type that represents the result of the useMeasure hook.
@@ -134,7 +131,12 @@ const DEFAULT_MAX_WAIT = 500
  * Instead, it calls the `onResize` callback with the new bounds. This is useful when you want to
  * measure the size of an element without causing a rerender.
  */
-export function useMeasureCallback(options: Options & Required<Pick<Options, 'onResize'>>) {
+export function useMeasureCallback(
+  options: Options & Required<Pick<Options, 'onResize'>>,
+): readonly [
+  ref: (node: HTMLOrSVGElement | null) => void,
+  forceRefresh: DebouncedFunction<() => void>,
+] {
   const {
     debounce = false,
     scroll = false,
@@ -165,10 +167,6 @@ export function useMeasureCallback(options: Options & Required<Pick<Options, 'on
     typeof debounce === 'number' || debounce === false ? debounce : debounce.scroll
   const resizeDebounce =
     typeof debounce === 'number' || debounce === false ? debounce : debounce.resize
-
-  const callback = useEventCallback(() => {
-    frame.read(measureCallback)
-  })
 
   const measureCallback = useEventCallback(() => {
     const element = state.current.element
@@ -212,7 +210,7 @@ export function useMeasureCallback(options: Options & Required<Pick<Options, 'on
   const [resizeObserver] = useState(() => new ResizeObserver(measureCallback))
   const [mutationObserver] = useState(() => new MutationObserver(measureCallback))
 
-  const forceRefresh = useDebouncedCallback(callback, 0)
+  const forceRefresh = useDebouncedCallback(measureCallback, 0)
 
   // cleanup current scroll-listeners / observers
   const removeListeners = useEventCallback(() => {
@@ -269,9 +267,15 @@ export function useMeasureCallback(options: Options & Required<Pick<Options, 'on
   })
 
   // add general event listeners
-  useOnWindowScroll(scrollDebounceCallback, Boolean(scroll))
-  useOnWindowResize(resizeDebounceCallback)
+  useEventListener('scroll', scrollDebounceCallback, window, {
+    passive: true,
+    capture: true,
+    isDisabled: !scroll,
+  })
 
+  useEventListener('resize', resizeDebounceCallback, window, { passive: true })
+
+  // respond to changes that are relevant for the listeners
   // respond to changes that are relevant for the listeners
   useEffect(() => {
     removeListeners()
@@ -281,51 +285,6 @@ export function useMeasureCallback(options: Options & Required<Pick<Options, 'on
   useUnmount(removeListeners)
 
   return [ref, forceRefresh] as const
-}
-
-/**
- * Adds a window resize event listener
- */
-function useOnWindowResize(onWindowResize: (event: Event) => void) {
-  useEffect(() => {
-    const cb = onWindowResize
-    window.addEventListener('resize', cb)
-    return () => {
-      window.removeEventListener('resize', cb)
-    }
-  }, [onWindowResize])
-}
-
-/**
- * Adds a window scroll event listener
- */
-function useOnWindowScroll(onScroll: () => void, enabled: boolean) {
-  useEffect(() => {
-    if (enabled) {
-      const cb = onScroll
-      window.addEventListener('scroll', cb, { capture: true, passive: true })
-      return () => {
-        window.removeEventListener('scroll', cb, true)
-      }
-    }
-  }, [onScroll, enabled])
-}
-
-// Returns a list of scroll offsets
-/**
- * Finds all scroll containers that have overflow set to 'auto' or 'scroll'
- * @param element - The element to start searching from
- * @returns An array of scroll containers
- */
-function findScrollContainers(element: HTMLOrSVGElement | null): HTMLOrSVGElement[] {
-  const result: HTMLOrSVGElement[] = []
-  if (!element || element === document.body) return result
-
-  const { overflow, overflowX, overflowY } = window.getComputedStyle(element)
-  if ([overflow, overflowX, overflowY].some((prop) => prop === 'auto' || prop === 'scroll')) {
-    result.push(element)
-  }
-  return [...result, ...findScrollContainers(element.parentElement)]
 }
 
 // Checks if element boundaries are equal

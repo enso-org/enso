@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Array.Array
 import project.Data.Text.Case.Case
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -8,33 +7,24 @@ import project.Errors.Common.Assertion_Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Type_Error
 import project.Function.Function
-import project.IO
+import project.Internal.Context_Helpers.Context_Helpers
+import project.Internal.Meta_Helpers
+import project.Internal.Runtime_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
-import project.System
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
-
-## Utilities for interacting with the runtime.
-
-## PRIVATE
-
-   Returns a raw representation of the current execution stack trace.
-   You probably want `Runtime.get_stack_trace` instead.
-primitive_get_stack_trace : Array
-primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
 
 ## PRIVATE
    ADVANCED
 
    Returns the execution stack trace of its call site. The ordering of the
    resulting vector is such that the top stack frame is the first element.
-get_stack_trace : Vector Stack_Trace_Element
-get_stack_trace =
-    prim_stack = primitive_get_stack_trace
+get_stack_trace -> Vector Stack_Trace_Element =
+    prim_stack = Runtime_Helpers.primitive_get_stack_trace
     stack_with_own_frame = Vector.from_polyglot_array prim_stack
     stack = stack_with_own_frame.drop (..First 1)
     stack.map wrap_primitive_stack_trace_element
@@ -52,7 +42,7 @@ get_stack_trace =
 
          Runtime.gc
 gc : Nothing
-gc = @Builtin_Method "Runtime.gc"
+gc = Runtime_Helpers.gc
 
 ## PRIVATE
    ADVANCED
@@ -71,7 +61,7 @@ assert (~action : Boolean) (message : Text = "") =
 
 ## PRIVATE
    Returns True if assertions are enabled.
-assertions_enabled = @Builtin_Method "Runtime.assertions_enabled"
+assertions_enabled = Runtime_Helpers.assertions_enabled
 
 ## PRIVATE
    ADVANCED
@@ -90,7 +80,7 @@ assertions_enabled = @Builtin_Method "Runtime.assertions_enabled"
 
          Runtime.no_inline <| IO.println "Hi!"
 no_inline : Any -> Any
-no_inline ~action = @Builtin_Method "Runtime.no_inline"
+no_inline ~action = Runtime_Helpers.no_inline action
 
 ## PRIVATE
    ADVANCED
@@ -109,11 +99,18 @@ no_inline ~action = @Builtin_Method "Runtime.no_inline"
 
          Runtime.no_inline_with_arg IO.println "Hi!"
 no_inline_with_arg : (Any -> Any) -> Any -> Any
-no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
+no_inline_with_arg function arg = Runtime_Helpers.no_inline_with_arg function arg
+
+
+## PRIVATE
+   ADVANCED
+
+   Value associated with a UUID if any
+value_for_uuid id:Text -> Any = Meta_Helpers.instrumentor_builtin "uuid" id
 
 ## PRIVATE
    Converts a primitive stack trace element into the regular one.
-wrap_primitive_stack_trace_element el =
+private wrap_primitive_stack_trace_element el =
     loc = if Polyglot.has_source_location el then Source_Location.Value (Polyglot.get_source_location el) else Nothing
     name = Panic.catch Type_Error (Polyglot.get_executable_name el) _->
         # Workaround for a bug where some stack frames' root nodes do not have a name.
@@ -139,8 +136,7 @@ type Stack_Trace_Element
 ## PRIVATE
    ADVANCED
 
-    Type indicating allowed execution context.
-
+   Type indicating allowed execution context.
 @Builtin_Type
 type Context
     ## PRIVATE
@@ -159,7 +155,6 @@ type Context
        ADVANCED
 
        Returns the name of the context.
-
     name : Text
     name self =
         case self of
@@ -199,11 +194,7 @@ type Context
        - context: The context to enable.
     is_enabled : Text -> Boolean
     is_enabled self environment=Runtime.current_execution_environment =
-        self.is_enabled_builtin (environment.to_case Case.Lower)
-
-    ## PRIVATE
-    is_enabled_builtin : Text -> Boolean
-    is_enabled_builtin self environment = @Builtin_Method "Context.is_enabled_builtin"
+        Context_Helpers.is_enabled self environment
 
     ## PRIVATE
        Run an action with the Context enabled.
@@ -222,7 +213,7 @@ type Context
 
    Returns the name of the current execution environment.
 current_execution_environment : Text
-current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"
+current_execution_environment = Context_Helpers.current_execution_environment
 
 ## PRIVATE
    ADVANCED
@@ -235,21 +226,8 @@ current_execution_environment = @Builtin_Method "Runtime.current_execution_envir
    - action: Action to be performed with the context enabled.
 with_enabled_context : Context -> Text -> Function -> Any
 with_enabled_context context environment=Runtime.current_execution_environment ~action =
-    with_enabled_context_builtin context (environment.to_case Case.Lower) action
+    Context_Helpers.with_enabled_context_builtin context (environment.to_case Case.Lower) action
 
-## PRIVATE
-   ADVANCED
-
-   Enables a specific context in the provided runtime environment for the duration of the execution of the action.
-
-   This method is internal, using `with_enabled_context` is preferred as it provides correct defaults.
-
-   Arguments:
-   - environment: Name of the execution environment.
-   - context: The context to enable.
-   - action: Action to be performed with the context enabled.
-with_enabled_context_builtin : Context -> Text -> Function -> Any
-with_enabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_enabled_context_builtin"
 
 ## PRIVATE
    ADVANCED
@@ -262,18 +240,4 @@ with_enabled_context_builtin context environment ~action = @Builtin_Method "Runt
    - action: Action to be performed with the context disabled.
 with_disabled_context : Context -> Text -> Function -> Any
 with_disabled_context context environment=Runtime.current_execution_environment ~action =
-    with_disabled_context_builtin context (environment.to_case Case.Lower) action
-
-## PRIVATE
-   ADVANCED
-
-   Disables a specific context in the provided runtime environment for the duration of the execution of the action.
-
-   This method is internal, using `with_disabled_context` is preferred as it provides correct defaults.
-
-   Arguments:
-   - environment: Name of the execution environment.
-   - context: The context to disable.
-   - action: Action to be performed with the context disabled.
-with_disabled_context_builtin : Context -> Text -> Function -> Any
-with_disabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_disabled_context_builtin"
+    Context_Helpers.with_disabled_context_builtin context (environment.to_case Case.Lower) action

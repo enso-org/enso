@@ -7,6 +7,10 @@ on:
     - cron: 0 0 * * *
   workflow_dispatch:
     inputs:
+      bench-name:
+        description: Name (regex) of the benchmark to run.
+        required: false
+        type: string
       just-check:
         description: If set, benchmarks will be only checked to run correctly, not to measure actual performance.
         required: true
@@ -18,11 +22,15 @@ jobs:
     runs-on:
       - benchmark
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -31,12 +39,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: (always())
+      - if: ${{ (always()) }}
         name: Clean before
         run: ./run git-clean
         env:
@@ -44,13 +58,12 @@ jobs:
       - run: ./run backend benchmark enso-jmh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: (always())
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results.xml
+          path: std-bits/benchmarks/bench-report.xml
+      - if: ${{ (always()) }}
         name: Clean after
         run: ./run git-clean
         env:
@@ -59,5 +72,6 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     timeout-minutes: 240
 env:
+  ENSO_BUILD_BENCH_NAME: ${{ inputs.bench-name }}
   ENSO_BUILD_MINIMAL_RUN: ${{ true == inputs.just-check }}
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

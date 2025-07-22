@@ -1,25 +1,33 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
+import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useEventConditional } from '@/composables/events'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
 import { Vec2 } from '@/util/data/vec2'
 import { toast } from 'react-toastify'
+import { computed } from 'vue'
 
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
+const nodeSelection = injectGraphSelection(true)
 
 const props = defineProps<{
   navigator: GraphNavigator
 }>()
 
-const emits = defineEmits<{
+const emit = defineEmits<{
   createNodeFromEdge: [source: AstId, position: Vec2]
+  createNodeFromPort: [source: NodeId, options: NodeCreationOptions[]]
+  outputPortDoubleClick: [portId: AstId]
 }>()
 
 const MIN_DRAG_MOVE = 10
@@ -27,18 +35,31 @@ const MIN_DRAG_MOVE = 10
 const editingEdge: Interaction = {
   cancel: () => (graph.mouseEditedEdge = undefined),
   end: () => (graph.mouseEditedEdge = undefined),
-  pointerdown: edgeInteractionClick,
-  pointerup: (e: PointerEvent) => {
+  pointerdown: (e: PointerEvent) => {
+    if (edgeInteractionClick()) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  },
+}
+
+useEventConditional(
+  window,
+  'pointerup',
+  () => interaction.getCurrent() === editingEdge,
+  (e: PointerEvent) => {
     const originEvent = graph.mouseEditedEdge?.event
     if (originEvent?.type === 'pointerdown') {
       const delta = new Vec2(e.screenX, e.screenY).sub(
         new Vec2(originEvent.screenX, originEvent.screenY),
       )
-      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) return edgeInteractionClick()
+      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) {
+        if (edgeInteractionClick()) e.stopPropagation()
+      }
     }
-    return false
   },
-}
+  { capture: true },
+)
 
 function edgeInteractionClick() {
   if (graph.mouseEditedEdge == null) return false
@@ -58,7 +79,7 @@ function edgeInteractionClick() {
       if (target == null) {
         if (graph.mouseEditedEdge?.disconnectedEdgeTarget != null)
           disconnectEdge(graph.mouseEditedEdge.disconnectedEdgeTarget)
-        emits('createNodeFromEdge', source, props.navigator.sceneMousePos ?? Vec2.Zero)
+        emit('createNodeFromEdge', source, props.navigator.sceneMousePos ?? Vec2.Zero)
       } else {
         createEdge(source, target)
       }
@@ -74,7 +95,7 @@ interaction.setWhen(() => graph.mouseEditedEdge != null, editingEdge)
 
 function disconnectEdge(target: PortId) {
   graph.edit((edit) => {
-    if (!graph.updatePortValue(edit, target, undefined)) {
+    if (!graph.updatePortValue(edit, target, undefined, false)) {
       if (isAstId(target)) {
         console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
         edit.replaceValue(target, Ast.Wildcard.new(edit))
@@ -113,6 +134,15 @@ function createEdge(source: AstId, target: PortId) {
     }
   }
 }
+
+const nodeIdsWithOutputPorts = computed(() =>
+  [...graph.db.nodeOutputPorts.allForward()].map(([id]) => id),
+)
+
+function onNewNodeClick(id: NodeId) {
+  nodeSelection?.setSelection(new Set([id]))
+  emit('createNodeFromPort', id, [{ commit: false, content: undefined }])
+}
 </script>
 
 <template>
@@ -125,9 +155,18 @@ function createEdge(source: AstId, target: PortId) {
         :edge="graph.outputSuggestedEdge"
         animateFromSourceHover
       />
+      <template v-for="id in nodeIdsWithOutputPorts" :key="id">
+        <GraphNodeOutputPorts
+          v-show="id !== graph.editedNodeInfo?.id"
+          :nodeId="id"
+          @newNodeClick="onNewNodeClick(id)"
+          @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
+          @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
+        />
+      </template>
     </svg>
     <svg v-if="graph.mouseEditedEdge" :viewBox="props.navigator.viewBox" class="overlay aboveNodes">
-      <GraphEdge :edge="graph.mouseEditedEdge" maskSource />
+      <GraphEdge data-testid="mouse-edited-edge" :edge="graph.mouseEditedEdge" maskSource />
     </svg>
   </div>
 </template>

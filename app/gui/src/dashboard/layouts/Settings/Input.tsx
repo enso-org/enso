@@ -1,6 +1,6 @@
 /** @file Rendering for an {@link SettingsInputData}. */
-import type { FieldPath, TSchema } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import type { FieldPath, TSchema } from '#/components/Form'
+import { useText } from '$/providers/react'
 import {
   SettingsAriaInput,
   SettingsAriaInputEmail,
@@ -31,8 +31,8 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
   } = data
   const { getText } = useText()
 
-  const isEditable = typeof editable === 'function' ? editable(context) : editable ?? true
-  const hidden = typeof hiddenRaw === 'function' ? hiddenRaw(context) : hiddenRaw ?? false
+  const isEditable = typeof editable === 'function' ? editable(context) : (editable ?? true)
+  const hidden = typeof hiddenRaw === 'function' ? hiddenRaw(context) : (hiddenRaw ?? false)
 
   const Input = INPUT_TYPE_MAP[type]
 

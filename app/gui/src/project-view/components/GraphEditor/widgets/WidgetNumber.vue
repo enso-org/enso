@@ -13,6 +13,7 @@ const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
 function setValue(value: string | undefined) {
   props.onUpdate({
     portUpdate: { value, origin: props.input.portId },
+    directInteraction: true,
   })
 }
 
@@ -38,11 +39,11 @@ const limits = computed(() => {
   }
 })
 
-const editHandler = WidgetEditHandler.New('WidgetNumber', props.input, {
+const editHandler = WidgetEditHandler.New(props, {
   cancel: () => inputComponent.value?.cancel(),
   start: () => inputComponent.value?.focus(),
   pointerdown(event) {
-    if (targetIsOutside(event, unrefElement(inputComponent))) editHandler.end()
+    if (targetIsOutside(event, unrefElement(inputComponent))) editHandler.value.end()
     return false
   },
   end: () => inputComponent.value?.blur(),

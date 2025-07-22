@@ -1,0 +1,50 @@
+private
+
+## Gets a file corresponding to the current working directory of the
+   program.
+get_cwd = @Builtin_Method "File.get_cwd"
+
+## The builtin that returns a File instance for a given path.
+get_file path = @Builtin_Method "File.get_file"
+
+is_directory_builtin file = @Builtin_Method "File.is_directory_builtin"
+
+is_regular_file_builtin file = @Builtin_Method "File.is_regular_file_builtin"
+
+resolve_builtin file part = @Builtin_Method "File.resolve_builtin"
+
+## Creates the directory represented by this file if it did not exist.
+create_directory_builtin file = @Builtin_Method "File.create_directory_builtin"
+
+copy_builtin source target options = @Builtin_Method "File.copy_builtin"
+
+delete_builtin file recursive = @Builtin_Method "File.delete_builtin"
+
+move_builtin source target options = @Builtin_Method "File.move_builtin"
+
+size_builtin file = @Builtin_Method "File.size_builtin"
+
+creation_time_builtin file = @Builtin_Method "File.creation_time_builtin"
+
+last_modified_time_builtin file = @Builtin_Method "File.last_modified_time_builtin"
+
+posix_permissions_builtin file = @Builtin_Method "File.posix_permissions_builtin"
+
+read_last_bytes_builtin file n = @Builtin_Method "File.read_last_bytes_builtin"
+
+## Creates a new output stream for this file. Recommended to use
+   `File.with_output_stream` instead, which does resource management.
+
+   Arguments:
+   - options: A vector of `File_Access` objects determining how to open
+     the stream. These options set the access properties of the stream.
+output_stream_builtin file options = @Builtin_Method "File.output_stream_builtin"
+
+## Creates a new input stream for this file. Recommended to use
+   `File.with_input_stream` instead, which does resource management.
+
+   Arguments:
+   - options: A vector of `StandardOpenOption` polyglot objects
+     determining how to open the stream. These options set the access
+     properties of the stream.
+input_stream_builtin file options = @Builtin_Method "File.input_stream_builtin"

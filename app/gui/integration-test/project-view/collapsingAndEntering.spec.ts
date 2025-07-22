@@ -1,8 +1,8 @@
-import { test, type Page } from '@playwright/test'
+import { test, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
-import { mockCollapsedFunctionInfo } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
+import { mockUserDefinedFunctionInfo } from './expressionUpdates'
+import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 import { edgesFromNode, edgesToNode } from './locate'
 import { mockSuggestion } from './suggestionUpdates'
@@ -14,18 +14,28 @@ const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`
 
 test('Entering nodes', async ({ page }) => {
   await actions.goToGraph(page)
-  await mockCollapsedFunctionInfo(page, 'final', 'func1')
+  await mockUserDefinedFunctionInfo(page, 'final', 'func1')
   await expectInsideMain(page)
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
 
   await locate.graphNodeByBinding(page, 'final').dblclick()
-  await mockCollapsedFunctionInfo(page, 'f2', 'func2')
   await expectInsideFunc1(page)
+  await mockUserDefinedFunctionInfo(page, 'f2', 'func2')
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
   await locate.graphNodeByBinding(page, 'f2').dblclick()
   await expectInsideFunc2(page)
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
+})
+
+test('Entering component shows error when function cannot be found (#12533)', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockUserDefinedFunctionInfo(page, 'final', 'no_such_func')
+  await expectInsideMain(page)
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
+  await locate.graphNodeByBinding(page, 'final').dblclick()
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'no_such_func'])
+  await expect(page.locator('.GraphMissingView')).toExist()
 })
 
 test('Leaving entered nodes', async ({ page }) => {
@@ -66,7 +76,7 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
 test('Collapsing nodes', async ({ page }) => {
   await actions.goToGraph(page)
   const initialNodesCount = await locate.graphNode(page).count()
-  await mockCollapsedFunctionInfo(page, 'final', 'func1')
+  await mockUserDefinedFunctionInfo(page, 'final', 'func1')
 
   // Widgets may "steal" clicks, so we always click at icon.
   await locate
@@ -82,13 +92,13 @@ test('Collapsing nodes', async ({ page }) => {
     .locator('.grab-handle')
     .click({ modifiers: ['Shift'] })
 
-  await page.getByLabel('Group Selected Components').click()
+  await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
-  await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
+  await mockUserDefinedFunctionInfo(page, 'prod', 'user_defined_component')
   await mockSuggestion(page, {
     type: 'method',
     module: 'local.Mock_Project',
-    name: 'collapsed',
+    name: 'user_defined_component',
     isStatic: true,
     arguments: [{ name: 'five', reprType: 'Any', isSuspended: false, hasDefault: false }],
     selfType: 'local.Mock_Project',
@@ -98,7 +108,7 @@ test('Collapsing nodes', async ({ page }) => {
   const collapsedNode = locate.graphNodeByBinding(page, 'prod')
   await expect(collapsedNode.locator('.WidgetApplication.prefix > .WidgetPort')).toExist()
   await expect(collapsedNode.locator('.WidgetApplication.prefix > .WidgetPort')).toHaveText(
-    'Main.collapsed',
+    'Main.user_defined_component',
   )
   await expect(collapsedNode.locator('.WidgetTopLevelArgument')).toHaveText('five')
 
@@ -119,11 +129,39 @@ test('Collapsing nodes', async ({ page }) => {
   await expect(locate.inputNode(page)).toHaveCount(1)
 
   const secondCollapsedNode = locate.graphNodeByBinding(page, 'ten')
-  await expect(secondCollapsedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'collapsed1'])
-  await mockCollapsedFunctionInfo(page, 'ten', 'collapsed1')
+  await expect(secondCollapsedNode.locator('.WidgetToken')).toHaveText([
+    'Main',
+    '.',
+    'user_defined_component1',
+  ])
+  await mockUserDefinedFunctionInfo(page, 'ten', 'user_defined_component1')
   await secondCollapsedNode.dblclick()
   await expect(locate.graphNode(page)).toHaveCount(2)
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
+})
+
+test('Display message when User Defined Component ceases to exist', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const initialNodesCount = await locate.graphNode(page).count()
+  await locate
+    .graphNodeByBinding(page, 'prod')
+    .locator('.grab-handle')
+    .click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'sum')
+    .locator('.grab-handle')
+    .click({ modifiers: ['Shift'] })
+  await page.getByTestId('action:components.collapse').click()
+  await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 1)
+  await mockUserDefinedFunctionInfo(page, 'prod', 'user_defined_component')
+
+  const collapsedNode = locate.graphNodeByBinding(page, 'prod')
+  await locate.graphNodeIcon(collapsedNode).dblclick()
+  await expect(locate.inputNode(page)).toExist()
+
+  await page.keyboard.press(`${CONTROL_KEY}+Z`)
+  await expect(page.locator('.GraphMissingView')).toExist()
 })
 
 test('Input node', async ({ page }) => {
@@ -132,15 +170,26 @@ test('Input node', async ({ page }) => {
 
   const inputNode = locate.inputNode(page)
   await expect(inputNode).toHaveCount(1)
+
   // Input node with identifier should have the icon and an identifier.
   await expect(inputNode.locator('.WidgetIcon')).toHaveCount(1)
   await expect(inputNode.locator('.WidgetToken')).toContainText('a')
 
+  // Input node has output port
+  const outputPort = await locate.outputPortCoordinates(page, inputNode)
+  await page.mouse.click(outputPort.x + 20, outputPort.y)
+  await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
+  await expect(locate.componentBrowser(page)).toExist()
+  await page.keyboard.press('Escape')
+
+  // Input node cannot be deleted
   await inputNode.click()
   await page.keyboard.press('Delete')
   await expect(inputNode).toHaveCount(1)
   await inputNode.locator('.More').click({})
-  await expect(inputNode.getByTestId('removeNode')).toHaveClass(/(?<=^| )disabled(?=$| )/)
+  await expect(inputNode.getByTestId('action:components.deleteSelected')).toHaveClass(
+    /(?<=^| )disabled(?=$| )/,
+  )
 })
 
 test('Output node', async ({ page }) => {
@@ -157,7 +206,9 @@ test('Output node', async ({ page }) => {
   await page.keyboard.press('Delete')
   await expect(outputNode).toHaveCount(1)
   await outputNode.locator('.More').click({})
-  await expect(outputNode.getByTestId('removeNode')).toHaveClass(/(?<=^| )disabled(?=$| )/)
+  await expect(outputNode.getByTestId('action:components.deleteSelected')).toHaveClass(
+    /(?<=^| )disabled(?=$| )/,
+  )
 })
 
 test('Output node is not collapsed', async ({ page }) => {
@@ -170,11 +221,11 @@ test('Output node is not collapsed', async ({ page }) => {
     .locator('.grab-handle')
     .click({ modifiers: ['Shift'] })
 
-  await page.getByLabel('Group Selected Components').click()
+  await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
     'Main',
     '.',
-    'collapsed',
+    'user_defined_component',
     'a',
   ])
   await expect(locate.inputNode(page)).toHaveCount(1)
@@ -190,14 +241,45 @@ test('Input node is not collapsed', async ({ page }) => {
     .click({ modifiers: ['Shift'] })
   await locate.inputNode(page).click({ modifiers: ['Shift'] })
 
-  await page.getByLabel('Group Selected Components').click()
+  await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
     'Main',
     '.',
-    'collapsed',
+    'user_defined_component',
     'a',
   ])
   await expect(locate.outputNode(page)).toHaveCount(1)
+})
+
+test('User Defined Component call shows argument placeholders', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockUserDefinedFunctionInfo(page, 'final', 'func1', [0])
+  await mockSuggestion(page, {
+    type: 'method',
+    module: 'local.Mock_Project.Main',
+    name: 'func1',
+    arguments: [
+      {
+        name: 'arg1',
+        reprType: 'Standard.Base.Any.Any',
+        isSuspended: false,
+        hasDefault: false,
+        defaultValue: null as any,
+        tagValues: null as any,
+      },
+    ],
+    selfType: 'local.Mock_Project.Main',
+    returnType: 'Standard.Base.Any.Any',
+    isStatic: true,
+    documentation: '',
+    annotations: [],
+  })
+  const collapsedCallComponent = locate.graphNodeByBinding(page, 'final')
+  await locate.graphNodeByBinding(page, 'prod').click()
+  await page.keyboard.press(DELETE_KEY)
+  await expect(await edgesToNode(page, collapsedCallComponent)).toHaveCount(0)
+  await expect(locate.selectedNodes(page)).toHaveCount(0)
+  await expect(collapsedCallComponent.locator('.WidgetArgumentName .name')).toHaveText('arg1')
 })
 
 async function expectInsideMain(page: Page) {
@@ -228,6 +310,8 @@ async function expectInsideFunc1(page: Page) {
 
 async function expectInsideFunc2(page: Page) {
   await actions.expectNodePositionsInitialized(page, -88)
+  // The mouse is often in input's output port area, making our checks fooled by the edge ghost.
+  await page.mouse.move(0, 0)
   await expect(locate.graphNode(page)).toHaveCount(3)
   await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'r')).toExist()
@@ -237,10 +321,10 @@ async function expectInsideFunc2(page: Page) {
 }
 
 async function enterToFunc2(page: Page) {
-  await mockCollapsedFunctionInfo(page, 'final', 'func1')
+  await mockUserDefinedFunctionInfo(page, 'final', 'func1')
   await locate.graphNodeByBinding(page, 'final').dblclick()
   await expectInsideFunc1(page)
-  await mockCollapsedFunctionInfo(page, 'f2', 'func2')
+  await mockUserDefinedFunctionInfo(page, 'f2', 'func2')
   await locate.graphNodeByBinding(page, 'f2').dblclick()
   await expectInsideFunc2(page)
 }

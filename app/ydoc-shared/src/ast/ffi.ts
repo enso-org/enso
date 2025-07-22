@@ -11,6 +11,7 @@ import {
   parse_block,
   parse_doc_to_json,
   parse_module,
+  self_arg_separator,
 } from 'rust-ffi'
 
 const xxHasher128 = await createXXHash128()
@@ -21,5 +22,12 @@ export function xxHash128(input: IDataType) {
   return xxHasher128.digest()
 }
 
-/* eslint-disable-next-line camelcase */
-export { is_ident_or_operator, is_numeric_literal, parse_block, parse_doc_to_json, parse_module }
+/* eslint-disable camelcase */
+export {
+  is_ident_or_operator,
+  is_numeric_literal,
+  parse_block,
+  parse_doc_to_json,
+  parse_module,
+  self_arg_separator,
+}

@@ -543,6 +543,12 @@ abstract class EqualsComplexNode extends Node {
     if (interop.isTime(object)) {
       return false;
     }
+    if (interop.isDuration(object)) {
+      return false;
+    }
+    if (interop.isTimeZone(object)) {
+      return false;
+    }
     if (interop.hasHashEntries(object)) {
       return false;
     }

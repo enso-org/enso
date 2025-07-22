@@ -4,23 +4,33 @@ polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 
 ## An invalid URI was provided.
 type Invalid_AWS_URI
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error uri:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = "Invalid AWS URI: " + self.uri
 
 ## An error in the core AWS SDK
 type AWS_SDK_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error message:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = "AWS SDK Error: " + self.message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     handle_java_errors : Any -> Any ! AWS_SDK_Error
     handle_java_errors ~action =
         Panic.catch SdkClientException action caught_panic->
@@ -28,10 +38,14 @@ type AWS_SDK_Error
 
 ## An error accessing S3
 type S3_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error message:(Text|Nothing) code:(Text|Nothing)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self =
         msg = if self.message.is_nothing then "S3 Error: Unknown Error" else "S3 Error: " + self.message
@@ -40,31 +54,42 @@ type S3_Error
 
 ## An error when a S3 bucket was not found.
 type S3_Bucket_Not_Found
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error bucket:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = "Bucket '" + self.bucket + "' not found."
 
 ## An error when a S3 key is not found within a bucket.
-
-   It is a low-level error used by the raw methods.
-   `S3_File` will translate this error to a `File_Error.Not_Found`.
+   It is a low-level error used by the raw methods. `S3_File` will translate this
+   error to a `File_Error.Not_Found`.
 type S3_Key_Not_Found
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error bucket:Text key:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = "Key '" + self.key + "' not found in '" + self.bucket + "'."
 
 ## A warning that more records are available
 type More_Records_Available
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Warning message:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = self.message
 
@@ -72,8 +97,12 @@ type More_Records_Available
 type S3_Warning
     private Warning message:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text self = self.message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self = self.message

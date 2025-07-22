@@ -2,15 +2,14 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import False, True
 
 ## PRIVATE
    ADVANCED
    Represents a source location in Enso code. Contains information about the
    source file and code position within it.
 type Source_Location
-    ## PRIVATE
-    Value prim_location
+    private Value prim_location
 
     ## PRIVATE
        Pretty prints the location.

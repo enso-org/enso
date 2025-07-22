@@ -85,7 +85,7 @@ object SbtLicenses {
         val diagnostics =
           if (component.licenseReport.licenses.isEmpty)
             Seq(
-              Diagnostic.Error(
+              Diagnostic.Warning(
                 s"License report for component ${component.name} is empty."
               )
             )

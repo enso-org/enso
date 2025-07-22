@@ -1,8 +1,14 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForLong;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
-public record IntegerType(Bits bits) implements StorageType {
+public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
   public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
@@ -77,10 +83,45 @@ public record IntegerType(Bits bits) implements StorageType {
     return bits.toInteger() >= otherType.bits.toInteger();
   }
 
-  public static IntegerType smallestFitting(long value) {
-    if (INT_8.fits(value)) return INT_8;
+  public static IntegerType smallestFitting(long value, boolean allow8bit) {
+    if (allow8bit && INT_8.fits(value)) return INT_8;
     if (INT_16.fits(value)) return INT_16;
     if (INT_32.fits(value)) return INT_32;
     return INT_64;
+  }
+
+  /**
+   * Returns a common type that will fit values from either one (essentially the larger type of the
+   * two).
+   */
+  public static IntegerType commonType(IntegerType type1, IntegerType type2) {
+    return type1.bits.toInteger() >= type2.bits.toInteger() ? type1 : type2;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof IntegerType;
+  }
+
+  @Override
+  public Long valueAsType(Object value) {
+    if (NumericConverter.isCoercibleToLong(value)) {
+      return NumericConverter.coerceToLong(value);
+    }
+    return null;
+  }
+
+  @Override
+  public BuilderForLong makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForLong(this, initialCapacity, problemAggregator);
+  }
+
+  @Override
+  public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
+    if (storage.getType() instanceof IntegerType) {
+      var output = (ColumnLongStorage) storage;
+      return output;
+    }
+    throw new IllegalArgumentException("Storage is not of IntegerType");
   }
 }

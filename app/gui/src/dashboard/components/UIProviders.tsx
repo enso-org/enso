@@ -1,11 +1,10 @@
 /** @file A wrapper containing all UI-related React Provdiers. */
-import * as React from 'react'
-
-import { I18nProvider } from '#/components/aria'
-import { DialogStackProvider } from '#/components/AriaComponents'
+import { DialogStackProvider } from '#/components/Dialog'
 import { PortalProvider } from '#/components/Portal'
 import type { Spring } from 'framer-motion'
 import { MotionConfig } from 'framer-motion'
+import * as React from 'react'
+import { I18nProvider } from 'react-aria-components'
 
 const DEFAULT_TRANSITION_OPTIONS: Spring = {
   type: 'spring',
@@ -17,22 +16,34 @@ const DEFAULT_TRANSITION_OPTIONS: Spring = {
   velocity: 0,
 }
 
+const RootContext = React.createContext<HTMLElement>(document.body)
+
 /** Props for a {@link UIProviders}. */
 export interface UIProvidersProps extends Readonly<React.PropsWithChildren> {
-  readonly portalRoot: Element
+  readonly portalRoot: HTMLElement
+  readonly appRoot: HTMLElement
   readonly locale: string
 }
 
 /** A wrapper containing all UI-related React Provdiers. */
 export default function UIProviders(props: UIProvidersProps) {
-  const { portalRoot, locale, children } = props
+  const { portalRoot, appRoot, locale, children } = props
+
   return (
-    <MotionConfig reducedMotion="user" transition={DEFAULT_TRANSITION_OPTIONS}>
-      <PortalProvider value={portalRoot}>
-        <DialogStackProvider>
-          <I18nProvider locale={locale}>{children}</I18nProvider>
-        </DialogStackProvider>
-      </PortalProvider>
-    </MotionConfig>
+    <RootContext.Provider value={appRoot}>
+      <MotionConfig reducedMotion="user" transition={DEFAULT_TRANSITION_OPTIONS}>
+        <PortalProvider value={portalRoot}>
+          <DialogStackProvider>
+            <I18nProvider locale={locale}>{children}</I18nProvider>
+          </DialogStackProvider>
+        </PortalProvider>
+      </MotionConfig>
+    </RootContext.Provider>
   )
+}
+
+/** A hook to get the root element for the application. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAppRoot() {
+  return React.useContext(RootContext)
 }

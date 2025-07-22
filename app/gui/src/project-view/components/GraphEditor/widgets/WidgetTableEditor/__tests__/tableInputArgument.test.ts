@@ -9,13 +9,17 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { WidgetInput } from '@/providers/widgetRegistry'
+import { type RequiredImport } from '@/stores/graph/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { makeType } from '@/stores/suggestionDatabase/entry'
+import { makeType } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { type Identifier } from '@/util/ast/abstract'
+import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()
@@ -24,7 +28,7 @@ function suggestionDbWithNothing() {
 }
 
 function generateTableOfOnes(rows: number, cols: number) {
-  const code = `Table.input [${[...Array(cols).keys()].map((i) => `['Column #${i}', [${Array(rows).fill("'1'").join(',')}]]`).join(',')}]`
+  const code = `Table.input [${[...Array(cols).keys()].map((i) => `['${DEFAULT_COLUMN_PREFIX}${i}', [${Array(rows).fill("'1'").join(',')}]]`).join(',')}]`
   const ast = Ast.parseExpression(code)
   assertDefined(ast)
   return ast
@@ -35,6 +39,11 @@ const expectedNewColumnDef = { cellClass: 'newColumnCell' }
 
 const CELLS_LIMIT_SQRT = Math.sqrt(CELLS_LIMIT)
 assert(CELLS_LIMIT_SQRT === Math.floor(CELLS_LIMIT_SQRT))
+
+function stdPath(path: string) {
+  assert(path.startsWith('Standard.'))
+  return unwrap(parseAbsoluteProjectPathRaw(path))
+}
 
 test.each([
   {
@@ -168,8 +177,8 @@ test.each([
     )
     expect(tableNewArgs.rowData.value.length).toBe(rows + (expectNewRowEnabled ? 1 : 0))
     const lastColDef = tableNewArgs.columnDefs.value[tableNewArgs.columnDefs.value.length - 1]
-    assert(lastColDef?.headerComponentParams?.type === 'newColumn')
-    expect(lastColDef.headerComponentParams.enabled ?? true).toBe(expectNewColEnabled)
+    assert(lastColDef?.headerComponentParams.columnParams.type === 'newColumn')
+    expect(lastColDef.headerComponentParams.columnParams.enabled ?? true).toBe(expectNewColEnabled)
   },
 )
 
@@ -203,9 +212,9 @@ function tableEditFixture(code: string, expectedCode: string) {
     expect(imports).toEqual([
       {
         kind: 'Unqualified',
-        from: 'Standard.Base.Nothing',
-        import: 'Nothing',
-      },
+        from: stdPath('Standard.Base.Nothing'),
+        import: 'Nothing' as Identifier,
+      } satisfies RequiredImport,
     ])
   })
   const tableNewArgs = useTableInputArgument(
@@ -312,9 +321,9 @@ test.each([
     (colDef) => colDef.colId === NEW_COLUMN_ID,
   )
   assert(newColumnDef != null)
-  assert(newColumnDef.headerComponentParams?.type === 'newColumn')
-  assert(newColumnDef.headerComponentParams.newColumnRequested != null)
-  newColumnDef.headerComponentParams.newColumnRequested()
+  assert(newColumnDef.headerComponentParams?.columnParams.type === 'newColumn')
+  assert(newColumnDef.headerComponentParams.columnParams.newColumnRequested != null)
+  newColumnDef.headerComponentParams.columnParams.newColumnRequested()
   expect(onUpdate).toHaveBeenCalledOnce()
   if (importExpected) expect(addMissingImports).toHaveBeenCalled()
   else expect(addMissingImports).not.toHaveBeenCalled()
@@ -588,7 +597,8 @@ test('Pasted data which would exceed cells limit is truncated', () => {
     let cellCount = 0
     inputAst.visitRecursive((ast: Ast.Ast | Ast.Token) => {
       if (ast instanceof Ast.Token) return
-      if (ast instanceof Ast.TextLiteral && ast.code().startsWith("'Column #")) return
+      if (ast instanceof Ast.TextLiteral && ast.code().startsWith(`'${DEFAULT_COLUMN_PREFIX}`))
+        return
       if (ast instanceof Ast.TextLiteral || ast.code() === 'Nothing') cellCount++
     })
     expect(cellCount).toBe(CELLS_LIMIT)

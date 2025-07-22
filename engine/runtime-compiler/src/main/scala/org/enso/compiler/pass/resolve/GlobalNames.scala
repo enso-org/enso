@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Expression,
+  MetadataStorage,
   Module,
   Name,
   Type
@@ -221,10 +222,10 @@ case object GlobalNames extends IRPass {
                         name     = resolvedModuleMethod.method.name,
                         location = None
                       )
-                      val app = Application.Prefix(
+                      val app = new Application.Prefix(
                         fun,
                         List(
-                          CallArgument.Specified(
+                          new CallArgument.Specified(
                             None,
                             self,
                             true,
@@ -232,7 +233,8 @@ case object GlobalNames extends IRPass {
                           )
                         ),
                         hasDefaultsSuspended = false,
-                        lit.identifiedLocation
+                        lit.identifiedLocation,
+                        new MetadataStorage()
                       )
                       fun
                         .getMetadata(ExpressionAnnotations)
@@ -340,21 +342,41 @@ case object GlobalNames extends IRPass {
       )
     )
     processedFun.getMetadata(this) match {
-      case Some(Resolution(ResolvedModuleMethod(mod, _))) if !isLocalVar(fun) =>
-        val self = freshNameSupply
-          .newName()
-          .updateMetadata(
-            new MetadataPair(
-              this,
-              BindingsMap.Resolution(
-                BindingsMap.ResolvedModule(mod)
+      case Some(Resolution(resMethod @ ResolvedModuleMethod(mod, _)))
+          if !isLocalVar(fun) =>
+        if (app.hasDefaultsSuspended && app.arguments.isEmpty) {
+          app
+            .updateMetadata(
+              new MetadataPair(
+                this,
+                BindingsMap.Resolution(resMethod)
               )
             )
+
+        } else {
+          val self = freshNameSupply
+            .newName()
+            .updateMetadata(
+              new MetadataPair(
+                this,
+                BindingsMap.Resolution(
+                  BindingsMap.ResolvedModule(mod)
+                )
+              )
+            )
+          val selfArg =
+            new CallArgument.Specified(
+              None,
+              self,
+              true,
+              identifiedLocation = null
+            )
+          processedFun.passData.remove(this) // Necessary for IrToTruffle
+          app.copy(
+            function  = processedFun,
+            arguments = selfArg :: processedArgs
           )
-        val selfArg =
-          CallArgument.Specified(None, self, true, identifiedLocation = null)
-        processedFun.passData.remove(this) // Necessary for IrToTruffle
-        app.copy(function = processedFun, arguments = selfArg :: processedArgs)
+        }
       case _ =>
         app.copy(function = processedFun, arguments = processedArgs)
     }

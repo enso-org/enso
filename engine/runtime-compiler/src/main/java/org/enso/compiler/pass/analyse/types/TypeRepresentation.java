@@ -7,25 +7,31 @@ import java.util.List;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
 
+/** Representation of types in the Enso type system. */
 public sealed interface TypeRepresentation
     permits TypeRepresentation.ArrowType,
         TypeRepresentation.AtomType,
         TypeRepresentation.IntersectionType,
+        TypeRepresentation.ModuleReference,
         TypeRepresentation.SumType,
         TypeRepresentation.TopType,
         TypeRepresentation.TypeObject,
         TypeRepresentation.UnresolvedSymbol {
-  TypeRepresentation ANY = new TopType();
+  TopType ANY = new TopType();
 
   // In the future we may want to split this unknown type to be a separate entity.
   TypeRepresentation UNKNOWN = ANY;
 
+  /**
+   * Computes the effective (simplified) type of a sum of types.
+   *
+   * @see SumTypeSimplifier
+   */
   static TypeRepresentation buildSimplifiedSumType(List<TypeRepresentation> types) {
-    var simplifier = new SumTypeSimplifier();
-    types.forEach(simplifier::traverse);
-    return simplifier.build();
+    return SumTypeSimplifier.simplifySumOfTypes(types);
   }
 
+  /** Builds a function type based on a list of arguments and a result type. */
   static TypeRepresentation buildFunction(
       List<TypeRepresentation> arguments, TypeRepresentation result) {
     var reversed = new ArrayList<>(arguments);
@@ -38,6 +44,10 @@ public sealed interface TypeRepresentation
     public String toString() {
       return "Any";
     }
+
+    public QualifiedName getAssociatedType() {
+      return QualifiedName.fromString(BuiltinTypes.FQN_ANY);
+    }
   }
 
   /**
@@ -46,8 +56,7 @@ public sealed interface TypeRepresentation
    * <p>Instances that are assigned this type are built with one of the available constructors, but
    * statically we do not necessarily know which one.
    */
-  record AtomType(QualifiedName fqn, AtomTypeInterface typeInterface)
-      implements TypeRepresentation {
+  record AtomType(QualifiedName fqn) implements TypeRepresentation {
     @Override
     public String toString() {
       return fqn.item();
@@ -72,7 +81,22 @@ public sealed interface TypeRepresentation
       implements TypeRepresentation {
     @Override
     public String toString() {
-      return "(" + argType + " -> " + resultType + ")";
+      String arg = argType.toString();
+      String res = resultType.toString();
+
+      // If the inner type is complex (e.g. nested function), wrap it in parentheses.
+      if (arg.contains(" ")) {
+        arg = "(" + arg + ")";
+      }
+      if (res.contains(" ")) {
+        res = "(" + res + ")";
+      }
+
+      return arg + " -> " + res;
+    }
+
+    public QualifiedName getAssociatedType() {
+      return QualifiedName.fromString(BuiltinTypes.FQN_FUNCTION);
     }
   }
 
@@ -137,10 +161,8 @@ public sealed interface TypeRepresentation
    * using its constructors, which will be assigned the corresponding AtomType.
    *
    * @param name the qualified name of the type
-   * @param typeInterface the declared interface of the type
    */
-  record TypeObject(QualifiedName name, AtomTypeInterface typeInterface)
-      implements TypeRepresentation {
+  record TypeObject(QualifiedName name) implements TypeRepresentation {
     @Override
     public String toString() {
       return "(type " + name.item() + ")";
@@ -159,7 +181,7 @@ public sealed interface TypeRepresentation
         return new ArrowType(TypeRepresentation.ANY, TypeRepresentation.ANY);
       }
 
-      return new AtomType(name, typeInterface);
+      return new AtomType(name);
     }
 
     @Override
@@ -176,6 +198,13 @@ public sealed interface TypeRepresentation
       return name.hashCode() * 97;
     }
   }
+
+  /**
+   * A type describing a module.
+   *
+   * <p>This is similar to TypeObject, but one cannot create instances of a module.
+   */
+  record ModuleReference(QualifiedName name) implements TypeRepresentation {}
 
   /** Represents a type of an unresolved symbol, like `.Foo` or `.bar`. */
   record UnresolvedSymbol(String name) implements TypeRepresentation {

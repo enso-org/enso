@@ -56,11 +56,13 @@ object ContextRegistryProtocol {
     * @param rpcSession reference to the client
     * @param contextId execution context identifier
     * @param stackItem an object representing an item on the stack
+    * @param execute true if a completed request should trigger an execution
     */
   case class PushContextRequest(
     rpcSession: JsonSession,
     contextId: ContextId,
-    stackItem: StackItem
+    stackItem: StackItem,
+    execute: Boolean
   ) extends ToLogString {
 
     /** @inheritdoc */
@@ -69,6 +71,7 @@ object ContextRegistryProtocol {
       s"contextId=$contextId," +
       s"rpcSession=$rpcSession," +
       s"stackItem=${stackItem.toLogString(shouldMask)}" +
+      s"execute=${execute}" +
       ")"
   }
 
@@ -177,6 +180,7 @@ object ContextRegistryProtocol {
     *
     * @param expressionId the id of updated expression
     * @param type the updated type of expression
+    * @param hiddenType the list of types this expression can be converted to
     * @param methodCall the updated method call
     * @param profilingInfo profiling information about the expression
     * @param fromCache whether the expression's value came from the cache
@@ -185,6 +189,7 @@ object ContextRegistryProtocol {
   case class ExpressionUpdate(
     expressionId: UUID,
     `type`: Vector[String],
+    hiddenType: Vector[String],
     methodCall: Option[MethodCall],
     profilingInfo: Vector[ProfilingInfo],
     fromCache: Boolean,
@@ -231,8 +236,17 @@ object ContextRegistryProtocol {
         )
       }
 
-      case class Pending(message: Option[String], progress: Option[Double])
-          extends Payload
+      /** Indicates that an expression is pending a computation
+        */
+      case class Pending(
+        message: Option[String],
+        progress: Option[Double],
+        wasInterrupted: Boolean
+      ) extends Payload
+
+      /** Indicates that an expression's computation has been interrupted and shall be retried.
+        */
+      case object PendingInterrupted extends Payload
 
       /** Indicates that the expression was computed to an error.
         *
@@ -257,6 +271,8 @@ object ContextRegistryProtocol {
         val Value = "Value"
 
         val Pending = "Pending"
+
+        val PendingInterrupted = "PendingInterrupted"
 
         val DataflowError = "DataflowError"
 
@@ -291,6 +307,14 @@ object ContextRegistryProtocol {
               .deepMerge(
                 Json.obj(CodecField.Type -> PayloadType.Pending.asJson)
               )
+          case m: Payload.PendingInterrupted.type =>
+            Encoder[Payload.PendingInterrupted.type]
+              .apply(m)
+              .deepMerge(
+                Json.obj(
+                  CodecField.Type -> PayloadType.PendingInterrupted.asJson
+                )
+              )
         }
 
       implicit val decoder: Decoder[Payload] =
@@ -307,6 +331,9 @@ object ContextRegistryProtocol {
 
             case PayloadType.Pending =>
               Decoder[Payload.Pending].tryDecode(cursor)
+
+            case PayloadType.PendingInterrupted =>
+              Decoder[Payload.PendingInterrupted.type].tryDecode(cursor)
           }
         }
     }

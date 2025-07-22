@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="Entry extends DropdownEntry">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref } from 'vue'
 
 enum SortDirection {
@@ -11,7 +11,10 @@ enum SortDirection {
 }
 
 const props = defineProps<{ color: string; backgroundColor: string; entries: Entry[] }>()
-const emit = defineEmits<{ clickEntry: [entry: Entry, keepOpen: boolean] }>()
+const emit = defineEmits<{
+  clickEntry: [entry: Entry, keepOpen: boolean, htmlElement: HTMLElement]
+  scroll: []
+}>()
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
 const graphNavigator = injectGraphNavigator(true)
@@ -39,21 +42,6 @@ const sortedValues = computed<Entry[]>(() => {
   }
 })
 
-const ICON_LOOKUP: Record<SortDirection, Icon> = {
-  [SortDirection.none]: 'sort',
-  [SortDirection.ascending]: 'sort_ascending',
-  [SortDirection.descending]: 'sort_descending',
-}
-
-const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
-  [SortDirection.none]: SortDirection.ascending,
-  [SortDirection.ascending]: SortDirection.descending,
-  [SortDirection.descending]: SortDirection.none,
-}
-
-// Currently unused.
-const enableSortButton = ref(false)
-
 const styleVars = computed(() => {
   return {
     '--dropdown-fg': props.color,
@@ -63,36 +51,37 @@ const styleVars = computed(() => {
     '--extend-margin': `${0.2 / (graphNavigator?.scale ?? 1)}px`,
   }
 })
+
+function handleClick(entry: Entry, altKey: boolean, htmlElement: EventTarget | null) {
+  if (htmlElement instanceof HTMLElement) emit('clickEntry', entry, altKey, htmlElement)
+}
 </script>
 
 <script lang="ts">
 export interface DropdownEntry {
   readonly value: string
+  readonly key?: string | undefined
   readonly selected: boolean
+  readonly icon?: Icon | undefined
 }
 </script>
 
 <template>
   <div class="DropdownWidget" :style="styleVars">
-    <ul class="list scrollable" @wheel.stop.passive>
-      <li
-        v-for="entry in sortedValues"
-        :key="entry.value"
-        :class="{ selected: entry.selected }"
-        class="item clickable"
-        @click.stop="emit('clickEntry', entry, $event.altKey)"
-      >
-        <div class="itemContent" v-text="entry.value"></div>
+    <ul class="list scrollable" @wheel.stop.passive @scroll="emit('scroll')">
+      <li v-for="entry in sortedValues" :key="entry.key ?? entry.value">
+        <button
+          :class="{ selected: entry.selected }"
+          class="item clickable"
+          @pointerdown.prevent
+          @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
+          @keydown.enter.stop
+        >
+          <SvgIcon v-if="entry.icon" :name="entry.icon" class="menu-icon" />
+          <span class="itemContent" v-text="entry.value"></span>
+        </button>
       </li>
     </ul>
-    <div v-if="enableSortButton" class="sort">
-      <div class="sort-background"></div>
-      <SvgIcon
-        :name="ICON_LOOKUP[sortDirection]"
-        class="clickable"
-        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
-      />
-    </div>
   </div>
 </template>
 
@@ -109,12 +98,18 @@ export interface DropdownEntry {
   position: relative;
   user-select: none;
   min-width: 100%;
-  margin-top: calc(0px - var(--dropdown-extend));
-  padding-top: var(--dropdown-extend);
   background-color: var(--dropdown-bg);
   border-radius: calc(var(--item-height) / 2 + var(--dropdown-padding));
   color: var(--dropdown-fg);
+}
 
+/** 
+ * Optional class that extends the dropdown upwards, so that it nicely merges with the node’s port.
+ * Normally, only dropdowns that directly attached to a port are extended. 
+ */
+.ExtendUpwards {
+  margin-top: calc(0px - var(--dropdown-extend));
+  padding-top: var(--dropdown-extend);
   &:before {
     content: '';
     display: block;
@@ -126,6 +121,7 @@ export interface DropdownEntry {
     z-index: 1;
   }
 }
+
 .list {
   overflow: auto;
   min-width: 100%;
@@ -145,6 +141,8 @@ export interface DropdownEntry {
   text-align: left;
   max-width: 100%;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 
   &:hover {
     background-color: color-mix(in oklab, var(--dropdown-bg) 50%, white 50%);
@@ -179,6 +177,11 @@ export interface DropdownEntry {
   margin: 3px 0;
   text-wrap: nowrap;
   text-overflow: ellipsis;
+}
+
+.menu-icon {
+  margin-left: -4px;
+  margin-right: 6px;
 }
 
 @keyframes text-scroll {

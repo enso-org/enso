@@ -85,7 +85,8 @@ object WithDebugCommand {
           Seq(DEBUG_OPTION)
         else Seq()
       val javaOpts: Seq[String] = Seq(
-        truffleNoBackgroundCompilationOptions,
+        if (debugFlags.contains(debuggerOption)) Seq()
+        else truffleNoBackgroundCompilationOptions,
         dumpGraphsOpts,
         showCompilationsOpts,
         printAssemblyOpts,

@@ -1,7 +1,7 @@
 package org.enso.interpreter.runtime
 
 import scala.jdk.OptionConverters.RichOption
-
+import org.enso.common.HostEnsoUtils
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.ir.{Module => IRModule}
@@ -18,7 +18,10 @@ import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{
   Component,
   ComponentGroup,
+  ComponentGroups,
   ExtendedComponentGroup,
+  NativeLibraryFinder,
+  Package,
   PackageManager,
   QualifiedName,
   SourceFile
@@ -28,16 +31,22 @@ import org.enso.common.CompilationStage
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
-import scala.jdk.CollectionConverters.{IterableHasAsJava, SeqHasAsJava}
-import scala.util.{Failure, Try, Using}
+import scala.jdk.CollectionConverters.{
+  CollectionHasAsScala,
+  IterableHasAsJava,
+  SeqHasAsJava
+}
+import scala.util.{Failure, Success, Try, Using}
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, Editions, LibraryName}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.instrument.NotificationHandler
+import org.enso.interpreter.runtime.nativeimage.NativeLibrarySearchPath
 import org.enso.librarymanager.DefaultLibraryProvider
-import org.enso.pkg.{ComponentGroups, Package}
+import org.graalvm.nativeimage.ImageInfo
+import org.slf4j.LoggerFactory
 
 /** The default [[PackageRepository]] implementation.
   *
@@ -58,7 +67,7 @@ private class DefaultPackageRepository(
 
   private val logger = Logger[DefaultPackageRepository]
 
-  implicit private val fs: TruffleFileSystem               = new TruffleFileSystem
+  implicit private val fs: TruffleFileSystem               = TruffleFileSystem.INSTANCE
   private val packageManager                               = new PackageManager[TruffleFile]
   private var projectPackage: Option[Package[TruffleFile]] = None
 
@@ -230,9 +239,32 @@ private class DefaultPackageRepository(
     if (isLibrary) {
       val root = Path.of(pkg.root.toString)
       notificationHandler.addedLibrary(libraryName, libraryVersion, root)
+      addNativeLibPath(pkg)
     }
 
     loadedPackages.put(libraryName, Some(pkg))
+  }
+
+  /** If the package contains any native libraries, their parent directories are added to the
+    * native library search path. This only works in native image.
+    * @param pkg the package to check for native libraries
+    */
+  private def addNativeLibPath(
+    pkg: Package[TruffleFile]
+  ): Unit = {
+    if (ImageInfo.inImageRuntimeCode()) {
+      val nativeLibs = NativeLibraryFinder.listAllNativeLibraries(
+        pkg,
+        TruffleFileSystem.INSTANCE
+      )
+      val distinctParentDirs = nativeLibs.asScala
+        .map(_.getParent)
+        .toSet
+      distinctParentDirs.foreach { dir =>
+        logger.debug("Adding '{}' to native lib search path", dir.getPath)
+        NativeLibrarySearchPath.addToSearchPath(dir.getPath)
+      }
+    }
   }
 
   /** For any given source file, infer data necessary to generate synthetic modules as well as their contents.
@@ -420,8 +452,8 @@ private class DefaultPackageRepository(
         case Left(error) =>
           logger.warn(s"Resolution failed with [$error].", error)
         case Right(resolved) =>
-          logger.info(
-            s"Found library ${resolved.name} @ ${resolved.version} " +
+          logger.debug(
+            s"Found library ${resolved.toString(HostEnsoUtils.isAot())} " +
             s"at [${MaskedPath(resolved.root.location).applyMasking()}]."
           )
       }
@@ -661,7 +693,27 @@ private object DefaultPackageRepository {
 
     val homeManager    = languageHome.map { home => LanguageHome(Path.of(home)) }
     val editionManager = EditionManager(distributionManager, homeManager)
-    val edition        = editionManager.resolveEdition(rawEdition).get
+    val logger         = LoggerFactory.getLogger(classOf[DefaultPackageRepository])
+    val edition = editionManager
+      .resolveEdition(rawEdition)
+      .transform(
+        e => Success(e),
+        { err =>
+          logger
+            .warn(
+              "Failed to resolve original edition. Trying fallback to the default one",
+              err
+            )
+          editionManager.resolveEdition(DefaultEdition.getDefaultEdition)
+        }
+      )
+
+    edition.failed.foreach { err =>
+      logger.error(
+        "Failed to resolve original edition. Fallback failed. Aborting",
+        err
+      )
+    }
 
     val projectRoot = projectPackage.map { pkg =>
       val root = pkg.root
@@ -675,10 +727,11 @@ private object DefaultPackageRepository {
         lockUserInterface   = notificationHandler,
         progressReporter    = notificationHandler,
         languageHome        = homeManager,
-        edition             = edition,
+        edition             = edition.get,
         preferLocalLibraries =
           projectPackage.exists(_.getConfig().preferLocalLibraries),
-        projectRoot = projectRoot
+        projectRoot = projectRoot,
+        checkAot    = HostEnsoUtils.isAot()
       )
     new DefaultPackageRepository(
       resolvingLibraryProvider,

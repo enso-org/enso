@@ -1,12 +1,12 @@
 /** @file Test the login flow. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import { mockAllAndLogin } from './actions'
 
 /** Find an editor container. */
 function locateEditor(page: Page) {
   // Test ID of a placeholder editor component used during testing.
-  return page.locator('.App')
+  return page.locator('.ProjectView')
 }
 
 /** Find a drive view. */
@@ -15,12 +15,12 @@ function locateDriveView(page: Page) {
   return page.getByTestId('drive-view')
 }
 
-// FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-// Unskip once cloud execution in the browser is re-enabled.
-test.skip('page switcher', ({ page }) =>
-  mockAllAndLogin({ page })
-    // Create a new project so that the editor page can be switched to.
-    .newEmptyProjectTest()
+test('page switcher', ({ page }) =>
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }),
+  })
+    .newEmptyProject()
     .do(async (thePage) => {
       await expect(locateDriveView(thePage)).not.toBeVisible()
       await expect(locateEditor(thePage)).toBeVisible()

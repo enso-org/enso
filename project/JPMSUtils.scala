@@ -19,8 +19,6 @@ import scala.collection.mutable
   * @see
   */
 object JPMSUtils {
-  val slf4jVersion          = "2.0.9"
-  val logbackClassicVersion = "1.3.7"
 
   /** Filters modules by their IDs from the given classpath.
     *
@@ -42,26 +40,32 @@ object JPMSUtils {
   ): Def.Classpath = {
     val distinctModules = modules.distinct
 
-    val ret = cp.filter(dep => {
+    val foundFiles = cp.filter(dep => {
       val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
       shouldFilterModule(distinctModules, scalaBinaryVersion)(moduleID)
     })
 
     if (shouldContainAll) {
-      if (ret.size < distinctModules.size) {
+      if (foundFiles.size < distinctModules.size) {
         log.error(
           s"[JPMSUtils/$projName] Not all modules from classpath were found"
         )
-        log.error(
-          s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct"
+        log.debug(
+          s"[JPMSUtils/$projName] Returned (${foundFiles.size}): $foundFiles"
         )
-        log.error(s"[JPMSUtils/$projName] Returned (${ret.size}): $ret")
-        log.error(
+        log.debug(
           s"[JPMSUtils/$projName] Expected: (${distinctModules.size}): $distinctModules"
+        )
+        val names = foundFiles.map(f => {
+          val i = f.data.getName.lastIndexOf("-")
+          f.data.getName.substring(0, i)
+        })
+        log.error(
+          s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct (${foundFiles.size} != ${distinctModules.size}): ${distinctModules.map(_.name).diff(names)}"
         )
       }
     }
-    ret
+    foundFiles
   }
 
   /** Filters all the requested modules from the given [[UpdateReport]].
@@ -92,14 +96,18 @@ object JPMSUtils {
         log.error(
           s"[JPMSUtils/$projName] Not all modules from update were found"
         )
-        log.error(
-          s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct"
-        )
-        log.error(
+        log.debug(
           s"[JPMSUtils/$projName] Returned (${foundFiles.size}): $foundFiles"
         )
-        log.error(
+        log.debug(
           s"[JPMSUtils/$projName] Expected: (${distinctModules.size}): $distinctModules"
+        )
+        val names = foundFiles.map(f => {
+          val i = f.getName.lastIndexOf("-")
+          f.getName.substring(0, i)
+        })
+        log.error(
+          s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct (${foundFiles.size} != ${distinctModules.size}): ${distinctModules.map(_.name).diff(names)}"
         )
       }
     }

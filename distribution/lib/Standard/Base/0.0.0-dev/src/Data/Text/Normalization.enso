@@ -1,7 +1,5 @@
 import project.Any.Any
 
-import project.Data.Vector.Vector
-
 polyglot java import com.ibm.icu.text.Normalizer2.Mode
 
 ## Enso representations of `com.ibm.icu.text.Normalizer2.Mode`. Does not

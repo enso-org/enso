@@ -1,88 +1,65 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
+final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 
-  @Override
-  protected BigInteger[] newArray(int size) {
-    return new BigInteger[size];
-  }
-
-  public BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
-    super(size);
+  BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
+    super(BigIntegerType.INSTANCE, new BigInteger[size]);
     this.problemAggregator = problemAggregator;
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
-    super.retypeToMixed(items);
+  public boolean canRetypeTo(StorageType<?> type) {
+    return type instanceof FloatType || type instanceof BigDecimalType;
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
-    return type instanceof FloatType
-        || type instanceof BigDecimalType
-        || type instanceof AnyObjectType;
-  }
-
-  @Override
-  public TypedBuilder retypeTo(StorageType type) {
-    if (type instanceof FloatType) {
-      DoubleBuilder res =
-          NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
-      for (int i = 0; i < currentSize; i++) {
-        if (data[i] == null) {
-          res.appendNulls(1);
-        } else {
-          res.appendBigInteger(data[i]);
+  public Builder retypeTo(StorageType<?> type) {
+    switch (type) {
+      case FloatType floatType -> {
+        // Needs to be an InferredDoubleBuilder so we can keep the raw data.
+        var res = new InferredDoubleBuilder(currentSize, problemAggregator);
+        for (int i = 0; i < currentSize; i++) {
+          if (data[i] == null) {
+            res.appendNulls(1);
+          } else {
+            res.append(data[i]);
+          }
         }
+        return res;
       }
-      return res;
-    } else if (type instanceof BigDecimalType) {
-      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
-      for (int i = 0; i < currentSize; i++) {
-        if (data[i] == null) {
-          res.appendNulls(1);
-        } else {
-          res.appendNoGrow(data[i]);
+      case BigDecimalType bigDecimalType -> {
+        var res = Builder.getForBigDecimal(data.length);
+        for (int i = 0; i < currentSize; i++) {
+          if (data[i] == null) {
+            res.appendNulls(1);
+          } else {
+            res.append(data[i]);
+          }
         }
+        return res;
       }
-      return res;
-    } else if (type instanceof AnyObjectType) {
-      Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
-      ObjectBuilder res = new MixedBuilder(widenedData);
-      res.setCurrentSize(currentSize);
-      return res;
-    } else {
-      throw new UnsupportedOperationException();
+      default -> throw new UnsupportedOperationException();
     }
   }
 
   @Override
-  protected Storage<BigInteger> doSeal() {
-    return new BigIntegerStorage(data, currentSize);
-  }
-
-  @Override
-  public StorageType getType() {
-    return BigIntegerType.INSTANCE;
+  protected ColumnStorage<BigInteger> doSeal() {
+    return new TypedStorage<>(BigIntegerType.INSTANCE, data);
   }
 
   @Override
@@ -91,9 +68,11 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public BigIntegerBuilder append(Object o) {
+    ensureSpaceToAppend();
+
     if (o == null) {
-      data[currentSize++] = null;
+      appendNulls(1);
     } else {
       try {
         data[currentSize++] = NumericConverter.coerceToBigInteger(o);
@@ -101,42 +80,32 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
         throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
       }
     }
+
+    return this;
   }
 
-  public void appendRawNoGrow(BigInteger value) {
-    data[currentSize++] = value;
-  }
-
-  public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    BigIntegerBuilder res =
-        new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
+  static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
+    var res = new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
     int n = longBuilder.currentSize;
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      res.appendNoGrow(BigInteger.valueOf(longBuilder.data[i]));
+      res.append(BigInteger.valueOf(longBuilder.data[i]));
       context.safepoint();
     }
     return res;
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
-    if (storage.getType() instanceof IntegerType) {
-      if (storage instanceof AbstractLongStorage longStorage) {
-        int n = longStorage.size();
-        for (int i = 0; i < n; i++) {
-          if (storage.isNothing(i)) {
-            data[currentSize++] = null;
-          } else {
-            long item = longStorage.getItem(i);
-            data[currentSize++] = BigInteger.valueOf(item);
-          }
+  public void appendBulkStorage(ColumnStorage<?> storage) {
+    if (storage instanceof ColumnLongStorage longStorage) {
+      long n = longStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        if (storage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          long item = longStorage.getItemAsLong(i);
+          append(BigInteger.valueOf(item));
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type INTEGER: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
     } else {
       super.appendBulkStorage(storage);

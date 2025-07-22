@@ -1,0 +1,27 @@
+## Enso Signatures 1.0
+## module Standard.Image.Matrix
+- type Matrix
+    - Value opencv_mat:Standard.Base.Any.Any
+    - * self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - + self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - - self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - / self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - channels self -> Standard.Base.Any.Any
+    - columns self -> Standard.Base.Any.Any
+    - from_vector values:Standard.Base.Any.Any rows:Standard.Base.Any.Any= channels:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - get self row:Standard.Base.Any.Any column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - identity rows:Standard.Base.Any.Any columns:Standard.Base.Any.Any channels:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - normalize self min_value:Standard.Base.Any.Any= max_value:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - ones rows:Standard.Base.Any.Any columns:Standard.Base.Any.Any channels:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - reshape self rows:Standard.Base.Any.Any channels:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - rows self -> Standard.Base.Any.Any
+    - to_image self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+    - zeros rows:Standard.Base.Any.Any columns:Standard.Base.Any.Any channels:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- type Matrix_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- core_op mat:Standard.Base.Any.Any value:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- core_op_handler error:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Image.Matrix.Matrix -> Standard.Base.Data.Ordering.Comparable

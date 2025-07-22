@@ -2,9 +2,16 @@ package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{Literal, Location, Name}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  Expression,
+  Literal,
+  Location,
+  Name
+}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core._
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.interpreter.instrument.execution.model.PendingEdit
@@ -12,7 +19,7 @@ import org.enso.text.editing.model.{IdMap, TextEdit}
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import java.util.UUID
-
+import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
 /** The changeset of a module containing the computed list of invalidated
@@ -188,8 +195,19 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       edits: mutable.Queue[TextEdit],
       ids: mutable.Set[ChangesetBuilder.NodeId]
     ): Set[ChangesetBuilder.NodeId] = {
-      if (edits.isEmpty) ids.toSet
-      else {
+      if (edits.isEmpty) {
+        val allExpressionBindings =
+          findBindings(
+            new HashSet() concat ids
+              .filter(_.needsRhsInvalidation)
+              .map(_.internalId)
+              .toSet,
+            ir
+          )
+        ids.toSet ++ allExpressionBindings.flatMap(
+          invalidateRhsExpressionAndSelfArgs
+        )
+      } else {
         val edit = edits.dequeue()
         val locationEdit =
           ChangesetBuilder.toLocationEdit(edit, source, allEdits)
@@ -217,6 +235,43 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     go(tree, source, mutable.Queue.from(edits), mutable.HashSet())
   }
 
+  private def invalidateRhsExpressionAndSelfArgs(
+    ir: Expression.Binding
+  ): Set[ChangesetBuilder.NodeId] = {
+    def invalidateSelfArg(ir: IR): Set[ChangesetBuilder.NodeId] = {
+      val selfArg = ir match {
+        case app: Application.Prefix =>
+          app
+            .arguments()
+            .headOption
+            .collect {
+              case arg: CallArgument.Specified
+                  if arg.value().isInstanceOf[Name.Literal] =>
+                Set(ChangesetBuilder.NodeId(arg.value))
+            }
+            .getOrElse(Set.empty)
+        case _ =>
+          Set.empty
+      }
+      val deps = ir.children().flatMap(invalidateSelfArg)
+      selfArg ++ deps
+    }
+    Set(ChangesetBuilder.NodeId(ir.expression)) ++ invalidateSelfArg(ir)
+  }
+
+  private def findBindings(
+    ids: HashSet[UUID],
+    currentIR: IR
+  ): List[Expression.Binding] = {
+    currentIR match {
+      case binding: Expression.Binding if ids.contains(binding.name.getId) =>
+        List(binding)
+      case _ =>
+        val bindings = currentIR.children().flatMap(i => findBindings(ids, i))
+        bindings
+    }
+  }
+
   /** Apply the list of edits to the source file.
     *
     * @param edits the text edits
@@ -236,11 +291,13 @@ object ChangesetBuilder {
     * @param internalId internal IR id
     * @param externalId external IR id
     * @param name optional node name
+    * @param needsRhsInvalidation identifier refers to expression binding which RHS is invalid
     */
   case class NodeId(
     internalId: UUID @Identifier,
     externalId: Option[UUID @ExternalID],
-    name: Option[Symbol]
+    name: Option[Symbol],
+    needsRhsInvalidation: Boolean
   )
 
   object NodeId {
@@ -250,8 +307,11 @@ object ChangesetBuilder {
       * @param ir the source IR
       * @return the identifier
       */
+    def apply(ir: IR, needsRhsInvalidation: Boolean): NodeId =
+      new NodeId(ir.getId, ir.getExternalId, getName(ir), needsRhsInvalidation)
+
     def apply(ir: IR): NodeId =
-      new NodeId(ir.getId, ir.getExternalId, getName(ir))
+      new NodeId(ir.getId, ir.getExternalId, getName(ir), false)
 
     implicit val ordering: Ordering[NodeId] = (x: NodeId, y: NodeId) => {
       val cmpInternal =
@@ -319,8 +379,8 @@ object ChangesetBuilder {
       * @param ir the source IR
       * @return the node if `ir` contains a location
       */
-    def fromIr(ir: IR): Option[Node] =
-      ir.location.map(loc => Node(NodeId(ir), loc.location, true))
+    def fromIr(ir: IR, inBinding: Boolean): Option[Node] =
+      ir.location.map(loc => Node(NodeId(ir, inBinding), loc.location, true))
 
     /** Create an artificial node with fixed [[NodeId]]. It is used to select
       * nodes by location in the tree.
@@ -330,7 +390,7 @@ object ChangesetBuilder {
       */
     def select(location: Location): Node =
       new Node(
-        NodeId(UUID.nameUUIDFromBytes(Array()), None, None),
+        NodeId(UUID.nameUUIDFromBytes(Array()), None, None, false),
         location,
         false
       )
@@ -358,14 +418,26 @@ object ChangesetBuilder {
     * @return the tree representation of the IR
     */
   private def buildTree(ir: IR): Tree = {
-    def depthFirstSearch(currentIr: IR, acc: Tree): Unit = {
+    def depthFirstSearch(currentIr: IR, acc: Tree, isBinding: Boolean): Unit = {
       if (currentIr.children.isEmpty) {
-        Node.fromIr(currentIr).foreach(acc.add)
+        Node.fromIr(currentIr, isBinding).foreach(acc.add)
       } else {
         val hasImportantId = currentIr.getExternalId.nonEmpty
         if (hasImportantId) {
           val collectChildrenIntervals = new Tree()
-          currentIr.children.map(depthFirstSearch(_, collectChildrenIntervals))
+          currentIr match {
+            case binding: Expression.Binding =>
+              depthFirstSearch(binding.name, collectChildrenIntervals, true)
+              depthFirstSearch(
+                binding.expression,
+                collectChildrenIntervals,
+                false
+              )
+            case _ =>
+              currentIr.children.map(
+                depthFirstSearch(_, collectChildrenIntervals, false)
+              )
+          }
 
           def fillGapsInChildrenNodesWithNonLeafNodes(
             previousPosition: Int,
@@ -374,7 +446,7 @@ object ChangesetBuilder {
             if (previousPosition < nextNode.location.start) {
               val nodeBetweenPreviousPositionAndNextNode =
                 Node(
-                  NodeId(currentIr),
+                  NodeId(currentIr, isBinding),
                   new Location(previousPosition, nextNode.location.start),
                   false
                 )
@@ -393,19 +465,25 @@ object ChangesetBuilder {
             lastCoveredPosition < endOfNonLeafIr
           if (hasRemainingTextAfterLastChild) {
             val nodeAfterLastChild = Node(
-              NodeId(currentIr),
+              NodeId(currentIr, isBinding),
               new Location(lastCoveredPosition, endOfNonLeafIr),
               false
             )
             acc += nodeAfterLastChild
           }
         } else {
-          currentIr.children.map(depthFirstSearch(_, acc))
+          currentIr match {
+            case binding: Expression.Binding =>
+              depthFirstSearch(binding.name, acc, true)
+              depthFirstSearch(binding.expression, acc, false)
+            case _ =>
+              currentIr.children.map(depthFirstSearch(_, acc, false))
+          }
         }
       }
     }
     val collectNodes = new Tree()
-    depthFirstSearch(ir, collectNodes)
+    depthFirstSearch(ir, collectNodes, false)
     collectNodes
   }
 
@@ -557,7 +635,8 @@ object ChangesetBuilder {
       )
     val isNodeRemoved =
       edit.text.isEmpty && isSameOffset && isAcrossLines && noOtherEditsOnTheLine
-    LocationEdit(toLocation(edit, source), edit.text.length, isNodeRemoved)
+    val loc = toLocation(edit, source)
+    LocationEdit(loc, edit.text.length, isNodeRemoved)
   }
 
   /** Convert [[TextEdit]] location to [[Location]] in the provided source.

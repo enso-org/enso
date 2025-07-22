@@ -12,7 +12,7 @@ import * as toast from 'react-toastify'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 /** Props for {@link OfflineNotificationManager} */
 export type OfflineNotificationManagerProps = Readonly<React.PropsWithChildren>
@@ -30,23 +30,26 @@ const OfflineNotificationManagerContext =
 export function OfflineNotificationManager(props: OfflineNotificationManagerProps) {
   const { children } = props
   const toastId = 'offline'
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
-  offlineHooks.useOfflineChange((isOffline) => {
-    toast.toast.dismiss(toastId)
+  offlineHooks.useOfflineChange(
+    (isOffline) => {
+      toast.toast.dismiss(toastId)
 
-    if (isOffline) {
-      toast.toast.info(getText('offlineToastMessage'), {
-        toastId,
-        hideProgressBar: true,
-      })
-    } else {
-      toast.toast.info(getText('onlineToastMessage'), {
-        toastId,
-        hideProgressBar: true,
-      })
-    }
-  })
+      if (isOffline) {
+        toast.toast.info(getText('offlineToastMessage'), {
+          toastId,
+          hideProgressBar: true,
+        })
+      } else {
+        toast.toast.info(getText('onlineToastMessage'), {
+          toastId,
+          hideProgressBar: true,
+        })
+      }
+    },
+    { triggerImmediate: false },
+  )
 
   return (
     <OfflineNotificationManagerContext.Provider value={{ isNested: true, toastId }}>

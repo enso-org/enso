@@ -1,5 +1,5 @@
 /** @file A styled button representing a tab on a sidebar. */
-import { Button, type ButtonProps } from '#/components/AriaComponents'
+import { Button, type ButtonProps } from '#/components/Button'
 import { tv } from '#/utilities/tailwindVariants'
 
 const SIDEBAR_TAB_BUTTON_STYLES = tv({
@@ -8,10 +8,6 @@ const SIDEBAR_TAB_BUTTON_STYLES = tv({
     isActive: { true: 'bg-white opacity-100' },
   },
 })
-
-// ========================
-// === SidebarTabButton ===
-// ========================
 
 /** Props for a {@link SidebarTabButton}. */
 export interface SidebarTabButtonProps {
@@ -22,7 +18,7 @@ export interface SidebarTabButtonProps {
   readonly isActive?: boolean
   readonly icon: string
   readonly label: string
-  readonly onPress: ButtonProps['onPress']
+  readonly onPress: ButtonProps<string>['onPress']
 }
 
 /** A styled button representing a tab on a sidebar. */

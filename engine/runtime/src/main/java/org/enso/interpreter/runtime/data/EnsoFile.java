@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -38,22 +37,21 @@ import java.util.Set;
 import java.util.function.Function;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
-import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
  * please refer to {@link TruffleFile}.
  */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
-public final class EnsoFile extends EnsoObject {
+public final class EnsoFile extends BuiltinObject {
+
   private final TruffleFile truffleFile;
 
   public EnsoFile(TruffleFile truffleFile) {
@@ -63,18 +61,24 @@ public final class EnsoFile extends EnsoObject {
     this.truffleFile = truffleFile;
   }
 
+  @Override
+  protected String builtinName() {
+    return "File";
+  }
+
   @Builtin.Method(name = "output_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
   @TruffleBoundary
-  public EnsoObject outputStream(
+  public static EnsoObject outputStream(
+      EnsoFile file,
       Object opts,
       @Cached ArrayLikeLengthNode lengthNode,
       @Cached ArrayLikeAtNode atNode,
       EnsoContext ctx)
       throws IOException {
     var options = namesToValues(opts, lengthNode, atNode, ctx, StandardOpenOption::valueOf);
-    var os = this.truffleFile.newOutputStream(options.toArray(OpenOption[]::new));
+    var os = file.truffleFile.newOutputStream(options.toArray(OpenOption[]::new));
     return new EnsoOutputStream(os);
   }
 
@@ -194,14 +198,15 @@ public final class EnsoFile extends EnsoObject {
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
   @TruffleBoundary
-  public EnsoObject inputStream(
+  public static EnsoObject inputStream(
+      EnsoFile file,
       Object opts,
       @Cached ArrayLikeLengthNode lengthNode,
       @Cached ArrayLikeAtNode atNode,
       EnsoContext ctx)
       throws IOException {
     var options = namesToValues(opts, lengthNode, atNode, ctx, StandardOpenOption::valueOf);
-    var is = this.truffleFile.newInputStream(options.toArray(OpenOption[]::new));
+    var is = file.truffleFile.newInputStream(options.toArray(OpenOption[]::new));
     return new EnsoInputStream(is);
   }
 
@@ -436,9 +441,9 @@ public final class EnsoFile extends EnsoObject {
   @Builtin.Method(name = "read_last_bytes_builtin")
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
-  public EnsoObject readLastBytes(long n) throws IOException {
+  public static EnsoObject readLastBytes(EnsoFile file, long n) throws IOException {
     try (SeekableByteChannel channel =
-        this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
+        file.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
       int bytesToRead = Math.toIntExact(Math.min(channel.size(), n));
       channel.position(channel.size() - bytesToRead);
       ByteBuffer buffer = ByteBuffer.allocate(bytesToRead);
@@ -451,10 +456,11 @@ public final class EnsoFile extends EnsoObject {
     }
   }
 
-  @Builtin.Method(name = "resolve")
+  @Builtin.Method(name = "resolve_builtin")
+  @Builtin.WrapException(from = IllegalArgumentException.class)
   @Builtin.Specialize
-  public EnsoFile resolve(String subPath) {
-    return new EnsoFile(this.truffleFile.resolve(subPath));
+  public static EnsoFile resolve(EnsoFile file, Text part) {
+    return new EnsoFile(file.truffleFile.resolve(part.toString()));
   }
 
   @Builtin.Method
@@ -465,24 +471,25 @@ public final class EnsoFile extends EnsoObject {
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
-  public EnsoDateTime getCreationTime() throws IOException {
+  public static EnsoDateTime getCreationTime(EnsoFile file) throws IOException {
     return new EnsoDateTime(
-        ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC));
+        ZonedDateTime.ofInstant(file.truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC));
   }
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
-  public EnsoDateTime getLastModifiedTime() throws IOException {
+  public static EnsoDateTime getLastModifiedTime(EnsoFile file) throws IOException {
     return new EnsoDateTime(
-        ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC));
+        ZonedDateTime.ofInstant(
+            file.truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC));
   }
 
   @Builtin.Method(name = "posix_permissions_builtin")
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
-  public Text getPosixPermissions() throws IOException {
-    return Text.create(PosixFilePermissions.toString(truffleFile.getPosixPermissions()));
+  public static Text getPosixPermissions(EnsoFile file) throws IOException {
+    return Text.create(PosixFilePermissions.toString(file.truffleFile.getPosixPermissions()));
   }
 
   @Builtin.Method(name = "parent")
@@ -523,18 +530,18 @@ public final class EnsoFile extends EnsoObject {
     return this.truffleFile.isAbsolute();
   }
 
-  @Builtin.Method
+  @Builtin.Method(name = "is_directory_builtin")
   @TruffleBoundary
-  public boolean isDirectory() {
-    return this.truffleFile.isDirectory();
+  public static boolean isDirectory(EnsoFile file) {
+    return file.truffleFile.isDirectory();
   }
 
   @Builtin.Method(name = "create_directory_builtin")
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
-  public void createDirectories() throws IOException {
+  public static void createDirectories(EnsoFile file) throws IOException {
     try {
-      this.truffleFile.createDirectories();
+      file.truffleFile.createDirectories();
     } catch (NoSuchFileException e) {
       throw replaceCreateDirectoriesNoSuchFileException(e);
     } catch (FileSystemException e) {
@@ -632,10 +639,10 @@ public final class EnsoFile extends EnsoObject {
     return new EnsoFile(this.truffleFile.relativize(other.truffleFile));
   }
 
-  @Builtin.Method
+  @Builtin.Method(name = "is_regular_file_builtin")
   @TruffleBoundary
-  public boolean isRegularFile() {
-    return this.truffleFile.isRegularFile();
+  public static boolean isRegularFile(EnsoFile file) {
+    return file.truffleFile.isRegularFile();
   }
 
   @Builtin.Method
@@ -654,11 +661,11 @@ public final class EnsoFile extends EnsoObject {
   @Builtin.Method(name = "size_builtin")
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
-  public long getSize() throws IOException {
-    if (this.truffleFile.isDirectory()) {
+  public static long getSize(EnsoFile file) throws IOException {
+    if (file.truffleFile.isDirectory()) {
       throw new IOException("size can only be called on files.");
     }
-    return this.truffleFile.size();
+    return file.truffleFile.size();
   }
 
   @TruffleBoundary
@@ -686,15 +693,15 @@ public final class EnsoFile extends EnsoObject {
   @Builtin.Method(name = "delete_builtin")
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
-  public void delete(boolean recursive) throws IOException {
-    if (recursive && truffleFile.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
-      deleteRecursively(truffleFile);
+  public static void delete(EnsoFile file, boolean recursive) throws IOException {
+    if (recursive && file.truffleFile.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
+      deleteRecursively(file.truffleFile);
     } else {
-      truffleFile.delete();
+      file.truffleFile.delete();
     }
   }
 
-  private void deleteRecursively(TruffleFile file) throws IOException {
+  private static void deleteRecursively(TruffleFile file) throws IOException {
     if (file.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
       for (TruffleFile child : file.list()) {
         deleteRecursively(child);
@@ -707,7 +714,8 @@ public final class EnsoFile extends EnsoObject {
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
   @TruffleBoundary
-  public void copy(
+  public static void copy(
+      EnsoFile source,
       EnsoFile target,
       Object options,
       @Cached ArrayLikeLengthNode lengthNode,
@@ -715,14 +723,15 @@ public final class EnsoFile extends EnsoObject {
       EnsoContext ctx)
       throws IOException {
     var copyOptions = namesToValues(options, lengthNode, atNode, ctx, StandardCopyOption::valueOf);
-    truffleFile.copy(target.truffleFile, copyOptions.toArray(CopyOption[]::new));
+    source.truffleFile.copy(target.truffleFile, copyOptions.toArray(CopyOption[]::new));
   }
 
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
   @TruffleBoundary
-  public void move(
+  public static void move(
+      EnsoFile source,
       EnsoFile target,
       Object options,
       @Cached ArrayLikeLengthNode lengthNode,
@@ -730,7 +739,7 @@ public final class EnsoFile extends EnsoObject {
       EnsoContext ctx)
       throws IOException {
     var copyOptions = namesToValues(options, lengthNode, atNode, ctx, StandardCopyOption::valueOf);
-    truffleFile.move(target.truffleFile, copyOptions.toArray(CopyOption[]::new));
+    source.truffleFile.move(target.truffleFile, copyOptions.toArray(CopyOption[]::new));
   }
 
   @Builtin.Method
@@ -745,21 +754,13 @@ public final class EnsoFile extends EnsoObject {
           "Takes the text representation of a path and returns a TruffleFile corresponding to it.",
       autoRegister = false)
   @Builtin.Specialize
+  @Builtin.WrapException(from = IllegalArgumentException.class)
+  @Builtin.WrapException(from = UnsupportedOperationException.class)
   @TruffleBoundary
   @SuppressWarnings("generic-enso-builtin-type")
-  public static Object fromString(EnsoContext context, String path)
-      throws IllegalArgumentException {
-    try {
-      TruffleFile file = context.getPublicTruffleFile(path);
-      return new EnsoFile(file);
-    } catch (IllegalArgumentException | UnsupportedOperationException ex) {
-      var err =
-          context
-              .getBuiltins()
-              .error()
-              .makeUnsupportedArgumentsError(new Object[] {Text.create(path)}, ex.getMessage());
-      return DataflowError.withDefaultTrace(err, null);
-    }
+  public static Object fromString(EnsoContext context, String path) {
+    TruffleFile file = context.getPublicTruffleFile(path);
+    return new EnsoFile(file);
   }
 
   @Builtin.Method(
@@ -795,26 +796,6 @@ public final class EnsoFile extends EnsoObject {
   @TruffleBoundary
   public String toString() {
     return toDisplayString(false);
-  }
-
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().file();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().file();
   }
 
   static RuntimeException raiseIOException(Node where, IOException ex) {

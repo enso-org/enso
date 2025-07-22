@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { useProjectStore } from '$/components/WithCurrentProject.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useProjectStore } from '@/stores/project'
 import StandaloneButton from './StandaloneButton.vue'
 
 const project = useProjectStore()
@@ -13,8 +13,8 @@ function goToMain() {
 <template>
   <div class="GraphMissingView">
     <SvgIcon class="header-icon" name="error" />
-    <span>The component you are viewing no longer exists.</span>
-    <StandaloneButton icon="home2" label="Go back" @click="goToMain" />
+    <span>The current component could not be found.</span>
+    <StandaloneButton icon="home2" label="Go back" @activate="goToMain" />
   </div>
 </template>
 

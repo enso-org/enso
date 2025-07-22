@@ -1,0 +1,18 @@
+private
+
+import project.Data.Numbers.Integer
+import project.Error.Error
+import project.Runtime.Context
+
+Integer.from (that:Context) = case that of
+    Context.Input -> 1
+    Context.Output -> 2
+    Context.Dataflow_Stack_Trace -> 4
+    _ -> Error.throw "Unknown context "+that.to_text
+
+
+type Context_Helpers
+    is_enabled c env = @Builtin_Method "Context.is_enabled_builtin"
+    with_enabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_enabled_context_builtin"
+    with_disabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_disabled_context_builtin"
+    current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"

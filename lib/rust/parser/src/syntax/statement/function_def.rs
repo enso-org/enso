@@ -1,9 +1,10 @@
 use crate::prelude::*;
 
 use crate::empty_tree;
+use crate::syntax::expression::ExpressionParser;
+use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::operator::Precedence;
 use crate::syntax::statement::apply_excess_private_keywords;
 use crate::syntax::statement::apply_private_keywords;
 use crate::syntax::statement::find_top_level_operator;
@@ -24,7 +25,6 @@ use crate::syntax::tree::DocLine;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignatureLine;
-use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -44,7 +44,7 @@ impl<'s> FunctionBuilder<'s> {
         mut line: item::Line<'s>,
         start: usize,
         qn_len: usize,
-        precedence: &mut Precedence<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
         args_buffer: &mut Vec<ArgumentDefinition<'s>>,
     ) -> Self {
         let mut arg_starts = vec![];
@@ -59,14 +59,17 @@ impl<'s> FunctionBuilder<'s> {
                 arg_starts.push(i);
             }
         }
-        let return_ = arrow.map(|arrow| parse_return_spec(items, arrow, precedence));
+        let return_ = arrow.map(|arrow| parse_return_spec(items, arrow, expression_parser));
 
         args_buffer.extend(
-            arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
+            arg_starts
+                .drain(..)
+                .rev()
+                .map(|arg_start| parse_arg_def(items, arg_start, expression_parser)),
         );
         let args = args_buffer.drain(..).rev().collect();
 
-        let name = precedence.resolve_non_section_offset(start, items).unwrap();
+        let name = expression_parser.parse_non_section_offset(start, items).unwrap();
 
         Self { name, return_, args, line, start }
     }
@@ -181,7 +184,8 @@ fn opt_qn_equivalent(a: &Option<Tree>, b: &Option<Tree>) -> bool {
 pub fn parse_args<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
+    args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Vec<ArgumentDefinition<'s>> {
     let mut arg_starts = vec![];
     for (i, item) in items.iter().enumerate().skip(start) {
@@ -189,13 +193,14 @@ pub fn parse_args<'s>(
             arg_starts.push(i);
         }
     }
-    let mut defs: Vec<_> = arg_starts
-        .drain(..)
-        .rev()
-        .map(|arg_start| parse_arg_def(items, arg_start, precedence))
-        .collect();
-    defs.reverse();
-    defs
+    args_buffer.extend(
+        arg_starts
+            .drain(..)
+            .rev()
+            .map(|arg_start| parse_arg_def(items, arg_start, expression_parser)),
+    );
+    debug_assert_eq!(items.len(), start);
+    args_buffer.drain(..).rev().collect()
 }
 
 pub fn parse_constructor_definition<'s>(
@@ -203,7 +208,7 @@ pub fn parse_constructor_definition<'s>(
     mut line: item::Line<'s>,
     private_keywords_start: usize,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Line<'s, Tree<'s>> {
     let newline = line.newline;
@@ -212,11 +217,12 @@ pub fn parse_constructor_definition<'s>(
     if matches!(items.last().unwrap(), Item::Block(_)) {
         let Item::Block(block) = items.pop().unwrap() else { unreachable!() };
         block_args.extend(block.into_vec().into_iter().map(|item::Line { newline, mut items }| {
-            let argument = (!items.is_empty()).then(|| parse_arg_def(&mut items, 0, precedence));
+            let argument =
+                (!items.is_empty()).then(|| parse_arg_def(&mut items, 0, expression_parser));
             ArgumentDefinitionLine { newline, argument }
         }))
     }
-    let (name, inline_args) = parse_constructor_decl(items, start, precedence, args_buffer);
+    let (name, inline_args) = parse_constructor_decl(items, start, expression_parser, args_buffer);
     let private = (private_keywords_start < start)
         .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
 
@@ -267,44 +273,13 @@ pub fn parse_constructor_definition<'s>(
 fn parse_constructor_decl<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> (token::Ident<'s>, Vec<ArgumentDefinition<'s>>) {
-    let args = parse_type_args(items, start + 1, precedence, args_buffer);
+    let args = parse_args(items, start + 1, expression_parser, args_buffer);
     let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     debug_assert_eq!(items.len(), start);
     (name, args)
-}
-
-pub fn parse_type_args<'s>(
-    items: &mut Vec<Item<'s>>,
-    start: usize,
-    precedence: &mut Precedence<'s>,
-    args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> Vec<ArgumentDefinition<'s>> {
-    if start == items.len() {
-        return default();
-    }
-    let mut arg_starts = vec![start];
-    let mut expecting_rhs = false;
-    for (i, item) in items.iter().enumerate().skip(start + 1) {
-        if expecting_rhs {
-            expecting_rhs = false;
-            continue;
-        }
-        if let Item::Token(Token { variant: token::Variant::AssignmentOperator(_), .. }) = item {
-            expecting_rhs = true;
-            continue;
-        }
-        if Spacing::of_item(item) == Spacing::Spaced {
-            arg_starts.push(i);
-        }
-    }
-    args_buffer.extend(
-        arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
-    );
-    debug_assert_eq!(items.len(), start);
-    args_buffer.drain(..).rev().collect()
 }
 
 pub fn try_parse_foreign_function<'s>(
@@ -312,7 +287,7 @@ pub fn try_parse_foreign_function<'s>(
     start: usize,
     operator: &mut Option<token::AssignmentOperator<'s>>,
     expression: &mut Option<Tree<'s>>,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Option<Tree<'s>> {
     match items.get(start) {
@@ -326,8 +301,8 @@ pub fn try_parse_foreign_function<'s>(
         _ => {
             items.push(Item::from(Token::from(operator)));
             items.extend(expression.take().map(Item::from));
-            return precedence
-                .resolve_non_section_offset(start, items)
+            return expression_parser
+                .parse_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::ForeignFnExpectedLanguage)
                 .into();
@@ -339,8 +314,8 @@ pub fn try_parse_foreign_function<'s>(
         _ => {
             items.push(Item::from(Token::from(operator)));
             items.extend(expression.take().map(Item::from));
-            return precedence
-                .resolve_non_section_offset(start, items)
+            return expression_parser
+                .parse_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::ForeignFnExpectedName)
                 .into();
@@ -368,7 +343,10 @@ pub fn try_parse_foreign_function<'s>(
         }
     }
     args_buffer.extend(
-        arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
+        arg_starts
+            .drain(..)
+            .rev()
+            .map(|arg_start| parse_arg_def(items, arg_start, expression_parser)),
     );
     let args = args_buffer.drain(..).rev().collect();
 
@@ -394,9 +372,9 @@ struct ArgDefInfo {
 fn parse_return_spec<'s>(
     items: &mut Vec<Item<'s>>,
     arrow: usize,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
 ) -> ReturnSpecification<'s> {
-    let r#type = precedence.resolve_non_section_offset(arrow + 1, items);
+    let r#type = expression_parser.parse_non_section_offset(arrow + 1, items);
     let arrow: token::ArrowOperator =
         items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     let r#type = r#type.unwrap_or_else(|| {
@@ -408,7 +386,7 @@ fn parse_return_spec<'s>(
 fn parse_arg_def<'s>(
     items: &mut Vec<Item<'s>>,
     mut start: usize,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
 ) -> ArgumentDefinition<'s> {
     let mut open1 = None;
     let mut close1 = None;
@@ -427,7 +405,7 @@ fn parse_arg_def<'s>(
     let ArgDefInfo { type_, default } = match analyze_arg_def(&items[start..]) {
         Err(e) => {
             let pattern =
-                precedence.resolve_non_section_offset(start, items).unwrap().with_error(e);
+                expression_parser.parse_non_section_offset(start, items).unwrap().with_error(e);
             return ArgumentDefinition {
                 open: open1,
                 open2: None,
@@ -442,7 +420,7 @@ fn parse_arg_def<'s>(
         Ok(arg_def) => arg_def,
     };
     let default = default.map(|default| {
-        let tree = precedence.resolve_offset(start + default + 1, items);
+        let tree = expression_parser.parse_offset(start + default + 1, items);
         let equals = items.pop().unwrap().into_token().unwrap();
         let expression = tree.unwrap_or_else(|| {
             empty_tree(equals.code.position_after()).with_error(SyntaxError::ExpectedExpression)
@@ -471,7 +449,7 @@ fn parse_arg_def<'s>(
             start = 0;
         }
         let items = parenthesized_body.as_mut().unwrap_or(items);
-        let tree = precedence.resolve_non_section_offset(start + type_ + 1, items);
+        let tree = expression_parser.parse_non_section_offset(start + type_ + 1, items);
         let operator = items.pop().unwrap().into_token().unwrap();
         let type_ = tree.unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
@@ -480,11 +458,11 @@ fn parse_arg_def<'s>(
             unreachable!()
         };
         let operator = operator.with_variant(variant);
-        suspension_and_pattern = Some(parse_pattern(items, start, precedence));
+        suspension_and_pattern = Some(parse_pattern(items, start, expression_parser));
         ArgumentType { operator, type_ }
     });
     let (suspension, pattern) =
-        suspension_and_pattern.unwrap_or_else(|| parse_pattern(items, start, precedence));
+        suspension_and_pattern.unwrap_or_else(|| parse_pattern(items, start, expression_parser));
     let pattern = pattern.unwrap_or_else(|| {
         empty_tree(
             suspension
@@ -493,12 +471,7 @@ fn parse_arg_def<'s>(
                 .or_else(|| open2.as_ref().map(|t| t.code.position_after()))
                 .or_else(|| open1.as_ref().map(|t| t.code.position_after()))
                 .or_else(|| type_.as_ref().map(|t| t.operator.left_offset.code.position_before()))
-                // Why does this one need a type annotation???
-                .or_else(|| {
-                    close2
-                        .as_ref()
-                        .map(|t: &token::CloseSymbol| t.left_offset.code.position_before())
-                })
+                .or_else(|| close2.as_ref().map(|t| t.left_offset.code.position_before()))
                 .or_else(|| default.as_ref().map(|t| t.equals.left_offset.code.position_before()))
                 .or_else(|| close1.as_ref().map(|t| t.left_offset.code.position_before()))
                 .unwrap(),

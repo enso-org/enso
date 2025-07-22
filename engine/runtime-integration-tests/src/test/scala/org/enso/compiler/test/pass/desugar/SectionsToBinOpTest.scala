@@ -117,8 +117,8 @@ class SectionsToBinOpTest extends MiniPassTest {
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
-      val lamBodySecondArg = lamBody
-        .arguments(1)
+      val lamBodySecondArg = lamBody.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
@@ -228,8 +228,8 @@ class SectionsToBinOpTest extends MiniPassTest {
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
-      val appRightName = app
-        .arguments(1)
+      val appRightName = app.arguments
+        .apply(1)
         .value
         .asInstanceOf[Name.Literal]
 

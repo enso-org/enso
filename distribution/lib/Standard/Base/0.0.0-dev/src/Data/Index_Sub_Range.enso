@@ -9,7 +9,6 @@ import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
-import project.Math
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -20,7 +19,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Numeric_Input, Single_Choice, Vector_Editor
-from project.Random import get_default_seed, Random
+from project.Random import Random
 
 type Index_Sub_Range
     ## Select the first `count` items.
@@ -204,9 +203,8 @@ take_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range |
     Index_Sub_Range.First count -> single_slice 0 (length.min count)
     Index_Sub_Range.Last count -> single_slice length-count length
     Index_Sub_Range.While predicate ->
-        end = 0.up_to length . find i-> (predicate (at i)).not
-        true_end = if end.is_nothing then length else end
-        single_slice 0 true_end
+        end = 0.up_to length . find (i-> (predicate (at i)).not) if_missing=length
+        single_slice 0 end
     Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds, Illegal_Argument] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors
@@ -255,9 +253,8 @@ drop_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range |
     Index_Sub_Range.First count -> single_slice count length
     Index_Sub_Range.Last count -> single_slice 0 length-count
     Index_Sub_Range.While predicate ->
-        end = 0.up_to length . find i-> (predicate (at i)).not
-        true_end = if end.is_nothing then length else end
-        single_slice true_end length
+        end = 0.up_to length . find (i-> (predicate (at i)).not) if_missing=length
+        single_slice end length
     Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds, Illegal_Argument] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors

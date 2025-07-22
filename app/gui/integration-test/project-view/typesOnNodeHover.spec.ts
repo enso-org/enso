@@ -1,4 +1,4 @@
-import { test, type Locator, type Page } from '@playwright/test'
+import { test, type Locator, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
@@ -15,17 +15,16 @@ async function assertTypeLabelOnNode(
 ) {
   // Ensure the visualization button won't be covered by any other parts of another node (e.g. a comment).
   await bringNodeToFront(page, node)
-  await node.hover({ position: { x: 8, y: 8 } })
-  await locate.toggleVisualizationButton(node).click()
+  await node.hover({ position: { x: 8, y: 8 }, force: true })
+  await locate.toggleVisualizationButton(node).click({ force: true })
   const targetLabel = node.locator('.node-type').first()
   await expect(targetLabel).toHaveText(type.short)
-  await expect(targetLabel).toHaveAttribute('title', type.full)
-  await locate.toggleVisualizationButton(node).click()
+  await locate.toggleVisualizationButton(node).click({ force: true })
   await actions.deselectNodes(page)
 }
 
 async function bringNodeToFront(page: Page, node: Locator) {
-  await node.click({ position: { x: 8, y: 8 } })
+  await node.click({ position: { x: 0, y: 8 }, force: true })
   await page.keyboard.press('Escape')
 }
 

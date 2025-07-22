@@ -1,28 +1,29 @@
-import { MultiRange, Range } from '@/util/data/range'
+import { MultiRange } from '@/util/data/range'
 import { expect, test } from 'vitest'
+import { Range } from 'ydoc-shared/util/data/range'
 
-function r(...r: [start: number, end: number][]) {
-  return r.map(({ 0: start, 1: end }) => new Range(start, end))
+function r(...r: [from: number, to: number][]) {
+  return r.map(({ 0: from, 1: to }) => Range.tryFromBounds(from, to)!)
 }
 
-function mr(...r: [start: number, end: number][]) {
+function mr(...r: [from: number, to: number][]) {
   const m = new MultiRange()
   for (const range of r) {
-    m.insert(new Range(range[0], range[1]))
+    m.insert(Range.tryFromBounds(range[0], range[1])!)
   }
   return m
 }
 
-function add(m: MultiRange, ...r: [start: number, end: number][]) {
+function add(m: MultiRange, ...r: [from: number, to: number][]) {
   for (const range of r) {
-    m.insert(new Range(range[0], range[1]))
+    m.insert(Range.tryFromBounds(range[0], range[1])!)
   }
   return m
 }
 
-function sub(m: MultiRange, ...r: [start: number, end: number][]) {
+function sub(m: MultiRange, ...r: [from: number, to: number][]) {
   for (const range of r) {
-    m.remove(new Range(range[0], range[1]))
+    m.remove(Range.tryFromBounds(range[0], range[1])!)
   }
   return m
 }

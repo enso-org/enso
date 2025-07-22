@@ -74,19 +74,17 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
   const engineDir = `${resourcesDir}/enso/dist/*`
   const archivePatterns: ArchivePattern[] = [
     [
-      '/component/runner/runner.jar',
-      [
-        'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
-        'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
-        'com/sun/jna/darwin-aarch64/libjnidispatch.jnilib',
-        'com/sun/jna/darwin-x86-64/libjnidispatch.jnilib',
-      ],
-    ],
-    [
       'component/python-resources-*.jar',
       [
         'META-INF/resources/darwin/*/lib/graalpy*/*.dylib',
         'META-INF/resources/darwin/*/lib/graalpy*/modules/*.so',
+      ],
+    ],
+    [
+      'component/truffle-api-*.jar',
+      [
+        'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
+        'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
       ],
     ],
     [
@@ -100,7 +98,16 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
         'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
       ],
     ],
+
     ['component/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
+    [
+      'component/jline-native-*.jar',
+      [
+        'org/jline/nativ/Mac/arm64/libjlinenative.jnilib',
+        'org/jline/nativ/Mac/x86_64/libjlinenative.jnilib',
+        'org/jline/nativ/Mac/x86/libjlinenative.jnilib',
+      ],
+    ],
     [
       'lib/Standard/Database/*/polyglot/java/sqlite-jdbc-*.jar',
       [
@@ -111,27 +118,41 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       ],
     ],
     [
-      'lib/Standard/Snowflake/*/polyglot/java/snowflake-jdbc-*.jar',
-      [
-        'META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib',
-        'META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib',
-      ],
+      'lib/Standard/Snowflake/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
+      ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
     ],
     [
-      'lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar',
+      'lib/Standard/Snowflake/*/polyglot/java/grpc-netty-shaded-*.jar',
       ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
     [
-      'lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
+      'lib/Standard/Google/*/polyglot/java/grpc-netty-shaded-*.jar',
+      ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Google/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
       ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
     ],
-    ['lib/Standard/Tableau/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
+    ['lib/Standard/Microsoft/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
     [
-      'lib/Standard/Image/*/polyglot/java/opencv-*.jar',
-      ['nu/pattern/opencv/osx/*/libopencv_java*.dylib'],
+      'lib/Standard/Microsoft/*/polyglot/java/netty-resolver-dns-native-macos-*.jar',
+      ['META-INF/native/libnetty_resolver_dns_native_macos_*.jnilib'],
     ],
+    [
+      'lib/Standard/Microsoft/*/polyglot/java/netty-tcnative-boringssl-static-*.jar',
+      ['META-INF/native/libnetty_tcnative_osx_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Microsoft/*/polyglot/java/netty-transport-native-kqueue-*.jar',
+      ['META-INF/native/libnetty_transport_native_kqueue_*.jnilib'],
+    ],
+    ['lib/Standard/Tableau/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
   ]
-  return ArchiveToSign.lookupMany(engineDir, archivePatterns)
+  const binariesPattern = 'lib/Standard/Image/*/polyglot/lib/*.dylib'
+
+  const binaries = await BinaryToSign.lookupMany(engineDir, [binariesPattern])
+  const archives = await ArchiveToSign.lookupMany(engineDir, archivePatterns)
+  return [...archives, ...binaries]
 }
 
 // ================
@@ -186,7 +207,7 @@ class ArchiveToSign implements Signable {
 
   /** Looks up for archives to sign using the given path pattern. */
   static async lookup(base: string, [pattern, binaries]: ArchivePattern) {
-    return lookupHelper(path => new ArchiveToSign(path, binaries))(base, pattern)
+    return lookupHelper((path) => new ArchiveToSign(path, binaries))(base, pattern)
   }
 
   /**
@@ -215,9 +236,10 @@ class ArchiveToSign implements Signable {
       }
 
       if (isJar) {
-        if (archiveName.includes('runner')) {
-          run('jar', ['-cfm', TEMPORARY_ARCHIVE_PATH, 'META-INF/MANIFEST.MF', '.'], workingDir)
-        } else {
+        const meta = 'META-INF/MANIFEST.MF'
+        try {
+          run('jar', ['-cfm', TEMPORARY_ARCHIVE_PATH, meta, '.'], workingDir)
+        } catch {
           run('jar', ['-cf', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
         }
       } else {
@@ -245,7 +267,7 @@ class ArchiveToSign implements Signable {
 /** A single code binary file to be signed. */
 class BinaryToSign implements Signable {
   /** Looks up for binaries to sign using the given path pattern. */
-  static lookup = lookupHelper(path => new BinaryToSign(path))
+  static lookup = lookupHelper((path) => new BinaryToSign(path))
 
   /** Looks up for binaries to sign using the given path patterns. */
   static lookupMany = lookupManyHelper(BinaryToSign.lookup)
@@ -318,7 +340,7 @@ function lookupManyHelper<T, R extends Signable>(
 ) {
   return async function (base: string, patterns: T[]) {
     const results = await Promise.all(
-      patterns.map(async pattern => {
+      patterns.map(async (pattern) => {
         const ret = await lookup(base, pattern)
         if (ret.length === 0) {
           console.warn(`No files found for pattern ${String(pattern)} in ${base}`)

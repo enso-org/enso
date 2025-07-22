@@ -235,15 +235,16 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
         encounteredSymbols.addSymbol(currentImport, symbolName, symbolPath, resolvedName);
       } else {
         var encounteredFullName = encounteredSymbols.getPathForSymbol(symbolName);
+        var encounteredResolution =
+            encounteredSymbols.getResolvedNameForSymbol(symbolName);
         var originalImport = encounteredSymbols.getOriginalImportForSymbol(symbolName);
-        if (symbolPath.equals(encounteredFullName)) {
+        if (symbolPath.equals(encounteredFullName) && !areResolvedNamesAllowedToClash(resolvedName, encounteredResolution)) {
           // symbolName is already imported with the same symbolPath --> attach warning.
           var warn = createWarningForDuplicatedImport(originalImport, currentImport, symbolName);
           currentImport.getDiagnostics().add(warn);
         } else {
           // There is an encountered symbol with different physical path than symbolPath.
-          var resolution = encounteredSymbols.getResolvedNameForSymbol(symbolName);
-          if (resolution instanceof BindingsMap.ResolvedMethod resMethod &&
+          if (encounteredResolution instanceof BindingsMap.ResolvedMethod resMethod &&
               resMethod.methodName().equals(symbolName)) {
             // This is a valid ambiguous case - in previously encountered import, the symbol was resolved
             // to either an extension, static, or conversion method.
@@ -289,6 +290,30 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
           ),
           new MetadataStorage()
       );
+    }
+
+    /**
+     * {@link org.enso.compiler.data.BindingsMap.ResolvedModuleMethod} and
+     * {@link org.enso.compiler.data.BindingsMap.ResolvedExtensionMethod} are allowed to
+     * clash - they are allowed to have the same fully qualified name, and no
+     * "duplicate import" warning should be generated for them.
+     */
+    private static boolean areResolvedNamesAllowedToClash(ResolvedName name1, ResolvedName name2) {
+      if (name1 instanceof BindingsMap.ResolvedExtensionMethod &&
+            name2 instanceof BindingsMap.ResolvedExtensionMethod) {
+        throw new AssertionError("Two extension methods with the same name should not be allowed.");
+      }
+      if (name1 instanceof BindingsMap.ResolvedModuleMethod &&
+          name2 instanceof BindingsMap.ResolvedModuleMethod) {
+        throw new AssertionError("Two module methods with the same name should not be allowed.");
+      }
+      if (name1 instanceof BindingsMap.ResolvedExtensionMethod && name2 instanceof BindingsMap.ResolvedModuleMethod) {
+        return true;
+      }
+      if (name1 instanceof BindingsMap.ResolvedModuleMethod && name2 instanceof BindingsMap.ResolvedExtensionMethod) {
+        return true;
+      }
+      return false;
     }
 
     private List<ImportTarget> getImportTargets(Import imp) {

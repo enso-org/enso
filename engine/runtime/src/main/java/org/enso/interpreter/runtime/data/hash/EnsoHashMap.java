@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -11,17 +10,16 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import java.util.Iterator;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.Entry;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
  * Implementation of a hash map structure, capable of holding any types of keys and values. The
@@ -33,10 +31,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  * <p>Users should not use Enso objects as keys to Java maps, because equals won't work the same way
  * as it works in Enso.
  */
-@ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 @Builtin(stdlibName = "Standard.Base.Data.Dictionary.Dictionary", name = "Dictionary")
-public final class EnsoHashMap extends EnsoObject {
+public final class EnsoHashMap extends BuiltinObject {
   private final EnsoHashMapBuilder mapBuilder;
   private final int generation;
   private final int size;
@@ -55,6 +52,11 @@ public final class EnsoHashMap extends EnsoObject {
 
   static EnsoHashMap createEmpty() {
     return new EnsoHashMap(EnsoHashMapBuilder.create());
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Dictionary";
   }
 
   EnsoHashMapBuilder getMapBuilder(
@@ -135,7 +137,7 @@ public final class EnsoHashMap extends EnsoObject {
   }
 
   @ExportMessage
-  Object getHashEntriesIterator(@CachedLibrary(limit = "3") InteropLibrary interop) {
+  final Object getHashEntriesIterator(@CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return interop.getIterator(getCachedVectorRepresentation());
     } catch (UnsupportedMessageException e) {
@@ -144,24 +146,10 @@ public final class EnsoHashMap extends EnsoObject {
     }
   }
 
-  @ExportMessage(library = TypesLibrary.class)
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage(library = TypesLibrary.class)
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().dictionary();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().dictionary();
+  final Iterator<Entry> getEntriesIterator(
+      VirtualFrame frame, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    var builder = getMapBuilder(frame, true, hashCodeNode, equalsNode);
+    return builder.getEntriesIterator(generation);
   }
 
   @ExportMessage

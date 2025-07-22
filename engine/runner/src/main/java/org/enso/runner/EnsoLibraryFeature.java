@@ -12,17 +12,11 @@ import org.enso.pkg.PackageManager$;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
-import org.graalvm.nativeimage.hosted.RuntimeResourceAccess;
 
 public final class EnsoLibraryFeature implements Feature {
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
-    try {
-      registerOpenCV(access.getApplicationClassLoader());
-    } catch (ReflectiveOperationException ex) {
-      ex.printStackTrace();
-      throw new IllegalStateException(ex);
-    }
+
     var libs = new LinkedHashSet<Path>();
     for (var p : access.getApplicationClassPath()) {
       var p1 = p.getParent();
@@ -90,10 +84,11 @@ public final class EnsoLibraryFeature implements Feature {
               }
             }
           }
+          pkg.markAotReady();
         }
       }
     } catch (Exception ex) {
-      ex.printStackTrace();
+      ex.printStackTrace(System.err);
       throw new IllegalStateException(ex);
     }
     System.err.println("Summary for polyglot import java:");
@@ -101,35 +96,5 @@ public final class EnsoLibraryFeature implements Feature {
       System.err.println("  " + className);
     }
     System.err.println("Registered " + classes.size() + " classes for reflection");
-  }
-
-  private static void registerOpenCV(ClassLoader cl) throws ReflectiveOperationException {
-    var moduleOpenCV = cl.getUnnamedModule();
-    var currentOS = System.getProperty("os.name").toUpperCase().replaceAll(" .*$", "");
-
-    var libOpenCV =
-        switch (currentOS) {
-          case "LINUX" -> "nu/pattern/opencv/linux/x86_64/libopencv_java470.so";
-          case "WINDOWS" -> "nu/pattern/opencv/windows/x86_64/opencv_java470.dll";
-          case "MAC" -> {
-            var arch = System.getProperty("os.arch").toUpperCase();
-            yield switch (arch) {
-              case "X86_64" -> "nu/pattern/opencv/osx/x86_64/libopencv_java470.dylib";
-              case "AARCH64" -> "nu/pattern/opencv/osx/ARMv8/libopencv_java470.dylib";
-              default -> null;
-            };
-          }
-          default -> null;
-        };
-
-    if (libOpenCV != null) {
-      var verify = cl.getResource(libOpenCV);
-      if (verify == null) {
-        throw new IllegalStateException("Cannot find " + libOpenCV + " resource in " + cl);
-      }
-      RuntimeResourceAccess.addResource(moduleOpenCV, libOpenCV);
-    } else {
-      throw new IllegalStateException("No resource suggested for " + currentOS);
-    }
   }
 }

@@ -1,10 +1,14 @@
-package org.enso.interpreter.instrument.command
+package org.enso.interpreter.instrument
+package command
 
 import org.enso.interpreter.instrument.execution.{Completion, RuntimeContext}
 import org.enso.polyglot.runtime.Runtime.{Api, ApiNotification, ApiResponse}
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.ExecutionContext
+
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /** Base command trait that encapsulates a function request. Uses
   * [[RuntimeContext]] to perform a request.
@@ -35,4 +39,7 @@ abstract class Command(maybeRequestId: Option[RequestId]) {
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.endpoint.sendToClient(Api.Response(None, payload))
   }
+
+  final private[instrument] def logger: Logger =
+    LoggerFactory.getLogger(classOf[Command])
 }

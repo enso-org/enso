@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { getCellValueType, isNumericType } from '../TableVisualization/tableVizUtils'
+import { formatText, getCellValueType, isNumericType } from '../TableVisualization/tableVizUtils'
 
 test('getCellValueType (Text)', () => {
   expect(getCellValueType('Alan')).toEqual('Char')
@@ -39,4 +39,16 @@ test('isNumericType (Numeric Type)', () => {
 
 test('isNumericType (Char Type)', () => {
   expect(isNumericType('Char')).toEqual(false)
+})
+
+test('formatText (text with link, full formatting)', () => {
+  expect(formatText('https://www.google.com/search?q=rock&roll', 'full')).toEqual(
+    '<span > <a href="https://www.google.com/search?q=rock&roll" target="_blank" class="link">https://www.google.com/search?q=rock&roll</a> <span>',
+  )
+})
+
+test('formatText (text, full formatting)', () => {
+  expect(formatText('rock & roll', 'full')).toEqual(
+    '<span > rock<span style="color: #df8800">&#183;</span>&<span style="color: #df8800">&#183;</span>roll <span>',
+  )
 })

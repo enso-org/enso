@@ -1,13 +1,10 @@
 package org.enso.table.expressions;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -56,102 +53,256 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
+  public static class TypeErrorException extends RuntimeException {
+    public TypeErrorException(String message) {
+      super(message);
+    }
+  }
+
+  public interface MethodInterface {
+    Value execute(Value[] args, Function<Object, Value> makeConstantColumn);
+
+    Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
+  }
+
+  public record MethodResolver(
+      Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    public MethodResolver(
+        String moduleName,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
+      this(
+          Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
+          typeName,
+          isStaticMethod,
+          makeTypedColumn);
+    }
+
+    private MethodResolver(
+        Value module,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
+      this(module, module.invokeMember("get_type", typeName), isStaticMethod, makeTypedColumn);
+    }
+
+    public boolean canResolve(String methodName) {
+      return resolve(methodName).canExecute();
+    }
+
+    public Value resolve(String methodName) {
+      return module.invokeMember("get_method", type, methodName);
+    }
+  }
+
+  public static MethodResolver newMethodResolver(
+      String moduleName,
+      String typeName,
+      boolean isStaticMethod,
+      Function<Object, Value> makeTypedColumn) {
+    return new MethodResolver(moduleName, typeName, isStaticMethod, makeTypedColumn);
+  }
+
+  public static class Method implements MethodInterface {
+    protected final MethodResolver methodResolver;
+    protected final String name;
+
+    public Method(MethodResolver methodResolver, String name) {
+      this.methodResolver = methodResolver;
+      this.name = name;
+    }
+
+    public static Method create(
+        Iterable<MethodResolver> methodResolvers,
+        String methodName,
+        boolean isVariableArgumentMethod) {
+      for (var resolver : methodResolvers) {
+        if (resolver.canResolve(methodName)) {
+          if (isVariableArgumentMethod) {
+            return new VariableArgumentMethod(resolver, methodName);
+          } else if (resolver.isStaticMethod) {
+            return new StaticArgumentMethod(resolver, methodName);
+          } else {
+            return new Method(resolver, methodName);
+          }
+        }
+      }
+      throw new UnsupportedOperationException("Method not found: " + methodName);
+    }
+
+    @Override
+    public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects;
+      try {
+        objects = prepareArguments(args, makeConstantColumn);
+      } catch (PolyglotException e) {
+        if (e.getMessage().startsWith("Type error: expected expression to be")) {
+          throw new TypeErrorException(
+              e.getMessage()
+                  .replace(
+                      "Type error: expected expression",
+                      "method '" + name + "' expected first argument"));
+        }
+        throw e;
+      }
+      try {
+        var result = methodResolver.resolve(this.name).execute(objects);
+        if (result.canExecute()) {
+          throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
+        }
+        return result;
+      } catch (PolyglotException e) {
+        if (e.getMessage().startsWith("Type error: expected a function")) {
+          throw new IllegalArgumentException("Too many arguments for method " + name + ".");
+        }
+        throw e;
+      }
+    }
+
+    @Override
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects = Arrays.copyOf(args, args.length, Object[].class);
+      objects[0] = this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0]));
+      return objects;
+    }
+  }
+
+  public static class VariableArgumentMethod extends Method {
+    public VariableArgumentMethod(MethodResolver methodResolver, String name) {
+      super(methodResolver, name);
+    }
+
+    @Override
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      return new Object[] {
+        this.methodResolver.makeTypedColumn.apply(makeConstantColumn.apply(args[0])),
+        Arrays.copyOfRange(args, 1, args.length, Object[].class)
+      };
+    }
+  }
+
+  public static class StaticArgumentMethod extends Method {
+    public StaticArgumentMethod(MethodResolver methodResolver, String name) {
+      super(methodResolver, name);
+    }
+
+    @Override
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects = new Object[args.length + 1];
+      objects[0] = this.methodResolver.module;
+      System.arraycopy(args, 0, objects, 1, args.length);
+      return objects;
+    }
+  }
+
   public static Value evaluate(
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      String moduleName,
-      String typeName,
+      Function<Value, Boolean> isColumn,
+      MethodResolver[] methodResolvers,
       String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
+    final var setVariableArgumentFunctions =
+        new HashSet<>(Arrays.asList(variableArgumentFunctions));
+    Function<String, MethodInterface> getMethod =
+        name ->
+            Method.create(
+                java.util.Arrays.stream(methodResolvers).toList(),
+                name,
+                setVariableArgumentFunctions.contains(name));
+    Function<String, Value> makeConstructor =
+        name -> methodResolvers[0].module.invokeMember("eval_expression", ".." + name);
+
+    return evaluateImpl(
+        expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
+  }
+
+  public static Value evaluateImpl(
+      String expression,
+      Function<String, Value> getColumn,
+      Function<Object, Value> makeConstantColumn,
+      Function<Value, Boolean> isColumn,
+      Function<String, MethodInterface> getMethod,
+      Function<String, Value> makeConstructor) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
     var tokens = new CommonTokenStream(lexer);
+    checkTokenLimit(tokens, 1024);
+
     var parser = new ExpressionParser(tokens);
     parser.removeErrorListeners();
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
     var visitor =
         new ExpressionVisitorImpl(
-            getColumn, makeConstantColumn, moduleName, typeName, variableArgumentFunctions);
+            getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
-    return visitor.visit(expr);
+    var result = visitor.visit(expr);
+    return makeConstantColumn.apply(result);
+  }
+
+  private static void checkTokenLimit(CommonTokenStream tokens, int tokenLimit) {
+    tokens.fill(); // Ensure the token stream is fully populated
+    int tokenCount = 0;
+    for (var token : tokens.getTokens()) {
+      tokenCount++;
+      if (tokenCount > tokenLimit) {
+        throw new SyntaxErrorException(
+            "Expression is too complex: "
+                + tokens.size()
+                + " tokens (exceeds "
+                + tokenLimit
+                + "). "
+                + "Consider splitting into multiple expressions.",
+            token.getLine(),
+            token.getCharPositionInLine());
+      }
+    }
   }
 
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
-  private final Function<String, Value> getMethod;
+  private final Function<Value, Boolean> isColumn;
+  private final Function<String, MethodInterface> getMethod;
   private final Function<String, Value> makeConstructor;
-  private final Set<String> variableArgumentFunctions;
 
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      String moduleName,
-      String typeName,
-      String[] variableArgumentFunctions) {
+      Function<Value, Boolean> isColumn,
+      Function<String, MethodInterface> getMethod,
+      Function<String, Value> makeConstructor) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
-
-    var context = Context.getCurrent().getBindings("enso");
-    final Value module = context.invokeMember("get_module", moduleName);
-    final Value type = module.invokeMember("get_type", typeName);
-    getMethod = name -> module.invokeMember("get_method", type, name);
-    makeConstructor = name -> module.invokeMember("eval_expression", ".." + name);
-
-    this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
-  }
-
-  private Value wrapAsColumn(Value value) {
-    if (value.isNull()) {
-      return makeConstantColumn.apply(value);
-    }
-
-    var metaObject = value.getMetaObject();
-    return metaObject != null
-            && metaObject.isHostObject()
-            && metaObject.asHostObject() instanceof Class<?>
-        ? makeConstantColumn.apply(value)
-        : value;
+    this.isColumn = isColumn;
+    this.getMethod = getMethod;
+    this.makeConstructor = makeConstructor;
   }
 
   private Value executeMethod(String name, Value... args) {
-    Value method = getMethod.apply(name);
-    if (!method.canExecute()) {
-      throw new UnsupportedOperationException(name);
-    }
+    var method = getMethod.apply(name);
+    Value result = method.execute(args, makeConstantColumn);
+    return result;
+  }
 
-    Object[] objects;
-    if (this.variableArgumentFunctions.contains(name)) {
-      objects = new Object[2];
-      objects[0] = args[0];
-      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-    } else {
-      objects = Arrays.copyOf(args, args.length, Object[].class);
-    }
-    objects[0] = wrapAsColumn(args[0]);
-
-    try {
-      var result = method.execute(objects);
-      if (result.canExecute()) {
-        throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
-      }
-      return makeConstantColumn.apply(result);
-    } catch (PolyglotException e) {
-      if (e.getMessage().startsWith("Type error: expected a function")) {
-        throw new IllegalArgumentException("Too many arguments for method " + name + ".");
-      }
-      throw e;
-    }
+  private Value standardiseTypesAndExecuteMethod(String name, Value arg1, Value arg2) {
+    // If we do 2 + [Column1] then we want to use Column addition for this
+    // So we convert the 2 to a column before we execute the +
+    // In the case of 2 + 5 we want to add these as integers so do not convert either
+    // to columns
+    Value typedArg1 = isColumn.apply(arg2) ? makeConstantColumn.apply(arg1) : arg1;
+    return executeMethod(name, typedArg1, arg2);
   }
 
   @Override
   public Value visitProg(ExpressionParser.ProgContext ctx) {
     Value base = visit(ctx.expr());
-    return wrapAsColumn(base);
+    return base;
   }
 
   @Override
@@ -162,12 +313,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitPower(ExpressionParser.PowerContext ctx) {
-    return executeMethod("^", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod("^", visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
   public Value visitMultDivMod(ExpressionParser.MultDivModContext ctx) {
-    return executeMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(
+        ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -180,7 +332,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       op = "!=";
     }
 
-    return executeMethod(op, visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(op, visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -205,17 +357,18 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitAddSub(ExpressionParser.AddSubContext ctx) {
-    return executeMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(
+        ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
   public Value visitAnd(ExpressionParser.AndContext ctx) {
-    return executeMethod("&&", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod("&&", visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
   public Value visitOr(ExpressionParser.OrContext ctx) {
-    return executeMethod("||", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod("||", visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -253,7 +406,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitNullOrNothing(ExpressionParser.NullOrNothingContext ctx) {
-    return Value.asValue(null);
+    // A Nothing token in an expression is assumed to mean a column of Nothings (or null column) and
+    // so we convert it here.
+    return makeConstantColumn.apply(Value.asValue(null));
   }
 
   @Override
@@ -364,6 +519,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   @Override
+  public Value visitRegexLiteral(ExpressionParser.RegexLiteralContext ctx) {
+    String regexPattern = ctx.REGEX_LITERAL().getText();
+    // Remove leading 'r/' and trailing '/'
+    regexPattern = regexPattern.substring(2, regexPattern.length() - 1);
+    return executeMethod("regex", Value.asValue(regexPattern));
+  }
+
+  @Override
   public Value visitParen(ExpressionParser.ParenContext ctx) {
     return visit(ctx.expr());
   }
@@ -388,11 +551,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   public Value visitFunction(ExpressionParser.FunctionContext ctx) {
     var name = ctx.IDENTIFIER().getText().toLowerCase();
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
-    return switch (name) {
-      case "today" -> Value.asValue(LocalDate.now());
-      case "now" -> Value.asValue(LocalDateTime.now().atZone(ZoneId.systemDefault()));
-      case "time" -> Value.asValue(LocalTime.now());
-      default -> executeMethod(name, args);
-    };
+    return executeMethod(name, args);
   }
 }

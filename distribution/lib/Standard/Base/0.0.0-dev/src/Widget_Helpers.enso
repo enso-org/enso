@@ -16,14 +16,20 @@ from project.Metadata.Choice import Option
 ## PRIVATE
    Creates a Single_Choice Widget for text or secret value.
 make_text_secret_selector display:Display=..When_Modified -> Widget =
-    fqn = Meta.get_qualified_type_name Enso_Secret
+    fqn = Enso_Secret.to Meta.Type . qualified_name
     make_single_choice [['<Text Value>', '""'], ['<Secret Value>', fqn+".get"]] display=display
 
 ## PRIVATE
    Creates a Regex / Text Widget for search and replace.
-make_regex_text_widget : Widget
-make_regex_text_widget =
-    make_any_selector add_text=True add_regex=True add_named_pattern=True
+make_regex_text_widget : Display -> Widget
+make_regex_text_widget display:Display=..Always =
+    make_any_selector display=display add_text=True add_regex=True add_named_pattern=True
+
+## PRIVATE
+   Creates a Single_Choice Widget for delimiters.
+make_separator_selector : Widget
+make_separator_selector =
+    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "'\n'"], '_', ['Custom', "'?'"]]
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.
@@ -49,7 +55,7 @@ make_number_format_selector (value:Number=1234.564321) =
    Creates a Single_Choice Widget for parsing dates.
 make_date_format_selector : Date -> Widget
 make_date_format_selector (date:Date=(Date.new 2012 3 14)) =
-    fqn = Meta.get_qualified_type_name Date_Time_Formatter
+    fqn = Date_Time_Formatter.to Meta.Type . qualified_name
     iso_format = ['ISO-Format (e.g. ' + date.format Date_Time_Formatter.iso_date + ')', fqn+".iso_date"]
     formats = ['d/M/yyyy', 'dd/MM/yyyy', 'd-MMM-yy', 'd MMMM yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'MMMM d, yyyy', 'yyyy-MM'].map f->
         [f + " (e.g. " + date.format f + ")", f.pretty]
@@ -68,7 +74,7 @@ make_date_format_selector (date:Date=(Date.new 2012 3 14)) =
    Creates a Single_Choice Widget for parsing date times.
 make_date_time_format_selector : Date_Time -> Widget
 make_date_time_format_selector (date_time:Date_Time=(Date_Time.new 2012 3 14 15 9 26 123)) =
-    fqn = Meta.get_qualified_type_name Date_Time_Formatter
+    fqn = Date_Time_Formatter.to Meta.Type . qualified_name
     enso_format =
         format = Date_Time_Formatter.default_enso_zoned_date_time
         ['Default (e.g. ' + date_time.format format + ')', fqn+".default_enso_zoned_date_time"]
@@ -95,7 +101,7 @@ make_date_time_format_selector (date_time:Date_Time=(Date_Time.new 2012 3 14 15 
    Creates a Single_Choice Widget for parsing times.
 make_time_format_selector : Time_Of_Day -> Widget
 make_time_format_selector (time:Time_Of_Day=(Time_Of_Day.new 13 30 55 123)) =
-    fqn = Meta.get_qualified_type_name Date_Time_Formatter
+    fqn = Date_Time_Formatter.to Meta.Type . qualified_name
     iso_format = ['ISO-Format (e.g. ' + time.format Date_Time_Formatter.iso_time + ')', fqn+".iso_time"]
     formats = ['HH:mm[:ss]', 'HH:mm:ss', 'h:mm[:ss] a', 'hh:mm:ss a', 'HH:mm:ss.S'].map f->
         [f + " (e.g. " + time.format f + ")", f.pretty]
@@ -111,16 +117,19 @@ make_format_chooser include_number:Boolean=True include_date:Boolean=True includ
     date = if include_date.not then [] else
         ['d/M/yyyy', 'dd/MM/yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'd-MMM-yy', 'd MMMM yyyy'].map f-> [f + " (e.g. " + (Date.new 2012 3 14).format f + ")", f.pretty]
     date_time = if include_date_time.not then [] else
-        ['yyyy-MM-dd HH:mm:ss.f', 'yyyy-MM-dd HH:mm:ss.f TT', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'MM/dd/yyyy HH:mm:ss'].map f-> [f + " (e.g. " + (Date_Time.new 2012 3 14 15 9 26 123).format f + ")", f.pretty]
-    custom_locale_format =
-        format = Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france
-        label = 'd MMMM yyyy HH:mm - with custom Locale (e.g. ' + Date_Time.now.format format + ')'
-        code = "(Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france)"
-        [Option label code [["pattern", make_single_choice (date+date_time)], ["locale", Locale.default_widget]]]
+        ['d MMMM yyyy HH:mm', 'yyyy-MM-dd HH:mm:ss.f', 'yyyy-MM-dd HH:mm:ss.f TT', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'MM/dd/yyyy HH:mm:ss'].map f-> [f + " (e.g. " + (Date_Time.new 2012 3 14 15 9 26 123).format f + ")", f.pretty]
+    custom_locale_format = if include_date_time.not && include_date.not then [] else
+        patterns = date_time + date
+        first = patterns.first
+        format = Date_Time_Formatter.from_simple_pattern first.second locale=Locale.france
+        label = '<Date/Time> - with Locale (e.g. ' + Date_Time.now.format format + ')'
+        code = "(Date_Time_Formatter.from_simple_pattern " + first.second + " locale=Locale.france)"
+        [Option label code [["pattern", make_single_choice patterns], ["locale", Locale.default_widget]]]
     time = if include_time.not then [] else
         ['HH:mm[:ss]', 'h:mm[:ss] a'].map f-> [f + " (e.g. " + (Time_Of_Day.new 13 30 55 123).format f + ")", f.pretty]
     boolean = if include_boolean.not then [] else ['Yes|No', '1|0'].map f-> [f + " (Boolean)", f.pretty]
-    make_single_choice (numeric + date + date_time + time + custom_locale_format + boolean)
+    output = numeric + date + date_time + time + custom_locale_format + boolean
+    make_single_choice ([Option "<Custom>" (if output.length == 0 then '""' else output.first.second)] + output)
 
 ## PRIVATE
    Creates a Multiple_Choice Widget for selecting data cleanse operations.

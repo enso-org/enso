@@ -14,7 +14,11 @@ import java.util.stream.Stream;
 import org.enso.filesystem.FileSystem;
 
 /** A {@link TruffleFile}-based implementation of {@link FileSystem}. */
-public class TruffleFileSystem implements FileSystem<TruffleFile> {
+public final class TruffleFileSystem implements FileSystem<TruffleFile> {
+  private TruffleFileSystem() {}
+
+  public static final TruffleFileSystem INSTANCE = new TruffleFileSystem();
+
   @Override
   public TruffleFile getChild(TruffleFile parent, String childName) {
     return parent.resolve(childName);
@@ -43,6 +47,11 @@ public class TruffleFileSystem implements FileSystem<TruffleFile> {
   @Override
   public List<String> getSegments(TruffleFile file) {
     return Arrays.asList(file.toRelativeUri().getPath().split("/"));
+  }
+
+  @Override
+  public String getAbsolutePath(TruffleFile file) {
+    return file.getAbsoluteFile().getPath();
   }
 
   @Override

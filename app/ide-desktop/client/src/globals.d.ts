@@ -3,7 +3,8 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code.
  */
-import * as buildJson from './../../build.json' with { type: 'json' }
+
+import type { FileFilter } from './fileBrowser'
 
 // =============
 // === Types ===
@@ -92,10 +93,20 @@ interface MenuApi {
 // === System API ===
 // ==================
 
+/** Options for downloading a URL. */
+export type DownloadUrlOptions = {
+  url: string
+  path?: string | null
+  name?: string | null
+  shouldUnpackProject?: boolean
+  showFileDialog?: boolean
+}
+
 /** `window.systemApi` exposes functionality related to the operating system. */
 interface SystemApi {
-  readonly downloadURL: (url: string, headers?: Record<string, string>) => void
+  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
+  readonly getFilePath: (item: File) => string
 }
 
 // ========================
@@ -107,6 +118,7 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'any' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
+    filters?: FileFilter[],
   ) => Promise<unknown>
 }
 
@@ -115,9 +127,10 @@ interface FileBrowserApi {
 // ==============================
 
 /** Metadata for a newly imported project. */
-interface ProjectInfo {
+export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
@@ -158,7 +171,7 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
-    toggleDevtools: () => void
+    readonly mapBoxApiToken: () => string
   }
 
   namespace NodeJS {
@@ -209,7 +222,6 @@ declare global {
       readonly GUI_CONFIG_PATH?: string
     }
   }
-
-  // These are used in other files (because they're globals)
-  const BUILD_INFO: buildJson.BuildInfo
 }
+
+export {}

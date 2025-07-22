@@ -8,18 +8,21 @@ polyglot java import java.io.File as Java_File
 type Data
     Value ~enso_bin:File ~empty_world:File ~hello_world:File ~import_world:File
 
-    bench_empty self =
-        self.startup [ "--run", self.empty_world.to_text ]
+    bench_empty self in_jvm:Boolean =
+        self.startup [ "--run", self.empty_world.to_text ] in_jvm
 
-    bench_hello self =
-        self.startup [ "--run", self.hello_world.to_text ]
+    bench_hello self in_jvm:Boolean =
+        self.startup [ "--run", self.hello_world.to_text ] in_jvm
 
-    bench_import self =
-        self.startup [ "--run", self.import_world.to_text ]
+    bench_import self in_jvm:Boolean =
+        self.startup [ "--run", self.import_world.to_text ] in_jvm
 
-    startup self  args =
+    startup self args in_jvm:Boolean =
         exe = self.enso_bin
-        result = Process.run exe.path args
+        all_args = case in_jvm of
+            True -> ["--jvm"] + args
+            False -> args
+        result = Process.run exe.path all_args
         case result.exit_code of
             Exit_Code.Failure code ->
                 IO.println "Exit code: "+code.to_text
@@ -35,14 +38,17 @@ type Data
 collect_benches = Bench.build builder->
     options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 3 5)
 
-
     data =
         Data.Value enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso")
 
-    builder.group "Startup" options group_builder->
-        group_builder.specify "empty_startup" data.bench_empty
-        group_builder.specify "hello_world_startup" data.bench_hello
-        group_builder.specify "import_world_startup" data.bench_import
+    [["Native_Image_Startup", False], ["Startup", True]].each \entry->
+        group_name = entry.first
+        in_jvm = (entry.second):Boolean
+        builder.group group_name options group_builder->
+            group_builder.specify "empty_startup" (data.bench_empty in_jvm)
+            group_builder.specify "hello_world_startup" (data.bench_hello in_jvm)
+            group_builder.specify "import_world_startup" (data.bench_import in_jvm)
+
 
 find_sibling name =
     f = enso_project.root / "src" / "Startup" / name

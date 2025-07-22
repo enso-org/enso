@@ -7,6 +7,7 @@
  *     x = 1
  *     y = 2
  *     z = x -> x + y
+ *     u = x + y
  * ```
  *
  * It would be annotated in the following manner:
@@ -29,7 +30,7 @@ import { assertDefined } from '@/util/assert'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { expect, test } from 'vitest'
-import { sourceRangeKey, type SourceRange } from 'ydoc-shared/yjsModel'
+import { SourceRange, sourceRangeKey } from 'ydoc-shared/util/data/text'
 
 /** The type of annotation. */
 enum AnnotationType {
@@ -86,9 +87,9 @@ function parseAnnotations(annotatedCode: string): {
       const name = bindingName ?? usageName ?? ''
       const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
 
-      const start = offset - accumulatedOffset
-      const end = start + name.length
-      const range: SourceRange = [start, end]
+      const from = offset - accumulatedOffset
+      const to = from + name.length
+      const range = SourceRange.unsafeFromBounds(from, to)
 
       const annotation = new Annotation(kind, id)
       accumulatedOffset += match.length - name.length
@@ -152,8 +153,8 @@ class TestCase {
     return testCase
   }
 
-  repr(range: SourceRange): string {
-    return this.code.substring(range[0], range[1])
+  repr({ from, to }: SourceRange): string {
+    return this.code.substring(from, to)
   }
 
   prettyPrint(range: SourceRange): string {
@@ -223,22 +224,23 @@ test('Annotations parsing', () => {
       assertDefined(a, `No annotation found at [${range}].`)
       expect(a.kind, 'Invalid annotation kind.').toBe(kind)
       expect(a.id, 'Invalid annotation prefix.').toBe(prefix)
-      expect(unannotatedCode.substring(range[0], range[1]), 'Invalid annotation identifier.').toBe(
-        identifier,
-      )
+      expect(
+        unannotatedCode.substring(range.from, range.to),
+        'Invalid annotation identifier.',
+      ).toBe(identifier)
     } catch (e) {
       const message = `Invalid annotation at [${range}]: ${e}`
       throw new Error(message)
     }
   }
 
-  validateAnnotation([11, 12], AnnotationType.Binding, 1, 'x')
-  validateAnnotation([21, 22], AnnotationType.Binding, 2, 'y')
-  validateAnnotation([35, 36], AnnotationType.Binding, 3, 'x')
-  validateAnnotation([40, 41], AnnotationType.Usage, 3, 'x')
-  validateAnnotation([44, 45], AnnotationType.Usage, 2, 'y')
-  validateAnnotation([54, 55], AnnotationType.Usage, 1, 'x')
-  validateAnnotation([58, 59], AnnotationType.Usage, 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(11, 12), AnnotationType.Binding, 1, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(21, 22), AnnotationType.Binding, 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(35, 36), AnnotationType.Binding, 3, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(40, 41), AnnotationType.Usage, 3, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(44, 45), AnnotationType.Usage, 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(54, 55), AnnotationType.Usage, 1, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(58, 59), AnnotationType.Usage, 2, 'y')
 })
 
 function runTestCase(code: string) {
@@ -336,4 +338,11 @@ test(
     »2,default«
     «3,default» = 1
     »3,default«`),
+)
+
+test(
+  'Type casting',
+  runTestCase(`«1,main» =
+    «2,x» = 1
+    (»2,x«:Int).toString`),
 )

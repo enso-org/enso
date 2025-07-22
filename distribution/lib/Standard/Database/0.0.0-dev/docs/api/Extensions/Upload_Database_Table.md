@@ -1,0 +1,5 @@
+## Enso Signatures 1.0
+## module Standard.Database.Extensions.Upload_Database_Table
+- Standard.Database.DB_Table.DB_Table.delete_rows self key_values_to_delete:(Standard.Database.DB_Table.DB_Table|Standard.Table.Table.Table) key_columns:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= allow_duplicate_matches:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- Standard.Database.DB_Table.DB_Table.select_into_database_table self connection:Standard.Base.Any.Any table_name:Standard.Base.Data.Text.Text primary_key:Standard.Base.Any.Any= temporary:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Database.DB_Table.DB_Table.update_rows self source_table:(Standard.Database.DB_Table.DB_Table|Standard.Table.Table.Table) update_action:Standard.Database.Update_Action.Update_Action= key_columns:(Standard.Base.Data.Vector.Vector|Standard.Base.Nothing.Nothing)= error_on_missing_columns:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any

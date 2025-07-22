@@ -33,14 +33,32 @@ public abstract class Builtin {
     }
   }
 
+  private final Class<?> representationType;
   private final String name;
 
-  public Builtin() {
-    name = this.getClass().getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
+  protected Builtin(String representationType) {
+    this(findType(representationType));
+  }
+
+  protected Builtin(Class<?> representationType) {
+    this.representationType = representationType;
+    this.name = this.getClass().getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
+  }
+
+  private static Class<?> findType(String fqn) {
+    try {
+      return Class.forName(fqn);
+    } catch (ClassNotFoundException ex) {
+      throw new IllegalArgumentException(ex);
+    }
   }
 
   private @CompilerDirectives.CompilationFinal Type type;
   private @CompilerDirectives.CompilationFinal(dimensions = 1) AtomConstructor[] constructors;
+
+  public final boolean isRepresentedBy(Class<?> clazz) {
+    return representationType == clazz;
+  }
 
   protected Class<? extends Builtin> getSuperType() {
     return Any.class;
@@ -63,7 +81,8 @@ public abstract class Builtin {
       }
       type =
           containsValues()
-              ? Type.create(name, scope, supertype, builtins.get(Any.class).getType(), true, false)
+              ? Type.create(
+                  language, name, scope, supertype, builtins.get(Any.class).getType(), true, false)
               : Type.createSingleton(name, scope, supertype, true, false);
     }
     if (constructors == null) {

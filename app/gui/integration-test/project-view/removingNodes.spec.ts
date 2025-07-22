@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { test } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
@@ -43,7 +43,7 @@ test('Deleting multiple nodes with context menu', async ({ page }) => {
   await deletedNode2.click({ modifiers: ['Shift'] })
   await deletedNode2.click({ button: 'right' })
   await page
-    .locator('.ComponentContextMenu')
+    .locator('.ActionMenu')
     .getByRole('button', { name: 'Delete Selected Components' })
     .click()
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 2)
@@ -58,7 +58,7 @@ test('Graph can be empty', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(0)
 
   await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowserInput(page)).toBeVisible()
+  await expect(locate.componentBrowserInput(page)).toBeFocused()
   await page.keyboard.insertText('foo')
   await page.keyboard.press(`${CONTROL_KEY}+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(1)

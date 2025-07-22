@@ -53,7 +53,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(Vector(expressionType)),
+            Some(Api.ExpressionType(Vector(expressionType), Vector())),
             None,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,
@@ -120,7 +120,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(expressionTypes),
+            Some(Api.ExpressionType(expressionTypes, Vector())),
             methodCall,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
@@ -171,7 +171,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(Vector(expressionType)),
+            Some(Api.ExpressionType(Vector(expressionType), Vector())),
             Some(methodCall),
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
@@ -282,7 +282,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(Vector(ConstantsGen.ERROR)),
+            Some(Api.ExpressionType(Vector(ConstantsGen.ERROR), Vector())),
             methodCallOpt,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
@@ -441,7 +441,9 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            builtin.map(Vector(_)),
+            builtin.map(builtinType =>
+              Api.ExpressionType(Vector(builtinType), Vector())
+            ),
             methodCall,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,
@@ -474,6 +476,35 @@ object TestMessages {
             true,
             false,
             Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+        }
+      )
+    )
+
+  /** Create an pending interrupted response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionIds a list of pending expressions
+    * @return the expression update response
+    */
+  def pendingInterrupted(
+    contextId: UUID,
+    methodCall: Option[Api.MethodCall],
+    expressionIds: UUID*
+  ): Api.Response =
+    Api.Response(
+      Api.ExpressionUpdates(
+        contextId,
+        expressionIds.toSet.map { expressionId =>
+          Api.ExpressionUpdate(
+            expressionId,
+            Some(Api.ExpressionType(Vector(ConstantsGen.PANIC), Vector())),
+            methodCall,
+            Vector(Api.ProfilingInfo.ExecutionTime(0)),
+            false,
+            true,
+            Api.ExpressionUpdate.Payload
+              .Pending(None, None, wasInterrupted = true)
           )
         }
       )

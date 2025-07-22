@@ -3,7 +3,6 @@ import { LINKABLE_EMAIL_REGEX, LINKABLE_URL_REGEX } from '../link'
 
 const cases = {
   urls: [
-    'www.a.b',
     'http://example.com',
     'https://a.b',
     'https://some.local',
@@ -19,6 +18,7 @@ const cases = {
     '(a@b.cd)',
   ],
   neither: [
+    'www.a.b',
     'https://💩.la/',
     'a.b',
     'http://AsDf',

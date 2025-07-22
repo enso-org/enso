@@ -4,16 +4,8 @@ import * as detect from 'enso-common/src/detect'
 
 /* eslint-disable @typescript-eslint/naming-convention */
 
-// =================
-// === Constants ===
-// =================
-
 const ONE_HOUR_MS = 3_600_000
 export const LATEST_RELEASE_PAGE_URL = 'https://github.com/enso-org/enso/releases/latest'
-
-// ==================
-// === GitHub API ===
-// ==================
 
 /** Metadata for a GitHub user. */
 interface GitHubSimpleUser {
@@ -89,10 +81,6 @@ interface GitHubRelease {
   readonly assets: GitHubReleaseAsset[]
 }
 
-// =====================
-// === CachedRelease ===
-// =====================
-
 /** Metadata for a GitHub release, plus metadata for caching purposes. */
 interface CachedRelease {
   readonly lastFetchEpochMs: number
@@ -135,6 +123,11 @@ const appExtension = (() => {
       return '.dmg'
     case detect.Platform.windows:
       return '.exe'
+    case detect.Platform.unknown:
+    case detect.Platform.linux:
+    case detect.Platform.windowsPhone:
+    case detect.Platform.iPhoneOS:
+    case detect.Platform.android:
     default:
       // assume Unix-like.
       return '.AppImage'

@@ -1,10 +1,10 @@
 package org.enso.logging.service.logback;
 
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.net.SimpleSocketServer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.enso.logging.config.BaseConfig;
 import org.enso.logging.service.LoggingService;
 import org.slf4j.event.Level;
@@ -12,7 +12,7 @@ import org.slf4j.event.Level;
 class LoggingServer extends LoggingService<URI> {
 
   private int port;
-  private SimpleSocketServer logServer;
+  private SocketServer logServer;
 
   public LoggingServer(int port) {
     this.port = port;
@@ -24,9 +24,12 @@ class LoggingServer extends LoggingService<URI> {
 
     try {
       var setup = LogbackSetup.forContext(lc, config);
-      logServer = new SimpleSocketServer(lc, port);
+      logServer = new SocketServer(lc, port);
       logServer.start();
       setup.setup(level, path, prefix, setup.getConfig());
+      config.getAppenders().get("telemetry").setup(level, setup);
+      var openSearchEnabled = config.getAppenders().get("opensearch").setup(level, setup);
+      if (!openSearchEnabled) System.err.println("Remote Logs: Disabled");
       return new URI(null, null, "localhost", port, null, null, null);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
@@ -35,6 +38,13 @@ class LoggingServer extends LoggingService<URI> {
 
   public boolean isSetup() {
     return logServer != null;
+  }
+
+  @Override
+  public void teardown(UUID projectId) {
+    if (logServer != null) {
+      logServer.closeProject(projectId);
+    }
   }
 
   @Override

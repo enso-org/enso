@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
-import { requiredImportsByFQN } from '@/stores/graph/imports'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { requiredImportsByProjectPath } from '@/stores/graph/imports'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { ProjectPath } from '@/util/projectPath'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
@@ -16,16 +16,22 @@ const graph = useGraphStore()
 const suggestionDb = useSuggestionDbStore()
 
 const trueImport = computed(() =>
-  requiredImportsByFQN(
+  requiredImportsByProjectPath(
     suggestionDb.entries,
-    'Standard.Base.Data.Boolean.Boolean.True' as QualifiedName,
+    ProjectPath.create(
+      'Standard.Base' as QualifiedName,
+      'Data.Boolean.Boolean.True' as QualifiedName,
+    ),
     true,
   ),
 )
 const falseImport = computed(() =>
-  requiredImportsByFQN(
+  requiredImportsByProjectPath(
     suggestionDb.entries,
-    'Standard.Base.Data.Boolean.Boolean.False' as QualifiedName,
+    ProjectPath.create(
+      'Standard.Base' as QualifiedName,
+      'Data.Boolean.Boolean.False' as QualifiedName,
+    ),
     true,
   ),
 )
@@ -43,7 +49,7 @@ const value = computed({
         value ? ('True' as Identifier) : ('False' as Identifier),
       )
       if (requiresImport) graph.addMissingImports(edit, theImport)
-      props.onUpdate({ edit })
+      props.onUpdate({ edit, directInteraction: true })
     } else {
       graph.addMissingImports(edit, theImport)
       props.onUpdate({
@@ -52,6 +58,7 @@ const value = computed({
           value: value ? 'True' : 'False',
           origin: props.input.portId,
         },
+        directInteraction: true,
       })
     }
   },

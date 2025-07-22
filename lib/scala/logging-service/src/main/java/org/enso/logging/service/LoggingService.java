@@ -1,6 +1,7 @@
 package org.enso.logging.service;
 
 import java.nio.file.Path;
+import java.util.UUID;
 import org.enso.logging.config.BaseConfig;
 import org.slf4j.event.Level;
 
@@ -22,6 +23,9 @@ public abstract class LoggingService<T> {
    * @return
    */
   public abstract T start(Level level, Path logRoot, String logPrefix, BaseConfig config);
+
+  /** Set logger for a specific project in shutdown mode */
+  public abstract void teardown(UUID projectId);
 
   /** Shuts down the service. */
   public abstract void teardown();

@@ -1,0 +1,22 @@
+## Enso Signatures 1.0
+## module Standard.Visualization.Table
+- type Table_Specification_Update
+    - Value row_heights:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Number) column_widths:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Number) column_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) row_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+- type Table_Update
+    - Value chunks:Standard.Base.Any.Any table_specification_update:Standard.Base.Any.Any
+    - to_json self -> Standard.Base.Any.Any
+- compute_table_update table:Standard.Base.Any.Any table_cell_position:Standard.Base.Any.Any text_window_position:Standard.Base.Any.Any text_window_size:Standard.Base.Any.Any chunk_size:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- compute_vertical_indices table:Standard.Base.Any.Any start_row:Standard.Base.Any.Any end_row:Standard.Base.Any.Any start_line:Standard.Base.Any.Any lines_to_get:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- enumerate vector:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- find_end_column table:Standard.Base.Any.Any start_column_ix:Standard.Base.Any.Any chunks:Standard.Base.Any.Any chunk_size:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- find_end_row table:Standard.Base.Any.Any start_row_ix:Standard.Base.Any.Any max_height:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- find_first_over_cum_sum items:Standard.Base.Any.Any target:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- fold_map acc:Standard.Base.Any.Any f:Standard.Base.Any.Any iterable:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- fold_map_inner f:Standard.Base.Any.Any acc:Standard.Base.Any.Any item:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_chunks_for_row table:Standard.Base.Any.Any row_ix:Standard.Base.Any.Any line_ix:Standard.Base.Any.Any initial_chunk_offset:Standard.Base.Any.Any column_range:Standard.Base.Any.Any chunk_size:Standard.Base.Any.Any chunks_to_get:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_column_width column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_lazy_visualization_data table:Standard.Base.Any.Any table_cell_position:Standard.Base.Any.Any text_window_position:Standard.Base.Any.Any text_window_size:Standard.Base.Any.Any chunk_size:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_longest_line text:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_row_height table:Standard.Base.Any.Any row_ix:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- map_to_cumulative_sum iterable:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- max vector:Standard.Base.Any.Any -> Standard.Base.Any.Any

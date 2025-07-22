@@ -2,47 +2,35 @@ package org.enso.table.data.column.builder;
 
 import java.time.LocalDate;
 import java.util.Objects;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.datetime.DateStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalDate columns. */
-public class DateBuilder extends TypedBuilderImpl<LocalDate> {
-  @Override
-  protected LocalDate[] newArray(int size) {
-    return new LocalDate[size];
-  }
-
+final class DateBuilder extends TypedBuilder<LocalDate> {
   private final boolean allowDateToDateTimeConversion;
 
-  public DateBuilder(int size) {
-    this(size, false);
-  }
-
-  public DateBuilder(int size, boolean allowDateToDateTimeConversion) {
-    super(size);
+  DateBuilder(int size, boolean allowDateToDateTimeConversion) {
+    super(DateType.INSTANCE, new LocalDate[size]);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
 
   @Override
-  public StorageType getType() {
-    return DateType.INSTANCE;
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
-    try {
-      data[currentSize++] = (LocalDate) o;
-    } catch (ClassCastException e) {
-      throw new ValueTypeMismatchException(getType(), o);
+  public DateBuilder append(Object o) {
+    ensureSpaceToAppend();
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        data[currentSize++] = (LocalDate) o;
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
     }
-  }
-
-  public void appendDate(LocalDate date) {
-    append(date);
+    return this;
   }
 
   @Override
@@ -51,12 +39,12 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
   }
 
   @Override
-  protected Storage<LocalDate> doSeal() {
-    return new DateStorage(data, currentSize);
+  protected ColumnStorage<LocalDate> doSeal() {
+    return new TypedStorage<>(DateType.INSTANCE, data);
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
       return true;
     }
@@ -64,11 +52,11 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
-      DateTimeBuilder res = new DateTimeBuilder(data.length, true);
+      var res = new DateTimeBuilder(data.length, true);
       for (int i = 0; i < currentSize; i++) {
-        res.appendNoGrow(data[i]);
+        res.append(data[i]);
       }
       return res;
     }

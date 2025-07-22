@@ -13,7 +13,6 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Debug",
@@ -53,10 +52,10 @@ public abstract class DebugBreakpointNode extends Node implements Instrumentable
     return true;
   }
 
-  abstract Object execute(VirtualFrame frame, CallerInfo callerInfo, State state);
+  abstract Object execute(VirtualFrame frame, CallerInfo callerInfo);
 
   @Specialization
-  Object doExecute(VirtualFrame frame, CallerInfo callerInfo, State state) {
+  Object doExecute(VirtualFrame frame, CallerInfo callerInfo) {
     return EnsoContext.get(this).getNothing();
   }
 

@@ -1,0 +1,10 @@
+## Describes what to do with rows that are too short for the specified
+   fixed-width layout.
+type Invalid_Fixed_Width_Rows
+    ## Discards rows that are too short for the specified fixed-width layout.
+    Drop_Invalid_Rows
+
+    ## Keeps rows that are too short for the specified fixed-width layout,
+       keeping partial columns, or using empty strings for entirely missing
+       columns.
+    Keep_Invalid_Rows

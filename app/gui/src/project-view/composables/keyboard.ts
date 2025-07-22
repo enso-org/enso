@@ -1,5 +1,6 @@
 import { isMacLike, useEvent } from '@/composables/events'
-import { proxyRefs, ref } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { ref } from 'vue'
 
 /** {@link useKeyboard} composable object */
 export type KeyboardComposable = ReturnType<typeof useKeyboard>
@@ -23,9 +24,15 @@ export function useKeyboard() {
     state.meta.value = e.metaKey
     state.ctrl.value = e.ctrlKey
   }
+  const resetState = () => {
+    state.alt.value = false
+    state.shift.value = false
+    state.meta.value = false
+    state.ctrl.value = false
+  }
   useEvent(window, 'keydown', updateState, { capture: true })
   useEvent(window, 'keyup', updateState, { capture: true })
-  useEvent(window, 'pointerenter', updateState, { capture: true })
+  useEvent(window, 'blur', resetState, { capture: true })
 
   return proxyRefs({
     alt: state.alt,

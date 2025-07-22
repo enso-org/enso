@@ -26,21 +26,20 @@ types).
 
 ## Resolving Name Clashes
 
-> [!WARNING]
-> There is no `here` keyword anymore and the clash resultion is probably also
-> not working.
+> [!WARNING] There is no `here` keyword anymore and the clash resultion is
+> probably also not working.
 >
 > Enso modules employ the following rules in order to avoid name clashes:
 >
 > - Where the module name clashes with a member contained in the module, the
->   member is preferred. If you need the module you must import it qualified under
->   another name.
-> - We provide the alias `here` as a way to access the name of the current module.
+>   member is preferred. If you need the module you must import it qualified
+>   under another name.
+> - We provide the alias `here` as a way to access the name of the current
+>   module.
 
 ## Scoping and Imports
 
-> [!WARNING]
-> Review by an _imports expert_ is needed!
+> [!WARNING] Review by an _imports expert_ is needed!
 
 To use the contents of a module we need a way to bring them into scope. Like
 most languages, Enso provides an _import_ mechanism for this. Enso has four

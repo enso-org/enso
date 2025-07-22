@@ -1,0 +1,47 @@
+## Enso Signatures 1.0
+## module Standard.Base.Network.HTTP.HTTP_Status_Code
+- type HTTP_Status_Code
+    - Value code:Standard.Base.Data.Numbers.Integer
+    - accepted -> Standard.Base.Any.Any
+    - bad_gateway -> Standard.Base.Any.Any
+    - bad_request -> Standard.Base.Any.Any
+    - conflict -> Standard.Base.Any.Any
+    - continue -> Standard.Base.Any.Any
+    - created -> Standard.Base.Any.Any
+    - expectation_failed -> Standard.Base.Any.Any
+    - forbidden -> Standard.Base.Any.Any
+    - found -> Standard.Base.Any.Any
+    - gateway_timeout -> Standard.Base.Any.Any
+    - gone -> Standard.Base.Any.Any
+    - http_version_not_supported -> Standard.Base.Any.Any
+    - internal_server_error -> Standard.Base.Any.Any
+    - is_success self -> Standard.Base.Any.Any
+    - length_required -> Standard.Base.Any.Any
+    - method_not_allowed -> Standard.Base.Any.Any
+    - moved_permanently -> Standard.Base.Any.Any
+    - multiple_choices -> Standard.Base.Any.Any
+    - no_content -> Standard.Base.Any.Any
+    - non_authoritative_information -> Standard.Base.Any.Any
+    - not_acceptable -> Standard.Base.Any.Any
+    - not_found -> Standard.Base.Any.Any
+    - not_implemented -> Standard.Base.Any.Any
+    - not_modified -> Standard.Base.Any.Any
+    - ok -> Standard.Base.Any.Any
+    - partial_content -> Standard.Base.Any.Any
+    - payment_required -> Standard.Base.Any.Any
+    - precondition_failed -> Standard.Base.Any.Any
+    - proxy_authentication_required -> Standard.Base.Any.Any
+    - request_entity_too_large -> Standard.Base.Any.Any
+    - request_timeout -> Standard.Base.Any.Any
+    - request_uri_too_long -> Standard.Base.Any.Any
+    - requested_range_not_satisfiable -> Standard.Base.Any.Any
+    - reset_content -> Standard.Base.Any.Any
+    - see_other -> Standard.Base.Any.Any
+    - service_unavailable -> Standard.Base.Any.Any
+    - switching_protocols -> Standard.Base.Any.Any
+    - temporary_redirect -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - unauthorized -> Standard.Base.Any.Any
+    - unsupported_media_type -> Standard.Base.Any.Any
+    - use_proxy -> Standard.Base.Any.Any

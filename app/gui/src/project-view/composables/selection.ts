@@ -18,6 +18,7 @@ interface BaseSelectionOptions<T> {
   margin?: number
   isValid?: (element: T) => boolean
   onSelected?: (element: T) => void
+  onSoleSelected?: (element: T) => void
   onDeselected?: (element: T) => void
   toSorted?: (elements: Iterable<T>) => Iterable<T>
 }
@@ -58,6 +59,7 @@ export function useSelection<T, PackedT>(
     margin: 0,
     isValid: () => true,
     onSelected: () => {},
+    onSoleSelected: () => {},
     onDeselected: () => {},
     toSorted: identity,
   }
@@ -79,7 +81,14 @@ type UseSelection<T, PackedT> = ReturnType<typeof useSelectionImpl<T, PackedT>>
 function useSelectionImpl<T, PackedT>(
   navigator: NavigatorComposable,
   elementRects: Map<T, Rect>,
-  { margin, isValid, onSelected, onDeselected, toSorted }: Required<BaseSelectionOptions<T>>,
+  {
+    margin,
+    isValid,
+    onSelected,
+    onSoleSelected,
+    onDeselected,
+    toSorted,
+  }: Required<BaseSelectionOptions<T>>,
   { pack, unpack }: SelectionPackingOptions<T, PackedT>,
 ) {
   const anchor = shallowRef<Vec2>()
@@ -119,6 +128,9 @@ function useSelectionImpl<T, PackedT>(
         if (id != null) onDeselected(id)
       }
     }
+    if (newSelection.size === 1) {
+      onSoleSelected(set.first(newSelection)!)
+    }
   }
 
   function execAdd() {
@@ -132,7 +144,7 @@ function useSelectionImpl<T, PackedT>(
   }
 
   /** Returns the single selected component, or an error. */
-  function tryGetSoleSelection(): Result<T, string> {
+  function tryGetSingleSelectedNode(): Result<T, string> {
     if (selected.value.size === 0) {
       return Err('No component selected')
     } else if (selected.value.size > 1) {
@@ -242,9 +254,11 @@ function useSelectionImpl<T, PackedT>(
       const packed = pack(element)
       return packed != null && rawSelected.has(packed)
     },
+    isSoleSelection: (element: T) =>
+      committedSelection.value.has(element) && committedSelection.value.size === 1,
     committedSelection,
     setSelection,
-    tryGetSoleSelection,
+    tryGetSingleSelectedNode,
     // === Selection changes ===
     anchor,
     focus,

@@ -1,7 +1,8 @@
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
-import { useProjectStore } from '@/stores/project'
+import { NodeId } from '@/stores/graph/graphDatabase'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -12,8 +13,10 @@ import {
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
+import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import { wait } from 'lib0/promise.js'
 import {
   computed,
   onErrorCaptured,
@@ -26,7 +29,7 @@ import {
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
 import type { Opt } from 'ydoc-shared/util/data/opt'
-import type { Result } from 'ydoc-shared/util/data/result'
+import { Err, type Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** Used for testing. */
@@ -34,7 +37,7 @@ export type RawDataSource = { type: 'raw'; data: any }
 
 export interface UseVisualizationDataOptions {
   selectedVis: ToValue<Opt<VisualizationIdentifier>>
-  typename: ToValue<string | undefined>
+  typename: ToValue<ProjectPath | undefined>
   dataSource: ToValue<VisualizationDataSource | RawDataSource | undefined>
 }
 
@@ -56,6 +59,7 @@ export function useVisualizationData({
 
   const projectStore = useProjectStore()
   const visualizationStore = useVisualizationStore()
+  const graph = useGraphStore()
 
   // Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
   // prepared asynchronously.
@@ -92,12 +96,39 @@ export function useVisualizationData({
     },
   )
 
-  const currentType = computed(() => {
+  const executeExpression = async (
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+    timeoutMs = 5000,
+  ) => {
+    const dataSourceValue = toValue(dataSource)
+    if (dataSourceValue?.type !== 'node') return
+
+    const graphDb = graph.db
+    const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
+    const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
+    if (identifier === undefined) return
+
+    const contextId =
+      dataSourceValue.nodeId &&
+      graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
+    if (contextId === undefined) return
+
+    const expression = expressionFunction(identifier)
+
+    const result = await Promise.race([
+      projectStore.executeExpression(contextId, expression.code()),
+      wait(timeoutMs).then(() => Err('Expression timeout')),
+    ])
+
+    return result
+  }
+
+  const currentVisualization = computed(() => {
     const selectedTypeValue = toValue(selectedVis)
     if (selectedTypeValue) return selectedTypeValue
     if (defaultVisualizationForCurrentNodeSource.value)
       return defaultVisualizationForCurrentNodeSource.value
-    const [id] = visualizationStore.types(toValue(typename))
+    const [id] = visualizationStore.byType(toValue(typename))
     return id ?? DEFAULT_VISUALIZATION_IDENTIFIER
   })
 
@@ -159,7 +190,7 @@ export function useVisualizationData({
 
   const effectiveVisualizationData = computed(() => {
     const dataSourceValue = toValue(dataSource)
-    const name = currentType.value?.name
+    const name = currentVisualization.value?.name
     if (dataSourceValue?.type === 'raw') return dataSourceValue.data
     if (vueError.value) return { name, error: vueError.value }
     const visualizationData = nodeVisualizationData.value ?? expressionVisualizationData.value
@@ -181,16 +212,16 @@ export function useVisualizationData({
   }
 
   watch(
-    () => [currentType.value, visualization.value],
+    () => [currentVisualization.value, visualization.value],
     () => (vueError.value = undefined),
   )
 
   watchEffect(async () => {
     preprocessorLoading.value = true
-    if (currentType.value == null) return
+    if (currentVisualization.value == null) return
     visualization.value = undefined
     try {
-      const module = await visualizationStore.get(currentType.value).value
+      const module = await visualizationStore.get(currentVisualization.value).value
       if (module) {
         if (module.defaultPreprocessor != null) {
           updatePreprocessor(...module.defaultPreprocessor)
@@ -199,22 +230,22 @@ export function useVisualizationData({
         }
         visualization.value = module.default
       } else {
-        switch (currentType.value.module.kind) {
+        switch (currentVisualization.value.module.kind) {
           case 'Builtin': {
             vueError.value = new Error(
-              `The builtin visualization '${currentType.value.name}' was not found.`,
+              `The builtin visualization '${currentVisualization.value.name}' was not found.`,
             )
             break
           }
           case 'CurrentProject': {
             vueError.value = new Error(
-              `The visualization '${currentType.value.name}' was not found in the current project.`,
+              `The visualization '${currentVisualization.value.name}' was not found in the current project.`,
             )
             break
           }
           case 'Library': {
             vueError.value = new Error(
-              `The visualization '${currentType.value.name}' was not found in the library '${currentType.value.module.name}'.`,
+              `The visualization '${currentVisualization.value.name}' was not found in the library '${currentVisualization.value.module.name}'.`,
             )
             break
           }
@@ -226,7 +257,7 @@ export function useVisualizationData({
     preprocessorLoading.value = false
   })
 
-  const allTypes = computed(() => Array.from(visualizationStore.types(toValue(typename))))
+  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typename))))
 
   const effectiveVisualization = computed(() => {
     if (
@@ -254,11 +285,12 @@ export function useVisualizationData({
     effectiveVisualization,
     effectiveVisualizationData,
     updatePreprocessor,
-    allTypes,
-    currentType,
+    allVisualizations,
+    currentVisualization,
     setToolbarDefinition: (definition: ToValue<Readonly<ToolbarItem[]>>) =>
       (toolbarDefinition.value = definition),
     visualizationDefinedToolbar: computed(() => toValue(toolbarDefinition.value)),
     toolbarOverlay,
+    executeExpression,
   }
 }

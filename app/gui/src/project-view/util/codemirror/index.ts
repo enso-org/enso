@@ -1,25 +1,47 @@
 import { textEditorsBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { type VueHost } from '@/components/VueComponentHost.vue'
+import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
+import {
+  contentFocused,
+  contentFocusedExt,
+  setContentFocused,
+} from '@/util/codemirror/contentFocusedExt'
+import { CmEventExt, extendCmEvent, keyBindings } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
+import type { Vec2 } from '@/util/data/vec2'
 import { elementHierarchy } from '@/util/dom'
-import { ToValue } from '@/util/reactivity'
-import { Compartment, EditorState, Extension, Text } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+import { type ToValue } from '@/util/reactivity'
+import type { AnyHandlerEvent } from '@/util/shortcuts'
+import {
+  Compartment,
+  EditorState,
+  type Extension,
+  type SelectionRange,
+  type StateEffect,
+  type StateEffectType,
+  Text,
+  Transaction,
+  TransactionSpec,
+} from '@codemirror/state'
+import { EditorView, placeholder } from '@codemirror/view'
+import { find, takeUntil } from 'enso-common/src/utilities/data/iter'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
+import { createDebouncer } from 'lib0/eventloop.js'
 import {
   type ComponentInstance,
   computed,
-  type Ref,
+  onUnmounted,
+  ref,
   toValue,
-  watchEffect,
+  watch,
   type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
+import { Range } from 'ydoc-shared/util/data/range'
 import * as Y from 'yjs'
 
 function disableEditContextApi() {
@@ -29,105 +51,135 @@ function disableEditContextApi() {
 /* Disable EditContext API because of https://github.com/codemirror/dev/issues/1458. */
 disableEditContextApi()
 
-/** Creates a CodeMirror editor instance, and sets its initial state. */
+export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
+
+export type Getter<T> = () => T
+
+interface CodeMirrorOptions {
+  placeholder?: ToValue<string>
+  /** CodeMirror {@link Extension}s to include in the editor's initial state. */
+  extensions?: Extension
+  /**
+   * If a value is provided, it will be made available to extensions that render Vue components.
+   */
+  vueHost?: WatchSource<VueHost | undefined>
+  /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
+  contentTestId?: string | undefined
+  /** If provided, the element with class `cm-scroller` will also have the given `data-testid`. */
+  scrollerTestId?: string | undefined
+  readonly?: ToValue<boolean>
+  lineMode: ToValue<LineMode>
+}
+
+/**
+ * Creates a CodeMirror editor instance.
+ *
+ * The editor will be empty. To set and synchronize its contents, use proper extension, like
+ * {@link useStringSync}, {@link yCollab} or {@link useYTextSync}. If they require {@link EditorView},
+ * they may be attached with `setExtraExtensions` method.
+ */
 export function useCodeMirror(
   editorRoot: ToValue<ComponentInstance<typeof CodeMirrorRoot> | null>,
   {
-    content,
+    placeholder: placeholderText,
     extensions,
     vueHost,
-  }: {
-    /** If a value is provided, the editor state will be synchronized with it. */
-    content?: ToValue<string | Y.Text>
-    /** CodeMirror {@link Extension}s to include in the editor's initial state. */
-    extensions?: Extension[]
-    /** If a value is provided, it will be made available to extensions that render Vue components. */
-    vueHost?: WatchSource<VueHost | undefined>
-  },
+    contentTestId,
+    scrollerTestId,
+    readonly,
+    lineMode,
+  }: CodeMirrorOptions,
 ) {
-  const editorView = new EditorView()
-  const readonly = computed(() => !!content && typeof toValue(content) === 'string')
-  const readonlyExt = useCompartment(editorView, () =>
-    toValue(readonly) ? EditorState.readOnly.of(true) : [],
+  const dispatch = { dispatch: (...specs: TransactionSpec[]) => view.dispatch(...specs) }
+  const readonlyExt = useCompartment(dispatch, () =>
+    toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
   )
-  const { bindingsExt } = useBindings({ readonly, contentDOM: editorView.contentDOM })
-  const sync = content ? useSync(content) : undefined
+  const placeholderExt =
+    placeholderText ? useCompartment(dispatch, () => placeholder(toValue(placeholderText))) : []
+  const { bindingsExt } = useBindings()
   const extrasCompartment = new Compartment()
-  editorView.setState(
-    EditorState.create({
+  const bindingsCompartment = useCompartment(dispatch, () => keyBindings(toValue(lineMode)))
+  const singleLineState = computed(() => {
+    const mode = toValue(lineMode)
+    return mode !== 'multi' && mode !== 'autoMulti'
+  })
+  const themeCompartment = useCompartment(dispatch, () =>
+    theme({ singleLine: singleLineState.value }),
+  )
+
+  const view = new EditorView({
+    state: EditorState.create({
       extensions: [
         readonlyExt,
         bindingsExt,
-        sync?.syncExt ?? [],
+        placeholderExt,
+        bindingsCompartment,
+        themeCompartment,
         extrasCompartment.of([]),
         extensions ?? [],
       ],
     }),
-  )
-  if (vueHost) useStateEffect(editorView, setVueHost, vueHost)
-  sync?.connectSync(editorView)
-
-  watchEffect(() => {
-    const editorRootValue = toValue(editorRoot)
-    if (editorRootValue) editorRootValue.rootElement?.prepend(editorView.dom)
   })
+  watch(
+    () => toValue(editorRoot),
+    (editorRootValue) => {
+      if (editorRootValue) editorRootValue.$el.prepend(view.dom)
+    },
+    { immediate: true },
+  )
 
-  /**
-   * Replace text in given document range with `text`, putting text cursor after inserted text.
-   */
-  function putTextAt(text: string, from: number, to: number) {
-    const insert = Text.of(text.split(LINE_BOUNDARIES))
-    editorView.dispatch({
-      changes: { from, to, insert },
-      selection: { anchor: from + insert.length },
-    })
-  }
+  if (contentTestId != null) view.contentDOM.dataset['testid'] = contentTestId
+  if (scrollerTestId != null) view.scrollDOM.dataset['testid'] = scrollerTestId
+  onUnmounted(view.destroy.bind(view))
+
+  if (vueHost) useStateEffect(view, setVueHost, vueHost)
+
+  const extraExtsDebouncer = createDebouncer(0)
 
   return {
     /** The {@link EditorView}, connecting the current state with the DOM. */
-    editorView,
+    editorView: view,
     /**
-     * This function can be used to provide extensions that are not ready before `useCodeMirror` can be called, e.g.
-     * because they require an {@link EditorView} instance to be created. If called more than once, the new collection
-     * of extra extensions will replace the previous collection.
+     * Update a set of additional extensions for the editor.
+     *
+     * This function can be used to provide extensions that are not ready before `useCodeMirror` can
+     * be called, e.g. because they require an {@link EditorView} instance to be created. If called
+     * more than once, the new collection of extra extensions will replace the previous collection.
+     *
+     * The change will be dispatched asynchronously; this avoids observing an inconsistent state:
+     * When an extension is removed, its event handlers may still fire if they were triggered in the
+     * same tick (i.e. by the same event that caused the extension to be removed); in that case, the
+     * handler would likely misbehave due to its extension not being installed, and all its state
+     * fields being missing.
+     *
+     * Delaying any extension changes ensures that, when removing an extension, it is in a valid
+     * state while handling the event that removed it; and, while adding an extension, it doesn't
+     * handle the event that caused its installation before it is ready.
      */
-    setExtraExtensions: (extensions: Extension) =>
-      editorView.dispatch({
-        effects: extrasCompartment.reconfigure([extensions]),
-      }),
-    /**
-     * When `useCodeMirror` is configured to set up synchronization by passing the `content` argument, this value tracks
-     * whether the content synchronized with the document is writable.
-     */
-    readonly,
-    putTextAt,
+    setExtraExtensions: (extensions: Extension | undefined) => {
+      extraExtsDebouncer(() =>
+        view.dispatch({
+          effects: extrasCompartment.reconfigure(extensions ?? []),
+        }),
+      )
+    },
     /** The DOM element containing the editor's content. */
-    contentElement: editorView.contentDOM,
+    contentElement: view.contentDOM,
   }
 }
 
-function useBindings({
-  readonly,
-  contentDOM,
-}: {
-  readonly: Readonly<Ref<boolean>>
-  contentDOM: HTMLElement
-}) {
-  const keyboard = injectKeyboard()
+function useBindings() {
+  const keyboard = injectKeyboard(true)
 
-  function openLink(event: Event) {
-    let element: HTMLAnchorElement | undefined = undefined
-    for (const el of elementHierarchy(event.target)) {
-      if (el instanceof HTMLAnchorElement) {
-        element = el
-        break
-      }
-      if (el === contentDOM) break
-    }
-    if (!element) return false
+  function openLink(event: CmEventExt<AnyHandlerEvent>) {
+    const parents = elementHierarchy(event.target)
+    const inEditorHierarchy = takeUntil(parents, (el) => el === event.codemirrorView.contentDOM)
+    const linkElement = find(inEditorHierarchy, (el) => el instanceof HTMLAnchorElement)
+    if (!linkElement) return false
+
     event.preventDefault()
     event.stopPropagation()
-    window.open(element.href, '_blank', 'noopener,noreferrer')
+    window.open(linkElement.href, '_blank', 'noopener,noreferrer')
     return true
   }
 
@@ -136,54 +188,232 @@ function useBindings({
   })
   return {
     bindingsExt: EditorView.domEventHandlers({
-      keydown: (event) => bindingsHandler(event),
-      click: (event) => bindingsHandler(event) || (readonly.value && openLink(event)),
+      click: (event, view) => {
+        const cmEvent = extendCmEvent(view, event)
+        return bindingsHandler(cmEvent) || (view.state.readOnly && openLink(cmEvent))
+      },
       pointerdown: (event) => {
-        keyboard.updateState(event)
-        if (keyboard.mod) event.preventDefault()
+        keyboard?.updateState(event)
+        if (keyboard?.mod) event.preventDefault()
       },
     }),
   }
 }
 
-function useSync(content: ToValue<string | Y.Text>) {
+/**
+ * Creates a CodeMirror extension for reading, writing, and watching the editor's contents as a
+ * string value.
+ */
+export function useStringSync() {
+  const textEditCallbacks: ((text: string) => void)[] = []
+  const userActionCallbacks: ((text: string, selection: SelectionRange) => void)[] = []
+
+  return {
+    syncExt: EditorView.updateListener.of((update) => {
+      const textEdit = update.transactions.some(
+        (transaction) => transaction.docChanged && transaction.annotation(Transaction.userEvent),
+      )
+      const userAction =
+        textEdit ||
+        update.transactions.some(
+          (transaction) => transaction.selection && transaction.annotation(Transaction.userEvent),
+        )
+      if (userAction) {
+        const text = update.state.doc.toString()
+        for (const cb of userActionCallbacks) cb(text, update.state.selection.main)
+        if (textEdit) for (const cb of textEditCallbacks) cb(text)
+      }
+    }),
+    connectSync: (view: EditorView) => {
+      function getText(): string {
+        return view.state.doc.toString()
+      }
+
+      function setText(text: string, selection?: Range): void {
+        const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
+        if (selection && !selection.rangeEquals(safeSelection))
+          console.warn('Clipping invalid selection', { text, selection })
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: text },
+          selection:
+            safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
+        })
+      }
+
+      function onTextEdited(callback: (text: string) => void): void {
+        textEditCallbacks.push(callback)
+      }
+
+      function onUserAction(callback: (text: string, selection: SelectionRange) => void): void {
+        userActionCallbacks.push(callback)
+      }
+      return { getText, setText, onTextEdited, onUserAction }
+    },
+  }
+}
+
+/** An extension synchronizing CM with a Y.Text node in the ref. */
+export function useYTextSync(content: ToValue<Y.Text | undefined>) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
   function sync() {
     const contentValue = toValue(content)
-    if (typeof contentValue === 'string') {
-      return { text: contentValue, extensions: [] }
-    } else {
+    if (contentValue != null) {
       assert(contentValue.doc !== null)
       const yTextWithDoc: Y.Text & { doc: Y.Doc } = contentValue as any
-      return { text: contentValue.toString(), extensions: [yCollab(yTextWithDoc, awareness)] }
+      return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness) }
+    } else {
+      return { text: '', extensions: [] }
+    }
+  }
+
+  function setDocText(state: EditorState, text: string) {
+    return { from: 0, to: state.doc.length, insert: text }
+  }
+
+  function applySync(
+    state: EditorState,
+    { text, extensions }: { text: string; extensions: Extension },
+  ) {
+    return {
+      changes: setDocText(state, text),
+      effects: syncCompartment.reconfigure(extensions),
     }
   }
 
   return {
     syncExt: syncCompartment.of([]),
-    connectSync: (editorView: EditorView) => {
-      function setDocText(text: string) {
-        return { from: 0, to: editorView.state.doc.length, insert: text }
-      }
-
+    connectSync: (view: EditorView) => {
       useDispatch(
-        editorView,
-        () => {
-          const { text, extensions } = sync()
-          return {
-            changes: setDocText(text),
-            effects: syncCompartment.reconfigure(extensions),
-          }
-        },
-        // The y-sync plugin breaks if it is reconfigured directly (it never unobserves the original yText), but can
-        // handle being removed and reinstalled.
+        view,
+        () => applySync(view.state, sync()),
+        // The y-sync plugin breaks if it is reconfigured directly (it never unobserves the original
+        // yText), but can handle being removed and reinstalled.
         () =>
-          editorView.dispatch({
+          view.dispatch({
             effects: syncCompartment.reconfigure([]),
           }),
       )
     },
   }
+}
+
+function lastEffect<T>(
+  effects: ReadonlyArray<StateEffect<unknown>>,
+  effectType: StateEffectType<T>,
+): T | undefined {
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const effect = effects[i]!
+    if (effect.is(effectType)) return effect.value
+  }
+}
+
+const baseTheme = EditorView.theme({
+  '&.cm-editor': {
+    display: 'contents',
+    outline: 'none',
+  },
+  '.cm-scroller': {
+    // The default is `monospace`, but even when we want the editor to be monospace we use more
+    // specific fonts.
+    'font-family': 'unset',
+    // Prevent touchpad back gesture, which can be triggered while panning.
+    'overscroll-behavior': 'none',
+  },
+})
+
+const inlineTheme = EditorView.theme({
+  '&.cm-editor': {
+    margin: 0,
+    'min-width': '1px',
+  },
+  '.cm-scroller': {
+    display: 'contents',
+  },
+  '.cm-line': {
+    padding: 0,
+  },
+})
+
+const multilineTheme = EditorView.theme({
+  '&.cm-editor': {
+    position: 'relative',
+    height: '100%',
+    width: '100%',
+    'text-align': 'left',
+  },
+})
+
+function theme({ singleLine }: { singleLine?: boolean | undefined } = {}): Extension {
+  return [baseTheme, singleLine ? inlineTheme : multilineTheme]
+}
+
+export const selectOnMouseFocus = [
+  contentFocusedExt(),
+  EditorState.transactionFilter.of((tr) => {
+    if (tr.isUserEvent('select.pointer') && tr.startState.field(contentFocused) === false)
+      return { selection: { anchor: 0, head: tr.startState.doc.length } }
+    if (lastEffect(tr.effects, setContentFocused) === false)
+      return [tr, { selection: { anchor: 0 } }]
+    return tr
+  }),
+]
+
+/**
+ * Replace text in given document range with `text`, putting text cursor after inserted text.
+ */
+export function putTextAt(view: EditorView, text: string, from: number, to: number) {
+  const insert = Text.of(text.split(LINE_BOUNDARIES))
+  view.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: from + insert.length },
+  })
+}
+
+/**
+ * Insert text at cursor or replacing any selection, putting text cursor after inserted text.
+ */
+export function putText(view: EditorView, text: string) {
+  const range = view.state.selection.main
+  putTextAt(view, text, range.from, range.to)
+}
+
+/** Insert text at the given position in the editor. */
+export function putTextAtCoords(view: EditorView, text: string, coords: Vec2) {
+  const pos = view.posAtCoords(coords, false)
+  putTextAt(view, text, pos, pos)
+}
+
+/**
+ * @returns the editor's reactive focused state, maintained by attaching the returned event handlers
+ * to the editor's root element.
+ * This implements a focus state that differs from the DOM focus of any particular element. It
+ * exhibits some hysteresis: When the scrollbar is clicked, the computed focus state doesn't change.
+ * Thus, this should be used in lieu of the element's focus when the rendering of the editor's
+ * content is focus-dependent in a way that may affect its size.
+ */
+export function useEditorFocus(view: EditorView) {
+  const focused = ref(false)
+  const focusHandlers = {
+    focusin: (event: FocusEvent) => {
+      // Enable rendering the line containing the current cursor in `editing` mode if focus enters
+      // the element *inside* the scroll area--if we handled the event for the editor root, clicking
+      // the scrollbar would cause editing mode to be activated.
+      if (event.target instanceof Node && view.contentDOM.contains(event.target))
+        focused.value = true
+    },
+    focusout: (event: FocusEvent) => {
+      if (
+        !(event.currentTarget instanceof Node) ||
+        !(event.relatedTarget instanceof Node) ||
+        !event.currentTarget?.contains(event.relatedTarget)
+      ) {
+        // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
+        // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
+        focused.value = false
+      }
+    },
+  }
+  return { focused, focusHandlers }
 }

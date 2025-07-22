@@ -22,7 +22,6 @@ import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import org.enso.version.BuildVersion;
-import org.openide.util.lookup.ServiceProvider;
 
 public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
@@ -62,9 +61,8 @@ public final class ImportExportCache
 
   @Override
   public byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
-    var arr =
-        Persistance.write(
-            entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context(), false));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var arr = pool.write(entry.bindings());
     return arr;
   }
 
@@ -72,15 +70,15 @@ public final class ImportExportCache
   public CachedBindings deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var ref = pool.read(data);
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
   }
 
   @Override
-  public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-      throws IOException {
-    return Optional.of(Metadata.read(bytes));
+  public Metadata metadataFromBytes(byte[] bytes, TruffleLogger logger) throws IOException {
+    return Metadata.read(bytes);
   }
 
   @Override
@@ -148,7 +146,7 @@ public final class ImportExportCache
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 3642)
   public static final class PersistMapToBindings extends Persistance<MapToBindings> {
     public PersistMapToBindings() {
       super(MapToBindings.class, false, 3642);
@@ -198,7 +196,6 @@ public final class ImportExportCache
   @Persistable(
       clazz = org.enso.compiler.data.BindingsMap$ModuleReference$Abstract.class,
       id = 33007)
-  @Persistable(clazz = BindingsMap.Type.class, id = 33009)
   @Persistable(clazz = BindingsMap.ResolvedImport.class, id = 33010)
   @Persistable(clazz = BindingsMap.Cons.class, id = 33011)
   @Persistable(clazz = BindingsMap.ResolvedModule.class, id = 33012)
@@ -215,10 +212,11 @@ public final class ImportExportCache
   @Persistable(clazz = BindingsMap.ExtensionMethod.class, id = 33023)
   @Persistable(clazz = BindingsMap.ConversionMethod.class, id = 33024)
   @Persistable(clazz = BindingsMap.Argument.class, id = 33025)
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(clazz = BindingsMap.Type.class, id = 33026)
+  @Persistable(id = 33055)
   public static final class PersistBindingsMap extends Persistance<BindingsMap> {
     public PersistBindingsMap() {
-      super(BindingsMap.class, false, 33005);
+      super(BindingsMap.class, false, 33055);
     }
 
     @Override
@@ -237,8 +235,8 @@ public final class ImportExportCache
       var imp = in.readInline(scala.collection.immutable.List.class);
       var sym = in.readInline(scala.collection.immutable.Map.class);
       var map = new BindingsMap(de, cm);
-      map.resolvedImports_$eq(imp);
-      map.exportedSymbols_$eq(sym);
+      map.resolvedImports(imp);
+      map.exportedSymbols(sym);
       return map;
     }
   }

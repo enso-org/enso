@@ -4,11 +4,11 @@ import { Vec2 } from '@/util/data/vec2'
 import type { DataServer } from '@/util/net/dataServer'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
-import { markRaw, toRaw } from 'vue'
 import { escapeTextLiteral } from 'ydoc-shared/ast/text'
 import type { LanguageServer } from 'ydoc-shared/languageServer'
-import type { Path, StackItem, Uuid } from 'ydoc-shared/languageServerTypes'
+import type { Path, Uuid } from 'ydoc-shared/languageServerTypes'
 import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
+import { type ExternalId } from 'ydoc-shared/yjsModel'
 
 // === Constants ===
 
@@ -45,7 +45,6 @@ export interface UploadResult {
 export class Uploader {
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
-  private stackItem: StackItem
   private awareness: Awareness
   private projectFiles: ProjectFiles
 
@@ -57,14 +56,14 @@ export class Uploader {
       awareness: Awareness
     },
     private file: File,
+    private filePath: string | undefined,
     private position: Vec2,
     private isOnLocalBackend: boolean,
     private disableDirectRead: boolean,
-    stackItem: StackItem,
+    private readonly method: ExternalId,
   ) {
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
-    this.stackItem = markRaw(toRaw(stackItem))
     this.awareness = projectStore.awareness
     this.projectFiles = useProjectFiles(projectStore)
   }
@@ -81,28 +80,33 @@ export class Uploader {
     position: Vec2,
     isOnLocalBackend: boolean,
     disableDirectRead: boolean,
-    stackItem: StackItem,
+    method: ExternalId,
   ): Uploader {
+    const filePath = window.systemApi?.getFilePath(file)
     return new Uploader(
       projectStore,
       file,
+      filePath,
       position,
       isOnLocalBackend,
       disableDirectRead,
-      stackItem,
+      method,
     )
+  }
+
+  private progressUpdate(sizePercentage: number) {
+    return {
+      sizePercentage,
+      position: this.position,
+      method: this.method,
+    }
   }
 
   /** Start the upload process */
   async upload(): Promise<Result<UploadResult>> {
     // This non-standard property is defined in Electron.
-    if (
-      this.isOnLocalBackend &&
-      !this.disableDirectRead &&
-      'path' in this.file &&
-      typeof this.file.path === 'string'
-    ) {
-      return Ok({ source: 'FileSystemRoot', name: this.file.path })
+    if (this.isOnLocalBackend && !this.disableDirectRead && this.filePath != null) {
+      return Ok({ source: 'FileSystemRoot', name: this.filePath })
     }
     const rootId = await this.projectFiles.projectRootId
     if (rootId == null) return Err('Could not identify project root.')
@@ -111,11 +115,7 @@ export class Uploader {
     if (!dataDirExists.ok) return dataDirExists
     const name = await this.projectFiles.pickUniqueName(dataDirPath, this.file.name)
     if (!name.ok) return name
-    this.awareness.addOrUpdateUpload(name.value, {
-      sizePercentage: 0,
-      position: this.position,
-      stackItem: this.stackItem,
-    })
+    this.awareness.addOrUpdateUpload(name.value, this.progressUpdate(0))
     const remotePath: Path = { rootId, segments: [DATA_DIR_NAME, name.value] }
     const cleanup = this.cleanup.bind(this, name.value)
     const writableStream = new WritableStream<Uint8Array>({
@@ -131,11 +131,7 @@ export class Uploader {
         this.uploadedBytes += BigInt(chunk.length)
         const bytes = Number(this.uploadedBytes)
         const sizePercentage = Math.round((bytes / this.file.size) * 100)
-        this.awareness.addOrUpdateUpload(name.value, {
-          sizePercentage,
-          position: this.position,
-          stackItem: this.stackItem,
-        })
+        this.awareness.addOrUpdateUpload(name.value, this.progressUpdate(sizePercentage))
       },
       close: cleanup,
       abort: async (reason: string) => {

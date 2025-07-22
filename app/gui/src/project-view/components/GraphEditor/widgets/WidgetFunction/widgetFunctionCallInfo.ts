@@ -3,12 +3,11 @@ import {
   argsWidgetConfigurationSchema,
   functionCallConfiguration,
 } from '@/providers/widgetRegistry/configuration'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
-import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
-import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
-import { entryQn } from '@/stores/suggestionDatabase/entry'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import { type ProjectNameStore } from '@/stores/projectNames'
+import { entryIsAnnotatable } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   getAccessOprSubject,
@@ -16,13 +15,19 @@ import {
   interpretCall,
 } from '@/util/callTree'
 import type { Result } from '@/util/data/result'
+import { ProjectPath } from '@/util/projectPath'
+import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import { computed, toValue, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 export const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
-export const GET_WIDGETS_METHOD = 'get_widget_json'
+export const GET_WIDGETS_METHOD = 'get_widget_json' as Ast.Identifier
+export const WIDGETS_ENSO_PATH = ProjectPath.create(
+  'Standard.Visualization' as QualifiedName,
+  'Widgets' as Ast.Identifier,
+)
 
 /**
  * A composable gathering information about call for WidgetFunction basing on AST and
@@ -30,29 +35,33 @@ export const GET_WIDGETS_METHOD = 'get_widget_json'
  */
 export function useWidgetFunctionCallInfo(
   input: ToValue<WidgetInput & { value: Ast.Expression }>,
-  graphDb: {
-    getMethodCallInfo(id: AstId): MethodCallInfo | undefined
-    getExpressionInfo(id: AstId): ExpressionInfo | undefined
-  },
+  graphDb: GraphDb,
   project: {
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
+    moduleProjectPath: Result<ProjectPath> | undefined
   },
+  projectNames: ProjectNameStore,
 ) {
   const methodCallInfo = computed(() => getMethodCallInfoRecursively(toValue(input).value, graphDb))
   const interpreted = computed(() => interpretCall(toValue(input).value))
 
-  const subjectInfo = computed(() => {
-    const analyzed = interpreted.value
-    if (analyzed.kind !== 'prefix') return
-    const subject = getAccessOprSubject(analyzed.func)
-    if (!subject) return
-    return graphDb.getExpressionInfo(subject.id)
-  })
+  const appFunc = computed(() =>
+    interpreted.value.kind === 'prefix' ? interpreted.value.func : undefined,
+  )
+
+  const appFuncIsNodeUsage = computed(() => graphDb.isNodeUsage(appFunc.value?.id))
+
+  const subjectInfo = computed(() =>
+    graphDb.getExpressionInfo(getAccessOprSubject(appFunc.value)?.id),
+  )
 
   const selfArgumentPreapplied = computed(() => {
     const info = methodCallInfo.value
     const funcType = info?.methodCall.methodPointer.definedOnType
-    return funcType != null && subjectInfo.value?.typename !== `${funcType}.type`
+    return (
+      funcType != null &&
+      !subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Ast.Identifier))
+    )
   })
 
   const widgetQuerySubjectExpressionId = computed<Opt<ExternalId>>(() => {
@@ -60,7 +69,7 @@ export function useWidgetFunctionCallInfo(
     if (analyzed.kind === 'infix') {
       return analyzed.lhs?.externalId
     }
-    const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const knownArguments = methodCallInfo.value?.suggestion.arguments
     const hasKnownSelfArgument = knownArguments?.[0]?.name === 'self'
 
     // First we always want to attach the visualization to the `self` argument,
@@ -90,8 +99,9 @@ export function useWidgetFunctionCallInfo(
 
     const info = methodCallInfo.value
     if (!info) return null
+    if (!entryIsAnnotatable(info.suggestion)) return null
     const annotatedArgs = info.suggestion.annotations
-    if (annotatedArgs.length === 0) return null
+    if (!annotatedArgs.length) return null
     const name = info.suggestion.name
     const positionalArgumentsExpressions = [
       `.${name}`,
@@ -99,14 +109,20 @@ export function useWidgetFunctionCallInfo(
       Ast.TextLiteral.new(JSON.stringify(args)).code(),
     ]
 
+    let modulePath: ProjectPath = WIDGETS_ENSO_PATH
+    if (project.moduleProjectPath?.ok) {
+      modulePath = project.moduleProjectPath.value
+    }
+    const moduleFqn = projectNames.serializeProjectPathForBackend(modulePath)
+
     const expressionId = widgetQuerySubjectExpressionId.value
     if (expressionId != null) {
       return {
         expressionId,
-        visualizationModule: WIDGETS_ENSO_MODULE,
+        visualizationModule: moduleFqn,
         expression: {
-          module: WIDGETS_ENSO_MODULE,
-          definedOnType: WIDGETS_ENSO_MODULE,
+          module: WIDGETS_ENSO_PATH,
+          definedOnType: WIDGETS_ENSO_PATH,
           name: GET_WIDGETS_METHOD,
         },
         positionalArgumentsExpressions,
@@ -116,8 +132,8 @@ export function useWidgetFunctionCallInfo(
       // we assume that this is a static function call and create the subject by using resolved type name.
       return {
         expressionId: toValue(input).value.externalId,
-        visualizationModule: WIDGETS_ENSO_MODULE,
-        expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.memberOf ?? info.suggestion.definedIn}`,
+        visualizationModule: moduleFqn,
+        expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${projectNames.printProjectPath(info.suggestion.memberOf)}`,
         positionalArgumentsExpressions,
       }
     }
@@ -125,7 +141,10 @@ export function useWidgetFunctionCallInfo(
 
   const subjectTypeMatchesMethod = computed(() => {
     const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
-    return funcType != null && subjectInfo.value?.typename === `${funcType}.type`
+    return (
+      funcType != null &&
+      subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Ast.Identifier))
+    )
   })
 
   const inheritedConfig = computed(() => {
@@ -134,9 +153,12 @@ export function useWidgetFunctionCallInfo(
     if (cfg.kind === 'FunctionCall') return cfg
     if (cfg.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
       const info = methodCallInfo.value
-      const fullName = entryQn(info?.suggestion)
+      const fullName = info?.suggestion.definitionPath
       const autoscopedName = '..' + info?.suggestion.name
-      return cfg.possibleFunctions.get(fullName) ?? cfg.possibleFunctions.get(autoscopedName)
+      return (
+        cfg.possibleFunctions.get(projectNames.serializeProjectPathForBackend(fullName)) ??
+        cfg.possibleFunctions.get(autoscopedName)
+      )
     }
     return undefined
   })
@@ -174,6 +196,17 @@ export function useWidgetFunctionCallInfo(
         ) ?
           noArgsCall.methodCall.notAppliedArguments
         : undefined,
+      /**
+       * If a node doesn't fully apply a function, and that node is referenced elsewhere, multiple
+       * {@link MethodCallInfo}s will result. We would not want to display the same placeholders in
+       * multiple places. We give priority to the source node, assuming the function is intended to
+       * be fully-applied, and suppress placeholders at the use site. However, we still construct an
+       * {@link ArgumentApplication}, so that if arguments *are* provided at the use site they will
+       * be displayed with full information. Note that reverse-inhibition is not implemented: In
+       * this case, the late-applied arguments will still have placeholders at the definition site,
+       * and fulfilling those placeholders would break the calls at use sites.
+       */
+      suppressPlaceholders: appFuncIsNodeUsage.value,
     })
   })
 

@@ -1,15 +1,17 @@
-import { test } from '@playwright/test'
 import assert from 'assert'
+import { test } from 'playwright/test'
 import * as actions from './actions'
 import { computedContent } from './css'
 import { expect } from './customExpect'
+import { mockExpressionUpdate } from './expressionUpdates'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
 test('Node can open and load visualization', async ({ page }) => {
   await actions.goToGraph(page)
-  const node = locate.graphNode(page).last()
+  const node = locate.graphNodeByBinding(page, 'final')
   await node.click({ position: { x: 8, y: 8 } })
-  await expect(locate.circularMenu(page)).toExist()
+  await expect(locate.componentMenu(page)).toExist()
   await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
   await expect(locate.loadingVisualization(page)).toHaveCount(0)
@@ -23,12 +25,18 @@ test('Node can open and load visualization', async ({ page }) => {
   const textContent = await computedContent(element)
   const jsonContent = JSON.parse(textContent)
   expect(typeof jsonContent).toBe('object')
+  const nodeType = await locate.visualisationNodeType(page)
+  await expect(nodeType).toHaveText('Unknown')
+  await mockExpressionUpdate(page, 'final', { type: ['Standard.Table.Table.Table'] })
+  await expect(nodeType).toHaveText('Table')
+  await mockExpressionUpdate(page, 'final', { type: ['Standard.Table.Table.DifferentType'] })
+  await expect(nodeType).toHaveText('DifferentType')
 })
 
 test('Previewing visualization', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNode(page).last()
-  const port = await locate.outputPortCoordinates(node)
+  const port = await locate.outputPortCoordinates(page, node)
   await page.keyboard.down('Meta')
   await page.keyboard.down('Control')
   await expect(locate.anyVisualization(page)).toBeHidden()
@@ -40,7 +48,9 @@ test('Previewing visualization', async ({ page }) => {
   await page.keyboard.down('Meta')
   await page.keyboard.down('Control')
   await expect(locate.anyVisualization(node)).toBeVisible()
-  await page.mouse.move(1, 1)
+  // TODO[ao]: The simple move near top-left corner not always works i.e. not always
+  //  `pointerleave` event is emitted. Investigated in https://github.com/enso-org/enso/issues/9478
+  await page.mouse.move(700, 1200, { steps: 20 })
   await expect(locate.anyVisualization(page)).toBeHidden()
   await page.keyboard.up('Meta')
   await page.keyboard.up('Control')
@@ -50,11 +60,12 @@ test('Previewing visualization', async ({ page }) => {
 
 test('Warnings visualization', async ({ page }) => {
   await actions.goToGraph(page)
-
+  // Without centering the graph, menu sometimes goes out of the view.
+  await page.keyboard.press(`${CONTROL_KEY}+Shift+A`)
   // Create a node, attach a warning, open the warnings-visualization.
   await locate.addNewNodeButton(page).click()
-  const input = locate.componentBrowserInput(page).locator('input')
-  await input.fill('Warning.attach "Uh oh" 42')
+
+  await locate.componentBrowserInput(page).fill('Warning.attach "Uh oh" 42')
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()
   await actions.openVisualization(page, 'Warnings')

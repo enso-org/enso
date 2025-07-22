@@ -1,28 +1,23 @@
 /** @file An entry in a menu. */
-import * as React from 'react'
-
+import BlankIcon from '#/assets/blank.svg'
+import LockIcon from '#/assets/lock.svg'
+import * as aria from '#/components/aria'
+import { useDialogContext } from '#/components/Dialog'
+import { Icon } from '#/components/Icon'
+import { PaywallDialog } from '#/components/Paywall'
+import FocusRing from '#/components/styled/FocusRing'
+import { Text, type TextProps } from '#/components/Text'
+import { useVisualTooltip } from '#/components/VisualTooltip'
+import type * as inputBindings from '#/configurations/inputBindings'
+import type { PaywallFeatureName } from '#/hooks/billing'
+import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
+import * as tailwindVariants from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import * as detect from 'enso-common/src/detect'
 import type * as text from 'enso-common/src/text'
-
-import BlankIcon from '#/assets/blank.svg'
-
-import type * as inputBindings from '#/configurations/inputBindings'
-
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
-
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import * as tailwindVariants from '#/utilities/tailwindVariants'
+import * as React from 'react'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
@@ -34,6 +29,9 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   },
 })
 
+/** Get {@link text.TextId} for given shortcut action. */
+// All entries are intentionally hard-coded so that `Ctrl+F` will work.
+// eslint-disable-next-line react-refresh/only-export-components
 export const ACTION_TO_TEXT_ID: Readonly<
   Record<
     inputBindings.DashboardBindingKey,
@@ -46,10 +44,9 @@ export const ACTION_TO_TEXT_ID: Readonly<
   run: 'runShortcut',
   close: 'closeShortcut',
   uploadToCloud: 'uploadToCloudShortcut',
+  downloadToLocal: 'downloadToLocalShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
-  editDescription: 'editDescriptionShortcut',
-  snapshot: 'snapshotShortcut',
   delete: 'deleteShortcut',
   undelete: 'undeleteShortcut',
   share: 'shareShortcut',
@@ -65,10 +62,10 @@ export const ACTION_TO_TEXT_ID: Readonly<
   newFolder: 'newFolderShortcut',
   newDatalink: 'newDatalinkShortcut',
   newSecret: 'newSecretShortcut',
+  newCredential: 'newCredentialShortcut',
   useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
   cancelEditName: 'cancelEditNameShortcut',
-  signIn: 'signInShortcut',
   signOut: 'signOutShortcut',
   downloadApp: 'downloadAppShortcut',
   cancelCut: 'cancelCutShortcut',
@@ -77,14 +74,16 @@ export const ACTION_TO_TEXT_ID: Readonly<
   selectAdditionalRange: 'selectAdditionalRangeShortcut',
   goBack: 'goBackShortcut',
   goForward: 'goForwardShortcut',
+  upgradePlan: 'upgradePlanShortcut',
   aboutThisApp: 'aboutThisAppShortcut',
   openInFileBrowser: 'openInFileBrowserShortcut',
+  ensoDevtools: 'ensoDevtoolsShortcut',
+  copyId: 'copyIdShortcut',
 } satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
   readonly icon?: string | undefined
-  readonly hidden?: boolean | undefined
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
   readonly label?: string | undefined
@@ -93,29 +92,35 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly isDisabled?: boolean | undefined
   readonly title?: string | undefined
   readonly doAction: () => void
+  readonly color?: TextProps['color'] | undefined
+  readonly isUnderPaywall?: boolean
+  readonly feature?: PaywallFeatureName
 }
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
   const {
-    hidden = false,
     action,
     label,
     isDisabled = false,
     title,
     doAction,
-    icon,
-    tooltip: tooltipValue,
+    icon: iconRaw,
+    tooltip: tooltipValueRaw,
+    color,
+    isUnderPaywall = false,
+    feature,
     ...variantProps
   } = props
-  const { getText } = textProvider.useText()
-  const { unsetModal } = modalProvider.useSetModal()
-  const dialogContext = ariaComponents.useDialogContext()
+
+  const { getText } = useText()
+  const icon = isUnderPaywall ? LockIcon : iconRaw
+  const tooltipValue = isUnderPaywall ? getText('upgradeToUseCloud') : tooltipValueRaw
+
+  const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
   const buttonRef = React.useRef<HTMLButtonElement>(null)
-  const isDisabledRef = useSyncRef(isDisabled)
 
   const labelTextId: text.TextId = (() => {
     if (action === 'openInFileBrowser') {
@@ -129,18 +134,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     }
   })()
 
-  React.useEffect(
-    () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        [action]: () => {
-          if (isDisabledRef.current) return
-          doAction()
-        },
-      }),
-    [inputBindings, action, doAction, isDisabledRef],
-  )
-
-  const { tooltip, targetProps } = ariaComponents.useVisualTooltip({
+  const { tooltip, targetProps } = useVisualTooltip({
     isDisabled: tooltipValue == null,
     targetRef: buttonRef,
     display: 'always',
@@ -148,39 +142,40 @@ export default function MenuEntry(props: MenuEntryProps) {
     overlayPositionProps: { placement: 'right' },
   })
 
-  if (hidden) {
-    return null
-  }
-
   return (
     <>
       <FocusRing>
         <aria.Button
           ref={buttonRef}
-          {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
-            isDisabled,
-            className: 'group flex w-full rounded-menu-entry',
-            onPress: () => {
-              if (dialogContext) {
-                // Closing a dialog takes precedence over unsetting the modal.
-                dialogContext.close()
-              } else {
-                unsetModal()
-              }
+          isDisabled={isDisabled}
+          className="group flex w-full rounded-menu-entry"
+          onPress={() => {
+            if (dialogContext) {
+              // Closing a dialog takes precedence over unsetting the modal.
+              dialogContext.close()
+            } else {
+              unsetModal()
+            }
+            if (isUnderPaywall && feature != null) {
+              setModal(<PaywallDialog modalProps={{ defaultOpen: true }} feature={feature} />)
+            } else {
               doAction()
-            },
-          })}
+            }
+          }}
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
-            <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-              <SvgMask
-                src={icon ?? info.icon ?? BlankIcon}
-                color={info.color}
-                className="size-4 text-primary"
+            <div
+              title={title}
+              className="flex items-center gap-menu-entry whitespace-nowrap"
+              style={{ color: info.color }}
+            >
+              <Icon
+                icon={icon ?? info.icon ?? BlankIcon}
+                className={info.color != null ? undefined : 'text-primary'}
               />
-              <ariaComponents.Text slot="label">
+              <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}
-              </ariaComponents.Text>
+              </Text>
             </div>
             <KeyboardShortcut action={action} />
           </div>

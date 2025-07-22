@@ -1,8 +1,6 @@
 <script lang="ts">
-import { gridBindings } from '@/bindings'
-import { modKey } from '@/composables/events'
-import type { MenuItemDef } from 'ag-grid-enterprise'
-import { ref } from 'vue'
+import { registerHandlers } from '@/providers/action'
+
 /**
  * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
  * only values actually used by the composable)
@@ -27,7 +25,7 @@ const copyWithHeaders = ref(false)
 export const commonContextMenuActions = {
   cut: {
     name: 'Cut',
-    shortcut: gridBindings.bindings['cutCells'].humanReadable,
+    shortcut: gridBindings.bindings['grid.cutCells'].humanReadable,
     action: ({ api }) => {
       copyWithHeaders.value = false
       api.cutToClipboard()
@@ -36,7 +34,7 @@ export const commonContextMenuActions = {
   },
   copy: {
     name: 'Copy',
-    shortcut: gridBindings.bindings['copyCells'].humanReadable,
+    shortcut: gridBindings.bindings['grid.copyCells'].humanReadable,
     action: ({ api }) => {
       copyWithHeaders.value = false
       api.copyToClipboard()
@@ -53,7 +51,7 @@ export const commonContextMenuActions = {
   },
   paste: {
     name: 'Paste',
-    shortcut: gridBindings.bindings['pasteCells'].humanReadable,
+    shortcut: gridBindings.bindings['grid.pasteCells'].humanReadable,
     action: ({ api }) => api.pasteFromClipboard(),
     icon: AGGRID_DEFAULT_PASTE_ICON,
   },
@@ -65,7 +63,14 @@ export const commonContextMenuActions = {
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
  */
+import { gridBindings } from '@/bindings'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
+import {
+  type VueComponentHandle,
+  default as VueComponentHost,
+  VueHostInstance,
+} from '@/components/VueHostRender.vue'
+import { modKey } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
 import type {
   CellEditingStartedEvent,
@@ -73,10 +78,18 @@ import type {
   ColDef,
   ColGroupDef,
   ColumnResizedEvent,
+  ColumnVisibleEvent,
   FirstDataRenderedEvent,
+  GetContextMenuItems,
+  GetContextMenuItemsParams,
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
+  ICellEditorComp,
+  IHeaderComp,
+  IHeaderParams,
+  IServerSideDatasource,
+  MenuItemDef,
   ProcessDataFromClipboardParams,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
@@ -85,8 +98,18 @@ import type {
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import * as objects from 'enso-common/src/utilities/data/object'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
-import { type ComponentInstance, reactive, shallowRef, watch } from 'vue'
+import {
+  Component,
+  type ComponentInstance,
+  computed,
+  h,
+  reactive,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue'
 import { clipboardNodeData, writeClipboard } from '../GraphEditor/clipboard'
 import {
   parseTsvData,
@@ -94,20 +117,25 @@ import {
   tableToEnsoExpression,
 } from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
 
-const DEFAULT_ROW_HEIGHT = 22
-
-const _props = defineProps<{
+const props = defineProps<{
   rowData: TData[]
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
   defaultColDef: ColDef<TData>
   getRowId?: GetRowIdFunc<TData>
-  components?: Record<string, unknown>
+  components?: Record<string, Component>
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
   suppressDragLeaveHidesColumns?: boolean
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
+  datasource?: IServerSideDatasource | boolean
+  rowCount?: number
+  isServerSideModel?: boolean
+  gridIdHash?: string | null
+  getContextMenuItems?: (
+    params: GetContextMenuItemsParams,
+  ) => (MenuItemDef | string)[] | GetContextMenuItems
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -116,6 +144,7 @@ const emit = defineEmits<{
   rowEditingStopped: [event: RowEditingStoppedEvent]
   rowDataUpdated: [event: RowDataUpdatedEvent]
   sortOrFilterUpdated: [event: SortChangedEvent]
+  columnStateChanged: [event: ColumnVisibleEvent]
 }>()
 
 const widths = reactive(new Map<string, number>())
@@ -127,29 +156,27 @@ useAutoBlur(() => grid.value?.$el)
 
 function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
+  if (rowModelType.value === 'serverSide') {
+    gridApi.value.retryServerSideLoads()
+  }
 }
 
-function getRowHeight(params: RowHeightParams): number {
-  if (_props.textFormatOption === 'off') {
-    return DEFAULT_ROW_HEIGHT
-  }
-  const rowData = Object.values(params.data)
-  const textValues = rowData.filter((r): r is string => typeof r === 'string')
+const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
-  if (!textValues.length) {
-    return DEFAULT_ROW_HEIGHT
-  }
+const gridKeyIncrement = ref(0)
+const gridKey = computed(() =>
+  props.gridIdHash ?
+    `${props.gridIdHash}-${gridKeyIncrement.value}`
+  : `grid-${gridKeyIncrement.value}`,
+)
 
-  const returnCharsCount = iter.map(textValues, (text) =>
-    iter.count(text.matchAll(LINE_BOUNDARIES)),
-  )
-
-  const maxReturnCharsCount = iter.reduce(returnCharsCount, Math.max, 0)
-  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
+const forceGridRefresh = () => {
+  //when using the ag grid severSide model this forces the grid to 'refresh' and call getRows
+  gridKeyIncrement.value++
 }
 
 watch(
-  () => _props.textFormatOption,
+  () => props.textFormatOption,
   () => {
     gridApi.value?.redrawRows()
     gridApi.value?.resetRowHeights()
@@ -175,7 +202,7 @@ function lockColumnSize(e: ColumnResizedEvent) {
   // on a resize.
   if (e.source !== 'autosizeColumns') {
     for (const column of e.columns ?? []) {
-      const id = column.getColDef().colId
+      const id = column.getColId()
       if (id) widths.set(id, column.getActualWidth())
     }
   }
@@ -228,6 +255,8 @@ function processCellForClipboard({
   formatValue: (arg: any) => string
 }) {
   if (value == null) return ''
+  else if (typeof value === 'object' && '_display_text_' in value && value['_display_text_'])
+    return String(value['_display_text_'])
   const formatted = formatValue(value)
   if (formatted.match(/[\t\n\r"]/)) {
     return `"${formatted.replaceAll(/"/g, '""')}"`
@@ -235,26 +264,36 @@ function processCellForClipboard({
   return formatted
 }
 
-defineExpose({ gridApi })
+defineExpose({ gridApi, forceGridRefresh })
 
 // === Keybinds ===
 
-const handler = gridBindings.handler({
-  cutCells() {
-    if (gridApi.value?.getFocusedCell() == null) return false
+function gridAction(action: () => void) {
+  return {
+    action: () => {
+      if (gridApi.value?.getFocusedCell() == null) return
+      action()
+    },
+  }
+}
+
+const actionHandlers = registerHandlers({
+  'grid.cutCells': gridAction(() => {
+    copyWithHeaders.value = false
     gridApi.value?.cutToClipboard()
-  },
-  copyCells() {
-    if (gridApi.value?.getFocusedCell() == null) return false
+  }),
+  'grid.copyCells': gridAction(() => {
+    copyWithHeaders.value = false
     gridApi.value?.copyToClipboard()
-  },
-  pasteCells() {
-    if (gridApi.value?.getFocusedCell() == null) return false
-    gridApi.value?.pasteFromClipboard()
-  },
+  }),
+  'grid.pasteCells': gridAction(() => gridApi.value?.pasteFromClipboard()),
 })
 
-function supressCopy(event: KeyboardEvent) {
+const handler = gridBindings.handler(
+  objects.mapEntries(gridBindings.bindings, (actionName) => actionHandlers[actionName].action),
+)
+
+function suppressCopy(event: KeyboardEvent) {
   // Suppress the default keybindings of AgGrid, because we want to use our own handlers (and bindings),
   // and AgGrid API does not allow copy suppression.
   if (
@@ -268,69 +307,97 @@ function supressCopy(event: KeyboardEvent) {
   }
 }
 
-// === Loading AGGrid and its license ===
-
-const { LicenseManager } = await import('ag-grid-enterprise')
-
-if (typeof import.meta.env.ENSO_IDE_AG_GRID_LICENSE_KEY !== 'string') {
-  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-  if (import.meta.env.DEV) {
-    // Hide annoying license validation errors in dev mode when the license is not defined. The
-    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
-    const origValidateLicense = LicenseManager.prototype.validateLicense
-    LicenseManager.prototype.validateLicense = function (this) {
-      if (!('licenseManager' in this))
-        Object.defineProperty(this, 'licenseManager', {
-          configurable: true,
-          set(value: any) {
-            Object.getPrototypeOf(value).validateLicense = () => {}
-            delete this.licenseManager
-            this.licenseManager = value
-          },
-        })
-      origValidateLicense.call(this)
-    }
-  }
-} else {
-  const agGridLicenseKey = import.meta.env.ENSO_IDE_AG_GRID_LICENSE_KEY
-  LicenseManager.setLicenseKey(agGridLicenseKey)
-}
-
 function stopIfPrevented(event: Event) {
   // When AG Grid handles the context menu event it prevents-default, but it doesn't stop propagation.
   if (event.defaultPrevented) event.stopPropagation()
 }
 
-const { AgGridVue } = await import('ag-grid-vue3')
+// === Wrapping and Hosting Vue Components ===
+
+const vueHost = new VueHostInstance()
+
+const mappedComponents = computed(() => {
+  if (!props.components) return
+  const retval: Record<string, new () => IHeaderComp | ICellEditorComp> = {}
+  for (const [key, comp] of Object.entries(props.components)) {
+    class ComponentWrapper implements IHeaderComp {
+      private readonly container: HTMLElement = document.createElement('div')
+      private handle: VueComponentHandle | undefined
+
+      init(params: IHeaderParams) {
+        this.handle = vueHost.register(h(comp, params), this.container, params.column.getColId())
+      }
+
+      getGui() {
+        return this.container
+      }
+
+      refresh(params: IHeaderParams) {
+        this.handle?.update(h(comp, params), this.container)
+        return true
+      }
+
+      destroy() {
+        this.handle?.unregister()
+      }
+    }
+    retval[key] = ComponentWrapper
+  }
+  return retval
+})
+const DEFAULT_ROW_HEIGHT = 22
+function getRowHeight(params: RowHeightParams): number {
+  if (props.textFormatOption === 'off') {
+    return DEFAULT_ROW_HEIGHT
+  }
+  const rowData = Object.values(params.data)
+  const textValues = rowData.filter((r): r is string => typeof r === 'string')
+  if (!textValues.length) {
+    return DEFAULT_ROW_HEIGHT
+  }
+  const returnCharsCount = iter.map(textValues, (text) =>
+    iter.count(text.matchAll(LINE_BOUNDARIES)),
+  )
+  const maxReturnCharsCount = iter.reduce(returnCharsCount, Math.max, 0)
+  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
+}
+
+const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>
-  <div ref="wrapper" @keydown="handler" @keydown.capture="supressCopy">
+  <div ref="wrapper" @keydown="handler" @keydown.capture="suppressCopy" @keydown.space.stop>
     <AgGridVue
       v-bind="$attrs"
       ref="grid"
+      :key="gridKey"
       class="ag-theme-alpine inner"
       :headerHeight="26"
-      :getRowHeight="getRowHeight"
-      :rowData="rowData"
+      :rowModelType="rowModelType"
+      :serverSideDatasource="datasource"
+      :rowCount="rowCount"
+      :rowData="rowModelType === 'clientSide' ? rowData : null"
       :columnDefs="columnDefs"
       :defaultColDef="defaultColDef"
       :copyHeadersToClipboard="true"
       :processCellForClipboard="processCellForClipboard"
       :sendToClipboard="sendToClipboard"
       :suppressFieldDotNotation="true"
-      :enableRangeSelection="true"
+      :cellSelection="true"
       :popupParent="popupParent"
-      :components="components"
+      :components="mappedComponents"
       :singleClickEdit="singleClickEdit"
       :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
       :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
+      :cacheBlockSize="rowModelType === 'clientSide' ? undefined : 1000"
+      :getContextMenuItems="getContextMenuItems"
+      :getRowHeight="rowModelType === 'clientSide' ? getRowHeight : null"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
-      @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
+      @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"
       @columnResized="lockColumnSize"
       @cellEditingStarted="emit('cellEditingStarted', $event)"
       @cellEditingStopped="emit('cellEditingStopped', $event)"
@@ -338,8 +405,11 @@ const { AgGridVue } = await import('ag-grid-vue3')
       @rowEditingStopped="emit('rowEditingStopped', $event)"
       @sortChanged="emit('sortOrFilterUpdated', $event)"
       @filterChanged="emit('sortOrFilterUpdated', $event)"
+      @columnVisible="emit('columnStateChanged', $event)"
+      @columnMoved="emit('columnStateChanged', $event)"
       @contextmenu="stopIfPrevented"
     />
+    <VueComponentHost :host="vueHost" />
   </div>
 </template>
 
@@ -359,6 +429,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
 .ag-theme-alpine {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;
+  --ag-foreground-color: var(--color-text);
   --ag-background-color: var(--color-visualization-bg);
   --ag-header-foreground-color: var(--color-ag-header-text);
   --ag-odd-row-background-color: color-mix(in srgb, var(--color-visualization-bg) 98%, black);

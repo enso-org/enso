@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
@@ -9,11 +8,8 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
-import project.Math
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 
 polyglot java import java.lang.ArithmeticException
@@ -29,7 +25,7 @@ ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
             Error.throw (Time_Error.Error error_msg)
         x ->
             Error.throw Illegal_Argument.Error <|
-                "Expected Period type, got: " + (Meta.get_qualified_type_name x)
+                "Expected Period type, got: " + (x.to Meta.Type . qualified_name)
 
 ## A date-based amount of time in the ISO-8601 calendar system, such as
    '2 years, 3 months and 4 days'.
@@ -56,17 +52,15 @@ type Period
     between start_date_inclusive end_date_exclusive =
         Period.Value (Java_Period.between start_date_inclusive end_date_exclusive)
 
-    ## GROUP DateTime
-       ICON time
-       Create a new Period from years, months and days.
+    ## ICON time
+       Create a new Period for years, months, and days.
 
-       Arguments:
        - years: Amount of years.
        - months: Amount of months.
        - days: Amount of days.
 
        > Example
-         Create a Period of 2 years and 5 days
+         Create 2 years and 5 days `Period`.
 
              import Standard.Base.Data.Time.Period
 
@@ -143,7 +137,6 @@ type Period
              import Standard.Base.Data.Time.Period
 
              example_subtract = (Period.new years=3) - (Period.new months=11)
-
     - : Period -> Period ! (Time_Error | Illegal_Argument)
     - self other_period =
         ensure_period other_period <|

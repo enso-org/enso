@@ -1,0 +1,65 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Value_Type
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 3 5)
+
+create_table : Table
+create_table num_rows =
+    bool = Vector.new num_rows i->
+        i%3 == 0
+
+    short_texts = Vector.new num_rows i->
+        i.to_text
+    long_texts = Vector.new num_rows i->
+        len = 40 + (i % 100)
+        Text.from_char_vector (Vector.new len j-> 65+(j%26))
+    fixed_texts = Vector.new num_rows i->
+        Text.from_char_vector (Vector.new 100 j-> 65+((i+j) % 26))
+
+    base_dt = Date_Time.new 2020 01 01
+    dts = Vector.new num_rows i->
+        base_dt.date_add i ..Second
+    times = dts.map .time_of_day
+
+    t = Table.new [["bool", bool], ["short_texts", short_texts], ["long_texts", long_texts], ["fixed_texts", fixed_texts], ["date_time", dts], ["time", times]]
+        . cast "fixed_texts" (Value_Type.Char size=100 variable_length=False)
+
+    Runtime.assert ((t.at "bool" . value_type) == Value_Type.Boolean)
+    Runtime.assert ((t.at "short_texts" . value_type) == Value_Type.Char)
+    Runtime.assert ((t.at "long_texts" . value_type) == Value_Type.Char)
+    Runtime.assert ((t.at "fixed_texts" . value_type) == (Value_Type.Char size=100 variable_length=False))
+    Runtime.assert ((t.at "date_time" . value_type) == Value_Type.Date_Time)
+    Runtime.assert ((t.at "time" . value_type) == Value_Type.Time)
+    t
+
+type Data
+    private Value ~table
+
+    create num_rows = Data.Value (create_table num_rows)
+
+collect_benches = Bench.build builder->
+    num_rows = 1000000
+    data = Data.create num_rows
+
+    builder.group ("Unary_Column_Operations_" + num_rows.to_text) options group_builder->
+        group_builder.specify "Boolean_Not" <|
+            data.table.at "bool" . not
+
+        group_builder.specify "Short_Text_Length" <|
+            data.table.at "short_texts" . text_length
+        group_builder.specify "Long_Text_Length" <|
+            data.table.at "long_texts" . text_length
+        group_builder.specify "Fixed_Text_Length" <|
+            data.table.at "fixed_texts" . text_length
+
+        group_builder.specify "Date_Time_Year" <|
+            data.table.at "date_time" . year
+        group_builder.specify "Date_Time_Hour" <|
+            data.table.at "date_time" . hour
+        group_builder.specify "Time_Of_Day_Hour" <|
+            data.table.at "time" . hour
+
+main = collect_benches . run_main

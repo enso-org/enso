@@ -17,7 +17,7 @@ import org.enso.interpreter.service.ExecutionService;
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
-  private final Map<UUID, String[]> types = new HashMap<>();
+  private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
@@ -31,16 +31,13 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
+    expressions.put(key, new WeakReference<>(value));
     if (preferences.contains(key)) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
-      expressions.put(key, new WeakReference<>(value));
       return true;
-    } else {
-      var ref = new WeakReference<>(value);
-      expressions.put(key, ref);
-      return false;
     }
+    return false;
   }
 
   /** Get the value from the cache. */
@@ -57,14 +54,20 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     return res;
   }
 
+  // Accessed in InstrumentorBuiltin
   @Override
   public Object apply(String uuid) {
-    var key = UUID.fromString(uuid);
-    var ref = expressions.get(key);
-    var res = ref != null ? ref.get() : null;
-    var callback = observer;
-    if (callback != null) {
-      callback.accept(key);
+    Object res;
+    try {
+      var key = UUID.fromString(uuid);
+      var ref = expressions.get(key);
+      res = ref != null ? ref.get() : null;
+      var callback = observer;
+      if (callback != null) {
+        callback.accept(key);
+      }
+    } catch (IllegalArgumentException ex) {
+      res = null;
     }
     return res;
   }
@@ -107,15 +110,15 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    * @return the previously cached type.
    */
   @CompilerDirectives.TruffleBoundary
-  public String[] putType(UUID key, String[] typeNames) {
-    return types.put(key, typeNames);
+  public TypeInfo putType(UUID key, TypeInfo typeInfo) {
+    return types.put(key, typeInfo);
   }
 
   /**
    * @return the cached type of the expression
    */
   @CompilerDirectives.TruffleBoundary
-  public String[] getType(UUID key) {
+  public TypeInfo getType(UUID key) {
     return types.get(key);
   }
 

@@ -1,17 +1,17 @@
 package org.enso.compiler.pass.analyse.types;
 
 import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
-import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 
 import java.util.List;
 import org.enso.compiler.MetadataInteropHelpers;
-import org.enso.compiler.context.NameResolutionAlgorithm;
+import org.enso.compiler.common.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
+import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Application;
@@ -21,12 +21,15 @@ import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
-import org.enso.compiler.pass.resolve.TypeSignatures;
-import org.enso.compiler.pass.resolve.TypeSignatures$;
+import org.enso.compiler.pass.analyse.types.scope.AtomTypeDefinition;
+import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScope;
+import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
+import org.enso.pkg.QualifiedName;
+import org.enso.scala.wrapper.ScalaConversions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
-import scala.jdk.javaapi.CollectionConverters$;
 
 /**
  * A helper class providing the logic of propagating types through the IR.
@@ -40,15 +43,16 @@ abstract class TypePropagation {
   private static final Logger logger = LoggerFactory.getLogger(TypePropagation.class);
   private final TypeResolver typeResolver;
   private final TypeCompatibility compatibilityChecker;
-  private final BuiltinTypes builtinTypes;
+  private final ModuleResolver moduleResolver;
+  private final MethodTypeResolver methodTypeResolver;
 
-  TypePropagation(
-      TypeResolver typeResolver,
-      TypeCompatibility compatibilityChecker,
-      BuiltinTypes builtinTypes) {
+  TypePropagation(TypeResolver typeResolver, Module currentModule, ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
-    this.compatibilityChecker = compatibilityChecker;
-    this.builtinTypes = builtinTypes;
+    this.moduleResolver = moduleResolver;
+
+    var currentModuleScope = StaticModuleScope.forIR(currentModule);
+    this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope);
+    this.compatibilityChecker = new TypeCompatibility(this.methodTypeResolver);
   }
 
   /**
@@ -69,6 +73,28 @@ abstract class TypePropagation {
    */
   protected abstract void encounteredInvocationOfNonFunctionType(
       IR relatedIr, TypeRepresentation type);
+
+  /**
+   * The callback that is called when a method is being invoked on a type that does not have such a
+   * method.
+   */
+  protected abstract void encounteredNoSuchMethod(
+      IR relatedIr, TypeRepresentation type, String methodName, MethodCallKind kind);
+
+  /**
+   * The callback that is called when a constructor is being invoked on a type that does not have
+   * such a constructor.
+   */
+  protected abstract void encounteredNoSuchConstructor(
+      IR relatedIr, TypeRepresentation type, String constructorName);
+
+  protected abstract void encounteredDiscardedValue(IR relatedIr, TypeRepresentation type);
+
+  enum MethodCallKind {
+    MEMBER,
+    STATIC,
+    MODULE
+  }
 
   void checkTypeCompatibility(
       IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
@@ -107,19 +133,28 @@ abstract class TypePropagation {
             var bindingType = tryInferringType(b.expression(), localBindingsTyping);
             if (bindingType != null) {
               registerBinding(b, bindingType, localBindingsTyping);
-              TypeInference.setInferredType(b, bindingType);
+              TypeInferencePropagation.setInferredType(b, bindingType);
             }
             yield bindingType;
           }
           case Expression.Block b -> {
             // Even though we discard the result, we run the type inference on each expression to
             // ensure any bindings inside of it get registered:
-            b.expressions().foreach((expr) -> tryInferringType(expr, localBindingsTyping));
+            b.expressions()
+                .foreach(
+                    (expr) -> {
+                      var exprType = tryInferringType(expr, localBindingsTyping);
+                      boolean isDiscarded = !(expr instanceof Expression.Binding);
+                      if (isDiscarded && !canBeDiscarded(exprType)) {
+                        encounteredDiscardedValue(expr, exprType);
+                      }
+                      return exprType;
+                    });
             yield tryInferringType(b.returnValue(), localBindingsTyping);
           }
           case Function.Lambda f -> processLambda(f, localBindingsTyping);
           case Literal l -> processLiteral(l);
-          case Application.Sequence sequence -> builtinTypes.VECTOR;
+          case Application.Sequence sequence -> BuiltinTypes.VECTOR;
           case Case.Expr caseExpr -> processCaseExpression(caseExpr, localBindingsTyping);
           default -> {
             logger.trace(
@@ -128,7 +163,7 @@ abstract class TypePropagation {
           }
         };
 
-    TypeRepresentation ascribedType = findTypeAscription(expression);
+    TypeRepresentation ascribedType = typeResolver.getTypeAscription(expression);
     checkInferredAndAscribedTypeCompatibility(expression, inferredType, ascribedType);
 
     // We now override the inferred type on the expression, preferring the ascribed type if it is
@@ -136,10 +171,51 @@ abstract class TypePropagation {
     return ascribedType != null ? ascribedType : inferredType;
   }
 
+  private boolean canBeDiscarded(TypeRepresentation type) {
+    if (type == null || type instanceof TypeRepresentation.TopType) {
+      // If the type is unknown then we allow it to be discarded as we don't know enough yet
+      return true;
+    }
+
+    if (type.equals(BuiltinTypes.NOTHING)) {
+      // Nothing is the type that side-effectful functions should return - it is most often meant to
+      // be discarded.
+      return true;
+    }
+
+    // Sometimes Nothing is inferred as `type Nothing`. Maybe we should fix it, but for now:
+    if (type instanceof TypeRepresentation.TypeObject typeObject) {
+      if (typeObject.instanceType().equals(BuiltinTypes.NOTHING)) {
+        return true;
+      }
+    }
+
+    if (type instanceof TypeRepresentation.ArrowType) {
+      // Under all scenarios, discarding a not-fully applied function is an error - such an
+      // operation is essentially a no-op.
+      // (in fact there are exceptions due to currying, but in 99% cases this is an error)
+      return false;
+    }
+
+    return canNonFunctionsBeDiscarded();
+  }
+
+  /**
+   * Drives the `canBeDiscarded` method.
+   *
+   * <ol>
+   *   <li>If true, then only a not-fully-applied function will raise discarded value warnings.
+   *   <li>If false, any non-Nothing value will raise a warning.
+   * </ol>
+   */
+  protected boolean canNonFunctionsBeDiscarded() {
+    return true;
+  }
+
   private TypeRepresentation processCaseExpression(
       Case.Expr caseExpr, LocalBindingsTyping localBindingsTyping) {
     List<TypeRepresentation> innerTypes =
-        CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream()
+        ScalaConversions.asJava(caseExpr.branches()).stream()
             .map(
                 branch -> {
                   // Fork the bindings map for each branch, as in the future type equality
@@ -169,9 +245,9 @@ abstract class TypePropagation {
   private TypeRepresentation processLiteral(Literal literal) {
     return switch (literal) {
       case Literal.Number number -> number.isFractional()
-          ? builtinTypes.FLOAT
-          : builtinTypes.INTEGER;
-      case Literal.Text text -> builtinTypes.TEXT;
+          ? BuiltinTypes.FLOAT
+          : BuiltinTypes.INTEGER;
+      case Literal.Text text -> BuiltinTypes.TEXT;
         // This branch is needed only because Java is unable to infer that the match is exhaustive
       default -> throw new IllegalStateException(
           "Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
@@ -190,12 +266,6 @@ abstract class TypePropagation {
       Function.Lambda lambda, LocalBindingsTyping localBindingsTyping) {
     boolean hasAnyDefaults =
         lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
-    if (hasAnyDefaults) {
-      // Inferring function types with default arguments is not supported yet.
-      // TODO we will need to mark defaults in the TypeRepresentation to know when they may be
-      // FORCEd
-      return null;
-    }
 
     scala.collection.immutable.List<TypeRepresentation> argTypesScala =
         lambda
@@ -203,19 +273,29 @@ abstract class TypePropagation {
             .filter((arg) -> !(arg.name() instanceof Name.Self))
             .map(
                 (arg) -> {
+                  var resolvedTyp = TypeRepresentation.UNKNOWN;
                   if (arg.ascribedType().isDefined()) {
                     Expression typeExpression = arg.ascribedType().get();
-                    var resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
+                    resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
                     if (resolvedTyp != null) {
                       // We register the type of the argument in the local bindings map, so that it
                       // can be used by expressions that refer to this argument.
                       // No need to fork it, because there is just one code path.
                       registerBinding(arg, resolvedTyp, localBindingsTyping);
-                      return resolvedTyp;
                     }
                   }
 
-                  return TypeRepresentation.UNKNOWN;
+                  // If default value is present, make sure that its type is compatible with the
+                  // ascription.
+                  if (arg.defaultValue().isDefined()) {
+                    var defaultValue = arg.defaultValue().get();
+                    var defaultValueTyp = tryInferringType(defaultValue, localBindingsTyping);
+                    if (defaultValueTyp != null && resolvedTyp != null) {
+                      checkTypeCompatibility(defaultValue, resolvedTyp, defaultValueTyp);
+                    }
+                  }
+
+                  return resolvedTyp;
                 });
 
     TypeRepresentation returnType = tryInferringType(lambda.body(), localBindingsTyping);
@@ -226,12 +306,16 @@ abstract class TypePropagation {
       return null;
     }
 
+    if (hasAnyDefaults) {
+      // TODO we don't yet have ability to return a signature with default arguments
+      return null;
+    }
+
     if (returnType == null) {
       returnType = TypeRepresentation.UNKNOWN;
     }
 
-    return TypeRepresentation.buildFunction(
-        CollectionConverters$.MODULE$.asJava(argTypesScala), returnType);
+    return TypeRepresentation.buildFunction(ScalaConversions.asJava(argTypesScala), returnType);
   }
 
   @SuppressWarnings("unchecked")
@@ -286,7 +370,7 @@ abstract class TypePropagation {
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
         return processUnresolvedSymbolApplication(
-            unresolvedSymbol, argument.value(), localBindingsTyping);
+            unresolvedSymbol, argument.value(), localBindingsTyping, relatedIR);
       }
 
       default -> {
@@ -306,37 +390,140 @@ abstract class TypePropagation {
     return null;
   }
 
+  private AtomTypeDefinition findTypeDefinition(QualifiedName name) {
+    var module = moduleResolver.findContainingModule(TypeScopeReference.atomType(name));
+    var moduleScope = StaticModuleScope.forIR(module);
+    return moduleScope.getType(name.item());
+  }
+
   private TypeRepresentation processUnresolvedSymbolApplication(
       TypeRepresentation.UnresolvedSymbol function,
       Expression argument,
-      LocalBindingsTyping localBindingsTyping) {
+      LocalBindingsTyping localBindingsTyping,
+      IR relatedWholeApplicationIR) {
     var argumentType = tryInferringType(argument, localBindingsTyping);
     if (argumentType == null) {
-      return null;
+      argumentType = TypeRepresentation.ANY;
     }
 
     switch (argumentType) {
       case TypeRepresentation.TypeObject typeObject -> {
-        var ctorCandidate =
-            typeObject.typeInterface().constructors().stream()
-                .filter(ctor -> ctor.name().equals(function.name()))
-                .findFirst();
-        if (ctorCandidate.isPresent()) {
-          return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
+        if (isConstructorOrType(function.name())) {
+          return resolveConstructorOnType(typeObject, function.name(), relatedWholeApplicationIR);
         } else {
-          // TODO if no ctor found, we should search static methods, but that is not implemented
-          // currently; so we cannot report an error either - just do nothing
-          return null;
+          // Calling `Type.method` - first we check if `method` is defined on `Any` and call that as
+          // member method on _value_ `Type`.
+          if (!BuiltinTypes.isAny(typeObject.name())) {
+            var resolvedAnyMethod =
+                methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
+            if (resolvedAnyMethod != null) {
+              return resolvedAnyMethod;
+            }
+          }
+
+          // Then we resolve the _static_ `method` on the `Type` - by looking at the eigen type.
+          // We resolve static calls on the eigen type. It should also contain registrations of the
+          // static variants of member methods, so we don't need to inspect member scope.
+          var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
+          var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
+          if (resolvedStaticMethod == null) {
+            encounteredNoSuchMethod(
+                relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
+          }
+          return resolvedStaticMethod;
         }
       }
 
+      case TypeRepresentation.ModuleReference moduleReference -> {
+        var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
+
+        if (isConstructorOrType(function.name())) {
+          // This is a special case when we are accessing a type inside a module, e.g. Mod.Type
+          // 'call' should resolve to the type
+          // TODO for later
+          return null;
+        } else {
+          var resolvedModuleMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+          if (resolvedModuleMethod == null) {
+            encounteredNoSuchMethod(
+                relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MODULE);
+          }
+          return resolvedModuleMethod;
+        }
+      }
+
+      case TypeRepresentation.AtomType atomInstanceType -> {
+        var typeScope = TypeScopeReference.atomType(atomInstanceType.fqn());
+        var resolvedMemberMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+        if (resolvedMemberMethod == null) {
+          encounteredNoSuchMethod(
+              relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MEMBER);
+        }
+        return resolvedMemberMethod;
+      }
+
+      case TypeRepresentation.TopType topType -> {
+        // We don't report not found methods here, because the top type can be anything, so the call
+        // 'may' be valid and we only want to report guaranteed failures
+        return methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
+      }
+
+        // This is not calling this function, instead it is calling the _method_ represented by the
+        // UnresolvedSymbol on this Function object.
+      case TypeRepresentation.ArrowType functionAsObject -> {
+        var typeScope = TypeScopeReference.atomType(functionAsObject.getAssociatedType());
+        var resolvedMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+        if (resolvedMethod == null) {
+          encounteredNoSuchMethod(
+              relatedWholeApplicationIR, functionAsObject, function.name(), MethodCallKind.MEMBER);
+        }
+        return resolvedMethod;
+      }
+
       default -> {
+        // TODO calling on sum types, intersection types, etc.
         return null;
       }
     }
   }
 
-  private class CompilerNameResolution
+  private boolean isConstructorOrType(String name) {
+    assert !name.isEmpty();
+    char firstCharacter = name.charAt(0);
+    return Character.isUpperCase(firstCharacter);
+  }
+
+  private TypeRepresentation resolveConstructorOnType(
+      TypeRepresentation.TypeObject typeObject,
+      String constructorName,
+      IR relatedWholeApplicationIR) {
+    assert isConstructorOrType(constructorName);
+    var typeDefinition = findTypeDefinition(typeObject.name());
+    if (typeDefinition == null) {
+      logger.warn(
+          "resolveConstructorOnType: {} - no type definition found for {}",
+          relatedWholeApplicationIR.showCode(),
+          typeObject.name());
+      return null;
+    }
+
+    var constructor = typeDefinition.getConstructor(constructorName);
+    if (constructor != null) {
+      if (constructor.type() == null) {
+        // type is unknown due to default arguments
+        // TODO later on this should be assert != null because all constructors should have a
+        // type (once we can deal with default arguments)
+        return null;
+      }
+
+      return constructor.type();
+    } else {
+      encounteredNoSuchConstructor(relatedWholeApplicationIR, typeObject, constructorName);
+      return null;
+    }
+  }
+
+  private final class CompilerNameResolution
       extends NameResolutionAlgorithm<
           TypeRepresentation, CompilerNameResolution.LinkInfo, AliasMetadata.Occurrence> {
     private final LocalBindingsTyping localBindingsTyping;
@@ -359,22 +546,23 @@ abstract class TypePropagation {
     }
 
     @Override
-    protected TypeRepresentation resolveGlobalName(BindingsMap.ResolvedName resolvedName) {
+    protected TypeRepresentation resolveGlobalName(
+        BindingsMap.ResolvedName resolvedName, IR relatedIr) {
       return switch (resolvedName) {
-          // TODO investigate when do these appear?? I did not yet see them in the wild
         case BindingsMap.ResolvedConstructor ctor -> {
-          var constructorInterface =
-              new AtomTypeInterfaceFromBindingsMap.ConstructorFromBindingsMap(ctor.cons());
-          yield typeResolver.buildAtomConstructorType(
-              typeResolver.resolvedTypeAsTypeObject(ctor.tpe()), constructorInterface);
+          var parentType = new TypeRepresentation.TypeObject(ctor.tpe().qualifiedName());
+          yield resolveConstructorOnType(parentType, ctor.cons().name(), relatedIr);
         }
 
         case BindingsMap.ResolvedType tpe -> typeResolver.resolvedTypeAsTypeObject(tpe);
 
+        case BindingsMap.ResolvedModule mod -> new TypeRepresentation.ModuleReference(
+            mod.qualifiedName());
+
         default -> {
           logger.trace(
-              "processGlobalName: global scope reference to {} - currently global inference is"
-                  + " unsupported",
+              "resolveGlobalName: reference to {} - is currently not being resolved in static"
+                  + " analysis",
               resolvedName);
           yield null;
         }
@@ -430,21 +618,11 @@ abstract class TypePropagation {
         registerBinding(typePattern.name(), type, localBindingsTyping);
       }
       case Pattern.Constructor constructorPattern -> {
-        for (var innerPattern : CollectionConverters$.MODULE$.asJava(constructorPattern.fields())) {
+        for (var innerPattern : ScalaConversions.asJava(constructorPattern.fields())) {
           registerPattern(innerPattern, localBindingsTyping);
         }
       }
       default -> {}
-    }
-  }
-
-  private TypeRepresentation findTypeAscription(Expression ir) {
-    TypeSignatures.Signature ascribedSignature =
-        getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
-    if (ascribedSignature != null) {
-      return typeResolver.resolveTypeExpression(ascribedSignature.signature());
-    } else {
-      return null;
     }
   }
 
@@ -455,10 +633,6 @@ abstract class TypePropagation {
         logger.trace(
             "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
       }
-
-      // If the inferred type implies the ascription will fail at runtime, we can report a warning
-      // here.
-      checkTypeCompatibility(ir, ascribedType, inferredType);
     }
   }
 }

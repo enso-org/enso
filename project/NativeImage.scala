@@ -10,16 +10,15 @@ import scala.sys.process._
 
 object NativeImage {
 
-  /** Specifies whether the build executable should include debug symbols.
-    * Should be set to false for production builds. May work only on Linux.
-    */
-  private val includeDebugInfo: Boolean = false
-
   lazy val smallJdk = taskKey[Option[File]]("Location of a minimal JDK")
   lazy val additionalCp =
     taskKey[Seq[String]](
       "Additional class-path entries to be added to the native image"
     )
+
+  lazy val additionalOpts = settingKey[Seq[String]](
+    "Additional options for the native-image tool"
+  )
 
   /** List of classes that should be initialized at build time by the native image.
     * Note that we strive to initialize as much classes during the native image build
@@ -27,7 +26,7 @@ object NativeImage {
     * One wildcard could theoretically be used instead of the list, but to make things
     * more explicit, we use the list.
     */
-  private val defaultBuildTimeInitClasses = Seq(
+  val defaultBuildTimeInitClasses = Seq(
     "org",
     "org.enso",
     "scala",
@@ -64,9 +63,10 @@ object NativeImage {
     * of its resources directory. More information can be found at
     * [[https://github.com/oracle/graal/blob/master/substratevm/BuildConfiguration.md]].
     *
-    * @param artifactName name of the artifact to create
+    * @param name name of the artifact to create
     * @param staticOnLinux specifies whether to link statically (applies only
     *                      on Linux)
+    * @param excludeConfigs comma-separated list of jar-/file-patterns to exclude undesired NI configs
     * @param additionalOptions additional options for the Native Image build
     *                          tool
     * @param buildMemoryLimitMegabytes a memory limit for the build tool, in
@@ -87,6 +87,7 @@ object NativeImage {
     name: String,
     staticOnLinux: Boolean,
     targetDir: File                          = null,
+    excludeConfigs: Seq[String]              = Seq.empty,
     additionalOptions: Seq[String]           = Seq.empty,
     buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
     runtimeThreadStackMegabytes: Option[Int] = Some(2),
@@ -143,9 +144,6 @@ object NativeImage {
 
       }
 
-      val debugParameters =
-        if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
-
       val (staticParameters, pathExts) =
         if (staticOnLinux && Platform.isLinux) {
           // Note [Static Build On Linux]
@@ -168,9 +166,6 @@ object NativeImage {
           )
           Seq()
         }
-
-      val quickBuildOption =
-        if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
 
       val buildMemoryLimitOptions =
         buildMemoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
@@ -198,19 +193,37 @@ object NativeImage {
       val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
-      val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+      val isCi       = sys.env.contains("CI")
+      val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
+      val excludeConfigsOpt =
+        if (excludeConfigs.nonEmpty)
+          excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(","))
+        else Seq.empty
+
+      val deadlockWatchdogOpts = Seq(
+        "-H:-DeadlockWatchdogExitOnTimeout",
+        "-H:DeadlockWatchdogInterval=30",
+        "-H:+UnlockExperimentalVMOptions"
+      )
+
+      val compilationTimeoutOpt =
+        if (isCi) Seq("-H:CompilationExpirationPeriod=500") else Seq.empty
 
       var args: Seq[String] =
+        excludeConfigsOpt ++
         Seq("-cp", cpStr) ++
-        quickBuildOption ++
-        debugParameters ++ staticParameters ++ configs ++
-        Seq("--no-fallback", "--no-server") ++
+        staticParameters ++
+        configs ++
+        Seq("--no-fallback") ++
         Seq("-march=compatibility") ++
         initializeAtBuildtimeOptions ++
         initializeAtRuntimeOptions ++
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
         additionalOptions ++
+        additionalOpts.value ++
+        deadlockWatchdogOpts ++
+        compilationTimeoutOpt ++
         Seq("-o", targetLoc.toString)
 
       args = mainClass match {
@@ -259,7 +272,26 @@ object NativeImage {
         println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
-      log.info(s"$targetLoc native image build successful.")
+      var msg = s"$targetLoc native image build successful."
+      if (targetDir != null) {
+        val symlinkTargetFile = artifactFile(null, name)
+        if (symlinkTargetFile.exists()) {
+          symlinkTargetFile.delete()
+        }
+        try {
+          val res = Files.createSymbolicLink(
+            symlinkTargetFile.toPath(),
+            targetLoc.toPath()
+          )
+          msg += s" Symlink from $res created."
+        } catch {
+          case io: java.io.IOException =>
+            log.error(
+              s"Failed to create $symlinkTargetFile symlink to $targetLoc because of ${io.getMessage}"
+            )
+        }
+        log.info(msg)
+      }
     }
     .tag(nativeImageBuildTag)
     .dependsOn(Compile / compile)
@@ -306,11 +338,42 @@ object NativeImage {
           else
             Def.task {
               streams.value.log.info(
-                s"No source changes, $artifactName Native Image is up to date."
+                s"No source changes, $name Native Image is up to date."
               )
             }
       }
     }
+
+  def checkNativeImageSize(
+    name: String,
+    targetDir: File
+  ): Def.Initialize[Task[Unit]] = Def.task {
+    val generatedBin = artifactFile(targetDir, name)
+    val logger       = streams.value.log
+    if (!generatedBin.exists) {
+      logger.error(s"Generated binary $generatedBin does not exist.")
+      logger.error(
+        "Ensure that the dependency on `buildNativeImage` is properly set."
+      )
+    }
+    val bytes        = generatedBin.attributes.size()
+    val mb           = bytes / (1024 * 1024)
+    val expectedSize = GraalVM.NativeImageSize.expectedSizeForCurrentPlatform()
+    val isInBounds =
+      expectedSize.minMb <= mb && mb <= expectedSize.maxMb
+    if (!isInBounds) {
+      logger.error(
+        s"Generated binary $generatedBin has unexpected size: $mb MB. " +
+        s"Expected size is between ${expectedSize.minMb} and ${expectedSize.maxMb} MB."
+      )
+      throw new RuntimeException(s"Generated binary $generatedBin is too large")
+    } else {
+      logger.info(
+        s"Generated binary $generatedBin size ($mb MB) " +
+        s"is within the expected size: [${expectedSize.minMb}, ${expectedSize.maxMb}] MB."
+      )
+    }
+  }
 
   /** [[File]] representing the artifact called `name` built with the Native
     * Image.

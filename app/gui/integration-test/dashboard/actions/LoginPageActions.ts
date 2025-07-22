@@ -1,12 +1,11 @@
 /** @file Available actions for the login page. */
-import { expect } from '@playwright/test'
+import { expect } from 'playwright/test'
 
 import { TEXT, VALID_EMAIL, VALID_PASSWORD, passAgreementsDialog } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
-import SetupUsernamePageActions from './SetupUsernamePageActions'
 
 /** Available actions for the login page. */
 export default class LoginPageActions<Context> extends BaseActions<Context> {
@@ -14,13 +13,15 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
   get goToPage() {
     return {
       register: (): RegisterPageActions<Context> =>
-        this.step("Go to 'register' page", async (page) =>
-          page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click(),
-        ).into(RegisterPageActions<Context>),
+        this.step("Go to 'register' page", async (page) => {
+          await page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click()
+          await expect(page.getByRole('button', { name: TEXT.register })).toBeVisible()
+        }).into(RegisterPageActions<Context>),
       forgotPassword: (): ForgotPasswordPageActions<Context> =>
-        this.step("Go to 'forgot password' page", async (page) =>
-          page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click(),
-        ).into(ForgotPasswordPageActions<Context>),
+        this.step("Go to 'forgot password' page", async (page) => {
+          await page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click()
+          await expect(page.getByRole('button', { name: TEXT.sendLink })).toBeVisible()
+        }).into(ForgotPasswordPageActions<Context>),
     }
   }
 
@@ -37,7 +38,7 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
     return this.step('Login (as new user)', async (page) => {
       await this.loginInternal(email, password)
       await passAgreementsDialog({ page })
-    }).into(SetupUsernamePageActions<Context>)
+    }).into(DrivePageActions<Context>)
   }
 
   /** Perform a failing login. */

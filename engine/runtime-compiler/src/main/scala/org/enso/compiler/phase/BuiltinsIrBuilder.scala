@@ -40,13 +40,14 @@ object BuiltinsIrBuilder {
     val moduleContext = ModuleContext(
       module          = module,
       freshNameSupply = Some(freshNameSupply),
-      compilerConfig  = CompilerConfig(warningsEnabled = false)
+      compilerConfig  = CompilerConfig.builder().warningsEnabled(false).build()
     )
     val initialIr = EnsoParser.compile(module.getCharacters)
     val irAfterModDiscovery = passManager.runPassesOnModule(
       initialIr,
       moduleContext,
-      passes.moduleDiscoveryPasses
+      passes.moduleDiscoveryPasses,
+      None
     )
     context.updateModule(
       module,
@@ -60,12 +61,14 @@ object BuiltinsIrBuilder {
     val irAfterTypes = passManager.runPassesOnModule(
       irAfterModDiscovery,
       moduleContext,
-      passes.globalTypingPasses
+      passes.globalTypingPasses,
+      None
     )
     val irAfterCompilation = passManager.runPassesOnModule(
       irAfterTypes,
       moduleContext,
-      passes.functionBodyPasses
+      passes.functionBodyPasses,
+      None
     )
     context.updateModule(
       module,

@@ -477,15 +477,33 @@ object Name {
     * @param originalName the name which this literal has replaced, if any
     * @param passData the pass metadata associated with this node
     */
-  sealed case class Literal(
+  sealed case class Literal private (
     override val name: String,
     override val isMethod: Boolean,
     override val identifiedLocation: IdentifiedLocation,
-    originalName: Option[Name]             = None,
-    override val passData: MetadataStorage = new MetadataStorage()
+    private val origName: Name,
+    override val passData: MetadataStorage
   ) extends Name
       with LazyDiagnosticStorage
       with LazyId {
+
+    def this(
+      name: String,
+      isMethod: Boolean,
+      identifiedLocation: IdentifiedLocation,
+      originalName: Option[Name] = None,
+      passData: MetadataStorage  = new MetadataStorage()
+    ) = {
+      this(
+        name.intern(),
+        isMethod,
+        identifiedLocation,
+        originalName.orNull,
+        passData
+      )
+    }
+
+    def originalName: Option[Name] = Option(this.origName)
 
     /** Creates a copy of `this`.
       *
@@ -517,7 +535,7 @@ object Name {
         || id != this.id
       ) {
         val res =
-          Literal(name, isMethod, location.orNull, originalName, passData)
+          new Literal(name, isMethod, location.orNull, originalName, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -566,6 +584,16 @@ object Name {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
+  }
+
+  object Literal {
+    def apply(
+      name: String,
+      isMethod: Boolean,
+      identifiedLocation: IdentifiedLocation,
+      originalName: Option[Name] = None,
+      passData: MetadataStorage  = new MetadataStorage()
+    ) = new Literal(name, isMethod, identifiedLocation, originalName, passData)
   }
 
   /** Base trait for annotations. */

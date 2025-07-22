@@ -11,7 +11,6 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
-import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
@@ -30,7 +29,7 @@ import project.Runtime
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.Output_Stream.Output_Stream
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import data_link_encoding, data_link_extension
 from project.Enso_Cloud.Public_Utils import get_required_field
@@ -135,7 +134,7 @@ create_directory_with_parents (target : Enso_File) -> Existing_Enso_Asset =
             if parent_file.enso_path.is_root then Error.throw (Illegal_State.Error "Unexpected error: when creating directory "+target.path+", reached the root directory and the backend reported that it does not exist - which should not happen. Please report this error.") else
                 create_directory_with_parents parent_file
         _ -> error
-    if parent_asset.is_directory.not then Error.throw (File_Error.Not_A_Directory parent_file) else
+    if parent_asset.asset_type != Enso_Asset_Type.Directory then Error.throw (File_Error.Not_A_Directory parent_file) else
         body = JS_Object.from_pairs [["title", target.name], ["parentId", parent_asset.id]]
         Asset_Cache.invalidate target
         response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body

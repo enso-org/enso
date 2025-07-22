@@ -13,7 +13,6 @@ polyglot java import org.enso.table.data.column.builder.LossOfBigDecimalPrecisio
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
-polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemAggregator
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
@@ -21,9 +20,12 @@ polyglot java import org.enso.table.data.table.problems.IgnoredNaN
 polyglot java import org.enso.table.data.table.problems.IgnoredNothing
 polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
+polyglot java import org.enso.table.data.table.problems.MapOperationProblemAggregator
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
+polyglot java import org.enso.table.parsing.problems.InconsistentFixedWidthLengths
+polyglot java import org.enso.table.parsing.problems.InvalidFixedWidthRow
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.problems.ProblemAggregator
@@ -31,7 +33,9 @@ polyglot java import org.enso.table.problems.ProblemAggregator.ProblemSummary
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Convert a Java problem into its Enso equivalent.
 translate_problem p = case p of
     _ : InvalidAggregation ->
@@ -72,6 +76,10 @@ translate_problem p = case p of
         Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : InvalidRow ->
         Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row) p.expected_length
+    _ : InvalidFixedWidthRow ->
+        Invalid_Fixed_Width_Row.Error p.source_line_number p.table_row_number p.line_length p.minimum_line_length
+    _ : InconsistentFixedWidthLengths ->
+        Inconsistent_Fixed_Width_Lengths.Error
     _ : AdditionalInvalidRows ->
         Additional_Invalid_Rows.Error p.count
     _ : DuplicateNames ->
@@ -83,7 +91,9 @@ translate_problem p = case p of
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 unpack_problem_summary problem_summary =
     problems_array = problem_summary.problems
     count = problem_summary.allProblemsCount
@@ -94,8 +104,11 @@ unpack_problem_summary problem_summary =
     if count == parsed.length then parsed else
         parsed + [Additional_Warnings.Error (count - parsed.length)]
 
-## PRIVATE
-   This is the new preferred way of running Java methods that may report problems.
+## ---
+   private: true
+   ---
+   This is the new preferred way of running Java methods that may report
+   problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
 with_problem_aggregator on_problems:Problem_Behavior f =
     ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
@@ -103,7 +116,9 @@ with_problem_aggregator on_problems:Problem_Behavior f =
     result = f aggregator
     on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 with_map_operation_problem_aggregator : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
 with_map_operation_problem_aggregator (location : Text | Nothing) on_problems:Problem_Behavior f =
     with_problem_aggregator on_problems java_aggregator->

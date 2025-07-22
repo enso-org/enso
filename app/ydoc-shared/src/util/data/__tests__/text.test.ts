@@ -1,6 +1,12 @@
 import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
-import { applyTextEdits, applyTextEditsToSpans, textChangeToEdits, trimEnd } from '../text'
+import {
+  SourceRange,
+  applyTextEdits,
+  applyTextEditsToSpans,
+  textChangeToEdits,
+  trimEnd,
+} from '../text'
 
 test.prop({
   before: fc.array(fc.boolean(), { minLength: 32, maxLength: 64 }),
@@ -8,7 +14,8 @@ test.prop({
 })('textChangeToEdits / applyTextEdits round-trip', ({ before, after }) => {
   // Generate strings composed of a mix of only two characters so that `textChangeToEdits` will find a variety of
   // similarities between the inputs.
-  const stringFromBools = (bools: Array<boolean>) => bools.map(bool => (bool ? 't' : 'f')).join('')
+  const stringFromBools = (bools: Array<boolean>) =>
+    bools.map((bool) => (bool ? 't' : 'f')).join('')
   const beforeString = stringFromBools(before)
   const afterString = stringFromBools(after)
   const edits = textChangeToEdits(beforeString, afterString)
@@ -42,15 +49,13 @@ function checkCorrespondence(a: string[], b: string[]) {
 }
 
 /**
-  Performs the same check as {@link checkCorrespondence}, for correspondences that are not expected to be reversible.
+ * Performs the same check as {@link checkCorrespondence}, for correspondences that are not expected to be reversible.
  */
 function checkCorrespondenceForward(before: string[], after: string[]) {
-  const leadingSpacesAndLength = (input: string): [number, number] => [
-    input.lastIndexOf(' ') + 1,
-    input.length,
-  ]
-  const spacesAndHyphens = ([spaces, length]: readonly [number, number]) => {
-    return ' '.repeat(spaces) + '-'.repeat(length - spaces)
+  const leadingSpacesAndLength = (input: string): SourceRange =>
+    SourceRange.tryFromBounds(input.lastIndexOf(' ') + 1, input.length)!
+  const spacesAndHyphens = ({ from, to }: SourceRange) => {
+    return ' '.repeat(from) + '-'.repeat(to - from)
   }
   const edits = textChangeToEdits(before[0]!, after[0]!)
   const spansAfter = applyTextEditsToSpans(edits, before.slice(1).map(leadingSpacesAndLength)).map(

@@ -2,7 +2,6 @@ import createDebug from 'debug'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
-import * as random from 'lib0/random'
 import * as zlib from 'node:zlib'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
@@ -68,7 +67,7 @@ export class LanguageServerSession {
   /** Create a {@link LanguageServerSession}. */
   constructor(url: string) {
     this.clientScope = new AbortScope()
-    this.clientId = random.uuidv4() as Uuid
+    this.clientId = crypto.randomUUID() as Uuid
     this.docs = new Map()
     this.retainCount = 0
     this.url = url
@@ -111,7 +110,7 @@ export class LanguageServerSession {
   }
 
   private setupClient() {
-    this.ls.on('file/event', async event => {
+    this.ls.on('file/event', async (event) => {
       debugLog('file/event %O', event)
       const result = await this.handleFileEvent(event)
       if (!result.ok) this.restartClient()
@@ -125,7 +124,7 @@ export class LanguageServerSession {
       if (!result.ok) this.restartClient()
     }
     this.ls.on('text/fileModifiedOnDisk', fileModified)
-    this.ls.on('text/didChange', event => {
+    this.ls.on('text/didChange', (event) => {
       for (const edit of event.edits) {
         fileModified(edit)
       }
@@ -133,7 +132,7 @@ export class LanguageServerSession {
     exponentialBackoff(
       () => this.readInitialState(),
       printingCallbacks('read initial state', 'read initial state'),
-    ).then(result => {
+    ).then((result) => {
       if (!result.ok) {
         result.error.log('Could not read initial state')
         exponentialBackoff(
@@ -184,7 +183,7 @@ export class LanguageServerSession {
       () => 'When reading initial state',
       async () => {
         let moduleOpenPromises: Promise<Result<void>>[] = []
-        const projectRoot = (await this.ls.contentRoots).find(root => root.type === 'Project')
+        const projectRoot = (await this.ls.contentRoots).find((root) => root.type === 'Project')
         if (!projectRoot) return Err('Missing project root')
         this.projectRootId = projectRoot.id
         const aquireResult = await this.ls.acquireReceivesTreeUpdates({
@@ -196,13 +195,13 @@ export class LanguageServerSession {
         if (!files.ok) return files
         moduleOpenPromises = this.indexDoc.doc.transact(
           () =>
-            files.value.map(file =>
+            files.value.map((file) =>
               this.getModuleModel(pushPathSegment(file.path, file.name)).open(),
             ),
           this,
         )
         const results = await Promise.all(moduleOpenPromises)
-        return results.find(res => !res.ok) ?? Ok()
+        return results.find((res) => !res.ok) ?? Ok()
       },
     )
   }
@@ -214,7 +213,9 @@ export class LanguageServerSession {
     const srcModules = await this.ls.listFiles(sourceDir)
     if (!srcModules.ok) return srcModules
     return Ok(
-      srcModules.value.paths.filter(file => file.type === 'File' && file.name.endsWith(EXTENSION)),
+      srcModules.value.paths.filter(
+        (file) => file.type === 'File' && file.name.endsWith(EXTENSION),
+      ),
     )
   }
 
@@ -252,7 +253,7 @@ export class LanguageServerSession {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
     const modules = this.authoritativeModules.values()
-    const moduleDisposePromises = Array.from(modules, mod => mod.dispose())
+    const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()
     this.model.doc.destroy()
     this.clientScope.dispose('LangueServerSession disposed.')
@@ -328,15 +329,19 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
     const onFileModified = this.handleFileModified.bind(this)
     const onFileRemoved = this.handleFileRemoved.bind(this)
+    const onTransportClosed = () => this.setState(LsSyncState.Closed)
     this.doc.ydoc.on('update', onLocalUpdate)
     sharedDoc.on('update', onRemoteUpdate)
+    this.ls.retain()
     this.ls.on('text/fileModifiedOnDisk', onFileModified)
     this.ls.on('file/rootRemoved', onFileRemoved)
+    this.ls.on('transport/closed', onTransportClosed)
     this.cleanup = () => {
       this.doc.ydoc.off('update', onLocalUpdate)
       sharedDoc.off('update', onRemoteUpdate)
       this.ls.off('text/fileModifiedOnDisk', onFileModified)
       this.ls.off('file/rootRemoved', onFileRemoved)
+      this.ls.off('transport/closed', onTransportClosed)
     }
   }
 
@@ -411,7 +416,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           case LsSyncState.Closed: {
             return await this.withState(LsSyncState.Opening, async () => {
               const promise = this.ls.openTextFile(this.path)
-              this.setLastAction(promise.then(res => !res.ok && this.setState(LsSyncState.Closed)))
+              this.setLastAction(
+                promise.then((res) => !res.ok && this.setState(LsSyncState.Closed)),
+              )
               const result = await promise
               if (!result.ok) return result
               if (!result.value.writeCapability) {
@@ -559,7 +566,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedMetaJson = null
       return this.reload()
     }
-    const promise = apply.then(result => {
+    const promise = apply.then((result) => {
       if (!result.ok) return handleError(result.error)
       this.syncedContent = newContent
       this.syncedVersion = newVersion
@@ -648,7 +655,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         (nodeMeta.length !== 0 || widgetMeta.length !== 0)
       ) {
         const externalIdToAst = new Map<ExternalId, Ast.Ast>()
-        astRoot.visitRecursive(ast => {
+        astRoot.visitRecursive((ast) => {
           const ancestorEntry = externalIdToAst.get(ast.externalId)
           if (!ancestorEntry || ancestorEntry instanceof Ast.ExpressionStatement)
             externalIdToAst.set(ast.externalId, ast)
@@ -776,7 +783,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           case LsSyncState.WriteError: {
             return this.withState(LsSyncState.Reloading, async () => {
               const path = this.path.segments.join('/')
-              const reloading = this.ls.closeTextFile(this.path).then(async closing => {
+              const reloading = this.ls.closeTextFile(this.path).then(async (closing) => {
                 if (!closing.ok) closing.error.log('Could not close file after write error:')
                 return exponentialBackoff(
                   async (): Promise<Result<response.OpenTextFile>> => {
@@ -814,13 +821,17 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   async dispose(): Promise<void> {
-    this.cleanup()
-    const alreadyClosed = this.inState(LsSyncState.Closing, LsSyncState.Closed)
-    this.setState(LsSyncState.Disposed)
-    if (alreadyClosed) return Promise.resolve()
-    const closing = await this.ls.closeTextFile(this.path)
-    if (!closing.ok) {
-      closing.error.log(`Closing text file ${this.path}`)
+    try {
+      this.cleanup()
+      const alreadyClosed = this.inState(LsSyncState.Closing, LsSyncState.Closed)
+      this.setState(LsSyncState.Disposed)
+      if (alreadyClosed) return Promise.resolve()
+      const closing = await this.ls.closeTextFile(this.path)
+      if (!closing.ok) {
+        closing.error.log(`Closing text file ${this.path}`)
+      }
+    } finally {
+      this.ls.release()
     }
   }
 }

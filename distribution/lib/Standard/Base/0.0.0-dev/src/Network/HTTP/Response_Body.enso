@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
-import project.Data.Json.Json
 import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -17,26 +16,19 @@ import project.Nothing.Nothing
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
-import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
-import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
-import project.System.File.Write_Extensions
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format
 import project.System.File_Format.Infer
-import project.System.File_Format.Plain_Text_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
-from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import format_types
-
-polyglot java import java.io.InputStream
 
 ## PRIVATE
    How large a response body can be before it is written to a temporary file.
@@ -51,9 +43,8 @@ type Response_Body
        - stream: The body of the response as an InputStream.
        - metadata: File format metadata associated with the response.
        - uri: The URI of the response.
-    new : InputStream -> File_Format_Metadata -> URI -> Response_Body
-    new stream (metadata : File_Format_Metadata) (uri : URI) =
-        input_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions uri)
+    new : Input_Stream -> File_Format_Metadata -> URI -> Response_Body
+    new input_stream (metadata : File_Format_Metadata) (uri : URI) =
         Response_Body.Raw_Stream input_stream metadata uri
 
     ## PRIVATE
@@ -162,7 +153,7 @@ type Response_Body
     to_text : Text
     to_text self = "Response_Body"
 
-    ## ALIAS export, save, output, to_file
+    ## ALIAS export, output, save, to_file
        GROUP Output
        ICON data_output
        Write response body to a File.

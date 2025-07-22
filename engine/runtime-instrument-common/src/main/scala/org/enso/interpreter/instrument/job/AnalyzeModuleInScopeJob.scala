@@ -12,12 +12,13 @@ import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ModuleExports, Suggestion}
-
-import java.util.logging.Level
+import org.slf4j.LoggerFactory
 
 final class AnalyzeModuleInScopeJob(
   modules: Iterable[(Module, IndexState, Boolean)]
 ) extends BackgroundJob[Unit](AnalyzeModuleInScopeJob.Priority) {
+  private def logger: org.slf4j.Logger =
+    LoggerFactory.getLogger(classOf[AnalyzeModuleInScopeJob])
 
   private val exportsBuilder = new ExportsBuilder
 
@@ -46,8 +47,7 @@ final class AnalyzeModuleInScopeJob(
     ctx: RuntimeContext
   ): Unit = {
     if (!state.isIndexed && hasSource) {
-      ctx.executionService.getLogger
-        .log(Level.FINEST, s"Analyzing module in scope {0}", module.getName)
+      logger.trace(s"Analyzing module in scope {}", module.getName)
       val moduleName = module.getName
       val compiler   = ctx.executionService.getContext.getCompiler
       val types      = Module.findTypeHierarchy(compiler.context)
@@ -71,12 +71,10 @@ final class AnalyzeModuleInScopeJob(
       if (ctx.state.suggestions.markAsIndexed(module, state)) {
         sendModuleUpdate(notification)
       } else {
-        ctx.executionService.getLogger
-          .log(
-            Level.FINEST,
-            s"Calculated index for module in scope {0} is not up-to-date. Discarding",
-            module.getName
-          )
+        logger.trace(
+          s"Calculated index for module in scope {} is not up-to-date. Discarding",
+          module.getName
+        )
       }
     }
   }

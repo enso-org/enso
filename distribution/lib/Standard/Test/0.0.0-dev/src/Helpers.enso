@@ -8,12 +8,9 @@ import project.Clue.Clue
 import project.Group.Group
 import project.Spec.Spec
 import project.Spec_Result.Spec_Result
-import project.Suite.Suite
-import project.Suite_Config.Suite_Config
 import project.Test.Test
 import project.Test_Reporter
 import project.Test_Result.Test_Result
-
 
 run_specs_from_group : Vector Spec -> Group -> Any -> Vector Test_Result
 run_specs_from_group (specs : Vector Spec) (group : Group) progress_reporter =
@@ -50,7 +47,9 @@ run_spec (spec : Spec) =
     pair
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
 execute_spec_code : (Nothing -> Any) -> Spec_Result
 execute_spec_code spec_code =
     recovery = Panic.recover Any <|
@@ -69,16 +68,18 @@ execute_spec_code spec_code =
     result
 
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    An error describing that a test finished with an unexpected error.
 type Finished_With
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        An error describing that a test finished with an unexpected error.
 
-       Arguments:
-       - err: The payload of the error that triggered this error.
-       - stack_trace_text: A textual representation of the stack trace for the
-         error.
+       ## Arguments
+        - `err`: The payload of the error that triggered this error.
+        - `stack_trace_text`: A textual representation of the stack trace for the
+          error.
     Error err stack_trace_text

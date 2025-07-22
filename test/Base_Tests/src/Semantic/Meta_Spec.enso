@@ -1,7 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found, Private_Access
+from enso_dev.Helpers import Public_Type
+import project.Data.Complex_Helpers
+import project.Data.Complex_Helpers.Complex_Comparator
+
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -47,6 +51,7 @@ test_method a b = a + b
 
 type Test_Type
     Value x
+    No_Value
 
 type Sum_Type
     Variant_A x
@@ -64,6 +69,9 @@ type R
         r
     as_int self = self:Integer
 
+    private private_instance_method self = self.i
+    private private_static_method v = R.V "private" v
+
 Text.from (that:R) = that.a
 Integer.from (that:R) = that.i
 
@@ -75,7 +83,7 @@ add_specs suite_builder =
             meta_sym.name.should_equal "does_not_exist"
             new_sym = meta_sym . rename "my_method"
             object = My_Type.Value 1 2 3
-            new_sym object . should_equal 6
+            new_sym.value object . should_equal 6
         group_builder.specify "should allow manipulating atoms" <|
             atom = My_Type.Value 1 "foo" Nothing
             meta_atom = Meta.meta atom
@@ -88,14 +96,135 @@ add_specs suite_builder =
         group_builder.specify "should allow getting a value's constructor's fields" <|
             Meta.meta List.Nil . constructor . fields . should_equal []
             Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
+
+        group_builder.specify "prevent getting value from private constructor" <|
+            # constructor of a type defined in
+            cons = Public_Type.cons
+
+            # obtaining meta for constructor fails
+            meta = Meta.meta cons
+            meta . should_fail_with Private_Access
+
+            # the constructor call succeeds, because the private access check
+            # has already been done when obtaining the reference to `cons`.
+            cons 42 . is_nothing . should_be_false
+
+        group_builder.specify "prevent getting value from constructor in private module" <|
+            # constructor of a type defined in
+            cons = Public_Type.implicit_cons
+
+            # obtaining meta for constructor fails
+            meta = Meta.meta cons
+            meta . should_fail_with Private_Access
+
+            # the constructor call succeeds, because the private access check
+            # has already been done when obtaining the reference to `cons`.
+            cons 42 . is_nothing . should_be_false
+
+        group_builder.specify "prevent getting value from private constructor" <|
+            atom = Public_Type.new 6*7
+            meta = Meta.meta atom
+
+            # fields are invisible
+            meta.fields . should_equal []
+
+        group_builder.specify "prevent getting fields from private constructor" <|
+            atom = Public_Type.new 6*7
+            meta = Meta.meta atom
+
+            cons = meta.constructor
+
+            # constructor is inaccessible
+            cons . should_fail_with Private_Access
+
+            cons.catch.to_display_text . should_equal
+                "Cannot access private constructors."
+
+            # fields cannot be obtained as cons is already an error
+            cons.fields . should_fail_with Private_Access
+
+        group_builder.specify "prevent getting private constructors in the same project" <|
+            # type R has all constructors private
+            Meta.meta R . constructors . should_equal []
+
+        group_builder.specify "prevent getting private methods in the same project" <|
+            R.private_static_method 43 . private_instance_method . should_equal 43
+
+            arr = Meta.meta R . methods
+
+            # there are some methods
+            arr.length>10 . should_be_true
+
+            # neither private_instance_method nor private_static_method
+            # are in the list
+            arr.filter (\n->n.contains "_method") . should_equal []
+
+        group_builder.specify "prevent access to private module's type" <|
+            private_typ = Complex_Comparator
+            Meta.meta private_typ . should_fail_with Private_Access
+
+        group_builder.specify "private module's type is still type" <|
+            private_typ = Complex_Comparator
+            Meta.is_type private_typ . should_be_true
+
+        group_builder.specify "prevent access to private module" <|
+            private_mod = Complex_Helpers
+            Meta.meta private_mod . should_fail_with Private_Access
+
+        group_builder.specify "private module is still (associated) type" <|
+            private_mod = Complex_Helpers
+            Meta.is_type private_mod . should_be_true
+
+        group_builder.specify "restrictions on atom of private type" <|
+            atom = Public_Type.create 42
+            meta = Meta.meta atom
+
+            # fields are invisible
+            meta.fields . should_equal []
+
+            # constructor access is forbidden
+            meta.constructor . should_fail_with Private_Access
+
+            metyp = atom.to Meta.Type
+            metyp . should_fail_with Private_Access
+
+        group_builder.specify "prevent getting fields from private constructor in the same project" <|
+            # type R has all constructors private
+            atom = R.V "meaning" 6*7
+            meta = Meta.meta atom
+
+            # meta for atom can be obtained
+            meta.is_nothing . should_be_false
+
+            # constructor is inaccessible via Meta
+            meta.constructor . should_fail_with Private_Access
+
+            # possible to access private constructor in the same project
+            rv = R.V
+            rv . is_nothing . should_be_false
+
+            # impossible to create meta for it
+            cons = Meta.meta R.V
+            cons . should_fail_with Private_Access
+
+            # obtaining name inherently fails
+            cons . name . should_fail_with Private_Access
+
+            # obtaining fields inherently fails
+            cons.fields . should_fail_with Private_Access
+
         group_builder.specify "should allow creating atoms from atom constructors" <|
-            atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
+            atom_1 = Meta.meta My_Type.Value . new [1,"foo", Nothing]
             (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
-            atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
+            atom_2 = Meta.meta My_Type.Value . new [1,"foo", Nothing].to_array
             (Meta.meta atom_2).constructor.value . should_equal My_Type.Value
         group_builder.specify "should correctly return representations of different classes of objects" <|
-            Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
-            Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
+            case Meta.meta 1 of
+                p : Meta.Primitive -> p.value . should_equal 1
+                w -> Test.fail "Expecting Meta.Primitive, but was: "+w.to_text
+            case Meta.meta "foo" of
+                p : Meta.Primitive -> p.value . should_equal "foo"
+                w -> Test.fail "Expecting Meta.Primitive, but was: "+w.to_text
         group_builder.specify "should allow manipulation of error values" <|
             err = Error.throw "My Error"
             meta_err = Meta.meta err
@@ -250,7 +379,7 @@ add_specs suite_builder =
             meta_typ . should_be_a Meta.Type
             meta_typ.name . should_equal "Boolean"
             cons = case meta_typ of
-                Meta.Type.Value _ -> meta_typ.constructors
+                mt : Meta.Type -> mt.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
 
             cons.length . should_equal 2
@@ -266,7 +395,7 @@ add_specs suite_builder =
             meta_typ . should_be_a Meta.Type
             meta_typ.name . should_equal "My_Type"
             cons = case meta_typ of
-                Meta.Type.Value _ -> meta_typ.constructors
+                mt : Meta.Type -> mt.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
 
             cons.length . should_equal 1
@@ -285,20 +414,31 @@ add_specs suite_builder =
                 _ : Meta.Type -> meta_typ.methods
                 _ -> Test.fail "Should be a Meta.Type: " + meta_typ.to_text
 
-            methods.sort . should_equal ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
+            expected_methods = ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
+            expected_methods . should_only_contain_elements_in methods
 
         group_builder.specify "static methods of MyType" <|
             methods = Meta.meta (Meta.type_of My_Type) . methods
-            methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
+            expected_methods = ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
+            expected_methods . should_only_contain_elements_in methods
 
         group_builder.specify "methods of Integer" <|
-            Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'fits_in_long', 'floor', 'negate', 'round', 'to_decimal', 'to_float', 'truncate']
+            expected_methods = Vector.build bldr->
+                bldr.append_vector_range <| Meta.meta Any . methods
+                bldr.append_vector_range <| Meta.meta Number . methods
+                bldr.append_vector_range <| Meta.meta Integer . methods
+                bldr.to_vector.distinct
+            expected_methods . should_only_contain_elements_in (Meta.meta Integer . methods)
 
         group_builder.specify "static methods of Integer" <|
-            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'fits_in_long', 'floor', 'negate', 'parse', 'round', 'to_decimal', 'to_float', 'truncate']
+            expected_methods = ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'fits_in_long', 'floor', 'negate', 'parse', 'round', 'to_decimal', 'to_float', 'truncate']
+            expected_methods . should_only_contain_elements_in <| Meta.meta (Meta.type_of Integer) . methods
 
         group_builder.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"
+
+        group_builder.specify "name of Panic" <|
+            Meta.meta Panic . name . should_equal "Panic"
 
         group_builder.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Java_Random.new
@@ -345,6 +485,30 @@ add_specs suite_builder =
             Meta.get_annotation My_Type .Value "foo" 7 8 . should_equal 15
             Meta.get_annotation My_Type .Value "bar" . should_equal Nothing
             Meta.get_annotation My_Type .Value "baz" . should_equal (My_Type.Value 1 2 3)
+
+        group_builder.specify "atom constructor with suspended evalution" <|
+            m = Meta.meta (Test_Type.No_Value...)
+            case m of
+                ac : Meta.Constructor ->
+                    ac.name . should_equal "No_Value"
+                    ac.fields.length . should_equal 0
+                    ac.declaring_type . should_equal (Meta.meta Test_Type)
+                    case ac.value... of
+                        _ : Function -> "OK"
+                        other -> Test.fail "Expecting function, but was: "+other.to_text
+                    case ac.value of
+                        v : Test_Type -> v . should_equal Test_Type.No_Value
+                        other -> Test.fail "Expecting atom, but was: "+other.to_text
+                _ ->
+                    Test.fail "Expecting Meta.Constructor, but was: "+m.to_text
+
+        group_builder.specify "atom without suspended evalution" <|
+            m = Meta.meta Test_Type.No_Value
+            case m of
+                a : Meta.Atom ->
+                    a.constructor.name . should_equal "No_Value"
+                _ ->
+                    Test.fail "Expecting Meta.Constructor, but was: "+m.to_text
 
     suite_builder.group "Check Nothing and NaN" group_builder->
         group_builder.specify "Nothing.is_a Nothing" <|
@@ -508,6 +672,71 @@ add_specs suite_builder =
             fqn.should_contain "Meta_Spec.My_Ascribed_Type"
             typ = Meta.Type.find fqn
             typ . should_equal meta_type
+
+    suite_builder.group ".to Meta.Type" group_builder->
+        group_builder.specify "Type of Pair type" <|
+            fqn =  Pair.to Meta.Type . qualified_name
+            fqn . should_equal "Standard.Base.Data.Pair.Pair"
+
+        group_builder.specify "Type of Pair value" <|
+            p = Pair.new "A" 2
+            fqn =  p.to Meta.Type . qualified_name
+            fqn . should_equal "Standard.Base.Data.Pair.Pair"
+
+    suite_builder.group "Meta.meta" group_builder->
+        group_builder.specify "should report private error on synthetic module" <|
+            meta_type = Meta.meta Standard.Base.Network
+            meta_type.catch . should_equal (Private_Access.Error Nothing Nothing 'meta' 'No Meta.meta for private objects')
+
+        group_builder.specify "function with argument" <|
+            plus x by=1 = x+by
+
+            case Meta.meta plus of
+                fn : Meta.Function ->
+                    fn.arguments . should_equal ["x"]
+                    fn.arguments defaulted=True . should_equal ["x", "by"]
+                    fn.arguments defaulted=True pending=False . should_equal [ "by" ]
+                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
+        group_builder.specify "oversaturated function" <|
+            mul_or_add mul =
+                op = if mul then (*) else (+)
+                \by -> op by
+
+            by_one = mul_or_add by=1
+
+            # verify it increments
+            by_one mul=False 41 . should_equal 42
+
+            case Meta.meta by_one of
+                fn : Meta.Function ->
+                    fn.arguments . should_equal ["mul"]
+                    fn.arguments defaulted=True . should_equal ["mul"]
+                    fn.arguments pending=False oversaturated=True . should_equal ["by"]
+                    fn.arguments defaulted=True pending=False . should_equal []
+                unknown -> Test.fail "Expecting Meta.Function, but was: "+unknown.to_text
+
+
+        group_builder.specify "function without an argument" <|
+            case Meta.meta glob_means_fn... of
+                p : Meta.Primitive ->
+                    p.value . should_equal 42
+                unknown -> Test.fail "Expecting Meta.Primitive, but was: "+unknown.to_text
+
+        group_builder.specify "unresolved symbol" <|
+            case Meta.meta .nic of
+                s : Meta.Unresolved ->
+                    s.is_constructor . should_be_false
+                unknown -> Test.fail "Expecting Meta.Unresolved, but was: "+unknown.to_text
+
+        group_builder.specify "unresolved constructor" <|
+            case Meta.meta ..Maybe of
+                s : Meta.Unresolved ->
+                    s.is_constructor . should_be_true
+                unknown -> Test.fail "Expecting Meta.Unresolved, but was: "+unknown.to_text
+
+glob_means_fn =
+    42
 
 main filter=Nothing =
     suite = Test.build suite_builder->

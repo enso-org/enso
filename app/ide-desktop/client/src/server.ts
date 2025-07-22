@@ -3,6 +3,7 @@
 import * as mkcert from 'mkcert'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
+import * as https from 'node:https'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
 
@@ -12,7 +13,7 @@ import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
 import * as projectManagement from '@/projectManagement'
-import * as common from 'enso-common'
+import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
@@ -22,7 +23,10 @@ import { pathToFileURL } from 'node:url'
 
 const logger = contentConfig.logger
 
-ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log.bind(logger))
+ydocServer.configureAllDebugLogs(
+  process.env.ENSO_IDE_YDOC_LS_DEBUG === 'true',
+  logger.log.bind(logger),
+)
 
 // =================
 // === Constants ===
@@ -31,6 +35,8 @@ ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logg
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
+const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
+const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 // ==============
 // === Config ===
@@ -143,14 +149,16 @@ export class Server {
               reject(err)
             }
             const server = httpsServer ?? httpServer
-            if (server) {
-              await ydocServer.createGatewayServer(server)
-            } else {
-              logger.warn('YDocs server is not run, new GUI may not work properly!')
+            if (!IS_ELECTRON_DEV_MODE) {
+              if (server) {
+                await ydocServer.createGatewayServer(server)
+              } else {
+                logger.warn('YDocs server is not run, new GUI may not work properly!')
+              }
             }
             logger.log(`Server started on port ${this.config.port}.`)
-            logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
-            if (process.env.ELECTRON_DEV_MODE === 'true') {
+            logger.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
+            if (IS_ELECTRON_DEV_MODE) {
               const vite = (await import(
                 pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
               )) as typeof import('vite')
@@ -160,6 +168,20 @@ export class Server {
                   hmr: server ? { server } : {},
                 },
                 configFile: process.env.GUI_CONFIG_PATH ?? false,
+                mode: process.env.MODE ?? 'staging',
+              })
+
+              const docServer = http.createServer()
+              docServer.on('request', (request, response) => {
+                if (request.method === 'GET' && request.url === '/_health') {
+                  response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
+                }
+              })
+
+              await ydocServer.createGatewayServer(docServer)
+
+              docServer.listen(5976, 'localhost', () => {
+                console.log(`Ydoc server listening on localhost:5976`)
               })
             }
             resolve()
@@ -187,7 +209,7 @@ export class Server {
         http.request(
           actualUrl,
           { headers: request.headers, method: request.method },
-          actualResponse => {
+          (actualResponse) => {
             response.writeHead(
               // This is SAFE. The documentation says:
               // Only valid for response obtained from ClientRequest.
@@ -200,6 +222,88 @@ export class Server {
         ),
         { end: true },
       )
+    } else if (requestUrl.startsWith('/api/cloud/')) {
+      switch (requestPath) {
+        case '/api/cloud/download-project': {
+          const url = new URL(`https://example.com/${requestUrl}`)
+          const downloadUrl = url.searchParams.get('downloadUrl')
+          const projectId = url.searchParams.get('projectId')
+
+          if (downloadUrl == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+              .end('Request is missing search parameter `downloadUrl`.')
+            break
+          }
+
+          if (projectId == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+              .end('Request is missing search parameter `projectId`.')
+            break
+          }
+
+          https.get(downloadUrl, async (actualResponse) => {
+            const projectsDirectory = projectManagement.getProjectsDirectory()
+            const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+            const projectRootDirectory = path.join(parentDirectory, 'project_root')
+
+            try {
+              await fs.mkdir(projectRootDirectory, { recursive: true })
+              await projectManagement.unpackBundle(actualResponse, projectRootDirectory)
+              response
+                .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
+                .end(JSON.stringify({ projectRootDirectory, parentDirectory }))
+            } catch (e) {
+              logger.error(e)
+              await fs
+                .access(parentDirectory)
+                .then(() => {
+                  fs.rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+                })
+                .catch((e) => {
+                  logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+                })
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+            }
+          })
+
+          break
+        }
+        case '/api/cloud/get-project-archive': {
+          const url = new URL(`https://example.com/${requestUrl}`)
+          const parentDir = url.searchParams.get('directory')
+
+          if (parentDir == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+              .end('Request is missing search parameter `directory`.')
+            break
+          }
+          const projectDir = path.join(parentDir, 'project_root')
+
+          projectManagement
+            .createBundle(projectDir)
+            .then((projectBundle) => {
+              response
+                .writeHead(HTTP_STATUS_OK, {
+                  ...COOP_COEP_CORP_HEADERS,
+                  'Content-Length': String(projectBundle.byteLength),
+                })
+                .end(projectBundle)
+            })
+            .catch((err) => {
+              logger.error(err)
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+            })
+
+          break
+        }
+        default: {
+          logger.error(`Unknown Cloud middleware request:`, requestPath)
+          break
+        }
+      }
     } else if (request.method === 'POST') {
       switch (requestPath) {
         case '/api/upload-file': {
@@ -208,7 +312,7 @@ export class Server {
           const directory = url.searchParams.get('directory') ?? this.projectsRootDirectory
           if (fileName == null) {
             response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
               .end('Request is missing search parameter `file_name`.')
           } else {
             const filePath = path.join(directory, fileName)
@@ -219,13 +323,13 @@ export class Server {
                   .writeHead(HTTP_STATUS_OK, [
                     ['Content-Length', String(filePath.length)],
                     ['Content-Type', 'text/plain'],
-                    ...common.COOP_COEP_CORP_HEADERS,
+                    ...COOP_COEP_CORP_HEADERS,
                   ])
                   .end(filePath)
               })
-              .catch(e => {
+              .catch((e) => {
                 console.error(e)
-                response.writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS).end()
+                response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
               })
           }
           break
@@ -239,17 +343,17 @@ export class Server {
           const name = url.searchParams.get('name')
           void this.config.externalFunctions
             .uploadProjectBundle(request, directory, name)
-            .then(project => {
+            .then((project) => {
               response
                 .writeHead(HTTP_STATUS_OK, [
                   ['Content-Length', String(project.id.length)],
                   ['Content-Type', 'text/plain'],
-                  ...common.COOP_COEP_CORP_HEADERS,
+                  ...COOP_COEP_CORP_HEADERS,
                 ])
                 .end(project.id)
             })
             .catch(() => {
-              response.writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS).end()
+              response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
             })
           break
         }
@@ -262,7 +366,7 @@ export class Server {
             !cliArguments.every((item): item is string => typeof item === 'string')
           ) {
             response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
               .end('Command arguments must be an array of strings.')
           } else {
             const commandOutput = (() => {
@@ -281,14 +385,14 @@ export class Server {
             })()
             response.writeHead(HTTP_STATUS_OK, [
               ['Content-Type', 'application/json'],
-              ...common.COOP_COEP_CORP_HEADERS,
+              ...COOP_COEP_CORP_HEADERS,
             ])
             commandOutput.pipe(response, { end: true })
           }
           break
         }
         default: {
-          response.writeHead(HTTP_STATUS_NOT_FOUND, common.COOP_COEP_CORP_HEADERS).end()
+          response.writeHead(HTTP_STATUS_NOT_FOUND, COOP_COEP_CORP_HEADERS).end()
           break
         }
       }
@@ -297,7 +401,7 @@ export class Server {
         .writeHead(HTTP_STATUS_OK, [
           ['Content-Length', String(this.projectsRootDirectory.length)],
           ['Content-Type', 'text/plain'],
-          ...common.COOP_COEP_CORP_HEADERS,
+          ...COOP_COEP_CORP_HEADERS,
         ])
         .end(this.projectsRootDirectory)
     } else if (this.devServer) {
@@ -315,11 +419,11 @@ export class Server {
       // this server.
       const resourceFile =
         resource === '/preload.mjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
-      for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+      for (const [header, value] of COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }
       fs.readFile(resourceFile)
-        .then(data => {
+        .then((data) => {
           const contentType = mime.contentType(path.extname(resourceFile))
           const contentLength = data.length
           if (contentType !== false) {

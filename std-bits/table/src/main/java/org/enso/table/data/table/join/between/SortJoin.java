@@ -1,11 +1,13 @@
 package org.enso.table.data.table.join.between;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.enso.base.ObjectComparator;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
@@ -23,9 +25,9 @@ public class SortJoin implements JoinStrategy {
     Context context = Context.getCurrent();
     int nConditions = conditions.size();
     directions = new int[nConditions];
-    leftStorages = new Storage<?>[nConditions];
-    lowerStorages = new Storage<?>[nConditions];
-    upperStorages = new Storage<?>[nConditions];
+    leftStorages = new ColumnStorage<?>[nConditions];
+    lowerStorages = new ColumnStorage<?>[nConditions];
+    upperStorages = new ColumnStorage<?>[nConditions];
     for (int i = 0; i < nConditions; i++) {
       directions[i] = 1;
       leftStorages[i] = conditions.get(i).left().getStorage();
@@ -38,32 +40,33 @@ public class SortJoin implements JoinStrategy {
   private final JoinKind joinKind;
 
   private final int[] directions;
-  private final Storage<?>[] leftStorages;
-  private final Storage<?>[] lowerStorages;
-  private final Storage<?>[] upperStorages;
-  private final BitSet matchedLeftRows = new BitSet();
+  private final ColumnStorage<?>[] leftStorages;
+  private final ColumnStorage<?>[] lowerStorages;
+  private final ColumnStorage<?>[] upperStorages;
+  private final Set<Long> matchedLeftRows = new HashSet<>();
 
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+    var resultBuilder = new JoinResult.Builder();
 
-    int leftRowCount = leftStorages[0].size();
-    int rightRowCount = lowerStorages[0].size();
+    long leftRowCount = leftStorages[0].getSize();
+    long rightRowCount = lowerStorages[0].getSize();
     if (leftRowCount == 0 || rightRowCount == 0) {
       // if one group is completely empty, there will be no matches to report
       return resultBuilder.buildAndInvalidate();
     }
-    List<OrderedMultiValueKey> leftKeys = new ArrayList<>(leftRowCount);
-    for (int i = 0; i < leftRowCount; i++) {
+
+    Context context = Context.getCurrent();
+    List<OrderedMultiValueKey> leftKeys = new ArrayList<>(Builder.checkSize(leftRowCount));
+    for (long i = 0; i < leftRowCount; i++) {
       leftKeys.add(new OrderedMultiValueKey(leftStorages, i, directions));
       context.safepoint();
     }
 
     SortedListIndex<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
 
-    for (int rightRowIx = 0; rightRowIx < rightRowCount; rightRowIx++) {
-      int matches = addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
+    for (long rightRowIx = 0; rightRowIx < rightRowCount; rightRowIx++) {
+      long matches = addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
       if (joinKind.wantsRightUnmatched && matches == 0) {
         resultBuilder.addUnmatchedRightRow(rightRowIx);
       }
@@ -71,8 +74,8 @@ public class SortJoin implements JoinStrategy {
     }
 
     if (joinKind.wantsLeftUnmatched) {
-      for (int leftRowIx = 0; leftRowIx < leftRowCount; leftRowIx++) {
-        if (!matchedLeftRows.get(leftRowIx)) {
+      for (long leftRowIx = 0; leftRowIx < leftRowCount; leftRowIx++) {
+        if (!matchedLeftRows.contains(leftRowIx)) {
           resultBuilder.addUnmatchedLeftRow(leftRowIx);
         }
         context.safepoint();
@@ -83,8 +86,8 @@ public class SortJoin implements JoinStrategy {
   }
 
   public void joinSubsets(
-      List<Integer> leftGroup,
-      List<Integer> rightGroup,
+      List<Long> leftGroup,
+      List<Long> rightGroup,
       JoinResult.Builder resultBuilder,
       ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
@@ -100,8 +103,8 @@ public class SortJoin implements JoinStrategy {
 
     SortedListIndex<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
 
-    for (int rightRowIx : rightGroup) {
-      int matches = addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
+    for (long rightRowIx : rightGroup) {
+      long matches = addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
       if (joinKind.wantsRightUnmatched && matches == 0) {
         resultBuilder.addUnmatchedRightRow(rightRowIx);
       }
@@ -109,8 +112,8 @@ public class SortJoin implements JoinStrategy {
     }
 
     if (joinKind.wantsLeftUnmatched) {
-      for (int leftRowIx : leftGroup) {
-        if (!matchedLeftRows.get(leftRowIx)) {
+      for (long leftRowIx : leftGroup) {
+        if (!matchedLeftRows.contains(leftRowIx)) {
           resultBuilder.addUnmatchedLeftRow(leftRowIx);
         }
         context.safepoint();
@@ -123,11 +126,11 @@ public class SortJoin implements JoinStrategy {
     return SortedListIndex.build(keys, firstCoordinateComparator);
   }
 
-  private OrderedMultiValueKey buildLowerBound(int rightRowIx) {
+  private OrderedMultiValueKey buildLowerBound(long rightRowIx) {
     return new OrderedMultiValueKey(lowerStorages, rightRowIx, directions, objectComparator);
   }
 
-  private OrderedMultiValueKey buildUpperBound(int rightRowIx) {
+  private OrderedMultiValueKey buildUpperBound(long rightRowIx) {
     return new OrderedMultiValueKey(upperStorages, rightRowIx, directions, objectComparator);
   }
 
@@ -137,9 +140,9 @@ public class SortJoin implements JoinStrategy {
    *
    * <p>It also marks any of the left rows that were matched, in the {@code matchedLeftRows}.
    */
-  private int addMatchingLeftRows(
+  private long addMatchingLeftRows(
       SortedListIndex<OrderedMultiValueKey> sortedLeftIndex,
-      int rightRowIx,
+      long rightRowIx,
       JoinResult.Builder resultBuilder) {
     OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
     OrderedMultiValueKey upperBound = buildUpperBound(rightRowIx);
@@ -151,20 +154,20 @@ public class SortJoin implements JoinStrategy {
       return 0;
     }
 
-    int matchCount = 0;
+    long matchCount = 0;
 
     List<OrderedMultiValueKey> firstCoordinateMatches =
         sortedLeftIndex.findSubRange(lowerBound, upperBound);
     Context context = Context.getCurrent();
     for (OrderedMultiValueKey key : firstCoordinateMatches) {
       if (isInRange(key, lowerBound, upperBound)) {
-        int leftRowIx = key.getRowIndex();
+        long leftRowIx = key.getRowIndex();
         matchCount++;
         if (joinKind.wantsCommon) {
           resultBuilder.addMatchedRowsPair(leftRowIx, rightRowIx);
         }
         if (joinKind.wantsLeftUnmatched) {
-          matchedLeftRows.set(leftRowIx);
+          matchedLeftRows.add(leftRowIx);
         }
       }
 

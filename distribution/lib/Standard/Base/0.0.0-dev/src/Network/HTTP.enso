@@ -1,16 +1,11 @@
 import project.Any.Any
 import project.Data.Dictionary.Dictionary
-import project.Data.Hashset.Hashset
-import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
-import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
-import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Response_Too_Large
@@ -166,7 +161,7 @@ type HTTP
                     all_headers = headers + boundary_header_list
                     mapped_headers = all_headers.map on_problems=No_Wrap.Value .to_java_pair
 
-                    response = Response.Value (EnsoSecretHelper.makeRequest (self.make_client self resolved_body.hash) builder req.uri.to_java_representation mapped_headers (cache_policy.should_use_cache req))
+                    response = Response.new (EnsoSecretHelper.makeRequest (self.make_client self resolved_body.hash) builder req.uri.to_java_representation mapped_headers (cache_policy.should_use_cache req))
                     if error_on_failure_code.not || response.code.is_success then response else
                         body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
@@ -297,7 +292,7 @@ private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_enco
 ## PRIVATE
 if_fetch_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
 if_fetch_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
-    if [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options].contains method then action else
+    if [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options, HTTP_Method.Trace].contains method then action else
         if_not
 
 ## PRIVATE

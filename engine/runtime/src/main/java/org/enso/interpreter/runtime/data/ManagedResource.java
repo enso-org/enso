@@ -4,14 +4,16 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.lang.ref.PhantomReference;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.error.PanicException;
 
 /**
  * An Enso runtime representation of a managed resource.
@@ -33,12 +35,16 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  * {@link ManagedResource}</b>, the {@code Item} is put into {@link ResourceManager} {@code
  * referenceQueue} and process by the intricate machinery of {@link ResourceManager} and its {@code
  * ProcessItems} processor.
+ *
+ * <p><Using the same underlying resource with multiple managed resource instances is an error and
+ * will result in an `Illegal_Argument` panic.
+ *
+ * <p>Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed resources.
  */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
-public final class ManagedResource extends EnsoObject {
-  private final Object resource;
+public final class ManagedResource extends BuiltinObject {
+  private final TruffleObject resource;
   private final PhantomReference<ManagedResource> phantomReference;
 
   /**
@@ -48,10 +54,15 @@ public final class ManagedResource extends EnsoObject {
    * @param factory factory to create reference
    */
   public ManagedResource(
-      Object resource,
+      TruffleObject resource,
       java.util.function.Function<ManagedResource, PhantomReference<ManagedResource>> factory) {
     this.resource = resource;
     this.phantomReference = factory.apply(this);
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Managed_Resource";
   }
 
   /**
@@ -74,8 +85,15 @@ public final class ManagedResource extends EnsoObject {
               + " object is garbage collected.")
   @Builtin.Specialize
   public static ManagedResource register_builtin(
-      EnsoContext context, Object resource, Function function, boolean systemCanFinalize) {
-    return context.getResourceManager().register(resource, function, systemCanFinalize);
+      EnsoContext ctx, Object obj, Function function, boolean systemCanFinalize) {
+    if (obj instanceof TruffleObject resource) {
+      return ctx.getResourceManager().register(resource, function, systemCanFinalize);
+    } else {
+      var error = ctx.getBuiltins().error();
+      var msg = "Cannot manage non-resource object";
+      var payload = error.makeUnsupportedArgumentsError(new Object[] {obj}, msg);
+      throw new PanicException(ctx, payload, null, null);
+    }
   }
 
   @Builtin.Method(
@@ -98,29 +116,9 @@ public final class ManagedResource extends EnsoObject {
   }
 
   @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().managedResource();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().managedResource();
-  }
-
-  @ExportMessage
   @TruffleBoundary
-  public String toDisplayString(boolean allowSideEffects, @Bind("$node") Node node) {
-    var type = getType(node);
+  public String toDisplayString(boolean allowSideEffects, @Bind Node node) {
+    var type = getBuiltinType(node);
     return type.getName()
         + " "
         + InteropLibrary.getUncached().toDisplayString(resource, allowSideEffects);

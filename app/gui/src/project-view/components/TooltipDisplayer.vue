@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { type TooltipRegistry } from '@/providers/tooltipRegistry'
-import { debouncedGetter } from '@/util/reactivity'
-import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
-import { computed, ref } from 'vue'
+import { HoveredElement, type TooltipRegistry } from '@/providers/tooltipRegistry'
+import { Opt } from '@/util/data/opt'
+import { autoUpdate, flip, FloatingElement, offset, shift, useFloating } from '@floating-ui/vue'
+import { computed, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps<{ registry: TooltipRegistry }>()
 
@@ -11,37 +11,108 @@ const TOOLTIP_SHOW_DELAY_MS = 1500
 // Time after which tooltip will disappear once an element is no longer hovered.
 const TOOLTIP_HIDE_DELAY_MS = 300
 
-const activeTooltip = computed(() => {
-  const element = props.registry.lastHoveredElement.value
-  return { element, entry: props.registry.getElementEntry(element) }
+// Currently hovered element and its tooltip entry.
+const activeTooltip = props.registry.lastHoveredElement
+// Previously hovered element and its tooltip entry.
+const previousTooltip = shallowRef<HoveredElement>()
+const show = ref(false)
+
+type Timeout = ReturnType<typeof setTimeout> | null
+let hideTimeout: Timeout
+let showTimeout: Timeout
+
+function resetTimeout(timeout: Timeout) {
+  if (timeout != null) {
+    clearTimeout(timeout)
+    timeout = null
+  }
+}
+
+watch(activeTooltip, (newValue, oldValue) => {
+  if (oldValue == null && newValue != null) {
+    // We are hovering some element, show its tooltip after delay.
+    resetTimeout(showTimeout)
+    resetTimeout(hideTimeout)
+    showTimeout = setTimeout(() => {
+      show.value = true
+      showTimeout = null
+    }, TOOLTIP_SHOW_DELAY_MS)
+    previousTooltip.value = toValue(newValue)
+  } else if (oldValue != null && newValue == null) {
+    // We no longer hover any element, hide the tooltip after delay.
+    resetTimeout(showTimeout)
+    resetTimeout(hideTimeout)
+    hideTimeout = setTimeout(() => {
+      show.value = false
+      hideTimeout = null
+    }, TOOLTIP_HIDE_DELAY_MS)
+  }
+  // There is no need to check if both `oldValue` and `newValue` are not null, because
+  // `activeTooltip` is always set to null intermitently when switching between elements.
 })
-const doShow = debouncedGetter(
-  () => activeTooltip.value.element != null && activeTooltip.value.entry != null,
-  TOOLTIP_SHOW_DELAY_MS,
-)
-const displayedEntry = debouncedGetter(activeTooltip, TOOLTIP_HIDE_DELAY_MS)
-const floatTarget = computed(() => {
-  return doShow.value && displayedEntry.value.element?.isConnected ?
-      displayedEntry.value.element
-    : undefined
+
+const isDisplayed = (tooltip: Opt<HoveredElement>) => {
+  if (tooltip == null) return false
+  if (tooltip.entry.isHidden) return false
+  if (tooltip.entry.forceShow) return true
+  if (!tooltip.element.isConnected) return false
+  switch (toValue(tooltip.entry.props.when)) {
+    case 'always':
+      return true
+    case 'whenOverflow':
+      return (
+        tooltip.element.scrollWidth > tooltip.element.clientWidth ||
+        tooltip.element.scrollHeight > tooltip.element.clientHeight
+      )
+    default:
+      return false
+  }
+}
+
+const displayedTooltip = computed(() => {
+  if (!show.value && !activeTooltip.value?.entry.forceShow) return undefined
+  // When hovering the element, display its tooltip.
+  if (isDisplayed(activeTooltip.value)) {
+    return activeTooltip.value
+  }
+  // If no element with the tooltip is being hovered, display the tooltip of the previously hovered element.
+  // (until it will be hidden after timeout, by changing the `show` ref)
+  if (isDisplayed(previousTooltip.value)) {
+    return previousTooltip.value
+  }
+  return undefined
 })
+const floatTarget = computed(() => displayedTooltip.value?.element)
+const tooltipContents = computed(() => displayedTooltip.value?.entry.contents.value)
+
+// Default implementation of autoUpdate ignores cases when the reference is being unmounted while in animation.
+// This is a hotfix for that.
+function whileElementsMounted(
+  reference: HTMLElement,
+  floating: FloatingElement,
+  update: () => void,
+): () => void {
+  return autoUpdate(reference, floating, () => {
+    if (reference.isConnected) {
+      update()
+    }
+  })
+}
 
 const tooltip = ref<HTMLDivElement>()
 const floating = useFloating(floatTarget, tooltip, {
-  placement: 'top',
+  placement: computed(() => toValue(displayedTooltip.value?.entry.props.placement)),
   transform: false,
   middleware: [offset(5), flip(), shift()],
-  whileElementsMounted: autoUpdate,
+  whileElementsMounted,
 })
-
-const tooltipContents = computed(() => displayedEntry.value.entry?.contents.value)
 </script>
 
 <template>
   <Transition>
     <div
       v-if="floatTarget != null && tooltipContents != null"
-      :key="displayedEntry.entry?.key ?? 0"
+      :key="displayedTooltip?.entry.key ?? 0"
       ref="tooltip"
       class="Tooltip"
       :style="floating.floatingStyles.value"

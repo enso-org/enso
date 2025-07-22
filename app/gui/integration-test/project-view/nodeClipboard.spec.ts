@@ -34,10 +34,7 @@ test('Copy component with context menu', async ({ page }) => {
   const nodeToCopy = locate.graphNodeByBinding(page, 'final')
   await nodeToCopy.click({ button: 'right' })
   await expect(nodeToCopy).toBeSelected()
-  await page
-    .locator('.ComponentContextMenu')
-    .getByRole('button', { name: 'Copy Component' })
-    .click()
+  await page.locator('.ActionMenu').getByRole('button', { name: 'Copy Component' }).click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
   await expect(nodeToCopy).not.toBeSelected()
   await expect(locate.selectedNodes(page)).toHaveCount(1)
@@ -123,7 +120,7 @@ test('Copy multiple components with context menu', async ({ page }) => {
     await expect(node2).toBeSelected()
     await node1.click({ button: 'right' })
     await page
-      .locator('.ComponentContextMenu')
+      .locator('.ActionMenu')
       .getByRole('button', { name: 'Copy Selected Components' })
       .click()
   })

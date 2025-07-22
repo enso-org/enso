@@ -3,7 +3,7 @@ package org.enso.table.aggregations;
 import java.util.List;
 import org.enso.base.CompareException;
 import org.enso.base.ObjectComparator;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
@@ -13,11 +13,11 @@ import org.graalvm.polyglot.Context;
 /**
  * Aggregate Column finding the minimum (minOrMax = -1) or maximum (minOrMax = 1) entry in a group.
  */
-public class MinOrMax extends Aggregator {
+public class MinOrMax extends KnownTypeAggregator {
   public static final int MIN = -1;
   public static final int MAX = 1;
 
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
   private final int minOrMax;
 
   /**

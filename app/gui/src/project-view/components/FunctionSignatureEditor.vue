@@ -1,44 +1,36 @@
 <script setup lang="ts">
-import { WidgetInput } from '@/providers/widgetRegistry'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import {
+  useGraphStore,
+  useProjectNames,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
+import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
+import { FunctionInfoKey } from '@/components/GraphEditor/widgets/WidgetFunctionDef.vue'
+import { providePopoverRoot } from '@/providers/popoverRoot'
+import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
+import { Ast } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
-import { isQualifiedName } from '@/util/qualifiedName'
-import { computed, ref, watchEffect } from 'vue'
-import { FunctionDef } from 'ydoc-shared/ast'
-import { MethodPointer } from 'ydoc-shared/languageServerTypes'
-import type * as Y from 'yjs'
-import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
-import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
+import { useYText } from '@/util/crdt'
+import { Ok } from '@/util/data/result'
+import { type MethodPointer } from '@/util/methodPointer'
+import { useFocusWithin } from '@vueuse/core'
+import { computed, useTemplateRef } from 'vue'
 
 const suggestionDb = useSuggestionDbStore()
+const projectNames = useProjectNames()
 
-const { functionAst, markdownDocs, methodPointer } = defineProps<{
-  functionAst: FunctionDef
-  markdownDocs: Y.Text | undefined
+const { functionAst, methodPointer } = defineProps<{
+  functionAst: Ast.FunctionDef
   methodPointer: MethodPointer | undefined
 }>()
 
-const docsString = ref<string>()
-
-function updateDocs() {
-  docsString.value = markdownDocs?.toJSON()
-}
-
-watchEffect((onCleanup) => {
-  const localMarkdownDocs = markdownDocs
-  if (localMarkdownDocs != null) {
-    updateDocs()
-    localMarkdownDocs.observe(updateDocs)
-    onCleanup(() => localMarkdownDocs.unobserve(updateDocs))
-  }
-})
+const docsString = useYText(() => functionAst.mutableDocumentationMarkdown())
 
 const docsData = computed(() => {
   const definedIn = methodPointer?.module
-  return definedIn && isQualifiedName(definedIn) ?
-      documentationData(docsString.value, definedIn, suggestionDb.groups)
-    : undefined
+  return definedIn && documentationData(docsString.value, definedIn.project, suggestionDb.groups)
 })
 
 const treeRootInput = computed((): WidgetInput => {
@@ -47,10 +39,15 @@ const treeRootInput = computed((): WidgetInput => {
   return input
 })
 
-const rootElement = ref<HTMLElement>()
+const rootElement = useTemplateRef('rootElement')
+const { focused } = useFocusWithin(rootElement)
+providePopoverRoot(rootElement)
 
-function handleWidgetUpdates() {
-  return true
+const graph = useGraphStore()
+
+function handleWidgetUpdates(update: WidgetUpdate) {
+  applyWidgetUpdates(update, graph)
+  return Ok()
 }
 
 const groupBasedColor = computed(() => {
@@ -59,10 +56,12 @@ const groupBasedColor = computed(() => {
 })
 
 const returnTypeBasedColor = computed(() => {
-  const suggestionId =
-    methodPointer ? suggestionDb.entries.findByMethodPointer(methodPointer) : undefined
-  const returnType = suggestionId ? suggestionDb.entries.get(suggestionId)?.returnType : undefined
-  return returnType ? colorFromString(returnType) : undefined
+  if (!methodPointer) return
+  const suggestionId = suggestionDb.entries.findByMethodPointer(methodPointer)
+  if (suggestionId == null) return
+  const entry = suggestionDb.entries.get(suggestionId)
+  if (!entry) return
+  return colorFromString(entry.returnType(projectNames))
 })
 
 const rootStyle = computed(() => {
@@ -71,13 +70,23 @@ const rootStyle = computed(() => {
       groupBasedColor.value ?? returnTypeBasedColor.value ?? 'var(--group-color-fallback)',
   }
 })
+
+// We surely don’t have primary application for the function definition.
+const primaryApplication = emptyPrimaryApplication()
 </script>
 
 <template>
-  <div ref="rootElement" :style="rootStyle" class="FunctionSignatureEditor define-node-colors">
+  <div
+    ref="rootElement"
+    :style="rootStyle"
+    class="FunctionSignatureEditor define-node-colors"
+    :class="{ selected: focused }"
+  >
     <WidgetTreeRoot
+      :selected="focused"
       :externalId="functionAst.externalId"
       :input="treeRootInput"
+      :primaryApplication="primaryApplication"
       :rootElement="rootElement"
       :extended="true"
       :onUpdate="handleWidgetUpdates"
@@ -87,7 +96,6 @@ const rootStyle = computed(() => {
 
 <style scoped>
 .FunctionSignatureEditor {
-  margin: 4px 8px;
   padding: 4px;
 
   /*
@@ -98,6 +106,5 @@ const rootStyle = computed(() => {
   border-radius: var(--node-border-radius);
   transition: background-color 0.2s ease;
   background-color: var(--color-node-background);
-  box-sizing: border-box;
 }
 </style>

@@ -17,4 +17,5 @@ const config = mergeConfig(
   }),
 )
 config.esbuild.dropLabels = config.esbuild.dropLabels.filter((label: string) => label != 'DEV')
+config.resolve.conditions = config.resolve.conditions.filter((c: string) => c != 'module') // work around vitest bug that forces esm imports in commonjs deps
 export default config

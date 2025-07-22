@@ -1,11 +1,12 @@
 /** @file A LocalStorage data manager. */
-import type * as z from 'zod'
+import * as z from 'zod'
 
 import * as common from 'enso-common'
 
 import * as object from '#/utilities/object'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
+import { shallowReactive, toRaw } from 'vue'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
 
@@ -20,10 +21,6 @@ function isSourceChanged(key: string) {
   return isChanged
 }
 
-// ===============================
-// === LocalStorageKeyMetadata ===
-// ===============================
-
 /** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
 export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly isUserSpecific?: boolean
@@ -35,26 +32,19 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly schema: z.ZodType<LocalStorageData[K]>
 }
 
-// ========================
-// === LocalStorageData ===
-// ========================
-
 /**
  * The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key.
  */
-export interface LocalStorageData {}
-
-// =======================
-// === LocalStorageKey ===
-// =======================
+export interface LocalStorageData {
+  // Add a dummy key to avoid type errors for configurations that don't import
+  // any files that merge declarations into `LocalStorageData`.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly _dummyLocalStorageKey: true
+}
 
 /** All possible keys of a {@link LocalStorage}. */
 export type LocalStorageKey = keyof LocalStorageData
-
-// ====================
-// === LocalStorage ===
-// ====================
 
 /** A LocalStorage data manager. */
 export default class LocalStorage {
@@ -72,7 +62,7 @@ export default class LocalStorage {
 
   /** Create a {@link LocalStorage}. */
   private constructor() {
-    this.values = {}
+    this.values = shallowReactive<Partial<LocalStorageData>>({})
   }
 
   /**
@@ -113,6 +103,13 @@ export default class LocalStorage {
     }
   }
 
+  /**
+   * Get the metadata for a key.
+   */
+  static getKeyMetadata<K extends LocalStorageKey>(key: K) {
+    return LocalStorage.keyMetadata[key]
+  }
+
   /** Retrieve an entry from the stored data. */
   get<K extends LocalStorageKey>(key: K) {
     this.assertRegisteredKey(key)
@@ -140,19 +137,90 @@ export default class LocalStorage {
     this.save()
   }
 
-  /** Delete an entry from the stored data, and save. */
+  /**
+   * Set all entries in the stored data, and save.
+   */
+  setMany<Values extends Record<LocalStorageKey, LocalStorageData[LocalStorageKey]>>(
+    values: Values,
+  ) {
+    for (const [key, value] of object.unsafeEntries(values)) {
+      // This is safe because we asserted that `values` is a record of `LocalStorageKey`.
+      // eslint-disable-next-line no-restricted-syntax
+      this.set(key as LocalStorageKey, value as LocalStorageData[LocalStorageKey])
+    }
+  }
+
+  /**
+   * Set an entry in the stored data from an untrusted source.
+   * This is useful for setting the state from a clipboard or from a remote source/user input.
+   */
+  setFromUntrustedSource(key: unknown, value: unknown) {
+    const schema = z
+      .object({
+        key: z
+          .custom<LocalStorageKey>()
+          .refine((unknownKey) => typeof unknownKey === 'string')
+          .refine((unknownKey) => unknownKey in LocalStorage.keyMetadata),
+        value: z.any(),
+      })
+      .transform((data) => {
+        const valueSchema = LocalStorage.keyMetadata[data.key].schema
+        const parsedValue = valueSchema.safeParse(data.value)
+
+        if (parsedValue.success) {
+          return { key: data.key, value: parsedValue.data }
+        }
+
+        throw new Error('Invalid key or value')
+      })
+
+    const parsed = schema.safeParse({ key, value })
+
+    if (parsed.success) {
+      this.set(parsed.data.key, parsed.data.value)
+    }
+  }
+
+  /**
+   * Set all entries in the stored data from an untrusted source.
+   * This is useful for setting the state from a clipboard or from a remote source/user input.
+   */
+  setManyFromUntrustedSource(values: unknown) {
+    if (typeof values !== 'object' || values == null) {
+      return
+    }
+
+    const keys = LocalStorage.getAllKeys()
+
+    for (const key of keys) {
+      // This is safe because we asserted that `values` is an object.
+      // eslint-disable-next-line no-restricted-syntax
+      const value: unknown = key in values ? (values as Record<string, unknown>)[key] : null
+      this.setFromUntrustedSource(key, value)
+    }
+  }
+
+  /**
+   * Delete an entry from the stored data, and save.
+   */
   delete<K extends LocalStorageKey>(key: K) {
     this.assertRegisteredKey(key)
 
-    const oldValue = this.values[key]
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
     this.eventTarget.dispatchEvent(new Event(key))
     this.eventTarget.dispatchEvent(new Event('_change'))
     this.save()
+  }
 
-    return oldValue
+  /**
+   * Read a value from the stored data, and delete it after reading.
+   */
+  consume<K extends LocalStorageKey>(key: K) {
+    const value = this.get(key)
+    this.delete(key)
+    return value
   }
 
   /** Delete user-specific entries from the stored data, and save. */
@@ -193,7 +261,13 @@ export default class LocalStorage {
 
   /** Save the current value of the stored data.. */
   protected save() {
-    localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
+    // Make values raw, so any watchEffect setting values will not be triggered unnecessarily.
+    const rawValues = toRaw(this.values)
+    const storedValues = localStorage.getItem(this.localStorageKey)
+    const savedValues: unknown = JSON.parse(storedValues ?? '{}')
+    const valuesToSave =
+      typeof savedValues === 'object' ? { ...savedValues, ...rawValues } : rawValues
+    localStorage.setItem(this.localStorageKey, JSON.stringify(valuesToSave))
   }
 
   /**

@@ -1,5 +1,5 @@
 /** @file Actions for the user menu. */
-import type { Download } from '@playwright/test'
+import type { Download } from 'playwright/test'
 
 import { TEXT } from '.'
 import type BaseActions from './BaseActions'
@@ -8,7 +8,7 @@ import LoginPageActions from './LoginPageActions'
 import SettingsPageActions from './SettingsPageActions'
 
 /** Actions for the user menu. */
-export interface UserMenuActions<T extends BaseActions<Context>, Context> {
+interface UserMenuActions<T extends BaseActions<Context>, Context> {
   readonly downloadApp: (callback: (download: Download) => Promise<void> | void) => T
   readonly settings: () => SettingsPageActions<Context>
   readonly logout: () => LoginPageActions<Context>

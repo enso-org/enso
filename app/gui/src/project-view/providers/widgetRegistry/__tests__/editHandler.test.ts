@@ -1,10 +1,15 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
+import { proxyRefs } from '@/util/reactivity'
 import { expect, test, vi, type Mock } from 'vitest'
-import { proxyRefs } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
-import { WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
+import { WidgetEditHandler, WidgetInstanceId, type WidgetEditHooks } from '../editHandler'
+
+type HandlerMap = Map<
+  string,
+  { handler: WidgetEditHandler; interaction: WidgetEditHooks & Record<string, Mock> }
+>
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
@@ -13,11 +18,8 @@ function editHandlerTree(
   interactionHandler: InteractionHandler,
   createInteraction: (name: PortId) => WidgetEditHooks & Record<string, Mock>,
   widgetTree: CurrentEdit,
-): Map<
-  string,
-  { handler: WidgetEditHandler; interaction: WidgetEditHooks & Record<string, Mock> }
-> {
-  const handlers = new Map()
+): HandlerMap {
+  const handlers: HandlerMap = new Map()
   for (const id of widgets) {
     let parent: string | undefined
     for (const [otherId] of handlers) {
@@ -25,14 +27,15 @@ function editHandlerTree(
     }
     const portId = id as PortId
     const interaction = createInteraction(portId)
-    const handler = new WidgetEditHandler(
-      portId,
+    const handler = WidgetEditHandler.NewRaw(
+      () => 'widget-instance-id' as WidgetInstanceId,
+      () => portId,
+      () => (parent ? handlers.get(parent)?.handler : undefined),
       interaction,
-      parent ? handlers.get(parent)?.handler : undefined,
       widgetTree,
       interactionHandler,
     )
-    handlers.set(id, { handler, interaction })
+    handlers.set(id, { handler: handler.value, interaction })
   }
   return handlers
 }
@@ -157,7 +160,7 @@ test.each`
       widgetTree,
     )
     handlers.get(edited)?.handler.start()
-    interactionHandler.handlePointerEvent(event, 'pointerdown')
+    interactionHandler.handlePointerDown(event)
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
       if ((interaction.pointerdown as Mock | undefined)?.mock.lastCall) handlersCalled.add(id)

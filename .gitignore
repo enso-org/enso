@@ -23,7 +23,7 @@ target/
 wasm-pack.log
 generated/
 /target
-/build/rust/target/
+/build_tools/rust/target/
 /rust-analyzer-target
 
 ###########
@@ -36,7 +36,7 @@ generated/
 ## NodeJS ##
 ############
 
-node_modules/
+node_modules
 eslint_report.json
 .eslintcache
 
@@ -110,6 +110,7 @@ bench-report*.xml
 /enso.lib
 
 *.dll
+*.dylib
 *.exe
 *.pdb
 *.so
@@ -126,6 +127,7 @@ bench-report*.xml
 project/metals.sbt
 /build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
+*.config.ts.timestamp-*
 
 # Resources fire generated build-time for Win installer/uninstaller.
 /build/install/installer/archive.rc
@@ -136,7 +138,8 @@ project/metals.sbt
 ## Build Cache ##
 #################
 
-build-cache/
+bazel-*
+build-cache
 
 ##################
 ## Native Image ##
@@ -147,12 +150,14 @@ build-cache/
 ######################
 ## Enso-Development ##
 ######################
+*.local
 dist/
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions
 distribution/lib/Standard/Table/*/polyglot/
 distribution/lib/Standard/Database/*/polyglot/
+distribution/lib/Standard/Microsoft/*/polyglot/
 distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
 distribution/lib/*/*/*/manifest.yaml
@@ -160,8 +165,8 @@ distribution/lib/*/*/*/manifest.yaml
 # Resources that are downloaded during the build.
 /lib/scala/pkg/src/main/resources/*
 
-test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json
+test/Temporary_*
 
 /resources/
 
@@ -190,3 +195,9 @@ test-results/
 test-traces/
 playwright-report/
 playwright/.cache/
+
+#########
+## Git ##
+#########
+
+/.mailmap

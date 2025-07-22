@@ -12,6 +12,7 @@ import akka.actor.{
 }
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.logging.utils.akka.ActorMessageLogging
+import org.enso.projectmanager.boot.Logging
 import org.enso.semver.SemVer
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
@@ -78,18 +79,29 @@ class LanguageServerController(
 
   private val descriptor =
     LanguageServerDescriptor(
-      name                           = s"language-server-${project.id}",
-      rootId                         = UUID.randomUUID(),
-      rootPath                       = project.path.toString,
-      networkConfig                  = networkConfig,
-      distributionConfiguration      = distributionConfiguration,
-      engineVersion                  = engineVersion,
-      jvmSettings                    = distributionConfiguration.defaultJVMSettings,
+      name                      = s"language-server-${project.id}",
+      rootId                    = UUID.randomUUID(),
+      rootPath                  = project.path.toString,
+      projectId                 = project.id,
+      networkConfig             = networkConfig,
+      distributionConfiguration = distributionConfiguration,
+      engineVersion             = engineVersion,
+      jvmSettings               = distributionConfiguration.defaultJVMSettings,
+      jvm = if (processConfig.jvm.isDefined) {
+        processConfig.jvm
+      } else {
+        if (project.isJvmModeEnabled()) {
+          Some(None)
+        } else {
+          None
+        }
+      },
       discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
       profilingPath                  = processConfig.profilingPath,
       profilingTime                  = processConfig.profilingTime,
       deferredLoggingServiceEndpoint = loggingServiceDescriptor.getEndpoint,
-      skipGraalVMUpdater             = bootloaderConfig.skipGraalVMUpdater
+      skipGraalVMUpdater             = bootloaderConfig.skipGraalVMUpdater,
+      extraEnv                       = processConfig.extraEnv
     )
 
   override def supervisorStrategy: SupervisorStrategy =
@@ -179,7 +191,7 @@ class LanguageServerController(
     lastClientPort: Option[Int] = None
   ): Receive =
     LoggingReceive.withLabel("supervising") {
-      case StartServer(clientId, _, requestedEngineVersion, _, _) =>
+      case StartServer(clientId, _, requestedEngineVersion, _, _, _) =>
         if (requestedEngineVersion != engineVersion) {
           sender() ! ServerBootFailed(
             new IllegalStateException(
@@ -214,7 +226,8 @@ class LanguageServerController(
       case Terminated(_) =>
         logger.debug("Bootloader for {} terminated", project)
 
-      case StopServer(clientId, _) =>
+      case StopServer(clientId, projectId) =>
+        Logging.tearDown(projectId)
         removeClient(
           connectionInfo,
           serverProcessManager,
@@ -331,7 +344,7 @@ class LanguageServerController(
   }
 
   private def bootFailed(failure: ServerStartupFailure): Receive = {
-    case StartServer(_, _, _, _, _) =>
+    case _: StartServer =>
       sender() ! failure
       stop()
   }

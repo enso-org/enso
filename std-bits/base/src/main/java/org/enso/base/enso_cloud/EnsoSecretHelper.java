@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
+import java.security.PrivateKey;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -15,6 +16,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import org.enso.base.cache.ReloadDetector;
 import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
@@ -29,7 +31,15 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       String url, List<Pair<String, HideableValue>> properties) throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
-      javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
+      HideableValue value = pair.getRight();
+      // Special handling for PrivateKey parameter.
+      if (value instanceof InterpretAsPrivateKey(HideableValue innerValue)) {
+        String rawKey = resolveValue(innerValue);
+        PrivateKey key = InterpretAsPrivateKey.decodePrivateKey(rawKey);
+        javaProperties.put(pair.getLeft(), key);
+      } else {
+        javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
+      }
     }
 
     return DriverManager.getConnection(url, javaProperties);
@@ -62,7 +72,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   /** Makes a request with secrets in the query string or headers. * */
   public static EnsoHttpResponse makeRequest(
       HttpClient client,
-      Builder builder,
+      Builder origBuilder,
       URIWithSecrets uri,
       List<Pair<String, HideableValue>> headers,
       boolean useCache)
@@ -70,6 +80,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
           IOException,
           InterruptedException,
           ResponseTooLargeException {
+    // Clone incoming builder so we can't leak secrets through it
+    var builder = origBuilder.copy();
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
@@ -93,7 +105,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   }
 
   public static void deleteSecretFromCache(String secretId) {
-    EnsoSecretReader.removeFromCache(secretId);
+    EnsoSecretReader.INSTANCE.removeFromCache(secretId);
   }
 
   private static class RequestMaker implements EnsoHTTPResponseCache.RequestMaker {
@@ -163,7 +175,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         keyStrings.add(resolvedHeader.getRight());
       }
 
-      return Integer.toString(Arrays.deepHashCode(keyStrings.toArray()));
+      return Integer.toHexString(Arrays.deepHashCode(keyStrings.toArray()));
     }
 
     @Override
@@ -181,6 +193,16 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       cache = new EnsoHTTPResponseCache();
     }
     return cache;
+  }
+
+  /** Visible for testing */
+  public static int getEnsoSecretReaderCacheSize() {
+    return EnsoSecretReader.INSTANCE.getCacheSize();
+  }
+
+  /** Visible for testing */
+  public static void simulateEnsoSecretReaderReload() {
+    ReloadDetector.simulateReloadTestOnly(EnsoSecretReader.INSTANCE);
   }
 
   private static final Comparator<Pair<String, String>> headerNameComparator =

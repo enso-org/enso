@@ -39,8 +39,7 @@ instrumental for ensuring that we build the right language.
 > described in the [syntax](../syntax/README.md) document makes no promises as
 > to whether said syntax will be exposed in the surface language.
 
-> [!WARNING]
-> The specification in this section is very outdated and far from
+> [!WARNING] The specification in this section is very outdated and far from
 > reality. Sections that are known to be _"off"_ are marked as _warning_.
 
 Information on the type system is broken up into the following sections:

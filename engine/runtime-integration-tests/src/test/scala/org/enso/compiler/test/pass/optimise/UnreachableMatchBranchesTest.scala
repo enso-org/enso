@@ -5,7 +5,12 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{
+  MiniIRPass,
+  PassConfiguration,
+  PassGroup,
+  PassManager
+}
 import org.enso.compiler.test.CompilerTest
 
 class UnreachableMatchBranchesTest extends CompilerTest {
@@ -15,7 +20,7 @@ class UnreachableMatchBranchesTest extends CompilerTest {
   val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(UnreachableMatchBranches).get
+    passes.getPrecursors(UnreachableMatchBranches.INSTANCE).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
@@ -34,7 +39,11 @@ class UnreachableMatchBranchesTest extends CompilerTest {
       * @return [[ir]] with unreachable case branches removed
       */
     def optimize(implicit inlineContext: InlineContext): Expression = {
-      UnreachableMatchBranches.runExpression(ir, inlineContext)
+      val miniPass =
+        UnreachableMatchBranches.INSTANCE.createForInlineCompilation(
+          inlineContext
+        )
+      MiniIRPass.compile(classOf[Expression], ir, miniPass)
     }
   }
 

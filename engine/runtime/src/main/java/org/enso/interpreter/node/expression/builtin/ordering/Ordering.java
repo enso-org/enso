@@ -9,6 +9,10 @@ import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 
 @BuiltinType
 public class Ordering extends Builtin {
+  public Ordering() {
+    super(Object.class);
+  }
+
   @Override
   protected List<Cons> getDeclaredConstructors() {
     return List.of(new Cons("Less"), new Cons("Equal"), new Cons("Greater"));

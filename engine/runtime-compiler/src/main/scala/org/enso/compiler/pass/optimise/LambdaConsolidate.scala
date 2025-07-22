@@ -1,5 +1,7 @@
 package org.enso.compiler.pass.optimise
 
+import scala.jdk.CollectionConverters._
+
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
@@ -219,15 +221,16 @@ case object LambdaConsolidate extends IRPass {
       if (isShadowed) {
         val restArgs = args.drop(ix + 1)
         arg match {
-          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
+          case spec: DefinitionArgument.Specified =>
+            val argName = spec.name
             val mShadower = restArgs.collectFirst {
-              case s @ DefinitionArgument.Specified(sName, _, _, _, _, _)
-                  if sName.name == argName.name =>
+              case s: DefinitionArgument.Specified
+                  if s.name.name == argName.name =>
                 s
             }
 
             val shadower: IR =
-              mShadower.getOrElse(Empty(spec.identifiedLocation))
+              mShadower.getOrElse(new Empty(spec.identifiedLocation))
 
             spec.getDiagnostics.add(
               warnings.Shadowed
@@ -391,19 +394,27 @@ case object LambdaConsolidate extends IRPass {
         // Empty set is used to indicate that it isn't shadowed
         val usageIds =
           if (isShadowed) {
-            aliasInfo.graph
+            val occurs = aliasInfo.graph
               .linksFor(aliasInfo.id)
+              .stream
               .filter(_.target == aliasInfo.id)
               .map(link => aliasInfo.graph.getOccurrence(link.source))
-              .collect {
+              .map {
                 case Some(
                       GraphOccurrence.Use(_, _, identifier, _)
                     ) =>
-                  identifier
+                  Some(identifier)
+                case _ => None
               }
+              .filter(_.isDefined)
+              .map(_.get)
+              .toList
+            val res: Set[UUID @Identifier] = occurs.asScala.toList.toSet
+            res
           } else Set[UUID @Identifier]()
 
         usageIds
+      case _ => Set[UUID @Identifier]()
     }
   }
 
@@ -434,7 +445,8 @@ case object LambdaConsolidate extends IRPass {
               )
           } else oldName
 
-        spec.copy(name = newName)
+        spec.withName(newName)
+      case (arg, _) => arg
     }
   }
 
@@ -467,7 +479,8 @@ case object LambdaConsolidate extends IRPass {
 
     val processedArgList = args.zip(newDefaults).map {
       case (spec: DefinitionArgument.Specified, default) =>
-        spec.copy(defaultValue = default)
+        spec.copyWithDefaultValue(default)
+      case (arg, _) => arg
     }
 
     (processedArgList, newBody)

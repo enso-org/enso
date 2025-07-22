@@ -1,66 +1,103 @@
 /** @file A context menu. */
-import * as React from 'react'
+import { Pressable } from '#/components/aria'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { Popover } from '#/components/Dialog'
+import type { MenuEntryProps } from '#/components/MenuEntry'
+import { usePortalContext } from '#/components/Portal'
+import { useInputBindings } from '#/providers/InputBindingsProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { isOnMacOS } from 'enso-common/src/detect'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+  type ForwardedRef,
+  type MouseEvent,
+} from 'react'
 
-import * as detect from 'enso-common/src/detect'
-
-import FocusArea from '#/components/styled/FocusArea'
-
-import { forwardRef } from '#/utilities/react'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import Modal from './Modal'
-
-/** Props for a `ContextMenu`. */
-export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
+/** Props for a {@link ContextMenu}. */
+export interface ContextMenuProps {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label': string
-  readonly hidden?: boolean
-  readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly entries: readonly (MenuEntryProps | false | null | undefined)[]
+  readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
+}
+
+/** Imperative API for {@link ContextMenu}. */
+export interface ContextMenuApi {
+  readonly open: (position: Pick<MouseEvent, 'pageX' | 'pageY'>) => void
+  readonly close: () => void
 }
 
 /** A context menu that opens at the current mouse position. */
-export default forwardRef(function ContextMenu(
+export const ContextMenu = forwardRef(function ContextMenu(
   props: ContextMenuProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<ContextMenuApi>,
 ) {
-  const { hidden = false, children, event } = props
+  const { entries, initialPosition } = props
 
-  return hidden ? children : (
-      <Modal
-        className="absolute size-full overflow-hidden bg-dim"
-        onContextMenu={(innerEvent) => {
-          innerEvent.preventDefault()
+  const inputBindings = useInputBindings()
+  const root = usePortalContext()
+  const [isOpen, setIsOpen] = useState(initialPosition != null)
+  const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
+    initialPosition ?? {
+      pageX: 0,
+      pageY: 0,
+    },
+  )
+
+  useImperativeHandle(ref, () => ({
+    open: (newPosition) => {
+      setPosition(newPosition)
+      setIsOpen(true)
+    },
+    close: () => {
+      setIsOpen(false)
+    },
+  }))
+
+  useEffect(() => {
+    if (!isOpen) return
+    return inputBindings.attach(document.body, 'keydown', {
+      closeModal: () => {
+        setIsOpen(false)
+      },
+    })
+  }, [inputBindings, isOpen])
+
+  return (
+    <Popover.Trigger>
+      <Pressable>
+        <></>
+      </Pressable>
+      <Popover
+        data-testid="context-menu"
+        style={{ left: position.pageX, top: position.pageY }}
+        shouldCloseOnInteractOutside={() => true}
+        className="sticky flex w-min items-start"
+        UNSTABLE_portalContainer={root}
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        onClose={() => {
+          setIsOpen(false)
         }}
       >
         <div
-          data-testid="context-menu"
-          ref={ref}
-          style={{ left: event.pageX, top: event.pageY }}
-          className={tailwindMerge.twMerge(
-            'pointer-events-none sticky flex w-min items-start gap-context-menus',
+          aria-label={props['aria-label']}
+          className={twMerge(
+            'relative flex flex-col rounded-default',
+            isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
           )}
-          onClick={(clickEvent) => {
-            clickEvent.stopPropagation()
-          }}
         >
-          <FocusArea direction="vertical">
-            {(innerProps) => (
-              <div
-                className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-                {...innerProps}
-              >
-                <div
-                  aria-label={props['aria-label']}
-                  className={tailwindMerge.twMerge(
-                    'relative flex flex-col rounded-default p-context-menu',
-                    detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
-                  )}
-                >
-                  {children}
-                </div>
-              </div>
-            )}
-          </FocusArea>
+          {entries.flatMap((entry) => {
+            if (entry == null || entry === false) {
+              return []
+            }
+            return [<ContextMenuEntry key={entry.action} {...entry} />]
+          })}
         </div>
-      </Modal>
-    )
+      </Popover>
+    </Popover.Trigger>
+  )
 })

@@ -55,8 +55,17 @@ public class Text_Utils {
     if (trailing != null && is_all_whitespace(trailing)) {
       return true;
     }
-
     return false;
+  }
+
+  /**
+   * Checks if the string contains any non trivial whitespace.
+   *
+   * @param s the string to check
+   * @return whether the string contains any of the non trivial whitespace listed
+   */
+  public static boolean has_non_trivial_whitespace(String s) {
+    return s.chars().mapToObj(c -> (char) c).anyMatch(c -> UCharacter.isUWhiteSpace(c) && c != ' ');
   }
 
   /**
@@ -240,8 +249,12 @@ public class Text_Utils {
   public static boolean contains(String string, String substring) {
     // {@code StringSearch} does not handle empty strings as we would want, so we need these special
     // cases.
-    if (substring.isEmpty()) return true;
-    if (string.isEmpty()) return false;
+    if (substring.isEmpty()) {
+      return true;
+    }
+    if (string.isEmpty()) {
+      return false;
+    }
     StringSearch searcher = new StringSearch(substring, string);
     return searcher.first() != StringSearch.DONE;
   }
@@ -268,8 +281,12 @@ public class Text_Utils {
   public static boolean contains_case_insensitive(String string, String substring, Locale locale) {
     // {@code StringSearch} does not handle empty strings as we would want, so we need these special
     // cases.
-    if (substring.isEmpty()) return true;
-    if (string.isEmpty()) return false;
+    if (substring.isEmpty()) {
+      return true;
+    }
+    if (string.isEmpty()) {
+      return false;
+    }
 
     Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
     StringSearch searcher = new StringSearch(fold.apply(substring), fold.apply(string));
@@ -335,12 +352,18 @@ public class Text_Utils {
    * @return a UTF-16 code unit span of the first needle or null if not found.
    */
   public static Utf16Span span_of(String haystack, String needle) {
-    if (needle.isEmpty()) return new Utf16Span(0, 0);
-    if (haystack.isEmpty()) return null;
+    if (needle.isEmpty()) {
+      return new Utf16Span(0, 0);
+    }
+    if (haystack.isEmpty()) {
+      return null;
+    }
 
     StringSearch search = new StringSearch(needle, haystack);
     int pos = search.first();
-    if (pos == StringSearch.DONE) return null;
+    if (pos == StringSearch.DONE) {
+      return null;
+    }
     return new Utf16Span(pos, pos + search.getMatchLength());
   }
 
@@ -356,11 +379,15 @@ public class Text_Utils {
       int afterLast = haystack.length();
       return new Utf16Span(afterLast, afterLast);
     }
-    if (haystack.isEmpty()) return null;
+    if (haystack.isEmpty()) {
+      return null;
+    }
 
     StringSearch search = new StringSearch(needle, haystack);
     int pos = search.last();
-    if (pos == StringSearch.DONE) return null;
+    if (pos == StringSearch.DONE) {
+      return null;
+    }
     return new Utf16Span(pos, pos + search.getMatchLength());
   }
 
@@ -372,10 +399,13 @@ public class Text_Utils {
    * @return a list of UTF-16 code unit spans at which the needle occurs in the haystack
    */
   public static List<Utf16Span> span_of_all(String haystack, String needle) {
-    if (needle.isEmpty())
+    if (needle.isEmpty()) {
       throw new IllegalArgumentException(
           "The operation `span_of_all` does not support searching for an empty term.");
-    if (haystack.isEmpty()) return List.of();
+    }
+    if (haystack.isEmpty()) {
+      return List.of();
+    }
 
     StringSearch search = new StringSearch(needle, haystack);
     ArrayList<Utf16Span> occurrences = new ArrayList<>();
@@ -396,10 +426,13 @@ public class Text_Utils {
    * @return a list of UTF-16 code unit spans at which the needle occurs in the haystack
    */
   public static List<Utf16Span> span_of_all_multiple(String haystack, List<String> needles) {
-    if (needles.isEmpty() || needles.stream().anyMatch(String::isEmpty))
+    if (needles.isEmpty() || needles.stream().anyMatch(String::isEmpty)) {
       throw new IllegalArgumentException(
           "The operation `span_of_all_multiple` does not support searching for an empty term.");
-    if (haystack.isEmpty()) return List.of();
+    }
+    if (haystack.isEmpty()) {
+      return List.of();
+    }
 
     StringSearch stringSearches[] =
         IntStream.range(0, needles.size())
@@ -514,10 +547,13 @@ public class Text_Utils {
    */
   public static GraphemeSpan span_of_case_insensitive(
       String haystack, String needle, Locale locale, boolean searchForLast) {
-    if (needle.isEmpty())
+    if (needle.isEmpty()) {
       throw new IllegalArgumentException(
           "The operation `span_of_case_insensitive` does not support searching for an empty term.");
-    if (haystack.isEmpty()) return null;
+    }
+    if (haystack.isEmpty()) {
+      return null;
+    }
 
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
     String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
@@ -545,11 +581,14 @@ public class Text_Utils {
    */
   public static List<GraphemeSpan> span_of_all_case_insensitive(
       String haystack, String needle, Locale locale) {
-    if (needle.isEmpty())
+    if (needle.isEmpty()) {
       throw new IllegalArgumentException(
           "The operation `span_of_all_case_insensitive` does not support searching for an empty"
               + " term.");
-    if (haystack.isEmpty()) return List.of();
+    }
+    if (haystack.isEmpty()) {
+      return List.of();
+    }
 
     CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
     String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
@@ -647,11 +686,11 @@ public class Text_Utils {
   /**
    * Normalizes the string to its canonical Unicode form using the specified name and mode.
    *
+   * @param name the normalization name, must be "nfc", "nfkc", or "nfkc_cf"
+   * @param mode the normalization mode
    * @see https://unicode-org.github.io/icu-docs/apidoc/dev/icu4j/com/ibm/icu/text/Normalizer2.html
    * @see
    *     https://unicode-org.github.io/icu-docs/apidoc/dev/icu4j/com/ibm/icu/text/Normalizer2.Mode.html
-   * @param name the normalization name, must be "nfc", "nfkc", or "nfkc_cf"
-   * @param mode the normalization mode
    */
   public static String normalizeWithMode(String str, String name, Mode mode) {
     return Normalizer2.getInstance(null, name, mode).normalize(str);

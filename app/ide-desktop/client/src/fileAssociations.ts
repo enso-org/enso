@@ -60,8 +60,8 @@ export function argsDenoteFileOpenAttempt(clientArgs: readonly string[]): string
     try {
       fsSync.accessSync(arg, fsSync.constants.R_OK)
       result = arg
-    } catch (e) {
-      logger.log(`The single argument '${arg}' does not denote a readable file: ${String(e)}`)
+    } catch {
+      // Do nothing.
     }
   }
   return result
@@ -89,7 +89,7 @@ function getClientArguments(args = process.argv): readonly string[] {
       args
         .slice(1)
         // Omitting $ in --inspect and --remote-debugging-port is intentional.
-        .filter(option => !/^--no-sandbox$|^--inspect|^--remote-debugging-port/.test(option))
+        .filter((option) => !/^--no-sandbox$|^--inspect|^--remote-debugging-port/.test(option))
     )
   }
 }

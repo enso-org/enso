@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -14,8 +14,8 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing a percentile value in a group. */
-public class Percentile extends Aggregator {
-  private final Storage<?> storage;
+public class Percentile extends KnownTypeAggregator {
+  private final ColumnStorage<?> storage;
   private final double percentile;
 
   public Percentile(String name, Column column, double percentile) {

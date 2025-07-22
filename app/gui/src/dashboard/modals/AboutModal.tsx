@@ -1,90 +1,93 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as React from 'react'
-
-import type * as text from 'enso-common/src/text'
-
-import LogoIcon from '#/assets/enso_logo.svg'
-
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import SvgMask from '#/components/SvgMask'
-
-// ==================
-// === AboutModal ===
-// ==================
+import { Button, CopyButton } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Icon } from '#/components/Icon'
+import { Text } from '#/components/Text'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { useModalState, type ModalApi } from '#/utilities/modal'
+import { useBackends, useText } from '$/providers/react'
+import type { TextId } from 'enso-common/src/text'
+import { forwardRef, useMemo, type ForwardedRef } from 'react'
 
 /** A modal for confirming the deletion of an asset. */
-export default function AboutModal() {
-  const localBackend = backendProvider.useLocalBackend()
-  const { getText } = textProvider.useText()
+export const AboutModal = Object.assign(
+  forwardRef(function AboutModal(_props: object, ref: ForwardedRef<ModalApi>) {
+    const { localBackend } = useBackends()
+    const { getText } = useText()
+    const { isOpen, setIsOpen } = useModalState(
+      mergeRefs(ref, (api) => {
+        if (api) {
+          ABOUT_MODAL_OUTER.open = api.open
+          ABOUT_MODAL_OUTER.close = api.close
+        }
+      }),
+    )
 
-  const versionsEntries = [
-    ...(window.versionInfo != null ?
-      ([
-        ['version', window.versionInfo.version],
-        ['build', window.versionInfo.build],
-        ['electronVersion', window.versionInfo.electron],
-        ['chromeVersion', window.versionInfo.chrome],
-      ] as const)
-    : [
-        ...(import.meta.env.ENSO_IDE_VERSION == null ?
-          []
-        : ([['version', import.meta.env.ENSO_IDE_VERSION]] as const)),
-        ...(process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH == null ?
-          []
-        : ([['build', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH]] as const)),
-      ]),
-    ['userAgent', navigator.userAgent],
-  ] satisfies readonly (readonly [text.TextId, string])[]
+    const versionsEntries = [
+      ...(window.versionInfo != null ?
+        ([
+          ['version', window.versionInfo.version],
+          ['build', window.versionInfo.build],
+          ['electronVersion', window.versionInfo.electron],
+          ['chromeVersion', window.versionInfo.chrome],
+        ] as const)
+      : [
+          ...($config.VERSION == null ? [] : ([['version', $config.VERSION]] as const)),
+          ...($config.COMMIT_HASH == null ? [] : ([['build', $config.COMMIT_HASH]] as const)),
+        ]),
+      ['userAgent', navigator.userAgent],
+    ] satisfies readonly (readonly [TextId, string])[]
 
-  const copyText = React.useMemo(
-    () => versionsEntries.map(([textId, version]) => `${getText(textId)} ${version}`).join('\n'),
-    [getText, versionsEntries],
-  )
+    const copyText = useMemo(
+      () => versionsEntries.map(([textId, version]) => `${getText(textId)} ${version}`).join('\n'),
+      [getText, versionsEntries],
+    )
 
-  return (
-    <ariaComponents.Dialog
-      title={getText('aboutThisAppShortcut')}
-      modalProps={{ defaultOpen: true }}
-    >
-      <div className="relative flex items-center gap-4">
-        <SvgMask src={LogoIcon} className="size-16 shrink-0 self-start" />
+    return (
+      <Dialog
+        title={getText('aboutThisAppShortcut')}
+        modalProps={{ isOpen }}
+        onOpenChange={setIsOpen}
+      >
+        <div className="relative flex items-center gap-4">
+          <Icon icon="enso_logo" className="size-16 shrink-0 self-start" />
 
-        <div className="flex flex-col">
-          <ariaComponents.Text variant="subtitle">
-            {localBackend != null ?
-              getText('appNameDesktopEdition')
-            : getText('appNameCloudEdition')}
-          </ariaComponents.Text>
+          <div className="flex flex-col">
+            <Text variant="subtitle">
+              {localBackend != null ?
+                getText('appNameDesktopEdition')
+              : getText('appNameCloudEdition')}
+            </Text>
 
-          <table>
-            <tbody>
-              {versionsEntries.map((entry) => {
-                const [textId, version] = entry
+            <table>
+              <tbody>
+                {versionsEntries.map((entry) => {
+                  const [textId, version] = entry
 
-                return (
-                  <tr key={textId}>
-                    <td className="pr-cell-x align-text-top">
-                      <ariaComponents.Text nowrap>{getText(textId)}</ariaComponents.Text>
-                    </td>
-                    <td>
-                      <ariaComponents.Text>{version}</ariaComponents.Text>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr key={textId}>
+                      <td className="pr-cell-x align-text-top">
+                        <Text nowrap>{getText(textId)}</Text>
+                      </td>
+                      <td>
+                        <Text>{version}</Text>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
 
-          <ariaComponents.ButtonGroup className="mt-4">
-            <ariaComponents.CopyButton copyText={copyText} size="medium" variant="submit">
-              {getText('copy')}
-            </ariaComponents.CopyButton>
-          </ariaComponents.ButtonGroup>
+            <Button.Group className="mt-4">
+              <CopyButton copyText={copyText} size="medium" variant="submit">
+                {getText('copy')}
+              </CopyButton>
+            </Button.Group>
+          </div>
         </div>
-      </div>
-    </ariaComponents.Dialog>
-  )
-}
+      </Dialog>
+    )
+  }),
+  { open: () => {}, close: () => {} },
+)
+const ABOUT_MODAL_OUTER = AboutModal

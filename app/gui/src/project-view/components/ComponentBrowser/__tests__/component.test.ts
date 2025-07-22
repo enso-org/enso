@@ -1,5 +1,3 @@
-import { expect, test } from 'vitest'
-
 import {
   compareSuggestions,
   labelOfEntry,
@@ -8,67 +6,93 @@ import {
   type MatchedSuggestion,
 } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import {
   makeConstructor,
   makeMethod,
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
-} from '@/stores/suggestionDatabase/entry'
+} from '@/stores/suggestionDatabase/mockSuggestion'
 import { allRanges } from '@/util/data/range'
+import { ProjectPath, stdPath } from '@/util/projectPath'
+import { QualifiedName } from '@/util/qualifiedName'
 import shuffleSeed from 'shuffle-seed'
+import { expect, test } from 'vitest'
 
 test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
   [makeConstructor('Standard.Table.Join_Kind.Join_Kind.Inner'), 'Join_Kind.Inner'],
-  [makeModuleMethod('local.Project.main'), 'Project.main'],
+  [makeModuleMethod('local.Mock_Project.main'), 'Main.main'],
 ])("$name Component's label is valid", (suggestion, expected) => {
-  expect(labelOfEntry(suggestion, { score: 0 }).label).toBe(expected)
+  expect(labelOfEntry(suggestion, { score: 0, fromType: undefined }).label).toBe(expected)
+})
+
+test.each([
+  [makeMethod('Standard.Base.Table.at'), undefined, 'at'],
+  [
+    makeMethod('Standard.Base.Table.at'),
+    ProjectPath.create('Standard.Base' as QualifiedName, 'Table' as QualifiedName),
+    ':Table.at',
+  ],
+])("Component's label with fromType is valid", (suggestion, fromType, expected) => {
+  expect(labelOfEntry(suggestion, { score: 0, fromType }).label).toBe(expected)
 })
 
 test('Suggestions are ordered properly', () => {
   const sortedEntries: MatchedSuggestion[] = [
     {
       id: 100,
-      entry: makeModuleMethod('local.Project.Z.best_score'),
-      match: { score: 0 },
+      entry: makeModuleMethod('local.Mock_Project.Z.best_score'),
+      match: { score: 0, fromType: undefined },
     },
     {
       id: 90,
-      entry: { ...makeModuleMethod('local.Project.Z.b'), groupIndex: 0 },
-      match: { score: 50 },
+      entry: { ...makeModuleMethod('local.Mock_Project.Z.b'), groupIndex: 0 },
+      match: { score: 50, fromType: undefined },
     },
     {
       id: 91,
-      entry: { ...makeModuleMethod('local.Project.Z.a'), groupIndex: 0 },
-      match: { score: 50 },
+      entry: { ...makeModuleMethod('local.Mock_Project.Z.a'), groupIndex: 0 },
+      match: { score: 50, fromType: undefined },
     },
     {
       id: 89,
-      entry: { ...makeModuleMethod('local.Project.A.foo'), groupIndex: 1 },
-      match: { score: 50 },
+      entry: { ...makeModuleMethod('local.Mock_Project.A.foo'), groupIndex: 1 },
+      match: { score: 50, fromType: undefined },
     },
     {
       id: 88,
-      entry: { ...makeModuleMethod('local.Project.B.another_module'), groupIndex: 1 },
-      match: { score: 50 },
+      entry: { ...makeModuleMethod('local.Mock_Project.B.another_module'), groupIndex: 1 },
+      match: { score: 50, fromType: undefined },
     },
     {
       id: 87,
-      entry: { ...makeModule('local.Project.A'), groupIndex: 1 },
-      match: { score: 50 },
+      entry: { ...makeModule('local.Mock_Project.A'), groupIndex: 1 },
+      match: { score: 50, fromType: undefined },
+    },
+    {
+      id: 30,
+      entry: makeMethod('local.Mock_Project.Table.method'),
+      match: {
+        score: 50,
+        fromType: ProjectPath.create(
+          'local.Mock_Project' as QualifiedName,
+          'Table' as QualifiedName,
+        ),
+      },
     },
     {
       id: 50,
-      entry: makeModuleMethod('local.Project.Z.module_content'),
-      match: { score: 50 },
+      entry: makeModuleMethod('local.Mock_Project.Z.module_content'),
+      match: { score: 50, fromType: undefined },
     },
     {
       id: 49,
-      entry: makeModule('local.Project.Z.Module'),
-      match: { score: 50 },
+      entry: makeModule('local.Mock_Project.Z.Module'),
+      match: { score: 50, fromType: undefined },
     },
   ]
   const expectedOrdering = Array.from(sortedEntries, (entry) => entry.id)
@@ -83,33 +107,62 @@ test('Suggestions are ordered properly', () => {
 
 test.each`
   name                           | aliases                          | highlighted
-  ${'foo_bar'}                   | ${[]}                            | ${'Project.<foo><_bar>'}
-  ${'foo_xyz_barabc'}            | ${[]}                            | ${'Project.<foo>_xyz<_bar>abc'}
-  ${'fooabc_barabc'}             | ${[]}                            | ${'Project.<foo>abc<_bar>abc'}
-  ${'bar'}                       | ${['foo_bar', 'foo']}            | ${'Project.bar (<foo><_bar>)'}
-  ${'bar'}                       | ${['foo', 'foo_xyz_barabc']}     | ${'Project.bar (<foo>_xyz<_bar>abc)'}
-  ${'bar'}                       | ${['foo', 'fooabc_barabc']}      | ${'Project.bar (<foo>abc<_bar>abc)'}
-  ${'xyz_foo_abc_bar_xyz'}       | ${[]}                            | ${'Project.xyz_<foo>_abc<_bar>_xyz'}
-  ${'xyz_fooabc_abc_barabc_xyz'} | ${[]}                            | ${'Project.xyz_<foo>abc_abc<_bar>abc_xyz'}
-  ${'bar'}                       | ${['xyz_foo_abc_bar_xyz']}       | ${'Project.bar (xyz_<foo>_abc<_bar>_xyz)'}
-  ${'bar'}                       | ${['xyz_fooabc_abc_barabc_xyz']} | ${'Project.bar (xyz_<foo>abc_abc<_bar>abc_xyz)'}
+  ${'foo_bar'}                   | ${[]}                            | ${'Main.<foo><_bar>'}
+  ${'foo_xyz_barabc'}            | ${[]}                            | ${'Main.<foo>_xyz<_bar>abc'}
+  ${'fooabc_barabc'}             | ${[]}                            | ${'Main.<foo>abc<_bar>abc'}
+  ${'bar'}                       | ${['foo_bar', 'foo']}            | ${'Main.bar (<foo><_bar>)'}
+  ${'bar'}                       | ${['foo', 'foo_xyz_barabc']}     | ${'Main.bar (<foo>_xyz<_bar>abc)'}
+  ${'bar'}                       | ${['foo', 'fooabc_barabc']}      | ${'Main.bar (<foo>abc<_bar>abc)'}
+  ${'xyz_foo_abc_bar_xyz'}       | ${[]}                            | ${'Main.xyz_<foo>_abc<_bar>_xyz'}
+  ${'xyz_fooabc_abc_barabc_xyz'} | ${[]}                            | ${'Main.xyz_<foo>abc_abc<_bar>abc_xyz'}
+  ${'bar'}                       | ${['xyz_foo_abc_bar_xyz']}       | ${'Main.bar (xyz_<foo>_abc<_bar>_xyz)'}
+  ${'bar'}                       | ${['xyz_fooabc_abc_barabc_xyz']} | ${'Main.bar (xyz_<foo>abc_abc<_bar>abc_xyz)'}
 `('Matched ranges of $highlighted are correct', ({ name, aliases, highlighted }) => {
-  function replaceMatches(component: Component) {
-    if (!component.matchedRanges) return component.label
-    const parts: string[] = []
-    for (const range of allRanges(component.matchedRanges, component.label.length)) {
-      const text = component.label.slice(range.start, range.end)
-      parts.push(range.isMatch ? `<${text}>` : text)
-    }
-    return parts.join('')
-  }
-
   const pattern = 'foo_bar'
-  const entry = {
-    ...makeModuleMethod(`local.Project.${name}`),
-    aliases: aliases ?? [],
-  }
+  const entry = makeModuleMethod(`local.Mock_Project.${name}`, { aliases: aliases ?? [] })
   const filtering = new Filtering({ pattern })
-  const componentInfo = { id: 0, entry, match: filtering.filter(entry)! }
+  const match = filtering.filter(entry)
+  expect(match).not.toBeNull()
+  const componentInfo = { id: 0, entry, match: match! }
   expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)
 })
+
+test.each`
+  name                      | aliases                      | highlighted
+  ${'Table.foo_bar'}        | ${[]}                        | ${':Table.<foo><_bar>'}
+  ${'Table.foo_xyz_barabc'} | ${[]}                        | ${':Table.<foo>_xyz<_bar>abc'}
+  ${'Table.fooabc_barabc'}  | ${[]}                        | ${':Table.<foo>abc<_bar>abc'}
+  ${'Table.bar'}            | ${['foo_bar', 'foo']}        | ${':Table.bar (<foo><_bar>)'}
+  ${'Table.bar'}            | ${['foo', 'foo_xyz_barabc']} | ${':Table.bar (<foo>_xyz<_bar>abc)'}
+`(
+  'Matched ranges of $highlighted with additional type are correct',
+  ({ name, aliases, highlighted }) => {
+    const pattern = 'foo_bar'
+    const entry = makeMethod(`Standard.Base.${name}`, { aliases: aliases ?? [] })
+    const filtering = new Filtering({
+      pattern,
+      selfArg: {
+        type: 'known',
+        typeInfo: TypeInfo.fromParsedTypes(
+          [stdPath('Standard.Base.Column')],
+          [stdPath('Standard.Base.Table')],
+        )!,
+        ancestors: [],
+      },
+    })
+    const match = filtering.filter(entry)
+    expect(match).not.toBeNull()
+    const componentInfo = { id: 0, entry, match: match! }
+    expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)
+  },
+)
+
+function replaceMatches(component: Component) {
+  if (!component.matchedRanges) return component.label
+  const parts: string[] = []
+  for (const range of allRanges(component.matchedRanges, component.label.length)) {
+    const text = range.slice(component.label)
+    parts.push(range.isMatch ? `<${text}>` : text)
+  }
+  return parts.join('')
+}

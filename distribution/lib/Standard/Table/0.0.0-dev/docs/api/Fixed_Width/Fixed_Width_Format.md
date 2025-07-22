@@ -1,0 +1,28 @@
+## Enso Signatures 1.0
+## module Standard.Table.Fixed_Width.Fixed_Width_Format
+- type Fixed_Width_Column_Description
+    - Start_And_Width start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+    - Width width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+- type Fixed_Width_Format
+    - Fixed_Width layout:(Standard.Table.Fixed_Width.Fixed_Width_Format.Infer_Layout|Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout)= encoding:Standard.Base.Data.Text.Encoding.Encoding= skip_rows:Standard.Base.Data.Numbers.Integer= row_limit:Standard.Table.Rows_To_Read.Rows_To_Read= on_invalid_rows:Standard.Table.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows= on_empty_field:Standard.Table.Fixed_Width.On_Empty_Field.On_Empty_Field= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)=
+    - for_file_write file:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.Any.Any
+    - for_read file:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
+    - get_dropdown_options -> Standard.Base.Any.Any
+    - get_name_patterns -> (Standard.Base.Data.Vector.Vector Standard.Base.System.File_Format.File_Name_Pattern)
+    - read self file:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+    - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata= -> Standard.Base.Any.Any
+    - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Fixed_Width_Layout
+    - entries self -> Standard.Base.Data.Vector.Vector
+    - from_descriptions descs:(Standard.Base.Data.Vector.Vector Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Column_Description) -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+    - missing_layout_argument -> Standard.Base.Any.Any
+- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Table.Column.Column -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Base.Data.Vector.Vector -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+- type Fixed_Width_Layout_Entry
+    - Value start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer name:Standard.Base.Data.Text.Text
+- type Infer_Layout
+    - Left
+    - Right
+    - to_java self -> Standard.Table.Fixed_Width.Fixed_Width_Format.Justification
+- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Table.Table.Table -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Base.Function.Function -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout

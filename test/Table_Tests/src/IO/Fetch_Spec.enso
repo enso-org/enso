@@ -1,17 +1,16 @@
 from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.Common.Response_Too_Large
-import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.HTTP.Response.Response
-import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import all
-import Standard.Table.Errors.Invalid_JSON_Format
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -28,6 +27,7 @@ polyglot java import org.enso.base.cache.DiskSpaceGetter
 polyglot java import org.enso.base.cache.LRUCache
 polyglot java import org.enso.base.cache.LRUCacheSettings
 polyglot java import org.enso.base.cache.NowGetter
+polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.base.cache.TotalCacheLimit
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
 
@@ -133,9 +133,9 @@ add_specs suite_builder =
             after_count = get_num_response_cache_entries
             [before_count, after_count]
 
-        expect_counts expected_counts ~action =
+        expect_counts expected_counts ~action = Frame_Hider.hide <|
             counts = with_counts action
-            counts . should_equal expected_counts frames_to_skip=1
+            counts . should_equal expected_counts
 
         get_cache_files : Vector Text
         get_cache_files -> Vector Text =
@@ -173,7 +173,7 @@ add_specs suite_builder =
             with_lru_cache lru_cache action
 
         fake_reload =
-            EnsoSecretHelper.getOrCreateCache.getLRUCache.simulateReloadTestOnly
+            ReloadDetector.simulateReloadTestOnly get_lru_cache
 
         url0 = base_url_with_slash+'test_download?max-age=16&length=10'
         url1 = base_url_with_slash+'test_download?max-age=16&length=20'
@@ -228,16 +228,16 @@ add_specs suite_builder =
         group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|
                 expect_counts [0, 0] <|
-                    HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache
-                    HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache
+                    HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text
+                    HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text
                 expect_counts [0, 2] <|
-                    HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache
-                    HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache
+                    HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+                    HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text
 
             with_default_cache <|
                 expect_counts [0, 2] <|
-                    HTTP.fetch url0
-                    HTTP.fetch url1
+                    HTTP.fetch url0 . decode_as_text
+                    HTTP.fetch url1 . decode_as_text
 
         group_builder.specify "Cache policy should work for Data.fetch" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|
@@ -412,16 +412,16 @@ add_specs suite_builder =
 
         group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|
-                HTTP.fetch url0
+                HTTP.fetch url0 . decode_as_text . should_succeed
                 get_num_response_cache_entries . should_equal 1
-                HTTP.fetch base_url_with_slash+'crash'
+                HTTP.fetch base_url_with_slash+'crash' . decode_as_text . should_fail_with Request_Error
                 get_num_response_cache_entries . should_equal 1
-                HTTP.fetch base_url_with_slash+'nonexistent_endpoint'
+                HTTP.fetch base_url_with_slash+'nonexistent_endpoint' . decode_as_text . should_fail_with HTTP_Error
                 get_num_response_cache_entries . should_equal 1
 
         cloud_setup = Cloud_Tests_Setup.prepare
 
-        group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should work with secrets in the URI" pending="https://github.com/enso-org/enso/issues/12575" <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
                 secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
@@ -437,12 +437,12 @@ add_specs suite_builder =
                         . add_query_argument "arg1" secret2
                         . add_query_argument "arg2" "plain value"
 
-                    HTTP.fetch url1
+                    HTTP.fetch url1 . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 1
-                    HTTP.fetch uri2
+                    HTTP.fetch uri2 . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 2
 
-        group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should work with secrets in the headers" pending="https://github.com/enso-org/enso/issues/12575" <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
                 secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
@@ -455,9 +455,9 @@ add_specs suite_builder =
                     headers1 = [Header.new "A-Header" secret1]
                     headers2 = [Header.new "A-Header" secret2]
 
-                    HTTP.fetch headers=headers1 uri
+                    HTTP.fetch headers=headers1 uri . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 1
-                    HTTP.fetch headers=headers2 uri
+                    HTTP.fetch headers=headers2 uri . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 2
 
         group_builder.specify "Does not attempt to make room for the maximum file size when that is larger than the total cache size" pending=pending_has_url <| Test.with_retries <|
@@ -545,24 +545,24 @@ add_specs suite_builder =
                 LRUCache.new . getSettings . getTotalCacheLimit . should_equal (TotalCacheLimit.Percentage.new 0.2)
 
         group_builder.specify "Cache should be cleared when a reload is detected" <|
-            HTTP.fetch base_url_with_slash+'test_download?length=10'
-            HTTP.fetch base_url_with_slash+'test_download?length=11'
-            HTTP.fetch base_url_with_slash+'test_download?length=12'
+            HTTP.fetch base_url_with_slash+'test_download?length=10' . decode_as_text
+            HTTP.fetch base_url_with_slash+'test_download?length=11' . decode_as_text
+            HTTP.fetch base_url_with_slash+'test_download?length=12' . decode_as_text
             get_num_response_cache_entries . should_equal 3
 
             fake_reload
 
             get_num_response_cache_entries . should_equal 3  # Cleaning is not triggered until the next request
-            HTTP.fetch base_url_with_slash+'test_download?length=10'
+            HTTP.fetch base_url_with_slash+'test_download?length=10' . decode_as_text
             get_num_response_cache_entries . should_equal 1
-            HTTP.fetch base_url_with_slash+'test_download?length=14'
-            HTTP.fetch base_url_with_slash+'test_download?length=15'
+            HTTP.fetch base_url_with_slash+'test_download?length=14' . decode_as_text
+            HTTP.fetch base_url_with_slash+'test_download?length=15' . decode_as_text
             get_num_response_cache_entries . should_equal 3
 
             fake_reload
 
             get_num_response_cache_entries . should_equal 3  # Cleaning is not triggered until the next request
-            HTTP.fetch base_url_with_slash+'test_download?length=16'
+            HTTP.fetch base_url_with_slash+'test_download?length=16' . decode_as_text
             get_num_response_cache_entries . should_equal 1
 
         group_builder.specify "Reissues the request if the cache file disappears" pending=pending_has_url <| Test.with_retries <|

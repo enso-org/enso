@@ -1,52 +1,63 @@
 {
   "type": "module",
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.10.0",
-    "@typescript-eslint/parser": "^8.10.0",
-    "@eslint/js": "^9.13.0",
-    "@vue/eslint-config-typescript": "^14.1.1",
-    "eslint-plugin-jsdoc": "^50.4.3",
-    "eslint-plugin-react-hooks": "^5.0.0",
+    "@bazel/ibazel": "^0.25.0",
+    "@eslint/js": "^9.17.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.0",
+    "@vue/eslint-config-typescript": "^14.2.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-jsdoc": "^50.6.1",
     "eslint-plugin-prettier": "^5.2.1",
-    "eslint-plugin-react": "^7.37.1",
-    "eslint-plugin-vue": "^9.29.1",
+    "eslint-plugin-react": "^7.37.3",
     "eslint-plugin-react-compiler": "19.0.0-beta-8a03594-20241020",
-    "eslint": "^9.13.0",
-    "globals": "^15.8.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "eslint-plugin-vue": "^9.32.0",
+    "globals": "^15.14.0",
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.3.2",
-    "prettier-plugin-organize-imports": "^4.0.0",
-    "vitest": "^1.3.1"
+    "prettier": "^3.4.2",
+    "prettier-plugin-organize-imports": "^4.1.0",
+    "prettier-plugin-tailwindcss": "^0.5.14"
   },
   "dependencies": {
-    "tslib": "^2.6.3",
-    "typescript": "^5.5.3"
+    "@bazel/bazelisk": "^1.22.1",
+    "tslib": "^2.8.1",
+    "typescript": "catalog:"
   },
   "name": "root",
   "scripts": {
     "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
-    "build:gui": "corepack pnpm run -r --filter enso-gui build",
+    "compile": "corepack pnpm run -r compile",
+    "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
     "build:icons": "corepack pnpm run -r --filter enso-icons build",
+    "build:ydoc-server-polyglot": "corepack pnpm postinstall && corepack pnpm run -r compile",
     "dist:ide": "corepack pnpm run -r --filter enso dist",
     "format": "prettier --write .",
     "format:workflows": "prettier --write .github/workflows",
-    "ci-check": "corepack pnpm run --aggregate-output /^ci:/",
+    "ci-check": "corepack pnpm run -r compile && corepack pnpm run --aggregate-output /^ci:/",
     "ci:prettier": "prettier --check --cache .",
-    "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json",
-    "ci:test": "corepack pnpm run -r --parallel test",
+    "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
-    "ci:typecheck": "corepack pnpm run -r typecheck",
-    "ci:chromatic:react": "corepack pnpm run -r --filter enso-gui chromatic:react",
-    "ci:chromatic:vue": "corepack pnpm run -r --filter enso-gui chromatic:vue"
+    "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
+    "git-clean": "git clean -xfd --exclude='.env*'",
+    "bazel-clean": "bazel clean --expunge_async",
+    "postinstall": "bazel run //:write_all --verbose_failures"
   },
+  "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
   "pnpm": {
-    "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "fsevents",
+      "sharp"
+    ],
     "overrides": {
       "tslib": "$tslib",
-      "jsdom": "^24.1.0",
-      "@types/react": "^18.0.27",
-      "ws": "^8.18.0"
+      "@types/react": "^18.3.1",
+      "ws": "^8.18.0",
+      "esbuild": "^0.25.0"
     },
     "packageExtensions": {
       "@aws-amplify/auth": {
@@ -63,8 +74,95 @@
         "dependencies": {
           "events": "^3.3.0"
         }
+      },
+      "react-error-boundary": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-aria-components": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-aria": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "input-otp": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@tanstack/react-query": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@react-types/shared": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@monaco-editor/react": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@stripe/react-stripe-js": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-toastify": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-hook-form": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@hookform/resolvers": {
+        "dependencies": {
+          "zod": "*"
+        }
+      },
+      "@aws-crypto/sha256-browser": {
+        "dependencies": {
+          "@aws-sdk/util-utf8-browser": "*"
+        }
+      },
+      "@vue/compiler-core": {
+        "dependencies": {
+          "@babel/types": "*"
+        }
+      },
+      "undici-types": {
+        "dependencies": {
+          "@types/node": "*"
+        }
+      },
+      "@vue/test-utils": {
+        "dependencies": {
+          "vue": "*",
+          "@vue/compiler-dom": "*",
+          "@vue/server-renderer": "*"
+        }
+      },
+      "modern-isomorphic-ws": {
+        "peerDependencies": {
+          "@types/ws": "*"
+        }
+      },
+      "veaury": {
+        "peerDependencies": {
+          "vue": "*"
+        }
       }
     }
   },
-  "packageManager": "pnpm@9.4.0+sha256.b6fd0bfda555e7e584ad7e56b30c68b01d5a04f9ee93989f4b93ca8473c49c74"
+  "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"
 }

@@ -1,5 +1,5 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from 'playwright/test'
 
 import { mockAllAndLogin } from './actions'
 
@@ -12,14 +12,7 @@ const SECRET_NAME = 'a secret name'
 /** The value of the created secret. */
 const SECRET_VALUE = 'a secret value'
 
-/** Find an editor container. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function locateEditor(page: Page) {
-  // Test ID of a placeholder editor component used during testing.
-  return page.locator('.App')
-}
-
-test('create folder', ({ page }) =>
+test('create folder (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
@@ -28,16 +21,32 @@ test('create folder', ({ page }) =>
       await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
     }))
 
-test('create project', ({ page }) =>
+test('create folder (local)', ({ page }) =>
+  mockAllAndLogin({ page })
+    .goToCategory.local()
+    .createFolder()
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toBeVisible()
+      await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
+    }))
+
+test('create project (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .newEmptyProject()
-    // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-    // Uncomment once cloud execution in the browser is re-enabled.
-    // .do((thePage) => expect(locateEditor(thePage)).toBeAttached())
-    // .goToPage.drive()
+    .waitForEditorToLoad()
+    .goToPage.drive()
     .driveTable.withRows((rows) => expect(rows).toHaveCount(1)))
 
-test('upload file', ({ page }) =>
+test('create project (local)', ({ page }) =>
+  mockAllAndLogin({ page })
+    .goToCategory.local()
+    .newEmptyProject()
+    .waitForEditorToLoad()
+    .goToPage.drive()
+    .driveTable.withRows((rows) => expect(rows).toHaveCount(1)))
+
+test('upload file (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .uploadFile(FILE_NAME, FILE_CONTENTS)
     .driveTable.withRows(async (rows) => {
@@ -46,7 +55,17 @@ test('upload file', ({ page }) =>
       await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
     }))
 
-test('create secret', ({ page }) =>
+test('upload file (local)', ({ page }) =>
+  mockAllAndLogin({ page })
+    .goToCategory.local()
+    .uploadFile(FILE_NAME, FILE_CONTENTS)
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toBeVisible()
+      await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
+    }))
+
+test('create secret (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createSecret(SECRET_NAME, SECRET_VALUE)
     .driveTable.withRows(async (rows) => {

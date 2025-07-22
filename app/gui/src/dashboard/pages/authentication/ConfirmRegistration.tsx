@@ -2,50 +2,49 @@
  * @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address.
  */
-
-import * as router from 'react-router-dom'
-
-import * as appUtils from '#/appUtils'
-
+import { Button } from '#/components/Button'
 import { Result } from '#/components/Result'
-
-import { Button, ButtonGroup } from '#/components/AriaComponents'
 import { useMounted } from '#/hooks/mountHooks'
-import * as authProvider from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
+import { useTimeoutAPI } from '#/hooks/timeoutHooks'
+import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
+import * as appUtils from '$/appUtils'
+import { useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 
-// ===========================
-// === ConfirmRegistration ===
-// ===========================
+const REDIRECT_TIMEOUT = 5_000
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
-  const auth = authProvider.useAuth()
+  const { confirmSignUp } = useSession()
   const { getText } = useText()
+  const { router } = useRouter()
 
-  const navigate = router.useNavigate()
-  const [searchParams] = router.useSearchParams()
+  const [email] = useQueryParam('email')
+  const [verificationCode] = useQueryParam('verification_code')
+  const [redirectUrl] = useQueryParam('redirect_url')
 
-  const verificationCode = searchParams.get('verification_code')
-  const email = searchParams.get('email')
-  const redirectUrl = searchParams.get('redirect_url')
+  const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
+
+  const url = (() => {
+    if (redirectUrl != null) {
+      return redirectUrl
+    }
+    return appUtils.DASHBOARD_PATH
+  })()
 
   const confirmRegistrationMutation = useMutation({
     mutationKey: ['confirmRegistration'],
     mutationFn: (params: { email: string; verificationCode: string }) =>
-      auth.confirmSignUp(params.email, params.verificationCode),
+      confirmSignUp(params.email, params.verificationCode),
     onSuccess: () => {
-      if (redirectUrl != null) {
-        unsafeWriteValue(window.location, 'href', redirectUrl)
-      } else {
-        searchParams.delete('verification_code')
-        searchParams.delete('email')
-        searchParams.delete('redirect_url')
-        navigate(appUtils.LOGIN_PATH + '?' + searchParams.toString())
-      }
+      void startTimer()
+        .then(() => {
+          unsafeWriteValue(window.location, 'href', url)
+        })
+        .catch(noop)
     },
   })
 
@@ -82,35 +81,39 @@ export default function ConfirmRegistration() {
   }
 
   if (email == null || verificationCode == null) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} replace />
-  } else {
-    return (
-      <AuthenticationPage title={''}>
-        <Result
-          status={confirmRegistrationMutation.status}
-          title={textsByStatus[confirmRegistrationMutation.status].title}
-          subtitle={textsByStatus[confirmRegistrationMutation.status].subtitle}
-        >
-          {confirmRegistrationMutation.isIdle && (
-            <ButtonGroup align="center">
-              <Button
-                onPress={() => confirmRegistrationMutation.mutateAsync({ email, verificationCode })}
-              >
-                {getText('confirm')}
-              </Button>
-            </ButtonGroup>
-          )}
-          {confirmRegistrationMutation.isError && (
-            <ButtonGroup align="center">
-              <Button
-                onPress={() => confirmRegistrationMutation.mutateAsync({ email, verificationCode })}
-              >
-                {getText('retry')}
-              </Button>
-            </ButtonGroup>
-          )}
-        </Result>
-      </AuthenticationPage>
-    )
+    void router.replace(appUtils.LOGIN_PATH)
+    return
   }
+
+  return (
+    <AuthenticationPage title={''}>
+      <Result
+        status={confirmRegistrationMutation.status}
+        title={textsByStatus[confirmRegistrationMutation.status].title}
+        subtitle={textsByStatus[confirmRegistrationMutation.status].subtitle}
+      >
+        <Button.Group align="center" buttonVariants={{ variant: 'submit' }}>
+          {confirmRegistrationMutation.isIdle && (
+            <Button
+              onPress={() => confirmRegistrationMutation.mutateAsync({ email, verificationCode })}
+            >
+              {getText('confirm')}
+            </Button>
+          )}
+
+          {confirmRegistrationMutation.isError && (
+            <Button
+              onPress={() => confirmRegistrationMutation.mutateAsync({ email, verificationCode })}
+            >
+              {getText('retry')}
+            </Button>
+          )}
+
+          {confirmRegistrationMutation.isSuccess && (
+            <Button href={url}>{getText('openInDesktop')}</Button>
+          )}
+        </Button.Group>
+      </Result>
+    </AuthenticationPage>
+  )
 }

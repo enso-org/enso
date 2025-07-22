@@ -1,0 +1,36 @@
+## Enso Signatures 1.0
+## module Standard.Base.Network.URI
+- type Invalid_Query_String
+    - Warning query_string:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Any.Any
+- type URI
+    - Value internal_uri:Standard.Base.Network.URI.Java_URI additional_query_parameters:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)
+    - / self segment:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - add_query_argument self key:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret) -> Standard.Base.Any.Any
+    - authority self -> Standard.Base.Any.Any
+    - fragment self -> Standard.Base.Any.Any
+    - host self -> Standard.Base.Any.Any
+    - parse uri:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - path self -> Standard.Base.Any.Any
+    - port self -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
+    - query self -> Standard.Base.Any.Any
+    - raw_authority self -> Standard.Base.Any.Any
+    - raw_fragment self -> Standard.Base.Any.Any
+    - raw_path self -> Standard.Base.Any.Any
+    - raw_query self -> Standard.Base.Any.Any
+    - raw_user_info self -> Standard.Base.Any.Any
+    - reset_query_arguments self -> Standard.Base.Any.Any
+    - scheme self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_java_representation self -> Standard.Base.Any.Any
+    - to_java_uri self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - user_info self -> Standard.Base.Any.Any
+- type URI_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- handle_resolve_errors ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Network.URI.URI.from that:Standard.Base.Data.Text.Text -> Standard.Base.Network.URI.URI
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Network.URI.URI -> Standard.Base.Data.Ordering.Comparable

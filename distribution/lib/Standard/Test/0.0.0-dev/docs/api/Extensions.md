@@ -1,0 +1,34 @@
+## Enso Signatures 1.0
+## module Standard.Test.Extensions
+- Standard.Base.Any.Any.should_be_a self typ:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_contain self element:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_end_with self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_equal self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_equal_ignoring_order self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_equal_type self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_fail_with self matcher:Standard.Base.Any.Any unwrap_errors:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_not_contain self element:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_not_equal self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_not_equal_type self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_only_contain_elements_in self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_start_with self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.should_succeed self -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.should_be_false self -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.should_be_true self -> Standard.Base.Any.Any
+- Standard.Base.Data.Decimal.Decimal.should_equal self that:Standard.Base.Any.Any epsilon:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_be_a self typ:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_be_false self -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_be_true self -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_contain self element:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_end_with self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_equal self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_equal_ignoring_order self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_equal_type self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_fail_with self matcher:Standard.Base.Any.Any unwrap_errors:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_not_contain self element:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_not_equal self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_not_equal_type self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_only_contain_elements_in self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_start_with self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.should_succeed self -> Standard.Base.Any.Any
+- Standard.Base.Data.Numbers.Number.should_equal self that:Standard.Base.Any.Any epsilon:Standard.Base.Any.Any= -> Standard.Base.Any.Any

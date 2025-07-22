@@ -1,11 +1,12 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import assert from 'assert'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import type { AstId } from 'ydoc-shared/ast'
-import { IdMap, type ExternalId, type SourceRange } from 'ydoc-shared/yjsModel'
+import { type AstId } from 'ydoc-shared/ast'
+import { SourceRange } from 'ydoc-shared/util/data/text'
+import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 
 /** TODO: Add docs */
 export function parseWithSpans<T extends Record<string, SourceRange>>(code: string, spans: T) {
@@ -16,6 +17,7 @@ export function parseWithSpans<T extends Record<string, SourceRange>>(code: stri
   let nextIndex = 0
   for (const name in spans) {
     const span = spans[name]!
+    assertDefined(span)
     const indexStr = `${nextIndex++}`
     const eid =
       idMap.getIfExist(span) ??
@@ -41,20 +43,20 @@ test('Reading graph from definition', () => {
     node3 = node2 + 1
     node3`
   const spans = {
-    functionName: [0, 8] as [number, number],
-    parameter: [9, 10] as [number, number],
-    node1Id: [17, 22] as [number, number],
-    node1Content: [25, 30] as [number, number],
-    node1LParam: [25, 26] as [number, number],
-    node1RParam: [29, 30] as [number, number],
-    node2Id: [35, 40] as [number, number],
-    node2Content: [43, 52] as [number, number],
-    node2LParam: [43, 48] as [number, number],
-    node2RParam: [51, 52] as [number, number],
-    node3Id: [57, 62] as [number, number],
-    node3Content: [65, 74] as [number, number],
-    output: [79, 84] as [number, number],
-  }
+    functionName: SourceRange.unsafeFromBounds(0, 8),
+    parameter: SourceRange.unsafeFromBounds(9, 10),
+    node1Id: SourceRange.unsafeFromBounds(17, 22),
+    node1Content: SourceRange.unsafeFromBounds(25, 30),
+    node1LParam: SourceRange.unsafeFromBounds(25, 26),
+    node1RParam: SourceRange.unsafeFromBounds(29, 30),
+    node2Id: SourceRange.unsafeFromBounds(35, 40),
+    node2Content: SourceRange.unsafeFromBounds(43, 52),
+    node2LParam: SourceRange.unsafeFromBounds(43, 48),
+    node2RParam: SourceRange.unsafeFromBounds(51, 52),
+    node3Id: SourceRange.unsafeFromBounds(57, 62),
+    node3Content: SourceRange.unsafeFromBounds(65, 74),
+    output: SourceRange.unsafeFromBounds(79, 84),
+  } satisfies Record<string, SourceRange>
 
   const { ast, id, eid, getSpan } = parseWithSpans(code, spans)
 

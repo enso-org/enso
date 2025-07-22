@@ -1,0 +1,27 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Time.Date_Time_Formatter
+- type Date_Time_Formatter
+    - Value underlying:Standard.Base.Data.Time.Date_Time_Formatter.EnsoDateTimeFormatter ~deferred_parsing_warnings:Standard.Base.Any.Any=
+    - default_enso_zoned_date_time -> Standard.Base.Any.Any
+    - format_date self date:Standard.Base.Data.Time.Date.Date -> Standard.Base.Any.Any
+    - format_date_time self date_time:Standard.Base.Data.Time.Date_Time.Date_Time -> Standard.Base.Any.Any
+    - format_time self time:Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day -> Standard.Base.Any.Any
+    - from_iso_week_date_pattern pattern:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+    - from_java pattern:Standard.Base.Any.Any locale:(Standard.Base.Data.Locale.Locale|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - from_simple_pattern pattern:Standard.Base.Data.Text.Text= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+    - get_java_formatter_for_parsing self -> Standard.Base.Any.Any
+    - handle_java_errors self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - iso_date -> Standard.Base.Any.Any
+    - iso_local_date_time -> Standard.Base.Any.Any
+    - iso_offset_date_time -> Standard.Base.Any.Any
+    - iso_time -> Standard.Base.Any.Any
+    - iso_zoned_date_time -> Standard.Base.Any.Any
+    - parse_date self text:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - parse_date_time self text:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - parse_time self text:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - pattern_approximation_as_text self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - with_locale self locale:Standard.Base.Data.Locale.Locale -> Standard.Base.Any.Any
+    - with_parsing_warnings self ~continuation:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter.from that:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter

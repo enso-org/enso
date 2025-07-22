@@ -22,6 +22,13 @@ class ModuleManagementTest
     ctx = new TestContext("test")
   }
 
+  override def afterEach(): Unit = {
+    super.afterEach()
+    if (ctx != null) {
+      ctx.close()
+    }
+  }
+
   class TestContext(packageName: String) {
     val pkg: Package[File] =
       PackageManager.Default.create(
@@ -29,23 +36,22 @@ class ModuleManagementTest
         packageName,
         "Enso_Test"
       )
-    val out = new ByteArrayOutputStream()
-    val executionContext = new PolyglotContext(
-      Context
-        .newBuilder(org.enso.common.LanguageInfo.ID)
-        .allowExperimentalOptions(true)
-        .allowAllAccess(true)
-        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths.get("../../distribution/component").toFile.getAbsolutePath
-        )
-        .option(RuntimeOptions.STRICT_ERRORS, "true")
-        .out(out)
-        .err(out)
-        .logHandler(out)
-        .build()
-    )
+    var out = new ByteArrayOutputStream()
+    var context = Context
+      .newBuilder(org.enso.common.LanguageInfo.ID)
+      .allowExperimentalOptions(true)
+      .allowAllAccess(true)
+      .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
+      .option(
+        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+        Paths.get("../../distribution/component").toFile.getAbsolutePath
+      )
+      .option(RuntimeOptions.STRICT_ERRORS, "true")
+      .out(out)
+      .err(out)
+      .logHandler(out)
+      .build()
+    val executionContext = new PolyglotContext(context)
 
     def mkFile(name: String): File = new File(getTestDirectory.toFile, name)
 
@@ -55,6 +61,13 @@ class ModuleManagementTest
 
     def writeMain(contents: String): Unit = {
       Files.write(pkg.mainFile.toPath, contents.getBytes): Unit
+    }
+
+    def close(): Unit = {
+      out.close()
+      out = null
+      context.close()
+      context = null
     }
   }
 

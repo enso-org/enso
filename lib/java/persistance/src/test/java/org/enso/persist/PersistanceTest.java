@@ -7,23 +7,21 @@ import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.Test;
-import org.openide.util.lookup.ServiceProvider;
 
 public class PersistanceTest {
   @Test
   public void testUUIDPersistance() throws Exception {
     // @start region="write"
     var obj = UUID.randomUUID();
-    var buffer = Persistance.write(obj, null);
+    var buffer = Persistables.POOL.write(obj);
     assertNotNull("Byte array is returned", buffer);
     assertNotEquals("It has non-zero length", 0, buffer.length);
     // @end region="write"
 
     // @start region="read"
-    var ref = Persistance.read(buffer, null);
+    var ref = Persistables.POOL.read(buffer);
     var loaded = ref.get(UUID.class);
     assertEquals("The same object was recreated", obj, loaded);
     // @end region="read"
@@ -31,86 +29,101 @@ public class PersistanceTest {
 
   @Test
   public void readResolve() throws Exception {
-    var in = new Service(5);
-    var arr = Persistance.write(in, (Function<Object, Object>) null);
+    var poolWith =
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistance.read(arr, (Function<Object, Object>) null);
+    var in = new Service(5);
+    var arr = poolWith.write(in);
+
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Remains five", 5, plain.get(Service.class).value());
 
-    var multiOnRead =
-        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = poolWith.read(arr);
     assertEquals("Multiplied on read", 15, multiOnRead.get(Service.class).value());
   }
 
   @Test
   public void writeReplace() throws Exception {
+    var poolWith =
+        Persistables.POOL.withWriteReplace(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new Service(5);
-    var arr =
-        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = poolWith.write(in);
 
-    var plain = Persistance.read(arr, (Function<Object, Object>) null);
+    var plain = poolWith.read(arr);
     assertEquals("Multiplied on write", 15, plain.get(Service.class).value());
   }
 
   @Test
   public void readResolveInline() throws Exception {
-    var in = new ServiceSupply(new Service(5));
-    var arr = Persistance.write(in, (Function<Object, Object>) null);
+    var poolWith =
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistance.read(arr, (Function<Object, Object>) null);
+    var in = new ServiceSupply(new Service(5));
+    var arr = poolWith.write(in);
+
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Remains five", 5, plain.get(ServiceSupply.class).supply().value());
 
-    var multiOnRead =
-        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = poolWith.read(arr);
     assertEquals("Multiplied on read", 15, multiOnRead.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void writeReplaceInline() throws Exception {
+    var poolWith =
+        Persistables.POOL.withWriteReplace(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new ServiceSupply(new Service(5));
-    var arr =
-        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = poolWith.write(in);
 
-    var plain = Persistance.read(arr, (Function<Object, Object>) null);
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Multiplied on write", 15, plain.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void readResolveReference() throws Exception {
-    var in = new IntegerSupply(new Service(5));
-    var arr = Persistance.write(in, (Function<Object, Object>) null);
+    var poolWith =
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistance.read(arr, (Function<Object, Object>) null);
+    var in = new IntegerSupply(new Service(5));
+    var arr = poolWith.write(in);
+
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Remains five", 5, (int) plain.get(IntegerSupply.class).supply().get());
     assertEquals("Remains five 2", 5, (int) plain.get(IntegerSupply.class).supply().get());
 
-    var multiOnRead =
-        Persistance.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = poolWith.read(arr);
     assertEquals(
         "Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
   }
 
   @Test
   public void writeReplaceReference() throws Exception {
+    var poolWith =
+        Persistables.POOL.withWriteReplace(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new IntegerSupply(new Service(5));
-    var arr =
-        Persistance.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = poolWith.write(in);
 
-    var plain = Persistance.read(arr, (Function<Object, Object>) null);
+    var plain = poolWith.read(arr);
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
   }
 
   static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    var arr = Persistance.write(l, (Function<Object, Object>) null);
+    var arr = Persistables.POOL.write(l);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = Persistance.read(arr, (Function<Object, Object>) null);
+    var ref = Persistables.POOL.read(arr);
     return ref.get(clazz);
   }
 
   // @start region="manual"
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 328439)
   public static final class PersistUUID extends Persistance<UUID> {
 
     public PersistUUID() {
@@ -139,7 +152,7 @@ public class PersistanceTest {
     private Singleton() {}
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 432433)
   public static final class PersistSingleton extends Persistance<Singleton> {
 
     public PersistSingleton() {
@@ -156,7 +169,7 @@ public class PersistanceTest {
   }
 
   // @start region="annotation"
-  @Persistable(clazz = Service.class, id = 432434)
+  @Persistable(id = 432434)
   @Persistable(clazz = IntegerSupply.class, id = 432435)
   public record Service(int value) implements Supplier<Integer> {
     @Override
@@ -278,5 +291,22 @@ public class PersistanceTest {
     var loaded1 = serde(LongerLoop1.class, obj1, -1);
     var inner1 = loaded1.y().get(LongerLoop2.class);
     assertSame("The reference points to null", null, inner1);
+  }
+
+  @Test
+  public void testEnumPersistance() throws Exception {
+    var yes = serde(Logical.class, Logical.YES, -1);
+    assertSame(yes, Logical.YES);
+    var no = serde(Logical.class, Logical.NO, -1);
+    assertSame(no, Logical.NO);
+    var maybe = serde(Logical.class, Logical.MAYBE, -1);
+    assertSame(maybe, Logical.MAYBE);
+  }
+
+  @Persistable(id = 432442)
+  public enum Logical {
+    YES,
+    NO,
+    MAYBE;
   }
 }

@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
-import Standard.Base.Enso_Cloud.Internal.Audit_Log.Audit_Log
 
 from Standard.Table import Table
 
@@ -10,7 +9,7 @@ from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
-from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import Audit_Log_Event, get_audit_log_events
+from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import get_audit_log_events
 
 import project.Database.Postgres_Spec.Temporary_Data_Link_File
 from project.Database.Postgres_Spec import get_configured_connection_details
@@ -95,6 +94,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
         # Once the tests above can be run on real cloud too (#10919), we can merge all 3 cloud setups into a single one.
         real_cloud = Cloud_Tests_Setup.prepare
         test_root = Temporary_Directory.make "Audit-Logs-Datalinks"
+        group_builder.teardown test_root.cleanup
         group_builder.specify "should know the asset id of the data link used for the connection" pending=real_cloud.real_cloud_pending <| real_cloud.with_prepared_environment <|
             # Upload our local reference data link to the cloud
             cloud_data_link = test_root.get / "audited-db.datalink"

@@ -11,8 +11,8 @@ import org.graalvm.polyglot.Context;
  * Wraps a storage in a list. Used for exposing a polyglot array interface back to Enso. This list
  * is not modifiable.
  */
-public class StorageListView implements List<Object> {
-  private final Storage<?> storage;
+public final class StorageListView implements List<Object> {
+  private final ColumnStorage<?> storage;
   private final int from;
   private final int to;
 
@@ -21,11 +21,11 @@ public class StorageListView implements List<Object> {
    *
    * @param storage the storage to wrap.
    */
-  public StorageListView(Storage<?> storage) {
-    this(storage, 0, storage.size());
+  public StorageListView(ColumnStorage<?> storage) {
+    this(storage, 0, Math.toIntExact(storage.getSize()));
   }
 
-  private StorageListView(Storage<?> storage, int from, int to) {
+  private StorageListView(ColumnStorage<?> storage, int from, int to) {
     this.storage = storage;
     this.from = from;
     this.to = to;

@@ -20,7 +20,6 @@ public class CrossTabIndex {
   private static final int MAXIMUM_CROSS_TAB_COLUMN_COUNT = 10000;
 
   private final ProblemAggregator problemAggregator;
-  private Column[] xColumns;
 
   private Column[] yColumns;
 
@@ -33,13 +32,12 @@ public class CrossTabIndex {
   private UnorderedMultiValueKey[][] grid;
 
   public CrossTabIndex(
-      Column[] xColumns, Column[] yColumns, int tableSize, ProblemAggregator problemAggregator) {
+      Column[] xColumns, Column[] yColumns, long tableSize, ProblemAggregator problemAggregator) {
     this.problemAggregator = problemAggregator;
-    this.xColumns = xColumns;
     this.yColumns = yColumns;
 
     // Create combined index
-    Column combinedColumns[] =
+    Column[] combinedColumns =
         Stream.concat(Arrays.stream(xColumns), Arrays.stream(yColumns)).toArray(Column[]::new);
     combinedIndex =
         MultiValueIndex.makeUnorderedIndex(
@@ -84,7 +82,7 @@ public class CrossTabIndex {
     }
   }
 
-  public List<Integer> get(UnorderedMultiValueKey xKey, UnorderedMultiValueKey yKey) {
+  public List<Long> get(UnorderedMultiValueKey xKey, UnorderedMultiValueKey yKey) {
     return combinedIndex.get(grid[getXCoordinate(xKey)][getYCoordinate(yKey)]);
   }
 
@@ -140,8 +138,7 @@ public class CrossTabIndex {
     for (int i = 0; i < xKeysCount(); i++) {
       int offset = yColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] =
-            Builder.getForType(aggregates[j].getType(), yKeysCount(), problemAggregator);
+        storage[offset + j] = aggregates[j].makeBuilder(yKeysCount(), problemAggregator);
         context.safepoint();
       }
     }
@@ -150,19 +147,19 @@ public class CrossTabIndex {
     for (UnorderedMultiValueKey ySubKey : getYKeys()) {
 
       // Fill the y key columns.
-      IntStream.range(0, yColumns.length).forEach(i -> storage[i].appendNoGrow(ySubKey.get(i)));
+      IntStream.range(0, yColumns.length).forEach(i -> storage[i].append(ySubKey.get(i)));
 
       int offset = yColumns.length;
 
       // Fill the aggregate columns.
       for (UnorderedMultiValueKey xSubKey : getXKeys()) {
-        List<Integer> rowIds = get(xSubKey, ySubKey);
-        if (rowIds == null) {
-          rowIds = List.of();
-        }
+        List<Long> rowIds = get(xSubKey, ySubKey);
+        // ToDo: Temporary workaround to avoid redoing all aggregators.
+        List<Integer> mapped =
+            rowIds == null ? List.of() : rowIds.stream().map(Long::intValue).toList();
 
         for (int i = 0; i < aggregates.length; i++) {
-          storage[offset + i].appendNoGrow(aggregates[i].aggregate(rowIds, problemAggregator));
+          storage[offset + i].append(aggregates[i].aggregate(mapped, problemAggregator));
         }
 
         offset += aggregates.length;

@@ -2,33 +2,35 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.zone.ZoneRulesException;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(
     pkg = "date",
     name = "TimeZone",
     stdlibName = "Standard.Base.Data.Time.Time_Zone.Time_Zone")
-public final class EnsoTimeZone extends EnsoObject {
+public final class EnsoTimeZone extends BuiltinObject {
+
   private final ZoneId zone;
 
   public EnsoTimeZone(ZoneId zone) {
     this.zone = zone;
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Time_Zone";
   }
 
   @Builtin.Method(description = "Get the unique identifier for your system's current timezone.")
@@ -99,25 +101,5 @@ public final class EnsoTimeZone extends EnsoObject {
   @ExportMessage
   ZoneId asTimeZone() {
     return zone;
-  }
-
-  @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().timeZone();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().timeZone();
   }
 }

@@ -2,16 +2,15 @@ package org.enso.interpreter.runtime.callable.function;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -19,9 +18,11 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.common.MethodNames;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -29,11 +30,8 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallerFrameAccess;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.type.Types;
 import org.slf4j.LoggerFactory;
 
 /** A runtime representation of a function object in Enso. */
@@ -88,6 +86,25 @@ public final class Function extends EnsoObject {
   }
 
   /**
+   * Helper method to construct a function with pre-applied arguments from any call target.
+   *
+   * @param callTarget the call target to invoke
+   * @param args the arguments to pass to the call target
+   * @return fully saturated function ready to be processed by {@link ThunkExecutorNode}
+   */
+  public static Function fullyApplied(RootCallTarget callTarget, Object... args) {
+    var defs = new ArgumentDefinition[args.length];
+    var appl = new boolean[args.length];
+    for (var i = 0; i < args.length; i++) {
+      defs[i] =
+          new ArgumentDefinition(i, null, null, null, ArgumentDefinition.ExecutionMode.EXECUTE);
+      appl[i] = true;
+    }
+    var schema = FunctionSchema.newBuilder().argumentDefinitions(defs).hasPreapplied(appl).build();
+    return new Function(callTarget, null, schema, args, new Object[0]);
+  }
+
+  /**
    * Creates a Function object from a {@link BuiltinRootNode} and argument definitions.
    *
    * @param node the {@link RootNode} for the function logic
@@ -133,15 +150,28 @@ public final class Function extends EnsoObject {
   /**
    * @return the name of this function.
    */
+  @TruffleBoundary
   public String getName() {
     return getCallTarget().getRootNode().getName();
+  }
+
+  @ExportMessage
+  boolean hasSourceLocation() {
+    return getCallTarget().getRootNode().getSourceSection() != null;
   }
 
   /**
    * @return the source section this function was defined in.
    */
-  public SourceSection getSourceSection() {
-    return getCallTarget().getRootNode().getSourceSection();
+  @TruffleBoundary
+  @ExportMessage(name = "getSourceLocation")
+  public SourceSection getSourceSection() throws UnsupportedMessageException {
+    var section = getCallTarget().getRootNode().getSourceSection();
+    if (section == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return section;
+    }
   }
 
   /**
@@ -191,6 +221,16 @@ public final class Function extends EnsoObject {
     return true;
   }
 
+  @ExportMessage
+  boolean hasExecutableName() {
+    return this.getName() != null;
+  }
+
+  @ExportMessage
+  String getExecutableName() {
+    return this.getName();
+  }
+
   /**
    * A class representing the executable behaviour of the function.
    *
@@ -208,7 +248,7 @@ public final class Function extends EnsoObject {
         @Cached InlinedBranchProfile panicProfile) {
       try {
         return interopApplicationNode.execute(
-            function, EnsoContext.get(thisLib).emptyState(), arguments);
+            function, EnsoContext.get(thisLib).currentState(), arguments);
       } catch (StackOverflowError err) {
         CompilerDirectives.transferToInterpreter();
         var asserts = false;
@@ -230,84 +270,6 @@ public final class Function extends EnsoObject {
   }
 
   /**
-   * Handles member invocation through the polyglot API.
-   *
-   * <p>The only supported member is {@code equals} checking for object identity.
-   *
-   * @param member the member name.
-   * @param args arguments to pass to the execution.
-   * @return the result of invoking the member.
-   * @throws ArityException when an invalid number of arguments is passed to the member.
-   * @throws UnknownIdentifierException when an invalid member is requested.
-   */
-  @ExportMessage
-  @CompilerDirectives.TruffleBoundary
-  Object invokeMember(String member, Object... args)
-      throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
-    switch (member) {
-      case MethodNames.Function.EQUALS:
-        Object that = Types.extractArguments(args, Object.class);
-        return this == that;
-      case MethodNames.Function.GET_SOURCE_START:
-        {
-          SourceSection sect = getSourceSection();
-          if (sect == null) {
-            return null;
-          }
-          return sect.getCharIndex();
-        }
-      case MethodNames.Function.GET_SOURCE_LENGTH:
-        {
-          SourceSection sect = getSourceSection();
-          if (sect == null) {
-            return null;
-          }
-          return sect.getCharLength();
-        }
-    }
-    throw UnknownIdentifierException.create(member);
-  }
-
-  /**
-   * Verifies whether a member can be invoked through the polyglot API.
-   *
-   * @param member the member name.
-   * @return {@code true} if the member can be invoked, {@code false} otherwise.
-   */
-  @ExportMessage
-  boolean isMemberInvocable(String member) {
-    return member.equals(MethodNames.Function.EQUALS)
-        || member.equals(MethodNames.Function.GET_SOURCE_START)
-        || member.equals(MethodNames.Function.GET_SOURCE_LENGTH);
-  }
-
-  /**
-   * Marks the object as having members available for the polyglot API.
-   *
-   * @return {@code true}
-   */
-  @ExportMessage
-  boolean hasMembers() {
-    return true;
-  }
-
-  /**
-   * Returns a collection of all members this object exposes through the polyglot API.
-   *
-   * <p>The only supported member is {@code equals}.
-   *
-   * @param includeInternal ignored
-   * @return a collection of all supported member names.
-   */
-  @ExportMessage
-  Object getMembers(boolean includeInternal) {
-    return ArrayLikeHelpers.wrapStrings(
-        MethodNames.Function.EQUALS,
-        MethodNames.Function.GET_SOURCE_START,
-        MethodNames.Function.GET_SOURCE_LENGTH);
-  }
-
-  /**
    * Defines a simple schema for accessing arguments from call targets.
    *
    * <p>As Truffle call targets can only take a simple {@code Object[]}, this class provides a way
@@ -322,26 +284,23 @@ public final class Function extends EnsoObject {
      * how to do this, see {@link InvokeFunctionNode}.
      *
      * @param function the function to be called
-     * @param state the state to execute the function with
      * @param positionalArguments the arguments to that function, sorted into positional order
      * @return an array containing the necessary information to call an Enso function
      */
     public static Object[] buildArguments(
-        Function function, CallerInfo callerInfo, Object state, Object[] positionalArguments) {
-      return new Object[] {function.getScope(), callerInfo, state, positionalArguments};
+        Function function, CallerInfo callerInfo, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), callerInfo, positionalArguments};
     }
 
     /**
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * @param frame the frame becoming the lexical scope
-     * @param state the state to execute the thunk with
      * @param positionalArguments the positional arguments to the call target
      * @return an array containing the necessary information to call an Enso function
      */
-    public static Object[] buildArguments(
-        MaterializedFrame frame, Object state, Object[] positionalArguments) {
-      return new Object[] {frame, null, state, positionalArguments};
+    public static Object[] buildArguments(MaterializedFrame frame, Object[] positionalArguments) {
+      return new Object[] {frame, null, positionalArguments};
     }
 
     /**
@@ -351,8 +310,8 @@ public final class Function extends EnsoObject {
      * @param state the state to execute the thunk with
      * @return an array containing the necessary information to call an Enso thunk
      */
-    public static Object[] buildArguments(Function thunk, Object state) {
-      return new Object[] {thunk.getScope(), null, state, new Object[0]};
+    public static Object[] buildArguments(Function thunk) {
+      return new Object[] {thunk.getScope(), null, new Object[0]};
     }
 
     /**
@@ -363,18 +322,7 @@ public final class Function extends EnsoObject {
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
-      return (Object[]) arguments[3];
-    }
-
-    /**
-     * Gets the state out of the array.
-     *
-     * @param arguments an array produced by {@link
-     *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
-     * @return the state for the function
-     */
-    public static State getState(Object[] arguments) {
-      return (State) arguments[2];
+      return (Object[]) arguments[2];
     }
 
     /**
@@ -420,7 +368,7 @@ public final class Function extends EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().function();
   }
 
@@ -463,30 +411,82 @@ public final class Function extends EnsoObject {
       sb.append("]");
     }
     if (includeArguments) {
-      for (var i = 0; i < schema.getArgumentsCount(); i++) {
-        ArgumentDefinition info = schema.getArgumentInfos()[i];
-        if (info.hasDefaultValue()
-            && preAppliedArguments != null
-            && preAppliedArguments[i] == null) {
-          continue;
-        }
-        var name = info.getName();
-        sb.append(" ").append(name).append("=");
-        if (preAppliedArguments != null && preAppliedArguments[i] != null) {
-          sb.append(iop.toDisplayString(preAppliedArguments[i], false));
-        } else {
-          sb.append("_");
-        }
-      }
-      if (schema.getOversaturatedArguments() != null) {
-        for (var i = 0; i < schema.getOversaturatedArguments().length; i++) {
-          if (oversaturatedArguments != null && oversaturatedArguments[i] != null) {
-            sb.append(" +").append(schema.getOversaturatedArguments()[i].getName()).append("=");
-            sb.append(iop.toDisplayString(oversaturatedArguments[i], false));
-          }
-        }
-      }
+      Consumer<String> pending =
+          (name) -> {
+            sb.append(" ").append(name).append("=_");
+          };
+      BiConsumer<String, Object> preapplied =
+          (name, arg) -> {
+            sb.append(" ").append(name).append("=");
+            sb.append(iop.toDisplayString(arg, false));
+          };
+      BiConsumer<String, Object> oversaturated =
+          (name, arg) -> {
+            sb.append(" +").append(name).append("=");
+            sb.append(iop.toDisplayString(arg, false));
+          };
+      iterateArguments(pending, null, preapplied, oversaturated);
     }
     return sb.toString();
   }
+
+  /**
+   * Iterates over function arguments while sorting them into categories and reporting their actual
+   * values when available. Any of the arguments can be {@code null} when info about such a category
+   * isn't needed.
+   *
+   * @param pending names of arguments that still need to be applied before the function is invoked
+   *     are provided to this constumer
+   * @param defaulted names of arguments with default values (without the value itself as it is not
+   *     computed yet) are provided to this consumer. These arguments may or may not be provided in
+   *     order to invoke the function
+   * @param preapplied reports argument name and its associated value that has already been applied
+   *     and will be used when the function is invoked
+   * @param oversaturated reports over-saturated argument name with a value which will be applied to
+   *     the result of the function invocation, when the function is invoked
+   */
+  @CompilerDirectives.TruffleBoundary
+  public final void iterateArguments(
+      Consumer<String> pending,
+      Consumer<String> defaulted,
+      BiConsumer<String, Object> preapplied,
+      BiConsumer<String, Object> oversaturated) {
+    if (pending == null) {
+      pending = this::ignore;
+    }
+    if (defaulted == null) {
+      defaulted = this::ignore;
+    }
+    if (preapplied == null) {
+      preapplied = this::ignore;
+    }
+    if (oversaturated == null) {
+      oversaturated = this::ignore;
+    }
+    for (var i = 0; i < schema.getArgumentsCount(); i++) {
+      var info = schema.getArgumentInfos()[i];
+      var name = info.getName();
+      if (preAppliedArguments != null && preAppliedArguments[i] != null) {
+        preapplied.accept(name, preAppliedArguments[i]);
+      } else {
+        if (info.hasDefaultValue()) {
+          defaulted.accept(name);
+        } else {
+          pending.accept(name);
+        }
+      }
+    }
+    if (schema.getOversaturatedArguments() != null) {
+      for (var i = 0; i < schema.getOversaturatedArguments().length; i++) {
+        if (oversaturatedArguments != null && oversaturatedArguments[i] != null) {
+          oversaturated.accept(
+              schema.getOversaturatedArguments()[i].getName(), oversaturatedArguments[i]);
+        }
+      }
+    }
+  }
+
+  private void ignore(String ignore1) {}
+
+  private void ignore(String ignore1, Object ignore2) {}
 }

@@ -16,15 +16,16 @@ object LanguageServerProtocol {
     * @param clientId the requester id
     * @param project the project to start
     * @param engineVersion version of the engine to use
-    * @param progressTracker an actor that should be sent notifications about
-    *                        locks
+    * @param progressTracker an actor that should be sent notifications about locks
+    * @param extraEnv extra environment variables
     */
   case class StartServer(
     clientId: UUID,
     project: Project,
     engineVersion: SemVer,
     progressTracker: ActorRef,
-    engineUpdate: Boolean
+    engineUpdate: Boolean,
+    extraEnv: Seq[(String, String)]
   )
 
   /** Base trait for server startup results.

@@ -1,0 +1,54 @@
+private
+
+## Conversions that are used for type refinements.
+   They should never be exported or used elsewhere.
+
+from Standard.Base import all
+
+import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
+import project.In_Memory_Table.In_Memory_Table
+import project.Table.Table
+from project.Internal.Type_Refinements.Single_Value_Column_Conversions import all
+
+## This conversion is internal and should never be exported.
+In_Memory_Column.from (that : In_Memory_Table) -> In_Memory_Column =
+    Runtime.assert ((that:Table).column_count == 1)
+    (that:Table).at 0
+
+## This conversion is internal and should never be exported.
+Column.from (that : In_Memory_Table) -> Column =
+    Runtime.assert ((that:Table).column_count == 1)
+    (that:Table).at 0
+
+## This conversion is internal and should never be exported.
+Integer.from (that : In_Memory_Table) -> Integer =
+    Integer.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Float.from (that : In_Memory_Table) -> Float =
+    Float.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Text.from (that : In_Memory_Table) -> Text =
+    Text.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Boolean.from (that : In_Memory_Table) -> Boolean =
+    Boolean.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Date.from (that : In_Memory_Table) -> Date =
+    Date.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Time_Of_Day.from (that : In_Memory_Table) -> Time_Of_Day =
+    Time_Of_Day.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Date_Time.from (that : In_Memory_Table) -> Date_Time =
+    Date_Time.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Decimal.from (that : In_Memory_Table) -> Decimal =
+    Decimal.from (In_Memory_Column.from that)

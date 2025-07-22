@@ -14,7 +14,7 @@ export {
   type QualifiedName,
 }
 
-const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[!$%&*+,-./:;<=>?@\\^|~]+)'
+const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[-!$%&*+,/:;<=>?@\\^|~]+)'
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
 const mainSegmentRegex = new RegExp(`^(${identifierRegexPart}\\.${identifierRegexPart})\\.Main`)
 
@@ -23,7 +23,7 @@ export function tryIdentifier(str: string): Result<Identifier> {
   return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
 
-/** Returns the string if it's a valid {@link IdIdentifierOrOperatorIdentifierentifier}. */
+/** Returns the string if it's a valid {@link IdentifierOrOperatorIdentifier}. */
 export function tryIdentifierOrOperatorIdentifier(
   str: string,
 ): Result<IdentifierOrOperatorIdentifier> {
@@ -97,30 +97,4 @@ export function qnSlice(
   end?: number | undefined,
 ): Result<QualifiedName> {
   return tryQualifiedName(qnSegments(name).slice(start, end).join('.'))
-}
-
-/**
- * Checks if given full qualified name is considered a top element of some project.
- *
- * The fully qualified names consists of namespace, project name, and then a path (possibly empty).
- * The element is considered a top element if there is max 1 segment in the path.
- */
-export function qnIsTopElement(name: QualifiedName): boolean {
-  return !/[.].*?[.].*?[.]/.test(name)
-}
-
-/**
- * Replace the project name in this qualified name if equal to `oldProject`, otherwise return `qn`.
- *
- * The namespace will be unchanged.
- */
-export function qnReplaceProjectName(
-  qn: QualifiedName,
-  oldProject: string,
-  newProject: Identifier,
-): QualifiedName {
-  return qn.replace(
-    new RegExp(`^(${identifierRegexPart}\\.)${oldProject}(?=\\.|$)`),
-    `$1${newProject}`,
-  ) as QualifiedName
 }

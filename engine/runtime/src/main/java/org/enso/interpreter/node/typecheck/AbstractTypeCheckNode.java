@@ -1,20 +1,23 @@
 package org.enso.interpreter.node.typecheck;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
  * Root of hierarchy of nodes checking types. This class (and its subclasses) are an implementation
  * detail. The API to perform the check or conversion is in {@link TypeCheckValueNode}.
  */
 abstract sealed class AbstractTypeCheckNode extends Node
-    permits OneOfTypesCheckNode, AllOfTypesCheckNode, SingleTypeCheckNode, MetaTypeCheckNode {
+    permits OneOfTypesCheckNode,
+        AllOfTypesCheckNode,
+        SingleTypeCheckNode,
+        MetaTypeCheckNode,
+        FailCheckNode {
   private final String comment;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
@@ -24,16 +27,20 @@ abstract sealed class AbstractTypeCheckNode extends Node
 
   abstract Object findDirectMatch(VirtualFrame frame, Object value);
 
-  abstract Object executeCheckOrConversion(
-      VirtualFrame frame, Object value, ExpressionNode valueNode);
+  abstract Object executeConversion(VirtualFrame frame, Object value);
 
   abstract String expectedTypeMessage();
 
+  @ExplodeLoop
   final boolean isAllTypes() {
     Node p = this;
+    CompilerAsserts.partialEvaluationConstant(p);
     for (; ; ) {
       if (p instanceof TypeCheckValueNode vn) {
-        return vn.isAllTypes();
+        CompilerAsserts.partialEvaluationConstant(vn);
+        var allTypes = vn.isAllTypes();
+        CompilerAsserts.partialEvaluationConstant(allTypes);
+        return allTypes;
       }
       p = p.getParent();
     }
@@ -95,9 +102,5 @@ abstract sealed class AbstractTypeCheckNode extends Node
     }
 
     return builder.toString();
-  }
-
-  static boolean isAllFitValue(Object v) {
-    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 }

@@ -1,35 +1,71 @@
-/**
- * @file
- *
- * Card component
- */
+/** @file A card representing a plan. */
+import Check from '#/assets/check_mark.svg'
+import OpenInNewTabIcon from '#/assets/open.svg'
+import { Button } from '#/components/Button'
+import { Separator } from '#/components/Separator'
+import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
+import type { PaywallLevel } from '#/hooks/billing'
+import type { SubscribeButtonProps } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
+import { SubscribeButton } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
+import { Plan, type PlanBillingPeriod } from '#/services/Backend'
+import { tv } from '#/utilities/tailwindVariants'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import * as appUtils from '$/appUtils'
+import { getContactPage } from '$/appUtils'
+import { useBackends } from '$/providers/backends'
+import { useRouter, useText } from '$/providers/react'
+import * as analytics from '$/utils/analytics'
 import * as React from 'react'
 
-import type * as text from 'enso-common/src/text'
-
-import Check from '#/assets/check_mark.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import SvgMask from '#/components/SvgMask'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-
-/** Card props */
-export interface CardProps extends React.PropsWithChildren, VariantProps<typeof CARD_STYLES> {
-  /** Card title */
-  readonly title: text.TextId
-  /** Card subtitle */
-  readonly subtitle: text.TextId
-  /** Card features */
-  readonly features: string[]
-  readonly pricing?: text.TextId
-  readonly submitButton?: React.ReactNode
-  readonly learnMore?: React.ReactNode
-  readonly className?: string
+/** The mutation data for the `createCheckoutSession` mutation. */
+interface CreateCheckoutSessionMutationParams {
+  readonly plan: Plan
+  readonly seats: number
+  readonly period: PlanBillingPeriod
 }
 
-export const CARD_STYLES = tv({
+/** The component for a plan. */
+export interface PropsForPlan {
+  readonly submitButton: (props: SubscribeButtonProps) => React.ReactNode
+  readonly elevated?: boolean
+}
+
+const PROPS_FOR_PLAN: { readonly [PlanVariant in Plan]: PropsForPlan } = {
+  free: {
+    submitButton: (props) => <SubscribeButton {...props} isDisabled={true} />,
+  },
+  [Plan.solo]: {
+    submitButton: SubscribeButton,
+  },
+  [Plan.team]: {
+    elevated: true,
+    submitButton: SubscribeButton,
+  },
+  [Plan.enterprise]: {
+    submitButton: () => {
+      // False positive
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { getText } = useText()
+
+      return (
+        <Button
+          fullWidth
+          variant="outline"
+          size="medium"
+          rounded="full"
+          onPress={() => {
+            window.open(getContactPage(), '_blank')?.focus()
+          }}
+        >
+          {getText('contactUs')}
+        </Button>
+      )
+    },
+  },
+}
+
+const CARD_STYLES = tv({
   base: 'flex flex-col border-0.5',
   variants: {
     elevated: {
@@ -71,56 +107,97 @@ export const CARD_STYLES = tv({
   },
 })
 
+/** Props for {@link Card}s texts. */
+export interface Texts {
+  readonly title: string
+  readonly subtitle: string
+  readonly pricing: string
+  readonly features: readonly string[]
+}
+
+/** Props for {@link Card}. */
+export interface CardProps {
+  readonly plan: Plan
+  readonly period: PlanBillingPeriod
+  readonly texts: Texts
+  readonly modalOpen: boolean
+  readonly userHasSubscription: boolean
+  readonly isOrganizationAdmin: boolean
+  readonly isCurrent: boolean
+  readonly paywallLevel: PaywallLevel
+  readonly userPaywallLevel: PaywallLevel
+  readonly className?: string | undefined
+}
+
 /** Card component */
 export function Card(props: CardProps) {
   const {
-    children,
-    features,
-    submitButton,
-    title,
-    subtitle,
-    pricing,
-    learnMore,
+    plan,
+    period,
+    texts,
+    modalOpen,
+    userHasSubscription,
+    isOrganizationAdmin,
+    isCurrent,
+    paywallLevel,
+    userPaywallLevel,
     className,
-    elevated,
-    rounded,
-    highlighted,
   } = props
 
-  const { getText } = textProvider.useText()
+  const { title, subtitle, pricing, features } = texts
 
-  const classes = CARD_STYLES({ elevated, rounded, highlighted })
+  const { getText } = useText()
+  const { remoteBackend } = useBackends()
+  const { router } = useRouter()
+
+  const propsForPlan = PROPS_FOR_PLAN[plan]
+  const elevated = propsForPlan.elevated === true ? 'xxlarge' : 'none'
+  const styles = CARD_STYLES({ elevated })
+
+  const onSubmit = useMutationCallback({
+    mutationFn: async (mutationData: CreateCheckoutSessionMutationParams) => {
+      const planInfo = {
+        price: mutationData.plan,
+        quantity: mutationData.seats,
+        interval: mutationData.period,
+      }
+      analytics.checkout.before(planInfo)
+      const { url } = await remoteBackend.createCheckoutSession(planInfo)
+      window.open(url, '_blank')?.focus()
+      await router.push(`${appUtils.PAYMENTS_SUCCESS_PATH}`)
+    },
+  })
 
   return (
-    <div className={classes.base({ className })}>
-      <ariaComponents.Text.Heading level={2} disableLineHeightCompensation>
-        {getText(title)}
-      </ariaComponents.Text.Heading>
+    <div className={styles.base({ className })}>
+      <Text.Heading level={2} disableLineHeightCompensation>
+        {title}
+      </Text.Heading>
 
-      <ariaComponents.Text
-        elementType="p"
-        variant="subtitle"
-        weight="medium"
-        disableLineHeightCompensation
-      >
-        {getText(subtitle)}
-      </ariaComponents.Text>
+      <Text elementType="p" variant="subtitle" weight="medium" disableLineHeightCompensation>
+        {subtitle}
+      </Text>
 
-      {pricing && (
-        <ariaComponents.Text variant="body" weight="bold" disableLineHeightCompensation>
-          {getText(pricing)}
-        </ariaComponents.Text>
-      )}
+      <Text variant="body" weight="bold" disableLineHeightCompensation>
+        {pricing}
+      </Text>
 
-      {submitButton != null ?
-        <div className="my-4">{submitButton}</div>
-      : null}
+      <div className="my-4">
+        <propsForPlan.submitButton
+          onSubmit={(seats) => onSubmit({ plan, seats, period })}
+          plan={plan}
+          period={period}
+          userHasSubscription={userHasSubscription}
+          isCurrent={isCurrent}
+          isDowngrade={userPaywallLevel > paywallLevel}
+          defaultOpen={modalOpen}
+          features={features}
+          planName={getText(plan)}
+          isOrganizationAdmin={isOrganizationAdmin}
+        />
+      </div>
 
-      <ariaComponents.Separator
-        variant="primary"
-        className={classes.separator()}
-        orientation="horizontal"
-      />
+      <Separator variant="primary" className={styles.separator()} orientation="horizontal" />
 
       {features.length > 0 && (
         <div className="mt-4">
@@ -131,18 +208,29 @@ export function Card(props: CardProps) {
                   <SvgMask src={Check} className="text-green" />
                 </span>
 
-                <ariaComponents.Text variant="body" weight="medium" disableLineHeightCompensation>
+                <Text variant="body" weight="medium" disableLineHeightCompensation>
                   {feature}
-                </ariaComponents.Text>
+                </Text>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {learnMore != null && <div className="mt-4">{learnMore}</div>}
-
-      {children}
+      {plan !== Plan.free && (
+        <div className="mt-4">
+          <Button
+            variant="link"
+            href="https://ensoanalytics.com/pricing"
+            target="_blank"
+            icon={OpenInNewTabIcon}
+            iconPosition="end"
+            size="medium"
+          >
+            {getText('learnMore')}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

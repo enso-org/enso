@@ -2,6 +2,7 @@ package org.enso.logging.service;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.enso.logging.config.LoggingServer;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
@@ -47,6 +48,12 @@ public class LoggingServiceManager {
       } else {
         throw new LoggerInitializationFailed();
       }
+    }
+  }
+
+  public static void teardown(UUID projectId) {
+    if (loggingService != null) {
+      loggingService.teardown(projectId);
     }
   }
 

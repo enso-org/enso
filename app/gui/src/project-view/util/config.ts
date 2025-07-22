@@ -24,7 +24,7 @@ const STRING_TO_BOOLEAN: Record<string, boolean> = {
 function parseBoolean(value: unknown): boolean | null {
   return (
     typeof value === 'boolean' ? value
-    : typeof value === 'string' ? STRING_TO_BOOLEAN[value] ?? null
+    : typeof value === 'string' ? (STRING_TO_BOOLEAN[value] ?? null)
     : null
   )
 }

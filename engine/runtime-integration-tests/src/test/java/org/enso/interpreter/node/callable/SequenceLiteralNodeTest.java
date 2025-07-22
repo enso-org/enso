@@ -6,13 +6,17 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.test.utils.ContextUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class SequenceLiteralNodeTest {
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
   public SequenceLiteralNodeTest() {}
 
   @Test
-  public void propagatePanicSentinel() {
+  public void propagatePanicSentinelImpl() {
     var sentinel = new PanicSentinel(new PanicException(0L, null), null);
 
     var one = LiteralNode.build(1);
