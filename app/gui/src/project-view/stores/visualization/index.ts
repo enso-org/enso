@@ -251,8 +251,16 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       }
     })
 
-    function* byType(typeInfo: Opt<TypeInfo>, typeName: Opt<ProjectPath>): IterableIterator<VisualizationIdentifier> {
-      const types = typeInfo == null ? (typeName == null ? [] : [typeName]) : [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+    function* byType(
+      typeInfo: Opt<TypeInfo>,
+      typeName: Opt<ProjectPath>,
+    ): IterableIterator<VisualizationIdentifier> {
+      const types =
+        typeInfo == null ?
+          typeName == null ?
+            []
+          : [typeName]
+        : [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
       const vizzes =
         types.length === 0 ?
           metadata.keys()

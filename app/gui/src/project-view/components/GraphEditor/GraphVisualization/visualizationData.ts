@@ -261,7 +261,9 @@ export function useVisualizationData({
     preprocessorLoading.value = false
   })
 
-  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeinfo), toValue(typename))))
+  const allVisualizations = computed(() =>
+    Array.from(visualizationStore.byType(toValue(typeinfo), toValue(typename))),
+  )
 
   const effectiveVisualization = computed(() => {
     if (
