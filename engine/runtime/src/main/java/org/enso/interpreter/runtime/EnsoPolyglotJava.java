@@ -16,6 +16,7 @@ import java.util.List;
 import org.enso.common.HostEnsoUtils;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
+import org.enso.pkg.Package;
 
 /**
  * Handles a polyglot Java system for loading classes from a single source. <em>Single source</em>
@@ -37,8 +38,7 @@ final class EnsoPolyglotJava {
   static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkg) {
     var data = KEY.get(ctx);
     if (ctx.isHostClassLoading()) {
-      var canPkgHostClassLoad = !HostEnsoUtils.isAot() || pkg.isAotReady();
-      if (canPkgHostClassLoad) {
+      if (isHostClassLoadingFor(pkg)) {
         return data.hosted;
       }
       pkg.warnAotReady(
@@ -51,6 +51,19 @@ final class EnsoPolyglotJava {
           });
     }
     return data.guest;
+  }
+
+  private static boolean isHostClassLoadingFor(Package<?> pkg) {
+    if (HostEnsoUtils.isAot()) {
+      if (pkg != null && pkg.isAotReady()) {
+        // if the package has been "compiled in" AOT binary
+        return true;
+      }
+    } else {
+      // any package can be loaded via host interop in non-AOT mode
+      return true;
+    }
+    return false;
   }
 
   static void close(EnsoContext ctx) {
@@ -78,13 +91,14 @@ final class EnsoPolyglotJava {
   }
 
   /**
-   * This method ensure that hosted as well as guest classpath is the same.
-   * This is necessary until real isolation between libraries is implemented.
+   * This method ensure that hosted as well as guest classpath is the same. This is necessary until
+   * real isolation between libraries is implemented.
    */
-  static void addToClassPath(EnsoContext ctx, Object whoIsIgnored, File path) throws InteropException {
-      var data = KEY.get(ctx);
-      data.hosted.addToClassPath(path);
-      data.guest.addToClassPath(path);
+  static void addToClassPath(EnsoContext ctx, Object whoIsIgnored, File path)
+      throws InteropException {
+    var data = KEY.get(ctx);
+    data.hosted.addToClassPath(path);
+    data.guest.addToClassPath(path);
   }
 
   /**
