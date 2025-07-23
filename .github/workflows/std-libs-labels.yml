@@ -214,6 +214,31 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Snowflake
+  stdlib-api-check-Saas-linux-amd64:
+    name: Saas-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Saas-changed-files
+        name: Saas-changed-files
+        uses: step-security/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Saas/**/docs/api/**/**.md
+      - name: List all changed files in Saas
+        run: "\n        if [[ \"${{ steps.Saas-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Saas-changed-files.outputs.all_changed_files }}
+      - if: steps.Saas-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Saas label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Saas
   stdlib-api-check-Table-linux-amd64:
     name: Table-change-labels
     runs-on:
