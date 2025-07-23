@@ -400,7 +400,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return getVirtualParentPath(this.parentId)
       },
       get ensoPath() {
-        return getEnsoPath(this.parentId)
+        return backend.EnsoPath(
+          `${getEnsoPath(this.parentId).replace(/[/]$/, '')}/${rest.title ?? ''}`,
+        )
       },
       ...rest,
     }
@@ -1285,7 +1287,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         state: project.projectState,
         organizationId: defaultOrganizationId,
         packageName: 'Project_root',
-        ensoPath: backend.EnsoPath(`enso://Users/${defaultUser.name}/${project.title}`),
+        ensoPath: project.ensoPath,
       } satisfies backend.CreatedProject
     })
 
@@ -1329,24 +1331,18 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         route.fulfill({ status: HTTP_STATUS_BAD_REQUEST, json: { message: 'Invalid enso path' } })
         return
       }
-      const pathFromHome = path.slice(userRoot.length)
-      let currentAsset: backend.AssetId | undefined = defaultDirectoryId
-      for (const segment of pathFromHome.split('/')) {
-        if (!segment) continue
-        currentAsset = assets.find(
-          (asset) => asset.parentId === currentAsset && asset.title == segment,
-        )?.id
-        if (currentAsset == null) {
-          route.fulfill({
-            status: HTTP_STATUS_NOT_FOUND,
-            json: { message: 'Path does not resolve to any asset' },
-          })
-          return
+      for (const asset of assetMap.values()) {
+        if (asset.ensoPath === path) {
+          const { type: _type, ...rest } = asset
+          return rest
         }
       }
-      const asset = assetMap.get(currentAsset)!
-      const { type: _type, ...rest } = asset
-      return rest
+      route.fulfill({
+        status: HTTP_STATUS_NOT_FOUND,
+        json: {
+          message: `Path '${path}' does not resolve to any asset. Available paths: ${assets.map((asset) => `'${asset.ensoPath}'`).join(', ')}`,
+        },
+      })
     })
 
     await page.route('*', async (route) => {
@@ -1355,6 +1351,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
   })
+
+  const samplesDirectory = addDirectory({ parentId: defaultDirectoryId, title: 'Samples' })
+  addProject({ parentId: samplesDirectory.id, title: 'Colorado COVID.project' })
 
   const api = {
     defaultEmail,

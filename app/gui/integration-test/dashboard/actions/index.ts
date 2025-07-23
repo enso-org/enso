@@ -7,6 +7,7 @@ import url from 'node:url'
 
 import { expect, test, type Page } from 'playwright/test'
 
+import DrivePageActions from 'integration-test/dashboard/actions/DrivePageActions'
 import {
   INITIAL_LOCAL_CALLS_OBJECT,
   mockLocalApi,
@@ -21,7 +22,6 @@ import {
   type SetupAPI,
   type TrackedCalls,
 } from './api'
-import DrivePageActions from './DrivePageActions'
 import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
 import LoginPageActions from './LoginPageActions'
 
@@ -187,6 +187,8 @@ export function mockAllAndLogin({
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
     .into(DrivePageActions<Context>)
+    .goToPage.editor()
+    .goToPage.drive()
   return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
 }
 

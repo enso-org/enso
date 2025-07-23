@@ -1318,7 +1318,7 @@ export default class RemoteBackend extends Backend {
     })
 
     const response = await this.get<ResponseBody>(
-      new URL(`./api/cloud/download-project?${queryString}`, location.href).toString(),
+      new URL(`/api/cloud/download-project?${queryString}`, location.href).toString(),
     )
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
@@ -1339,7 +1339,7 @@ export default class RemoteBackend extends Backend {
     })
 
     const response = await this.get(
-      new URL(`./api/cloud/get-project-archive?${queryString}`, location.href).toString(),
+      new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
     )
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')

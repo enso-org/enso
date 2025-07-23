@@ -19,6 +19,7 @@
     "src/dashboard/utilities/async.ts",
     "src/dashboard/utilities/download.ts",
     "src/dashboard/utilities/equalities.ts",
+    "src/dashboard/utilities/inputBindings.ts",
     "src/dashboard/utilities/newtype.ts",
     "src/dashboard/utilities/object.ts",
     "src/dashboard/utilities/path.ts",

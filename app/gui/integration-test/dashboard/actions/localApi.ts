@@ -291,7 +291,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
               projectName: params.name,
               projectNormalizedName: params.name,
             }
-            const result: CreateProject = { projectId: id, ...metadata }
+            const result: CreateProject = { projectId: id, projectPath: path, ...metadata }
             addProject({
               path,
               metadata: {
@@ -380,7 +380,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
         return route.fulfill({ status: 400 })
       }
       const projectId = uniqueString()
-      const parentDirectory = join(ROOT_PATH, `cloud-${projectId}`)
+      const parentDirectory = join(ROOT_PATH, `cloud-project-${projectId}`)
       const targetDirectory = join(parentDirectory, 'project_root')
       addDirectory({ path: Path(parentDirectory) })
       addProject({

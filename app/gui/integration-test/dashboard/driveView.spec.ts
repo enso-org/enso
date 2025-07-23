@@ -14,12 +14,11 @@ test('drive view', ({ page }) =>
     .withDriveView(async (view) => {
       await expect(view).toBeVisible()
     })
-    .driveTable.expectPlaceholderRow()
     .newEmptyProject()
     .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
     })
     .withAssetsTable(async (assetsTable) => {
       await expect(assetsTable).toBeVisible()
@@ -28,16 +27,16 @@ test('drive view', ({ page }) =>
     .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(2)
+      await expect(rows).toHaveCount(3)
     })
     // The last opened project needs to be stopped, to remove the toast notification notifying the
     // user that project creation may take a while. Previously opened projects are stopped when the
     // new project is created.
     .driveTable.withRows(async (rows) => {
-      await locateStopProjectButton(rows.nth(0)).click()
+      await locateStopProjectButton(rows.nth(1)).click()
     })
-    .driveTable.rightClickRow(0)
+    .driveTable.rightClickRow(1)
     .contextMenu.moveToTrash()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
     }))

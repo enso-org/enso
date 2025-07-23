@@ -8,11 +8,10 @@ import LoginPageActions from './LoginPageActions'
 import SettingsPageActions from './SettingsPageActions'
 
 /** Actions for the user menu. */
-interface UserMenuActions<T extends BaseActions<Context>, Context> {
+export interface UserMenuActions<T extends BaseActions<Context>, Context> {
   readonly downloadApp: (callback: (download: Download) => Promise<void> | void) => T
   readonly settings: () => SettingsPageActions<Context>
   readonly logout: () => LoginPageActions<Context>
-  readonly goToLoginPage: () => LoginPageActions<Context>
 }
 
 /** Generate actions for the user menu. */
@@ -41,13 +40,6 @@ export function userMenuActions<T extends BaseActions<Context>, Context>(
         page
           .getByRole('button', { name: TEXT.signOutShortcut })
           .getByText(TEXT.signOutShortcut)
-          .click(),
-      ).into(LoginPageActions<Context>),
-    goToLoginPage: () =>
-      step('Login (user menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.signInShortcut, exact: true })
-          .getByText(TEXT.signInShortcut)
           .click(),
       ).into(LoginPageActions<Context>),
   }
