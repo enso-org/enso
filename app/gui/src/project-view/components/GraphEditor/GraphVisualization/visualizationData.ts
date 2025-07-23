@@ -17,7 +17,6 @@ import { toError } from '@/util/data/error'
 import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
-import { wait } from 'lib0/promise.js'
 import {
   computed,
   onErrorCaptured,
@@ -102,7 +101,7 @@ export function useVisualizationData({
 
   const executeExpression = async (
     expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
-    timeoutMs = 5000,
+    executionTime?: number
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
@@ -113,18 +112,14 @@ export function useVisualizationData({
     if (identifier === undefined) return
 
     const contextId =
-      dataSourceValue.nodeId &&
-      graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
+        dataSourceValue.nodeId &&
+        graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
     if (contextId === undefined) return
 
     const expression = expressionFunction(identifier)
-
-    const result = await Promise.race([
-      projectStore.executeExpression(contextId, expression.code()),
-      wait(timeoutMs).then(() => Err('Expression timeout')),
-    ])
-
-    return result
+    return executionTime
+        ? await projectStore.executeExpression(contextId, expression.code(), executionTime)
+        : await projectStore.executeExpression(contextId, expression.code())
   }
 
   const currentVisualization = computed(() => {

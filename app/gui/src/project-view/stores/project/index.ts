@@ -43,6 +43,7 @@ import {
   type Uuid,
 } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
+import {wait} from "lib0/promise";
 
 export interface LsUrls {
   rpcUrl: string
@@ -290,19 +291,48 @@ export function createProjectStore(
     module.value?.undoManager.stopCapturing()
   }
 
+  // Maximum number of in-progress expressions.
+  const MAX_IN_PROGRESS = 5
+
+  const inProgress = ref(0)
+  const queueLength = ref(0)
+
   function executeExpression(
-    expressionId: ExternalId,
-    expression: string,
+      expressionId: ExternalId,
+      expression: string,
+      executionTime: number = 5000,
   ): Promise<Result<any> | null> {
-    return new Promise((resolve) => {
+    if (inProgress.value > MAX_IN_PROGRESS) {
+      if (executionTime < 0) {
+        console.warn(`executeExpression: Execution timed out.`)
+        return Promise.reject(Err(`executeExpression: Execution timed out.`))
+      }
+
+      queueLength.value += 1
+      const pause = queueLength.value * 250
+      return new Promise((resolve) => setTimeout(resolve, pause)).then(() => {
+        queueLength.value -= 1
+        return executeExpression(expressionId, expression, executionTime - pause)
+      })
+    }
+
+    inProgress.value += 1
+    return new Promise<Result<any> | null>((resolve, reject) => {
       const visualizationId = crypto.randomUUID() as Uuid
+      let state = 1
+
       const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
-        if (uuid === visualizationId) {
-          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-          executionContext.off('visualizationEvaluationFailed', errorHandler)
-          const dataStr = Ok(visData.dataString())
-          resolve(parseVisualizationData(dataStr))
+        if (uuid !== visualizationId) {
+          return
         }
+
+        inProgress.value -= state
+        state = 0 // Prevent further updates from this handler.
+        dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+        executionContext.off('visualizationEvaluationFailed', errorHandler)
+        const dataStr = Ok(visData.dataString())
+        const parsed = parseVisualizationData(dataStr)
+        resolve(parsed)
       }
       const errorHandler = (
         uuid: Uuid,
@@ -310,15 +340,30 @@ export function createProjectStore(
         message: string,
         _diagnostic: Diagnostic | undefined,
       ) => {
-        if (uuid == visualizationId) {
-          resolve(Err(message))
+        if (uuid !== visualizationId) {
+          return
+        }
+
+        inProgress.value -= state
+        state = 0 // Prevent further updates from this handler.
+        dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+        executionContext.off('visualizationEvaluationFailed', errorHandler)
+        reject(Err(message))
+      }
+
+      wait((executionTime < 1000 ? 1000 : executionTime) + 100).then(() => {
+        if (state === 1) {
+          inProgress.value -= 1
+          state = 0 // Prevent further updates from this handler.
           dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
           executionContext.off('visualizationEvaluationFailed', errorHandler)
+          reject(Err(`executeExpression: Execution timed out.`))
         }
-      }
+      })
+
       dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
       executionContext.on('visualizationEvaluationFailed', errorHandler)
-      return lsRpcConnection.executeExpression(
+      lsRpcConnection.executeExpression(
         executionContext.id,
         visualizationId,
         expressionId,
