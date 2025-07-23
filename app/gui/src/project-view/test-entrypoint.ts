@@ -10,6 +10,7 @@ import { mockDataHandler, mockLSHandler, mockYdocProvider } from './mock/engine'
 
 import '#/styles.css'
 import '#/tailwind.css'
+import router from '$/router'
 import '@/assets/base.css'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createApp } from 'vue'
@@ -49,4 +50,5 @@ const app = createApp(App, {
   rootDirPath: '',
 })
 app.use(VueQueryPlugin)
+app.use(router)
 app.mount('body')

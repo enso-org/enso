@@ -111,7 +111,7 @@ useMounted(appOpenCloseCallback)
 if (projectViewOnly) {
   const openedProjects = provideOpenedProjects()
   provideAsyncResources(openedProjects)
-  provideContainerData()
+  provideContainerData(EnsoPath(projectViewOnly.options.projectPath))
   provideRightPanelData(EnsoPath(projectViewOnly.options.projectPath), () => false, useText())
   provideFullscreenRoot(fullscreenRoot)
 }
