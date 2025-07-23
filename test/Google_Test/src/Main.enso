@@ -211,4 +211,6 @@ add_specs suite_builder =
             c4 = ['Dates', [Date.new 2010 1 1, Date.new 1999 4 12, Date.new 2025 6 7, Nothing, Date.new 1985 4 30]]
             c5 = ['Percents', [0.1, 0.25, 0.75, Nothing, 3.33]]
             c6 = ['Currency', [1.23, 4.56, 78.9, Nothing, -1.2]]
-            ws . should_equal (Table.new [c1, c2, c3, c4, c5, c6])
+            c7 = ['Times', [Time_Of_Day.new 23 10, Time_Of_Day.new 5 12,  Time_Of_Day.new 23 59, Nothing, Time_Of_Day.new 7 30]]
+            c8 = ['DateTimes', [Date_Time.new 2025 12 30 23 10, Date_Time.new 1981 1 1 5 12 , Date_Time.new 2002 12 11 23 58 59 999, Nothing, Date_Time.new 2030 4 30 8 30]]
+            ws . should_equal (Table.new [c1, c2, c3, c4, c5, c6, c7, c8])

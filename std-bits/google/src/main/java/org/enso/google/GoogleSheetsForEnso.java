@@ -133,8 +133,7 @@ public class GoogleSheetsForEnso {
             double serial = cell.getEffectiveValue().getNumberValue();
             long epochMilli = (long)((serial - 25569) * 86400000);
             return java.time.Instant.ofEpochMilli(epochMilli)
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDateTime();
+                .atZone(java.time.ZoneId.systemDefault());
           }
 
         case "TEXT" -> {
