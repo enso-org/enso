@@ -1,23 +1,30 @@
 /** @file Actions for the user menu. */
 import type { Download } from 'playwright/test'
-
-import { TEXT } from '.'
 import type BaseActions from './BaseActions'
-import type { PageCallback } from './BaseActions'
+import type { BaseActionsClass, PageCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
 import SettingsPageActions from './SettingsPageActions'
+import { TEXT } from './utilities'
 
 /** Actions for the user menu. */
-export interface UserMenuActions<T extends BaseActions<Context>, Context> {
+export interface UserMenuActions<
+  T extends BaseActions<Context, ParentClass>,
+  Context,
+  ParentClass extends BaseActionsClass<Context> = never,
+> {
   readonly downloadApp: (callback: (download: Download) => Promise<void> | void) => T
   readonly settings: () => SettingsPageActions<Context>
   readonly logout: () => LoginPageActions<Context>
 }
 
 /** Generate actions for the user menu. */
-export function userMenuActions<T extends BaseActions<Context>, Context>(
+export function userMenuActions<
+  T extends BaseActions<Context, ParentClass>,
+  Context,
+  ParentClass extends BaseActionsClass<Context>,
+>(
   step: (name: string, callback: PageCallback<Context>) => T,
-): UserMenuActions<T, Context> {
+): UserMenuActions<T, Context, ParentClass> {
   return {
     downloadApp: (callback: (download: Download) => Promise<void> | void) =>
       step('Download app (user menu)', async (page) => {

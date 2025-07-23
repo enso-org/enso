@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as test from 'playwright/test'
 import invariant from 'tiny-invariant'
-import * as actions from '.'
+import { VALID_PASSWORD } from './utilities'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -149,7 +149,7 @@ export const mockApi: (params: MockParams) => Promise<MockApi> = mockApiInternal
 async function mockApiInternal({ page, setupAPI }: MockParams) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
-  const defaultPassword = actions.VALID_PASSWORD
+  const defaultPassword = VALID_PASSWORD
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
   const defaultOrganizationName = 'organization name'
   const defaultUserId = backend.UserId('user-placeholder id')
@@ -409,13 +409,19 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
-    const directoryTitles = new Set(
-      assets
-        .filter((asset) => asset.type === backend.AssetType.directory)
-        .map((asset) => asset.title),
-    )
-
-    const title = rest.title ?? `New Folder ${directoryTitles.size + 1}`
+    const title =
+      rest.title ??
+      (() => {
+        const parentId = rest.parentId ?? defaultDirectoryId
+        let i = 0
+        for (const asset of assets) {
+          if (asset.parentId !== parentId) continue
+          const match = asset.title.match(/^New Folder (\d+)$/)
+          if (match?.[1] == null) continue
+          i = Math.max(i, Number(match[1]))
+        }
+        return `New Folder ${i + 1}`
+      })()
 
     return createAsset({
       type: backend.AssetType.directory,

@@ -1,7 +1,6 @@
 /** @file The base class from which all `Actions` classes are derived. */
-import { expect, test, type Locator, type Page } from 'playwright/test'
-
 import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
+import { expect, test, type Locator, type Page } from 'playwright/test'
 
 /** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
 export async function modModifier(page: Page) {
@@ -34,12 +33,15 @@ export interface BaseActionsClass<Context, Args extends readonly unknown[] = []>
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions<Context> implements Promise<void> {
+export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never>
+  implements Promise<void>
+{
   /** Create a {@link BaseActions}. */
   constructor(
     protected readonly page: Page,
     protected readonly context: Context,
     private readonly promise = Promise.resolve(),
+    private readonly parentClass: ParentClass = null!,
   ) {}
 
   /**
@@ -112,6 +114,11 @@ export default class BaseActions<Context> implements Promise<void> {
    */
   async finally(onfinally?: (() => void) | null | undefined): Promise<void> {
     await this.promise.finally(onfinally)
+  }
+
+  /** Return a {@link BaseActions} with the same {@link Promise} but the parent's type. */
+  intoParent() {
+    return this.into(this.parentClass)
   }
 
   /** Return a {@link BaseActions} with the same {@link Promise} but a different type. */

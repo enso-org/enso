@@ -95,17 +95,17 @@ export interface SetupLocalAPI {
 }
 
 /** Parameters for {@link mockApi}. */
-export interface MockParams {
+export interface LocalMockParams {
   readonly page: Page
   readonly setupLocalAPI?: SetupLocalAPI | null | undefined
 }
 /** The return type of {@link localMockApi}. */
 export interface LocalMockApi extends Awaited<ReturnType<typeof localMockApiInternal>> {}
 
-export const mockLocalApi: (params: MockParams) => Promise<LocalMockApi> = localMockApiInternal
+export const mockLocalApi: (params: LocalMockParams) => Promise<LocalMockApi> = localMockApiInternal
 
 /** Add route handlers for the mock API to a page. */
-async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
+async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
   const fileSystem = new Map<string, FileSystemEntryWithData>()
   const openProjects = new Map<UUID, ProjectState>()
 

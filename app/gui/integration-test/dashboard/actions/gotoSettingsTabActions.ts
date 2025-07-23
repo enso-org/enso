@@ -1,5 +1,4 @@
 /** @file Actions for going to a different page. */
-import { TEXT } from '.'
 import type { PageCallback } from './BaseActions'
 import BaseActions from './BaseActions'
 import SettingsAccountTabActions from './SettingsAccountTabActions'
@@ -10,6 +9,7 @@ import SettingsLocalTabActions from './SettingsLocalTabActions'
 import SettingsMembersTabActions from './SettingsMembersTabActions'
 import SettingsOrganizationTabActions from './SettingsOrganizationTabActions'
 import SettingsUserGroupsTabActions from './SettingsUserGroupsTabActions'
+import { TEXT } from './utilities'
 
 /** Actions for going to a different settings tab. */
 export interface GoToSettingsTabActions<Context> {

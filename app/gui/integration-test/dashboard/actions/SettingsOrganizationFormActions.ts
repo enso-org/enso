@@ -1,9 +1,9 @@
 /** @file Actions for the "organization" form in settings. */
-import { TEXT } from '.'
 import type { LocatorCallback } from './BaseActions'
 import type PageActions from './PageActions'
 import SettingsFormActions from './SettingsFormActions'
 import SettingsOrganizationTabActions from './SettingsOrganizationTabActions'
+import { TEXT } from './utilities'
 
 /** Actions for the "organization" form in settings. */
 export default class SettingsOrganizationFormActions<Context> extends SettingsFormActions<

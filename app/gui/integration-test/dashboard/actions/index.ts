@@ -1,37 +1,22 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
-
-import { TEXTS, getText as baseGetText, type Replacements, type TextId } from 'enso-common/src/text'
-
+import { getText as baseGetText, type Replacements, type TextId } from 'enso-common/src/text'
 import path from 'node:path'
 import url from 'node:url'
-
 import { expect, test, type Page } from 'playwright/test'
-
-import DrivePageActions from 'integration-test/dashboard/actions/DrivePageActions'
+import { INITIAL_CALLS_OBJECT, mockApi, type MockApi, type TrackedCalls } from './api'
+// Hack to avoid circular import errors.
+import './DrivePageActions'
+import EditorPageActions from './EditorPageActions'
+import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
 import {
   INITIAL_LOCAL_CALLS_OBJECT,
   mockLocalApi,
   type LocalMockApi,
   type LocalTrackedCalls,
-  type SetupLocalAPI,
-} from 'integration-test/dashboard/actions/localApi'
-import {
-  INITIAL_CALLS_OBJECT,
-  mockApi,
-  type MockApi,
-  type SetupAPI,
-  type TrackedCalls,
-} from './api'
-import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
+} from './localApi'
 import LoginPageActions from './LoginPageActions'
-
-/** An example password that does not meet validation requirements. */
-export const INVALID_PASSWORD = 'password'
-/** An example password that meets validation requirements. */
-export const VALID_PASSWORD = 'Password0!'
-/** An example valid email address. */
-export const VALID_EMAIL = 'email@example.com'
-export const TEXT = TEXTS.english
+import { passAgreementsDialog, TEXT, VALID_PASSWORD, type MockParams } from './utilities'
+export * from './utilities'
 
 export const getText = (key: TextId, ...replacements: Replacements[TextId]) => {
   return baseGetText(TEXT, key, ...replacements)
@@ -92,14 +77,6 @@ async function waitForDashboardToLoad(page: Page) {
 /** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
-/** Parameters for {@link mockDate}. */
-interface MockParams {
-  readonly goToCloudFirst?: boolean
-  readonly page: Page
-  readonly setupAPI?: SetupAPI | undefined
-  readonly setupLocalAPI?: SetupLocalAPI | undefined
-}
-
 /** Replace `Date` with a version that returns a fixed time. */
 async function mockDate({ page }: MockParams) {
   // https://github.com/microsoft/playwright/issues/6347#issuecomment-1085850728
@@ -118,22 +95,6 @@ async function mockDate({ page }: MockParams) {
         const __DateNow = Date.now;
         Date.now = () => __DateNow() + __DateNowOffset;
     }`)
-  })
-}
-
-/** Pass the Agreements dialog. */
-export async function passAgreementsDialog({ page }: MockParams) {
-  await test.step('Accept Terms and Conditions', async () => {
-    await page.waitForSelector('#agreements-modal')
-    await page
-      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
-      .getByText(TEXT.licenseAgreementCheckbox)
-      .click()
-    await page
-      .getByRole('group', { name: TEXT.privacyPolicyCheckbox })
-      .getByText(TEXT.privacyPolicyCheckbox)
-      .click()
-    await page.getByRole('button', { name: TEXT.accept }).click()
   })
 }
 
@@ -186,8 +147,9 @@ export function mockAllAndLogin({
   const driveActions = actions
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
-    .into(DrivePageActions<Context>)
-    .goToPage.editor()
+    .into(EditorPageActions<Context>)
+    .waitForEditorToLoad()
+    .closeToastNotifications()
     .goToPage.drive()
   return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
 }

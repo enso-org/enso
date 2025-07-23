@@ -16,7 +16,7 @@ test('create folder (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
       await expect(rows.nth(0)).toBeVisible()
       await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
     }))
@@ -51,9 +51,9 @@ test('upload file (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .uploadFile(FILE_NAME, FILE_CONTENTS)
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
-      await expect(rows.nth(0)).toBeVisible()
-      await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
+      await expect(rows).toHaveCount(2)
+      await expect(rows.nth(1)).toBeVisible()
+      await expect(rows.nth(1)).toHaveText(new RegExp('^' + FILE_NAME))
     }))
 
 test('upload file (local)', ({ page }) =>
@@ -70,7 +70,7 @@ test('create secret (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createSecret(SECRET_NAME, SECRET_VALUE)
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
-      await expect(rows.nth(0)).toBeVisible()
-      await expect(rows.nth(0)).toHaveText(new RegExp('^' + SECRET_NAME))
+      await expect(rows).toHaveCount(2)
+      await expect(rows.nth(1)).toBeVisible()
+      await expect(rows.nth(1)).toHaveText(new RegExp('^' + SECRET_NAME))
     }))

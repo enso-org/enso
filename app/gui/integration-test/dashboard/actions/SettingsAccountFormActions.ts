@@ -1,9 +1,9 @@
 /** @file Actions for the "account" form in settings. */
-import { TEXT } from '.'
 import type { LocatorCallback } from './BaseActions'
 import type PageActions from './PageActions'
 import SettingsAccountTabActions from './SettingsAccountTabActions'
 import SettingsFormActions from './SettingsFormActions'
+import { TEXT } from './utilities'
 
 /** Actions for the "account" form in settings. */
 export default class SettingsAccountFormActions<Context> extends SettingsFormActions<
