@@ -12,7 +12,7 @@ import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { applyPureReactInVue } from 'veaury'
-import { reactive, shallowRef, toRefs, watch } from 'vue'
+import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
 import { Drive, Editor, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
@@ -82,23 +82,29 @@ function closeSettingsTab() {
   tab.value = 'drive'
 }
 
+function closeTab() {
+  switch (tab.value) {
+    case 'settings':
+      closeSettingsTab()
+      break
+    case 'drive':
+      break
+    default: {
+      // project id
+      const project = openedProjects.value.find((proj) => proj.ensoPath === tab.value)
+      if (project) emit('closeProject', project)
+      break
+    }
+  }
+}
+
+onMounted(() => {
+  window.menuApi?.setMenuItemHandler('closeTab', closeTab)
+})
+
 const actionHandlers = registerHandlers({
   'app.closeTab': {
-    action: () => {
-      switch (tab.value) {
-        case 'settings':
-          closeSettingsTab()
-          break
-        case 'drive':
-          break
-        default: {
-          // project id
-          const project = openedProjects.value.find((proj) => proj.ensoPath === tab.value)
-          if (project) emit('closeProject', project)
-          break
-        }
-      }
-    },
+    action: closeTab,
   },
 })
 
