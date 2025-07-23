@@ -449,7 +449,7 @@ watch(
   },
 )
 
-const root = ref<HTMLElement>()
+const root = useTemplateRef<HTMLElement>('root')
 
 // === Node Creation ===
 
@@ -614,6 +614,7 @@ const contextMenuActions: DisplayableActionName[] = [
 
 <template>
   <div
+    ref="root"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent
