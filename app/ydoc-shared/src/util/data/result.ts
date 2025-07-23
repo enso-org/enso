@@ -24,21 +24,28 @@ import { isSome, type Opt } from './opt'
  * In more complex cases, adding contextual information to errors may be useful - see
  * {@link withContext}.
  */
-export type Result<T = undefined, E = unknown> =
-  | { ok: true; value: T }
-  | { ok: false; error: ResultError<E> }
+export type Result<T = undefined, E = unknown> = Ok<T> | Err<E>
+
+export interface Ok<in out T> {
+  ok: true
+  value: T
+}
+export interface Err<in out E> {
+  ok: false
+  error: ResultError<E>
+}
 
 /** Constructor of success {@link Result}. */
-export function Ok(): Result<undefined, never>
-export function Ok<const T>(data: T): Result<T, never>
+export function Ok(): Ok<undefined>
+export function Ok<const T>(data: T): Ok<T>
 /** Implementation of `Ok` constructor. */
-export function Ok<T>(data?: T): Result<T | undefined, never> {
+export function Ok<T>(data?: T): Ok<T | undefined> {
   return { ok: true, value: data }
 }
 
 /** Constructor of error {@link Result}. */
-export function Err<E>(error: E) {
-  return { ok: false, error: new ResultError(error) } as const satisfies Result<never, E>
+export function Err<E>(error: E): Err<E> {
+  return { ok: false, error: new ResultError(error) }
 }
 
 /** Helper function for converting optional value to {@link Result}. */

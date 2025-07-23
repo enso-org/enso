@@ -181,6 +181,7 @@ interface PlaceholderOverrides {
   readonly xHoursLeftInTrial: [hoursLeft: number]
   readonly yourSubscriptionExpiresAtX: [endDate: string]
   readonly commercialUseNotice: [originalTitle: string]
+  readonly downgradedWarning: [daysLeft: number, hoursLeft: number]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

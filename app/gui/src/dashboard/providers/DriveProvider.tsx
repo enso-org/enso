@@ -36,6 +36,7 @@ export const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
     version: 1,
   }),
 )
+
 resetStoreOnLogout(driveLocationStore)
 
 /** Return the full drive location. */

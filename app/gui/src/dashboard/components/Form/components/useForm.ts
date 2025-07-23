@@ -227,7 +227,9 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 
     // There is no way to avoid type casting here
     // eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax,@typescript-eslint/no-unsafe-argument
-    const formOnSubmit = formInstance.handleSubmit(formMutation as any)
+    const formOnSubmit = formInstance.handleSubmit(formMutation as any, (errors) => {
+      console.error('formOnSubmit errors', errors)
+    })
 
     const { isOffline } = useOffline()
 
