@@ -11,13 +11,14 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
-
+  private final boolean allowThru;
   @Children private AbstractTypeCheckNode[] checks;
   @Child private TypeOfNode typeNode;
   @Child private EnsoMultiValue.NewNode newNode;
 
-  AllOfTypesCheckNode(String name, AbstractTypeCheckNode[] checks) {
+  AllOfTypesCheckNode(String name, boolean allowThru, AbstractTypeCheckNode[] checks) {
     super(name);
+    this.allowThru = allowThru;
     this.checks = checks;
     this.typeNode = TypeOfNode.create();
     this.newNode = EnsoMultiValue.NewNode.create();
@@ -39,6 +40,9 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
         }
         var t = typeNode.findTypeOrNull(result);
         dispatchTypes[at++] = t;
+      }
+      if (allowThru) {
+        return value;
       }
       var node = EnsoMultiValue.NewNode.getUncached();
       return node.renewMulti(multi, dispatchTypes);

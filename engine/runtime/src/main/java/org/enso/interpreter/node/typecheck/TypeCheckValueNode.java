@@ -111,6 +111,7 @@ public final class TypeCheckValueNode extends Node {
       return null;
     }
     var list = Arrays.asList(checks);
+    var allowThru = list.stream().filter(n -> n != null).findAny().isPresent();
     var flatten =
         list.stream()
             .filter(n -> n != null)
@@ -122,11 +123,18 @@ public final class TypeCheckValueNode extends Node {
                         : Stream.of(n))
             .toList();
     var arr = toArray(flatten);
-    return switch (arr.length) {
-      case 0 -> null;
-      case 1 -> new TypeCheckValueNode(arr[0], true);
-      default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, arr), true);
-    };
+    if (allowThru) {
+      return switch (arr.length) {
+        case 0 -> null;
+        default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, allowThru, arr), true);
+      };
+    } else {
+      return switch (arr.length) {
+        case 0 -> null;
+        case 1 -> new TypeCheckValueNode(arr[0], true);
+        default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, allowThru, arr), true);
+      };
+    }
   }
 
   /**

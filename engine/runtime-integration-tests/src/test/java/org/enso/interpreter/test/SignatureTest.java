@@ -1534,15 +1534,20 @@ public class SignatureTest {
         b_with b -> B & Any =
             b
 
-        main =
-            v = both 42
+        private tripple value =
+            v = both value
             a = a_with v
             b = b_with v
             [v, a, b]
+
+        main = tripple
         """;
 
     ctxRule.resetOut();
-    var res = ctxRule.evalModule(code);
+    var tripple = ctxRule.evalModule(code);
+    assertTrue("Executable", tripple.canExecute());
+
+    var res = tripple.execute(42);
     assertTrue("It an array", res.hasArrayElements());
     assertEquals(3, res.getArraySize());
 
@@ -1554,9 +1559,9 @@ public class SignatureTest {
     assertEquals("YesB", v.invokeMember("i_am_b").asString());
 
     assertEquals("YesA", a.invokeMember("i_am_a").asString());
-    // TODO: assertEquals("A & Any keeps also B", "YesB", a.invokeMember("i_am_b").asString());
+    assertEquals("A & Any keeps also B", "YesB", a.invokeMember("i_am_b").asString());
 
-    // TODO: assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
+    assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
     assertEquals("YesB", b.invokeMember("i_am_b").asString());
   }
 
