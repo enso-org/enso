@@ -499,7 +499,7 @@ function useOpenHybridProject() {
         const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
 
         let project
-        for (const parentId of [localProject.targetId, localProject.parentId]) {
+        for (const parentId of [localProject.parentId, localProject.projectRootId]) {
           const assets = await localBackend.listDirectory({
             parentId: parentId,
             filterBy: null,

@@ -246,14 +246,14 @@ export class Server {
           https.get(downloadUrl, async (actualResponse) => {
             const projectsDirectory = projectManagement.getProjectsDirectory()
             const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-            const targetDirectory = path.join(parentDirectory, 'project_root')
+            const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
             try {
-              await fs.mkdir(targetDirectory, { recursive: true })
-              await projectManagement.unpackBundle(actualResponse, targetDirectory)
+              await fs.mkdir(projectRootDirectory, { recursive: true })
+              await projectManagement.unpackBundle(actualResponse, projectRootDirectory)
               response
                 .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
-                .end(JSON.stringify({ targetDirectory, parentDirectory }))
+                .end(JSON.stringify({ projectRootDirectory, parentDirectory }))
             } catch (e) {
               logger.error(e)
               await fs
@@ -272,14 +272,15 @@ export class Server {
         }
         case '/api/cloud/get-project-archive': {
           const url = new URL(`https://example.com/${requestUrl}`)
-          const projectDir = url.searchParams.get('directory')
+          const parentDir = url.searchParams.get('directory')
 
-          if (projectDir == null) {
+          if (parentDir == null) {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
               .end('Request is missing search parameter `directory`.')
             break
           }
+          const projectDir = path.join(parentDir, 'project_root')
 
           projectManagement
             .createBundle(projectDir)
