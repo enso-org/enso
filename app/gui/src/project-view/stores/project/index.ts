@@ -20,6 +20,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import { wait } from 'lib0/promise'
 import {
   computed,
   markRaw,
@@ -43,7 +44,6 @@ import {
   type Uuid,
 } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
-import {wait} from "lib0/promise";
 
 export interface LsUrls {
   rpcUrl: string
@@ -298,9 +298,9 @@ export function createProjectStore(
   const queueLength = ref(0)
 
   function executeExpression(
-      expressionId: ExternalId,
-      expression: string,
-      timeoutMs: number = 5000,
+    expressionId: ExternalId,
+    expression: string,
+    timeoutMs: number = 5000,
   ): Promise<Result<any> | null> {
     if (inProgress.value > MAX_IN_PROGRESS) {
       if (timeoutMs < 0) {
