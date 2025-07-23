@@ -300,10 +300,10 @@ export function createProjectStore(
   function executeExpression(
       expressionId: ExternalId,
       expression: string,
-      executionTime: number = 5000,
+      timeoutMs: number = 5000,
   ): Promise<Result<any> | null> {
     if (inProgress.value > MAX_IN_PROGRESS) {
-      if (executionTime < 0) {
+      if (timeoutMs < 0) {
         console.warn(`executeExpression: Execution timed out.`)
         return Promise.reject(Err(`executeExpression: Execution timed out.`))
       }
@@ -312,7 +312,7 @@ export function createProjectStore(
       const pause = queueLength.value * 250
       return new Promise((resolve) => setTimeout(resolve, pause)).then(() => {
         queueLength.value -= 1
-        return executeExpression(expressionId, expression, executionTime - pause)
+        return executeExpression(expressionId, expression, timeoutMs - pause)
       })
     }
 
@@ -351,7 +351,7 @@ export function createProjectStore(
         reject(Err(message))
       }
 
-      wait((executionTime < 1000 ? 1000 : executionTime) + 100).then(() => {
+      wait((timeoutMs < 1000 ? 1000 : timeoutMs) + 100).then(() => {
         if (state === 1) {
           inProgress.value -= 1
           state = 0 // Prevent further updates from this handler.

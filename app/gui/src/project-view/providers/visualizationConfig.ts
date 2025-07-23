@@ -28,7 +28,7 @@ export interface VisualizationConfig {
   setToolbarOverlay: (enableOverlay: boolean) => void
   executeExpression: (
     expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
-    executionTime?: number,
+    timeoutMs?: number,
   ) => any
 }
 

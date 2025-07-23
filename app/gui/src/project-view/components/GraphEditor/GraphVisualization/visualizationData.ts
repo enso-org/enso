@@ -29,7 +29,7 @@ import {
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
 import type { Opt } from 'ydoc-shared/util/data/opt'
-import { Err, type Result } from 'ydoc-shared/util/data/result'
+import { type Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** Used for testing. */
@@ -101,7 +101,7 @@ export function useVisualizationData({
 
   const executeExpression = async (
     expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
-    executionTime?: number
+    timeoutMs?: number
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
@@ -117,8 +117,8 @@ export function useVisualizationData({
     if (contextId === undefined) return
 
     const expression = expressionFunction(identifier)
-    return executionTime
-        ? await projectStore.executeExpression(contextId, expression.code(), executionTime)
+    return timeoutMs
+        ? await projectStore.executeExpression(contextId, expression.code(), timeoutMs)
         : await projectStore.executeExpression(contextId, expression.code())
   }
 
