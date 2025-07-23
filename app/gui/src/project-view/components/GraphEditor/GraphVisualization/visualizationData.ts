@@ -101,7 +101,7 @@ export function useVisualizationData({
 
   const executeExpression = async (
     expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
-    timeoutMs?: number
+    timeoutMs?: number,
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
@@ -112,14 +112,14 @@ export function useVisualizationData({
     if (identifier === undefined) return
 
     const contextId =
-        dataSourceValue.nodeId &&
-        graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
+      dataSourceValue.nodeId &&
+      graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
     if (contextId === undefined) return
 
     const expression = expressionFunction(identifier)
-    return timeoutMs
-        ? await projectStore.executeExpression(contextId, expression.code(), timeoutMs)
-        : await projectStore.executeExpression(contextId, expression.code())
+    return timeoutMs ?
+        await projectStore.executeExpression(contextId, expression.code(), timeoutMs)
+      : await projectStore.executeExpression(contextId, expression.code())
   }
 
   const currentVisualization = computed(() => {
