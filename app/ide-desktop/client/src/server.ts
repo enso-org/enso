@@ -492,11 +492,11 @@ export class Server {
     )
     const projectsDirectory = projectManagement.getProjectsDirectory()
     const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-    const targetDirectory = path.join(parentDirectory, 'project_root')
+    const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
-    await mkdir(targetDirectory, { recursive: true })
-    await projectManagement.unpackBundle(response, targetDirectory)
-    return { targetDirectory, parentDirectory }
+    await mkdir(projectRootDirectory, { recursive: true })
+    await projectManagement.unpackBundle(response, projectRootDirectory)
+    return { projectRootDirectory, parentDirectory }
   }
 
   /** Response handler for "download project from cloud" endpoint. */
@@ -513,9 +513,9 @@ export class Server {
 
     try {
       this.httpOkJson<{
-        readonly targetDirectory: string
+        readonly projectRootDirectory: string
         readonly parentDirectory: string
-      }>(response, await this.apiCloudDownloadProject(downloadUrl, projectId as ProjectId))
+      }>(response, await this.apiCloudDownloadProject(downloadUrl, ProjectId(projectId)))
     } catch (error) {
       logger.error(error)
       const projectsDirectory = projectManagement.getProjectsDirectory()
@@ -548,10 +548,14 @@ export class Server {
     response: http.ServerResponse,
     params: URLSearchParams,
   ) {
-    const projectDir = this.expectParameter(response, params, 'directory')
-    if (projectDir == null) {
+    const parentDir = this.expectParameter(response, params, 'directory')
+    if (parentDir == null) {
+      response
+        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+        .end('Request is missing search parameter `directory`.')
       return
     }
+    const projectDir = path.join(parentDir, 'project_root')
 
     try {
       const projectBundle = await projectManagement.createBundle(projectDir)
