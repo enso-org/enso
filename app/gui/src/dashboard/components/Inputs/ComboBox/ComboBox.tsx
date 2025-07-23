@@ -87,10 +87,10 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
         item: FieldValues<Schema>[TFieldName],
       ) => InputProps<Schema, TFieldName, string>['addonStart'])
   readonly addonEnd?:
-    | InputProps<Schema, TFieldName, string>['addonStart']
+    | InputProps<Schema, TFieldName, string>['addonEnd']
     | ((
         item: FieldValues<Schema>[TFieldName],
-      ) => InputProps<Schema, TFieldName, string>['addonStart'])
+      ) => InputProps<Schema, TFieldName, string>['addonEnd'])
 }
 
 // This is a function, even though it does not contain function syntax.

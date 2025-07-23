@@ -29,13 +29,12 @@ import { getLocalTimeZone, now } from '@internationalized/date'
 import type { QueryClient } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
 import {
-  getDescriptionForTimeZone,
   getTimeZoneFromDescription,
   getTimeZoneOffsetStringWithGMT,
   IanaTimeZone,
+  tryGetDescriptionForTimeZone,
   tryGetTimeZoneFromDescription,
   WHITELISTED_TIME_ZONE_DESCRIPTIONS,
-  WHITELISTED_TIME_ZONES,
 } from 'enso-common/src/utilities/data/dateTime'
 import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
 import * as z from 'zod'
@@ -80,15 +79,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             }),
             getValue: (context) => ({
               ...pick(context.user, 'name', 'email'),
-              timeZone: getDescriptionForTimeZone(
-                IanaTimeZone(
-                  (
-                    context.preferredTimeZone == null ||
-                      !WHITELISTED_TIME_ZONES.includes(context.preferredTimeZone)
-                  ) ?
-                    getLocalTimeZone()
-                  : context.preferredTimeZone,
-                ),
+              timeZone: tryGetDescriptionForTimeZone(
+                context.preferredTimeZone,
+                IanaTimeZone(getLocalTimeZone()),
               ),
             }),
             onSubmit: async (context, { name, timeZone }) => {
@@ -548,25 +541,38 @@ export type SettingsInputType =
   | Extract<HTMLInputTypeAttribute, 'email' | 'password' | 'text'>
   | 'comboBox'
 
-/** The relevant `ComboBox` props for a settings input. */
-type ComboBoxPartialProps = Partial<ComboBoxProps<TSchema, string>> &
-  Pick<ComboBoxProps<TSchema, string>, 'items'>
+/** Either `T`, or a function that returns `T` given a `SettingsContext`. */
+type ToValue<T> = T | ((context: SettingsContext) => T)
 
 /** Metadata describing an input in a {@link SettingsFormEntryData}. */
-export interface SettingsInputData<T> {
+interface SettingsInputDataBase<T> {
   readonly nameId: TextId & `${string}SettingsInput`
   readonly name: string & keyof T
   readonly autoComplete?: HTMLInputAutoCompleteAttribute
   /** Defaults to `false`. */
-  readonly hidden?: boolean | ((context: SettingsContext) => boolean)
+  readonly hidden?: ToValue<boolean>
   /** Defaults to `true`. */
-  readonly editable?: boolean | ((context: SettingsContext) => boolean)
+  readonly editable?: ToValue<boolean>
   readonly descriptionId?: TextId
-  readonly comboBoxProps?:
-    | ComboBoxPartialProps
-    | ((context: SettingsContext) => ComboBoxPartialProps)
-  readonly type?: SettingsInputType
 }
+
+/** Metadata describing a native input in a {@link SettingsFormEntryData}. */
+interface SettingsNativeInputData<T> extends SettingsInputDataBase<T> {
+  readonly type?: Extract<HTMLInputTypeAttribute, SettingsInputType>
+}
+
+/** The relevant `ComboBox` props for a {@link SettingsComboBoxInputData}. */
+type ComboBoxPartialProps = Partial<ComboBoxProps<TSchema, string>> &
+  Pick<ComboBoxProps<TSchema, string>, 'items'>
+
+/** Metadata describing a combo box input in a {@link SettingsFormEntryData}. */
+interface SettingsComboBoxInputData<T> extends SettingsInputDataBase<T> {
+  readonly comboBoxProps: ToValue<ComboBoxPartialProps>
+  readonly type: 'comboBox'
+}
+
+/** Metadata describing an input in a {@link SettingsFormEntryData}. */
+export type SettingsInputData<T> = SettingsComboBoxInputData<T> | SettingsNativeInputData<T>
 
 /** Metadata describing a settings entry that is a form. */
 export interface SettingsFormEntryData<T> {
