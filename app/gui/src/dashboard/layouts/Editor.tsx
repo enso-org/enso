@@ -1,8 +1,8 @@
 /** @file The container that launches the IDE. */
 import { Button } from '#/components/Button'
-import * as errorBoundary from '#/components/ErrorBoundary'
+import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
-import * as suspense from '#/components/Suspense'
+import { Loader } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
@@ -33,6 +33,15 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
+  return (
+    <ErrorBoundary>
+      <EditorContents {...props} />
+    </ErrorBoundary>
+  )
+}
+
+/** The container that launches the IDE. */
+function EditorContents(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
   const preventAutoReopen =
     project.type !== backendModule.BackendType.local || project.hybrid != null
@@ -155,7 +164,7 @@ export default function Editor(props: EditorProps) {
 
   if (openProjectMutation.isError) {
     return (
-      <errorBoundary.ErrorDisplay
+      <ErrorDisplay
         error={openProjectMutation.error}
         resetErrorBoundary={async () => {
           if (isProjectClosed) {
@@ -173,7 +182,7 @@ export default function Editor(props: EditorProps) {
         switch (true) {
           case projectQuery.isError:
             return (
-              <errorBoundary.ErrorDisplay
+              <ErrorDisplay
                 error={projectQuery.error}
                 resetErrorBoundary={() => projectQuery.refetch()}
               />
@@ -182,7 +191,7 @@ export default function Editor(props: EditorProps) {
           case isProjectClosed:
           case isProjectClosing:
           case isProjectOpening:
-            return <suspense.Loader minHeight="full" />
+            return <Loader minHeight="full" />
 
           case isProjectOpened:
             return (
