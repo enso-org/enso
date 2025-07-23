@@ -1,16 +1,6 @@
 package org.enso.google;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.time.temporal.Temporal;
-import java.util.List;
-
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
-import org.enso.table.error.EmptySheetException;
 import static org.enso.table.excel.ExcelUtils.fromExcelDateTime;
-import org.enso.table.problems.ProblemAggregator;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
@@ -19,6 +9,15 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.RowData;
 import com.google.auth.http.HttpCredentialsAdapter;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.time.temporal.Temporal;
+import java.util.List;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
+import org.enso.table.error.EmptySheetException;
+import org.enso.table.problems.ProblemAggregator;
 
 public class GoogleSheetsForEnso {
 
@@ -50,15 +49,18 @@ public class GoogleSheetsForEnso {
       int skip_rows,
       ProblemAggregator problemAggregator)
       throws IOException {
-    var rowData = service
-      .spreadsheets()
-      .get(sheetId)
-      .setRanges(List.of(range))
-      .setIncludeGridData(true)
-      .execute()
-      .getSheets().get(0)
-      .getData().get(0)
-      .getRowData();
+    var rowData =
+        service
+            .spreadsheets()
+            .get(sheetId)
+            .setRanges(List.of(range))
+            .setIncludeGridData(true)
+            .execute()
+            .getSheets()
+            .get(0)
+            .getData()
+            .get(0)
+            .getRowData();
 
     if (rowData == null) {
       throw new EmptySheetException();
@@ -73,7 +75,7 @@ public class GoogleSheetsForEnso {
     var numberOfColumns = firstRow.getValues().size();
     Builder[] builders = new Builder[numberOfColumns];
     for (int i = 0; i < numberOfColumns; i++) {
-        builders[i] = Builder.getInferredBuilder(rowData.size(), problemAggregator);
+      builders[i] = Builder.getInferredBuilder(rowData.size(), problemAggregator);
     }
     var resolved_row_limit = row_limit == null ? Long.MAX_VALUE : (row_limit < 0 ? 0 : row_limit);
 
@@ -81,19 +83,20 @@ public class GoogleSheetsForEnso {
         .skip(firstRowIndex)
         .skip(headerBuilder.getRowsUsed())
         .limit(resolved_row_limit)
-        .forEach(row -> {
-            for (int colIdx = 0; colIdx < numberOfColumns; colIdx++) {
+        .forEach(
+            row -> {
+              for (int colIdx = 0; colIdx < numberOfColumns; colIdx++) {
                 if (row == null || row.getValues() == null) {
                   builders[colIdx].append(null);
                 } else {
-                var cell = row.getValues().size() > colIdx ? row.getValues().get(colIdx) : null;
-                builders[colIdx].append(fixTypes(cell));
+                  var cell = row.getValues().size() > colIdx ? row.getValues().get(colIdx) : null;
+                  builders[colIdx].append(fixTypes(cell));
                 }
-            }
-        });
+              }
+            });
     Column[] columns = new Column[numberOfColumns];
     for (int colIdx = 0; colIdx < numberOfColumns; colIdx++) {
-        columns[colIdx] = new Column(headerBuilder.get(colIdx), builders[colIdx].seal());
+      columns[colIdx] = new Column(headerBuilder.get(colIdx), builders[colIdx].seal());
     }
     return new Table(columns);
   }
@@ -104,44 +107,45 @@ public class GoogleSheetsForEnso {
     }
     var format = cell.getUserEnteredFormat();
     if (format == null || format.getNumberFormat() == null || cell.getEffectiveValue() == null) {
-        if (cell.getEffectiveValue().getStringValue() != null)
-          return cell.getEffectiveValue().getStringValue();
-        double value = cell.getEffectiveValue().getNumberValue();
-        if (value % 1 == 0) {
-            return (int) value;
-        } else {
-            return value;
-        }
+      if (cell.getEffectiveValue().getStringValue() != null)
+        return cell.getEffectiveValue().getStringValue();
+      double value = cell.getEffectiveValue().getNumberValue();
+      if (value % 1 == 0) {
+        return (int) value;
+      } else {
+        return value;
+      }
     }
 
     String type = format.getNumberFormat().getType();
     switch (type) {
-        case "NUMBER", "CURRENCY", "SCIENTIFIC", "PERCENT" -> {
-            return cell.getEffectiveValue().getNumberValue();
-          }
-        case "DATE" -> {
-            Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
-            return t instanceof java.time.LocalDateTime
-                ? ((java.time.LocalDateTime) t).toLocalDate()
-                : java.time.LocalDate.from((Temporal) t);
-          }
-        case "TIME" -> {
-            Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
-            return t instanceof java.time.LocalDateTime
-                ? ((java.time.LocalDateTime) t).toLocalTime()
-                : java.time.LocalTime.from(t);
-          }
-        case "DATE_TIME" -> {
-            Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
-            return t instanceof java.time.ZonedDateTime
-                ? t
-                : java.time.ZonedDateTime.ofInstant(java.time.Instant.from(t), java.time.ZoneId.systemDefault());
-          }
+      case "NUMBER", "CURRENCY", "SCIENTIFIC", "PERCENT" -> {
+        return cell.getEffectiveValue().getNumberValue();
+      }
+      case "DATE" -> {
+        Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+        return t instanceof java.time.LocalDateTime
+            ? ((java.time.LocalDateTime) t).toLocalDate()
+            : java.time.LocalDate.from((Temporal) t);
+      }
+      case "TIME" -> {
+        Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+        return t instanceof java.time.LocalDateTime
+            ? ((java.time.LocalDateTime) t).toLocalTime()
+            : java.time.LocalTime.from(t);
+      }
+      case "DATE_TIME" -> {
+        Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+        return t instanceof java.time.ZonedDateTime
+            ? t
+            : java.time.ZonedDateTime.ofInstant(
+                java.time.Instant.from(t), java.time.ZoneId.systemDefault());
+      }
 
-        case "TEXT" -> {
-            return cell.getEffectiveValue().getStringValue();
-          }
-        default -> throw new AssertionError("Unhandled format type: " + type);
+      case "TEXT" -> {
+        return cell.getEffectiveValue().getStringValue();
+      }
+      default -> throw new AssertionError("Unhandled format type: " + type);
     }
   }
 
@@ -173,7 +177,7 @@ public class GoogleSheetsForEnso {
   }
 
   private static RowData getDataRow(List<RowData> rowData, int rowIndex) {
-    if (rowData.size()>rowIndex) {
+    if (rowData.size() > rowIndex) {
       return rowData.get(rowIndex);
     }
     return null;
