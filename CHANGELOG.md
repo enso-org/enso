@@ -79,6 +79,8 @@
 - [Remane Google_Api library to Google][13436]
 - [Data.read_many now returns the read path as a char field][13475]
 - [Add prototype `find_group_number` function to Table][13487]
+- [Add support for custom and empty line endings to the fixed-width file format]
+  [13554]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -95,6 +97,7 @@
 [13443]: https://github.com/enso-org/enso/pull/13443
 [13475]: https://github.com/enso-org/enso/pull/13475
 [13487]: https://github.com/enso-org/enso/pull/13487
+[13554]: https://github.com/enso-org/enso/pull/13554
 
 #### Enso Language & Runtime
 
