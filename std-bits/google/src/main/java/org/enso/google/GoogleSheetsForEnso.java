@@ -2,12 +2,14 @@ package org.enso.google;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.temporal.Temporal;
 import java.util.List;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptySheetException;
+import static org.enso.table.excel.ExcelUtils.fromExcelDateTime;
 import org.enso.table.problems.ProblemAggregator;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -118,22 +120,22 @@ public class GoogleSheetsForEnso {
             return cell.getEffectiveValue().getNumberValue();
           }
         case "DATE" -> {
-            double serial = cell.getEffectiveValue().getNumberValue();
-            long epochMilli = (long)((serial - 25569) * 86400000);
-            return java.time.Instant.ofEpochMilli(epochMilli)
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDate();
+            Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+            return t instanceof java.time.LocalDateTime
+                ? ((java.time.LocalDateTime) t).toLocalDate()
+                : java.time.LocalDate.from((Temporal) t);
           }
         case "TIME" -> {
-            double serial = cell.getEffectiveValue().getNumberValue();
-            long millisInDay = (long)(serial * 86400000);
-            return java.time.LocalTime.ofSecondOfDay(millisInDay / 1000);
+            Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+            return t instanceof java.time.LocalDateTime
+                ? ((java.time.LocalDateTime) t).toLocalTime()
+                : java.time.LocalTime.from(t);
           }
         case "DATE_TIME" -> {
-            double serial = cell.getEffectiveValue().getNumberValue();
-            long epochMilli = (long)((serial - 25569) * 86400000);
-            return java.time.Instant.ofEpochMilli(epochMilli)
-                .atZone(java.time.ZoneId.systemDefault());
+            Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+            return t instanceof java.time.ZonedDateTime
+                ? t
+                : java.time.ZonedDateTime.ofInstant(java.time.Instant.from(t), java.time.ZoneId.systemDefault());
           }
 
         case "TEXT" -> {
