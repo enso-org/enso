@@ -118,8 +118,8 @@ export function useVisualizationData({
 
     const expression = expressionFunction(identifier)
     return timeoutMs ?
-        await projectStore.executeExpression(contextId, expression.code(), timeoutMs)
-      : await projectStore.executeExpression(contextId, expression.code())
+        await projectStore.queuedExecuteExpression(contextId, expression.code(), timeoutMs)
+      : await projectStore.queuedExecuteExpression(contextId, expression.code())
   }
 
   const currentVisualization = computed(() => {

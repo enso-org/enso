@@ -291,28 +291,64 @@ export function createProjectStore(
     module.value?.undoManager.stopCapturing()
   }
 
+  function executeExpression(
+    expressionId: ExternalId,
+    expression: string,
+  ): Promise<Result<any> | null> {
+    return new Promise((resolve) => {
+      const visualizationId = crypto.randomUUID() as Uuid
+      const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
+        if (uuid === visualizationId) {
+          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+          executionContext.off('visualizationEvaluationFailed', errorHandler)
+          const dataStr = Ok(visData.dataString())
+          resolve(parseVisualizationData(dataStr))
+        }
+      }
+      const errorHandler = (
+        uuid: Uuid,
+        _expressionId: ExpressionId,
+        message: string,
+        _diagnostic: Diagnostic | undefined,
+      ) => {
+        if (uuid == visualizationId) {
+          resolve(Err(message))
+          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+          executionContext.off('visualizationEvaluationFailed', errorHandler)
+        }
+      }
+      dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+      executionContext.on('visualizationEvaluationFailed', errorHandler)
+      return lsRpcConnection.executeExpression(
+        executionContext.id,
+        visualizationId,
+        expressionId,
+        expression,
+      )
+    })
+  }
+
   // Maximum number of in-progress expressions.
   const MAX_IN_PROGRESS = 5
 
   const inProgress = ref(0)
   const queueLength = ref(0)
 
-  function executeExpression(
+  function queuedExecuteExpression(
     expressionId: ExternalId,
     expression: string,
     timeoutMs: number = 5000,
   ): Promise<Result<any> | null> {
     if (inProgress.value > MAX_IN_PROGRESS) {
       if (timeoutMs < 0) {
-        console.warn(`executeExpression: Execution timed out.`)
-        return Promise.reject(Err(`executeExpression: Execution timed out.`))
+        return Promise.reject(Err(`queuedExecuteExpression: Execution timed out.`))
       }
 
       queueLength.value += 1
       const pause = queueLength.value * 250
       return new Promise((resolve) => setTimeout(resolve, pause)).then(() => {
         queueLength.value -= 1
-        return executeExpression(expressionId, expression, timeoutMs - pause)
+        return queuedExecuteExpression(expressionId, expression, timeoutMs - pause)
       })
     }
 
@@ -444,6 +480,7 @@ export function createProjectStore(
     recordMode,
     dataflowErrors,
     executeExpression,
+    queuedExecuteExpression,
     renameProject,
   })
 }
