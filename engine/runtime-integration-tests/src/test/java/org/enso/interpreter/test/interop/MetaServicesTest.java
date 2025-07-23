@@ -10,25 +10,12 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class MetaServicesTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static ContextUtils ctx = ContextUtils.createDefault();
 
   @Test
   public void loadFileSystemServices() throws Exception {
@@ -49,7 +36,7 @@ public class MetaServicesTest {
             .buildLiteral();
 
     var mod = ctx.eval(src);
-    var ensoCtx = ContextUtils.leakContext(ctx);
+    var ensoCtx = ctx.ensoContext();
 
     for (var p : ensoCtx.getPackageRepository().getLoadedPackagesJava()) {
       p.getConfig()
@@ -58,21 +45,13 @@ public class MetaServicesTest {
               pw -> {
                 var spiType = findType(pw.provides(), ensoCtx);
                 var implType = findType(pw.with(), ensoCtx);
-                var fsImpl =
-                    ContextUtils.executeInContext(
-                        ctx,
-                        () -> {
-                          var conversion =
-                              UnresolvedConversion.build(implType.getDefinitionScope());
-                          var state = State.create(ensoCtx);
-                          var node = InteropApplicationNode.getUncached();
-                          var fn = conversion.resolveFor(ensoCtx, spiType, implType);
-                          var conv = node.execute(fn, state, new Object[] {spiType, implType});
-                          if (conv != null) {
-                            return conv;
-                          }
-                          return null;
-                        });
+                var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
+                var state = State.create(ensoCtx);
+                var node = InteropApplicationNode.getUncached();
+                var fn = conversion.resolveFor(ensoCtx, spiType, implType);
+                var conv = node.execute(fn, state, new Object[] {spiType, implType});
+                assertNotNull("Some value found", conv);
+                var fsImpl = ctx.asValue(conv);
                 assertNotNull("Some implementation found", fsImpl);
                 assertEquals("Protocol", "enso", fsImpl.getMember("protocol").asString());
                 assertEquals(
