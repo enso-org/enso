@@ -1506,6 +1506,60 @@ public class SignatureTest {
     assertEquals("One call", "extension_method called", ctxRule.getOut().trim());
   }
 
+  @Test
+  public void intersectionWithAny() {
+    var code =
+        """
+        from Standard.Base import Any, Integer
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+
+
+        A.from that:B =
+            A.A_Ctor that
+
+        both v -> A & B =
+            B.B_Ctor v
+
+        a_with a -> A & Any =
+            a
+
+        b_with b -> B & Any =
+            b
+
+        main =
+            v = both 42
+            a = a_with v
+            b = b_with v
+            [v, a, b]
+        """;
+
+    ctxRule.resetOut();
+    var res = ctxRule.evalModule(code);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(3, res.getArraySize());
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+
+    assertEquals("YesA", v.invokeMember("i_am_a").asString());
+    assertEquals("YesB", v.invokeMember("i_am_b").asString());
+
+    assertEquals("YesA", a.invokeMember("i_am_a").asString());
+    // TODO: assertEquals("A & Any keeps also B", "YesB", a.invokeMember("i_am_b").asString());
+
+    // TODO: assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
+    assertEquals("YesB", b.invokeMember("i_am_b").asString());
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     assertEquals(
         "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",
