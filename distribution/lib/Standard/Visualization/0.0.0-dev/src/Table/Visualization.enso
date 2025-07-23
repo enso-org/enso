@@ -230,7 +230,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     ## Only serialize what we need for the visualization.
     make_value_type column =
         value_type = column.value_type
-        [JS_Object.from_pairs [["constructor",  Meta.meta value_type . constructor . name], ["display_text", value_type.to_display_text]]]
+        JS_Object.from_pairs [["constructor",  Meta.meta value_type . constructor . name], ["display_text", value_type.to_display_text]]
 
     header                     = ["header", dataframe.column_names]
     value_type                 = ["value_type", columns.map make_value_type]
