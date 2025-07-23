@@ -174,6 +174,9 @@ public class DeferredProcessingSocketAppender extends AppenderBase<ILoggingEvent
   }
 
   protected void postProcessEvent(ILoggingEvent event) {
+    // Most problems occur in the serialization of arguments that involves calling `.toString()`.
+    // If we report problem while the arguments are being written to the stream,
+    // it's too late - deserialization will likely report false positive failures.
     if (event.getArgumentArray() != null) {
       var args = event.getArgumentArray();
       for (Object arg : args) {
