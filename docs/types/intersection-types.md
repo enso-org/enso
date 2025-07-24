@@ -72,7 +72,8 @@ https://github.com/enso-org/enso/commit/3d8a0e1b90b20cfdfe5da8d2d3950f644a4b45b8
 
 When an _intersection type_ value is being downcast to _some of the types it
 already represents_, these types become its _visible_ types. Any additional
-types it represents become _hidden_.
+types it represents become _hidden_ (unless [open check](#open-type-check) is
+requested).
 
 The following operations consider only the _visible_ part of the type:
 
@@ -89,13 +90,13 @@ Thus, after casting a value `cf:Complex&Float` to just `Complex`, e.g.
   type
 - a type error is raised when a `Float` parameter is expected
 
-As such a _static analysis_ knows the type a value _has been cast to_ (the
-_visible_ part) and can deduce the set of operations that can be performed with
-it. Moreover, any method calls will also only accept the value if it satisfies
-the type it _has been cast to_. Any additional remaining _hidden_ types can only
-be brought back through an _explicit_ cast. To perform an explicit cast that can
-uncover the 'hidden' part of a type write `f = c:Float` or inspect the types in
-a `case` expression, e.g.
+As such a [static analysis](./inference-and-checking.md) knows the type a value
+_has been cast to_ (the _visible_ part) and can deduce the set of operations
+that can be performed with it. Moreover, any method calls will also only accept
+the value if it satisfies the type it _has been cast to_. Any additional
+remaining _hidden_ types can only be brought back through an _explicit_ cast. To
+perform an explicit cast that can uncover the 'hidden' part of a type write
+`f = c:Float` or inspect the types in a `case` expression, e.g.
 
 ```ruby
 case c of
@@ -161,6 +162,33 @@ Table.join self right:Table -> Table = ...
 Such a `Table&Column` value can be returned from the above `Table.join` function
 and while having only `Table` behavior by default, still being able to be
 explicitly cast by the visual environment to `Column`.
+
+### Open Type Check
+
+There is a special form of _intersection type_ check that can be used to perform
+a type check, but avoid _downcasting a value_ (as the
+[narrowing check](#narrowing-type-check) does). Use:
+
+```ruby
+cf : Complex&Any
+```
+
+to **verify** the `cf` value is a `Complex` number, but allow any other _visible
+types_ it has to remain _visible_.
+
+Every value in Enso is of `Any` type. Static
+[type checking](./inference-and-checking.md#any-is-special) treats `Any` type in
+a special way - anything can be done with it. Any method invocation is
+(potentially) valid. Thus combining `Complex&Any` check does two things:
+
+- ensures that values that pass such a check offer all functionality of
+  `Complex`
+- but they also may offer any other functionality (via its `Any` type)
+
+Such a combination is useful for static development tools (like editor code
+completion) that can offer methods of `Complex` type for such a value in hand.
+Dynamic development tools benefit as well as all the _visible types_ after such
+a type check still remain visible and can directly be used.
 
 ### Converting Type Check
 
