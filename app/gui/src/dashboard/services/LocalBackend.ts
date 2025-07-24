@@ -176,7 +176,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails.
    */
   override async listDirectory(
-    query: backend.ListDirectoryRequestParams,
+    query: backend.ListDirectoryRequestParams & { readonly recursive?: boolean },
   ): Promise<readonly backend.AnyRealAsset[]> {
     const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
@@ -185,7 +185,7 @@ export default class LocalBackend extends Backend {
     // Catch the case where the directory does not exist.
     let result: backend.AnyRealAsset[] = []
     try {
-      const entries = await this.projectManager.listDirectory(parentIdRaw)
+      const entries = await this.projectManager.listDirectory(parentIdRaw, query.recursive)
       result = entries.map((entry) => {
         const virtualParentsPath = (() => {
           let path = entry.path.replace(rootPath, '')
@@ -298,14 +298,9 @@ export default class LocalBackend extends Backend {
   override async searchDirectory(
     query: backend.SearchDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
-    const assets: backend.AnyRealAsset[] = []
-    const isMatch = backend.doesAssetMatchQuery(query)
-    let parentIdQueue = [query.parentId]
-    while (true) {
-      const parentId = parentIdQueue.shift()
-      if (parentId == null) break
-      const newAssets = await this.listDirectory({
-        parentId,
+    const assets = (
+      await this.listDirectory({
+        parentId: query.parentId,
         filterBy: null,
         labels: query.labels,
         sortDirection: query.sortDirection,
@@ -313,14 +308,9 @@ export default class LocalBackend extends Backend {
         recentProjects: false,
         from: null,
         pageSize: null,
+        recursive: true,
       })
-      assets.push(...newAssets.filter(isMatch))
-      parentIdQueue.push(
-        ...newAssets.flatMap((asset) =>
-          asset.type === backend.AssetType.directory ? [asset.id] : [],
-        ),
-      )
-    }
+    ).filter(backend.doesAssetMatchQuery(query))
     const index = query.from == null ? 0 : assets.findIndex((asset) => asset.id === query.from) + 1
     return assets.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
   }

@@ -374,6 +374,33 @@ export class Server {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
               .end('Command arguments must be an array of strings.')
+          } else if (
+            (cliArguments[0] === '--filesystem-list' ||
+              cliArguments[0] === '--filesystem-list-recursive') &&
+            cliArguments[1] != null
+          ) {
+            void apiPmListDirectory(
+              cliArguments[1],
+              cliArguments[0] === '--filesystem-list-recursive',
+            ).then(
+              (entries) => {
+                response.writeHead(HTTP_STATUS_OK, [
+                  ['Content-Type', 'application/json'],
+                  ...COOP_COEP_CORP_HEADERS,
+                ])
+                response.end(JSON.stringify({ jsonrpc: '2.0', id: 0, result: { entries } }))
+              },
+              () => {
+                response.writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
+                response.end(
+                  JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 0,
+                    error: { code: 0, message: `Could not list directory '${cliArguments[1]}'` },
+                  }),
+                )
+              },
+            )
           } else {
             const commandOutput = (() => {
               try {
@@ -515,73 +542,81 @@ function isFileHidden(filePath: string): boolean {
   return dotfile.test(filePath)
 }
 
-async function apiListDirectory(directoryPath: string) {
-  const entryNames = await fs.readdir(directoryPath)
+async function apiPmListDirectory(directoryPath: string, recursive = false) {
+  const directoryPathQueue = [directoryPath]
   const entries: FileSystemEntry[] = []
-  for (const entryName of entryNames) {
-    const entryPath = path.join(directoryPath, entryName)
-    if (isFileHidden(entryPath)) continue
-    const stat = await fs.stat(entryPath)
-    const attributes: Attributes = {
-      byteSize: stat.size,
-      creationTime: new Date(stat.ctimeMs).toISOString(),
-      lastAccessTime: new Date(stat.atimeMs).toISOString(),
-      lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
-    }
-    if (stat.isFile()) {
-      entries.push({
-        type: 'FileEntry',
-        path: entryPath,
-        attributes,
-      } satisfies FileEntry)
-    } else {
-      try {
-        const packageMetadataPath = path.join(entryPath, 'package.yaml')
-        const projectMetadataPath = path.join(
-          entryPath,
-          projectManagement.PROJECT_METADATA_RELATIVE_PATH,
-        )
-        const packageMetadataContents = await fs.readFile(packageMetadataPath)
-        const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
-        let projectMetadataJson
-        try {
-          const projectMetadataContents = await fs.readFile(projectMetadataPath)
-          projectMetadataJson = JSON.parse(projectMetadataContents.toString())
-        } catch (e) {
-          if ('name' in packageMetadataYaml && typeof packageMetadataYaml.name === 'string') {
-            projectMetadataJson = {
-              id: crypto.randomUUID(),
-              kind: 'UserProject',
-              created: new Date().toISOString(),
-              lastOpened: null,
-            }
-            await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
-            await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
-          } else {
-            throw e
-          }
-        }
-        const metadata = extractProjectMetadata(packageMetadataYaml, projectMetadataJson)
-        if (metadata != null) {
-          // This is a project.
-          entries.push({
-            type: 'ProjectEntry',
-            path: entryPath,
-            attributes,
-            metadata,
-          } satisfies ProjectEntry)
-        } else {
-          // This error moves control flow to the
-          // `catch` clause directly below.
-          throw new Error('Invalid project metadata.')
-        }
-      } catch {
-        // This is a regular directory, not a project.
+  while (true) {
+    const currentDirectoryPath = directoryPathQueue.shift()
+    if (currentDirectoryPath == null) break
+    const entryNames = await fs.readdir(currentDirectoryPath)
+    for (const entryName of entryNames) {
+      const entryPath = path.join(currentDirectoryPath, entryName)
+      if (isFileHidden(entryPath)) continue
+      const stat = await fs.stat(entryPath)
+      const attributes: Attributes = {
+        byteSize: stat.size,
+        creationTime: new Date(stat.ctimeMs).toISOString(),
+        lastAccessTime: new Date(stat.atimeMs).toISOString(),
+        lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
+      }
+      if (stat.isFile()) {
         entries.push({
-          type: 'DirectoryEntry',
+          type: 'FileEntry',
           path: entryPath,
           attributes,
-        } satisfies DirectoryEntry)
+        } satisfies FileEntry)
+      } else {
+        if (recursive) {
+          directoryPathQueue.push(entryPath)
+        }
+        try {
+          const packageMetadataPath = path.join(entryPath, 'package.yaml')
+          const projectMetadataPath = path.join(
+            entryPath,
+            projectManagement.PROJECT_METADATA_RELATIVE_PATH,
+          )
+          const packageMetadataContents = await fs.readFile(packageMetadataPath)
+          const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
+          let projectMetadataJson
+          try {
+            const projectMetadataContents = await fs.readFile(projectMetadataPath)
+            projectMetadataJson = JSON.parse(projectMetadataContents.toString())
+          } catch (e) {
+            if ('name' in packageMetadataYaml && typeof packageMetadataYaml.name === 'string') {
+              projectMetadataJson = {
+                id: crypto.randomUUID(),
+                kind: 'UserProject',
+                created: new Date().toISOString(),
+                lastOpened: null,
+              }
+              await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
+              await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
+            } else {
+              throw e
+            }
+          }
+          const metadata = extractProjectMetadata(packageMetadataYaml, projectMetadataJson)
+          if (metadata != null) {
+            // This is a project.
+            entries.push({
+              type: 'ProjectEntry',
+              path: entryPath,
+              attributes,
+              metadata,
+            } satisfies ProjectEntry)
+          } else {
+            // This error moves control flow to the
+            // `catch` clause directly below.
+            throw new Error('Invalid project metadata.')
+          }
+        } catch {
+          // This is a regular directory, not a project.
+          entries.push({
+            type: 'DirectoryEntry',
+            path: entryPath,
+            attributes,
+          } satisfies DirectoryEntry)
+        }
       }
     }
   }
