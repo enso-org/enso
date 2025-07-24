@@ -93,7 +93,7 @@ object JARUtils {
 
                       dynamicLibs = destFile :: dynamicLibs
                       if (
-                        destFile.exists() && destFile.exists() && inputJarFile
+                        destFile.exists() && inputJarFile
                           .lastModified() < destFile.lastModified()
                       ) {
                         logger.info("File already up-to-date. Skipping...")
