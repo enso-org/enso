@@ -1,7 +1,6 @@
 private
 
-## Gets a file corresponding to the current working directory of the
-   program.
+## Gets a file corresponding to the current working directory of the program.
 get_cwd = @Builtin_Method "File.get_cwd"
 
 ## The builtin that returns a File instance for a given path.
@@ -35,16 +34,16 @@ read_last_bytes_builtin file n = @Builtin_Method "File.read_last_bytes_builtin"
 ## Creates a new output stream for this file. Recommended to use
    `File.with_output_stream` instead, which does resource management.
 
-   Arguments:
-   - options: A vector of `File_Access` objects determining how to open
-     the stream. These options set the access properties of the stream.
+   ## Arguments
+    - `options`: A vector of `File_Access` objects determining how to open the
+      stream. These options set the access properties of the stream.
 output_stream_builtin file options = @Builtin_Method "File.output_stream_builtin"
 
 ## Creates a new input stream for this file. Recommended to use
    `File.with_input_stream` instead, which does resource management.
 
-   Arguments:
-   - options: A vector of `StandardOpenOption` polyglot objects
-     determining how to open the stream. These options set the access
-     properties of the stream.
+   ## Arguments
+    - `options`: A vector of `StandardOpenOption` polyglot objects determining
+      how to open the stream. These options set the access properties of the
+      stream.
 input_stream_builtin file options = @Builtin_Method "File.input_stream_builtin"
