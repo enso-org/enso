@@ -56,6 +56,7 @@ export function getGroupIndex(
   return index == null ? undefined : index
 }
 
+/** @internal */
 export function getLegacyDocumentationSummary(sections: Doc.Section[]) {
   const firstParagraph = sections.find(
     (section): section is { Paragraph: Doc.Section.Paragraph } => 'Paragraph' in section,
