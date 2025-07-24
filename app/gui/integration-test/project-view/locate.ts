@@ -202,7 +202,10 @@ export async function outputPortCoordinates(page: Page, node: Locator) {
 /** Returns a locator for the create node from port button. */
 export async function createNodeFromPortButton(page: Page, node: Locator) {
   const nodeId = await node.getAttribute('data-node-id')
-  return page.locator(
+  const button = page.locator(
     `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton`,
   )
+  // Ensure the animation is complete.
+  await button.elementHandle().then((el) => el!.waitForElementState('stable'))
+  return button
 }
