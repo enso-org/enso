@@ -6,13 +6,15 @@ from Standard.Table import all
 
 from Standard.Database import all
 
+from project.Helpers import time_visualization
+
 ## ---
    private: true
    ---
    Basic preprocessor for widgets metadata visualization.
    Returns full annotation data for all requested arguments.
 get_widget_json : Any -> Any -> Vector Text -> Text -> Text
-get_widget_json value call_name argument_names uuids="{}" =
+get_widget_json value call_name argument_names uuids="{}" = time_visualization Widgets (value.to_display_text + ":" + (call_name.to_text.replace (regex "^.*<|>$") "") + argument_names.pretty) <|
     other_args = uuids.parse_json
 
     cache (name_or_index:Text|Integer) -> Any =

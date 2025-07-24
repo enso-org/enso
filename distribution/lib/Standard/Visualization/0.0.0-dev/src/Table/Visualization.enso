@@ -11,6 +11,7 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
+from project.Helpers import time_visualization
 
 ## ---
    private: true
@@ -23,31 +24,32 @@ import project.Helpers
     - `y`: The table to prepare for visualization.
     - `max_rows`: The maximum number of rows to display.
 prepare_visualization : Any -> Integer -> Text
-prepare_visualization y max_rows=1000 = if y.is_error then make_json_for_error y.catch else
-    x = Warning.set y []
-    case x of
-        v : Vector -> make_json_for_vector v max_rows . to_json
-        v : Array -> prepare_visualization v.to_vector max_rows
-        v : Dictionary -> make_json_for_dictionary v max_rows
-        v : JS_Object -> make_json_for_js_object v max_rows
-        v : Row -> make_json_for_row v
-        _ : In_Memory_Table ->
-            all_rows_count = x.row_count
-            make_json_for_table x max_rows all_rows_count False False
-        c : Column ->
-            case DB_Column.is_database_column c of
-                False -> make_json_for_table c.to_table max_rows c.length False True
-                True -> _make_json_for_db_table c.to_table max_rows is_column=True
-        _ : DB_Table -> _make_json_for_db_table x max_rows is_column=False
-        f : Function ->
-            pairs = [['_display_text_', '[Function '+f.to_text+']']]
-            value = JS_Object.from_pairs pairs
-            JS_Object.from_pairs [["json", value]] . to_json
-        v : Number ->
-            JS_Object.from_pairs [["json", _make_json_for_value v]] . to_json
-        v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
-        v : XML_Element -> make_json_for_xml_element v max_rows
-        _ -> (Table_Viz_Data.from x).get_js_object.to_json
+prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepare_visualization: " + y.to_display_text) <|
+    if y.is_error then make_json_for_error y.catch else
+        x = Warning.set y []
+        case x of
+            v : Vector -> make_json_for_vector v max_rows . to_json
+            v : Array -> prepare_visualization v.to_vector max_rows
+            v : Dictionary -> make_json_for_dictionary v max_rows
+            v : JS_Object -> make_json_for_js_object v max_rows
+            v : Row -> make_json_for_row v
+            _ : In_Memory_Table ->
+                all_rows_count = x.row_count
+                make_json_for_table x max_rows all_rows_count False False
+            c : Column ->
+                case DB_Column.is_database_column c of
+                    False -> make_json_for_table c.to_table max_rows c.length False True
+                    True -> _make_json_for_db_table c.to_table max_rows is_column=True
+            _ : DB_Table -> _make_json_for_db_table x max_rows is_column=False
+            f : Function ->
+                pairs = [['_display_text_', '[Function '+f.to_text+']']]
+                value = JS_Object.from_pairs pairs
+                JS_Object.from_pairs [["json", value]] . to_json
+            v : Number ->
+                JS_Object.from_pairs [["json", _make_json_for_value v]] . to_json
+            v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
+            v : XML_Element -> make_json_for_xml_element v max_rows
+            _ -> (Table_Viz_Data.from x).get_js_object.to_json
 
 ## ---
    private: true
@@ -225,8 +227,13 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
             values = column_vis_helpers.map method
             [JS_Object.from_pairs [["name", name], ["values", values], ["type", displayType]]]
 
+    ## Only serialize what we need for the visualization.
+    make_value_type column =
+        value_type = column.value_type
+        JS_Object.from_pairs [["constructor",  Meta.meta value_type . constructor . name], ["display_text", value_type.to_display_text]]
+
     header                     = ["header", dataframe.column_names]
-    value_type                 = ["value_type", columns.map .value_type]
+    value_type                 = ["value_type", columns.map make_value_type]
     all_rows                   = ["all_rows_count", all_rows_count]
     has_index_col              = ["has_index_col", True]
     links                      = ["get_child_node_action", if is_column then "at" else "get_row"]
@@ -302,12 +309,13 @@ apply_filter_to_table table i filter_cols filter_conditions has_index_col =
     - `filter_condition`: list of filter conditions for the columns
 get_distinct_values_for_column : Table -> Integer -> Vector | Nothing -> Vector | Nothing -> JS_Object
 get_distinct_values_for_column table column_index filter_col=Nothing filter_condition=Nothing =
-    filtered_table = if filter_col.is_nothing then table else apply_filter_to_table table 0 filter_col filter_condition False
-    (filtered_table:Visualization_Helpers).distinct_values <|
-        column = filtered_table.at column_index
-        values = column.to_vector.distinct
-        result = JS_Object.from_pairs [["distinct_vals", values]]
-        result.to_json
+    time_visualization Visualization ("get_distinct_values_for_column: " + table.to_display_text + "[" + column_index.to_text + "]") <|
+        filtered_table = if filter_col.is_nothing then table else apply_filter_to_table table 0 filter_col filter_condition False
+        (filtered_table:Visualization_Helpers).distinct_values <|
+            column = filtered_table.at column_index
+            values = column.to_vector.distinct
+            result = JS_Object.from_pairs [["distinct_vals", values]]
+            result.to_json
 
 ## ---
    private: true
@@ -324,17 +332,18 @@ get_distinct_values_for_column table column_index filter_col=Nothing filter_cond
     - `filter_condition`: list of filter conditions for the columns
 get_rows_for_table : Any -> Integer -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> JS_Object
 get_rows_for_table table_or_column start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_condition=Nothing =
-    max_rows=1000
-    table = case table_or_column of
-        c : Column -> c.to_table
-        _ -> table_or_column
-    col_name = table.make_temp_column_name
-    table_with_index = table.add_row_number col_name
-    table_with_index_ordered = table_with_index.reorder_columns [col_name] ..Before_Other_Columns
-    filtered_table = if filter_col.is_nothing then table_with_index_ordered else apply_filter_to_table table_with_index_ordered 0 filter_col filter_condition True
-    sorted_table = if sort_col_index_list.is_nothing then filtered_table else apply_sort_to_table filtered_table sort_col_index_list sort_direction_list
-    sliced_json = sorted_table.columns.map (c-> c.to_json_data start_number max_rows fallback=(v-> _make_json_for_value v . to_json))
-    '{"rows":[' + (sliced_json.join ",") + '], "row_count":' + filtered_table.row_count.to_text + '}'
+    time_visualization Visualization ("get_rows_for_table: " + table_or_column.to_display_text + "[" + start_number.to_text + "]") <|
+        max_rows=1000
+        table = case table_or_column of
+            c : Column -> c.to_table
+            _ -> table_or_column
+        col_name = table.make_temp_column_name
+        table_with_index = table.add_row_number col_name
+        table_with_index_ordered = table_with_index.reorder_columns [col_name] ..Before_Other_Columns
+        filtered_table = if filter_col.is_nothing then table_with_index_ordered else apply_filter_to_table table_with_index_ordered 0 filter_col filter_condition True
+        sorted_table = if sort_col_index_list.is_nothing then filtered_table else apply_sort_to_table filtered_table sort_col_index_list sort_direction_list
+        sliced_json = sorted_table.columns.map (c-> c.to_json_data start_number max_rows fallback=(v-> _make_json_for_value v . to_json))
+        '{"rows":[' + (sliced_json.join ",") + '], "row_count":' + filtered_table.row_count.to_text + '}'
 
 ## ---
    private: true
