@@ -12,14 +12,17 @@ export default class SettingsOrganizationFormActions<Context> extends SettingsFo
 > {
   /** Create a {@link SettingsOrganizationFormActions}. */
   constructor(...args: ConstructorParameters<typeof PageActions<Context>>) {
+    const [page, context, promise] = args
     super(
-      SettingsOrganizationTabActions<Context>,
       (page) =>
         page
           .getByRole('heading')
           .and(page.getByText(TEXT.organizationSettingsSection))
           .locator('..'),
-      ...args,
+      page,
+      context,
+      promise,
+      SettingsOrganizationTabActions<Context>,
     )
   }
 

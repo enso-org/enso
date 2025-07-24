@@ -12,14 +12,17 @@ export default class SettingsAccountFormActions<Context> extends SettingsFormAct
 > {
   /** Create a {@link SettingsAccountFormActions}. */
   constructor(...args: ConstructorParameters<typeof PageActions<Context>>) {
+    const [page, context, promise] = args
     super(
-      SettingsAccountTabActions<Context>,
       (page) =>
         page
           .getByRole('heading')
           .and(page.getByText(TEXT.userAccountSettingsSection))
           .locator('..'),
-      ...args,
+      page,
+      context,
+      promise,
+      SettingsAccountTabActions<Context>,
     )
   }
 

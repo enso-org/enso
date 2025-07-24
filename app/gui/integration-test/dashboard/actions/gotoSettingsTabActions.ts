@@ -24,8 +24,8 @@ export interface GoToSettingsTabActions<Context> {
 }
 
 /** Generate actions for going to a different page. */
-export function goToSettingsTabActions<Context>(
-  step: (name: string, callback: PageCallback<Context>) => BaseActions<Context>,
+export function goToSettingsTabActions<Context, Self>(
+  step: (name: string, callback: PageCallback<Context, Self>) => BaseActions<Context>,
 ): GoToSettingsTabActions<Context> {
   return {
     account: () =>
