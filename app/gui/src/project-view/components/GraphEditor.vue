@@ -6,6 +6,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
+import { useContainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
@@ -62,12 +63,13 @@ import { computed, onMounted, ref, toRaw, toRef, useTemplateRef, watch, watchEff
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
+const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
-const _visualizationStore = provideVisualizationStore(projectStore)
+provideVisualizationStore(projectStore)
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -371,7 +373,7 @@ const displayedDocs = computed(() =>
 
 watchEffect(() => {
   const projectId = projectStore.id
-  rightPanel.setContext(projectId, {
+  rightPanel.setContext(containerData.tab, {
     item: projectId,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })

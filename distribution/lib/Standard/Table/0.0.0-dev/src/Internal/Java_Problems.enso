@@ -33,7 +33,9 @@ polyglot java import org.enso.table.problems.ProblemAggregator.ProblemSummary
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Convert a Java problem into its Enso equivalent.
 translate_problem p = case p of
     _ : InvalidAggregation ->
@@ -89,7 +91,9 @@ translate_problem p = case p of
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 unpack_problem_summary problem_summary =
     problems_array = problem_summary.problems
     count = problem_summary.allProblemsCount
@@ -100,8 +104,11 @@ unpack_problem_summary problem_summary =
     if count == parsed.length then parsed else
         parsed + [Additional_Warnings.Error (count - parsed.length)]
 
-## PRIVATE
-   This is the new preferred way of running Java methods that may report problems.
+## ---
+   private: true
+   ---
+   This is the new preferred way of running Java methods that may report
+   problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
 with_problem_aggregator on_problems:Problem_Behavior f =
     ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
@@ -109,7 +116,9 @@ with_problem_aggregator on_problems:Problem_Behavior f =
     result = f aggregator
     on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 with_map_operation_problem_aggregator : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
 with_map_operation_problem_aggregator (location : Text | Nothing) on_problems:Problem_Behavior f =
     with_problem_aggregator on_problems java_aggregator->

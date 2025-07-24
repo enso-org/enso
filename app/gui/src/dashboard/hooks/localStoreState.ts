@@ -59,7 +59,6 @@ export function useLocalStorageState<K extends LocalStorageKey>(
     (newValue: React.SetStateAction<LocalStorageData[K] | undefined>) => {
       privateSetValue((currentValue) => {
         const nextValue = typeof newValue === 'function' ? newValue(currentValue) : newValue
-
         if (nextValue === undefined) {
           localStorage.delete(key)
         } else {

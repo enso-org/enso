@@ -18,12 +18,12 @@ import * as z from 'zod'
 import * as detect from 'enso-common/src/detect'
 
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import ModalProvider, { setModal } from '#/providers/ModalProvider'
+import ModalProvider from '#/providers/ModalProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
 import { RouterProvider } from 'react-aria-components'
 
-import AboutModal from '#/modals/AboutModal'
+import { AboutModal } from '#/modals/AboutModal'
 
 import RemoteBackend from '#/services/RemoteBackend'
 
@@ -33,13 +33,10 @@ import { Path } from '#/utilities/path'
 
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useOffline } from '#/hooks/offlineHooks'
+import type { ModalApi } from '#/utilities/modal'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
-
-window.menuApi?.setShowAboutModalHandler(() => {
-  setModal(<AboutModal />)
-})
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -124,7 +121,13 @@ function AppRouter(props: React.PropsWithChildren) {
     unsafeWriteValue(window, 'navigate', navigate)
   }
 
+  const aboutModalRef = React.useRef<ModalApi>(null)
+
   React.useEffect(() => {
+    window.menuApi?.setShowAboutModalHandler(() => {
+      aboutModalRef.current?.open()
+    })
+
     let isClick = false
     const onMouseDown = () => {
       isClick = true
@@ -169,6 +172,7 @@ function AppRouter(props: React.PropsWithChildren) {
       <InputBindingsProvider>
         <LocalBackendPathSynchronizer />
         <VersionChecker />
+        <AboutModal ref={aboutModalRef} />
         {children}
       </InputBindingsProvider>
     </RouterProvider>

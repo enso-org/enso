@@ -16,13 +16,13 @@ import java.util.concurrent.ExecutionException
   * @param contextId an identifier of a context to execute
   * @param stack a call stack to execute
   * @param executionEnvironment the execution environment to use
-  * @param visualizationTriggered a flag indicating if execution was triggered by execute expression request
+  * @param visualizationTriggered the UUID of an expression that triggered this execution when executing an expression
   */
 class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
   val executionEnvironment: Option[Api.ExecutionEnvironment],
-  val visualizationTriggered: Boolean = false
+  val visualizationTriggered: Option[UUID] = None
 ) extends Job[Unit](
       List(contextId),
       isCancellable = executionEnvironment.forall(ee =>
@@ -160,7 +160,7 @@ class ExecuteJob(
   }
 
   override def toString(): String = {
-    s"ExecuteJob(contextId=$contextId, jobId=${_jobId})"
+    s"ExecuteJob(contextId=$contextId, jobId=${_jobId}, triggeredByVisualization=${visualizationTriggered})"
   }
 
 }
@@ -172,12 +172,12 @@ object ExecuteJob {
   /** Create execute job from the executable.
     *
     * @param executable the executable to run
-    * @param visualizationTriggered true if execution is triggered by a visualization request, false otherwise
+    * @param visualizationTriggered the UUID of an expression that triggered this execution when executing an expression, empty otherwise
     * @return the new execute job
     */
   def apply(
     executable: Executable,
-    visualizationTriggered: Boolean = false
+    visualizationTriggered: Option[UUID] = None
   ): ExecuteJob =
     new ExecuteJob(
       executable.contextId,

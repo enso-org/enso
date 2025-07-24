@@ -1,117 +1,126 @@
 from Standard.Base import all
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    The internal representation of an SQL expression which can be a column
    reference, an interpolated constant or an operation that combines other
    expressions.
 type SQL_IR_Expression
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        The internal representation of an SQL expression that gets a value from a
        column.
 
-       Arguments:
-       - origin: the name of the entity (table or sub-query) that this column
-         originates from, it corresponds to the `alias` field in `from_spec`.
-       - name: the name of the column directly in the table or its alias in a
-         sub-query.
+       ## Arguments
+        - `origin`: the name of the entity (table or sub-query) that this column
+          originates from, it corresponds to the `alias` field in `from_spec`.
+        - `name`: the name of the column directly in the table or its alias in a
+          sub-query.
     Column (origin : Text) (name : Text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
+       The internal representation of an SQL expression which is a constant to be
+       interpolated when building the query.
 
-       The internal representation of an SQL expression which is a constant to
-       be interpolated when building the query.
-
-       Arguments:
-       - value: the value to be interpolated; the set of supported interpolation
-         values depends on the database backend.
+       ## Arguments
+        - `value`: the value to be interpolated; the set of supported
+          interpolation values depends on the database backend.
     Constant (value : Any)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        The internal representation of an SQL literal that should be inserted
        as-is into a query.
     Literal (value : Text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A text literal that should be inserted into a query, wrapped in quotes
        with any quotes it may contain escaped.
-
        This is useful to avoid requiring unnecessary interpolations for text
        constants in queries.
-
        User-provided values should always be passed as interpolated `Constant`s.
        This should only be used for 'statically' known constants - ones baked
        into the library source code.
     Text_Literal (value : Text)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        The internal representation of an SQL expression built from an operation
        and sub-expressions.
 
-       Arguments:
-       - kind: the name of the operation, these can be both functions or infix
-         operators, the actual implementation is determined by a specific
-         dialect.
-       - expressions: a list of expressions which are arguments to the operation
-         different operations support different amounts of arguments.
-       - metadata: additional metadata tied to the operation. This will be
-         `Nothing` for most operations, but some operations that need to be
-         parametrized by additional settings can use this field to pass that
-         information to the code generator.
+       ## Arguments
+        - `kind`: the name of the operation, these can be both functions or infix
+          operators, the actual implementation is determined by a specific
+          dialect.
+        - `expressions`: a list of expressions which are arguments to the
+          operation different operations support different amounts of arguments.
+        - `metadata`: additional metadata tied to the operation. This will be
+          `Nothing` for most operations, but some operations that need to be
+          parametrized by additional settings can use this field to pass that
+          information to the code generator.
     Operation (kind : Text) (expressions : Vector SQL_IR_Expression) (metadata : Any | Nothing = Nothing)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The internal representation of a `WITH ... AS` CTE expression. A `Let`
        value contains the "binding" of the CTE expression to a lexically scoped
        table name, as well as the body expression that refers to the binding.
+       A `Let` value's body always contains at least one `Let_Ref` value with the
+       same `binder` identifier, unless the callback passed to the `let` method
+       ignored its argument.
 
-       A `Let` value's body always contains at least one `Let_Ref` value with
-       the same `binder` identifier, unless the callback passed to the `let`
-       method ignored its argument.
-
-       Arguments:
-       - name: the optional user-provided name describing the expression bound
-         by the WITH ... AS clause
-       - binder: the lexically-scoped name of the CTE expression.
-       - bindee: the CTE expression.
-       - body: the larger expression that contains references to the CTE.
+       ## Arguments
+        - `name`: the optional user-provided name describing the expression bound
+          by the WITH ... AS clause
+        - `binder`: the lexically-scoped name of the CTE expression.
+        - `bindee`: the CTE expression.
+        - `body`: the larger expression that contains references to the CTE.
     Let (name : Text) (binder : Text) (bindee : SQL_IR_Expression) (body : SQL_IR_Expression)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The internal representation of a "reference" to a CTE expression.
-
        A `Let_Ref` value always occurs within the `body` expression of an
        enclosing `Let` value.
-
        Database backends often evaluate sub-expressions of `DB_Table` and
        `DB_Column` values, for example when querying the datanbase for an
-       expression type. `Let_Ref` values are sometimes evaluated in the
-       database without their enclosing `Let` values, in which case the
-       `binder` field refers to an unbound identifier. In these cases, the
-       original CTE expression in `standalone_expression` is used instead.
+       expression type. `Let_Ref` values are sometimes evaluated in the database
+       without their enclosing `Let` values, in which case the `binder` field
+       refers to an unbound identifier. In these cases, the original CTE
+       expression in `standalone_expression` is used instead.
 
-       Arguments:
-       - name: the optional user-provided name describing the expression bound
-         by the WITH ... AS clause
-       - binder: the lexically-scoped name of the CTE expression.
-       - standalone_expression: the full, original expression bound in the
-         enclosing `Let` value.
+       ## Arguments
+        - `name`: the optional user-provided name describing the expression bound
+          by the WITH ... AS clause
+        - `binder`: the lexically-scoped name of the CTE expression.
+        - `standalone_expression`: the full, original expression bound in the
+          enclosing `Let` value.
     Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_IR_Expression)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The internal representation of an  list of SQL expressions which will be
        separated by commas in a list in the final SQL query.
-
        NOTE - Only valid in certain locations so should be used carefully
 
-       Arguments:
-       - value: the values that should be built into a comma separated list.
+       ## Arguments
+        - `value`: the values that should be built into a comma separated list.
     List values:Vector
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.

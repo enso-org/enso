@@ -2,6 +2,7 @@
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button } from '#/components/Button'
+import type { ContextMenuApi } from '#/components/ContextMenu'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
@@ -19,21 +20,19 @@ import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
+import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import AssetIcon from '#/pages/dashboard/components/AssetIcon'
 import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
-import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
-import { NameColumn } from '#/pages/dashboard/components/column'
 import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
   Column,
@@ -45,6 +44,7 @@ import {
 } from '#/pages/dashboard/components/column/columnUtils'
 import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
+import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
 import {
   setDriveLocation,
   useDriveStore,
@@ -57,11 +57,9 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
 import {
-  assetIsProject,
   AssetType,
   BackendType,
   getAssetPermissionName,
@@ -75,7 +73,6 @@ import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
 import { fileExtension } from '#/utilities/fileInfo'
-import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { PermissionAction } from '#/utilities/permissions'
@@ -91,6 +88,7 @@ import {
   useText,
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
+import { useLaunchedProjects } from '$/providers/react/container'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -171,14 +169,13 @@ export interface AssetRowState {
 export interface AssetsTableProps {
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
-  readonly initialProjectName: string | null
 }
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery } = props
-  const { initialProjectName } = props
 
+  const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
   const openedProjects = useLaunchedProjects()
   const openProjectLocally = useOpenProjectLocally()
@@ -522,26 +519,6 @@ function AssetsTable(props: AssetsTableProps) {
     [driveStore, isCloud, assets, setCanDownload],
   )
 
-  const initialProjectNameDeps = useSyncRef({
-    items: assets,
-    openProjectLocally,
-    toastAndLog,
-  })
-
-  useEffect(() => {
-    const deps = initialProjectNameDeps.current
-    // The project name here might also be a string with project id, e.g. when opening
-    // a project file from explorer on Windows.
-    const isInitialProject = (asset: AnyAsset) =>
-      asset.title === initialProjectName || asset.id === initialProjectName
-    const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
-    if (projectToLoad != null) {
-      void deps.openProjectLocally(projectToLoad, BackendType.local)
-    } else if (initialProjectName != null && initialProjectName !== '') {
-      deps.toastAndLog('findProjectError', null, initialProjectName)
-    }
-  }, [initialProjectName, initialProjectNameDeps])
-
   useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')
     if (savedEnabledColumns != null) {
@@ -750,9 +727,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const doCopy = useEventCallback(() => {
-    unsetModal()
     const { selectedIds } = driveStore.getState()
-
     setPasteData({
       type: 'copy',
       data: {
@@ -766,7 +741,6 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const doCut = useEventCallback(() => {
-    unsetModal()
     const { selectedIds } = driveStore.getState()
     setPasteData({
       type: 'move',
@@ -782,19 +756,12 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
-    unsetModal()
-
     const { pasteData } = driveStore.getState()
-
-    if (pasteData == null) {
-      return
-    }
-
+    if (pasteData == null) return
     if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
       toast.error('Cannot paste a folder into itself.')
       return
     }
-
     void paste({
       fromCategory: pasteData.data.category,
       toCategory: category,
@@ -802,19 +769,16 @@ function AssetsTable(props: AssetsTableProps) {
       pasteData: pasteData.data,
       method: pasteData.type,
     })
-
     setPasteData(null)
   })
 
-  const hiddenContextMenu =
+  const contextMenu =
     isSingleSelectedDirectoryItem ? null : (
       <AssetsTableContextMenu
-        rootRef={rootRef}
-        hidden
+        ref={contextMenuRef}
         backend={backend}
         category={category}
         currentDirectoryId={currentDirectoryId}
-        event={{ pageX: 0, pageY: 0 }}
         doCopy={doCopy}
         doCut={doCut}
         doPaste={doPaste}
@@ -1088,25 +1052,11 @@ function AssetsTable(props: AssetsTableProps) {
             ASSET_ROWS.unbind(payload)
           }}
         >
-          {nodes.map((node) => (
-            <NameColumn
-              isNavigating={false}
-              key={node.id}
-              item={node}
-              isOpened={false}
-              backendType={backend.type}
-              state={state}
-              rowState={INITIAL_ROW_STATE}
-              // The drag placeholder cannot be interacted with.
-              isEditable={false}
-              isPlaceholder={false}
-              setSelected={noop}
-              setRowState={noop}
-              renameAsset={noopPromise}
-              closeProject={noopPromise}
-              openProject={noopPromise}
-              labels={[]}
-            />
+          {nodes.map((otherAsset) => (
+            <div key={otherAsset.id} className="flex h-[34px] items-center gap-2 px-2">
+              <AssetIcon asset={otherAsset} />
+              <Text>{otherAsset.title}</Text>
+            </div>
           ))}
         </DragModal>,
       )
@@ -1200,7 +1150,6 @@ function AssetsTable(props: AssetsTableProps) {
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
         openProject={doOpenProject}
-        tableRootRef={rootRef}
       />
     )
   })
@@ -1282,85 +1231,88 @@ function AssetsTable(props: AssetsTableProps) {
   }
 
   return (
-    <div className="relative grow contain-strict">
-      {hiddenContextMenu}
+    <BindingFocusScopeContext.Provider value={rootRef}>
+      <div className="relative grow contain-strict">
+        {contextMenu}
 
-      {hiddenColumns.length !== 0 && (
-        <div
-          data-testid="extra-columns"
-          className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
-        >
+        {hiddenColumns.length !== 0 && (
           <div
-            className="inline-flex gap-icons"
-            onFocus={() => {
-              setKeyboardSelectedIndex(null)
-            }}
-          >
-            {hiddenColumns.map((column) => (
-              <HiddenColumn
-                key={column}
-                column={column}
-                enabledColumns={enabledColumns}
-                onColumnClick={setEnabledColumns}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <IsolateLayout className="isolate h-full w-full" useRAF>
-        <div
-          className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
-          onKeyDown={onKeyDown}
-          onBlur={(event) => {
-            if (
-              event.relatedTarget instanceof HTMLElement &&
-              !event.currentTarget.contains(event.relatedTarget)
-            ) {
-              setKeyboardSelectedIndex(null)
-            }
-          }}
-          ref={rootRef}
-        >
-          <SelectionBrush
-            targetRef={rootRef}
-            onDrag={onSelectionDrag}
-            onDragEnd={onSelectionDragEnd}
-            onDragCancel={onSelectionDragCancel}
-            preventDrag={preventSelection}
-          />
-          <div
-            className="flex h-max min-h-full w-max min-w-full flex-col"
-            onContextMenu={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              setModal(
-                <AssetsTableContextMenu
-                  rootRef={rootRef}
-                  backend={backend}
-                  category={category}
-                  event={event}
-                  doCopy={doCopy}
-                  doCut={doCut}
-                  currentDirectoryId={currentDirectoryId}
-                  doPaste={doPaste}
-                />,
-              )
-            }}
+            data-testid="extra-columns"
+            className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
           >
             <div
-              className="flex h-full w-min min-w-full grow flex-col px-1"
-              onDrop={(event) => {
-                onRowDrop(event, null)
+              className="inline-flex gap-icons"
+              onFocus={() => {
+                setKeyboardSelectedIndex(null)
               }}
             >
-              {table}
-              <AssetsTableAssetsUnselector />
+              {hiddenColumns.map((column) => (
+                <HiddenColumn
+                  key={column}
+                  column={column}
+                  enabledColumns={enabledColumns}
+                  onColumnClick={setEnabledColumns}
+                />
+              ))}
             </div>
           </div>
-        </div>
-      </IsolateLayout>
-    </div>
+        )}
+
+        <IsolateLayout className="isolate h-full w-full" useRAF>
+          <div
+            tabIndex={-1}
+            className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
+            onKeyDown={onKeyDown}
+            onBlur={(event) => {
+              if (
+                event.relatedTarget instanceof HTMLElement &&
+                !event.currentTarget.contains(event.relatedTarget)
+              ) {
+                setKeyboardSelectedIndex(null)
+              }
+            }}
+            ref={(el) => {
+              rootRef.current = el
+              if (document.activeElement === document.body) {
+                el?.focus()
+              }
+            }}
+          >
+            <SelectionBrush
+              targetRef={rootRef}
+              onDrag={onSelectionDrag}
+              onDragEnd={onSelectionDragEnd}
+              onDragCancel={onSelectionDragCancel}
+              preventDrag={preventSelection}
+            />
+            <div
+              className="flex h-max min-h-full w-max min-w-full flex-col"
+              onContextMenu={(event) => {
+                if (
+                  event.target instanceof HTMLElement &&
+                  event.target.dataset.testid === 'underlay'
+                ) {
+                  return
+                }
+                event.preventDefault()
+                event.stopPropagation()
+                contextMenuRef.current?.open(event)
+              }}
+            >
+              <div
+                className="flex h-full w-min min-w-full grow flex-col px-1"
+                onDrop={(event) => {
+                  onRowDrop(event, null)
+                }}
+              >
+                {table}
+                <AssetsTableAssetsUnselector />
+              </div>
+            </div>
+          </div>
+        </IsolateLayout>
+      </div>
+    </BindingFocusScopeContext.Provider>
   )
 }
 

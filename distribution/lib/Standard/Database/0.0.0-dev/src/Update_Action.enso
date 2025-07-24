@@ -7,7 +7,8 @@ type Update_Action
     Update
 
     ## Append the records to the new table if not found.
-       Updates existing records to the new values. Unmatched columns are left unchanged.
+       Updates existing records to the new values. Unmatched columns are left
+       unchanged.
     Update_Or_Insert
 
     ## Appends new records, updates existing records, removes records not in the target table

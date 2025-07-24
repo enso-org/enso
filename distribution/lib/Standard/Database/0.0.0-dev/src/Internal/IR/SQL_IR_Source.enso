@@ -9,152 +9,165 @@ import project.Internal.SQL_Part.SQL_Part
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    A context associated with an SQL query.
 type SQL_IR_Source
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Creates a query context that just fetches data from a table, without any
        additional processing.
 
-       Arguments:
-       - table_name: The name of the table for which the context is being created.
-       - alias: An alias name to use for table within the query.
-       - internal_temporary_keep_alive_reference: See `SQL_IR_From_Part.Table` for more
-         details.
+       ## Arguments
+        - `table_name`: The name of the table for which the context is being
+          created.
+        - `alias`: An alias name to use for table within the query.
+        - `internal_temporary_keep_alive_reference`: See `SQL_IR_From_Part.Table`
+          for more details.
     for_table : Text -> Text -> Any -> SQL_IR_Source
     for_table table_name:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
         SQL_IR_Source.Value (SQL_IR_From_Part.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Creates a query context that runs a raw SQL query.
 
-       Arguments:
-       - raw_sql: The SQL statement (either as prepared statement or text).
-       - alias: An alias name to use for table within the query.
+       ## Arguments
+        - `raw_sql`: The SQL statement (either as prepared statement or text).
+        - `alias`: An alias name to use for table within the query.
     for_query (raw_sql:Text|SQL_Statement) (alias:Text) -> SQL_IR_Source =
         SQL_IR_Source.Value (SQL_IR_From_Part.Query raw_sql alias) [] [] [] Nothing []
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Creates a SQL_IR_Source from a Sub_Query.
 
-       Arguments:
-       - subquery: The subquery to lift into a context.
+       ## Arguments
+        - `subquery`: The subquery to lift into a context.
     for_subquery subquery:SQL_IR_From_Part -> SQL_IR_Source =
         SQL_IR_Source.Value subquery [] [] [] Nothing []
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A context associated with an SQL query.
+       The expressions can only be computed in a context which specifies from
+       where their columns come and set filters and other settings for processing
+       the query.
 
-       The expressions can only be computed in a context which specifies from where
-       their columns come and set filters and other settings for processing the
-       query.
-
-       Arguments:
-       - from_spec: the sources for the query, see `SQL_IR_From_Part` for more
-         details.
-       - where_filters: a list of expressions for filtering - only the rows
-         for which these expressions evaluate to true are included in the
-         result.
-       - orders: a list of ordering expressions, for each entry an ORDER BY
-         clause is added.
-       - groups: a list of grouping expressions, for each entry a GROUP BY is
-         added, the resulting query can then directly include only the
-         grouped-by columns or aggregate expressions.
-       - limit: an optional maximum number of elements that the query should
-         return.
+       ## Arguments
+        - `from_spec`: the sources for the query, see `SQL_IR_From_Part` for more
+          details.
+        - `where_filters`: a list of expressions for filtering - only the rows
+          for which these expressions evaluate to true are included in the
+          result.
+        - `orders`: a list of ordering expressions, for each entry an ORDER BY
+          clause is added.
+        - `groups`: a list of grouping expressions, for each entry a GROUP BY is
+          added, the resulting query can then directly include only the
+          grouped-by columns or aggregate expressions.
+        - `limit`: an optional maximum number of elements that the query should
+          return.
     Value (from_spec : SQL_IR_From_Part) (where_filters : Vector SQL_IR_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_IR_Expression) (limit : Nothing | Integer) (extensions : Vector SQL_IR_Source_Extension)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of the context with changed `where_filters`.
 
-       Arguments:
-       - new_filters: The new filters to set in the query.
+       ## Arguments
+        - `new_filters`: The new filters to set in the query.
     set_where_filters : Vector SQL_IR_Expression -> SQL_IR_Source
     set_where_filters self new_filters =
         SQL_IR_Source.Value self.from_spec new_filters self.orders self.groups self.limit self.extensions
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of the context with added `where_filters`.
 
-       Arguments:
-       - new_filters: The new filters to add to the existing filters in the
-         query.
+       ## Arguments
+        - `new_filters`: The new filters to add to the existing filters in the
+          query.
     add_where_filters : Vector SQL_IR_Expression -> SQL_IR_Source
     add_where_filters self new_filters =
         SQL_IR_Source.Value self.from_spec (self.where_filters+new_filters) self.orders self.groups self.limit self.extensions
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of the context with changed `orders`.
 
-       Arguments:
-       - new_orders: The new ordering clauses to set in the query.
+       ## Arguments
+        - `new_orders`: The new ordering clauses to set in the query.
     set_orders : Vector Order_Descriptor -> SQL_IR_Source
     set_orders self new_orders =
         SQL_IR_Source.Value self.from_spec self.where_filters new_orders self.groups self.limit self.extensions
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of the context with added `orders`.
-
        The orderings are modified in such a way that the newly added ordering
        takes precedence, but if any orderings were already present they are also
        taken into account to break ties within the new ordering.
 
-       Arguments:
-       - new_orders: The new ordering clauses to add to the query.
+       ## Arguments
+        - `new_orders`: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> SQL_IR_Source
     add_orders self new_orders =
         deduped_orders = new_orders+self.orders . distinct .expression
         SQL_IR_Source.Value self.from_spec self.where_filters deduped_orders self.groups self.limit self.extensions
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of the context with changed `groups`.
 
-       Arguments:
-       - new_groups: The new grouping clauses to set in the query.
+       ## Arguments
+        - `new_groups`: The new grouping clauses to set in the query.
     set_groups : Vector SQL_IR_Expression -> SQL_IR_Source
     set_groups self new_groups =
         SQL_IR_Source.Value self.from_spec self.where_filters self.orders new_groups self.limit self.extensions
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Returns a copy of the context with changed `limit`.
 
-       Arguments:
-       - new_limit: The new limit clauses to set in the query.
+       ## Arguments
+        - `new_limit`: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> SQL_IR_Source
     set_limit self new_limit =
        SQL_IR_Source.Value self.from_spec self.where_filters self.orders self.groups new_limit self.extensions
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a copy of the context with an added extension.
     add_extension : SQL_IR_Source_Extension -> SQL_IR_Source
     add_extension self extension =
        SQL_IR_Source.Value self.from_spec self.where_filters self.orders self.groups self.limit (self.extensions + [extension])
 
-    ## PRIVATE
-
-       'Lifts' this context into a subquery, so that the original context (with all filters etc.) is
-       encapsulated within the subquery and all external references passed as the second argument,
-       refer directly to that subquery.
-
-       It takes a list of lists of columns that should be included in that subquery (this can for
-       example the list of regular columns, the list of indices etc.)
-       It assumes that columns on these lists all have unique names.
-
-       It returns a new context and the lists transformed in such a way that each column corresponds
-       to one from the original list but it is valid in the new context.
-
-       This is useful as a preprocessing step between combining queries, for example in a join.
+    ## ---
+       private: true
+       ---
+       'Lifts' this context into a subquery, so that the original context (with
+       all filters etc.) is encapsulated within the subquery and all external
+       references passed as the second argument, refer directly to that subquery.
+       It takes a list of lists of columns that should be included in that
+       subquery (this can for example the list of regular columns, the list of
+       indices etc.) It assumes that columns on these lists all have unique
+       names.
+       It returns a new context and the lists transformed in such a way that each
+       column corresponds to one from the original list but it is valid in the
+       new context.
+       This is useful as a preprocessing step between combining queries, for
+       example in a join.
     as_subquery : Text -> Vector (Vector Internal_Column) -> Subquery_Setup
     as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
@@ -170,7 +183,9 @@ type SQL_IR_Source
 
         Subquery_Setup.Value new_from new_columns rewrite_internal_column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
@@ -182,36 +197,46 @@ type SQL_IR_Source
                 SQL_IR_Source.Value (from_spec.traverse f) (where_filters.map rec) (orders.map rec) (groups.map rec) limit (extensions.map rec)
         f new_context
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Subquery_Setup
-    ## PRIVATE
-       Arguments:
-       - subquery: The SQL_IR_From_Part for the created subquery.
-       - new_columns: All columns that are available in the subquery, remapped
-         to be accessible from a context that uses `subquery` as its from spec.
-       - remap_column: A function that remaps an internal column to be accessible
-         from a context that uses `subquery` as its from spec.
-         The behaviour is undefined if this method is called with a column that
-         was not part of the subquery.
+    ## ---
+       private: true
+       ---
+       ## Arguments
+        - `subquery`: The SQL_IR_From_Part for the created subquery.
+        - `new_columns`: All columns that are available in the subquery, remapped
+          to be accessible from a context that uses `subquery` as its from spec.
+        - `remap_column`: A function that remaps an internal column to be
+          accessible from a context that uses `subquery` as its from spec. The
+          behaviour is undefined if this method is called with a column that was
+          not part of the subquery.
     Value (subquery : SQL_IR_From_Part) (new_columns : Vector (Vector Internal_Column)) (remap_column : Internal_Column -> Internal_Column)
 
-## PRIVATE
-   Describes an extension to a SQL_IR_Source that can be used to add additional custom
-   SQL code as part of the query.
+## ---
+   private: true
+   ---
+   Describes an extension to a SQL_IR_Source that can be used to add additional
+   custom SQL code as part of the query.
 type SQL_IR_Source_Extension
     ## A recipe for building the extension.
 
-       Arguments:
-       - part_name: Should be initilised with SQL_Part.Extension "<<extension_description>>" where extension_description is 
-         a description of this extension. SQL_Part.Extension "<<extenion_descption>>" then needs to be added to
-         get_part_order to determine where in the final SQL query this extension should be placed.
-       - expressions: Sub-expressions needed for the part. They will be
-         generated and the results of that will be passed to `run_generator`.
-       - run_generator: A function that takes the generated expressions and
-         returns the SQL code that will be inserted at the desired position.
+       ## Arguments
+        - `part_name`: Should be initilised with SQL_Part.Extension
+          "<<extension_description>>" where extension_description is a
+          description of this extension. SQL_Part.Extension
+          "<<extenion_descption>>" then needs to be added to get_part_order to
+          determine where in the final SQL query this extension should be placed.
+        - `expressions`: Sub-expressions needed for the part. They will be
+          generated and the results of that will be passed to `run_generator`.
+        - `run_generator`: A function that takes the generated expressions and
+          returns the SQL code that will be inserted at the desired position.
     Value (part_name : SQL_Part) (expressions : Vector SQL_IR_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.

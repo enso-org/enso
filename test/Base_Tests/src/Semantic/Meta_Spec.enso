@@ -105,8 +105,9 @@ add_specs suite_builder =
             meta = Meta.meta cons
             meta . should_fail_with Private_Access
 
-            # the constructor call fails too
-            Panic.recover Any (cons 42) . should_fail_with Private_Access
+            # the constructor call succeeds, because the private access check
+            # has already been done when obtaining the reference to `cons`.
+            cons 42 . is_nothing . should_be_false
 
         group_builder.specify "prevent getting value from constructor in private module" <|
             # constructor of a type defined in
@@ -116,8 +117,9 @@ add_specs suite_builder =
             meta = Meta.meta cons
             meta . should_fail_with Private_Access
 
-            # the constructor call fails too
-            Panic.recover Any (cons 42) . should_fail_with Private_Access
+            # the constructor call succeeds, because the private access check
+            # has already been done when obtaining the reference to `cons`.
+            cons 42 . is_nothing . should_be_false
 
         group_builder.specify "prevent getting value from private constructor" <|
             atom = Public_Type.new 6*7

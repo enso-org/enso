@@ -24,15 +24,16 @@ const rootElement = shallowRef<HTMLElement>()
 const floatElement = shallowRef<HTMLElement>()
 const popoverRoot = usePopoverRoot(true)
 
-const dropDownInteraction = endOnClickOutside(floatElement, {
-  cancel: () => (open.value = false),
-  end: () => (open.value = false),
+const end = () => (open.value = false)
+const interaction = endOnClickOutside(floatElement, {
+  cancel: end,
+  end,
+  parentInteraction: undefined,
 })
-
-injectInteractionHandler().setWhenWithParent(open, (parentInteraction) => ({
-  ...dropDownInteraction,
-  parentInteraction,
-}))
+injectInteractionHandler().setWhenWithParent(open, (parentInteraction) => {
+  interaction.parentInteraction = parentInteraction
+  return interaction
+})
 
 const { floatingStyles } = useFloating(rootElement, floatElement, {
   placement: () => placement,

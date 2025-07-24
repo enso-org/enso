@@ -164,6 +164,7 @@ function onNewNodeClick(id: NodeId, position: Vec2) {
       />
       <template v-for="id in nodeIdsWithOutputPorts" :key="id">
         <GraphNodeOutputPorts
+          v-show="id !== graph.editedNodeInfo?.id"
           :nodeId="id"
           @newNodeClick="(_portId, position) => onNewNodeClick(id, position)"
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"

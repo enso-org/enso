@@ -43,24 +43,27 @@ public final class ExecuteExpressionCommand extends SynchronousCommand {
   @SuppressWarnings("unchecked")
   public void executeSynchronously(RuntimeContext ctx, ExecutionContext ec) {
     if (ctx.contextManager().contains(contextId)) {
-      reply(new Runtime$Api$VisualizationAttached(), ctx);
       ctx.jobControlPlane()
           .abortJobs(
               contextId,
-              "execute expression for expression "
-                  + expressionId
-                  + " in visualization "
-                  + visualizationId,
+              "execute expression " + expressionId + " request in visualization " + visualizationId,
               job -> {
                 if (job instanceof ExecuteJob e) {
-                  return e.visualizationTriggered();
+                  return e.visualizationTriggered().exists(id -> expressionId == id);
+                } else if (job instanceof ExecuteExpressionJob j) {
+                  return j.getExpressionId() == expressionId;
                 } else {
-                  return job instanceof ExecuteExpressionJob;
+                  return false;
                 }
               });
       ctx.jobProcessor()
           .run(new ExecuteExpressionJob(contextId, visualizationId, expressionId, expression))
-          .flatMap(executable -> ctx.jobProcessor().run(ExecuteJob.apply(executable, true)), ec);
+          .flatMap(
+              executable ->
+                  ctx.jobProcessor()
+                      .run(ExecuteJob.apply(executable, scala.Option.apply(expressionId))),
+              ec);
+      reply(new Runtime$Api$VisualizationAttached(), ctx);
     } else {
       reply(new Runtime$Api$ContextNotExistError(contextId), ctx);
     }
