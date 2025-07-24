@@ -416,20 +416,8 @@ export function useRenameProjectMutation() {
     },
     onError: (_err, _variables, context) => {
       if (context?.queryKey) {
-        const toInvalidate = [
-          {
-            predicate: (query: reactQuery.Query) =>
-              reactQuery.matchQuery({ queryKey: ['listDirectory'] }, query),
-          },
-          {
-            predicate: (query: reactQuery.Query) =>
-              reactQuery.matchQuery({ queryKey: ['getAssetDetails'] }, query),
-          },
-          {
-            queryKey: context.queryKey,
-          },
-        ]
-        return Promise.all(toInvalidate.map((invalidate) => client.invalidateQueries(invalidate)))
+        const toInvalidate = [['listDirectory'], ['getAssetDetails'], context.queryKey]
+        return Promise.all(toInvalidate.map((queryKey) => client.invalidateQueries({ queryKey })))
       }
     },
     onSuccess: (_, { newName, project }) => {
