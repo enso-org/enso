@@ -28,6 +28,7 @@ const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150
 
 const props = defineProps<{
+  show: boolean
   currentType?: Opt<VisualizationIdentifier>
   isFullscreenAllowed: boolean
   isResizable: boolean
@@ -232,11 +233,12 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 
 <template>
   <div
+    v-if="props.show"
     class="GraphVisualization"
     :style="style"
     :class="{ isFocused }"
-    @pointerenter="emit('update:hovered', false)"
-    @pointerleave="emit('update:hovered', true)"
+    @pointerenter="emit('update:hovered', true)"
+    @pointerleave="emit('update:hovered', false)"
   >
     <WithFullscreenMode
       v-model="isFullscreen"

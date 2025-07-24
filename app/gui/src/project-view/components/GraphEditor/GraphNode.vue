@@ -421,7 +421,6 @@ const nodeName = computed(() => props.node.pattern?.code())
       @click.capture="setSoleSelected"
     />
     <GraphVisualization
-      v-if="visualization"
       v-bind="visualization"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
