@@ -56,19 +56,26 @@ polyglot java import org.enso.base.text.Utf16Span
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.WithProblems
 
-## GROUP Text
-   ICON text
-   Returns a new `Text` object with the characters in the reverse order of the input.
+## ---
+   group: Text
+   icon: text
+   ---
+   Returns a new `Text` object with the characters in the reverse order of the
+   input.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Reverse the text "Hello, world!".
 
-   > Example
-     Reverse the text "Hello, world!".
-
+   ```
          "Hello, world!".reverse
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.reverse : Text
 Text.reverse self =
     reverseStringBuilder = StringBuilder.new self.length
@@ -80,28 +87,33 @@ Text.reverse self =
       @Tail_Call iterate next iterator.previous
     iterate iterator.last iterator.previous
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    Applies the provided `function` to each character in `self`.
-
-   Arguments:
-   - function: The operation to apply to each character in the text.
 
    This method does not return the results, so it is only useful for performing
    computations with side-effects.
+   If the function returns a dataflow error, the error is converted to a panic
+   and thrown immediately stopping further processing.
 
-   If the function returns a dataflow error, the error is converted to a
-   panic and thrown immediately stopping further processing.
+   ## Arguments
+    - `function`: The operation to apply to each character in the text.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Print each character in the text "aaa".
 
-   > Example
-     Print each character in the text "aaa".
-
+   ```
          "aaa".each IO.println
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.each : (Text -> Any) -> Nothing
 Text.each self function =
     iterator = BreakIterator.getCharacterInstance
@@ -112,54 +124,62 @@ Text.each self function =
         @Tail_Call iterate nxt iterator.next
     iterate iterator.first iterator.next
 
-## ALIAS get character
-   GROUP Selections
-   ICON split
-
+## ---
+   aliases: [get character]
+   group: Selections
+   icon: split
+   ---
    Returns a character from the text at the specified index (0-based).
 
-   Arguments:
-     - index: The location in the text to get the character from. The
-       index is also allowed be negative, then the characters are
-       counted from the end of the text, i.e. -1 will correspond to the
-       last character.
+   ## Arguments
+    - index: The location in the text to get the character from. The index is
+      also allowed be negative, then the characters are counted from the end of
+      the text, i.e. -1 will correspond to the last character.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Get the individual characters in the text "건반(Korean)".
 
-   > Example
-     Get the individual characters in the text "건반(Korean)".
-
+   ```
          "건반(Korean)".at 1 == "반"
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index:Integer=0 =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-## ALIAS get character
-   ICON split
-
+## ---
+   aliases: [get character]
+   icon: split
+   ---
    Returns a character from the text at the specified index (0-based).
    If the index is invalid then `if_missing` is returned.
 
-   Arguments:
-     - index: The location in the text to get the character from. The
-       index is also allowed be negative, then the characters are
-       counted from the end of the text, i.e. -1 will correspond to the
-       last character.
-     - if_missing: The value to return if the index is out of bounds.
+   ## Arguments
+    - `index`: The location in the text to get the character from. The index is
+      also allowed be negative, then the characters are counted from the end of
+      the text, i.e. -1 will correspond to the last character.
+    - `if_missing`: The value to return if the index is out of bounds.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Get the individual characters in the text "건반(Korean)".
 
-   > Example
-     Get the individual characters in the text "건반(Korean)".
-
+   ```
          "건반(Korean)".get 1 == "반"
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.get : Integer -> Any -> Any
 Text.get self index:Integer=0 ~if_missing=Nothing =
@@ -172,101 +192,126 @@ Text.get self index:Integer=0 ~if_missing=Nothing =
         if (next == -1) then if_missing else
             Text_Utils.substring self first next
 
-## GROUP Selections
-   ICON split
+## ---
+   group: Selections
+   icon: split
+   ---
    Returns the first character from the text.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Get the first character in the text "건반(Korean)".
 
-   > Example
-     Get the first character in the text "건반(Korean)".
-
+   ```
          "건반(Korean)".first == "건"
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.first : Text ! Index_Out_Of_Bounds
 Text.first self = self.at 0
 
-## GROUP Selections
-   ICON split
+## ---
+   group: Selections
+   icon: split
+   ---
    Returns the second character from the text.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Get the second character in the text "건반(Korean)".
 
-   > Example
-     Get the second character in the text "건반(Korean)".
-
+   ```
          "건반(Korean)".second == "반"
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.second : Text ! Index_Out_Of_Bounds
 Text.second self = self.at 1
 
-## GROUP Selections
-   ICON split
+## ---
+   group: Selections
+   icon: split
+   ---
    Returns the last character from the text.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Get the last character in the text "건반(Korean)".
 
-   > Example
-     Get the last character in the text "건반(Korean)".
-
+   ```
          "건반(Korean)".last == ")"
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.last : Text ! Index_Out_Of_Bounds
 Text.last self = self.at -1
 
-## ALIAS get characters
-   GROUP Text
-   ICON convert
-
+## ---
+   aliases: [get characters]
+   group: Text
+   icon: convert
+   ---
    Returns a vector containing all characters in the given text.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Get the individual characters in the text "건반(Korean)".
 
-   > Example
-     Get the individual characters in the text "건반(Korean)".
-
+   ```
          "건반(Korean)".characters
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.characters : Vector Text
 Text.characters self =
     Vector.build builder->
         self.each builder.append
 
-## ALIAS match
-   GROUP Selections
-   ICON find
-   Find the regular expression `pattern` in `self`, returning the first match
-   if present or `Nothing` if not found.
-
+## ---
+   aliases: [match]
+   group: Selections
+   icon: find
+   ---
+   Find the regular expression `pattern` in `self`, returning the first match if
+   present or `Nothing` if not found.
    For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
-   Arguments:
-   - pattern: The pattern to match `self` against.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `pattern`: The pattern to match `self` against.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! Error Conditions
+   ## Examples
+   ### Find the first substring matching the regex.
 
-   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
-   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
-
-   > Example
-     Find the first substring matching the regex.
-
+   ```
          example_find =
              ## This matches `abc` @ character 11
              "aabbbbccccaabcaaaa".find "a[ab]c"
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
+   ```
+
+   ## Errors
+    - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+    - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 @pattern make_regex_text_widget
 Text.find : (Regex | Text) -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
@@ -274,33 +319,35 @@ Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..S
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
-## ALIAS matches
-   GROUP Selections
-   ICON find
-   Finds all the matches of the regular expression `pattern` in `self`,
-   returning a Vector. If not found, will be an empty Vector.
-
+## ---
+   aliases: [matches]
+   group: Selections
+   icon: find
+   ---
+   Finds all the matches of the regular expression `pattern` in `self`, returning
+   a Vector. If not found, will be an empty Vector.
    For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
-   Arguments:
-   - pattern: The pattern to match `self` against.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `pattern`: The pattern to match `self` against.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! Error Conditions
+   ## Examples
+   ### Find the substring matching the regex.
 
-   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
-   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
-
-   > Example
-     Find the substring matching the regex.
-
+   ```
          example_find_all =
               ## This matches `aabbbbc` @ character 0 and `abc` @ character 11
              "aabbbbccccaabcaaaa".find_all "a[ab]+c"
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
+   ```
+
+   ## Errors
+    - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+    - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 @pattern make_regex_text_widget
 Text.find_all : Text|Regex -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
@@ -308,27 +355,24 @@ Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..S
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match_all self
 
-## ALIAS check matches, like, regex
-   GROUP Text
-   ICON preparation
-
+## ---
+   aliases: [check matches, like, regex]
+   group: Text
+   icon: preparation
+   ---
    Checks if the whole text in `self` matches a provided `pattern`.
+   For details on Enso's Regex syntax, see the [Help
+   Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
-   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+   ## Arguments
+    - `pattern`: The pattern to match `self` against.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   Arguments:
-   - pattern: The pattern to match `self` against.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Examples
+   ### Checks if whole text matches a basic email regex.
 
-   ! Error Conditions
-
-   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
-   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
-
-   > Example
-     Checks if whole text matches a basic email regex.
-
+   ```
          example_match =
              regex = ".+ct@.+"
              # Evaluates to true
@@ -337,6 +381,11 @@ Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..S
              regex = ".+ct@.+"
              # Evaluates to true
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
+   ```
+
+   ## Errors
+    - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+    - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 @pattern Widget.Text_Input
 Text.match : Text|Regex -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
 Text.match self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive -> Boolean ! Regex_Syntax_Error | Illegal_Argument =
@@ -344,58 +393,68 @@ Text.match self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sens
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
 
-## GROUP Text
-   ICON text
+## ---
+   group: Text
+   icon: text
+   ---
    Compile the text into a regex pattern that can be used for matching.
-
-   Arguments:
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
 
    If an empty regex is used, `compile` throws an `Illegal_Argument` error.
 
-   ? Why Compile?
-     While many regex engines are able to cache ad-hoc patterns, it is often
-     useful to be able to manually retain a pattern that you have computed. This
-     function exists so you can hold onto the resultant `Pattern` object,
-     instead of immediately proceeding to match using it.
+   ## Arguments
+    - `case_insensitive`: Enables or disables case-insensitive matching. Case
+      insensitive matching behaves as if it normalises the case of all input text
+      before matching on it.
+
+   ## Remarks
+
+   ### Why Compile?
+   While many regex engines are able to cache ad-hoc patterns, it is often useful
+   to be able to manually retain a pattern that you have computed. This function
+   exists so you can hold onto the resultant `Pattern` object, instead of
+   immediately proceeding to match using it.
 Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
 Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
-## ALIAS parse, tokenize
-   GROUP Conversions
-   ICON split
+## ---
+   aliases: [parse, tokenize]
+   group: Conversions
+   icon: split
+   ---
+   Takes a delimiter and returns the vector that results from splitting `self` on
+   each of its occurrences.
 
-   Takes a delimiter and returns the vector that results from splitting `self`
-   on each of its occurrences.
+   ## Arguments
+    - `delimiter`: The pattern used to split the text.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively. The values are compared case sensitively by default.
+    - `use_regex`: If true, the term is used as a regular expression.
 
-   Arguments:
-   - delimiter: The pattern used to split the text.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively. The values are compared case sensitively by default.
-   - use_regex: If true, the term is used as a regular expression.
+   ## Examples
+   ### Split the text on any occurrence of the separator `"::"`.
 
-   > Example
-     Split the text on any occurrence of the separator `"::"`.
-
+   ```
          text = "Namespace::package::package::Type"
          text.split "::" == ["Namespace", "package", "package", "Type"]
+   ```
 
-   > Example
-     Split the text on a regex pattern.
+   ### Split the text on a regex pattern.
 
+   ```
          "abc--def==>ghi".split "[-=>]+" use_regex=True == ["abc", "def", "ghi"]
+   ```
 
-   > Example
-     Split the text on any whitespace.
+   ### Split the text on any whitespace.
 
+   ```
          'abc  def\tghi'.split '\\s+' use_regex=True == ["abc", "def", "ghi"]
+   ```
 
-   > Example
-     Split with a vector of strings.
+   ### Split with a vector of strings.
 
+   ```
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
+   ```
 @delimiter make_delimiter_selector
 Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text ! Illegal_Argument
 Text.split self delimiter="," case_sensitivity:Case_Sensitivity=..Sensitive use_regex=False =
@@ -429,34 +488,40 @@ Text.split self delimiter="," case_sensitivity:Case_Sensitivity=..Sensitive use_
                         combined_delimiter = parenthesize (delimiter.map parenthesize . join '|')
                         self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
 
-## ADVANCED
-   ALIAS parse, regex, split
-   GROUP Conversions
-   ICON split
+## ---
+   advanced: true
+   aliases: [parse, regex, split]
+   group: Conversions
+   icon: split
+   ---
    Takes an input string and and a pattern and returns all the matches as a
    `Vector Text`. If the pattern contains marked groups, the values are
    concatenated together; otherwise the whole match is returned.
 
-   Arguments:
-   - input: The text to tokenize.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively. The values are compared case sensitively by default.
+   ## Arguments
+    - `input`: The text to tokenize.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively. The values are compared case sensitively by default.
 
-   > Example
-     Split to blocks of 3 characters.
+   ## Examples
+   ### Split to blocks of 3 characters.
 
+   ```
         "ABCDEF" . tokenize  "..." == ["ABC","DEF"]
+   ```
 
-   > Example
-     Split to blocks of 3 characters taking first and third letters.
+   ### Split to blocks of 3 characters taking first and third letters.
 
+   ```
         "ABCDEF" . tokenize "(.).(.)" == ["AC","DF"]
+   ```
 
-   > Example
-     Split a text on any white space.
+   ### Split a text on any white space.
 
+   ```
         'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)"
             == ["Hello","Big","Wide","World","Goodbye!"]
+   ```
 @pattern Widget.Text_Input
 Text.tokenize : Text|Regex -> Case_Sensitivity -> Vector Text
 Text.tokenize self pattern:Text|Regex=(Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive =
@@ -464,79 +529,84 @@ Text.tokenize self pattern:Text|Regex=(Missing_Argument.throw "pattern") case_se
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.tokenize self
 
-## ALIAS replace text
-   GROUP Text
-   ICON text
+## ---
+   aliases: [replace text]
+   group: Text
+   icon: text
+   ---
    Perform a text or regex replace.
-
    Returns the text with all matched elements replaced by the provided
    replacement. If `input` is empty, the function returns the input unchanged.
+   The replacement string can contain references to groups matched by the regex.
+   The following syntaxes are supported:
+   $0: the entire match string $&: the entire match string $n: the nth group
+   $&lt;foo&gt;: Named group `foo` For details on Enso's Regex syntax, see the
+   [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
-   The replacement string can contain references to groups matched by the
-   regex. The following syntaxes are supported:
-       $0: the entire match string
-       $&: the entire match string
-       $n: the nth group
-       $&lt;foo&gt;: Named group `foo`
+   ## Arguments
+    - `term`: The `Text` or `Regex` to find.
+    - `replacement`: The text to replace matches with.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
+    - `only_first`: If True, only replace the first match.
 
-   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+   ## Examples
+   ### Replace letters in the text "aaa".
 
-   Arguments:
-   - term: The `Text` or `Regex` to find.
-   - replacement: The text to replace matches with.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
-   - only_first: If True, only replace the first match.
-
-   ! Error Conditions
-
-   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
-   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
-
-   > Example
-     Replace letters in the text "aaa".
-
+   ```
          'aaa'.replace 'aa' 'b' == 'ba'
+   ```
 
-   > Example
-     Replace all occurrences of letters 'l' and 'o' with '#'.
+   ### Replace all occurrences of letters 'l' and 'o' with '#'.
 
+   ```
          "Hello World!".replace "[lo]".to_regex "#" == "He### W#r#d!"
+   ```
 
-   > Example
-     Replace the first occurrence of letter 'l' with '#'.
+   ### Replace the first occurrence of letter 'l' with '#'.
 
+   ```
          "Hello World!".replace "l" "#" only_first=True == "He#lo World!"
+   ```
 
-   > Example
-     Replace texts in quotes with parentheses.
+   ### Replace texts in quotes with parentheses.
 
+   ```
           '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' == '(abc) foo (bar) baz'
+   ```
 
-   ! Matching Grapheme Clusters
-     In case-insensitive mode, a single character can match multiple characters,
-     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
-     `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
-     match only a part of some single grapheme cluster, for example in the text
-     `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
-     Since we do not have the resolution to distinguish such partial matches, a
-     match which matched just a part of some grapheme cluster is extended and
-     treated as if it matched the whole grapheme cluster. Thus the whole
-     grapheme cluster may be replaced with the replacement text even if just a
-     part of it was matched.
+   ### Extended partial matches in case-insensitive mode.
 
-   > Example
-     Extended partial matches in case-insensitive mode.
-
+   ```
          # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
          'ß'.replace 'S' 'A' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'AA'
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
          'aﬃb'.replace 'i' 'X' case_sensitivity=Case_Sensitivity.Insensitive . should_equal 'aXb'
+   ```
 
-   > Example
-     Regexp replace.
+   ### Regexp replace.
 
+   ```
          '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
+   ```
+
+   ## Errors
+    - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+    - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
+
+   ## Remarks
+
+   ### Matching Grapheme Clusters
+   In case-insensitive mode, a single character can match multiple characters,
+   for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+   `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
+   match only a part of some single grapheme cluster, for example in the text
+   `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
+   Since we do not have the resolution to distinguish such partial matches, a
+   match which matched just a part of some grapheme cluster is extended and
+   treated as if it matched the whole grapheme cluster. Thus the whole grapheme
+   cluster may be replaced with the replacement text even if just a part of it
+   was matched.
 @term make_regex_text_widget
 Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
 Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
@@ -560,14 +630,16 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
             updated_regex = term.recompile case_sensitivity
             updated_regex.replace self replacement only_first
 
-## GROUP Text
-   ICON text
+## ---
+   group: Text
+   icon: text
+   ---
    Applies the specified cleansings to the text.
 
-   Arguments:
-   - remove: A vector of the named patterns to cleanse from the text. The named patterns are
-      applied in the order they are provided. The same named pattern can be used multiple
-      times. The named patterns are:
+   ## Arguments
+    - `remove`: A vector of the named patterns to cleanse from the text. The
+      named patterns are applied in the order they are provided. The same named
+      pattern can be used multiple times. The named patterns are:
       - ..Leading_Whitespace: Removes all whitespace from the start of the string.
       - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
       - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
@@ -582,43 +654,53 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
       - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
       - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
 
-   > Example
-   Remove leading and trailing spaces from text.
+   ## Examples
+   ### Remove leading and trailing spaces from text.
 
+   ```
          text.cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+   ```
 @remove make_data_cleanse_vector_selector
 Text.cleanse : Vector Named_Pattern -> Text
 Text.cleanse self remove =
    remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (Regex.compile pattern) replace_with)
 
-## ALIAS get words
-   GROUP Text
-   ICON text
-
+## ---
+   aliases: [get words]
+   group: Text
+   icon: text
+   ---
    Returns a vector containing all words in the given text.
 
-   Arguments:
-   - keep_whitespace: Whether or not the whitespace around the words should be
-     preserved. If set to `True`, the whitespace will be included as a "word" in
-     the output.
+   ## Arguments
+    - `keep_whitespace`: Whether or not the whitespace around the words should be
+      preserved. If set to `True`, the whitespace will be included as a "word" in
+      the output.
 
-   ! What is a Word?
-     A word is defined based on the definition of Word Boundaries in the Unicode
-     Standard Annex 29, supplemented by language-specific dictionaries for
-     Chinese, Japanese, Thai, and Khmer.
+   ## Examples
+   ### Getting the words in the sentence "I have not one, but two cats."
 
-   > Example
-     Getting the words in the sentence "I have not one, but two cats."
-
+   ```
         "I have not one, but two cats.".words == ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
+   ```
 
-   > Example
-     Getting the words in the Thai sentence "แมวมีสี่ขา"
+   ### Getting the words in the Thai sentence "แมวมีสี่ขา"
 
+   ```
          "แมวมีสี่ขา".words == ['แมว', 'มี', 'สี่', 'ขา']
+   ```
+
+   ## Remarks
+
+   ### What is a Word?
+   A word is defined based on the definition of Word Boundaries in the Unicode
+   Standard Annex 29, supplemented by language-specific dictionaries for Chinese,
+   Japanese, Thai, and Khmer.
 Text.words : Boolean -> Vector Text
 Text.words self keep_whitespace:Boolean=False =
     iterator = BreakIterator.getWordInstance
@@ -637,58 +719,67 @@ Text.words self keep_whitespace:Boolean=False =
 
         build fst nxt
 
-## ALIAS get lines
-   GROUP Text
-   ICON text
-
+## ---
+   aliases: [get lines]
+   group: Text
+   icon: text
+   ---
    Splits the text into lines, based on '\n', '\r' or '\r\n' line endings.
+   Empty lines are added for leading newlines. Multiple consecutive newlines will
+   also yield additional empty lines. A line ending at the end of the line is not
+   required, but if it is present it will not cause an empty line to be added at
+   the end.
 
-   Empty lines are added for leading newlines. Multiple consecutive
-   newlines will also yield additional empty lines. A line ending at the end of
-   the line is not required, but if it is present it will not cause an empty
-   line to be added at the end.
+   ## Examples
+   ### Split the text 'a\nb\nc' into lines.
 
-   > Example
-     Split the text 'a\nb\nc' into lines.
-
+   ```
         'a\nb\nc'.lines == ['a', 'b', 'c']
+   ```
 
-   > Example
-     Split the text '\na\n\nb\n\n' into lines.
+   ### Split the text '\na\n\nb\n\n' into lines.
 
+   ```
         '\na\n\nb\n\n\n'.lines == ['', 'a', '', 'b', '', '']
+   ```
 
-   > Example
-     Split the text '\na\nb\n' into lines, keeping the line endings.
+   ### Split the text '\na\nb\n' into lines, keeping the line endings.
 
+   ```
         '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
+   ```
 Text.lines : Boolean -> Vector Text
 Text.lines self keep_endings:Boolean=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
-## GROUP Text
-   ICON text_input
+## ---
+   group: Text
+   icon: text_input
+   ---
    Inserts text value at the specified index.
 
-   Arguments:
-     - index: The position (0-based) in the text to inset text at.
-       When the index is non-negative the text is inserted before the
-       specified position.
-       When the index is negative, then the characters are counted from
-       the end of the text and the text is inserted after the specified
-       position, i.e. -1 will insert the text after the last character.
+   ## Arguments
+    - `index`: The position (0-based) in the text to inset text at. When the index
+      is non-negative the text is inserted before the specified position. When
+      the index is negative, then the characters are counted from the end of the
+      text and the text is inserted after the specified position, i.e. -1 will
+      insert the text after the last character.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Insert text at a specified index
 
-   > Example
-    Insert text at a specified index
-
+   ```
          "Hello World!".insert 0 " Cruel" == " CruelHello World!"
          "Hello World!".insert 5 " Cruel" == "Hello Cruel World!"
          "Hello World!".insert -1 " Cruel" == "Hello World! Cruel"
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds
 Text.insert self index:Integer that:Text =
     len = self.length
@@ -700,67 +791,78 @@ Text.insert self index:Integer that:Text =
                 post = self.take (idx.up_to len)
                 pre + that + post
 
-## GROUP Logical
-   ICON metadata
+## ---
+   group: Logical
+   icon: metadata
+   ---
    Returns if a character from the text at the specified index (0-based) is a
    digit (0-9).
 
-   Arguments:
-     - index: The location in the text to get the character from. The
-       index is also allowed to be negative, then the characters are
-       counted from the end of the text, i.e. -1 will correspond to the
-       last character.
+   ## Arguments
+    - index: The location in the text to get the character from. The index is
+      also allowed to be negative, then the characters are counted from the end
+      of the text, i.e. -1 will correspond to the last character.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Check if an individual character is a digit:
 
-   > Example
-     Check if an individual character is a digit:
-
+   ```
          "0".is_digit == True
          "A0".is_digit == False
          "A0".is_digit 1 == True
          "건반(Korean)".is_digit 1 == False
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds
 Text.is_digit self index:Integer=0 =
     grapheme = self.at index
     char = (Text_Utils.get_chars grapheme).at 0
     char>=48 && char<=57
 
-## GROUP Logical
-   ICON metadata
+## ---
+   group: Logical
+   icon: metadata
+   ---
    Checks if the text consists only of whitespace characters.
 
-   > Example
-     Check if a text is whitespace only.
+   ## Examples
+   ### Check if a text is whitespace only.
 
+   ```
          ' \t'.is_whitespace == True
          "0 ".is_whitespace == False
+   ```
 Text.is_whitespace : Boolean
 Text.is_whitespace self =
     Text_Utils.is_all_whitespace self
 
-## ADVANCED
-   ICON convert
+## ---
+   advanced: true
+   icon: convert
+   ---
    Returns a vector containing bytes representing the specified encoding of the
    input text.
-
    This is useful for low-level operations, such as binary data encoding.
 
-   Arguments:
-   - encoding: The text encoding to encode self with. Defaults to UTF-8.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function.
-     By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
+   ## Arguments
+    - `encoding`: The text encoding to encode self with. Defaults to UTF-8.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
 
-   > Example
-     Get the ASCII bytes of the text "Hello".
+   ## Examples
+   ### Get the ASCII bytes of the text "Hello".
 
+   ```
          "Hello".bytes (Encoding.ascii)
+   ```
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
 Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Warning) =
@@ -769,20 +871,24 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
 
-## ICON convert
+## ---
+   icon: convert
+   ---
    Takes a vector of bytes and returns Text resulting from decoding it using the
    specified encoding.
 
-   Arguments:
-   - bytes: The vector of UTF-8 bytes.
-   - encoding: The text encoding to decode the bytes with. Defaults to UTF-8.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function. By default, a dataflow error is raised.
+   ## Arguments
+    - `bytes`: The vector of UTF-8 bytes.
+    - `encoding`: The text encoding to decode the bytes with. Defaults to UTF-8.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, a dataflow error is raised.
 
-   > Example
-     Decode a sequence of ASCII bytes into Text.
+   ## Examples
+   ### Decode a sequence of ASCII bytes into Text.
 
+   ```
          Text.from_bytes [72, 101, 108, 108, 111] (Encoding.ascii)
+   ```
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
@@ -790,126 +896,150 @@ Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Pr
     Number_Utils.convert_unsigned_byte_array_to_signed byte_vector byte_vector-> byte_vector.if_not_error <|
         Reporting_Stream_Decoder_Helper.decode_bytes_to_text byte_vector encoding on_problems
 
-## ICON convert
-   Returns a vector containing bytes representing the UTF-8 encoding of the
-   input text.
-
+## ---
+   icon: convert
+   ---
+   Returns a vector containing bytes representing the UTF-8 encoding of the input
+   text.
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
-   Arguments:
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function.
-     By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
+   ## Arguments
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
 
-   > Example
-     Get the UTF-8 bytes of the text "Hello".
+   ## Examples
+   ### Get the UTF-8 bytes of the text "Hello".
 
+   ```
          "Hello".utf_8
+   ```
 Text.utf_8 : Problem_Behavior -> Vector Integer
 Text.utf_8 self (on_problems : Problem_Behavior = ..Report_Warning) =
     self.bytes Encoding.utf_8 on_problems
 
-## ICON convert
+## ---
+   icon: convert
+   ---
    Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
-
-   Arguments:
-   - bytes: The vector of UTF-8 bytes.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function. By default, a dataflow error is raised.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
-   > Example
-     Decoding the bytes to get a text.
+   ## Arguments
+    - `bytes`: The vector of UTF-8 bytes.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, a dataflow error is raised.
 
+   ## Examples
+   ### Decoding the bytes to get a text.
+
+   ```
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
+   ```
 Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
 Text.from_utf_8 bytes (on_problems : Problem_Behavior = ..Report_Error) =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
-## ICON convert
+## ---
+   icon: convert
+   ---
    Returns a vector containing the UTF-16 characters that encode the input text.
-
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
-   > Example
-     Get the character vector of the text "Hello".
+   ## Examples
+   ### Get the character vector of the text "Hello".
 
+   ```
          "Hello".char_vector
+   ```
 Text.char_vector : Vector Integer
 Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
 
-## ICON convert
+## ---
+   icon: convert
+   ---
    Takes a vector of characters and returns the text that results from it.
-
-   Arguments:
-   - chars: The vector of UTF-16 characters.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
+
+   ## Arguments
+    - `chars`: The vector of UTF-16 characters.
 Text.from_char_vector : Vector Integer -> Text
 Text.from_char_vector chars = Text_Utils.from_chars chars
 
-## ICON convert
+## ---
+   icon: convert
+   ---
    Returns a vector containing integers representing the Unicode codepoints of
    the input text.
-
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
-   > Example
-     Get the codepoints of the text "Hello".
+   ## Examples
+   ### Get the codepoints of the text "Hello".
 
+   ```
          "Hello".codepoints
+   ```
 Text.codepoints : Vector Integer
 Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints self)
 
-## ICON convert
+## ---
+   icon: convert
+   ---
    Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
-
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
-   > Example
-     Converting a vector of codepoints back into a text.
+   ## Examples
+   ### Converting a vector of codepoints back into a text.
+   ```
          Text.from_codepoints [129318, 127996, 8205, 9794, 65039]
+   ```
 Text.from_codepoints : Vector Integer -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
-## ALIAS check prefix
-   GROUP Text
-   ICON preparation
-
+## ---
+   aliases: [check prefix]
+   group: Text
+   icon: preparation
+   ---
    Checks whether `self` starts with `prefix`.
 
-   Arguments:
-   - prefix: The prefix to see if `self` starts with.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `prefix`: The prefix to see if `self` starts with.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! Unicode Equality
-     The definition of equality includes Unicode canonicalization. I.e. two
-     texts are equal if they are identical after canonical decomposition. This
-     ensures that different ways of expressing the same character in the
-     underlying binary representation are considered equal.
+   ## Examples
+   ### See if the text "Hello!" starts with the specified prefix.
 
+   ```
+         "Hello!".starts_with "Hello" == True
+         "Hello!".starts_with "hello" == False
+         "Hello!".starts_with "hello" Case_Sensitivity.Insensitive == True
+   ```
+
+   ## Remarks
+
+   ### Unicode Equality
+   The definition of equality includes Unicode canonicalization. I.e. two texts
+   are equal if they are identical after canonical decomposition. This ensures
+   that different ways of expressing the same character in the underlying binary
+   representation are considered equal.
+
+   ```
          'ś' . starts_with 's' == False
          's\u{301}' . starts_with 's' == False
          's\u{301}' . starts_with 'ś' == True
          'ś' . starts_with 's\u{301}' == True
-
-   > Example
-     See if the text "Hello!" starts with the specified prefix.
-
-         "Hello!".starts_with "Hello" == True
-         "Hello!".starts_with "hello" == False
-         "Hello!".starts_with "hello" Case_Sensitivity.Insensitive == True
+   ```
 Text.starts_with : Text -> Case_Sensitivity -> Boolean
 Text.starts_with self prefix:Text case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.starts_with prefix Case_Sensitivity.Sensitive
@@ -917,29 +1047,34 @@ Text.starts_with self prefix:Text case_sensitivity:Case_Sensitivity=..Sensitive 
     Case_Sensitivity.Insensitive locale ->
         self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
 
-## ALIAS check suffix
-   GROUP Text
-   ICON preparation
-
+## ---
+   aliases: [check suffix]
+   group: Text
+   icon: preparation
+   ---
    Checks whether `self` ends with `suffix`.
 
-   Arguments:
-   - suffix: The suffix to see if `self` ends with.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `suffix`: The suffix to see if `self` ends with.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! Unicode Equality
-     The definition of equality includes Unicode canonicalization. I.e. two
-     texts are equal if they are identical after canonical decomposition. This
-     ensures that different ways of expressing the same character in the
-     underlying binary representation are considered equal.
+   ## Examples
+   ### See if the text "Hello World" ends with the specified suffix.
 
-   > Example
-     See if the text "Hello World" ends with the specified suffix.
-
+   ```
          "Hello World".ends_with "World" == True
          "Hello World".ends_with "world" == False
          "Hello World".ends_with "world" Case_Sensitivity.Insensitive == True
+   ```
+
+   ## Remarks
+
+   ### Unicode Equality
+   The definition of equality includes Unicode canonicalization. I.e. two texts
+   are equal if they are identical after canonical decomposition. This ensures
+   that different ways of expressing the same character in the underlying binary
+   representation are considered equal.
 Text.ends_with : Text -> Case_Sensitivity -> Boolean
 Text.ends_with self suffix:Text case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.ends_with suffix Case_Sensitivity.Sensitive
@@ -947,45 +1082,54 @@ Text.ends_with self suffix:Text case_sensitivity:Case_Sensitivity=..Sensitive = 
     Case_Sensitivity.Insensitive locale ->
         self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
 
-## ALIAS contains
-   GROUP Logical
-   ICON preparation
-
+## ---
+   aliases: [contains]
+   group: Logical
+   icon: preparation
+   ---
    Checks whether `self` contains `sequence` as its substring.
 
-   Returns:
+   ## Arguments
+    - `term`: The term to find.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
+
+   ## Returns
    `True` if term is found within `self`. `False` otherwise.
 
-   Arguments:
-   - term: The term to find.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Examples
+   ### See if the text "Hello" contains the text "ell".
 
-   ! Unicode Equality
-     The definition of equality includes Unicode canonicalization. I.e. two
-     texts are equal if they are identical after canonical decomposition. This
-     ensures that different ways of expressing the same character in the
-     underlying binary representation are considered equal.
-
-         'ś' . contains 's' == False
-         's\u{301}' . contains 's' == False
-         's\u{301}' . contains 'ś' == True
-         'ś' . contains 's\u{301}' == True
-
-   > Example
-     See if the text "Hello" contains the text "ell".
-
+   ```
          "Hello".contains "ell"
+   ```
 
-   > Example
-     See if the text "Cześć" contains the text 's\u{301}' (which folds to 'ś').
+   ### See if the text "Cześć" contains the text 's\u{301}' (which folds to 'ś').
 
+   ```
          "Cześć".contains 's\u{301}'
+   ```
 
-   > Example
-     See if the text "Hello!" contains the text 'LO', ignoring case.
+   ### See if the text "Hello!" contains the text 'LO', ignoring case.
 
+   ```
          "Hello!".contains "LO" Case_Sensitivity.Insensitive
+   ```
+
+   ## Remarks
+
+   ### Unicode Equality
+   The definition of equality includes Unicode canonicalization. I.e. two texts
+   are equal if they are identical after canonical decomposition. This ensures
+   that different ways of expressing the same character in the underlying binary
+   representation are considered equal.
+
+   ```
+         'ś' . starts_with 's' == False
+         's\u{301}' . starts_with 's' == False
+         's\u{301}' . starts_with 'ś' == True
+         'ś' . starts_with 's\u{301}' == True
+   ```
 Text.contains : Text -> Case_Sensitivity -> Boolean
 Text.contains self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.contains term Case_Sensitivity.Sensitive
@@ -993,68 +1137,92 @@ Text.contains self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive = 
     Case_Sensitivity.Insensitive locale ->
         Text_Utils.contains_case_insensitive self term locale.java_locale
 
-## GROUP Operators
-   ICON text
+## ---
+   group: Operators
+   icon: text
+   ---
    Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
-   Arguments:
-   - count: The number of times that the text `self` should be repeated to make
-     the new text.
+   ## Arguments
+    - `count`: The number of times that the text `self` should be repeated to
+      make the new text.
 
-   > Example
-     Repeat the text "A" five times.
+   ## Examples
+   ### Repeat the text "A" five times.
 
+   ```
          "A" * 5 == "AAAAA"
+   ```
 
-   > Example
-     Repeat the text "Hello " twice.
+   ### Repeat the text "Hello " twice.
 
+   ```
          "Hello " * 2 == "Hello Hello "
+   ```
 Text.* : Integer -> Text
 Text.* self count:Integer = self.repeat count
 
-## GROUP Calculations
-   ICON text
+## ---
+   group: Calculations
+   icon: text
+   ---
    Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
-   Arguments:
-   - count: The number of times that the text `self` should be repeated to make
-     the new text.
+   ## Arguments
+    - `count`: The number of times that the text `self` should be repeated to
+      make the new text.
 
-   > Example
-     Repeat the text "ABBA" five times.
+   ## Examples
+   ### Repeat the text "ABBA" five times.
 
+   ```
          "ABBA".repeat 5 == "ABBAABBAABBAABBAABBA"
+   ```
 
-   > Example
-     Repeat the text "Hello " twice.
+   ### Repeat the text "Hello " twice.
 
+   ```
          "Hello ".repeat 2 == "Hello Hello "
+   ```
 Text.repeat : Integer -> Text
 Text.repeat self count:Integer=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, head, keep, last, left, limit, mid, right, slice, substring, tail, top
-   GROUP Selections
-   ICON split
+## ---
+   aliases:
+    - first
+    - head
+    - keep
+    - last
+    - left
+    - limit
+    - mid
+    - right
+    - slice
+    - substring
+    - tail
+    - top
+   group: Selections
+   icon: split
+   ---
    Creates a new Text by selecting the specified range of the input.
-
    This can select a section of text from the beginning, end, or middle of the
    input using various criteria defined by the range parameter.
 
-   Arguments:
-   - range: The section of the self text to return.
-     If a `Text_Sub_Range`, then the selection is interpreted following the rules of that type.
-     If a `Range`, the selection is specified by two indices, from and to.
+   ## Arguments
+    - `range`: The section of the self text to return. If a `Text_Sub_Range`,
+      then the selection is interpreted following the rules of that type. If a
+      `Range`, the selection is specified by two indices, from and to.
 
-   Returns:
+   ## Returns
    The part of the input as specified by the range parameter.
 
-   > Example
-     Various different ways to take part of "Hello World!"
+   ## Examples
+   ### Various different ways to take part of "Hello World!"
 
+   ```
          "Hello World!".take ..First == "H"
          "Hello World!".take (..First 5) == "Hello"
          "Hello World!".take (..First 0) == ""
@@ -1075,6 +1243,7 @@ Text.repeat self count:Integer=1 =
          "Hello World!".take (..By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (..By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (..Sample 3 seed=42) == "l d"
+   ```
 @range Text_Sub_Range.default_widget
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
@@ -1085,25 +1254,27 @@ Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
         Codepoint_Ranges.Value char_ranges _ ->
             _slice_text self char_ranges
 
-## ALIAS remove, skip
-   GROUP Selections
-   ICON split
+## ---
+   aliases: [remove, skip]
+   group: Selections
+   icon: split
+   ---
    Creates a new Text by removing the specified range of the input.
-
    This can select a section of text from the beginning, end, or middle of the
    input using various criteria defined by the range parameter.
 
-   Arguments:
-   - range: The section of the this text to return.
-     If a `Text_Sub_Range`, then the selection is interpreted following the rules of that type.
-     If a `Range`, the selection is specified by two indices, from and to.
+   ## Arguments
+    - `range`: The section of the this text to return. If a `Text_Sub_Range`,
+      then the selection is interpreted following the rules of that type. If a
+      `Range`, the selection is specified by two indices, from and to.
 
-   Returns:
+   ## Returns
    The part of the input as specified by the range parameter.
 
-   > Example
-     Various different ways to take part of "Hello World!"
+   ## Examples
+   ### Various different ways to take part of "Hello World!"
 
+   ```
          "Hello World!".drop ..First == "ello World!"
          "Hello World!".drop (..First 5) == " World!"
          "Hello World!".drop (..First 0) == "Hello World!"
@@ -1124,6 +1295,7 @@ Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
          "Hello World!".drop (..By_Index [1, 0, 0, 6, 0]) == "llo orld!"
          "Hello World!".drop (..By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (..Sample 3 seed=42) == "HeloWorl!"
+   ```
 @range Text_Sub_Range.default_widget
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
@@ -1140,38 +1312,45 @@ Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
             inverted = invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             _slice_text self inverted
 
-## ALIAS lower, proper, title, upper
-   GROUP Text
-   ICON text
+## ---
+   aliases: [lower, proper, title, upper]
+   group: Text
+   icon: text
+   ---
    Converts each character in `self` to the specified case.
 
-   Arguments:
-   - case_option: specifies how to convert the characters.
-   - locale: specifies the locale for character case mapping. Defaults to
-     `Locale.default`.
+   ## Arguments
+    - `case_option`: specifies how to convert the characters.
+    - `locale`: specifies the locale for character case mapping. Defaults to
+      `Locale.default`.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Converting a text to lower case in the default locale:
 
-   ! What is title case?
-     Title case capitalizes the first letter of every word and ensures that all
-     the remaining letters are in lower case. Some definitions of title case
-     avoid capitalizing minor words (like the article "the" in English) but this
-     implementation treats all words in the same way.
-
-   > Example
-     Converting a text to lower case in the default locale:
-
+   ```
          "My TeXt!".to_case == "my text!"
+   ```
 
-   > Example
-     Converting a text to upper case in a specified locale:
+   ### Converting a text to upper case in a specified locale:
 
+   ```
          from Standard.Base import all
 
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
+
+   ### What is title case?
+   Title case capitalizes the first letter of every word and ensures that all the
+   remaining letters are in lower case. Some definitions of title case avoid
+   capitalizing minor words (like the article "the" in English) but this
+   implementation treats all words in the same way.
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
 Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case case_option of
@@ -1179,31 +1358,36 @@ Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case c
     Case.Upper -> UCharacter.toUpperCase locale.java_locale self
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
 
-## GROUP Calculations
-   ICON text
+## ---
+   group: Calculations
+   icon: text
+   ---
    Returns the input padded to the specified `length`, using the `with_pad`
    string repeated at the start or the end.
 
-   Arguments:
-   - length: The new length for the output. The result is the original string if
-     the input length is more than length.
-   - with_pad: The string to use to pad the input. If the last repetition
-     exceeds the target length, it is truncated to the required size. If padding
-     at the `End`, the beginning of the padding string is used and if padding at
-     `Start`, the end of the string is used.
-   - at: The location of where to pad the input.
+   ## Arguments
+    - `length`: The new length for the output. The result is the original string
+      if the input length is more than length.
+    - `with_pad`: The string to use to pad the input. If the last repetition
+      exceeds the target length, it is truncated to the required size. If padding
+      at the `End`, the beginning of the padding string is used and if padding at
+      `Start`, the end of the string is used.
+    - `at`: The location of where to pad the input.
 
-   > Example
-     Padding a text with whitespace at the end.
+   ## Examples
+   ### Padding a text with whitespace at the end.
 
+   ```
          "Hello World!".pad 15 == "Hello World!   "
+   ```
 
-   > Example
-     Behavior of padding if the `with_pad` string has to be truncated.
+   ### Behavior of padding if the `with_pad` string has to be truncated.
 
+   ```
          "HELLO".pad 9 "AB" == "HELLOABAB"
          "HELLO".pad 8 "AB" == "HELLOABA"
          "HELLO".pad 8 "AB" ..Left == "BABHELLO"
+   ```
 @length (Widget.Numeric_Input display=Display.Always)
 @with_pad (Widget.Text_Input display=Display.Always)
 @at (make_single_choice [["Left", "..Left"], ["Right", "..Right"]])
@@ -1223,30 +1407,35 @@ Text.pad self length:Integer=0 with_pad:Text=' ' at:Location=..Right = case at o
                     Location.Right ->
                         self + with_pad.repeat full_repetitions + with_pad.take (..First remainder)
 
-## GROUP Text
-   ICON text
+## ---
+   group: Text
+   icon: text
+   ---
    This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
 
-   Arguments:
-   - where: The location of where to trim the input. By default, this function
-     trims both ends of the input.
-   - what: Either a `Text` containing characters that should be removed or a
-     predicate taking single character strings and specifying if they should be
-     removed. By default, all Unicode whitespace is removed.
+   ## Arguments
+    - `where`: The location of where to trim the input. By default, this function
+      trims both ends of the input.
+    - `what`: Either a `Text` containing characters that should be removed or a
+      predicate taking single character strings and specifying if they should be
+      removed. By default, all Unicode whitespace is removed.
 
-   > Example
-     Trimming whitespace from a string.
+   ## Examples
+   ### Trimming whitespace from a string.
 
+   ```
          " Hello! ".trim == "Hello!"
          " Hello! ".trim ..Left == "Hello! "
          " Hello! ".trim ..Right == " Hello!"
+   ```
 
-   > Example
-     Trimming a specific set of letters from a string.
+   ### Trimming a specific set of letters from a string.
 
+   ```
         "ABC123".trim ..Left "ABC" == "123"
         "ABBA123".trim ..Left "ABC" == "123"
+   ```
 @where (make_single_choice [["Both", "..Both"], ["Left", "..Left"], ["Right", "..Right"]])
 @what (Widget.Text_Input display=Display.Always)
 Text.trim : Location -> (Text | (Text -> Boolean)) -> Text
@@ -1276,67 +1465,45 @@ Text.trim self where:Location=..Both what=_.is_whitespace =
     if start_index >= end_index then "" else
         Text_Utils.substring self start_index end_index
 
-## ALIAS position_of, span_of
-   GROUP Text
-   ICON find
+## ---
+   aliases: [position_of, span_of]
+   group: Text
+   icon: find
+   ---
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
 
-   Arguments:
-   - term: The term to find.
-   - mode: Specifies if the first or last occurrence of the term should be
-     returned if there are multiple occurrences within the input. The first
-     occurrence is returned by default.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `term`: The term to find.
+    - `mode`: Specifies if the first or last occurrence of the term should be
+      returned if there are multiple occurrences within the input. The first
+      occurrence is returned by default.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Finding location of a substring.
 
-   > Example
-     Finding location of a substring.
-
+   ```
          "Hello World!".locate "J" == Nothing
          "Hello World!".locate "o" == Span (Range 4 5) "Hello World!"
          "Hello World!".locate "o" mode=Matching_Mode.Last == Span (Range 7 8) "Hello World!"
+   ```
 
-   ! Match Length
-     The  function returns not only the index of the match but a `Span` instance
-     which contains both the start and end indices, allowing to determine the
-     length of the match. This is useful for case insensitive matching. In
-     case-insensitive mode, a single character can match multiple characters,
-     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
-     `ffi` or `f` etc. Thus in case-insensitive mode, the length of the match
-     can be shorter or longer than the term that was being matched, so it is
-     extremely important to not rely on the length of the matched term when
-     analysing the matches as they may have different lengths.
+   ### Match length differences in case-insensitive matching.
 
-   > Example
-     Match length differences in case-insensitive matching.
-
+   ```
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
          match = text . locate term case_sensitivity=Case_Sensitivity.Insensitive
          term.length . should_equal 6
          match.length . should_equal 7
+   ```
 
-   ! Matching Grapheme Clusters
-     In case-insensitive mode, a single character can match multiple characters,
-     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
-     `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
-     match only a part of some single grapheme cluster, for example in the text
-     `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
-     Since we do not have the resolution to distinguish such partial matches
-     (as that would require non-integer indices), so a match which matched just
-     a part of some grapheme cluster is extended and treated as if it matched
-     the whole grapheme cluster.
+   ### Extending matches to full grapheme clusters.
 
-   > Example
-     Extending matches to full grapheme clusters.
-
+   ```
          ligatures = "ﬃﬄ"
          ligatures.length == 2
          term_1 = "IFF"
@@ -1349,6 +1516,36 @@ Text.trim self where:Location=..Both what=_.is_whitespace =
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
          match_1 == match_2
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
+
+   ### Match Length
+   The  function returns not only the index of the match but a `Span` instance
+   which contains both the start and end indices, allowing to determine the
+   length of the match. This is useful for case insensitive matching. In
+   case-insensitive mode, a single character can match multiple characters, for
+   example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match `ffi` or
+   `f` etc. Thus in case-insensitive mode, the length of the match can be shorter
+   or longer than the term that was being matched, so it is extremely important
+   to not rely on the length of the matched term when analysing the matches as
+   they may have different lengths.
+
+   ### Matching Grapheme Clusters
+   In case-insensitive mode, a single character can match multiple characters,
+   for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+   `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
+   match only a part of some single grapheme cluster, for example in the text
+   `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
+   Since we do not have the resolution to distinguish such partial matches (as
+   that would require non-integer indices), so a match which matched just a part
+   of some grapheme cluster is extended and treated as if it matched the whole
+   grapheme cluster.
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
 Text.locate self term:Text="" mode=Matching_Mode.First case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term mode Case_Sensitivity.Sensitive
@@ -1378,68 +1575,76 @@ Text.locate self term:Text="" mode=Matching_Mode.First case_sensitivity:Case_Sen
                 grapheme_span ->
                     Span.Value ((grapheme_span:GraphemeSpan).grapheme_start.up_to grapheme_span.grapheme_end) self
 
-## ALIAS index_of_all, position_of_all, span_of_all
-   GROUP Text
-   ICON find
+## ---
+   aliases: [index_of_all, position_of_all, span_of_all]
+   group: Text
+   icon: find
+   ---
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
-   Arguments:
-   - term: The term to find.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `term`: The term to find.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Finding locations of all occurrences of a substring.
 
-   > Example
-     Finding locations of all occurrences of a substring.
-
+   ```
          "Hello World!".locate_all "J" == []
          "Hello World!".locate_all "o" . map .start == [4, 7]
+   ```
 
-   ! Match Length
-     The  function returns not only the index of the match but a `Span` instance
-     which contains both the start and end indices, allowing to determine the
-     length of the match. This is useful for case insensitive matching. In
-     case-insensitive mode, a single character can match multiple characters,
-     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
-     `ffi` or `f` etc. Thus in case-insensitive mode, the length of the match
-     can be shorter or longer than the term that was being matched, so it is
-     extremely important to not rely on the length of the matched term when
-     analysing the matches as they may have different lengths.
+   ### Match length differences in case-insensitive matching.
 
-   > Example
-     Match length differences in case-insensitive matching.
-
+   ```
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
          match = text . locate_all term case_sensitivity=Case_Sensitive.Insensitive
          term.length == 7
          match . map .length == [7, 6]
+   ```
 
-   ! Matching Grapheme Clusters
-     In case-insensitive mode, a single character can match multiple characters,
-     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
-     `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
-     match only a part of some single grapheme cluster, for example in the text
-     `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
-     Since we do not have the resolution to distinguish such partial matches
-     (as that would require non-integer indices), so a match which matched just
-     a part of some grapheme cluster is extended and treated as if it matched
-     the whole grapheme cluster.
+   ### Extending matches to full grapheme clusters.
 
-   > Example
-     Extending matches to full grapheme clusters.
-
+   ```
          ligatures = "ﬃﬄFFIFF"
          ligatures.length == 7
          match_1 = ligatures . locate_all "IFF" case_sensitivity=Case_Sensitive.Insensitive
          match_1 . map .length == [2, 3]
          match_2 = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitive.Insensitive
          match_2 . map .length == [2, 5]
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
+
+   ### Match Length
+   The  function returns not only the index of the match but a `Span` instance
+   which contains both the start and end indices, allowing to determine the
+   length of the match. This is useful for case insensitive matching. In
+   case-insensitive mode, a single character can match multiple characters, for
+   example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match `ffi` or
+   `f` etc. Thus in case-insensitive mode, the length of the match can be shorter
+   or longer than the term that was being matched, so it is extremely important
+   to not rely on the length of the matched term when analysing the matches as
+   they may have different lengths.
+
+   ### Matching Grapheme Clusters
+   In case-insensitive mode, a single character can match multiple characters,
+   for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+   `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
+   match only a part of some single grapheme cluster, for example in the text
+   `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
+   Since we do not have the resolution to distinguish such partial matches (as
+   that would require non-integer indices), so a match which matched just a part
+   of some grapheme cluster is extended and treated as if it matched the whole
+   grapheme cluster.
 Text.locate_all : Text -> Case_Sensitivity -> Vector Span
 Text.locate_all self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
@@ -1458,33 +1663,38 @@ Text.locate_all self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive 
         grapheme_spans.map grapheme_span->
             Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
 
-## GROUP Values
-   ICON find
+## ---
+   group: Values
+   icon: find
+   ---
    Find the first index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
-
    Using `locate` is preferred as then you can also get the length of the match
    which may not necessarily be equal to the length of the searched term - not
    only in case of regex matching but also in case insensitive mode.
    See the Match Length section of `locate` for an explanation.
 
-   Arguments:
-   - term: The term to find.
-   - start: The index to start searching from. If the index is negative, it
-     is counted from the end of the vector.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `term`: The term to find.
+    - `start`: The index to start searching from. If the index is negative, it is
+      counted from the end of the vector.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Finding location of a substring.
 
-   > Example
-     Finding location of a substring.
-
+   ```
          "Hello World!".index_of "J" == Nothing
          "Hello World!".index_of "o" == 4
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
 Text.index_of self term:Text="" (start : Integer = 0) case_sensitivity:Case_Sensitivity=..Sensitive =
     used_start = if start < 0 then start+self.length else start
@@ -1493,33 +1703,38 @@ Text.index_of self term:Text="" (start : Integer = 0) case_sensitivity:Case_Sens
         span = used.locate term Matching_Mode.First case_sensitivity
         if span.is_nothing then Nothing else span.start+used_start
 
-## GROUP Values
-   ICON find
+## ---
+   group: Values
+   icon: find
+   ---
    Find the last index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
-
    Using `locate` is preferred as then you can also get the length of the match
    which may not necessarily be equal to the length of the searched term - not
    only in case of regex matching but also in case insensitive mode.
    See the Match Length section of `locate` for an explanation.
 
-   Arguments:
-   - term: The term to find.
-   - start: The index to start searching backwards from. If the index is
-     negative, it is counted from the end of the vector.
-   - case_sensitivity: Specifies if the text values should be compared case
-     sensitively.
+   ## Arguments
+    - `term`: The term to find.
+    - `start`: The index to start searching backwards from. If the index is
+      negative, it is counted from the end of the vector.
+    - `case_sensitivity`: Specifies if the text values should be compared case
+      sensitively.
 
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
+   ## Examples
+   ### Finding location of a substring.
 
-   > Example
-     Finding location of a substring.
-
+   ```
          "Hello World!".last_index_of "J" == Nothing
          "Hello World!".last_index_of "o" == 7
+   ```
+
+   ## Remarks
+
+   ### What is a Character?
+   A character is defined as an Extended Grapheme Cluster, see Unicode Standard
+   Annex 29. This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
 Text.last_index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
 Text.last_index_of self term:Text="" start=-1 case_sensitivity:Case_Sensitivity=..Sensitive =
     used_start = if start < 0 then start+self.length else start
@@ -1528,440 +1743,479 @@ Text.last_index_of self term:Text="" start=-1 case_sensitivity:Case_Sensitivity=
         span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
 
-## ALIAS float from text, to_float
-   GROUP Conversions
-   ICON convert
+## ---
+   aliases: [float from text, to_float]
+   group: Conversions
+   icon: convert
+   ---
+   Parses a textual representation of a float into a float number, returning a
+   `Number_Parse_Error` if the text does not represent a valid float.
 
-   Parses a textual representation of a float into a float number, returning
-   a `Number_Parse_Error` if the text does not represent a valid float.
+   ## Arguments
+    - `locale`: The locale that specifies the format to use when parsing
 
-   Arguments:
-   - locale: The locale that specifies the format to use when parsing
+   ## Examples
+   ### Parse the text "7.6" into a float number.
 
-   > Example
-     Parse the text "7.6" into a float number.
-
+   ```
          "7.6".parse_float
+   ```
 @locale Locale.default_widget
 Text.parse_float : Locale | Nothing -> Float ! Number_Parse_Error
 Text.parse_float self locale=Locale.default = Float.parse self locale
 
-## ALIAS integer from text, to_integer
-   GROUP Conversions
-   ICON convert
+## ---
+   aliases: [integer from text, to_integer]
+   group: Conversions
+   icon: convert
+   ---
+   Parses a textual representation of an integer into an integer number,
+   returning a `Number_Parse_Error` if the text does not represent a valid
+   integer.
 
-   Parses a textual representation of an integer into an integer number, returning
-   a `Number_Parse_Error` if the text does not represent a valid integer.
+   ## Arguments
+    - `radix`: The number base to use for parsing (defaults to 10). `radix` must
+      be between 2 and 36 (inclusive) -- see https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
 
-   Arguments:
-   - radix: The number base to use for parsing (defaults to 10). `radix`
-     must be between 2 and 36 (inclusive) -- see https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
+   ## Examples
+   ### Parse the text "20220216" into an integer number.
 
-   > Example
-     Parse the text "20220216" into an integer number.
-
+   ```
         "20220216".parse
+   ```
 Text.parse_integer self (radix:Integer = 10) -> Integer ! Number_Parse_Error = Integer.parse self radix
 
-## ALIAS json from text
-   GROUP Conversions
-   ICON convert
+## ---
+   aliases: [json from text]
+   group: Conversions
+   icon: convert
+   ---
+   Parse a Text value into a `JS_Object` or an Enso primitive value (like `Text`,
+   `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
 
-   Parse a Text value into a `JS_Object` or an Enso primitive value (like
-   `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
+   ## Examples
+   ### Parse the text "[null, null, true, false]".
 
-   > Example
-    Parse the text "[null, null, true, false]".
-
+   ```
         "[null, null, true, false]".parse_json
+   ```
 Text.parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
 Text.parse_json self = Json.parse self
 
-## ALIAS date from text, to_date
-   GROUP Conversions
-   ICON convert
-
+## ---
+   aliases: [date from text, to_date]
+   group: Conversions
+   icon: convert
+   ---
    Converts text containing a date into a Date object.
-
    This method will return a `Time_Error` if the provided time cannot be parsed.
 
-   Arguments:
-   - format: The format to use for parsing the input text.
+   ## Arguments
+    - `format`: The format to use for parsing the input text.
 
-   ? Default Date Formatting
-     Unless you provide a custom format, the text must represent a valid date
-     that can be parsed using the ISO-8601 extended local date format. The
-     format consists of:
+   ## Examples
+   ### Parse the date of 23rd December 2020.
 
-     - Four digits or more for the year. Years in the range 0000 to 9999
-       will be pre-padded by zero to ensure four digits. Years outside
-       that range will have a prefixed positive or negative symbol.
-     - A dash
-     - Two digits for the month-of-year. This is pre-padded by zero to ensure
-       two digits.
-     - A dash
-     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-       digits.
-
-   ? Pattern Syntax
-     If the pattern is provided as `Text`, it is parsed using the format
-     described below. See `Date_Time_Formatter` for more options.
-     - y: Year. The number of pattern letters determines the minimum number of
-       digits.
-       - y: The year using any number of digits.
-       - yy: The year, using at most two digits. The default range is
-         1950-2049, but this can be changed by including the end year in
-         braces e.g. `yy{2099}`.
-       - yyyy: The year, using exactly four digits.
-     - M: Month of year. The number of pattern letters determines the format:
-       - M: Any number (1-12).
-       - MM: Month number with zero padding required (01-12).
-       - MMM: Short name of the month (Jan-Dec).
-       - MMMM: Full name of the month (January-December).
-       The month names depend on the selected locale.
-     - d: Day. The number of pattern letters determines the format:
-       - d: Any number (1-31).
-       - dd: Day number with zero padding required (01-31).
-       - ddd: Short name of the day of week (Mon-Sun).
-       - dddd: Full name of the day of week (Monday-Sunday).
-       The weekday names depend on the selected locale.
-       Both day of week and day of month may be included in a single pattern -
-       in such case the day of week is used as a sanity check.
-     - Q: Quarter of year.
-       If only year and quarter are provided in the pattern, when parsing a
-       date, the result will be the first day of that quarter.
-
-   > Example
-     Parse the date of 23rd December 2020.
-
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-12-23".parse_date
+   ```
 
-   > Example
-     Recover from an error due to a wrong format.
+   ### Recover from an error due to a wrong format.
 
+   ```
          import Standard.Base.Data.Text.Extensions
          from Standard.Base.Errors.Common import Time_Error
 
          example_parse_err = "my birthday".parse_date . catch Time_Error _->
              Date.new 2000 1 1
+   ```
 
-   > Example
-     Parse "1999-1-1" as Date using a custom format.
+   ### Parse "1999-1-1" as Date using a custom format.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "1999-1-1".parse_date "yyyy-M-d"
+   ```
 
-   > Example
-     Recover from the parse error.
+   ### Recover from the parse error.
 
+   ```
          import Standard.Base.Data.Text.Extensions
          from Standard.Base.Errors.Common import Time_Error
 
          example_parse_err =
              date = "1999-1-1".parse_date "yyyy-MM-dd"
              date.catch Time_Error (_->Date.new 2000 1 1)
+   ```
+
+   ## Remarks
+
+   ### Default Date Formatting
+   Unless you provide a custom format, the text must represent a valid date that
+   can be parsed using the ISO-8601 extended local date format. The format
+   consists of:
+   - Four digits or more for the year. Years in the range 0000 to 9999 will be
+   pre-padded by zero to ensure four digits. Years outside that range will have a
+   prefixed positive or negative symbol.
+   - A dash  - Two digits for the month-of-year. This is pre-padded by zero to
+   ensure two digits.
+   - A dash  - Two digits for the day-of-month. This is pre-padded by zero to
+   ensure two digits.
+
+   ### Pattern Syntax
+   If the pattern is provided as `Text`, it is parsed using the format described
+   below. See `Date_Time_Formatter` for more options.
+   - y: Year. The number of pattern letters determines the minimum number of
+   digits.
+   - y: The year using any number of digits.
+   - yy: The year, using at most two digits. The default range is 1950-2049, but
+   this can be changed by including the end year in braces e.g. `yy{2099}`.
+   - yyyy: The year, using exactly four digits.
+   - M: Month of year. The number of pattern letters determines the format:
+   - M: Any number (1-12).
+   - MM: Month number with zero padding required (01-12).
+   - MMM: Short name of the month (Jan-Dec).
+   - MMMM: Full name of the month (January-December).
+   The month names depend on the selected locale.
+   - d: Day. The number of pattern letters determines the format:
+   - d: Any number (1-31).
+   - dd: Day number with zero padding required (01-31).
+   - ddd: Short name of the day of week (Mon-Sun).
+   - dddd: Full name of the day of week (Monday-Sunday).
+   The weekday names depend on the selected locale.
+   Both day of week and day of month may be included in a single pattern - in
+   such case the day of week is used as a sanity check.
+   - Q: Quarter of year.
+   If only year and quarter are provided in the pattern, when parsing a date, the
+   result will be the first day of that quarter.
 @format make_date_format_selector
 Text.parse_date : Date_Time_Formatter -> Date ! Time_Error
 Text.parse_date self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
     Date.parse self format
 
-## ALIAS date_time from text
-   GROUP Conversions
-   ICON convert
-
+## ---
+   aliases: [date_time from text]
+   group: Conversions
+   icon: convert
+   ---
    Obtains an instance of `Date_Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
-
    This method will return a `Time_Error` if the provided time cannot be parsed.
 
-   Arguments:
-   - format: The format to use for parsing the input text.
+   ## Arguments
+    - `format`: The format to use for parsing the input text.
 
-   ? Default Date_Time Format
-     Unless you provide a custom format, the text must represent a valid
-     date-time as defined by the ISO-8601 format (see https://en.wikipedia.org/wiki/ISO_8601).
-     If a time zone is present, it must be in the ISO-8601 Extended Date/Time
-     Format (EDTF) (see https://en.wikipedia.org/wiki/ISO_8601#EDTF). The time
-     zone format consists of:
+   ## Examples
+   ### Parse UTC time.
 
-     - The ISO offset date time.
-     - If the zone ID is not available or is a zone offset then the format is
-       complete.
-     - An open square bracket '['.
-     - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
-       sensitive.
-     - A close square bracket ']'.
-
-   ? Pattern Syntax
-     If the pattern is provided as `Text`, it is parsed using the format
-     described below. See `Date_Time_Formatter` for more options.
-     - y: Year. The number of pattern letters determines the minimum number of
-       digits.
-       - y: The year using any number of digits.
-       - yy: The year, using at most two digits. The default range is
-         1950-2049, but this can be changed by including the end year in
-         braces e.g. `yy{2099}`.
-       - yyyy: The year, using exactly four digits.
-     - M: Month of year. The number of pattern letters determines the format:
-       - M: Any number (1-12).
-       - MM: Month number with zero padding required (01-12).
-       - MMM: Short name of the month (Jan-Dec).
-       - MMMM: Full name of the month (January-December).
-       The month names depend on the selected locale.
-     - d: Day. The number of pattern letters determines the format:
-       - d: Any number (1-31).
-       - dd: Day number with zero padding required (01-31).
-       - ddd: Short name of the day of week (Mon-Sun).
-       - dddd: Full name of the day of week (Monday-Sunday).
-       The weekday names depend on the selected locale.
-       Both day of week and day of month may be included in a single pattern -
-       in such case the day of week is used as a sanity check.
-     - Q: Quarter of year.
-       If only year and quarter are provided in the pattern, when parsing a
-       date, the result will be the first day of that quarter.
-     - H: 24h hour of day (0-23).
-     - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
-       between AM and PM.
-     - m: Minute of hour.
-     - s: Second of minute.
-     - f: Fractional part of the second. The number of pattern letters
-       determines the number of digits. If one letter is used, any number of
-       digits will be accepted.
-     - a: AM/PM marker.
-     - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
-       -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
-     - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
-
-   > Example
-     Parse UTC time.
-
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12Z".parse_date_time
+   ```
 
-   > Example
-     Parse UTC-04:00 time.
+   ### Parse UTC-04:00 time.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12-04:00".parse_date_time
+   ```
 
-   > Example
-     Parse UTC-04:00 time specifying New York timezone.
+   ### Parse UTC-04:00 time specifying New York timezone.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
+   ```
 
-   > Example
-     Parse UTC-04:00 time with nanoseconds.
+   ### Parse UTC-04:00 time with nanoseconds.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12.177528-04:00".parse_date_time
+   ```
 
-   > Example
-     Recover from the parse error.
+   ### Recover from the parse error.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01".parse_date_time . catch Time_Error (_->Date_Time.now)
+   ```
 
-   > Example
-     Parse "2020-05-06 04:30:20" as Date_Time
+   ### Parse "2020-05-06 04:30:20" as Date_Time
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-05-06 04:30:20".parse_date_time "yyyy-MM-dd HH:mm:ss"
+   ```
 
-   > Example
-     Parse "06 of May 2020 at 04:30AM" as Date_Tme
+   ### Parse "06 of May 2020 at 04:30AM" as Date_Tme
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse =
             "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
+   ```
+
+   ## Remarks
+
+   ### Default Date_Time Format
+   Unless you provide a custom format, the text must represent a valid date-time
+   as defined by the ISO-8601 format (see https://en.wikipedia.org/wiki/ISO_8601).
+   If a time zone is present, it must be in the ISO-8601 Extended Date/Time
+   Format (EDTF) (see https://en.wikipedia.org/wiki/ISO_8601#EDTF). The time zone
+   format consists of:
+   - The ISO offset date time.
+   - If the zone ID is not available or is a zone offset then the format is
+   complete.
+   - An open square bracket '['.
+   - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+   sensitive.
+   - A close square bracket ']'.
+
+   ### Pattern Syntax
+   If the pattern is provided as `Text`, it is parsed using the format described
+   below. See `Date_Time_Formatter` for more options.
+   - y: Year. The number of pattern letters determines the minimum number of
+   digits.
+   - y: The year using any number of digits.
+   - yy: The year, using at most two digits. The default range is 1950-2049, but
+   this can be changed by including the end year in braces e.g. `yy{2099}`.
+   - yyyy: The year, using exactly four digits.
+   - M: Month of year. The number of pattern letters determines the format:
+   - M: Any number (1-12).
+   - MM: Month number with zero padding required (01-12).
+   - MMM: Short name of the month (Jan-Dec).
+   - MMMM: Full name of the month (January-December).
+   The month names depend on the selected locale.
+   - d: Day. The number of pattern letters determines the format:
+   - d: Any number (1-31).
+   - dd: Day number with zero padding required (01-31).
+   - ddd: Short name of the day of week (Mon-Sun).
+   - dddd: Full name of the day of week (Monday-Sunday).
+   The weekday names depend on the selected locale.
+   Both day of week and day of month may be included in a single pattern - in
+   such case the day of week is used as a sanity check.
+   - Q: Quarter of year.
+   If only year and quarter are provided in the pattern, when parsing a date, the
+   result will be the first day of that quarter.
+   - H: 24h hour of day (0-23).
+   - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate between
+   AM and PM.
+   - m: Minute of hour.
+   - s: Second of minute.
+   - f: Fractional part of the second. The number of pattern letters determines
+   the number of digits. If one letter is used, any number of digits will be
+   accepted.
+   - a: AM/PM marker.
+   - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
+   -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
+   - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
 @format make_date_time_format_selector
 Text.parse_date_time : Date_Time_Formatter -> Date_Time ! Time_Error
 Text.parse_date_time self format:Date_Time_Formatter=Date_Time_Formatter.default_enso_zoned_date_time =
     Date_Time.parse self format
 
-## ALIAS time_of_day from text, to_time_of_day
-   GROUP Conversions
-   ICON convert
-
+## ---
+   aliases: [time_of_day from text, to_time_of_day]
+   group: Conversions
+   icon: convert
+   ---
    Obtains an instance of `Time_Of_Day` from a text such as "10:15".
-
    This method will return a `Time_Error` if the provided time cannot be parsed.
 
-   Arguments:
-   - format: The format to use for parsing the input text.
+   ## Arguments
+    - `format`: The format to use for parsing the input text.
 
-   ? Default Time Format
-     Unless you provide a custom format, the text must represent a valid time
-     and is parsed using the ISO-8601 extended local time format.
-     The format consists of:
+   ## Examples
+   ### Get the time 15:05:30.
 
-     - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
-       digits.
-     - A colon
-     - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
-       two digits.
-     - If the second-of-minute is not available then the format is complete.
-     - A colon
-     - Two digits for the second-of-minute. This is pre-padded by zero to ensure
-       two digits.
-     - If the nano-of-second is zero or not available then the format is
-       complete.
-     - A float point
-     - One to nine digits for the nano-of-second. As many digits will be output
-       as required.
-
-   ? Pattern Syntax
-     If the pattern is provided as `Text`, it is parsed using the format
-     described below. See `Date_Time_Formatter` for more options.
-     - H: 24h hour of day (0-23).
-     - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
-       between AM and PM.
-     - m: Minute of hour.
-     - s: Second of minute.
-     - f: Fractional part of the second. The number of pattern letters
-       determines the number of digits. If one letter is used, any number of
-       digits will be accepted.
-     - a: AM/PM marker.
-
-   > Example
-     Get the time 15:05:30.
-
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "15:05:30".parse_time_of_day
+   ```
 
-   > Example
-     Recover from the parse error.
+   ### Recover from the parse error.
 
+   ```
          import Standard.Base.Data.Text.Extensions
          from Standard.Base.Errors.Common import Time_Error
 
          example_parse = "half twelve".parse_time_of_day . catch Time_Error _->
              Time_Of_Day.new
+   ```
 
-   > Example
-     Parse "04:30:20" as Time_Of_Day.
+   ### Parse "04:30:20" as Time_Of_Day.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "04:30:20".parse_time_of_day "HH:mm:ss"
+   ```
 
-   > Example
-     Parse "4:30AM" as Time_Of_Day
+   ### Parse "4:30AM" as Time_Of_Day
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "4:30AM".parse_time_of_day "h:mma"
+   ```
+
+   ## Remarks
+
+   ### Default Time Format
+   Unless you provide a custom format, the text must represent a valid time and
+   is parsed using the ISO-8601 extended local time format.
+   The format consists of:
+   - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+   digits.
+   - A colon  - Two digits for the minute-of-hour. This is pre-padded by zero to
+   ensure two digits.
+   - If the second-of-minute is not available then the format is complete.
+   - A colon  - Two digits for the second-of-minute. This is pre-padded by zero
+   to ensure two digits.
+   - If the nano-of-second is zero or not available then the format is complete.
+   - A float point  - One to nine digits for the nano-of-second. As many digits
+   will be output as required.
+
+   ### Pattern Syntax
+   If the pattern is provided as `Text`, it is parsed using the format described
+   below. See `Date_Time_Formatter` for more options.
+   - H: 24h hour of day (0-23).
+   - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate between
+   AM and PM.
+   - m: Minute of hour.
+   - s: Second of minute.
+   - f: Fractional part of the second. The number of pattern letters determines
+   the number of digits. If one letter is used, any number of digits will be
+   accepted.
+   - a: AM/PM marker.
 @format make_time_format_selector
 Text.parse_time_of_day : Date_Time_Formatter -> Time_Of_Day ! Time_Error
 Text.parse_time_of_day self format:Date_Time_Formatter=Date_Time_Formatter.iso_time =
     Time_Of_Day.parse self format
 
-## ALIAS time_zone from text, to_time_zone
-   GROUP Conversions
-   ICON convert
-
+## ---
+   aliases: [time_zone from text, to_time_zone]
+   group: Conversions
+   icon: convert
+   ---
    This method parses the ID producing a `Time_Zone`.
 
-   > Example
-     Get Central European Time.
+   ## Examples
+   ### Get Central European Time.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "CET".parse_time_zone
+   ```
 
-   > Example
-     Get Moscow time.
+   ### Get Moscow time.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "Europe/Moscow".parse_time_zone
+   ```
 
-   > Example
-     Get time zone -06:00.
+   ### Get time zone -06:00.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "-06:00".parse_time_zone
+   ```
 
-   > Example
-     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+   ### Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
 
+   ```
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "+03:02:01".parse_time_zone
+   ```
 Text.parse_time_zone : Time_Zone ! Time_Error
 Text.parse_time_zone self = Time_Zone.parse self
 
-## GROUP Conversions
-   ICON convert
+## ---
+   group: Conversions
+   icon: convert
+   ---
    Convert this `Text` to a `Decimal`.
 
-   Arguments:
-   - scale: the optional Decimal scale to use. See `Decimal.set_scale` for more
-     information about Decimal scales. If this argument is not used, the default
-     scale is used.
+   ## Arguments
+    - `scale`: the optional Decimal scale to use. See `Decimal.set_scale` for
+      more information about Decimal scales. If this argument is not used, the
+      default scale is used.
 
-   > Example
-     Convert a `Text` to a `Decimal`.
+   ## Examples
+   ### Convert a `Text` to a `Decimal`.
 
+   ```
          d = "23.456".to_decimal
          d == Decimal.new "23.456"
          # => True
+   ```
 
-    ! Error Conditions
+   ### Convert a `Text` to a `Decimal` with an explicit scale.
 
-        - If an explicit `scale` parameter is passed, and the scale is not
-          large enough to represent the number exactly, an `Arithmetic_Error`
-          is thrown.
-
-   > Example
-     Convert a `Text` to a `Decimal` with an explicit scale.
-
+   ```
          d = "23.456".to_decimal scale=4
          d == Decimal.new "23.456"
          # => True
+   ```
 
-   > Example
-     Get an error when using a scale that is too small.
+   ### Get an error when using a scale that is too small.
 
+   ```
          "23.456".to_decimal scale=2
          # => Arithmetic_Error
+   ```
+
+   ## Errors
+    - If an explicit `scale` parameter is passed, and the scale is not
+      large enough to represent the number exactly, an `Arithmetic_Error`
+      is thrown.
 Text.to_decimal : Integer | Nothing -> Decimal
 Text.to_decimal self (scale : Integer | Nothing = Nothing) -> Decimal =
     d_unscaled = Decimal.parse self
     if scale == Nothing then d_unscaled else
         d_unscaled.set_scale scale
 
-## ALIAS mid, slice, substring
-   GROUP Selections
-   ICON split
+## ---
+   aliases: [mid, slice, substring]
+   group: Selections
+   icon: split
+   ---
    Creates a new Text by selecting the specified range of the input.
 
-   Arguments:
-   - start: the character position to start the substring at. 0-based index. Has support for negative values.
-   - length: the number of characters to include from start.
+   ## Arguments
+    - `start`: the character position to start the substring at. 0-based index.
+      Has support for negative values.
+    - `length`: the number of characters to include from start.
 
-   Returns:
+   ## Returns
    Part of the selected Text starting at start and stopping after length.
 
-   > Example
-     Various different ways to take part of "Hello World!"
+   ## Examples
+   ### Various different ways to take part of "Hello World!"
 
+   ```
          "Hello World!".substring 3 2 == "lo"
          "Hello World!".substring 5 Nothing == " World!"
          "Hello World!".substring 5 7 == " World!"
          "Hello World!".substring -7 3 == " Wo"
+   ```
 Text.substring : Integer -> Integer -> Range ! Index_Out_Of_Bounds
 Text.substring self start:Integer length:Integer=self.length =
     if length < 0 then Error.throw (Illegal_Argument.Error "length must be greater than or equal to 0") else
@@ -1972,18 +2226,16 @@ Text.substring self start:Integer length:Integer=self.length =
                 range = fixed_start.up_to fixed_start+length
                 self.take range
 
-## ---
-   private : true
-   ---
-   True if all characters are ASCII, i.e. < 128.
+## True if all characters are ASCII, i.e. < 128.
 Text.is_ascii self =
     Text_Utils.is_ascii self
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns a new Text constructed by slicing the input according to the provided
    ranges. The ranges are assumed to have step equal to 1 and bounds within the
    input's range.
-
    The input ranges are in UTF-16 code unit space.
 private _slice_text text char_ranges =
     sb = StringBuilder.new
@@ -1991,8 +2243,9 @@ private _slice_text text char_ranges =
        sb.append text char_range.start char_range.end
     sb.toString
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Find occurrences of delimiters in a string.
 _split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
 private _split_find_delimiters input delimiter case_sensitivity =
