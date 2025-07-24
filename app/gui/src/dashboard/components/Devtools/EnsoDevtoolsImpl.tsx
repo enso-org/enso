@@ -594,7 +594,9 @@ export function EnsoDevtools() {
             size="small"
             variant="icon"
             icon="trash"
-            onPress={() => localStorage.clearAll()}
+            onPress={() => {
+              localStorage.clearAll()
+            }}
           />
         </div>
 
