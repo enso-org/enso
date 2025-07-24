@@ -239,7 +239,7 @@ add_specs suite_builder =
         group_builder.specify "can read multiple sheets - as table of tables" <|
             ## Test3
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
-            ws = wb.read_many ['1RowStringData','2RowStringData']
+            ws = wb.read_many ['1RowStringData','2RowStringData'] return=..With_New_Column
             s1 = wb.read '1RowStringData'
             s2 = wb.read '2RowStringData'
             ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData']],['Table', [s1, s2]]])
