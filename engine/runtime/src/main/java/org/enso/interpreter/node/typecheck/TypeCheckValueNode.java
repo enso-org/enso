@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -110,19 +111,24 @@ public final class TypeCheckValueNode extends Node {
     if (checks == null) {
       return null;
     }
-    var list = Arrays.asList(checks);
-    var allowThru = list.stream().filter(n -> n == null).count() > 0;
-    var flatten =
-        list.stream()
-            .filter(n -> n != null)
-            .map(n -> n.check)
-            .flatMap(
-                n ->
-                    n instanceof AllOfTypesCheckNode all
-                        ? Arrays.asList(all.getChecks()).stream()
-                        : Stream.of(n))
-            .toList();
-    var arr = toArray(flatten);
+    var collect = new ArrayList<AbstractTypeCheckNode>();
+    var allowThru = false;
+    for (var ch : Arrays.asList(checks)) {
+      if (ch == null) {
+        allowThru = true;
+      } else {
+        switch (ch.check) {
+          case AllOfTypesCheckNode all -> {
+            if (all.allowThru) {
+              allowThru = true;
+            }
+            collect.addAll(Arrays.asList(all.getChecks()));
+          }
+          case AbstractTypeCheckNode n -> collect.add(n);
+        }
+      }
+    }
+    var arr = toArray(collect);
     if (allowThru) {
       return switch (arr.length) {
         case 0 -> null;

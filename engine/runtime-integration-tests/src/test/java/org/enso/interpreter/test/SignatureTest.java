@@ -9,6 +9,10 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
@@ -1633,8 +1637,58 @@ public class SignatureTest {
   }
 
   @Test
-  public void intersectionWithAnyKeepsOrder() {
-    var code =
+  public void intersectionWithAnyKeepsOrderAnyFirst() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var any = Stream.of("Any");
+          var stream = list.stream();
+          var both = Stream.concat(any, stream);
+          return both.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyAtTheEnd() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream();
+          var any = Stream.of("Any");
+          var both = Stream.concat(stream, any);
+          return both.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyEveryEven() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream().flatMap(t -> Stream.of(t, "Any"));
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyInMiddle() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var arr = new ArrayList<>(list);
+          arr.add(list.size() / 2, "Any");
+          var stream = arr.stream();
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyEveryOdd() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream().flatMap(t -> Stream.of("Any", t));
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  private void intersetionWithAnyKeepsOrder(Function<List<String>, String> spiceWithAny) {
+    var begin =
         """
         from Standard.Base import Any, Integer
 
@@ -1661,12 +1715,25 @@ public class SignatureTest {
 
         all_of v -> C & B & A =
             B.B_Ctor v
+        """;
 
-        a_with x -> A & Any = x
-        b_with x -> B & Any = x
-        ab_with x -> A & B & Any = x
-        ba_with x -> B & A & Any = x
+    var middle =
+        "a_with x -> "
+            + spiceWithAny.apply(List.of("A"))
+            + " = x\n"
+            + "b_with x -> "
+            + spiceWithAny.apply(List.of("B"))
+            + " = x\n"
+            + "ab_with x -> "
+            + spiceWithAny.apply(List.of("A", "B"))
+            + " = x\n"
+            + "ba_with x -> "
+            + spiceWithAny.apply(List.of("B", "A"))
+            + " = x\n"
+            + "";
 
+    var end =
+        """
         private all value =
             v = all_of value
             a = a_with v
@@ -1680,10 +1747,11 @@ public class SignatureTest {
         """;
 
     ctxRule.resetOut();
-    var tripple = ctxRule.evalModule(code);
-    assertTrue("Executable", tripple.canExecute());
+    var code = begin + middle + end;
+    var all = ctxRule.evalModule(code);
+    assertTrue("Executable", all.canExecute());
 
-    var res = tripple.execute(42);
+    var res = all.execute(42);
     assertTrue("It an array", res.hasArrayElements());
     assertEquals(5, res.getArraySize());
 

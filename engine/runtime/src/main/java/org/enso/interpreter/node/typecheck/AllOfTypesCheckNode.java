@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
-  private final boolean allowThru;
+  final boolean allowThru;
   @Children private AbstractTypeCheckNode[] checks;
   @Child private TypeOfNode typeNode;
   @Child private EnsoMultiValue.NewNode newNode;
