@@ -16,7 +16,7 @@ export interface PlanDowngradedModalProps {
 }
 
 declare module '#/utilities/LocalStorage' {
-  /** Metadata containing the version hash of the terms of service that the user has accepted. */
+  /** Metadata containing the last time user has acknowledged the modal with asset removal deadline. */
   interface LocalStorageData {
     readonly downgradeModal: z.infer<typeof STORAGE_SCHEMA>
   }
