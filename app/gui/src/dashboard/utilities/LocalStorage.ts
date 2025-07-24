@@ -48,16 +48,21 @@ export interface LocalStorageData {
 /** All possible keys of a {@link LocalStorage}. */
 export type LocalStorageKey = keyof LocalStorageData
 
+/** Metadata for each storage key. */
 type KeyMetadata = {
   [K in LocalStorageKey]: LocalStorageKeyMetadata<K>
 }
 
+/** Compute the actual storage key from `LocalStorage` entry key. */
+function getItemKey(key: LocalStorageKey) {
+  return `${common.PRODUCT_NAME}::${key}`
+}
+
 /** A LocalStorage data manager. */
 export default class LocalStorage {
-  private static keyMetadata: Partial<KeyMetadata> = Object.create(null)
+  private static readonly keyMetadata: Partial<KeyMetadata> = {}
   private static instance: LocalStorage | null = null
-  private itemKey = (key: LocalStorageKey) => `${common.PRODUCT_NAME}::${key}`
-  protected values: Partial<LocalStorageData>
+  private values: Partial<LocalStorageData>
   private readonly eventTarget = new EventTarget()
 
   /** Create a {@link LocalStorage}. */
@@ -78,6 +83,7 @@ export default class LocalStorage {
 
   /** Get all {@link LocalStorageKey} variants that has been registered using {@link registerKey} method so far. */
   static getAllRegisteredKeys(): LocalStorageKey[] {
+    // eslint-disable-next-line no-restricted-syntax
     return Object.keys(LocalStorage.keyMetadata) as LocalStorageKey[]
   }
 
@@ -178,6 +184,7 @@ export default class LocalStorage {
    */
   delete<K extends LocalStorageKey>(key: K) {
     this.assertRegisteredKey(key)
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
     this.save(key)
     this.eventTarget.dispatchEvent(new Event(key))
@@ -221,24 +228,17 @@ export default class LocalStorage {
     }
   }
 
-  /** React hook for viewing whole `LocalStorage` contents as a state variable. */
-  useValuesState(): Partial<LocalStorageData> {
-    return useVueValue(
-      useCallback(() => this.values, [this.values]),
-      true,
-    )
-  }
-
   /** Save the current value of the stored data.. */
   protected save(key: LocalStorageKey) {
     // Make values raw, so any watchEffect setting values will not be triggered unnecessarily.
     const rawValues = toRaw(this.values)
     const valueToSave = rawValues[key]
-    const itemKey = this.itemKey(key)
+    const itemKey = getItemKey(key)
     try {
       if (valueToSave == null) localStorage.removeItem(itemKey)
       else localStorage.setItem(itemKey, JSON.stringify(valueToSave))
     } catch (error) {
+      // eslint-disable-next-line no-restricted-properties
       console.warn('LocalStorage failed to persist data', { key, error })
     }
   }
@@ -263,12 +263,13 @@ export default class LocalStorage {
   ): LocalStorageData[Key] | null {
     this.assertRegisteredKey(key)
 
-    const storedJson = localStorage.getItem(this.itemKey(key))
+    const storedJson = localStorage.getItem(getItemKey(key))
     let storedValue: unknown
 
     try {
       storedValue = storedJson != null ? JSON.parse(storedJson) : null
     } catch (error) {
+      // eslint-disable-next-line no-restricted-properties
       console.warn('LocalStorage failed to parse JSON', { key, error })
     }
 
@@ -279,8 +280,17 @@ export default class LocalStorage {
     if (parsedValue.success) return parsedValue.data
 
     const error = parsedValue.error
+    // eslint-disable-next-line no-restricted-properties
     console.warn('LocalStorage failed to parse value', { key, storedValue, error })
 
     return null
   }
+}
+
+/** React hook for viewing whole `LocalStorage` contents as a state variable. */
+export function useLocalStorageValues(storage: LocalStorage): Partial<LocalStorageData> {
+  return useVueValue(
+    useCallback(() => storage['values'], [storage]),
+    true,
+  )
 }

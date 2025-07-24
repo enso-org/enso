@@ -1,6 +1,9 @@
 /** @file Utilities related to time. */
 import type { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
+import { useEffect, useState } from 'react'
 
+/** The number of milliseconds in a minute. */
+export const MINUTE_MS = 60_000
 /** The number of milliseconds in an hour. */
 export const HOUR_MS = 3_600_000
 /** The number of hours in a day. */
@@ -26,4 +29,14 @@ export function rfc3339DurationProgress(
     hoursLeft,
     fraction,
   }
+}
+
+/** A React hook that presents current timestamp as state value and updates in specified interval. */
+export function useCurrentTimestamp(refreshInterval: number) {
+  const [timestampValue, setTimestampValue] = useState(Date.now())
+  useEffect(() => {
+    const interval = setInterval(() => setTimestampValue(Date.now()), refreshInterval)
+    return () => clearInterval(interval)
+  }, [refreshInterval])
+  return timestampValue
 }

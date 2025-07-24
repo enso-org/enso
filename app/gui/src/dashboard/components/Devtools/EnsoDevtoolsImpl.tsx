@@ -13,7 +13,7 @@ import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
 import * as backend from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
+import LocalStorage, { useLocalStorageValues } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import {
@@ -279,7 +279,7 @@ export function EnsoDevtools() {
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
   const localStorage = useLocalStorage()
-  const localStorageState = localStorage.useValuesState()
+  const localStorageState = useLocalStorageValues(localStorage)
 
   const featureFlags = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()

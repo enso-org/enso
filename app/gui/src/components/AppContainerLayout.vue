@@ -17,8 +17,9 @@ import { backendQueryOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
 import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
+import { proxyRefs } from '@/util/reactivity'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, onMounted, onUnmounted, proxyRefs } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 
 const SetupOrganizationModal = reactComponent(SetupOrganizationModalReact)
 const TrialEndedModal = reactComponent(TrialEndedModalReact)
@@ -63,6 +64,7 @@ export const dataLoader: DataLoader<Props> = {
       if (subscription?.isPaused && subscription.id != null) {
         return { subscriptionId: subscription.id }
       }
+      return undefined
     })
 
     const planDowngradedModalProps = computed<PlanDowngradedModalProps | undefined>(() => {
@@ -74,6 +76,7 @@ export const dataLoader: DataLoader<Props> = {
             Number(new Date(subscription.trialEnd)) + DAYS_BEFORE_DELETE * DAY_MS,
         }
       }
+      return undefined
     })
 
     const shouldSetupOrganization = computed(
@@ -88,7 +91,7 @@ export const dataLoader: DataLoader<Props> = {
 </script>
 
 <script setup lang="ts">
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const { remoteBackend } = useBackends()
 const logUserOpen = () => remoteBackend.logEvent('open_app')
