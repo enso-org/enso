@@ -214,3 +214,10 @@ add_specs suite_builder =
             c7 = ['Times', [Time_Of_Day.new 23 10, Time_Of_Day.new 5 12,  Time_Of_Day.new 23 59, Nothing, Time_Of_Day.new 7 30]]
             c8 = ['DateTimes', [Date_Time.new 2025 12 30 23 10, Date_Time.new 1981 1 1 5 12 , Date_Time.new 2002 12 11 23 59, Nothing, Date_Time.new 2030 4 30 7 30]]
             ws . should_equal (Table.new [c1, c2, c3, c4, c5, c6, c7, c8])
+    
+    suite_builder.group "Google Sheets - Read Many" group_builder->
+        group_builder.specify "can read multiple sheets" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['1RowStringData','2RowStringData']
+            ws . should_equal (Table.new [['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
