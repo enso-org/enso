@@ -111,7 +111,7 @@ public final class TypeCheckValueNode extends Node {
       return null;
     }
     var list = Arrays.asList(checks);
-    var allowThru = list.stream().filter(n -> n == null).findAny().isPresent();
+    var allowThru = list.stream().filter(n -> n == null).count() > 0;
     var flatten =
         list.stream()
             .filter(n -> n != null)
