@@ -1514,7 +1514,7 @@ public class SignatureTest {
   public void intersectionWithAny() {
     var code =
         """
-        from Standard.Base import Any, Integer
+        from Standard.Base import Any
 
         type A
             A_Ctor a
@@ -1570,7 +1570,7 @@ public class SignatureTest {
   public void intersectionWithAnyDoesNotRevealHidden() {
     var code =
         """
-        from Standard.Base import Any, Integer
+        from Standard.Base import Any
 
         type A
             A_Ctor a
@@ -1690,7 +1690,7 @@ public class SignatureTest {
   private void intersetionWithAnyKeepsOrder(Function<List<String>, String> spiceWithAny) {
     var begin =
         """
-        from Standard.Base import Any, Integer
+        from Standard.Base import Any
 
         type A
             A_Ctor a
