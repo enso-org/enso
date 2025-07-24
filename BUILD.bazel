@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
 
@@ -18,4 +19,24 @@ write_source_files(
         "//app/gui:write_icon_metadata",
         "//app/table-expression:write_parser_codegen",
     ],
+)
+
+###########################
+### Engine distribution ###
+###########################
+
+ENV = {
+    "JAVA_HOME": "$(JAVABASE)",
+    "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
+    "LC_ALL": "C.UTF-8",
+    "SBT_SERVER_FORCESTART": "1",
+}
+
+run_sbt(
+    name = "sbt_test",
+    srcs = [],
+    args = ["--version"],
+    env = ENV,
+    out_dir = "sbt_test",
+    visibility = ["//visibility:public"],
 )
