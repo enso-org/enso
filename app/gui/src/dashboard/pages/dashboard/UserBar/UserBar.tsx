@@ -27,37 +27,25 @@ import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
 import { UserMenu } from './UserMenu'
 
+const TEXT_ID_SCHEMA = z.custom<TextId>((s) => typeof s === 'string')
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
   items: z.array(
     z
       .object({
-        name: z.custom<TextId>(),
-        url: z.string().url(),
-        menu: z.array(
-          z.object({
-            name: z.custom<TextId>().and(z.string()),
-            url: z.string().url(),
-          }),
-        ),
-      })
-      .or(
-        z.object({
-          name: z.custom<TextId>(),
-          menu: z.array(
+        name: TEXT_ID_SCHEMA,
+        url: z.string().url().optional(),
+        menu: z
+          .array(
             z.object({
-              name: z.custom<TextId>().and(z.string()),
+              name: TEXT_ID_SCHEMA,
               url: z.string().url(),
             }),
-          ),
-        }),
-      )
-      .or(
-        z.object({
-          name: z.custom<TextId>().and(z.string()),
-          url: z.string().url(),
-        }),
-      ),
+          )
+          .optional(),
+      })
+      .refine((obj) => 'url' in obj || 'menu' in obj),
   ),
 })
 
@@ -195,15 +183,17 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   return (
     <Button.Group gap="small" buttonVariants={{ variant: 'icon' }} className={className}>
       {items.map((item) => {
-        if ('url' in item) {
-          if ('menu' in item) {
+        if (item.url != null) {
+          if (item.menu != null) {
             return (
               <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
                 <Button href={item.url} {...getSafetyProps(item.url)}>
                   {getText(item.name)}
                 </Button>
+
                 <Menu.Trigger>
                   <Button icon={ArrowDownIcon} aria-label={getText('more')} />
+
                   <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
                       <Menu.Item
@@ -226,6 +216,8 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
             </Button>
           )
         }
+
+        return null
       })}
     </Button.Group>
   )
