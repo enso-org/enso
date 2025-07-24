@@ -12,8 +12,8 @@ export async function modModifier(page: Page) {
 }
 
 /** A callback that performs actions on a {@link Page}. */
-export interface PageCallback<Context> {
-  (input: Page, context: Context): Promise<void> | void
+export interface PageCallback<Context, Self = void> {
+  (input: Page, context: Context, self: Self): Promise<void> | void
 }
 
 /** A callback that performs actions on a {@link Locator}. */
@@ -139,19 +139,19 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * specific methods; this is more or less an escape hatch used ONLY when the methods do not
    * support desired functionality.
    */
-  do(callback: PageCallback<Context>): this {
+  do(callback: PageCallback<Context, this>): this {
     // @ts-expect-error This is SAFE, but only when the constructor of this class has the exact
     // same parameters as `BaseActions`.
     return new this.constructor(
       this.page,
       this.context,
-      this.then(() => callback(this.page, this.context)),
+      this.then(() => callback(this.page, this.context, this)),
     )
   }
 
   /** Perform an action. */
-  step(name: string, callback: PageCallback<Context>) {
-    return this.do(() => test.step(name, () => callback(this.page, this.context)))
+  step(name: string, callback: PageCallback<Context, this>) {
+    return this.do(() => test.step(name, () => callback(this.page, this.context, this)))
   }
 
   /**

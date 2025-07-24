@@ -4,9 +4,8 @@ import path from 'node:path'
 import url from 'node:url'
 import { expect, test, type Page } from 'playwright/test'
 import { INITIAL_CALLS_OBJECT, mockApi, type MockApi, type TrackedCalls } from './api'
-// Hack to avoid circular import errors.
-import './DrivePageActions'
-import EditorPageActions from './EditorPageActions'
+// Also necessary as a hack to avoid circular import errors.
+import DrivePageActions from './DrivePageActions'
 import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
 import {
   INITIAL_LOCAL_CALLS_OBJECT,
@@ -147,10 +146,7 @@ export function mockAllAndLogin({
   const driveActions = actions
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
-    .into(EditorPageActions<Context>)
-    .waitForEditorToLoad()
-    .closeToastNotifications()
-    .goToPage.drive()
+    .into(DrivePageActions<Context>)
   return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
 }
 

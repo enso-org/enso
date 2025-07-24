@@ -432,13 +432,19 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   const createProject = (rest: Partial<backend.ProjectAsset> = {}): backend.ProjectAsset => {
-    const projectNames = new Set(
-      assets
-        .filter((asset) => asset.type === backend.AssetType.project)
-        .map((asset) => asset.title),
-    )
-
-    const title = rest.title ?? `New Project ${projectNames.size + 1}`
+    const title =
+      rest.title ??
+      (() => {
+        const parentId = rest.parentId ?? defaultDirectoryId
+        let i = 0
+        for (const asset of assets) {
+          if (asset.parentId !== parentId) continue
+          const match = asset.title.match(/^New Project (\d+)$/)
+          if (match?.[1] == null) continue
+          i = Math.max(i, Number(match[1]))
+        }
+        return `New Project ${i + 1}`
+      })()
 
     return createAsset({
       type: backend.AssetType.project,
@@ -1357,9 +1363,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
   })
-
-  const samplesDirectory = addDirectory({ parentId: defaultDirectoryId, title: 'Samples' })
-  addProject({ parentId: samplesDirectory.id, title: 'Colorado COVID.project' })
 
   const api = {
     defaultEmail,
