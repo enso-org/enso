@@ -134,7 +134,7 @@ achieved because of:
   part of the type and thus can be checked in static analysis.
 - uncovering hidden values without a check is only possible when explicitly
   requested by an [open type check](./intersection-types.md#open-type-check).
-  When one uses `x : Integer&Any` check, it is no longer be possible to report
+  When one uses `x : Integer&Any` check, it is no longer possible to report
   any type mismatch warnings. Type inference knows the value must conform to
   `Integer`, but it cannot rule out that `x` was not created as
   `Integer & Text`. Therefore the static analysis must assume that every value
