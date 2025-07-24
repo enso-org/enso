@@ -31,7 +31,7 @@ import javax.net.SocketFactory;
  * ch.qos.logback.core.net.AbstractSocketAppender} that does not crash writers/readers on internal
  * errors.
  */
-public class DeferredProcessingSocketAppender extends AppenderBase<ILoggingEvent>
+public final class DeferredProcessingSocketAppender extends AppenderBase<ILoggingEvent>
     implements SocketConnector.ExceptionHandler {
 
   /** The default port number of remote logging server (4560). */
