@@ -231,3 +231,8 @@ add_specs suite_builder =
             wb = Google_Sheets.read '19qZhzyjZddJFIfCjTVzKF_OxK3KUAH8K6xt3XV06FaA' (Enso_Secret.get 'GS')
             ws = wb.read_many
             ws . should_equal (Table.new [['Sheet Name', ['Sheet1','Sheet2']],['A', ['Sheet1Data','Sheet2Data']]])
+        group_builder.specify "can read multiple sheets - with headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['1RowStringData','2RowStringData'] ..Has_Headers
+            ws . should_equal (Table.new [['Sheet Name', ['2RowStringData']],['X', ['U']],['Y', ['V']],['Z', ['W']]])
