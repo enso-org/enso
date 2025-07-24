@@ -394,7 +394,7 @@ const listsHandler = listBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      v-if="input.mode.mode === 'codeEditing' && isVisualizationVisible"
+      :show="input.mode.mode === 'codeEditing' && isVisualizationVisible"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
