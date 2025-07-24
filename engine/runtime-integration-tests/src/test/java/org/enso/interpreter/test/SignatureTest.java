@@ -1528,11 +1528,8 @@ public class SignatureTest {
         both v -> A & B =
             B.B_Ctor v
 
-        a_with a -> A & Any =
-            a
-
-        b_with b -> B & Any =
-            b
+        a_with x -> A & Any = x
+        b_with x -> B & Any = x
 
         private tripple value =
             v = both value
@@ -1563,6 +1560,76 @@ public class SignatureTest {
 
     assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
     assertEquals("YesB", b.invokeMember("i_am_b").asString());
+  }
+
+  @Test
+  public void intersectionWithAnyDoesNotRevealHidden() {
+    var code =
+        """
+        from Standard.Base import Any, Integer
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+
+
+        A.from that:B =
+            A.A_Ctor that
+
+        both v -> A & B =
+            B.B_Ctor v
+        just_a_visible v -> A = both v
+
+        a_with x -> A & Any = x
+        b_with x -> B & Any = x
+
+        private tripple value =
+            v = just_a_visible value
+            a = a_with v
+            b = b_with v
+            [v, a, b]
+
+        main = tripple
+        """;
+
+    ctxRule.resetOut();
+    var tripple = ctxRule.evalModule(code);
+    assertTrue("Executable", tripple.canExecute());
+
+    var res = tripple.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(3, res.getArraySize());
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+
+    assertEquals("YesA", v.invokeMember("i_am_a").asString());
+    try {
+      var r = v.invokeMember("i_am_b");
+      fail("Unexpected return value " + r);
+    } catch (UnsupportedOperationException ex) {
+      assertContains("non-existent member key", ex.getMessage());
+      assertContains("i_am_b", ex.getMessage());
+    }
+
+    assertEquals("YesA", a.invokeMember("i_am_a").asString());
+    try {
+      // b was hidden and remains hidden
+      var r = a.invokeMember("i_am_b");
+      fail("Unexpected return value " + r);
+    } catch (UnsupportedOperationException ex) {
+      assertContains("non-existent member key", ex.getMessage());
+      assertContains("i_am_b", ex.getMessage());
+    }
+
+    assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
+    assertEquals("B is unhidden", "YesB", b.invokeMember("i_am_b").asString());
   }
 
   @Test
