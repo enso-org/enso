@@ -12,11 +12,19 @@ let embeddedSvg: SVGSVGElement | null = null
 // the origin used during test run and attempt to resolve it with a service-worker. That request unfortunately gets
 // rejected immediately. To avoid that, we embed the resource directly on page load and use local IDs. That approach
 // also works inside shadow-root, so it is safe to reference the same icon symbols in visualizations.
-fetch(iconsSvgUrl, { cache: 'default', mode: 'same-origin' }).then(
-  async (response) => (embeddedSvg = embedSvgSymbols(await response.text())),
-)
+function fetchIcons() {
+  fetch(iconsSvgUrl, { cache: 'default', mode: 'same-origin' }).then(
+    async (response) => (embeddedSvg = embedSvgSymbols(await response.text())),
+  )
+}
 
-// In case we hot-reload the icons, remove old embedding.
+// Skip fetching icons in unit tests, node's `fetch` there would fail to resolve the URL properly
+// and we don't need the icons to actually be loaded for any purpose anyway.
+if (process.env.NODE_ENV !== 'test') {
+  fetchIcons()
+}
+
+// In case we hot-reload the icons, remove previously embedded SVG.
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     embeddedSvg?.remove()
