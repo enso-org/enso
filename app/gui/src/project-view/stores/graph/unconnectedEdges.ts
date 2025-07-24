@@ -129,11 +129,7 @@ export function useUnconnectedEdges() {
   const unconnectedEdges = computed<Set<UnconnectedEdge>>(
     () =>
       new Set(
-        iter.filterDefined([
-          mouseEditedEdge.value,
-          cbEditedEdge.value,
-          outputSuggestedEdge.value,
-        ]),
+        iter.filterDefined([mouseEditedEdge.value, cbEditedEdge.value, outputSuggestedEdge.value]),
       ),
   )
 
