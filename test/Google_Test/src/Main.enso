@@ -216,7 +216,7 @@ add_specs suite_builder =
             ws . should_equal (Table.new [c1, c2, c3, c4, c5, c6, c7, c8])
     
     suite_builder.group "Google Sheets - Read Many" group_builder->
-        group_builder.specify "can read multiple sheets one sheet" <|
+        group_builder.specify "can read multiple sheets - one sheet" <|
             ## Test3
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
             ws = wb.read_many ['1RowStringData']
@@ -226,3 +226,8 @@ add_specs suite_builder =
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
             ws = wb.read_many ['1RowStringData','2RowStringData']
             ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData','2RowStringData']],['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
+        group_builder.specify "can read multiple sheets - defaults to all sheets" <|
+            ## Test5
+            wb = Google_Sheets.read '19qZhzyjZddJFIfCjTVzKF_OxK3KUAH8K6xt3XV06FaA' (Enso_Secret.get 'GS')
+            ws = wb.read_many
+            ws . should_equal (Table.new [['Sheet Name', ['Sheet1','Sheet2']],['A', ['Sheet1Data','Sheet2Data']]])
