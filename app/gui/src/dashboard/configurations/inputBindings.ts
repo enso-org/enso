@@ -1,7 +1,6 @@
 /** @file Shortcuts for the dashboard application. */
 import * as inputBindings from '#/utilities/inputBindings'
 import * as detect from 'enso-common/src/detect'
-export type * from '#/utilities/inputBindings'
 
 /** The type of the keybind and mousebind namespace for the dashboard. */
 export type DashboardBindingNamespace = ReturnType<typeof createBindings>
@@ -25,7 +24,6 @@ export const BINDINGS = inputBindings.defineBindings({
   downloadToLocal: { bindings: [], icon: 'cloud_from' },
   rename: { bindings: ['Mod+R'], icon: 'edit' },
   edit: { bindings: ['Mod+E'], icon: 'edit' },
-  snapshot: { bindings: ['Mod+S'], icon: 'camera' },
   delete: { bindings: ['OsDelete'], icon: 'trash', color: 'rgb(243 24 10 / 0.87)' },
   undelete: { bindings: ['Mod+R'], icon: 'untrash' },
   share: { bindings: ['Mod+Enter'], icon: 'people' },

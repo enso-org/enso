@@ -85,6 +85,7 @@ interface DownloadUrlOptions {
 interface SystemApi {
   readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
+  readonly getFilePath: (item: File) => string
 }
 
 /** Metadata for a newly imported project. */

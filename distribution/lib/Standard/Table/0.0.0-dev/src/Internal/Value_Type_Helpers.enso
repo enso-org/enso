@@ -13,10 +13,10 @@ from project.Errors import Invalid_Value_Type, Mixing_Date_Time_Types, No_Common
 polyglot java import org.enso.base.polyglot.NumericConverter
 polyglot java import org.enso.table.data.column.storage.type.IntegerType
 
-## PRIVATE
-   Finds the most specific `Value_Type` that can be used to hold the given
-   value.
-
+## ---
+   private: true
+   ---
+   Finds the most specific `Value_Type` that can be used to hold the given value.
    This method will still prefer default types used in the in-memory backend, so
    for integers it will return 64-bit integers even if the value could fit in a
    smaller one; and for Text values variable-length text will be preferred over
@@ -53,7 +53,9 @@ most_specific_value_type value:Any use_smallest:Boolean=False -> Value_Type =
            want to prefer it over Mixed
         _               -> Value_Type.Mixed
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Finds a type that can fit both a current type and a new type.
 reconcile_types current:Value_Type new:Value_Type -> Value_Type = 
     if current == Value_Type.Null then new else if new == Value_Type.Null then current else case current of
@@ -104,7 +106,9 @@ reconcile_types current:Value_Type new:Value_Type -> Value_Type =
         _ ->
             if current == new then current else Value_Type.Mixed
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reconciles two size parameters. If either of them is `Nothing` (meaning
    unbounded), returns `Nothing`. If both are bounded, the larger one is
    returned.
@@ -112,15 +116,17 @@ max_size a b =
     if a.is_nothing || b.is_nothing then Nothing else
         if a < b then b else a
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Finds the most specific value type that will fit all the provided types.
 
-   Arguments:
-   - types: a vector of types to unify.
-   - strict: A flag determining how strict the unification is.
-     If `False`, if no common type can be found, `Mixed` is used as a generic fallback.
-     If `True`, `Nothing` is returned if no common type can be found and `Mixed`
-     is only returned if any of the input types was already `Mixed`.
+   ## Arguments
+    - `types`: a vector of types to unify.
+    - `strict`: A flag determining how strict the unification is. If `False`, if
+      no common type can be found, `Mixed` is used as a generic fallback. If
+      `True`, `Nothing` is returned if no common type can be found and `Mixed` is
+      only returned if any of the input types was already `Mixed`.
 find_common_type (types : Vector Value_Type) (strict : Boolean) -> Value_Type | Nothing =
     if types.is_empty then Value_Type.Null else
         most_generic_type = (types.drop 1).fold types.first reconcile_types
@@ -130,11 +136,15 @@ find_common_type (types : Vector Value_Type) (strict : Boolean) -> Value_Type | 
             if types.contains Value_Type.Mixed then Value_Type.Mixed else
                 Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An extra helper function that reconciles Date_Time types with varying timezone
    setting, as well as Date type, reporting any warnings.
-   It can be used as a fallback after `find_common_type` does not find a simple common type.
-   If non-date types are provided, it will fail by returning `Nothing`. It will not report any warnings in that case.
+   It can be used as a fallback after `find_common_type` does not find a simple
+   common type.
+   If non-date types are provided, it will fail by returning `Nothing`. It will
+   not report any warnings in that case.
    It assumes that the list of `types` is not empty.
 find_common_date_types (types : Vector Value_Type) (related_column_name : Text | Nothing) (problem_builder : Problem_Builder) -> Value_Type | Nothing =
     assert types.not_empty
@@ -160,14 +170,14 @@ find_common_date_types (types : Vector Value_Type) (related_column_name : Text |
 
         common_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An extra helper function that reconciles numeric and boolean types.
-   Unifying Boolean and numeric types is not expected by all operations, but
-   some may want to opt-in to it. This method allows to do so.
-
+   Unifying Boolean and numeric types is not expected by all operations, but some
+   may want to opt-in to it. This method allows to do so.
    If non-numeric or non-boolean types are provided, it will fail by returning
    `Nothing`.
-
    No warnings are reported, as coercing boolean to integer is harmless, it was
    just chosen not to be done by default.
 find_common_numeric_boolean_type (types : Vector Value_Type) -> Value_Type | Nothing =
@@ -179,19 +189,19 @@ find_common_numeric_boolean_type (types : Vector Value_Type) -> Value_Type | Not
         without_boolean = types.filter typ-> typ != Value_Type.Boolean
         find_common_type without_boolean strict=True
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Finds the type of an argument to a column operation.
-
-   If the argument is a column, the type of that column is returned. If it
-   is an Enso value, the smallest `Value_Type` that can fit that value will
-   be returned (but the Database is free to widen it to the closest type
-   that it supports without warning).
-
-   Since there is no special type for `Nothing` and `Nothing` technically
-   can fit any nullable type, it usually needs to be handled specially. This
-   method returns `Nothing` if the value is `Nothing` - so the caller can
-   try to treat this value as fitting any type, or accordingly to specific
-   semantics of each method.
+   If the argument is a column, the type of that column is returned. If it is an
+   Enso value, the smallest `Value_Type` that can fit that value will be returned
+   (but the Database is free to widen it to the closest type that it supports
+   without warning).
+   Since there is no special type for `Nothing` and `Nothing` technically can fit
+   any nullable type, it usually needs to be handled specially. This method
+   returns `Nothing` if the value is `Nothing` - so the caller can try to treat
+   this value as fitting any type, or accordingly to specific semantics of each
+   method.
 find_argument_type value:Any infer_precise_type:Boolean=True -> Value_Type =
     case Column.is_column value of
         False -> most_specific_value_type value use_smallest=True
@@ -200,16 +210,24 @@ find_argument_type value:Any infer_precise_type:Boolean=True -> Value_Type =
             col_type = as_column.value_type
             if infer_precise_type && col_type == Value_Type.Mixed then as_column.inferred_precise_value_type else col_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Addition_Kind
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Numeric_Add
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Text_Concat
 
-## Returns the operation kind based on types of the inputs, or an error if the inferred kinds are incompatible.
-   If both inputs are Null, it is impossible to tell the kind, so Nothing is returned and the caller may decide what to do.
+## Returns the operation kind based on types of the inputs, or an error if the
+   inferred kinds are incompatible.
+   If both inputs are Null, it is impossible to tell the kind, so Nothing is
+   returned and the caller may decide what to do.
 private resolve_operation_kind arg1:Any arg2:Any operation_name:Text find_operation_kind:(Value_Type -> Any) -> Any | Nothing =
     kinds = [arg1, arg2]
         . map on_problems=No_Wrap.Value find_operation_kind
@@ -219,7 +237,9 @@ private resolve_operation_kind arg1:Any arg2:Any operation_name:Text find_operat
         if kinds.length > 1 then Error.throw (Illegal_Argument.Error ("Cannot perform "+operation_name+" on a pair of values of types " + (find_argument_type arg1).to_display_text + " and " + (find_argument_type arg2).to_display_text + ".")) else
             kinds.first
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper which resolves if numeric addition or string concatenation should be
    used when the a `+` operator is used with the two provided types.
    It will return an error if the provided types are incompatible.
@@ -232,21 +252,33 @@ resolve_addition_kind arg1 arg2 -> Addition_Kind | Nothing =
                     raise_unexpected_type "numeric or text" arg
     resolve_operation_kind arg1 arg2 "addition" find_addition_kind
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Subtraction_Kind
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Numeric_Subtract
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Date_Difference
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Date_Time_Difference
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Time_Of_Day_Difference
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper which resolves if numeric subtraction or date-time difference should
    be used when the a `-` operator is used with the two provided types.
    It will return an error if the provided types are incompatible.
@@ -262,30 +294,35 @@ resolve_subtraction_kind arg1 arg2 -> Subtraction_Kind | Nothing =
 
     resolve_operation_kind arg1 arg2 "subtraction" find_subtraction_kind
 
-## PRIVATE
-   Checks that both provided arguments have numeric type and runs the action
-   if they do.
+## ---
+   private: true
+   ---
+   Checks that both provided arguments have numeric type and runs the action if
+   they do.
 check_binary_numeric_op arg1 arg2 ~action =
     Value_Type.expect_numeric arg1 <|
         Value_Type.expect_numeric arg2 <|
             action
 
-## PRIVATE
-   Checks that both provided arguments have boolean type and runs the action
-   if they do.
+## ---
+   private: true
+   ---
+   Checks that both provided arguments have boolean type and runs the action if
+   they do.
 check_binary_boolean_op arg1 arg2 ~action =
     Value_Type.expect_boolean arg1 <|
         Value_Type.expect_boolean arg2 <|
             action
 
-## PRIVATE
-   Checks that all provided argument are comparable with the provided
-   column.
+## ---
+   private: true
+   ---
+   Checks that all provided argument are comparable with the provided column.
 
-   Arguments:
-   - column: the column to compare the arguments to.
-   - arg_or_args: a single value or column or a vector of values or columns.
-   - action: the action to run if the arguments are compatible.
+   ## Arguments
+    - `column`: the column to compare the arguments to.
+    - `arg_or_args`: a single value or column or a vector of values or columns.
+    - `action`: the action to run if the arguments are compatible.
 check_multi_argument_comparable_op column arg_or_args ~action =
     args = Vector.unify_vector_or_element arg_or_args
     checked = args.map on_problems=No_Wrap.Value arg->
@@ -294,7 +331,9 @@ check_multi_argument_comparable_op column arg_or_args ~action =
     checked.if_not_error <|
         action
 
-## PRIVATE
+## ---
+   private: true
+   ---
 raise_unexpected_type expected_type argument =
     error = case Column.is_column argument of
         True ->
@@ -304,7 +343,9 @@ raise_unexpected_type expected_type argument =
             Invalid_Value_Type.Value expected_type (find_argument_type argument) argument
     Error.throw error
 
-## PRIVATE
+## ---
+   private: true
+   ---
 find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
 find_common_type_for_arguments arguments =
     # Here we do not want to infer the more precise type for a Mixed column, because we want it to stay Mixed.
@@ -314,7 +355,9 @@ find_common_type_for_arguments arguments =
         Nothing -> Error.throw <|
             No_Common_Type.Error types related_column_name=Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if `Value_Type.Decimal` represents integers.
 private is_decimal_integer value_type = case value_type of
     Value_Type.Decimal _ scale -> (Nothing != scale) && (scale <= 0)

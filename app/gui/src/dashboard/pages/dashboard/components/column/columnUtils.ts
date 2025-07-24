@@ -62,13 +62,13 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 
 /** Return the full list of columns given the relevant current state. */
 export function getColumnList(
-  user: backend.User,
+  userPlan: backend.Plan,
   backendType: backend.BackendType,
   category: Category,
   isSearching: boolean,
 ): readonly Column[] {
   const isCloud = backendType === backend.BackendType.remote
-  const isEnterprise = user.plan === backend.Plan.enterprise
+  const isEnterprise = userPlan === backend.Plan.enterprise
   const isTrash = category.type === 'trash'
   const isRecent = category.type === 'recent'
   const isRoot = category.type === 'cloud'

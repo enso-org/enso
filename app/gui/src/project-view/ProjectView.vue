@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Backend, { EnsoPath, ProjectId } from '#/services/Backend'
+import Backend, { ProjectId } from '#/services/Backend'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { injectOpenedProjects } from '$/providers/openedProjects'
 import GraphEditor from '@/components/GraphEditor.vue'
@@ -14,6 +14,7 @@ import {
   markRaw,
   onActivated,
   onDeactivated,
+  onMounted,
   onScopeDispose,
   ref,
   toRaw,
@@ -70,6 +71,7 @@ provideVisibility(visible)
 openedProjects.registerProject(toRefs(props))
 onScopeDispose(() => openedProjects.unregisterProject(props.projectId))
 
+onMounted(() => (visible.value = true))
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
 </script>
@@ -80,7 +82,7 @@ onDeactivated(() => (visible.value = false))
       <!-- Key property is needed because of still many usages of deprecated useXStore 
        (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor
        will be no longer necessary -->
-      <GraphEditor v-if="projectId" :key="projectId" :tab="EnsoPath(projectPath)" />
+      <GraphEditor v-if="projectId" :key="projectId" />
     </WithCurrentProject>
   </div>
 </template>

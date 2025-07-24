@@ -29,16 +29,18 @@ polyglot java import org.enso.table.read.DelimitedReader.InvalidRowsBehavior
 polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.read.QuoteStrippingParser
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads a delimited file according to the provided format.
 
-   Arguments:
-   - format: The specification of the delimited file format.
-   - file: The file to read.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
+   ## Arguments
+    - `format`: The specification of the delimited file format.
+    - `file`: The file to read.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
 read_file : Delimited_Format -> File -> Problem_Behavior -> Any
 read_file format file on_problems:Problem_Behavior =
     ## We use the default `max_columns` setting. If we want to be able to
@@ -52,49 +54,54 @@ read_file format file on_problems:Problem_Behavior =
     result.catch Mismatched_Quote error->
         Error.throw (File_Error.Corrupted_Format file error.to_display_text error)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
 read_text text format on_problems:Problem_Behavior =
     java_reader = StringReader.new text
     read_from_reader format java_reader on_problems
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads an input stream according to the provided format.
 
-   Arguments:
-   - format: The specification of the delimited file format.
-   - stream: An `Input_Stream` to be used as the data source.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-   - max_columns: Specifies the limit of columns to read. The limit is set to
-     avoid `OutOfMemory` errors on malformed files. It must be a positive
-     integer.
-   - related_file: The file related to the provided `java_stream`, if available,
-     or `Nothing`. It is used for more detailed error reporting.
+   ## Arguments
+    - `format`: The specification of the delimited file format.
+    - `stream`: An `Input_Stream` to be used as the data source.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
+    - `max_columns`: Specifies the limit of columns to read. The limit is set to
+      avoid `OutOfMemory` errors on malformed files. It must be a positive
+      integer.
+    - `related_file`: The file related to the provided `java_stream`, if
+      available, or `Nothing`. It is used for more detailed error reporting.
 read_stream : Delimited_Format -> Input_Stream -> Problem_Behavior -> Integer -> File | Nothing -> Any
 read_stream format stream on_problems:Problem_Behavior max_columns=default_max_columns related_file=Nothing =
     handle_io_exception related_file <|
         stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
             read_from_reader format reporting_stream_decoder on_problems max_columns
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads data from the provided `Reader` according to the provided format.
+   The `encoding` parameter is ignored, instead the provided reader should handle
+   any necessary decoding.
 
-   The `encoding` parameter is ignored, instead the provided reader should
-   handle any necessary decoding.
-
-   Arguments:
-   - format: The specification of the delimited file format.
-   - java_reader: A Java `Reader` used as the source of decoded characters.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-   - max_columns: Specifies the limit of columns to read. The limit is set to
-     avoid `OutOfMemory` errors on malformed files. It must be a positive
-     integer.
+   ## Arguments
+    - `format`: The specification of the delimited file format.
+    - `java_reader`: A Java `Reader` used as the source of decoded characters.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
+    - `max_columns`: Specifies the limit of columns to read. The limit is set to
+      avoid `OutOfMemory` errors on malformed files. It must be a positive
+      integer.
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems:Problem_Behavior max_columns=4096 =
     Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
@@ -103,7 +110,9 @@ read_from_reader format java_reader on_problems:Problem_Behavior max_columns=409
             java_table = reader.read java_reader
             format.row_limit.attach_warning (from_java_table java_table)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior java_problem_aggregator newline_override=Nothing =
     java_headers = case format.headers of
         Headers.Has_Headers -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
@@ -135,38 +144,45 @@ prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior 
     warnings_as_errors = on_problems == Problem_Behavior.Report_Error
     DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser on_invalid_rows_java newline format.comment_character warnings_as_errors java_problem_aggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An internal type representing columns deduced from an existing file.
 type Detected_Headers
     ## Represents the headers found in the file.
     Existing (column_names : Vector Text)
 
-    ## Indicates that the file exists but no headers have been found,
-       so only positional column matching is possible.
-
+    ## Indicates that the file exists but no headers have been found, so only
+       positional column matching is possible.
        Note that the file may still contain rows that have less or more columns
        than specified here. This column count is only based on the first row.
     None (column_count : Integer)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Detected_File_Metadata
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An internal type representing metadata describing the format of a specific
        Delimited file.
 
-       Arguments:
-       - headers: headers present in the file.
-       - line_separator: line separator detected from file contents, if any.
-       - ends_with_newline: specifies if the last line ends with a line
-         separator that is consistent with the detected one.
-       - has_any_content: specifies if the file contains any content.
-       - detected_encoding: the encoding that would be used if reading the file.
-         If a specific encoding was set in the configuration, it will be passed
-         unchanged. However, if `Encoding.default` was used, this will contain
-         the detected encoding that was chosen.
+       ## Arguments
+        - `headers`: headers present in the file.
+        - `line_separator`: line separator detected from file contents, if any.
+        - `ends_with_newline`: specifies if the last line ends with a line
+          separator that is consistent with the detected one.
+        - `has_any_content`: specifies if the file contains any content.
+        - `detected_encoding`: the encoding that would be used if reading the
+          file. If a specific encoding was set in the configuration, it will be
+          passed unchanged. However, if `Encoding.default` was used, this will
+          contain the detected encoding that was chosen.
     Value (headers : Detected_Headers | Nothing) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean) (detected_encoding : Encoding)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads the beginning of the file to detect the existing headers and column
    count.
 detect_metadata : File -> Delimited_Format -> Detected_File_Metadata
@@ -213,9 +229,10 @@ detect_metadata file format =
             Detected_File_Metadata.Value Nothing Nothing False False default_encoding
         _ -> Error.throw error
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if the file has a newline at the end.
-
    Returns the newline sequence if found, `Nothing` otherwise.
 newline_at_eof : File -> Encoding -> Text|Nothing
 newline_at_eof file encoding =
@@ -228,7 +245,9 @@ newline_at_eof file encoding =
         bytes == (file_last_bytes.take (..Last bytes.length))
     result.first
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_parsing_failure ~action =
     translate_parsing_failure caught_panic =
         Error.throw (Java_Problems.translate_problem caught_panic.payload.problem)
@@ -239,7 +258,9 @@ handle_parsing_failure ~action =
             action
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_parsing_exception =
     translate_parsing_exception caught_panic =
         case caught_panic.payload.getCause of
@@ -247,9 +268,13 @@ handle_parsing_exception =
             _ -> Error.throw (Parser_Error.Error caught_panic.payload)
     Panic.catch TextParsingException handler=translate_parsing_exception
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_io_exception related_file ~action = Panic.catch IOException action cause->
     File_Error.wrap_io_exception related_file cause.payload
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_max_columns = 4096

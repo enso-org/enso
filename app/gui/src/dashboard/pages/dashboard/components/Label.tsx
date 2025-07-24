@@ -6,7 +6,13 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Label as BackendLabel } from '#/services/Backend'
 import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
+import {
+  forwardRef,
+  type DragEvent,
+  type ForwardedRef,
+  type MouseEvent,
+  type PropsWithChildren,
+} from 'react'
 
 const MAXIMUM_LIGHTNESS_FOR_DARK_COLORS = 50
 
@@ -28,7 +34,10 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
 }
 
 /** An label that can be applied to an asset. */
-export default function Label(props: InternalLabelProps) {
+export default forwardRef(function Label(
+  props: InternalLabelProps,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
   const { active = false, isDisabled = false, color, draggable, title } = props
   const { onPress, onDragStart, onContextMenu, label, onDelete } = props
   const { children: childrenRaw } = props
@@ -47,7 +56,7 @@ export default function Label(props: InternalLabelProps) {
 
   return (
     <FocusRing within placement="after">
-      <div className="relative rounded-full">
+      <div ref={ref} className="relative rounded-full">
         {/* An `aria.Button` MUST NOT be used here, as it breaks dragging. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
         <button
@@ -91,4 +100,4 @@ export default function Label(props: InternalLabelProps) {
       </div>
     </FocusRing>
   )
-}
+})

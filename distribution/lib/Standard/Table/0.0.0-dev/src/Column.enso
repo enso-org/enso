@@ -28,1234 +28,1441 @@ from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Va
 type Column
     private Value underlying implementation
 
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Creates a new column given a name and a vector of elements.
 
-       Arguments:
-       - name: The name of the column to create.
-       - items: The elements to contain in the column.
-       - value_type: The type of the values in the column. If `Auto`, the type
-         will be inferred from the items in the column.
+       ## Arguments
+        - `name`: The name of the column to create.
+        - `items`: The elements to contain in the column.
+        - `value_type`: The type of the values in the column. If `Auto`, the type
+          will be inferred from the items in the column.
 
-       ! Error Conditions
+       ## Examples
+       ### Create a new column called "My Column" from a vector of numbers.
 
-         - If some values in `items` do not match the `value_type`, an
-           `Invalid_Value_Type` error is raised.
-         - With the default `value_type` of `Auto`, no errors should occur.
-
-       > Example
-         Create a new column called "My Column" from a vector of numbers.
-
+       ```
              from Standard.Table import Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
+       ```
+
+       ## Errors
+        - If some values in `items` do not match the `value_type`, an
+          `Invalid_Value_Type` error is raised.
+        - With the default `value_type` of `Auto`, no errors should occur.
     from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column | Any ! Invalid_Value_Type =
         In_Memory_Column.from_vector name items value_type
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a new column given a name and an element repeated over and over.
 
-       Arguments:
-       - name: The name of the column to create.
-       - item: The element to repeat in the column.
-       - repeats: The number of times to repeat the element.
+       ## Arguments
+        - `name`: The name of the column to create.
+        - `item`: The element to repeat in the column.
+        - `repeats`: The number of times to repeat the element.
     from_repeated_item name:Text item:Any repeats:Integer -> Column | Any =
         In_Memory_Column.from_repeated_item name item repeats
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if the given object represents a Column type.
     is_column object -> Boolean =
         Panic.catch Type_Error handler=_->False <|
             _ = object:Column
             True
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns a text containing an ASCII-art table displaying this data.
 
-       Arguments:
-       - show_rows: the number of initial rows that should be displayed.
-       - format_terminal: whether ANSI-terminal formatting should be used
+       ## Arguments
+        - `show_rows`: the number of initial rows that should be displayed.
+        - `format_terminal`: whether ANSI-terminal formatting should be used
 
-       > Example
-         Convert a column to a pretty-printed text representation.
+       ## Examples
+       ### Convert a column to a pretty-printed text representation.
 
+       ```
              import Standard.Examples
 
              example_display = Examples.integer_column.display
+       ```
     display self show_rows:Integer=10 format_terminal:Boolean=False -> Text =
         self.implementation.display self show_rows format_terminal
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Prints an ASCII-art table with this data to the standard output.
 
-       Arguments:
-       - show_rows: the number of initial rows that should be displayed.
+       ## Arguments
+        - `show_rows`: the number of initial rows that should be displayed.
 
-       > Example
-         Convert a column to a pretty-printed text representation and print it
+       ## Examples
+       ### Convert a column to a pretty-printed text representation and print it
          to the console.
 
+       ```
              import Standard.Examples
 
              example_display = Examples.integer_column.print
+       ```
     print self show_rows:Integer=10 -> Nothing =
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## ALIAS equals
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [equals]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise equality comparison.
-
-       Arguments:
-       - other: The value to compare `self` against. If `other` is a column, the
-         comparison is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Error Conditions
+       ## Arguments
+        - `other`: The value to compare `self` against. If `other` is a column,
+          the comparison is performed pairwise between corresponding elements of
+          `self` and `other`.
 
-         - If this operation results in comparing floating-point values for
-           equality which is not recommended, a `Floating_Point_Equality`
-           warning is attached to the result.
+       ## Examples
+       ### Compare two columns for pairwise equality.
 
-       > Example
-         Compare two columns for pairwise equality.
-
+       ```
              import Standard.Examples
 
              example_eq = Examples.integer_column == Examples.decimal_column
 
-       > Example
-         Compare a column with a number.
+       ```
 
+       ### Compare a column with a number.
+
+       ```
              import Standard.Examples
 
              example_eq = Examples.integer_column == 1
+       ```
+
+       ## Errors
+        - If this operation results in comparing floating-point values for
+          equality which is not recommended, a `Floating_Point_Equality` warning
+          is attached to the result.
     == self (other : Column | Any) -> Column | Any =
         self.implementation.equals self other
 
-    ## GROUP Standard.Base.Logical
-       ICON operators
+    ## ---
+       group: Standard.Base.Logical
+       icon: operators
+       ---
        Element-wise case-insensitive text equality comparison.
-
-       Arguments:
-       - other: The value to compare `self` against. If `other` is a column, the
-         comparison is performed pairwise between corresponding elements of
-         `self` and `other`.
-       - locale: The locale to use for the case-insensitive comparison.
 
        Returns a column with results of comparing this column's elements against
        `other`.
+
+       ## Arguments
+        - `other`: The value to compare `self` against. If `other` is a column,
+          the comparison is performed pairwise between corresponding elements of
+          `self` and `other`.
+        - `locale`: The locale to use for the case-insensitive comparison.
     @locale Locale.default_widget
     equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column | Any =
         self.implementation.equals_ignore_case self other locale
 
-    ## ALIAS not equals
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [not equals]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise non-equality comparison.
-
-       Arguments:
-       - other: The value to compare `self` against. If `other` is a column, the
-         comparison is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Error Conditions
+       ## Arguments
+        - `other`: The value to compare `self` against. If `other` is a column,
+          the comparison is performed pairwise between corresponding elements of
+          `self` and `other`.
 
-         - If this operation results in comparing floating-point values for
-           equality which is not recommended, a `Floating_Point_Equality`
-           warning is attached to the result.
+       ## Examples
+       ### Compare two columns for pairwise inequality.
 
-       > Example
-         Compare two columns for pairwise inequality.
-
+       ```
              import Standard.Examples
 
              example_neq = Examples.integer_column != Examples.decimal_column
 
-       > Example
-         Compare a column with a number.
+       ```
 
+       ### Compare a column with a number.
+
+       ```
              import Standard.Examples
 
              example_neq = Examples.integer_column != 1
+       ```
+
+       ## Errors
+        - If this operation results in comparing floating-point values for
+          equality which is not recommended, a `Floating_Point_Equality` warning
+          is attached to the result.
     != self (other : Column | Any) -> Column | Any =
         self.implementation.not_equals self other
 
-    ## ALIAS greater than or equal
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [greater than or equal]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise order comparison.
-
-       Arguments:
-       - other: The value to compare `self` against. If `other` is a column, the
-         comparison is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       > Example
-         Compare two columns for pairwise greater-than-or-equal.
+       ## Arguments
+        - `other`: The value to compare `self` against. If `other` is a column,
+          the comparison is performed pairwise between corresponding elements of
+          `self` and `other`.
 
+       ## Examples
+       ### Compare two columns for pairwise greater-than-or-equal.
+
+       ```
              import Standard.Examples
 
              example_geq = Examples.integer_column >= Examples.decimal_column
 
-       > Example
-         Compare a column with a number.
+       ```
 
+       ### Compare a column with a number.
+
+       ```
              import Standard.Examples
 
              example_geq = Examples.integer_column >= 1
+       ```
     >= self (other : Column | Any) -> Column | Any =
         self.implementation.greater_than_eq self other
 
-    ## ALIAS less than or equal
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [less than or equal]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise order comparison.
-
-       Arguments:
-       - other: The value to compare `self` against. If `other` is a column, the
-         comparison is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       > Example
-         Compare two columns for pairwise less-than-or-equal.
+       ## Arguments
+        - `other`: The value to compare `self` against. If `other` is a column,
+          the comparison is performed pairwise between corresponding elements of
+          `self` and `other`.
 
+       ## Examples
+       ### Compare two columns for pairwise less-than-or-equal.
+
+       ```
              import Standard.Examples
 
              example_leq = Examples.integer_column <= Examples.decimal_column
 
-       > Example
-         Compare a column with a number.
+       ```
 
+       ### Compare a column with a number.
+
+       ```
              import Standard.Examples
 
              example_leq = Examples.integer_column <= 1
+       ```
     <= self (other : Column | Any) -> Column | Any =
         self.implementation.less_than_eq self other
 
-    ## ALIAS greater than
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [greater than]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise order comparison.
-
-       Arguments:
-       - other: The value to compare `self` against. If `other` is a column, the
-         comparison is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       > Example
-         Compare two columns for pairwise greater-than.
+       ## Arguments
+        - `other`: The value to compare `self` against. If `other` is a column,
+          the comparison is performed pairwise between corresponding elements of
+          `self` and `other`.
 
+       ## Examples
+       ### Compare two columns for pairwise greater-than.
+
+       ```
              import Standard.Examples
 
              example_gt = Examples.integer_column > Examples.decimal_column
 
-       > Example
-         Compare a column with a number.
+       ```
 
+       ### Compare a column with a number.
+
+       ```
              import Standard.Examples
 
              example_gt = Examples.integer_column > 1
+       ```
     > self (other : Column | Any) -> Column | Any =
         self.implementation.greater_than self other
 
-    ## ALIAS less than
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [less than]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise order comparison.
-
-       Arguments:
-       - other: The value to compare `self` against. If `other` is a column, the
-         comparison is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       > Example
-         Compare two columns for pairwise less-than.
+       ## Arguments
+        - `other`: The value to compare `self` against. If `other` is a column,
+          the comparison is performed pairwise between corresponding elements of
+          `self` and `other`.
 
+       ## Examples
+       ### Compare two columns for pairwise less-than.
+
+       ```
              import Standard.Examples
 
              example_lt = Examples.integer_column < Examples.decimal_column
 
-       > Example
-         Compare a column with a number.
+       ```
 
+       ### Compare a column with a number.
+
+       ```
              import Standard.Examples
 
              example_lt = Examples.integer_column < 1
+       ```
     < self (other : Column | Any) -> Column | Any =
         self.implementation.less_than self other
 
-    ## GROUP Standard.Base.Logical
-       ICON operators
+    ## ---
+       group: Standard.Base.Logical
+       icon: operators
+       ---
        Element-wise inclusive bounds check.
-
-       Arguments:
-       - lower: The lower bound to compare elements of `self` against. If
-         `lower` is a column, the comparison is performed pairwise between
-         corresponding elements of `self` and `lower`.
-       - upper: The upper bound to compare elements of `self` against. If
-         `upper` is a column, the comparison is performed pairwise between
-         corresponding elements of `self` and `upper`.
 
        Returns a column with boolean values indicating whether values of this
        column fit between the lower and upper bounds (both ends inclusive).
+
+       ## Arguments
+        - `lower`: The lower bound to compare elements of `self` against. If
+          `lower` is a column, the comparison is performed pairwise between
+          corresponding elements of `self` and `lower`.
+        - `upper`: The upper bound to compare elements of `self` against. If
+          `upper` is a column, the comparison is performed pairwise between
+          corresponding elements of `self` and `upper`.
     between self (lower : Column | Any) (upper : Column | Any) -> Column | Any =
         self.implementation.between self lower upper
 
-    ## ALIAS add, concatenate, plus
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [add, concatenate, plus]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise addition. Works on numeric types or text.
-
-       Arguments:
-       - other: The value to add to `self`. If `other` is a column, the addition
-         is performed pairwise between corresponding elements of `self` and
-         `other`.
 
        Returns a column with results of adding `other` from each element of
        `self`.
 
-       ? Arithmetic Overflow
+       ## Arguments
+        - `other`: The value to add to `self`. If `other` is a column, the
+          addition is performed pairwise between corresponding elements of `self`
+          and `other`.
 
-         For integer columns, the operation may yield results that will not fit
-         into the range supported by the column. In such case, the in-memory
-         backend will replace such results with `Nothing` and report a
-         `Arithmetic_Overflow` warning. The behaviour in Database backends is
-         not specified and will depend on the particular database - it may
-         cause a hard error, the value may be truncated or wrap-around etc.
+       ## Examples
+       ### Add two columns to each other.
 
-       > Example
-         Add two columns to each other.
-
+       ```
              import Standard.Examples
 
              example_plus = Examples.decimal_column + Examples.integer_column
 
-       > Example
-         Add a single value to each item in a column.
+       ```
 
+       ### Add a single value to each item in a column.
+
+       ```
              import Standard.Examples
 
              example_plus = Examples.integer_column + 10
+       ```
+
+       ## Remarks
+
+       ### Arithmetic Overflow
+       For integer columns, the operation may yield results that will not fit
+       into the range supported by the column. In such case, the in-memory
+       backend will replace such results with `Nothing` and report a
+       `Arithmetic_Overflow` warning. The behaviour in Database backends is not
+       specified and will depend on the particular database - it may cause a hard
+       error, the value may be truncated or wrap-around etc.
     + self (other : Column | Any) -> Column | Any =
         self.implementation.add self other
 
-    ## ALIAS minus, subtract, time difference
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [minus, subtract, time difference]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise subtraction. Allows to subtract numeric types or compute a
        difference between two date/time values.
-
-       Arguments:
-       - other: The value to subtract from `self`. If `other` is a column, the
-         subtraction is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column with results of subtracting `other` from each element of
        `self`.
 
-       ? Arithmetic Overflow
+       ## Arguments
+        - `other`: The value to subtract from `self`. If `other` is a column, the
+          subtraction is performed pairwise between corresponding elements of
+          `self` and `other`.
 
-         For integer columns, the operation may yield results that will not fit
-         into the range supported by the column. In such case, the in-memory
-         backend will replace such results with `Nothing` and report a
-         `Arithmetic_Overflow` warning. The behaviour in Database backends is
-         not specified and will depend on the particular database - it may
-         cause a hard error, the value may be truncated or wrap-around etc.
+       ## Examples
+       ### Subtract one column from another.
 
-       > Example
-         Subtract one column from another.
-
+       ```
              import Standard.Examples
 
              example_minus = Examples.decimal_column - Examples.integer_column
 
-       > Example
-         Subtract a single value from each item in a column.
+       ```
 
+       ### Subtract a single value from each item in a column.
+
+       ```
              import Standard.Examples
 
              example_minus = Examples.integer_column - 10
+       ```
+
+       ## Remarks
+
+       ### Arithmetic Overflow
+       For integer columns, the operation may yield results that will not fit
+       into the range supported by the column. In such case, the in-memory
+       backend will replace such results with `Nothing` and report a
+       `Arithmetic_Overflow` warning. The behaviour in Database backends is not
+       specified and will depend on the particular database - it may cause a hard
+       error, the value may be truncated or wrap-around etc.
     - self (other : Column | Any) -> Column | Any =
         self.implementation.minus self other
 
-    ## ALIAS multiply, product, times
-       GROUP Standard.Base.Operators
-       ICON math
+    ## ---
+       aliases: [multiply, product, times]
+       group: Standard.Base.Operators
+       icon: math
+       ---
        Element-wise multiplication.
-
-       Arguments:
-       - other: The value to multiply `self` by. If `other` is a column, the
-         multiplication is performed pairwise between corresponding elements of
-         `self` and `other`.
 
        Returns a column containing the result of multiplying each element of
        `self` by `other`.
 
-       ? Arithmetic Overflow
+       ## Arguments
+        - `other`: The value to multiply `self` by. If `other` is a column, the
+          multiplication is performed pairwise between corresponding elements of
+          `self` and `other`.
 
-         For integer columns, the operation may yield results that will not fit
-         into the range supported by the column. In such case, the in-memory
-         backend will replace such results with `Nothing` and report a
-         `Arithmetic_Overflow` warning. The behaviour in Database backends is
-         not specified and will depend on the particular database - it may
-         cause a hard error, the value may be truncated or wrap-around etc.
+       ## Examples
+       ### Multiply the elements of two columns together.
 
-       > Example
-         Multiply the elements of two columns together.
-
+       ```
              import Standard.Examples
 
              example_mul = Examples.decimal_column * Examples.integer_column
+       ```
 
-       > Example
-         Multiply each value in a column by a single value.
+       ### Multiply each value in a column by a single value.
 
+       ```
              import Standard.Examples
 
              example_mul = Examples.integer_column * 10
+       ```
+
+       ## Remarks
+
+       ### Arithmetic Overflow
+       For integer columns, the operation may yield results that will not fit
+       into the range supported by the column. In such case, the in-memory
+       backend will replace such results with `Nothing` and report a
+       `Arithmetic_Overflow` warning. The behaviour in Database backends is not
+       specified and will depend on the particular database - it may cause a hard
+       error, the value may be truncated or wrap-around etc.
     * self (other : Column | Any) -> Column | Any =
         self.implementation.multiply self other
 
-    ## ALIAS divide
-       GROUP Standard.Base.Operators
-       ICON math
+    ## ---
+       aliases: [divide]
+       group: Standard.Base.Operators
+       icon: math
+       ---
        Element-wise division.
-
-       Arguments:
-       - other: The value to divide `self` by. If `other` is a column, the
-         division is performed pairwise between corresponding elements of `self`
-         and `other`.
 
        Returns a column containing the result of dividing each element of `self`
        by `other`.
 
-       ! Error Conditions
+       ## Arguments
+        - `other`: The value to divide `self` by. If `other` is a column, the
+          division is performed pairwise between corresponding elements of `self`
+          and `other`.
 
-         - If division by zero occurs, an `Arithmetic_Error` warning is attached
-           to the result.
+       ## Examples
+       ### Divide the elements of one column by the elements of another.
 
-       ? Arithmetic Overflow
-
-         For integer columns, the operation may yield results that will not fit
-         into the range supported by the column. In such case, the in-memory
-         backend will replace such results with `Nothing` and report a
-         `Arithmetic_Overflow` warning. The behaviour in Database backends is
-         not specified and will depend on the particular database - it may
-         cause a hard error, the value may be truncated or wrap-around etc.
-
-       > Example
-         Divide the elements of one column by the elements of another.
-
+       ```
              import Standard.Examples
 
              example_div = Examples.decimal_column / Examples.integer_column
 
-       > Example
-         Multiply each value in a column by a single value.
+       ```
 
+       ### Multiply each value in a column by a single value.
+
+       ```
              import Standard.Examples
 
              example_div = Examples.integer_column / 10
+       ```
+
+       ## Errors
+        - If division by zero occurs, an `Arithmetic_Error` warning is attached
+          to the result.
+
+       ## Remarks
+
+       ### Arithmetic Overflow
+       For integer columns, the operation may yield results that will not fit
+       into the range supported by the column. In such case, the in-memory
+       backend will replace such results with `Nothing` and report a
+       `Arithmetic_Overflow` warning. The behaviour in Database backends is not
+       specified and will depend on the particular database - it may cause a hard
+       error, the value may be truncated or wrap-around etc.
     / self (other : Column | Any) -> Column | Any =
         self.implementation.divide self other
 
-    ## ALIAS modulo, modulus
-       GROUP Standard.Base.Operators
-       ICON math
+    ## ---
+       aliases: [modulo, modulus]
+       group: Standard.Base.Operators
+       icon: math
+       ---
        Element-wise modulus.
-
-       Arguments:
-       - other: The value to modulo `self` against. If `other` is a column, the
-         modulus is performed pairwise between corresponding elements of `self`
-         and `other`.
 
        Returns a column with results of modulus this column's elements against
        `other`.
 
-       ! Error Conditions
+       ## Arguments
+        - `other`: The value to modulo `self` against. If `other` is a column,
+          the modulus is performed pairwise between corresponding elements of
+          `self` and `other`.
 
-         - If division by zero occurs, an `Arithmetic_Error` warning is attached
-           to the result.
+       ## Examples
+       ### Modulus of two columns against each other.
 
-       > Example
-         Modulus of two columns against each other.
-
+       ```
              import Standard.Examples
 
              example_mod = Examples.integer_column % Examples.decimal_column
+       ```
 
-       > Example
-         Modulus of a column with a number.
+       ### Modulus of a column with a number.
 
+       ```
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
+       ```
+
+       ## Errors
+        - If division by zero occurs, an `Arithmetic_Error` warning is attached
+          to the result.
     % self (other : Column | Any) -> Column | Any =
         self.implementation.modulus self other
 
-    ## ALIAS power
-       GROUP Standard.Base.Operators
-       ICON math
+    ## ---
+       aliases: [power]
+       group: Standard.Base.Operators
+       icon: math
+       ---
        Element-wise raising to the power.
-
-       Arguments:
-       - other: The exponent to raise `self` by. If `other` is a column, the
-         power operation is performed pairwise between corresponding elements
-         of `self` and `other`.
 
        Returns a column containing the result of raising each element of `self`
        by `other`.
 
-       ? Arithmetic Overflow
+       ## Arguments
+        - `other`: The exponent to raise `self` by. If `other` is a column, the
+          power operation is performed pairwise between corresponding elements of
+          `self` and `other`.
 
-         For integer columns, the operation may yield results that will not fit
-         into the range supported by the column. In such case, the in-memory
-         backend will replace such results with `Nothing` and report a
-         `Arithmetic_Overflow` warning. The behaviour in Database backends is
-         not specified and will depend on the particular database - it may
-         cause a hard error, the value may be truncated or wrap-around etc.
+       ## Examples
+       ### Squares the elements of one column.
 
-       > Example
-         Squares the elements of one column.
-
+       ```
              import Standard.Examples
 
              example_div = Examples.decimal_column ^ 2
+       ```
 
-       > Example
-         Raises each value in a column by the value in another column.
+       ### Raises each value in a column by the value in another column.
 
+       ```
              import Standard.Examples
 
              example_div = Examples.decimal_column ^ Examples.integer_column
+       ```
+
+       ## Remarks
+
+       ### Arithmetic Overflow
+       For integer columns, the operation may yield results that will not fit
+       into the range supported by the column. In such case, the in-memory
+       backend will replace such results with `Nothing` and report a
+       `Arithmetic_Overflow` warning. The behaviour in Database backends is not
+       specified and will depend on the particular database - it may cause a hard
+       error, the value may be truncated or wrap-around etc.
     ^ self (other : Column | Any) -> Column | Any =
         self.implementation.power self other
 
-    ## ALIAS and
-       GROUP Standard.Base.Operators
-       ICON operators
+    ## ---
+       aliases: [and]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise boolean conjunction.
 
-       Arguments:
-       - other: The value to compute the conjunction of `self` with. If `other`
-         is a column, the conjunction is performed pairwise between
-         corresponding elements of `self` and `other`.
+       Returns a column containing the result of performing boolean `and` on each
+       element of `self` and `other`.
 
-       Returns a column containing the result of performing boolean `and` on
-       each element of `self` and `other`.
+       ## Arguments
+        - `other`: The value to compute the conjunction of `self` with. If
+          `other` is a column, the conjunction is performed pairwise between
+          corresponding elements of `self` and `other`.
 
-       > Example
-         Compute the pairwise logical conjunction to two columns.
+       ## Examples
+       ### Compute the pairwise logical conjunction to two columns.
 
+       ```
              import Standard.Examples
 
              example_and = Examples.bool_column_1 && Examples.bool_column_2
+       ```
 
-       > Example
-         Compute the logical conjunction of each value in a column with a single
+       ### Compute the logical conjunction of each value in a column with a single
          value.
 
+       ```
              import Standard.Examples
 
              example_and = Examples.bool_column_1 && True
+       ```
     && self (other : Column | Any) -> Column | Any =
         self.implementation.and self other
 
-    ## ALIAS or
-       GROUP Standard.Base.Operators
-       ICON operators
-
+    ## ---
+       aliases: [or]
+       group: Standard.Base.Operators
+       icon: operators
+       ---
        Element-wise boolean disjunction.
-
-       Arguments:
-       - other: The value to compute the disjunction of `self` with. If `other`
-         is a column, the disjunction is performed pairwise between
-         corresponding elements of `self` and `other`.
 
        Returns a column containing the result of performing the boolean `or` on
        each element of `self` and `other`.
 
-       > Example
-         Compute the pairwise logical disjunction to two columns.
+       ## Arguments
+        - `other`: The value to compute the disjunction of `self` with. If
+          `other` is a column, the disjunction is performed pairwise between
+          corresponding elements of `self` and `other`.
 
+       ## Examples
+       ### Compute the pairwise logical disjunction to two columns.
+
+       ```
              import Standard.Examples
 
              example_or = Examples.bool_column_1 || Examples.bool_column_2
 
-       > Example
-         Compute the logical disjunction of each value in a column with a single
+       ```
+
+       ### Compute the logical disjunction of each value in a column with a single
          value.
 
+       ```
              import Standard.Examples
 
              example_or = Examples.bool_column_1 || True
+       ```
     || self (other : Column | Any) -> Column | Any =
         self.implementation.or self other
 
-    ## ALIAS not
-       GROUP Standard.Base.Logical
-       ICON operators
-
+    ## ---
+       aliases: [not]
+       group: Standard.Base.Logical
+       icon: operators
+       ---
        Boolean negation of each element in self column.
 
-       > Example
-         Negate the elements of a column.
+       ## Examples
+       ### Negate the elements of a column.
 
+       ```
              import Standard.Examples
 
              example_not = Examples.bool_column_1.not
+       ```
     not self -> Column | Any =
         self.implementation.not self
 
-    ## ALIAS if
-       GROUP Standard.Base.Logical
-       ICON preparation
-
+    ## ---
+       aliases: [if]
+       group: Standard.Base.Logical
+       icon: preparation
+       ---
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
 
-       Arguments:
-       - when_true: value or column when `self` is `True`.
-       - when_false: value or column when `self` is `False`.
+       ## Arguments
+        - `when_true`: value or column when `self` is `True`.
+        - `when_false`: value or column when `self` is `False`.
 
-       > Example
-         If the value in a column is `True`, replace it with `1`, otherwise `0`.
+       ## Examples
+       ### If the value in a column is `True`, replace it with `1`, otherwise `0`.
 
+       ```
              import Standard.Examples
 
              example_if = Examples.bool_column_1.iif 1 0
+       ```
     iif self (when_true : Column | Any) (when_false : Column | Any) -> Column | Any =
         self.implementation.iif self when_true when_false
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Creates a column from a single constant value.
-
        This method is not static; it must be called on an existing column. That
        existing column is only used for its internal state; the contents of the
        column are not used.
 
-       Arguments:
-       - value: the constant value to use for the entire column.
+       ## Arguments
+        - `value`: the constant value to use for the entire column.
 
-       > Example
-         Create a column of the value 42
+       ## Examples
+       ### Create a column of the value 42
 
          column.const 42
     const self value:Any -> Column | Any =
         self.to_table.make_constant_column value
 
-    ## GROUP Standard.Base.Math
-       ICON math
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
        Round the values in a numeric column to a specified number of decimal
        places.
-
        For integers, rounding to 0 or more decimal places simply returns the
        argument. For negative decimal places, see below.
+       By default, rounding uses "asymmetric round-half-up", also known as "round
+       towards positive infinity." If rounding_mode=Rounding_Mode.Bankers, then
+       it uses "round-half-even", also known as "banker's rounding".
+       If the column is of type `Float` and `decimal_places` > 0, `round` returns
+       a column of `Float`; otherwise, it returns a column of `Integer`.
 
-       By default, rounding uses "asymmetric round-half-up", also known as
-       "round towards positive infinity." If rounding_mode=Rounding_Mode.Bankers, then it uses
-       "round-half-even", also known as "banker's rounding".
+       ## Arguments
+        - `decimal_places`: The number of decimal places to round to. Can be
+          negative, which results in rounding to positive integer powers of 10.
+          Must be between -15 and 15 (inclusive).
+        - `rounding_mode`: specifies how to break ties for the least significant
+          digit.
+        - `on_problems`: Specifies how to handle if a problem occurs, raising as
+          a warning by default.
 
-       If the column is of type `Float` and `decimal_places` > 0, `round`
-       returns a column of `Float`; otherwise, it returns a column of
-       `Integer`.
+       ## Examples
+       ### Round a column of `Float` values`.
 
-       Arguments:
-       - decimal_places: The number of decimal places to round to. Can be
-         negative, which results in rounding to positive integer powers of 10.
-         Must be between -15 and 15 (inclusive).
-       - rounding_mode: specifies how to break ties for the least significant
-         digit.
-       - on_problems: Specifies how to handle if a problem occurs, raising as a
-         warning by default.
-
-       ! Error Conditions
-         Reports `Illegal_Argument` if the number is 15 or more decimal places.
-         Above 14 digits, it is possible that the underlying long, converted to
-         double in the rounding process, would lose precision in the least
-         significant bits.
-         (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
-
-         If `decimal_places` is outside the range -15..15 (inclusive), an
-         `Illegal_Argument` error is thrown.
-
-       ! Precision
-         As floating-point numbers are inexact, rounding can have unexpected
-         results near the precision limit (about 15 decimal places), especially
-         when rounding mid-point values. For example:
-
-         Rounding 1.2222222222222235 to 15 decimal places returns:
-         - 1.222222222222224 in Postgres.
-         - 1.222222222222223 in SQLite.
-
-       ? Negative decimal place counts
-         Rounding to `n` digits can be thought of as "rounding to the nearest
-         multiple of 10^(-n)". For negative decimal counts, this results in
-         rounding to the nearest positive integer power of 10.
-
-       ! NaN/Inf
-         If a `NaN` or `Inf` value is passed to `round`, it immediately returns
-         the same value.
-
-       ? Return type in Database
-         In databases, the return type of this operation depends on the
-         particular database backend.
-
-       > Example
-         Round a column of `Float` values`.
-
+       ```
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
+       ```
+
+       ## Errors
+       Reports `Illegal_Argument` if the number is 15 or more decimal places.
+       Above 14 digits, it is possible that the underlying long, converted to
+       double in the rounding process, would lose precision in the least
+       significant bits. (See
+       https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)  If
+       `decimal_places` is outside the range -15..15 (inclusive), an
+       `Illegal_Argument` error is thrown.
+
+       ## Remarks
+
+       ### Precision
+       As floating-point numbers are inexact, rounding can have unexpected
+       results near the precision limit (about 15 decimal places), especially
+       when rounding mid-point values. For example:
+       Rounding 1.2222222222222235 to 15 decimal places returns:
+       - 1.222222222222224 in Postgres.
+       - 1.222222222222223 in SQLite.
+
+       ### Negative decimal place counts
+       Rounding to `n` digits can be thought of as "rounding to the nearest
+       multiple of 10^(-n)". For negative decimal counts, this results in
+       rounding to the nearest positive integer power of 10.
+
+       ### NaN/Inf
+       If a `NaN` or `Inf` value is passed to `round`, it immediately returns the
+       same value.
+
+       ### Return type in Database
+       In databases, the return type of this operation depends on the particular
+       database backend.
     round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column | Any ! Illegal_Argument | Invalid_Value_Type =
         self.implementation.round self decimal_places rounding_mode
 
-    ## ALIAS int
-       GROUP Standard.Base.Rounding
-       ICON math
-
-       If the column is numeric, truncate the floating-point values to an
-       integer by dropping the fractional part. This is equivalent to
+    ## ---
+       aliases: [int]
+       group: Standard.Base.Rounding
+       icon: math
+       ---
+       If the column is numeric, truncate the floating-point values to an integer
+       by dropping the fractional part. This is equivalent to
        "round-toward-zero". If the column is of type `Date_Time`, truncates the
        values to `Date`.
 
-       ! NaN/Inf
-         If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
-         the same value.
+       ## Examples
+       ### Truncate a column of `Float` values.
 
-       > Example
-         Truncate a column of `Float` values.
-
+       ```
              Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate == (Column.from_vector "foo" [1, 2, 3])
 
-       > Example
-         Truncate a column of `Date_Time` values.
+       ```
+
+       ### Truncate a column of `Date_Time` values.
+       ```
             date_times = Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
             dates = Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
             col.truncate == dates
+       ```
+
+       ## Remarks
+
+       ### NaN/Inf
+       If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
+       the same value.
     truncate self -> Column | Any ! Invalid_Value_Type =
         self.implementation.truncate self
 
-    ## GROUP Standard.Base.Rounding
-       ICON math
+    ## ---
+       group: Standard.Base.Rounding
+       icon: math
+       ---
        Computes the nearest integer above this number for values in a numeric
        column.
-
        Returns a column of `Integer`.
 
-       ! NaN/Inf
-         If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns
-         the same value.
+       ## Examples
+       ### Take the ceiling of a column of `Float` values.
 
-       > Example
-         Take the ceiling of a column of `Float` values.
-
+       ```
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
+       ```
+
+       ## Remarks
+
+       ### NaN/Inf
+       If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns the
+       same value.
     ceil self -> Column | Any ! Invalid_Value_Type =
         self.implementation.ceil self
 
-    ## GROUP Standard.Base.Rounding
-       ICON math
+    ## ---
+       group: Standard.Base.Rounding
+       icon: math
+       ---
        Computes the nearest integer below this number for values in a numeric
        column.
-
        Returns a column of `Integer`.
 
-       ! NaN/Inf
-         If a `NaN` or `Inf` value is passed to `floor`, it immediately returns
-         the same value.
+       ## Examples
+       ### Take the floor of a column of `Float` values.
 
-       > Example
-         Take the floor of a column of `Float` values.
-
+       ```
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
+       ```
+
+       ## Remarks
+
+       ### NaN/Inf
+       If a `NaN` or `Inf` value is passed to `floor`, it immediately returns the
+       same value.
     floor self -> Column | Any ! Invalid_Value_Type =
         self.implementation.floor self
 
-    ## GROUP Standard.Base.Logical
-       ICON operators
+    ## ---
+       group: Standard.Base.Logical
+       icon: operators
+       ---
        Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
-       Arguments:
-       - values: list of columns or values to coalesce with `self`.
+       ## Arguments
+        - `values`: list of columns or values to coalesce with `self`.
 
-       > Example
-         Get the first non-`Nothing` value in two columns.
+       ## Examples
+       ### Get the first non-`Nothing` value in two columns.
 
+       ```
              import Standard.Examples
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
+       ```
     coalesce self (values : Any | Vector Any) -> Column | Any =
         self.implementation.coalesce self values
 
-    ## GROUP Standard.Base.Math
-       ICON transform4
+    ## ---
+       group: Standard.Base.Math
+       icon: transform4
+       ---
        Returns a column of minimum on each row of `self` and `values`.
 
-       Arguments:
-       - values: list of columns or values to minimum with `self`, or a single
-         column or value.
+       ## Arguments
+        - `values`: list of columns or values to minimum with `self`, or a single
+          column or value.
 
-       ? SQLite NULL handling
-         In SQLite, if any of the values is NULL, the result is NULL.
-         In all other backends the NULL values are ignored.
+       ## Examples
+       ### Get the minimum value in two columns.
 
-       > Example
-         Get the minimum value in two columns.
-
+       ```
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
+       ```
+
+       ## Remarks
+
+       ### SQLite NULL handling
+       In SQLite, if any of the values is NULL, the result is NULL.
+       In all other backends the NULL values are ignored.
     min self (values : Any | Vector Any) -> Column | Any =
         self.implementation.min self values
 
-    ## GROUP Standard.Base.Math
-       ICON transform4
+    ## ---
+       group: Standard.Base.Math
+       icon: transform4
+       ---
        Returns a column of maximum on each row of `self` and `values`.
 
-       Arguments:
-       - values: list of columns or values to maximum with `self`, or a single
-         column or value.
+       ## Arguments
+        - `values`: list of columns or values to maximum with `self`, or a single
+          column or value.
 
-       ? SQLite NULL handling
-         In SQLite, if any of the values is NULL, the result is NULL.
-         In all other backends the NULL values are ignored.
+       ## Examples
+       ### Get the maximum value in two columns.
 
-       > Example
-         Get the maximum value in two columns.
-
+       ```
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
+       ```
+
+       ## Remarks
+
+       ### SQLite NULL handling
+       In SQLite, if any of the values is NULL, the result is NULL.
+       In all other backends the NULL values are ignored.
     max self (values : Any | Vector Any) -> Column | Any =
         self.implementation.max self values
 
-    ## GROUP Standard.Base.Logical
-       ICON preparation
+    ## ---
+       group: Standard.Base.Logical
+       icon: preparation
+       ---
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
 
-       > Example
-         Check a column for missing values.
+       ## Examples
+       ### Check a column for missing values.
 
+       ```
              import Standard.Examples
 
              example_is_nothing = Examples.decimal_column.is_nothing
+       ```
     is_nothing self -> Column | Any =
         self.implementation.is_nothing_implementation self
 
-    ## GROUP Standard.Base.Math
-       ICON math
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan self -> Column | Any =
         self.implementation.is_nan self
 
-    ## GROUP Standard.Base.Math
-       ICON math
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
     is_infinite self -> Column | Any =
         self.implementation.is_infinite self
 
-    ## GROUP Standard.Base.Math
-       ICON math
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
        Returns a column of booleans, with `True` items at the positions where
-       this column contains a non-infinite, non-NaN floating point value. This
-       is only applicable to double columns.
+       this column contains a non-infinite, non-NaN floating point value. This is
+       only applicable to double columns.
     is_finite self -> Column | Any =
         self.implementation.is_finite self
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty self -> Column | Any =
         self.implementation.is_empty self
 
-    ## GROUP Standard.Base.Logical
-       ICON preparation
+    ## ---
+       group: Standard.Base.Logical
+       icon: preparation
+       ---
        Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
 
-       > Example
-         Check a column for present values.
+       ## Examples
+       ### Check a column for present values.
 
+       ```
              import Standard.Examples
 
              example_is_present = Examples.decimal_column.is_present
+       ```
     is_present self -> Column | Any =
         self.implementation.is_present self
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a column of booleans with `True` at the positions where this
        column contains a blank value.
 
-       Arguments:
-       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
-         blank.
+       ## Arguments
+        - `treat_nans_as_blank`: If `True`, then `Number.nan` is considered as
+          blank.
 
-       ? Blank values
-         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+       ## Remarks
+
+       ### Blank values
+       Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     is_blank self treat_nans_as_blank:Boolean=False -> Column | Any =
         self.implementation.is_blank self treat_nans_as_blank
 
-    ## ALIAS fill missing, if_nothing
-       GROUP Standard.Base.Values
-       ICON column_add
-
+    ## ---
+       aliases: [fill missing, if_nothing]
+       group: Standard.Base.Values
+       icon: column_add
+       ---
        Returns a new column where missing values have been replaced with the
        provided default.
 
-       Arguments:
-       - default: The value to replace missing values with. If this argument
-         is a column, the value from `default` at the corresponding position
-         will be used. If this argument is `Previous_Value`, the missing values
-         will be replaced with the previous value in the column. Note that the
-         first rows may stay `Nothing` if they do not have a previous value to
-         use.
+       ## Arguments
+        - `default`: The value to replace missing values with. If this argument
+          is a column, the value from `default` at the corresponding position
+          will be used. If this argument is `Previous_Value`, the missing values
+          will be replaced with the previous value in the column. Note that the
+          first rows may stay `Nothing` if they do not have a previous value to
+          use.
 
-       > Example
-         Fill missing values in a column with the value 20.5.
+       ## Examples
+       ### Fill missing values in a column with the value 20.5.
 
+       ```
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
+       ```
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
     fill_nothing self (default : Column | Previous_Value | Any) -> Column | Any =
         self.implementation.fill_nothing self default
 
-    ## ALIAS fill empty, if_empty
-       GROUP Standard.Base.Values
-       ICON column_add
-
+    ## ---
+       aliases: [fill empty, if_empty]
+       group: Standard.Base.Values
+       icon: column_add
+       ---
        Returns a new column where empty Text values have been replaced with the
        provided default.
 
-       Arguments:
-       - default: The value to replace empty values with. If this argument
-         is a column, the value from `default` at the corresponding position
-         will be used. If this argument is `Previous_Value`, the empty values
-         will be replaced with the previous value in the column. Note that the
-         first rows may stay empty if they do not have a previous value to use.
+       ## Arguments
+        - `default`: The value to replace empty values with. If this argument is
+          a column, the value from `default` at the corresponding position will
+          be used. If this argument is `Previous_Value`, the empty values will be
+          replaced with the previous value in the column. Note that the first
+          rows may stay empty if they do not have a previous value to use.
 
-       > Example
-         Fill empty values in a column with the value "hello".
+       ## Examples
+       ### Fill empty values in a column with the value "hello".
 
+       ```
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
+       ```
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
     fill_empty self (default : Column | Previous_Value | Any) -> Column | Any =
         self.implementation.fill_empty self default
 
-    ## GROUP Standard.Base.Text
-       ICON preparation
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
        Checks for each element of the column if it starts with `other`.
 
-       Arguments:
-       - other: The value to compare `self` with. If `other` is a column, the
-         operation is performed pairwise between corresponding elements of
-         `self` and `other`.
-       - case_sensitivity: Specifies if the text values should be compared case
-         sensitively.
+       ## Arguments
+        - `other`: The value to compare `self` with. If `other` is a column, the
+          operation is performed pairwise between corresponding elements of
+          `self` and `other`.
+        - `case_sensitivity`: Specifies if the text values should be compared
+          case sensitively.
 
-       > Example
-         Check the elements of a column for starting with the elements of
+       ## Examples
+       ### Check the elements of a column for starting with the elements of
          another column.
 
+       ```
              import Standard.Examples
 
              example_starts_with =
                 Examples.text_column_1.starts_with Examples.text_column_2
 
-       > Example
-         Check the elements of a column for starting with a value.
+       ```
 
+       ### Check the elements of a column for starting with a value.
+
+       ```
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell"
+       ```
 
-       > Example
-         Check the elements of a column for starting with a value comparing case insensitively.
+       ### Check the elements of a column for starting with a value comparing case insensitively.
 
+       ```
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
+       ```
     starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
         self.implementation.starts_with self other case_sensitivity
 
-    ## GROUP Standard.Base.Text
-       ICON preparation
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
        Checks for each element of the column if it ends with `other`.
 
-       Arguments:
-       - other: The value to compare `self` with. If `other` is a column, the
-         operation is performed pairwise between corresponding elements of
-         `self` and `other`.
-       - case_sensitivity: Specifies if the text values should be compared case
-         sensitively.
+       ## Arguments
+        - `other`: The value to compare `self` with. If `other` is a column, the
+          operation is performed pairwise between corresponding elements of
+          `self` and `other`.
+        - `case_sensitivity`: Specifies if the text values should be compared
+          case sensitively.
 
-       > Example
-         Check the elements of a column for ending with the elements of another
+       ## Examples
+       ### Check the elements of a column for ending with the elements of another
          column.
 
+       ```
              import Standard.Examples
 
              example_ends_with =
                 Examples.text_column_1.ends_with Examples.text_column_2
+       ```
 
-       > Example
-         Check the elements of a column for ending with a value.
+       ### Check the elements of a column for ending with a value.
 
+       ```
              import Standard.Examples
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
+       ```
     ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
         self.implementation.ends_with self other case_sensitivity
 
-    ## GROUP Standard.Base.Text
-       ICON preparation
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
        Calculates the text length for each element of the column.
+       In the Database backends, the default text length method of the particular
+       database is used.
+       In the in-memory backend, this will give you the grapheme length of the
+       string.
 
-       In the Database backends, the default text length method of the
-       particular database is used.
+       ## Examples
+       ### import Standard.Examples
 
-       In the in-memory backend, this will give you the grapheme length of the string.
-
-       > Example
-             import Standard.Examples
-
+       ```
              example_text_length =
                 Examples.text_column_1.text_length
+       ```
     text_length self -> Column | Any =
         self.implementation.text_length self
 
-    ## GROUP Standard.Base.Text
-       ICON preparation
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
        Gets the left n characters for each element of the column.
+       In the Database backends, the default text left method of the particular
+       database is used.
+       In the in-memory backend, this will give you the left n graphemes of the
+       string.
 
-       In the Database backends, the default text left method of the
-       particular database is used.
+       ## Examples
+       ### import Standard.Examples
 
-       In the in-memory backend, this will give you the left n graphemes of the string.
-
-       > Example
-             import Standard.Examples
-
+       ```
              example_text_length =
                 Examples.text_column_1.text_left 5
+       ```
     text_left self (n : Column | Integer) -> Column | Any =
         self.implementation.text_left self n
 
-    ## GROUP Standard.Base.Text
-       ICON preparation
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
        Gets the right n characters for each element of the column.
+       In the Database backends, the default text right method of the particular
+       database is used.
+       In the in-memory backend, this will give you the right n graphemes of the
+       string.
 
-       In the Database backends, the default text right method of the
-       particular database is used.
+       ## Examples
+       ### import Standard.Examples
 
-       In the in-memory backend, this will give you the right n graphemes of the string.
-
-       > Example
-             import Standard.Examples
-
+       ```
              example_text_length =
                 Examples.text_column_1.text_right 5
+       ```
     text_right self (n : Column | Integer) -> Column | Any =
         self.implementation.text_right self n
 
-    ## GROUP Standard.Base.Logical
-       ICON preparation
+    ## ---
+       group: Standard.Base.Logical
+       icon: preparation
+       ---
        Checks for each element of the column if it contains `other`.
 
-       Arguments:
-       - other: The value to compare `self` with. If `other` is a column, the
-         operation is performed pairwise between corresponding elements of
-         `self` and `other`.
-       - case_sensitivity: Specifies if the text values should be compared case
-         sensitively.
+       ## Arguments
+        - `other`: The value to compare `self` with. If `other` is a column, the
+          operation is performed pairwise between corresponding elements of
+          `self` and `other`.
+        - `case_sensitivity`: Specifies if the text values should be compared
+          case sensitively.
 
-       > Example
-         Check the elements of a column for containing the elements of another
+       ## Examples
+       ### Check the elements of a column for containing the elements of another
          column.
 
+       ```
              import Standard.Examples
 
              example_contains =
                  Examples.text_column_1.contains Examples.text_column_2
 
-       > Example
-         Check the elements of a column for containing a value.
+       ```
 
+       ### Check the elements of a column for containing a value.
+
+       ```
              import Standard.Examples
 
              example_contains = Examples.text_column_1.contains "hell"
+       ```
     contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
         self.implementation.contains self other case_sensitivity
 
-    ## GROUP Standard.Base.Logical
-       ICON preparation
+    ## ---
+       group: Standard.Base.Logical
+       icon: preparation
+       ---
        Checks for each element of the column if it matches an SQL-like pattern.
 
-       Arguments:
-       - pattern: The pattern to match `self` against. If it is a column, the
-         operation is performed pairwise between corresponding elements of
-         `self` and that column. The pattern is an SQL-like pattern, where
-         `%` matches any sequence of characters and `_` matches any single
-         character.
+       ## Arguments
+        - `pattern`: The pattern to match `self` against. If it is a column, the
+          operation is performed pairwise between corresponding elements of
+          `self` and that column. The pattern is an SQL-like pattern, where `%`
+          matches any sequence of characters and `_` matches any single
+          character.
 
-       > Example
-         Check if elements of a column start with 'F' and end with a dot.
+       ## Examples
+       ### Check if elements of a column start with 'F' and end with a dot.
 
+       ```
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
+       ```
     like self (pattern : Column | Text | Any) -> Column | Any =
         self.implementation.like self pattern
 
-    ## GROUP Standard.Base.Logical
-       ICON preparation
+    ## ---
+       group: Standard.Base.Logical
+       icon: preparation
+       ---
        Checks for each element of the column if it matches a regular expression.
 
-       Arguments:
-       - pattern: The pattern to match `self` against. If it is a column, the
-         operation is performed pairwise between corresponding elements of
-         `self` and that column.
+       ## Arguments
+        - `pattern`: The pattern to match `self` against. If it is a column, the
+          operation is performed pairwise between corresponding elements of
+          `self` and that column.
 
-       > Example
-         Check if elements of a column start with 'A' and end with a 'M'.
+       ## Examples
+       ### Check if elements of a column start with 'A' and end with a 'M'.
 
+       ```
              import Standard.Examples
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
+       ```
     regex_match self (pattern : Column | Text | Regex) -> Column | Any =
         self.implementation.regex_match self pattern
 
-    ## GROUP Standard.Base.Text
-       ICON text
-       This function removes the specified characters, by default any
-       whitespace, from the start, the end, or both ends of the input.
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       This function removes the specified characters, by default any whitespace,
+       from the start, the end, or both ends of the input.
 
-       Arguments:
-       - where: The location of where to trim the input. By default, this
-         function trims both ends of the input.
-       - what: A `Text` (or text `Column`) containing characters that should be
-         removed. By default, all whitespace is removed.
+       ## Arguments
+        - `where`: The location of where to trim the input. By default, this
+          function trims both ends of the input.
+        - `what`: A `Text` (or text `Column`) containing characters that should
+          be removed. By default, all whitespace is removed.
     trim self where:Location=..Both (what : Text | Column = '') -> Column | Any =
         self.implementation.trim self where what
 
-    ## ALIAS regex, substitute
-       GROUP Standard.Base.Text
-       ICON column_add
+    ## ---
+       aliases: [regex, substitute]
+       group: Standard.Base.Text
+       icon: column_add
+       ---
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row. If `term` is empty, the function returns the column unchanged.
-
-       This method follows the exact replacement semantics of the
-       `Text.replace` method.
-
+       This method follows the exact replacement semantics of the `Text.replace`
+       method.
        If regex is used the replacement string can contain references to groups
        matched. The following syntaxes are supported:
-           $0: the entire match string
-           $&: the entire match string
-           $n: the nth group
-           $&lt;foo&gt;: Named group `foo`
+       $0: the entire match string $&: the entire match string $n: the nth group
+       $&lt;foo&gt;: Named group `foo` For details on Enso's Regex syntax, see
+       the [Help
+       Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
-       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+       ## Arguments
+        - `term`: The term to find. Can be `Text`, `Regex`, or a `Column` of
+          strings.
+        - `replacement`: The text to replace matches with.
+        - `case_sensitivity`: Specifies if the text values should be compared
+          case sensitively.
+        - `only_first`: If True, only replace the first match.
 
-       Arguments:
-       - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
-         strings.
-       - replacement: The text to replace matches with.
-       - case_sensitivity: Specifies if the text values should be compared case
-         sensitively.
-       - only_first: If True, only replace the first match.
+       ## Examples
+       ### Replace dashes with underscores.
 
-       ! Backend Support
-         Each database backend supports different combinations of options:
-
-         Text:
-         +----------------+------------+----------+--------+
-         | case_sensitive | only_first | postgres | sqlite |
-         +----------------+------------+----------+--------+
-         |       t        |      f     |     ✓    |    ✓   |
-         |       t        |      t     |     ✓    |    ✓   |
-         |       f        |      f     |     ✓    |    ✗   |
-         |       f        |      t     |     ✓    |    ✓   |
-         +----------------+------------+----------+--------+
-
-         Regex:
-         +----------------+------------+----------+--------+
-         | case_sensitive | only_first | postgres | sqlite |
-         +----------------+------------+----------+--------+
-         |       t        |      f     |     ✓    |    ✗   |
-         |       t        |      t     |     ✓    |    ✗   |
-         |       f        |      f     |     ✓    |    ✗   |
-         |       f        |      t     |     ✓    |    ✗   |
-         +----------------+------------+----------+--------+
-
-         Text Column:
-         +----------------+------------+----------+--------+
-         | case_sensitive | only_first | postgres | sqlite |
-         +----------------+------------+----------+--------+
-         |       t        |      f     |     ✓    |    ✓   |
-         |       t        |      t     |     ✗    |    ✓   |
-         |       f        |      f     |     ✗    |    ✗   |
-         |       f        |      t     |     ✗    |    ✓   |
-         +----------------+------------+----------+--------+
-
-       > Example
-         Replace dashes with underscores.
-
+       ```
              column.text_replace "-" "_"
 
-       > Example
-         Remove leading and trailing spaces from cells.
+       ```
 
+       ### Remove leading and trailing spaces from cells.
+
+       ```
              column.text_replace "^\s*(.*?)\s*$".to_regex "$1"
+       ```
 
-       > Example
-         Replace texts in quotes with parentheses.
+       ### Replace texts in quotes with parentheses.
 
+       ```
              column.text_replace '"(.*?)"'.to_regex '($1)'
+       ```
+
+       ## Remarks
+
+       ### Backend Support
+       Each database backend supports different combinations of options:
+
+       Text:
+       +----------------+------------+----------+--------+
+       | case_sensitive | only_first | postgres | sqlite |
+       +----------------+------------+----------+--------+
+       |       t        |      f     |     ✓    |    ✓   |
+       |       t        |      t     |     ✓    |    ✓   |
+       |       f        |      f     |     ✓    |    ✗   |
+       |       f        |      t     |     ✓    |    ✓   |
+       +----------------+------------+----------+--------+
+
+       Regex:
+       +----------------+------------+----------+--------+
+       | case_sensitive | only_first | postgres | sqlite |
+       +----------------+------------+----------+--------+
+       |       t        |      f     |     ✓    |    ✗   |
+       |       t        |      t     |     ✓    |    ✗   |
+       |       f        |      f     |     ✓    |    ✗   |
+       |       f        |      t     |     ✓    |    ✗   |
+       +----------------+------------+----------+--------+
+
+       Text Column:
+       +----------------+------------+----------+--------+
+       | case_sensitive | only_first | postgres | sqlite |
+       +----------------+------------+----------+--------+
+       |       t        |      f     |     ✓    |    ✓   |
+       |       t        |      t     |     ✗    |    ✓   |
+       |       f        |      f     |     ✗    |    ✗   |
+       |       f        |      t     |     ✗    |    ✓   |
+       +----------------+------------+----------+--------+
     @term make_regex_text_widget
     @new_text (Text_Input display=..Always)
     text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column | Any =
         self.implementation.text_replace self term new_text case_sensitivity only_first
 
-    ## GROUP Standard.Base.Text
-       ICON column_add
+    ## ---
+       group: Standard.Base.Text
+       icon: column_add
+       ---
        Applies the specified cleansings to the text in each row.
 
-       Arguments:
-       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
-          applied in the order they are provided. The same text cleansing can be used multiple
-          times. The text cleansings are:
+       ## Arguments
+        - `remove`: A vector of the text cleanings to remove from the text. The
+          text cleansings are applied in the order they are provided. The same
+          text cleansing can be used multiple times. The text cleansings are:
             - ..Leading_Whitespace: Removes all whitespace from the start of the string.
             - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
             - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
@@ -1270,357 +1477,376 @@ type Column
             - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
             - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
 
-       > Example
-         Remove leading and trailing spaces from cells.
+       ## Examples
+       ### Remove leading and trailing spaces from cells.
 
+       ```
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+       ```
     @remove make_data_cleanse_vector_selector
     text_cleanse self (remove : Vector Named_Pattern) -> Column | Any =
         self.implementation.text_cleanse self remove
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Gets the year as a number from the date stored in the column.
-
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     year self -> Column | Any ! Invalid_Value_Type =
         self.implementation.year self
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Gets the month as a number (1-12) from the date stored in the column.
-
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     month self -> Column | Any ! Invalid_Value_Type =
         self.implementation.month self
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Gets the day of the month as a number (1-31) from the date stored in the
        column.
-
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day self -> Column | Any ! Invalid_Value_Type =
         self.implementation.day self
 
-    ## GROUP Standard.Base.DateTime
-       ICON date_and_time
-       Gets the day of the year as a number (1 - 366) from the date stored in
-       the column.
-
+    ## ---
+       group: Standard.Base.DateTime
+       icon: date_and_time
+       ---
+       Gets the day of the year as a number (1 - 366) from the date stored in the
+       column.
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day_of_year self -> Column | Any ! Invalid_Value_Type =
         self.implementation.day_of_year self
 
-    ## ALIAS weekday
-       GROUP Standard.Base.DateTime
-       ICON date_and_time
+    ## ---
+       aliases: [weekday]
+       group: Standard.Base.DateTime
+       icon: date_and_time
+       ---
        Gets the weekday as a number (1 - 7) from the date stored in the column.
        Monday is 1, Tuesday is 2, ..., Sunday is 7.
-
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day_of_week self -> Column | Any ! Invalid_Value_Type =
         self.implementation.day_of_week self
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Gets the hour as a number (0-23) from the time stored in the column.
-
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
     hour self -> Column | Any ! Invalid_Value_Type =
         self.implementation.hour self
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Gets the minute as a number (0-59) from the time stored in the column.
-
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
     minute self -> Column | Any ! Invalid_Value_Type =
         self.implementation.minute self
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Gets the second as an integer (0-60) from the time stored in the column.
-
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
     second self -> Column | Any ! Invalid_Value_Type =
         self.implementation.second self
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Gets the date part of the date/time value.
-
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part self (period : Date_Period | Time_Period = ..Day) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_part self period
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Computes a time difference between the two dates.
-
        It returns a column of integers expressing how many periods fit between
        the two dates/times.
-
        The difference will be positive if `end` is greater than `self`.
 
-       Arguments:
-       - end: A date/time column or a date/time value to compute the difference
-         from. It should have the same type as the current column, i.e. a
-         `Date_Time` column cannot be compared to a `Date` - to do so you first
-         need to `cast`.
-       - period: The period to compute the difference in. For `Date` columns it
-         should be a `Date_Period` and for `Time` columns it should be a
-         `Time_Period`. For `Date_Time` columns it can be either.
+       ## Arguments
+        - `end`: A date/time column or a date/time value to compute the
+          difference from. It should have the same type as the current column,
+          i.e. a `Date_Time` column cannot be compared to a `Date` - to do so you
+          first need to `cast`.
+        - `period`: The period to compute the difference in. For `Date` columns
+          it should be a `Date_Period` and for `Time` columns it should be a
+          `Time_Period`. For `Date_Time` columns it can be either.
 
-       ? Time Zone handling
+       ## Remarks
 
-         Some backends may not preserve the timezone data in a `Date_Time`
-         (preserving the represented time instant). This may lead to slight
-         differences in time calculations between backends, especially around
-         unusual events like DST.
+       ### Time Zone handling
+       Some backends may not preserve the timezone data in a `Date_Time`
+       (preserving the represented time instant). This may lead to slight
+       differences in time calculations between backends, especially around
+       unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_diff self end period
 
-    ## GROUP Standard.Base.DateTime
-       ICON time
+    ## ---
+       group: Standard.Base.DateTime
+       icon: time
+       ---
        Shifts the date/time by a specified period, returning a new date/time
        column of the same type.
 
-       Arguments:
-       - amount: An integer or integer column specifying by how many periods to
-         shift each date.
-       - period: The period by which to shift. For `Date` columns it should be a
-         `Date_Period` and for `Time` columns it should be a `Time_Period`. For
-         `Date_Time` columns it can be either. It defaults to `Day` where
-         possible and `Hour` for `Time` columns.
+       ## Arguments
+        - `amount`: An integer or integer column specifying by how many periods
+          to shift each date.
+        - `period`: The period by which to shift. For `Date` columns it should be
+          a `Date_Period` and for `Time` columns it should be a `Time_Period`.
+          For `Date_Time` columns it can be either. It defaults to `Day` where
+          possible and `Hour` for `Time` columns.
 
-       ? Time Zone handling
+       ## Remarks
 
-         Some backends may not preserve the timezone data in a `Date_Time`
-         (preserving the represented time instant). This may lead to slight
-         differences in time calculations between backends, especially around
-         unusual events like DST.
+       ### Time Zone handling
+       Some backends may not preserve the timezone data in a `Date_Time`
+       (preserving the represented time instant). This may lead to slight
+       differences in time calculations between backends, especially around
+       unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_add self amount period
 
-    ## GROUP Standard.Base.Logical
-       ICON preparation
+    ## ---
+       group: Standard.Base.Logical
+       icon: preparation
+       ---
        Checks for each element of the column if it is contained within the
        provided vector or column.
 
-       Arguments:
-       - vector: A vector of elements or another column. The resulting column
-         will contain true at the positions where the corresponding element of
-         `self` is contained in `vector`.
+       ## Arguments
+        - `vector`: A vector of elements or another column. The resulting column
+          will contain true at the positions where the corresponding element of
+          `self` is contained in `vector`.
 
-       > Example
-         Check if elements of a column are contained in a provided vector.
+       ## Examples
+       ### Check if elements of a column are contained in a provided vector.
 
+       ```
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
+       ```
     is_in self (vector : Vector | Column | Array) -> Column | Any =
         self.implementation.is_in self vector
 
-    ## GROUP Standard.Base.Conversions
-       ICON convert
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Parses a text column into values.
-
        In the Database backends, the default formatting settings of the
        particular database are used.
-
        In the in-memory backend, the default parser options only parse values
        where the process is reversible (e.g., 0123 would not be converted to an
        integer as there is a leading 0). However, settings in the
        `Data_Formatter` can control this.
 
-       Arguments:
-       - type: The type to parse the column to. Defaults to `Auto` meaning that
-         the type will be inferred from the data. In the Database backends,
-         `Auto` is not supported, so a specific type must be selected.
-       - format: The formatting settings to use when parsing the column.
-         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
-         can be used. For `Boolean`, it should be two values that represent true
-         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
-         passed to provide complete customisation of the formatting. If
-         `""` is provided, the default formatting settings of the backend
-         will be used. `""` is currently the only setting accepted by the
-         Database backends.
-       - on_problems: Specifies how to handle if a problem occurs, raising as a
-         warning by default.
+       ## Arguments
+        - `type`: The type to parse the column to. Defaults to `Auto` meaning
+          that the type will be inferred from the data. In the Database backends,
+          `Auto` is not supported, so a specific type must be selected.
+        - `format`: The formatting settings to use when parsing the column. For
+          `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style can be
+          used. For `Boolean`, it should be two values that represent true and
+          false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+          passed to provide complete customisation of the formatting. If `""` is
+          provided, the default formatting settings of the backend will be used.
+          `""` is currently the only setting accepted by the Database backends.
+        - `on_problems`: Specifies how to handle if a problem occurs, raising as
+          a warning by default.
 
-       ! Error Conditions
+       ## Examples
+       ### Parse dates in a column in the format `yyyy-MM-dd` (the default format).
 
-         - If the column is not a text column, an `Invalid_Value_Type` error is
-           raised.
-         - If some values in the column did not match the expected datatype
-           format, an `Invalid_Format` problem is reported. The problematic
-           cells are replaced with `Nothing`.
-         - If custom formatting settings were provided, but the database backend
-           does not support customization, an `Unsupported_Database_Operation`
-           error is reported.
-
-       ? Number Formats
-
-         If parsing a column to a number, by default, the parser will attempt
-         to find the most appropriate format for the column. This is done by
-         finding the format that parses the longest set without an issue from
-         the first record.
-
-         It will try the following separators in British, German, French and
-         Swiss order.
-
-         - Thousand separators must be followed by groups of 3 numbers.
-         - Scientific notation is only allowed on decimals and must be on a
-           value between -10 and 10. The notation is an `E` followed by an
-           integer and must be enabled on the `Data_Formatter`,
-
-         The following formats are supported:
-         - Sign (+/-) followed by Number (e.g. +1,234.56)
-         - Using brackets to indicate a negative number (e.g. (1,234.56))
-         - Currency symbols (if not in Auto mode) can be placed before or after
-           the sign and number.
-         - If using brackets, the currency symbol must be placed after the
-           opening bracket.
-
-       > Example
-         Parse dates in a column in the format `yyyy-MM-dd` (the default format).
-
+       ```
              import Standard.Examples
 
              example_contains = Examples.text_column_1.parse Date
+       ```
 
-       > Example
-         Parse dates in a column in the format `dd/MM/yyyy`
+       ### Parse dates in a column in the format `dd/MM/yyyy`
 
+       ```
              import Standard.Examples
 
              example_contains = Examples.text_column_1.parse Date 'dd/MM/yyyy'
+       ```
 
-       > Example
-         Parse a Yes/No column into a boolean column.
+       ### Parse a Yes/No column into a boolean column.
 
+       ```
              import Standard.Examples
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
+       ```
+
+       ## Errors
+        - If the column is not a text column, an `Invalid_Value_Type` error is
+          raised.
+        - If some values in the column did not match the expected datatype
+          format, an `Invalid_Format` problem is reported. The problematic cells
+          are replaced with `Nothing`.
+        - If custom formatting settings were provided, but the database backend
+          does not support customization, an `Unsupported_Database_Operation`
+          error is reported.
+
+       ## Remarks
+
+       ### Number Formats
+       If parsing a column to a number, by default, the parser will attempt to
+       find the most appropriate format for the column. This is done by finding
+       the format that parses the longest set without an issue from the first
+       record.
+       It will try the following separators in British, German, French and Swiss
+       order.
+       - Thousand separators must be followed by groups of 3 numbers.
+       - Scientific notation is only allowed on decimals and must be on a value
+         between -10 and 10. The notation is an `E` followed by an integer and
+         must be enabled on the `Data_Formatter`, The following formats are
+         supported:
+       - Sign (+/-) followed by Number (e.g. +1,234.56)  - Using brackets to
+         indicate a negative number (e.g. (1,234.56))  - Currency symbols (if
+         not in Auto mode) can be placed before or after the sign and number.
+       - If using brackets, the currency symbol must be placed after the opening
+         bracket.
     @type Widget_Helpers.parse_type_selector
     @format Widget_Helpers.make_format_chooser_for_parse
     parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column | Any =
         self.implementation.parse self type format on_problems
 
-    ## GROUP Standard.Base.Conversions
-       ICON convert
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Format a `Column` using a format string (or `Column` of format strings).
 
-       Arguments:
-       - format: The type-dependent format string to use to format the values.
-         If `format` is `""`, .to_text is used to format the value.
-         In case of date/time columns, a `Date_Time_Formatter` can be used.
-       - locale: The locale in which the format should be interpreted.
-         If a `Date_Time_Formatter` is provided for `format` and the `locale` is
-         set to anything else than `Locale.default`, then that locale will
-         override the formatters locale.
+       ## Arguments
+        - `format`: The type-dependent format string to use to format the values.
+          If `format` is `""`, .to_text is used to format the value. In case of
+          date/time columns, a `Date_Time_Formatter` can be used.
+        - `locale`: The locale in which the format should be interpreted. If a
+          `Date_Time_Formatter` is provided for `format` and the `locale` is set
+          to anything else than `Locale.default`, then that locale will override
+          the formatters locale.
 
-       ! Error Conditions
+       ## Examples
+       ### Format a `Column` of `Dates` in the format `"yyyyMMdd"`.
 
-         - If the format is incorrectly formed, or if some values in the column
-           did not match the expected datatype format, an `Illegal_Argument`
-           error is thrown.
-
-       ? Supported Types
-         - `Value_Type.Date`
-         - `Value_Type.Date_Time`
-         - `Value_Type.Time`
-         - `Value_Type.Integer`
-         - `Value_Type.Float`
-         - `Value_Type.Boolean`
-
-       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
-
-          See `Date_Time_Formatter` for more details.
-
-       ? `Value_Type.Integer`, `Value_Type.Float` format strings
-
-         Numeric format strings are specified by the Java DecimalFormat class.
-         See https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
-         for a complete format specification.
-
-       ? `Value_Type.Boolean` format strings
-
-         Format strings for `Boolean` consist of two values that represent true
-         and false, separated by a `|`.
-
-       > Example
-         Format a `Column` of `Dates` in the format `"yyyyMMdd"`.
-
+       ```
              input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
              input.format "yyyyMMdd"
              # ==> ["20201221", "20230425"]
 
-       > Example
-         Format `Column` of `Dates`, using format strings in a second column.
+       ```
 
+       ### Format `Column` of `Dates`, using format strings in a second column.
+
+       ```
              input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
              formats = Column.from_vector "formats" ["yyyyMMdd", "dd-MM-yyyy"]
              input.format formats
              # ==> ["20201221", "25-04-2023"]
 
-       > Example
-         Format a `Column` of `Integers` in the format `"#,##0.00"`.
+       ```
 
+       ### Format a `Column` of `Integers` in the format `"#,##0.00"`.
+
+       ```
              input = Column.from_vector "values" [100000000, 2222, 3]
              input.format "#,##0.00"
              # ==> ["100,000,000.00", "2,222.00", "3.00"]
+       ```
 
-       > Example
-         Format a `Column` of `Booleans` in the format `"t|f"`.
+       ### Format a `Column` of `Booleans` in the format `"t|f"`.
 
+       ```
              input = Column.from_vector "values" [True, False]
              input.format "t|f"
              # ==> ["t", "f"]
+       ```
 
-       > Example
-         Format a `Column` of numbers, using both decimal point / digit
+       ### Format a `Column` of numbers, using both decimal point / digit
          separators and a Locale.
 
+       ```
              input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
              input.format "#,##0.00" locale=(Locale.new "fr")
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
+       ```
+
+       ## Errors
+        - If the format is incorrectly formed, or if some values in the column
+          did not match the expected datatype format, an `Illegal_Argument` error
+          is thrown.
+
+       ## Remarks
+
+       ### Supported Types
+       - `Value_Type.Date`  - `Value_Type.Date_Time`  - `Value_Type.Time`  -
+       `Value_Type.Integer`  - `Value_Type.Float`  - `Value_Type.Boolean`
+
+       ### `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
+       See `Date_Time_Formatter` for more details.
+
+       ### `Value_Type.Integer`, `Value_Type.Float` format strings
+       Numeric format strings are specified by the Java DecimalFormat class.
+       See https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
+       for a complete format specification.
+
+       ### `Value_Type.Boolean` format strings
+       Format strings for `Boolean` consist of two values that represent true and
+       false, separated by a `|`.
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
     format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column | Any ! Illegal_Argument =
         self.implementation.format self format locale
 
-    ## GROUP Standard.Base.Conversions
-       ICON convert
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Cast the column to a specific type.
 
-       Arguments:
-       - value_type: The `Value_Type` to cast the column to.
-       - on_problems: Specifies how to handle problems if they occur, reporting
-         them as warnings by default.
-
        In the Database backend, this will boil down to a CAST operation.
-       In the in-memory backend, a conversion will be performed according to
-       the following rules:
+       In the in-memory backend, a conversion will be performed according to the
+       following rules:
        - Anything can be cast into the `Mixed` type.
        - Converting to a `Char` type, the elements of the column will be
          converted to text. If it is fixed length, the texts will be trimmed or
          padded on the right with the space character to match the desired
          length.
-       - Conversion between numeric types will replace values exceeding the
-         range of the target type with `Nothing`.
+       - Conversion between numeric types will replace values exceeding the range
+         of the target type with `Nothing`.
        - Converting decimal numbers into integers will truncate or round them,
          depending on the backend. If more control is needed, use the various
          rounding functions (such as `round` or `floor`).
@@ -1633,624 +1859,788 @@ type Column
          midnight of the default system timezone.
        - For a `Mixed` column being converted into a specific type, each row is
          converted individually.
+       If the target type cannot fit some of the values (for example due to too
+       small range), a `Conversion_Failure` may be reported according to the
+       `on_problems` rules. The Database backends may fail with `SQL_Error`
+       instead.
 
-        If the target type cannot fit some of the values (for example due to too
-        small range), a `Conversion_Failure` may be reported according to the
-        `on_problems` rules. The Database backends may fail with `SQL_Error`
-        instead.
+       ## Arguments
+        - `value_type`: The `Value_Type` to cast the column to.
+        - `on_problems`: Specifies how to handle problems if they occur,
+          reporting them as warnings by default.
 
-       ? Inexact Target Type
+       ## Remarks
 
-         If the backend does not support the requested target type, the closest
-         supported type is chosen and a `Inexact_Type_Coercion` problem is
-         reported.
+       ### Inexact Target Type
+       If the backend does not support the requested target type, the closest
+       supported type is chosen and a `Inexact_Type_Coercion` problem is
+       reported.
 
-       ! Casting Text values
-
-         The `parse` method should be used to convert text values into other
-         types. Due to this, a Mixed column containing values `[2, "3"]` will
-         actually be converted into `[2, Nothing]` when casting to Integer type.
+       ### Casting Text values
+       The `parse` method should be used to convert text values into other types.
+       Due to this, a Mixed column containing values `[2, "3"]` will actually be
+       converted into `[2, Nothing]` when casting to Integer type.
     cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column | Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         self.implementation.cast self value_type on_problems
 
-    ## ALIAS auto_value_type
-       GROUP Standard.Base.Conversions
-       ICON convert
+    ## ---
+       aliases: [auto_value_type]
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Change the value type of the column to a more specific one, based on its
        contents.
 
-       Arguments:
-       - shrink_types: If set `True`, smaller types will be chosen if possible,
-         according to the rules below. Defaults to `False`.
+       ## Arguments
+        - `shrink_types`: If set `True`, smaller types will be chosen if
+          possible, according to the rules below. Defaults to `False`.
 
-       ? Auto Type Selection Rules
+       ## Remarks
 
-         - If a `Mixed` column can be assigned a single type, like `Char` or
-           `Integer`, that will be used.
-         - Text columns are not parsed. To do that, use the `parse` method.
-         - If a `Float` column contains only integers, it will be converted to
-           an Integer column.
-         - If a `Decimal` column contains only integers that could fit in a
-           64-bit integer storage, it will be converted to an Integer column.
-         - If `shrink_types` is `False` (default), no other transformations are
-           applied.
-         - However, if `shrink_types` is set to `True`, then:
-           - Integer columns will be assigned the smallest size that can fit all
-             values (down to 16-bit integers; converting to the `Byte` type has
-             to be done manually through `cast`).
-           - If all elements in a text column have the same length, the type
-             will become fixed length.
-           - Otherwise, if a text column is variable length, but all text
-             elements are no longer than 255 characters, the column will get a
-             max length of 255. Otherwise, the column size limit will stay
-             unchanged.
+       ### Auto Type Selection Rules
+       - If a `Mixed` column can be assigned a single type, like `Char` or
+       `Integer`, that will be used.
+       - Text columns are not parsed. To do that, use the `parse` method.
+       - If a `Float` column contains only integers, it will be converted to an
+         Integer column.
+       - If a `Decimal` column contains only integers that could fit in a 64-bit
+         integer storage, it will be converted to an Integer column.
+       - If `shrink_types` is `False` (default), no other transformations are
+         applied.
+       - However, if `shrink_types` is set to `True`, then:
+       - Integer columns will be assigned the smallest size that can fit all
+         values (down to 16-bit integers; converting to the `Byte` type has to
+         be done manually through `cast`).
+       - If all elements in a text column have the same length, the type will
+         become fixed length.
+       - Otherwise, if a text column is variable length, but all text elements
+         are no longer than 255 characters, the column will get a max length of
+         255. Otherwise, the column size limit will stay unchanged.
     auto_cast self shrink_types:Boolean=False -> Column | Any =
         self.implementation.auto_cast self shrink_types
 
-    ## PRIVATE
-       GROUP Standard.Base.Conversions
-       ICON convert
-
+    ## ---
+       private: true
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Deprecated: Use `auto_cast` instead.
-
        Change the value type of the column to a more specific one, based on its
        contents.
 
-       Arguments:
-       - shrink_types: If set `True`, smaller types will be chosen if possible,
-         according to the rules below. Defaults to `False`.
+       ## Arguments
+        - `shrink_types`: If set `True`, smaller types will be chosen if
+          possible, according to the rules below. Defaults to `False`.
 
-       ? Auto Type Selection Rules
+       ## Remarks
 
-         - If a `Mixed` column can be assigned a single type, like `Char` or
-           `Integer`, that will be used.
-         - Text columns are not parsed. To do that, use the `parse` method.
-         - If a `Float` column contains only integers, it will be converted to
-           an Integer column.
-         - If a `Decimal` column contains only integers that could fit in a
-           64-bit integer storage, it will be converted to an Integer column.
-         - If `shrink_types` is `False` (default), no other transformations are
-           applied.
-         - However, if `shrink_types` is set to `True`, then:
-           - Integer columns will be assigned the smallest size that can fit all
-             values (down to 16-bit integers; converting to the `Byte` type has
-             to be done manually through `cast`).
-           - If all elements in a text column have the same length, the type
-             will become fixed length.
-           - Otherwise, if a text column is variable length, but all text
-             elements are no longer than 255 characters, the column will get a
-             max length of 255. Otherwise, the column size limit will stay
-             unchanged.
+       ### Auto Type Selection Rules
+       - If a `Mixed` column can be assigned a single type, like `Char` or
+       `Integer`, that will be used.
+       - Text columns are not parsed. To do that, use the `parse` method.
+       - If a `Float` column contains only integers, it will be converted to an
+         Integer column.
+       - If a `Decimal` column contains only integers that could fit in a 64-bit
+         integer storage, it will be converted to an Integer column.
+       - If `shrink_types` is `False` (default), no other transformations are
+         applied.
+       - However, if `shrink_types` is set to `True`, then:
+       - Integer columns will be assigned the smallest size that can fit all
+         values (down to 16-bit integers; converting to the `Byte` type has to
+         be done manually through `cast`).
+       - If all elements in a text column have the same length, the type will
+         become fixed length.
+       - Otherwise, if a text column is variable length, but all text elements
+         are no longer than 255 characters, the column will get a max length of
+         255. Otherwise, the column size limit will stay unchanged.
     auto_value_type self shrink_types:Boolean=False -> Column | Any =
         Warning.attach (Deprecated.Warning "Standard.Table.Column.Column" "auto_value_type" "Deprecated: `auto_value_type` has been replaced by `auto_cast`.") <|
             self.auto_cast shrink_types
 
-    ## ALIAS transform column
-       ICON column_add
+    ## ---
+       aliases: [transform column]
+       icon: column_add
+       ---
+       Applies `function` to each item in this column and returns the column of
+       results.
 
-       Applies `function` to each item in this column and returns the column
-       of results.
+       ## Arguments
+        - `function`: The function to apply to each element of `self` column.
+        - `skip_nothing`: If `True`, `Nothing` values will be skipped. Otherwise,
+          `Nothing` values will be passed to the `function`.
+        - `expected_value_type`: The expected value type of the resulting column.
+          If `Auto`, the value type will be inferred from the values returned by
+          `function`.
 
-       Arguments:
-       - function: The function to apply to each element of `self` column.
-       - skip_nothing: If `True`, `Nothing` values will be skipped. Otherwise,
-         `Nothing` values will be passed to the `function`.
-       - expected_value_type: The expected value type of the resulting column.
-         If `Auto`, the value type will be inferred from the values returned by
-         `function`.
+       ## Examples
+       ### Multiply each element of the column by itself.
 
-       ! Error Conditions
-
-         - If any of the values returned by `function` do not fit the expected
-           value type, an `Invalid_Value_Type` error is raised.
-         - If the `function` raises a dataflow error on any row, the first such
-           error is propagated.
-         - If an invocation of the `function` returns a value with warnings,
-           these warnings are attached to the overall result.
-
-       > Example
-         Multiply each element of the column by itself.
-
+       ```
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
+       ```
+
+       ## Errors
+        - If any of the values returned by `function` do not fit the expected
+          value type, an `Invalid_Value_Type` error is raised.
+        - If the `function` raises a dataflow error on any row, the first such
+          error is propagated.
+        - If an invocation of the `function` returns a value with warnings, these
+          warnings are attached to the overall result.
     map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column | Any ! Invalid_Value_Type =
         self.implementation.map self function skip_nothing expected_value_type
 
-    ## ALIAS join by row position
-       GROUP Standard.Base.Calculations
-       ICON join2-1
-       Joins this column with another column (or table) by zipping rows from
-       both together - the first row of the left column is correlated with the
-       first one of the right one etc. `zip` always returns a `Table`.
+    ## ---
+       aliases: [join by row position]
+       group: Standard.Base.Calculations
+       icon: join2-1
+       ---
+       Joins this column with another column (or table) by zipping rows from both
+       together - the first row of the left column is correlated with the first
+       one of the right one etc. `zip` always returns a `Table`.
 
-       Arguments:
-       - right: The column or table to join with.
-       - keep_unmatched: If set to `True`, the result will include as many rows
-         as the larger of the two columns - the last rows of the larger column
-         will have nulls for the smaller one. If set to `False`, the
-         result will have as many rows as the smaller of the two columns - the
-         additional rows of the larger column will be discarded. The default
-         value is `Report_Unmatched` which means that the user expects that two
-         columns should have the same amount of rows; if they do not, the
-         behaviour is the same as if it was set to `True` - i.e. the unmatched
-         rows are kept with `Nothing` values for the other column, but a
-         `Row_Count_Mismatch` problem is also reported.
-       - right_prefix: The prefix added to right column column names in case of
-         name conflict. See "Column Renaming" below for more information.
-       - on_problems: Specifies how to handle problems if they occur, reporting
-         them as warnings by default.
+       - If the columns have different number of rows and `keep_unmatched` is set
+       to `Report_Unmatched`, the join will report `Row_Count_Mismatch`.
 
-         - If the columns have different number of rows and `keep_unmatched` is
-           set to `Report_Unmatched`, the join will report `Row_Count_Mismatch`.
+       ## Arguments
+        - `right`: The column or table to join with.
+        - `keep_unmatched`: If set to `True`, the result will include as many
+          rows as the larger of the two columns - the last rows of the larger
+          column will have nulls for the smaller one. If set to `False`, the
+          result will have as many rows as the smaller of the two columns - the
+          additional rows of the larger column will be discarded. The default
+          value is `Report_Unmatched` which means that the user expects that two
+          columns should have the same amount of rows; if they do not, the
+          behaviour is the same as if it was set to `True` - i.e. the unmatched
+          rows are kept with `Nothing` values for the other column, but a
+          `Row_Count_Mismatch` problem is also reported.
+        - `right_prefix`: The prefix added to right column column names in case
+          of name conflict. See "Column Renaming" below for more information.
+        - `on_problems`: Specifies how to handle problems if they occur,
+          reporting them as warnings by default.
 
-       ? Column Renaming
+       ## Remarks
 
-         If columns from the two columns have colliding names, a prefix (by
-         default `Right `) is added to the name of the column from the right
-         column. The left column remains unchanged. It is possible that the new
-         name will be in use, in this case it will be resolved using the normal
-         renaming strategy - adding subsequent ` 1`, ` 2` etc.
+       ### Column Renaming
+       If columns from the two columns have colliding names, a prefix (by default
+       `Right `) is added to the name of the column from the right column. The
+       left column remains unchanged. It is possible that the new name will be in
+       use, in this case it will be resolved using the normal renaming strategy -
+       adding subsequent ` 1`, ` 2` etc.
 
-       ? Row Ordering For In-Memory Columns
-
-         This operation requires a well-defined order of rows in the input
-         columns. In-memory columns rely on the ordering stemming directly from
-         their layout in memory. Database columns may not impose a deterministic
-         ordering. The existing ordering can be overridden by specifying
-         a different ordering using `Column.sort`. If no primary key was
-         defined nor any ordering was specified explicitly by the user, the
-         order of columns is undefined and the operation will fail, reporting a
-         `Undefined_Column_Order` problem and returning an empty table.
+       ### Row Ordering For In-Memory Columns
+       This operation requires a well-defined order of rows in the input columns.
+       In-memory columns rely on the ordering stemming directly from their layout
+       in memory. Database columns may not impose a deterministic ordering. The
+       existing ordering can be overridden by specifying a different ordering
+       using `Column.sort`. If no primary key was defined nor any ordering was
+       specified explicitly by the user, the order of columns is undefined and
+       the operation will fail, reporting a `Undefined_Column_Order` problem and
+       returning an empty table.
     @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
     zip self (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
         self.implementation.zip self right keep_unmatched right_prefix on_problems
 
-    ## GROUP Standard.Base.Metadata
-       ICON text_input
-       Returns a new column, containing the same elements as `self`, but with
-       the given name.
+    ## ---
+       group: Standard.Base.Metadata
+       icon: text_input
+       ---
+       Returns a new column, containing the same elements as `self`, but with the
+       given name.
 
-       Arguments:
-       - name: The new name for the column.
+       ## Arguments
+        - `name`: The new name for the column.
 
-       > Example
-         Rename a column.
+       ## Examples
+       ### Rename a column.
 
+       ```
              import Standard.Examples
 
              example_rename = Examples.integer_column.rename "My Numbers"
+       ```
     rename self name:Text -> Column | Any ! Illegal_Argument =
         self.implementation.rename self name
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the name of this column.
 
-       > Example
-         Get the name of a column.
+       ## Examples
+       ### Get the name of a column.
 
+       ```
              import Standard.Examples
 
              example_name = Examples.text_column_2.name
+       ```
     name self -> Text =
         self.implementation.name self
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the length of this column.
 
-       > Example
-         Get the length of a column.
+       ## Examples
+       ### Get the length of a column.
 
+       ```
              import Standard.Examples
 
              example_length = Examples.text_column_2.length
+       ```
     length self -> Integer =
         self.implementation.length self
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the number of missing items in this column.
 
-       > Example
-         Count the number of missing values in a column.
+       ## Examples
+       ### Count the number of missing values in a column.
 
+       ```
              import Standard.Examples
 
              example_count_nothing = Examples.text_column_2.count_nothing
+       ```
     count_nothing self -> Integer =
         self.implementation.count_nothing self
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the number of non-null items in this column.
 
-       > Example
-         Count the number of not missing values in a column.
+       ## Examples
+       ### Count the number of not missing values in a column.
 
+       ```
              import Standard.Examples
 
              example_count = Examples.text_column_2.count
+       ```
     count self -> Integer =
         self.implementation.count self
 
-    ## GROUP Standard.Base.Selections
-       ICON parse3
+    ## ---
+       group: Standard.Base.Selections
+       icon: parse3
+       ---
        Returns the value contained in this column at the given index.
-
-       Arguments:
-       - index: The index in the column from which to get the value.
 
        If the value is an NA then this method returns nothing. If the index is
        not an index in the column it returns an `Index_Out_Of_Bounds`.
 
-       > Example
-         Get the first element from a column.
+       ## Arguments
+        - `index`: The index in the column from which to get the value.
 
+       ## Examples
+       ### Get the first element from a column.
+
+       ```
              import Standard.Examples
 
              example_at = Examples.integer_column.at 0
+       ```
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     at self index:Integer=0 -> Any | Nothing ! Index_Out_Of_Bounds =
         self.implementation.at self index
 
-    ## GROUP Standard.Base.Selections
-       ICON parse3
+    ## ---
+       group: Standard.Base.Selections
+       icon: parse3
+       ---
        Returns the value contained in this column at the given index.
 
-       Arguments:
-       - index: The index in the column from which to get the value.
-       - default: The value if the index is out of range.
+       ## Arguments
+        - `index`: The index in the column from which to get the value.
+        - `default`: The value if the index is out of range.
 
-       > Example
-         Get the first element from a column.
+       ## Examples
+       ### Get the first element from a column.
 
+       ```
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
+       ```
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     get self index:Integer=0 ~default=Nothing -> Any | Nothing =
         self.implementation.get self index default
 
-    ## ALIAS import, load
-       GROUP Standard.Base.Input
-       ICON data_input
+    ## ---
+       aliases: [import, load]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
        Returns a materialized column containing rows of this column.
-
        For in-memory columns this just returns the column as-is, or truncated
        depending on `max_rows`.
 
-       Arguments:
-       - max_rows: specifies the maximum number of rows to read.
-         By default, it will return all rows for in-memory columns, but in
-         Database it will read up to 1000 rows and warn if there are more.
+       ## Arguments
+        - `max_rows`: specifies the maximum number of rows to read. By default,
+          it will return all rows for in-memory columns, but in Database it will
+          read up to 1000 rows and warn if there are more.
     @max_rows Rows_To_Read.default_widget
     read self (max_rows : Rows_To_Read = default_row_limit_for_read self) -> Column | Any =
         self.implementation.read self max_rows
 
-    ## GROUP Standard.Base.Conversions
-       ICON convert
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
        Returns a vector containing all the elements in this column.
 
-       > Example
-         Get the elements of a column as a vector.
+       ## Examples
+       ### Get the elements of a column as a vector.
 
+       ```
              import Standard.Examples
 
              example_to_vector = Examples.integer_column.to_vector
+       ```
     to_vector self -> Vector =
         self.implementation.to_vector self
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the `Value_Type` associated with that column.
-
        The value type determines what type of values the column is storing and
        what operations are permitted.
     value_type self -> Value_Type =
         self.implementation.value_type self
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a possibly more precise `Value_Type` based on the data in the
        column.
-
        Most columns will return their type without changes. A mixed column may
        return a more precise type if a common type can be found for all of its
        values.
     inferred_precise_value_type self -> Value_Type =
         self.implementation.inferred_precise_value_type self
 
-    ## PRIVATE
-       Internal hook that says if a given column should be selected by a
-       specific type in a `By_Type` selection.
+    ## ---
+       private: true
+       ---
+       Internal hook that says if a given column should be selected by a specific
+       type in a `By_Type` selection.
     should_be_selected_by_type self (value_type : Value_Type) -> Boolean =
         self.implementation.should_be_selected_by_type self value_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts this column to JS_Object representation.
 
-       > Example
-         Get a JavaScript representation of the column.
+       ## Examples
+       ### Get a JavaScript representation of the column.
 
+       ```
              import Standard.Examples
 
              example_to_json = Examples.integer_column.to_js_object
+       ```
     to_js_object self -> JS_Object =
         self.implementation.to_js_object_implementation self
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Converts this column into a single-column table.
 
-       > Example
-         Convert a column to a table.
+       ## Examples
+       ### Convert a column to a table.
 
+       ```
              import Standard.Examples
 
              example_to_table = Examples.integer_column.to_table
+       ```
     to_table self -> Table | Any =
         # FIXME Table | Any is a workaround until Table becomes a base type like Column
         self.implementation.to_table self
 
-    ## ALIAS column type, field info, metadata
-       GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       aliases: [column type, field info, metadata]
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns a Table describing this column's contents and type.
-
        The table behaves like `Table.column_info.
     info self -> Table | Any =
         self.implementation.info self
 
-    ## ALIAS order_by
-       GROUP Standard.Base.Selections
-       ICON order
+    ## ---
+       aliases: [order_by]
+       group: Standard.Base.Selections
+       icon: order
+       ---
        Sorts the column according to the specified rules.
 
-       Arguments:
-       - order: specifies the default sort order for this operation.
-       - missing_last: specifies the default placement of missing values when
-         compared to non-missing ones. Note that this argument is independent
-         from `order`, i.e. missing values will always be sorted according to
-         this rule, ignoring the ascending / descending setting.
-       - by: function taking two items in this column and returning an
-         ordering. If specified, it is used instead of the natural
-         ordering of the values.
+       ## Arguments
+        - `order`: specifies the default sort order for this operation.
+        - `missing_last`: specifies the default placement of missing values when
+          compared to non-missing ones. Note that this argument is independent
+          from `order`, i.e. missing values will always be sorted according to
+          this rule, ignoring the ascending / descending setting.
+        - `by`: function taking two items in this column and returning an
+          ordering. If specified, it is used instead of the natural ordering of
+          the values.
 
-       > Example
-         Sorting a column in ascending order.
+       ## Examples
+       ### Sorting a column in ascending order.
 
+       ```
              import Standard.Examples
 
              example_sort = Examples.integer_column.sort
 
-       > Example
-         Sorting a column in descending order, placing missing values at the
+       ```
+
+       ### Sorting a column in descending order, placing missing values at the
          top of the resulting column.
 
+       ```
              import Standard.Examples
 
              example_sort =
                  Examples.integer_column.sort Sort_Direction.Descending missing_last=False
 
-       > Example
-         Sorting `column` in ascending order, using a custom comparison
+       ```
+
+       ### Sorting `column` in ascending order, using a custom comparison
          function.
 
+       ```
              import Standard.Examples
 
              example_sort =
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
+       ```
     sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column | Any =
         self.implementation.sort self order missing_last by
 
-    ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
-       GROUP Standard.Base.Selections
-       ICON parse3
+    ## ---
+       aliases: [first, head, keep, last, limit, sample, slice, tail, top]
+       group: Standard.Base.Selections
+       icon: parse3
+       ---
        Creates a new Column with the specified range of rows from the input
        Column.
 
-       Arguments:
-       - range: The selection of rows from the table to return.
+       ## Arguments
+        - `range`: The selection of rows from the table to return.
 
-       Returns:
+       ## Returns
        A new Column containing the selected rows.
 
-       ! Error Conditions
-       - If the range is out of bounds, an `Index_Out_Of_Bounds` error is raised.
+       ## Examples
+       ### Select the first row from the "Name" Column.
 
-       > Example
-         Select the first row from the "Name" Column.
-
+       ```
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Alice"
              first_row = column.take (..First 1)
+       ```
 
-       > Example
-         Select the last row from the "Name" Column.
+       ### Select the last row from the "Name" Column.
 
+       ```
              table = Table.new [["Name", ["Alice", "Bob", "Charlie"]]]
              column = table.get "Name"
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
+       ```
+
+       ## Errors
+        - If the range is out of bounds, an `Index_Out_Of_Bounds` error is
+          raised.
     @range (self-> Index_Sub_Range.default_widget self.length)
     take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column | Any =
         self.implementation.take self range
 
-    ## ALIAS remove, skip
-       GROUP Standard.Base.Selections
-       ICON parse3
+    ## ---
+       aliases: [remove, skip]
+       group: Standard.Base.Selections
+       icon: parse3
+       ---
        Creates a new Column from the input with the specified range of rows
        removed.
 
-       Arguments:
-       - range: The selection of rows from the table to remove.
+       ## Arguments
+        - `range`: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
     drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column | Any =
         self.implementation.drop self range
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a column with a continuous sub-range of rows taken.
     slice : Integer -> Integer -> Column | Any
     slice self start end =
         self.implementation.slice self start end
 
-    ## GROUP Standard.Base.Selections
-       ICON parse3
+    ## ---
+       group: Standard.Base.Selections
+       icon: parse3
+       ---
        Returns the first element in the column, if it exists.
-
        If the column is empty, this method will return a dataflow error
        containing an `Index_Out_Of_Bounds`.
 
-       > Example
-         Get the first element of a column.
+       ## Examples
+       ### Get the first element of a column.
 
+       ```
              import Standard.Examples
 
              example_first = Examples.integer_column.first
+       ```
     first self -> Any ! Index_Out_Of_Bounds =
         self.implementation.first self
 
-    ## GROUP Standard.Base.Selections
-       ICON select_row
+    ## ---
+       group: Standard.Base.Selections
+       icon: select_row
+       ---
        Returns the last element in the column, if it exists.
-
        If the column is empty, this method will return a dataflow error
        containing an `Index_Out_Of_Bounds`.
 
-       > Example
-         Get the last element of a column.
+       ## Examples
+       ### Get the last element of a column.
 
+       ```
              import Standard.Examples
 
              example_last = Examples.integer_column.last
+       ```
     last self -> Any ! Index_Out_Of_Bounds =
         self.implementation.last self
 
-    ## GROUP Standard.Base.Selections
-       ICON order
+    ## ---
+       group: Standard.Base.Selections
+       icon: order
+       ---
        Returns a column containing the values of `self` column with their order
        reversed.
 
-       > Example
-         Reverse the values of a column to produce a new column.
+       ## Examples
+       ### Reverse the values of a column to produce a new column.
 
+       ```
              import Standard.Examples
 
              example_reverse = Examples.integer_column.reverse
+       ```
     reverse self -> Column | Any =
         self.implementation.reverse self
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns a column of numbers, in which every entry denotes how many times
        the value at the given position occured before.
 
-       > Example
-         Count duplicate occurences of values in a column.
+       ## Examples
+       ### Count duplicate occurences of values in a column.
 
+       ```
              import Standard.Examples
 
              example_duplicate_count = Examples.integer_column.duplicate_count
+       ```
     duplicate_count self -> Column | Any =
         self.implementation.duplicate_count self
 
-    ## PRIVATE
-       Provides a simplified text representation for display in the REPL and errors.
+    ## ---
+       private: true
+       ---
+       Provides a simplified text representation for display in the REPL and
+       errors.
     to_text self -> Text =
         self.implementation.to_text_implementation self
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     pretty self -> Text =
         self.implementation.pretty_implementation self
 
-    ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
-       GROUP Standard.Base.Statistics
-       ICON transform4
+    ## ---
+       aliases:
+        - count
+        - kurtosis
+        - maximum
+        - mean
+        - median
+        - minimum
+        - mode
+        - skew
+        - standard_deviation
+        - statistic
+        - sum
+        - variance
+       group: Standard.Base.Statistics
+       icon: transform4
+       ---
        Compute a single statistic on the column.
 
-       Arguments:
-       - statistic: Statistic to calculate.
+       ## Arguments
+        - `statistic`: Statistic to calculate.
     compute self statistic:Statistic=..Count -> Any =
         self.implementation.compute self statistic
 
-    ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
-       ICON transform4
+    ## ---
+       aliases:
+        - count
+        - kurtosis
+        - maximum
+        - mean
+        - median
+        - minimum
+        - mode
+        - skew
+        - standard_deviation
+        - statistic
+        - sum
+        - variance
+       icon: transform4
+       ---
        Compute statistics on the column.
 
-       Arguments:
-       - statistics: Set of statistics to calculate.
+       ## Arguments
+        - `statistics`: Set of statistics to calculate.
     compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table | Any =
         self.implementation.compute_bulk self statistics
 
-    ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
-       GROUP Standard.Base.Statistics
-       ICON transform4
+    ## ---
+       aliases:
+        - count
+        - cumulative
+        - maximum
+        - mean
+        - minimum
+        - product
+        - standard deviation
+        - sum
+        - sum
+        - total
+        - variance
+       group: Standard.Base.Statistics
+       icon: transform4
+       ---
        Compute a single running statistic on the column.
 
-       Arguments:
-       - statistic: Statistic to calculate.
-       - name: Name of the new column.
+       ## Arguments
+        - `statistic`: Statistic to calculate.
+        - `name`: Name of the new column.
     running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column | Any =
         self.implementation.running self statistic name
 
-    ## ALIAS displace, lag, lead, shift, slide
-       GROUP Standard.Base.Values
-       ICON column_add
+    ## ---
+       aliases: [displace, lag, lead, shift, slide]
+       group: Standard.Base.Values
+       icon: column_add
+       ---
+       Returns a new column offset by n rows, where missing values have been
+       replaced with the provided fill_with strategy.
 
-       Returns a new column offset by n rows, where missing values have been replaced with the provided fill_with strategy.
-
-       Arguments:
-       - n: The number of rows to offset the new column by. Negative n slides the values down in the column, adding records at the start.
-            Positive n slides the values up in the column, adding records at the end. Defaults to -1.
-       - fill_with: The value to replace missing values with. Defaults to adding Nothing Values.
-       - - ..Nothing - Add Nothing values in the spaces created by sliding the existing values.
-       - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
-       - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
+       ## Arguments
+        - `n`: The number of rows to offset the new column by. Negative n slides
+          the values down in the column, adding records at the start. Positive n
+          slides the values up in the column, adding records at the end. Defaults
+          to -1.
+        - `fill_with`: The value to replace missing values with. Defaults to
+          adding Nothing Values.
+        - `-`: ..Nothing - Add Nothing values in the spaces created by sliding
+          the existing values.
+        - `-`: ..Closest_Value - If n is negative the first value gets used, if n
+          is negative the last value gets used.
+        - `-`: ..Wrap_Around - In this mode values that slide off the top or
+          bottom reappear at the other end. So no values get lost they are just
+          rotated.
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
     offset self n:Integer=-1 fill_with:Fill_With=..Nothing -> Column | Any =
         self.implementation.offset self n fill_with
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Conversion method to a Column from a Vector.
 Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Conversion method from a Column to a Vector.
 Vector.from (that:Column) = that.to_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Conversion method to a Table to a Vector.
 Vector.from (that:Table) = if that.column_count == 1 then that.at 0 . to_vector else
     Error.throw (Illegal_Argument.Error "Cannot convert a table with more than one column to a vector, use `at` to choose a column.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Conversion method to a Column from a Vector.
 Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Conversion method to a Column from a Vector.
 Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Many_Files_List.from (that : Column) =
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Gets the Visualization helpers for a Column.
 Visualization_Helpers.from (that : Column) =
     Visualization_Helpers.from that.underlying
 
-## PRIVATE
-   Resolves the default date period for `date_add` depending on the source column value type.
+## ---
+   private: true
+   ---
+   Resolves the default date period for `date_add` depending on the source column
+   value type.
 default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns the default row limit for `read` depending on the backend.
 default_row_limit_for_read column =
     column.implementation.default_row_limit_for_read

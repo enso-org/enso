@@ -17,46 +17,48 @@ describe('useNavigator', () => {
     })
   }
 
-  test('initializes with centered non-zoomed viewport', async () => {
+  test('initializes with non-zoomed viewport', async () => {
     const navigator = await makeTestNavigator()
-    expect(navigator.viewport).toStrictEqual(Rect.FromBounds(-400, -200, 400, 200))
+    expect(navigator.viewport).toStrictEqual(Rect.FromBounds(0, 0, 800, 400))
   })
 
   test('clientToScenePos without scaling', async () => {
     const navigator = await makeTestNavigator()
-    expect(navigator.clientToScenePos(Vec2.Zero)).toStrictEqual(new Vec2(-550, -350))
-    expect(navigator.clientToScenePos(new Vec2(150, 150))).toStrictEqual(new Vec2(-400, -200))
-    expect(navigator.clientToScenePos(new Vec2(550, 350))).toStrictEqual(new Vec2(0, 0))
+    expect(navigator.clientToScenePos(Vec2.Zero)).toStrictEqual(new Vec2(-150, -150))
+    expect(navigator.clientToScenePos(new Vec2(150, 150))).toStrictEqual(new Vec2(0, 0))
+    expect(navigator.clientToScenePos(new Vec2(550, 350))).toStrictEqual(new Vec2(400, 200))
+    expect(navigator.clientToScenePos(new Vec2(950, 550))).toStrictEqual(new Vec2(800, 400))
   })
 
   test('clientToScenePos with scaling', async () => {
     const navigator = await makeTestNavigator()
-    navigator.setCenterAndScale(Vec2.Zero, 2)
-    expect(navigator.clientToScenePos(Vec2.Zero)).toStrictEqual(new Vec2(-275, -175))
-    expect(navigator.clientToScenePos(new Vec2(150, 150))).toStrictEqual(new Vec2(-200, -100))
-    expect(navigator.clientToScenePos(new Vec2(550, 350))).toStrictEqual(new Vec2(0, 0))
+    navigator.setPosAndScale(Vec2.Zero, 2)
+    expect(navigator.clientToScenePos(Vec2.Zero)).toStrictEqual(new Vec2(-75, -75))
+    expect(navigator.clientToScenePos(new Vec2(150, 150))).toStrictEqual(new Vec2(0, 0))
+    expect(navigator.clientToScenePos(new Vec2(550, 350))).toStrictEqual(new Vec2(200, 100))
+    expect(navigator.clientToScenePos(new Vec2(950, 550))).toStrictEqual(new Vec2(400, 200))
   })
 
   test('clientToSceneRect without scaling', async () => {
     const navigator = await makeTestNavigator()
-    expect(navigator.clientToSceneRect(Rect.Zero)).toStrictEqual(Rect.XYWH(-550, -350, 0, 0))
+    expect(navigator.clientToSceneRect(Rect.Zero)).toStrictEqual(Rect.XYWH(-150, -150, 0, 0))
     expect(navigator.clientToSceneRect(Rect.XYWH(150, 150, 800, 400))).toStrictEqual(
       navigator.viewport,
     )
     expect(navigator.clientToSceneRect(Rect.XYWH(100, 150, 200, 900))).toStrictEqual(
-      Rect.XYWH(-450, -200, 200, 900),
+      Rect.XYWH(-50, 0, 200, 900),
     )
   })
 
   test('clientToSceneRect with scaling', async () => {
     const navigator = await makeTestNavigator()
-    navigator.setCenterAndScale(Vec2.Zero, 2)
-    expect(navigator.clientToSceneRect(Rect.Zero)).toStrictEqual(Rect.XYWH(-275, -175, 0, 0))
+    navigator.setPosAndScale(Vec2.Zero, 2)
+    expect(navigator.clientToSceneRect(Rect.Zero)).toStrictEqual(Rect.XYWH(-75, -75, 0, 0))
     expect(navigator.clientToSceneRect(Rect.XYWH(150, 150, 800, 400))).toStrictEqual(
       navigator.viewport,
     )
     expect(navigator.clientToSceneRect(Rect.XYWH(100, 150, 200, 900))).toStrictEqual(
-      Rect.XYWH(-225, -100, 100, 450),
+      Rect.XYWH(-25, 0, 100, 450),
     )
   })
 })

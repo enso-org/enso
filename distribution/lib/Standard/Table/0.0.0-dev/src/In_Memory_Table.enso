@@ -22,19 +22,26 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 
 ## A table whose data is stored in memory.
 type In_Memory_Table
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Internal constructor that should not be used directly.
        Please use `from_java_table` if needed.
 
-       Arguments:
-       - internal_java_table: The internal java representation of the table.
+       ## Arguments
+        - `internal_java_table`: The internal java representation of the table.
     private Value internal_java_table
 
-    ## PRIVATE
-       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    ## ---
+       private: true
+       ---
+       A getter that is a workaround for bug
+       https://github.com/enso-org/enso/issues/12180
     private java_table self = self.internal_java_table
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new (columns : Vector (Vector | Column)) -> Table | Any =
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a vector whose first element is the column name, second element is a vector of elements that will constitute that column (or an existing column) and an optional third element that is the Value_Type for the column. Got: "+columns.to_text)
@@ -63,9 +70,9 @@ type In_Memory_Table
 
     ## Converts all table contents to a text value in delimited format.
 
-       Arguments:
-       - format: Allows to customize the delimiter and other settings of the
-         format. Defaults to tab-separated values.
+       ## Arguments
+        - `format`: Allows to customize the delimiter and other settings of the
+          format. Defaults to tab-separated values.
     @delimiter make_delimiter_selector
     to_delimited self (delimiter:(Delimited_Format|Text)='\t') quote_style:Quote_Style=..With_Quotes headers:Headers=..Detect_Headers (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (line_endings:Line_Ending_Style|Infer=Infer) -> Text =
         format = case delimiter of
@@ -75,7 +82,9 @@ type In_Memory_Table
         if delimiter.is_a Text then result else
             Warning.attach (Deprecated.Warning "Standard.Table.Table" "to_delimited" "Deprecated: specify the arguments separately rather than using a `Delimited_Format`.") result
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Helper method for internal use to make a Table from a Java Table.
 from_java_table java_table =
     ## Trigger data quality metrics computation (conditionally on Output context).
@@ -84,11 +93,15 @@ from_java_table java_table =
     Table_Refinements.refine_table <|
         In_Memory_Table.Value java_table
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Helper method for internal use to make a Java Table from a Table.
 to_java_table table:In_Memory_Table =
     table.java_table
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Table.from (that : In_Memory_Table) =
     table_from_implementation that In_Memory_Table_Implementation

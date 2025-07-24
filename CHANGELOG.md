@@ -29,6 +29,7 @@
 - ["Grouped Components" are renamed to "User Defined Components"][13389]
 - [Allow displaying cloud images using enso:// url in documentation][13419]
 - [File Browser Widget is used when editing file paths to datalinks][13439]
+- [Graph is not moved when showing/resizing side panels.][13557]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
 - ["Welcome Project" is automatically opened for new users][13479]
 
@@ -54,6 +55,7 @@
 [13389]: https://github.com/enso-org/enso/pull/13389
 [13419]: https://github.com/enso-org/enso/pull/13419
 [13439]: https://github.com/enso-org/enso/pull/13439
+[13557]: https://github.com/enso-org/enso/pull/13557
 [13522]: https://github.com/enso-org/enso/pull/13522
 [13479]: https://github.com/enso-org/enso/pull/13479
 
@@ -77,6 +79,8 @@
 - [Remane Google_Api library to Google][13436]
 - [Data.read_many now returns the read path as a char field][13475]
 - [Add prototype `find_group_number` function to Table][13487]
+- [Add support for custom and empty line endings to the fixed-width file format]
+  [13554]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -93,6 +97,7 @@
 [13443]: https://github.com/enso-org/enso/pull/13443
 [13475]: https://github.com/enso-org/enso/pull/13475
 [13487]: https://github.com/enso-org/enso/pull/13487
+[13554]: https://github.com/enso-org/enso/pull/13554
 
 #### Enso Language & Runtime
 
@@ -104,6 +109,7 @@
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
 - [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 - [Use JAVA_TOOL_OPTIONS env variable to alter JVM arguments][13256]
+- [Check private access at resolution, not on invocation][13392]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
 [12976]: https://github.com/enso-org/enso/pull/12976
@@ -111,6 +117,7 @@
 [12905]: https://github.com/enso-org/enso/pull/12905
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13256]: https://github.com/enso-org/enso/pull/13256
+[13392]: https://github.com/enso-org/enso/pull/13392
 
 # Enso 2025.1
 

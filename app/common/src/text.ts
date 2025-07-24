@@ -177,6 +177,9 @@ interface PlaceholderOverrides {
   readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
 
+  readonly xDaysLeftInTrial: [daysLeft: number]
+  readonly xHoursLeftInTrial: [hoursLeft: number]
+  readonly yourSubscriptionExpiresAtX: [endDate: string]
   readonly commercialUseNotice: [originalTitle: string]
 }
 

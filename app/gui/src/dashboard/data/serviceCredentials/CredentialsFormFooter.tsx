@@ -21,7 +21,7 @@ export function CredentialsFormFooter(props: CredentialsFormFooterProps) {
     <>
       <Button.Group className="mt-2">
         <Form.Submit>{isCreating ? getText('create') : getText('update')}</Form.Submit>
-        {canCancel && <Dialog.Dismiss />}
+        {canCancel && <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>}
         {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
       </Button.Group>
 
