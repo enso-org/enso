@@ -128,7 +128,7 @@ achieved because of:
   check the type at run-time and allow to 'uncover' the hidden parts of the
   type. They are treated as an `instanceof` check, so they are not validated by
   static analysis but instead serve as _evidence_ that if the code continues
-  execution, then indeed `y` must have now have type `T`.
+  execution, then indeed `y` must now have type `T`.
 - all other places - _invoking methods_ on a type, passing a _value as an
   argument_, using a _value in binary operators_ rely only on the **visible**
   part of the type and thus can be checked in static analysis.
