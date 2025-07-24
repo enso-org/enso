@@ -1,4 +1,5 @@
 <script lang="ts">
+import { AcceptInvitationModal as AcceptInvitationModalReact } from '#/modals/AcceptInvitationModal'
 import { SetupOrganizationModal as SetupOrganizationModalReact } from '#/modals/SetupOrganizationForm'
 import { TrialEndedModal as TrialEndedModalReact } from '#/modals/TrialEndedModal'
 import * as backendModule from '#/services/Backend'
@@ -14,6 +15,7 @@ import { Ok } from 'ydoc-shared/util/data/result'
 
 const SetupOrganizationModal = reactComponent(SetupOrganizationModalReact)
 const TrialEndedModal = reactComponent(TrialEndedModalReact)
+const AcceptInvitationModal = reactComponent(AcceptInvitationModalReact)
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
 
@@ -31,9 +33,13 @@ export const dataLoader: DataLoader<{
     const auth = useAuth()
     const { remoteBackend: backend } = useBackends()
     if (!auth.session) return Ok({})
-    const { isOrganizationAdmin, plan = backendModule.Plan.free } = auth.session.user
+    const { isOrganizationAdmin, plan = backendModule.Plan.free, invitation } = auth.session.user
 
-    if (!isOrganizationAdmin || plan === backendModule.Plan.free) return Ok({})
+    const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
+
+    const props = { acceptInvitationModalProps }
+
+    if (!isOrganizationAdmin || plan === backendModule.Plan.free) return Ok(props)
 
     const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
     await organizationQuery.suspense()
@@ -44,14 +50,14 @@ export const dataLoader: DataLoader<{
       : undefined,
     )
 
-    if (!PLANS_TO_SPECIFY_ORG_NAME.includes(plan)) return Ok({ trialEndedModalProps })
+    if (!PLANS_TO_SPECIFY_ORG_NAME.includes(plan)) return Ok({ trialEndedModalProps, ...props })
 
     return Ok({
       shouldSetupOrganization: computed(
         () =>
           organizationQuery.data.value?.name == null || organizationQuery.data.value?.name === '',
       ),
-      trialEndedModalProps,
+      ...props,
     })
   },
 }
@@ -61,6 +67,7 @@ export const dataLoader: DataLoader<{
 defineProps<{
   shouldSetupOrganization?: boolean
   trialEndedModalProps?: { subscriptionId: backendModule.SubscriptionId }
+  acceptInvitationModalProps?: { invitation: backendModule.Invitation }
 }>()
 
 const { remoteBackend } = useBackends()
@@ -74,5 +81,6 @@ useEvent(window, 'beforeunload', logUserClose)
 <template>
   <SetupOrganizationModal v-if="shouldSetupOrganization" />
   <TrialEndedModal v-if="trialEndedModalProps" v-bind="trialEndedModalProps" />
+  <AcceptInvitationModal v-if="acceptInvitationModalProps" v-bind="acceptInvitationModalProps" />
   <RouterView />
 </template>

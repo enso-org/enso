@@ -33,8 +33,8 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
       modalProps={{ defaultOpen: true }}
       cancel={getText('downgrade')}
       confirm={getText('subscribe')}
-      onConfirm={() => {
-        onConfirm.mutate([
+      onConfirm={async () => {
+        await onConfirm.mutateAsync([
           {
             price: backend.Plan.solo,
             quantity: 1,
@@ -42,8 +42,8 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
           },
         ])
       }}
-      onCancel={() => {
-        onCancel.mutate([subscriptionId])
+      onCancel={async () => {
+        await onCancel.mutateAsync([subscriptionId])
       }}
     >
       <Text className="relative">{getText('trialEndedExplanation')}</Text>

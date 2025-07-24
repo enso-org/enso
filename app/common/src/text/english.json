@@ -1235,12 +1235,17 @@
   "yourSubscriptionExpiresAtX": "Your subscription expires at $0",
   "commercialUseNotice": "$0 - Not for commercial use",
   "trialEnded": "Your cloud access trial period has endend.",
-  "trialEndedExplanation": "You can proceed to checkout and extend your access or you can downgrade to Community plan.",
+  "trialEndedExplanation": "You can proceed to checkout and extend your access or you can downgrade to Community plan. After the subscribe you will be redirected to Stripe to finalize your order.",
   "trialEndedWarning": "Moving to Community plan will discard your access to all of your cloud assets. We will permanently remove them after 90 days.",
   "cancelSubscriptionBackendError": "We couldn't cancel your subscription. Please contant the administrator.",
   "downgrade": "Downgrade",
   "getPaymentsConfigBackendError": "Couldn't get payment pricing page configuration. Please try again later.",
   "stripeRedirectAlert": "You are being redirected to Stripe for finalizing your payment process.",
   "stripeRedirectInfo": "After submitting your order you will be redirect to Stripe for finalizing your payment process.",
-  "goToStripe": "Go to Stripe"
+  "goToStripe": "Go to Stripe",
+  "welcomeToTeam": "Welcome to the \"$0\" team!",
+  "invitationError": "Something went wrong. Please contact the administrator.",
+  "pendingInvitationInfo": "You have pending team invitation.",
+  "invitationText": "\"$0\" invites you to join",
+  "invitationAlert": "All of your assets will be transfered with you. This might take a while."
 }
