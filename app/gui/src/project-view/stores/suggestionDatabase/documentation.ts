@@ -5,7 +5,7 @@ import { isSome, type Opt } from '@/util/data/opt'
 import { parseDocs, type Doc } from '@/util/docParser'
 import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
-import { SyntaxNodeRef } from '@lezer/common'
+import type { SyntaxNodeRef } from '@lezer/common'
 import { type DeepReadonly } from 'vue'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import { ensoStandardMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
@@ -56,7 +56,7 @@ export function getGroupIndex(
   return index == null ? undefined : index
 }
 
-function getLegacyDocumentationSummary(sections: Doc.Section[]) {
+export function getLegacyDocumentationSummary(sections: Doc.Section[]) {
   const firstParagraph = sections.find(
     (section): section is { Paragraph: Doc.Section.Paragraph } => 'Paragraph' in section,
   )?.Paragraph.body

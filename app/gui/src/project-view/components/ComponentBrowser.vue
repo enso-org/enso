@@ -62,7 +62,7 @@ const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
   usage: Usage
-  graphEditorRoot: HTMLElement | null
+  graphEditorRoot: Opt<HTMLElement>
 }>()
 
 const emit = defineEmits<{
