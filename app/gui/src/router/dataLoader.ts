@@ -18,10 +18,6 @@ import {
 } from 'vue'
 import type { NavigationGuardReturn, RouteLocationNormalizedGeneric } from 'vue-router'
 
-export function mkDataLoader<const Props>(dataLoader: DataLoader<Props>): DataLoader<Props> {
-  return dataLoader
-}
-
 /**
  * A loader which needs be exported from *.vue file to be wrapped in {@link withDataLoader}.
  */
