@@ -73,6 +73,25 @@ type Google_Sheets_Workbook
         result
 
     ## ---
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Reads one or more sheets into a Table.
+
+       ## Arguments
+        - `sheet_names`: the names of sheets, ranges or addresses to read.
+          Defaults to all sheets. An invalid `sheet_name` will be reported as a
+          problem.
+        - `headers`: whether to use the first row as headers (default is
+          `Detect_Headers`) for each sheet.
+        - `return`: how to return the tables. Defaults to `As_Merged_Table`
+          meaning the tables are merged into a single table.
+        - `on_problems`: how to handle problems during reading. Defaults to
+          `Report_Warning`.
+    read_many self sheet_names:Vector=self.sheet_names =
+        self.read (sheet_names.at 0)
+
+    ## ---
        group: Standard.Base.Metadata
        icon: metadata
        suggested: 2
