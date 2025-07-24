@@ -75,6 +75,7 @@ type Array
 
     ## ---
        private: true
+       advanced: true
        ---
        Identity.
        This method is implemented purely for completeness with the runtime's
