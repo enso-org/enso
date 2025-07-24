@@ -1565,6 +1565,84 @@ public class SignatureTest {
     assertEquals("YesB", b.invokeMember("i_am_b").asString());
   }
 
+  @Test
+  public void intersectionWithAnyKeepsOrder() {
+    var code =
+        """
+        from Standard.Base import Any, Integer
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+            id self = self.i_am_a
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+            id self = self.i_am_b
+        type C
+            C_Ctor b
+
+            i_am_c self = "YesC"
+            id self = self.i_am_c
+
+        A.from that:B =
+            A.A_Ctor that
+        C.from that:B =
+            C.C_Ctor that
+
+        all_of v -> C & B & A =
+            B.B_Ctor v
+
+        a_with x -> A & Any = x
+        b_with x -> B & Any = x
+        ab_with x -> A & B & Any = x
+        ba_with x -> B & A & Any = x
+
+        private all value =
+            v = all_of value
+            a = a_with v
+            b = b_with v
+            ab = ab_with v
+            ba = ba_with v
+
+            [v, a, b, ab, ba]
+
+        main = all
+        """;
+
+    ctxRule.resetOut();
+    var tripple = ctxRule.evalModule(code);
+    assertTrue("Executable", tripple.canExecute());
+
+    var res = tripple.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(5, res.getArraySize());
+
+    for (var i = 0; i < res.getArraySize(); i++) {
+      var at = res.getArrayElement(i);
+
+      assertEquals("Can call A at " + i, "YesA", at.invokeMember("i_am_a").asString());
+      assertEquals("Can call B at " + i, "YesB", at.invokeMember("i_am_b").asString());
+      assertEquals("Can call C at " + i, "YesC", at.invokeMember("i_am_c").asString());
+    }
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+    var ab = res.getArrayElement(3);
+    var ba = res.getArrayElement(4);
+
+    assertEquals("Call overloaded method selects first C", "YesC", v.invokeMember("id").asString());
+    assertEquals("Call overloaded method selects first A", "YesA", a.invokeMember("id").asString());
+    assertEquals("Call overloaded method selects first B", "YesB", b.invokeMember("id").asString());
+    assertEquals(
+        "Call overloaded method selects first A", "YesA", ab.invokeMember("id").asString());
+    assertEquals(
+        "Call overloaded method selects first B", "YesB", ba.invokeMember("id").asString());
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     assertEquals(
         "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",

@@ -41,11 +41,8 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
         var t = typeNode.findTypeOrNull(result);
         dispatchTypes[at++] = t;
       }
-      if (allowThru) {
-        return value;
-      }
       var node = EnsoMultiValue.NewNode.getUncached();
-      return node.renewMulti(multi, dispatchTypes);
+      return node.renewMulti(multi, dispatchTypes, allowThru);
     }
     return null;
   }
