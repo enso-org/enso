@@ -20,3 +20,15 @@ type Line_Ending_Style
         Line_Ending_Style.Unix -> '\n'
         Line_Ending_Style.Windows -> '\r\n'
         Line_Ending_Style.Mac_Legacy -> '\r'
+
+## Represents a format that has no line endings, such as a `Fixed_Width_Format`
+   file.
+type No_Line_Ending
+
+## Represents a format that has a nonstandard string as the line ending.
+   file.
+
+   ## Arguments
+    - `line_ending`: The custom line ending. Must be ASCII.
+type Custom_Line_Ending
+    Value (line_ending:Text)

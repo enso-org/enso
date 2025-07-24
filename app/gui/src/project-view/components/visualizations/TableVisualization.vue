@@ -437,8 +437,6 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   }
 }
 
-const attepmtedCalls = ref(0)
-
 function createServer() {
   return {
     getSetFilterValues: async (
@@ -468,15 +466,24 @@ function createServer() {
         `${columnIndex}`,
         //column indexes that require a filter
         filterColumnIndexList as string[] | 'Nothing',
-        //column actions i.e Greater Than, Between...
+        //column actions i.e. Greater Than, Between...
         filterActions as string[] | 'Nothing',
         //values to filter on
         valueList as string[] | 'Nothing',
       )
-      const response = await config.executeExpression(expressionFunction)
-      return {
-        success: true,
-        data: response.value.distinct_vals,
+
+      try {
+        const response = await config.executeExpression(expressionFunction, 2000)
+        return {
+          success: true,
+          data: response.value.distinct_vals,
+        }
+      } catch (error) {
+        console.warn('Error loading filterValues for column.', error)
+        return {
+          success: false,
+          data: [],
+        }
       }
     },
     getData: async (request: IServerSideGetRowsRequest) => {
@@ -509,21 +516,16 @@ function createServer() {
         valueList as string[] | 'Nothing',
       )
 
-      const response = await config.executeExpression(expressionFunction)
-      if (response.ok) {
+      try {
+        const response = await config.executeExpression(expressionFunction)
         filteredRowCount.value = response.value.row_count
         return {
           success: true,
           data: response.value.rows,
           rowCount: response.value.row_count,
         }
-      } else {
-        if (attepmtedCalls.value < 3) {
-          grid.value?.gridApi?.refreshServerSide({ purge: true })
-          attepmtedCalls.value++
-          return
-        }
-        console.error('Error loading rows:', response.error)
+      } catch (error) {
+        console.warn('Error loading rows for table.', error)
         return {
           success: false,
           data: null,

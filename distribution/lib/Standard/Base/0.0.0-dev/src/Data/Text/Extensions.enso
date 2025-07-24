@@ -1972,6 +1972,13 @@ Text.substring self start:Integer length:Integer=self.length =
                 range = fixed_start.up_to fixed_start+length
                 self.take range
 
+## ---
+   private : true
+   ---
+   True if all characters are ASCII, i.e. < 128.
+Text.is_ascii self =
+    Text_Utils.is_ascii self
+
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided
    ranges. The ranges are assumed to have step equal to 1 and bounds within the

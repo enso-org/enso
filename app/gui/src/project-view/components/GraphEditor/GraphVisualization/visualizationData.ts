@@ -17,7 +17,6 @@ import { toError } from '@/util/data/error'
 import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
-import { wait } from 'lib0/promise.js'
 import {
   computed,
   onErrorCaptured,
@@ -30,7 +29,7 @@ import {
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
 import type { Opt } from 'ydoc-shared/util/data/opt'
-import { Err, type Result } from 'ydoc-shared/util/data/result'
+import { type Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** Used for testing. */
@@ -102,7 +101,7 @@ export function useVisualizationData({
 
   const executeExpression = async (
     expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
-    timeoutMs = 5000,
+    timeoutMs?: number,
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
@@ -118,13 +117,9 @@ export function useVisualizationData({
     if (contextId === undefined) return
 
     const expression = expressionFunction(identifier)
-
-    const result = await Promise.race([
-      projectStore.executeExpression(contextId, expression.code()),
-      wait(timeoutMs).then(() => Err('Expression timeout')),
-    ])
-
-    return result
+    return timeoutMs ?
+        await projectStore.queuedExecuteExpression(contextId, expression.code(), timeoutMs)
+      : await projectStore.queuedExecuteExpression(contextId, expression.code())
   }
 
   const currentVisualization = computed(() => {

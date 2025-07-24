@@ -2,6 +2,7 @@
 import { Heading } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Popover } from '#/components/Dialog'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Menu } from '#/components/Menu'
 import { usePortalContext } from '#/components/Portal'
 import { Text } from '#/components/Text'
@@ -187,56 +188,60 @@ export function Settings() {
   })
 
   return (
-    <div className="flex h-full w-full flex-col gap-4 overflow-hidden pl-page-x pt-4">
-      <Heading level={1} className="flex items-center px-heading-x">
-        <Menu.Trigger>
-          <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />
-          <Popover size="auto" UNSTABLE_portalContainer={root}>
+    <ErrorBoundary>
+      <div className="flex h-full w-full flex-col gap-4 overflow-hidden pl-page-x pt-4">
+        <Heading level={1} className="flex items-center px-heading-x">
+          <Menu.Trigger>
+            <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />
+            <Popover size="auto" UNSTABLE_portalContainer={root}>
+              <SettingsSidebar
+                context={context}
+                tabsToShow={tabsToShow}
+                tab={effectiveTab}
+                setTab={setTab}
+              />
+            </Popover>
+          </Menu.Trigger>
+
+          <Text nowrap variant="h1" className="cursor-default font-bold">
+            {getText('settingsFor')}
+          </Text>
+
+          <Text
+            variant="h1"
+            truncate="1"
+            className="ml-2.5 mr-8 max-w-[min(32rem,_100%)] cursor-default rounded-full bg-white px-2.5 font-bold"
+            aria-hidden
+          >
+            {data.organizationOnly === true ?
+              (organization?.name ?? 'your organization')
+            : user.name}
+          </Text>
+        </Heading>
+        <div className="sm:ml-[14rem]">
+          <SearchBar
+            data-testid="settings-search-bar"
+            query={query}
+            setQuery={setQuery}
+            label={getText('settingsSearchBarLabel')}
+            placeholder={getText('settingsSearchBarPlaceholder')}
+          />
+        </div>
+        <div className="flex sm:ml-[222px]" />
+        <div className="flex flex-1 gap-4 overflow-hidden">
+          <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
             <SettingsSidebar
               context={context}
               tabsToShow={tabsToShow}
               tab={effectiveTab}
               setTab={setTab}
             />
-          </Popover>
-        </Menu.Trigger>
-
-        <Text nowrap variant="h1" className="cursor-default font-bold">
-          {getText('settingsFor')}
-        </Text>
-
-        <Text
-          variant="h1"
-          truncate="1"
-          className="ml-2.5 mr-8 max-w-[min(32rem,_100%)] cursor-default rounded-full bg-white px-2.5 font-bold"
-          aria-hidden
-        >
-          {data.organizationOnly === true ? (organization?.name ?? 'your organization') : user.name}
-        </Text>
-      </Heading>
-      <div className="sm:ml-[14rem]">
-        <SearchBar
-          data-testid="settings-search-bar"
-          query={query}
-          setQuery={setQuery}
-          label={getText('settingsSearchBarLabel')}
-          placeholder={getText('settingsSearchBarPlaceholder')}
-        />
+          </aside>
+          <main className="flex flex-1 flex-col overflow-y-auto pb-12 pl-1 scrollbar-gutter-stable">
+            <SettingsTab context={context} data={data} onInteracted={changeTab} />
+          </main>
+        </div>
       </div>
-      <div className="flex sm:ml-[222px]" />
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
-          <SettingsSidebar
-            context={context}
-            tabsToShow={tabsToShow}
-            tab={effectiveTab}
-            setTab={setTab}
-          />
-        </aside>
-        <main className="flex flex-1 flex-col overflow-y-auto pb-12 pl-1 scrollbar-gutter-stable">
-          <SettingsTab context={context} data={data} onInteracted={changeTab} />
-        </main>
-      </div>
-    </div>
+    </ErrorBoundary>
   )
 }
