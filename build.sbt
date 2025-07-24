@@ -21,6 +21,7 @@ import Dependencies._
 // to IntelliJ.
 import JPMSPlugin.autoImport._
 import PackageListPlugin.autoImport._
+import JarExtractPlugin.autoImport._
 
 import java.io.File
 
@@ -4879,6 +4880,17 @@ lazy val cleanPolyglotRoot = taskKey[Unit](
   "Helper task that prepares polyglot directory of a stdlib component"
 )
 
+lazy val `opencv-thin` = project
+  .in(file("std-bits") / "opencv-thin")
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.openpnp" % "opencv" % opencvVersion
+    ),
+    inputJar := "org.openpnp" % "opencv" % opencvVersion,
+    jarExtractor := JarExtract.openCVExtractor
+  )
+
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
   .settings(
@@ -4894,14 +4906,10 @@ lazy val `std-image` = project
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.openpnp"          % "opencv"                  % opencvVersion
     ),
-    // Extract native libraries from opencv.jar, and put them under
-    // Standard/Image/polyglot/lib directory. The minimized opencv.jar will
-    // be put under Standard/Image/polyglot/java directory.
-    extractNativeLibs := Def.task {
+    Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
-      import sbt.util.CacheImplicits._
-      val prev = extractNativeLibs.previous
+      val prev              = (Compile / packageBin).value
       StdBits
         .copyDependencies(
           `image-polyglot-root`,
@@ -4909,48 +4917,16 @@ lazy val `std-image` = project
           ignoreScalaLibrary = true,
           ignoreDependenciesByModuleID =
             Some(Seq("org.openpnp" % "opencv" % opencvVersion)),
-          libraryUpdates     = (Compile / update).value,
-          logger             = logger,
-          cacheStoreFactory  = cacheStoreFactory,
-          unmanagedClasspath = (Compile / unmanagedJars).value,
-          previousRun        = prev
+          libraryUpdates      = (Compile / update).value,
+          logger              = logger,
+          cacheStoreFactory   = cacheStoreFactory,
+          unmanagedClasspath  = (Compile / unmanagedJars).value,
+          polyglotLibDir      = Some(`image-native-libs`),
+          extractedNativeLibs = (`opencv-thin` / extractedFiles).value,
+          extraJars           = Seq((`opencv-thin` / thinJarOutput).value)
         )
-      StdBits
-        .extractNativeLibsFromOpenCV(
-          `image-polyglot-root`,
-          `image-native-libs`,
-          opencvVersion,
-          logger,
-          updateReport = (Compile / update).value,
-          moduleName.value,
-          scalaBinaryVersion.value,
-          cacheStoreFactory,
-          prev
-        )
-    }.value,
-    cleanPolyglotRoot := Def.task {
-      import sbt.util.CacheImplicits._
-      val forceClean = extractNativeLibs.previous.isEmpty
-      val logger     = streams.value.log
-      StdBits.ensureDirExistsAndIsClean(
-        `image-polyglot-root`.toPath,
-        logger,
-        forceClean
-      )
-      StdBits.ensureDirExistsAndIsClean(
-        `image-native-libs`.toPath,
-        logger,
-        forceClean
-      )
-    }.value,
-    Compile / packageBin := Def
-      .task {
-        val result = (Compile / packageBin).value
-        extractNativeLibs.value
-        result
-      }
-      .dependsOn(cleanPolyglotRoot)
-      .value,
+      prev
+    },
     clean := Def.task {
       val _ = clean.value
       IO.delete(`image-polyglot-root`)

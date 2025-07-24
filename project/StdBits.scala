@@ -30,6 +30,9 @@ object StdBits {
     * @param ignoreDependencies Depedencies that should be ignored based on a plain file name filter
     * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
+    * @param polyglotLibDir `polyglot/lib` directory for extracted native libraries.
+    * @param extractedNativeLibs Native libraries that will be copied into `polyglotLibDir`
+    * @param extraJars Additional JARs that will be copied into `destination` directory.
     *
     * @param previousRun summary of previous extraction data, if available
     */
@@ -45,8 +48,17 @@ object StdBits {
     ignoreDependencies: Option[String => Boolean]       = None,
     ignoreDependencyIncludeTransitive: Option[String]   = None,
     ignoreUnmanagedDependency: Option[File => Boolean]  = None,
+    polyglotLibDir: Option[File]                        = None,
+    extractedNativeLibs: Seq[File]                      = Seq.empty,
+    extraJars: Seq[File]                                = Seq.empty,
     previousRun: Option[AnalysisOfExtractedNativeLibs]  = None
   ): Unit = {
+    if (extractedNativeLibs.nonEmpty) {
+      require(
+        polyglotLibDir.isDefined,
+        "If extracted native libraries are provided, polyglotLibDir must be defined."
+      )
+    }
 
     val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
     val validConfig =
@@ -92,14 +104,22 @@ object StdBits {
       ignoreDependencyIncludeTransitive
         .map(filter => relevantFiles0.filterNot(_.getName.contains(filter)))
         .getOrElse(relevantFiles0)
-    val relevantFiles =
+    val relevantFiles2 =
       ignoreDependencies
         .map(filter => relevantFiles1.filterNot(f => filter(f.getName)))
         .getOrElse(relevantFiles1)
-    val dependencyStore =
-      cacheStoreFactory.make("std-bits-dependencies")
-    Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
+    val relevantFiles =
+      relevantFiles2 ++ extraJars
+
+    val jarDependencyStore =
+      cacheStoreFactory.make("std-bits-jar-dependencies")
+
+    // Copy jars into `destination` if necessary.
+    Tracked.diffInputs(jarDependencyStore, FileInfo.hash)(relevantFiles.toSet) {
       report =>
+        logger.debug(
+          s"jarDependencyStore report: " + report
+        )
         val expectedFileNames =
           report.checked.map(file => file.getName) ++ providedJarNames
         for (existing <- IO.listFiles(destination)) {
@@ -141,6 +161,42 @@ object StdBits {
             updateDependency(file, destination, logger)
           }
         }
+    }
+
+    // Copy native libs into `polyglotLibDir` if necessary.
+    // TODO: Respect the directory hierarchy of extractedNativeLibs.
+    val nativeLibsStore =
+      cacheStoreFactory.make("std-bits-native-libs")
+    Tracked.diffInputs(nativeLibsStore, FileInfo.hash)(
+      extractedNativeLibs.toSet
+    ) { report =>
+      logger.debug(s"nativeLibsStore report: " + report)
+      val expectedFileNames = report.checked.map(_.getName)
+      for (existing <- IO.listFiles(polyglotLibDir.get)) {
+        if (!expectedFileNames.contains(existing.getName)) {
+          logger.info(
+            s"Removing outdated std-bits native lib ${existing.getName}"
+          )
+          IO.delete(existing)
+        } else {
+          logger.info(
+            s"Keeping target ${existing.getName} native lib as a dependency. Still up-to-date"
+          )
+        }
+      }
+      for (changed <- report.modified -- report.removed) {
+        logger.info(
+          s"Updating changed std-bits native lib ${changed.getName}."
+        )
+        updateDependency(changed, polyglotLibDir.get, logger)
+      }
+      for (file <- report.unmodified) {
+        val dest = polyglotLibDir.get / file.getName
+        if (!dest.exists()) {
+          logger.info(s"Adding missing std-bits native lib ${file.getName}.")
+          updateDependency(file, polyglotLibDir.get, logger)
+        }
+      }
     }
   }
 
