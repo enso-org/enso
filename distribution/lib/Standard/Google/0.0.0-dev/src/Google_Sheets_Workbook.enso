@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
@@ -7,10 +8,12 @@ from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Internal.Java_Problems
+import Standard.Table.Return_As_Table.Return_As_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Headers, Table
+from Standard.Table import Column, Headers, Table
 from Standard.Table.Errors import Empty_Sheet, Invalid_Location
 from Standard.Table.In_Memory_Table import from_java_table
+from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
 import project.Internal.Telemetry
 
@@ -89,8 +92,18 @@ type Google_Sheets_Workbook
           meaning the tables are merged into a single table.
         - `on_problems`: how to handle problems during reading. Defaults to
           `Report_Warning`.
-    read_many self sheet_names:Vector=self.sheet_names =
-        self.read (sheet_names.at 0)
+    read_many self sheet_names:Vector=self.sheet_names headers:Headers=..Detect_Headers return:Return_As_Table=..As_Merged_Table on_problems:Problem_Behavior=..Report_Warning =
+        case return of
+            Return_As_Table.With_New_Column ->
+                1
+            Return_As_Table.As_Merged_Table columns_to_keep match ->
+                only_valid = sheet_names.map on_problems=No_Wrap.Value address->
+                    table = self.read address headers on_problems=on_problems
+                    Pair.new address table
+                valid_names = only_valid.map .first
+                valid_tables = only_valid.map .second
+                unified_tables = Table.from_union valid_tables columns_to_keep=columns_to_keep match_columns=match on_problems=on_problems
+                (_sheet_names_table valid_names valid_tables).zip unified_tables right_prefix="" on_problems=on_problems
 
     ## ---
        group: Standard.Base.Metadata
@@ -166,6 +179,11 @@ private _make_java_headers headers:Headers = case headers of
     Headers.Has_Headers -> HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
     Headers.Detect_Headers -> HeaderBehavior.INFER
     Headers.No_Headers -> HeaderBehavior.DEFAULT_COLUMN_NAMES
+
+private _sheet_names_table (sheet_names : Vector Text) (loaded_tables : Vector Table) -> Table =
+    table = Column.from_vector "Sheet Name" sheet_names . to_table
+    counts = loaded_tables.map t-> t.row_count
+    duplicate_rows table counts
 
 ## Creates a query widget for the `read` method.
 private _query_widget wb:Google_Sheets_Workbook display:Display=..Always -> Widget =

@@ -220,9 +220,9 @@ add_specs suite_builder =
             ## Test3
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
             ws = wb.read_many ['1RowStringData']
-            ws . should_equal (Table.new [['A', ['X']],['B', ['Y']],['C', ['Z']]])
+            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData']],['A', ['X']],['B', ['Y']],['C', ['Z']]])
         group_builder.specify "can read multiple sheets" <|
             ## Test3
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
             ws = wb.read_many ['1RowStringData','2RowStringData']
-            ws . should_equal (Table.new [['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
+            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData','2RowStringData']],['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
