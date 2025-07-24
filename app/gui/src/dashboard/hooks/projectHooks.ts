@@ -404,13 +404,13 @@ export function useRenameProjectMutation() {
         queryKey,
       })
       // Optimistically update the project name.
-      const previousProjectDetails = client.getQueryData<backendModule.Project>(queryKey)
-      if (previousProjectDetails) {
-        client.setQueryData<backendModule.Project>(queryKey, {
-          ...previousProjectDetails,
+      client.setQueryData<backendModule.Project>(queryKey, (data) => {
+        if (data == null) return undefined
+        return {
+          ...data,
           name: newName,
-        })
-      }
+        }
+      })
 
       return { queryKey }
     },
