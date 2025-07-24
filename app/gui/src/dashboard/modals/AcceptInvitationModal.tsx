@@ -4,6 +4,7 @@ import { Alert } from '#/components/Alert'
 import { AlertDialog } from '#/components/AlertDialog'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type * as backend from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useText } from '$/providers/react'
@@ -21,9 +22,8 @@ export function AcceptInvitationModal(props: AcceptInvitationModalProps) {
   const { organizationId, organizationName, userEmail } = invitation
   const { getText } = useText()
   const { remoteBackend } = useBackends()
-  const onConfirm = useMutation(
+  const onConfirm = useMutationCallback(
     backendMutationOptions(remoteBackend, 'updateUser', {
-      meta: { invalidates: [['updateUser']], awaitInvalidates: true },
       onSuccess: () => {
         toast.success(getText('welcomeToTeam', organizationName))
       },
@@ -45,7 +45,7 @@ export function AcceptInvitationModal(props: AcceptInvitationModalProps) {
       cancel={getText('decline')}
       confirm={getText('accept')}
       onConfirm={async () => {
-        await onConfirm.mutateAsync([{ organizationId }])
+        await onConfirm([{ organizationId }])
       }}
       onCancel={async () => {
         await onCancel.mutateAsync([userEmail])
