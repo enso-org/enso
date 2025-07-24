@@ -85,6 +85,8 @@ const outputPorts = computed((): PortData[] => {
 // === Interactivity ===
 
 const mouseOverOutput = ref<AstId>()
+// This is a counter rather than a boolean to ensure it remains accurate in the presence of multiple
+// output ports, without relying on the order of events.
 const mouseOverCreateNodeFromPortButton = ref(0)
 
 const outputHovered = computed(() =>
