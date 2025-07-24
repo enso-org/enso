@@ -95,6 +95,7 @@ import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
 import { useLaunchedProjects } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import type { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import {
   Children,
   cloneElement,
@@ -302,11 +303,23 @@ function AssetsTable(props: AssetsTableProps) {
     ...directoryQueryOptions,
     queryFn: (context) =>
       directoryQueryOptions.queryFn(context, {
-        from: context.pageParam,
+        from: context.pageParam.from,
+        fromModifiedAt: context.pageParam.fromModifiedAt,
         pageSize,
       }),
-    initialPageParam: ((): AssetId | null => null)(),
-    getNextPageParam: (lastPage) => lastPage.at(-1)?.id ?? null,
+    initialPageParam: ((): {
+      readonly from: AssetId | null
+      fromModifiedAt: Rfc3339DateTime | null
+    } => ({ from: null, fromModifiedAt: null }))(),
+    getNextPageParam: (lastPage) => {
+      const last = lastPage.at(-1)
+      if (!last) return null
+      const from = last.id
+      const isDefaultSorting =
+        sortInfo?.field == null || sortInfo.field === 'asset_id_discriminator_and_modified_at'
+      const fromModifiedAt = isDefaultSorting ? last.modifiedAt : null
+      return { from, fromModifiedAt }
+    },
     retry: () => {
       setDriveLocation(null, category.id)
       return false

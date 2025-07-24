@@ -259,8 +259,13 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
     ...(refetchInterval != null ? { refetchInterval } : {}),
     queryFn: async (
       _context,
-      { from, pageSize }: Pick<backendModule.ListDirectoryRequestParams, 'from' | 'pageSize'> = {
+      {
+        from,
+        fromModifiedAt,
+        pageSize,
+      }: Pick<backendModule.ListDirectoryRequestParams, 'from' | 'fromModifiedAt' | 'pageSize'> = {
         from: null,
+        fromModifiedAt: null,
         pageSize: null,
       },
     ) => {
@@ -275,6 +280,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             filterBy,
             recentProjects: category.type === 'recent',
             from,
+            fromModifiedAt,
             pageSize,
           },
           parentId ?? '(unknown)',
@@ -308,14 +314,22 @@ export interface SearchDirectoryQueryOptions {
 export function searchDirectoryQueryOptions(options: SearchDirectoryQueryOptions) {
   const { backend, ...rest } = options
   return {
-    queryKey: ((): QueryKey => [backend.type, 'listDirectory', rest])(),
+    queryKey: ((): QueryKey => [backend.type, 'searchDirectory', rest])(),
     queryFn: (
       _context,
-      { from, pageSize }: Pick<backendModule.ListDirectoryRequestParams, 'from' | 'pageSize'> = {
+      {
+        from,
+        fromModifiedAt,
+        pageSize,
+      }: Pick<
+        backendModule.SearchDirectoryRequestParams,
+        'from' | 'fromModifiedAt' | 'pageSize'
+      > = {
         from: null,
+        fromModifiedAt: null,
         pageSize: null,
       },
-    ) => backend.searchDirectory({ ...rest, from, pageSize }),
+    ) => backend.searchDirectory({ ...rest, from, fromModifiedAt, pageSize }),
   } satisfies UnusedSkipTokenOptions<readonly backendModule.AnyAsset<backendModule.AssetType>[]>
 }
 
@@ -444,6 +458,7 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
           sortExpression: null,
           sortDirection: null,
           from: null,
+          fromModifiedAt: null,
           pageSize: null,
         },
         '(unknown)',

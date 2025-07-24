@@ -1438,7 +1438,7 @@ export interface GetLogEventsRequestParams {
   readonly pageSize?: number | null | undefined
 }
 
-export type AssetSortExpression = 'asset_discriminator_and_id' | 'modified_at' | 'title'
+export type AssetSortExpression = 'asset_id_discriminator_and_modified_at' | 'modified_at' | 'title'
 
 export type AssetSortDirection = 'ascending' | 'descending'
 
@@ -1457,6 +1457,7 @@ export interface ListDirectoryRequestParams {
    */
   readonly rootPath?: Path | undefined
   readonly from: AssetId | null
+  readonly fromModifiedAt: dateTime.Rfc3339DateTime | null
   readonly pageSize: number | null
 }
 
@@ -1472,6 +1473,7 @@ export interface SearchDirectoryRequestParams {
   readonly sortExpression: AssetSortExpression | null
   readonly sortDirection: AssetSortDirection | null
   readonly from: AssetId | null
+  readonly fromModifiedAt: dateTime.Rfc3339DateTime | null
   readonly pageSize: number | null
 }
 
@@ -1562,7 +1564,7 @@ export function compareAssets(
   sortExpression?: AssetSortExpression | null,
   sortDirection?: AssetSortDirection | null,
 ) {
-  sortExpression ??= 'asset_discriminator_and_id'
+  sortExpression ??= 'asset_id_discriminator_and_modified_at'
   sortDirection ??= sortExpression == 'modified_at' ? 'descending' : 'ascending'
 
   const multiplier = sortDirection === 'ascending' ? 1 : -1
@@ -1570,7 +1572,7 @@ export function compareAssets(
     multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
   const titleDelta = multiplier * a.title.localeCompare(b.title, 'en-US', { numeric: true })
   switch (sortExpression) {
-    case 'asset_discriminator_and_id': {
+    case 'asset_id_discriminator_and_modified_at': {
       const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
       if (relativeTypeOrder !== 0) {
         return multiplier * relativeTypeOrder
