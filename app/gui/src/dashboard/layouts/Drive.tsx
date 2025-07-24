@@ -28,9 +28,11 @@ import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export const Drive = React.memo(function Drive() {
   return (
-    <DriveProvider>
-      <DriveInner />
-    </DriveProvider>
+    <ErrorBoundary>
+      <DriveProvider>
+        <DriveInner />
+      </DriveProvider>
+    </ErrorBoundary>
   )
 })
 

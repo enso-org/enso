@@ -195,6 +195,7 @@ jobs:
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload gui
@@ -261,6 +262,7 @@ jobs:
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
@@ -333,6 +335,7 @@ jobs:
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: xvfb-run corepack pnpm -r --filter enso ide-integration-test
@@ -427,6 +430,7 @@ jobs:
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}

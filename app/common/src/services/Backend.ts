@@ -1368,8 +1368,17 @@ export interface GoogleCredentialInput {
   readonly scopes: readonly string[]
 }
 
+/** User settings for a Strava credential. */
+export interface StravaCredentialInput {
+  readonly type: 'Strava'
+  readonly scopes: readonly string[]
+}
+
 /** User settings for an arbitrary credential. */
-export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
+export type CredentialInput =
+  | SnowflakeCredentialInput
+  | GoogleCredentialInput
+  | StravaCredentialInput
 
 /** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
 export interface CredentialConfig {

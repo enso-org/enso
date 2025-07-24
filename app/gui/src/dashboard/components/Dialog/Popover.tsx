@@ -4,10 +4,12 @@
  * Can be used to display alerts, confirmations, or other content.
  */
 import * as aria from '#/components/aria'
+import { DialogTrigger } from '#/components/Dialog/DialogTrigger'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { usePortalContext } from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import { ResetButtonGroupContext } from '../Button'
@@ -15,7 +17,6 @@ import type { Placement } from '../types'
 import { Close } from './Close'
 import { DialogProvider } from './DialogProvider'
 import { DialogStackRegistrar } from './DialogStackProvider'
-import { DialogTrigger } from './DialogTrigger'
 import { animateScale, useInteractOutside } from './utilities'
 import { DIALOG_BACKGROUND } from './variants'
 
@@ -84,59 +85,67 @@ const SUSPENSE_LOADER_PROPS = { minHeight: 'h32' } as const
  * A popover is an overlay element positioned relative to a trigger.
  * It can be used to display additional content or actions.
  */
-export function Popover(props: PopoverProps) {
-  const {
-    children,
-    className,
-    size,
-    rounded,
-    variant,
-    placement,
-    isDismissable = true,
-    onClose,
-    ...ariaPopoverProps
-  } = props
+export const Popover = Object.assign(
+  React.forwardRef(function Popover(props: PopoverProps, ref: React.ForwardedRef<HTMLElement>) {
+    const {
+      children,
+      className,
+      size,
+      rounded,
+      variant,
+      placement,
+      isDismissable = true,
+      onClose,
+      ...ariaPopoverProps
+    } = props
 
-  const popoverRef = React.useRef<HTMLDivElement>(null)
-  const root = usePortalContext()
-  const popoverStyle = { zIndex: '' }
+    const popoverRef = React.useRef<HTMLDivElement>(null)
+    const root = usePortalContext()
+    const popoverStyle = { zIndex: '' }
 
-  return (
-    <aria.Popover
-      ref={popoverRef}
-      className={(values) =>
-        POPOVER_STYLES({
-          isEntering: values.isEntering,
-          isExiting: values.isExiting,
-          size,
-          rounded,
-          variant,
-        }).base({
-          className: typeof className === 'function' ? className(values) : className,
-        })
-      }
-      UNSTABLE_portalContainer={root}
-      style={popoverStyle}
-      shouldCloseOnInteractOutside={() => false}
-      {...(placement != null ? { placement } : {})}
-      {...ariaPopoverProps}
-    >
-      {(opts) => (
-        <PopoverContent
-          popoverRef={popoverRef}
-          size={size}
-          rounded={rounded}
-          opts={opts}
-          isDismissable={isDismissable}
-          variant={variant}
-          onClose={onClose}
-        >
-          {children}
-        </PopoverContent>
-      )}
-    </aria.Popover>
-  )
-}
+    return (
+      <aria.Popover
+        ref={(element) => mergeRefs(popoverRef, ref)(element)}
+        className={(values) =>
+          POPOVER_STYLES({
+            isEntering: values.isEntering,
+            isExiting: values.isExiting,
+            size,
+            rounded,
+            variant,
+          }).base({
+            className: typeof className === 'function' ? className(values) : className,
+          })
+        }
+        UNSTABLE_portalContainer={root}
+        style={popoverStyle}
+        shouldCloseOnInteractOutside={() => false}
+        {...(placement != null ? { placement } : {})}
+        {...ariaPopoverProps}
+      >
+        {(opts) => (
+          <PopoverContent
+            popoverRef={popoverRef}
+            size={size}
+            rounded={rounded}
+            opts={opts}
+            isDismissable={isDismissable}
+            variant={variant}
+            onClose={onClose}
+          >
+            {children}
+          </PopoverContent>
+        )}
+      </aria.Popover>
+    )
+  }),
+  {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    Trigger: DialogTrigger,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    Close,
+  },
+)
 
 /**
  * Props for a {@link PopoverContent}.
@@ -225,6 +234,3 @@ function PopoverContent(props: PopoverContentProps) {
     </ResetButtonGroupContext>
   )
 }
-
-Popover.Trigger = DialogTrigger
-Popover.Close = Close

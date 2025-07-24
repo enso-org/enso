@@ -27,25 +27,38 @@ import org.graalvm.polyglot.Context;
 public class JsonOperation {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  public static String apply(Column source, Function<Object, String> ensoJsonCallback) {
-    var storage = ColumnStorageWithInferredStorage.resolveStorage(source);
+  public static String apply(
+      Column source, long start, long length, Function<Object, String> ensoJsonCallback) {
+    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
+    if (start >= fullStorage.getSize()) {
+      // If the start is beyond the size of the storage, return an empty array.
+      return "[]";
+    }
+    if (start + length > fullStorage.getSize()) {
+      // If the requested length goes beyond the size of the storage, adjust it.
+      length = fullStorage.getSize() - start;
+    }
 
-    return switch (storage.getType()) {
-      case NullType nullType -> createNullJson(storage.getSize());
-      case BooleanType booleanType -> createBooleanJson(booleanType.asTypedStorage(storage));
-      case IntegerType integerType -> createIntegerJson(integerType.asTypedStorage(storage));
-      case FloatType floatType -> createFloatJson(floatType.asTypedStorage(storage));
-      default -> createObjectJson(storage, ensoJsonCallback);
+    return switch (fullStorage.getType()) {
+      case NullType nullType -> createNullJson(length);
+      case BooleanType booleanType -> createBooleanJson(
+          booleanType.asTypedStorage(fullStorage), start, length);
+      case IntegerType integerType -> createIntegerJson(
+          integerType.asTypedStorage(fullStorage), start, length);
+      case FloatType floatType -> createFloatJson(
+          floatType.asTypedStorage(fullStorage), start, length);
+      default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
     };
   }
 
-  private static String createFloatJson(ColumnDoubleStorage doubleStorage) {
+  private static String createFloatJson(
+      ColumnDoubleStorage doubleStorage, long start, long length) {
     long size = doubleStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
       builder.append(
@@ -56,13 +69,13 @@ public class JsonOperation {
     return builder.toString();
   }
 
-  private static String createIntegerJson(ColumnLongStorage longStorage) {
+  private static String createIntegerJson(ColumnLongStorage longStorage, long start, long length) {
     long size = longStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
       builder.append(longStorage.isNothing(i) ? "null" : toJson(longStorage.getItemAsLong(i)));
@@ -72,13 +85,14 @@ public class JsonOperation {
     return builder.toString();
   }
 
-  private static String createBooleanJson(ColumnBooleanStorage booleanStorage) {
+  private static String createBooleanJson(
+      ColumnBooleanStorage booleanStorage, long start, long length) {
     long size = booleanStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
       builder.append(
@@ -90,30 +104,22 @@ public class JsonOperation {
   }
 
   private static String createObjectJson(
-      ColumnStorage<?> storage, Function<Object, String> ensoJsonCallback) {
+      ColumnStorage<?> storage,
+      long start,
+      long length,
+      Function<Object, String> ensoJsonCallback) {
     long size = storage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
-    for (long i = 0; i < size; i++) {
-      if (i > 0) {
+    for (long i = start; i < (start + length); i++) {
+      if (i > start) {
         builder.append(",");
       }
 
       Object value = storage.getItemBoxed(i);
-      switch (value) {
-        case null -> builder.append("null");
-        case Boolean b -> builder.append(toJson(b));
-        case Long l -> builder.append(toJson(l));
-        case Double d -> builder.append(toJson(d));
-        case String s -> builder.append(toJson(s));
-        case BigInteger bi -> builder.append(toJson(bi));
-        case BigDecimal bd -> builder.append(toJson(bd));
-        case LocalDate date -> builder.append(toJson(date));
-        case LocalTime time -> builder.append(toJson(time));
-        case ZonedDateTime zdt -> builder.append(toJson(zdt));
-        default -> builder.append(ensoJsonCallback.apply(value));
-      }
+      String jsonValue = objectToJson(value, ensoJsonCallback);
+      builder.append(jsonValue);
       context.safepoint();
     }
     builder.append("]");
@@ -125,6 +131,22 @@ public class JsonOperation {
     return checkedSize == 0
         ? "[]"
         : "[" + String.join(",", Collections.nCopies(checkedSize, "null")) + "]";
+  }
+
+  public static String objectToJson(Object value, Function<Object, String> ensoJsonCallback) {
+    return switch (value) {
+      case null -> "null";
+      case Boolean b -> toJson(b);
+      case Long l -> toJson(l);
+      case Double d -> toJson(d);
+      case String s -> toJson(s);
+      case BigInteger bi -> toJson(bi);
+      case BigDecimal bd -> toJson(bd);
+      case LocalDate date -> toJson(date);
+      case LocalTime time -> toJson(time);
+      case ZonedDateTime zdt -> toJson(zdt);
+      default -> ensoJsonCallback.apply(value);
+    };
   }
 
   private static String toJson(boolean value) {
