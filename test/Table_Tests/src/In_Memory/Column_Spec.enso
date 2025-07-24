@@ -10,7 +10,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
-from Standard.Table import Column, Value_Type, Auto, Bits
+from Standard.Table import Column, Value_Type, Auto, Bits, Table
 from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
 
 from Standard.Test import all
@@ -431,6 +431,12 @@ add_specs suite_builder =
             [c0, c1].map c->
                 c.truncate.to_vector . should_equal c.to_vector
                 c.truncate.length . should_equal c.length
+
+        group_builder.specify "Use Integer Column as index" <|
+            file1 = Table.new [["A", [1]]]
+            column1 = file1.at 'A'
+            table1 = file1.take (..First column1)
+            table1 . is_nothing . should_be_false
 
     suite_builder.group "Date_Time truncate" group_builder->
         group_builder.specify "should be able to truncate a column of Date_Times" <|
