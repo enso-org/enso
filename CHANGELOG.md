@@ -29,6 +29,8 @@
 - ["Grouped Components" are renamed to "User Defined Components"][13389]
 - [Allow displaying cloud images using enso:// url in documentation][13419]
 - [File Browser Widget is used when editing file paths to datalinks][13439]
+- [When creating a node using the button on the port, the button can be dragged
+  to set its location][13598]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -52,6 +54,7 @@
 [13389]: https://github.com/enso-org/enso/pull/13389
 [13419]: https://github.com/enso-org/enso/pull/13419
 [13439]: https://github.com/enso-org/enso/pull/13439
+[13598]: https://github.com/enso-org/enso/pull/13598
 
 #### Enso Standard Library
 
