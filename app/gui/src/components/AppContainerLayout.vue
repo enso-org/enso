@@ -1,11 +1,15 @@
 <script lang="ts">
 import {
-  PlanDowngradedModalProps,
+  type AcceptInvitationModalProps,
+  AcceptInvitationModal as AcceptInvitationModalReact,
+} from '#/modals/AcceptInvitationModal'
+import {
+  type PlanDowngradedModalProps,
   PlanDowngradedModal as PlanDowngradedModalReact,
 } from '#/modals/PlanDowngradedModal'
 import { SetupOrganizationModal as SetupOrganizationModalReact } from '#/modals/SetupOrganizationForm'
 import {
-  TrialEndedModalProps,
+  type TrialEndedModalProps,
   TrialEndedModal as TrialEndedModalReact,
 } from '#/modals/TrialEndedModal'
 import * as backendModule from '#/services/Backend'
@@ -24,13 +28,15 @@ import { computed, onMounted, onUnmounted } from 'vue'
 const SetupOrganizationModal = reactComponent(SetupOrganizationModalReact)
 const TrialEndedModal = reactComponent(TrialEndedModalReact)
 const PlanDowngradedModal = reactComponent(PlanDowngradedModalReact)
+const AcceptInvitationModal = reactComponent(AcceptInvitationModalReact)
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
 
 type Props = {
   shouldSetupOrganization: boolean
-  trialEndedModalProps?: TrialEndedModalProps | undefined
-  planDowngradedModalProps?: PlanDowngradedModalProps | undefined
+  trialEndedModalProps: TrialEndedModalProps | undefined
+  planDowngradedModalProps: PlanDowngradedModalProps | undefined
+  acceptInvitationModalProps: AcceptInvitationModalProps | undefined
 }
 
 /** Days of asset retention after trial ends. */
@@ -47,7 +53,7 @@ export const dataLoader: DataLoader<Props> = {
     const auth = useAuth()
     const { remoteBackend: backend } = useBackends()
 
-    const { isOrganizationAdmin, plan } = auth.session?.user ?? {
+    const { isOrganizationAdmin, plan, invitation } = auth.session?.user ?? {
       isOrganizationAdmin: false,
       plan: backendModule.Plan.free,
     }
@@ -56,6 +62,8 @@ export const dataLoader: DataLoader<Props> = {
 
     const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
     await organizationQuery.suspense()
+
+    const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
 
     const trialEndedModalProps = computed<TrialEndedModalProps | undefined>(() => {
       if (plan == backendModule.Plan.free) return undefined
@@ -84,7 +92,12 @@ export const dataLoader: DataLoader<Props> = {
     )
 
     return Ok(
-      proxyRefs({ shouldSetupOrganization, trialEndedModalProps, planDowngradedModalProps }),
+      proxyRefs({
+        shouldSetupOrganization,
+        trialEndedModalProps,
+        planDowngradedModalProps,
+        acceptInvitationModalProps,
+      }),
     )
   },
 }
@@ -105,5 +118,6 @@ useEvent(window, 'beforeunload', logUserClose)
   <SetupOrganizationModal v-if="shouldSetupOrganization" />
   <TrialEndedModal v-if="trialEndedModalProps" v-bind="trialEndedModalProps" />
   <PlanDowngradedModal v-if="planDowngradedModalProps" v-bind="planDowngradedModalProps" />
+  <AcceptInvitationModal v-if="acceptInvitationModalProps" v-bind="acceptInvitationModalProps" />
   <RouterView />
 </template>

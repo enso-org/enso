@@ -13,6 +13,7 @@ import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
+  ColumnMovedEvent,
   ColumnVisibleEvent,
   GetContextMenuItems,
   GetContextMenuItemsParams,
@@ -1119,7 +1120,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
 }
 
-const onColumnStateChange = (e: ColumnVisibleEvent) => {
+const onColumnStateChange = (e: ColumnVisibleEvent | ColumnMovedEvent) => {
   const colState = e.api.getColumnState()
   hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
   const gridColOrder = colState
@@ -1211,7 +1212,8 @@ config.setToolbar(
         :gridIdHash="tableVersionHash"
         :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
-        @columnStateChanged="onColumnStateChange"
+        @columnVisibleChanged="onColumnStateChange"
+        @columnMoved="onColumnStateChange"
       />
     </Suspense>
   </div>

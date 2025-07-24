@@ -462,7 +462,7 @@ watch(
   },
 )
 
-const root = ref<HTMLElement>()
+const root = useTemplateRef<HTMLElement>('root')
 
 // === Node Creation ===
 
@@ -498,12 +498,20 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
-      placement: { type: 'source', node: sourceNode },
+      placement:
+        options.position ?
+          { type: 'fixed', position: options.position }
+        : { type: 'source', node: sourceNode },
       expression: options.content!.instantiateCopied([sourcePortAst]).code(),
     })),
   )
-  if (toEdit.length)
-    createWithComponentBrowser({ placement: { type: 'source', node: sourceNode }, sourcePort })
+  if (toEdit.length) {
+    const placement: PlacementStrategy =
+      toEdit[0]?.position ?
+        { type: 'fixed', position: toEdit[0].position }
+      : { type: 'source', node: sourceNode }
+    createWithComponentBrowser({ placement, sourcePort })
+  }
 }
 
 function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
@@ -627,6 +635,7 @@ const contextMenuActions: DisplayableActionName[] = [
 
 <template>
   <div
+    ref="root"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent
