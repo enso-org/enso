@@ -382,14 +382,7 @@ export class ProjectManager {
 
   /** Move a file or directory. */
   async moveFile(from: Path, to: Path) {
-    await this.runStandaloneCommand(
-      null,
-      'filesystem-move-from',
-      'json',
-      from,
-      '--filesystem-move-to',
-      to,
-    )
+    await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
   }
 
   /** Delete a file or directory. */
