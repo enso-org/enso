@@ -303,7 +303,7 @@ function AssetsTable(props: AssetsTableProps) {
   const pageSize = useFeatureFlag('listDirectoryPageSize')
   const assetsPages = useInfiniteQuery({
     ...directoryQueryOptions,
-    queryKey: ['infinite', ...directoryQueryOptions.queryKey],
+    queryKey: directoryQueryOptions.queryKey,
     queryFn: (context) =>
       directoryQueryOptions.queryFn(context, {
         from: context.pageParam.from,
