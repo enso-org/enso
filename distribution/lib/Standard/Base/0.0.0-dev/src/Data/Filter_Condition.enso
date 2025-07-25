@@ -43,41 +43,49 @@ type Filter_Condition
 
     ## Is equal to another value, ignoring case (Text only)?
 
-       ? Table Operations
-         It accepts a Text value to check if the value equals to it. In case of
-         Table operations, it can accept another column - then the corresponding
-         values from the source column and the provided column are checked.
+       ## Remarks
 
-       ! Unicode Equality
-         The definition of equality includes Unicode canonicalization. I.e. two
-         texts are equal if they are identical after canonical decomposition.
-         This ensures that different ways of expressing the same character in
-         the underlying binary representation are considered equal.
+       ### Table Operations
+       It accepts a Text value to check if the value equals to it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+
+       ### Unicode Equality
+       The definition of equality includes Unicode canonicalization. I.e. two
+       texts are equal if they are identical after canonical decomposition.
+       This ensures that different ways of expressing the same character in the
+       underlying binary representation are considered equal.
     @locale Locale.default_widget
     Equal_Ignore_Case (to = (Missing_Argument.throw "to")) (locale:Locale=Locale.default) keep_or_remove:Filter_Action=..Keep
 
     ## Does the value start with a prefix (Text only)?
 
-       ? Table Operations
-         It accepts a Text value to check if the value contains it. In case of
-         Table operations, it can accept another column - then the corresponding
-         values from the source column and the provided column are checked.
+       ## Remarks
+
+       ### Table Operations
+       It accepts a Text value to check if the value contains it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
     Starts_With (prefix = (Missing_Argument.throw "prefix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) keep_or_remove:Filter_Action=..Keep
 
     ## Does the value end with a suffix (Text only)?
 
-       ? Table Operations
-         It accepts a Text value to check if the value contains it. In case of
-         Table operations, it can accept another column - then the corresponding
-         values from the source column and the provided column are checked.
+       ## Remarks
+
+       ### Table Operations
+       It accepts a Text value to check if the value contains it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
     Ends_With (suffix = (Missing_Argument.throw "suffix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) keep_or_remove:Filter_Action=..Keep
 
     ## Does the value contain the substring (Text only)?
 
-       ? Table Operations
-         It accepts a Text value to check if the value contains it. In case of
-         Table operations, it can accept another column - then the corresponding
-         values from the source column and the provided column are checked.
+       ## Remarks
+
+       ### Table Operations
+       It accepts a Text value to check if the value contains it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
     Contains (substring = (Missing_Argument.throw "substring")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) keep_or_remove:Filter_Action=..Keep
 
     ## Is equal to Nothing?
@@ -95,8 +103,8 @@ type Filter_Condition
     ## Is the value infinite (Number only)?
     Is_Infinite
 
-    ## Is the value finite (Number only)?
-       Finite numbers are ones that are not infinite nor NaN.
+    ## Is the value finite (Number only)? Finite numbers are ones that are not
+       infinite nor NaN.
     Is_Finite
 
     ## Is the value equal to True (Boolean only)?
@@ -111,59 +119,66 @@ type Filter_Condition
     ## Is not equal to "" and Nothing (Text only)?
     Not_Empty
 
-    ## Does the value match the SQL pattern (Text only)?
-
-       The pattern is interpreted according to the standard SQL convention:
+    ## Does the value match the SQL pattern (Text only)? The pattern is
+       interpreted according to the standard SQL convention:
        - the `%` character matches any sequence of characters,
        - the `_` character matches any single character,
        - any other character is matched literally.
 
-       ? Table Operations
-         It accepts a Text value to check if the value contains it. In case of
-         Table operations, it can accept another column - then the corresponding
-         values from the source column and the provided column are checked.
+       ## Remarks
 
-       ! Known Limitations.
-         The Truffle regex engine does not transparently handle normalization.
-         Due to this limitation, Unicode normalization has been disabled for
-         this function, so beware that some equivalent graphemes like 'ś' and
-         's\u0301' will not be matched.
+       ### Table Operations
+       It accepts a Text value to check if the value contains it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+
+       ### Known Limitations.
+       The Truffle regex engine does not transparently handle normalization.
+       Due to this limitation, Unicode normalization has been disabled for this
+       function, so beware that some equivalent graphemes like 'ś' and 's\u0301'
+       will not be matched.
     Like (pattern = (Missing_Argument.throw "pattern")) keep_or_remove:Filter_Action=..Keep
 
     ## Does the value match the regular expression pattern (Text only)?
 
-       ? Table Operations
-         It accepts a Text value to check if the value contains it. In case of
-         Table operations, it can accept another column - then the corresponding
-         values from the source column and the provided column are checked.
+       ## Remarks
 
-       ! Known Limitations.
-         The Truffle regex engine does not transparently handle normalization.
-         Due to this limitation, Unicode normalization has been disabled for
-         this function, so beware that some equivalent graphemes like 'ś' and
-         's\u0301' will not be matched.
+       ### Table Operations
+       It accepts a Text value to check if the value contains it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+
+       ### Known Limitations.
+       The Truffle regex engine does not transparently handle normalization.
+       Due to this limitation, Unicode normalization has been disabled for this
+       function, so beware that some equivalent graphemes like 'ś' and 's\u0301'
+       will not be matched.
     Regex_Match (pattern = (Missing_Argument.throw "pattern")) keep_or_remove:Filter_Action=..Keep
 
     ## Is the value contained in `values`?
 
-       ? Table Operations
-         It accepts a `Vector` of values. In case of Table operations, it can
-         also accept another column - then it acts as if `column.to_vector` was
-         passed - i.e. every element of the original table's column is checked
-         if it is contained in the provided column. The columns can have
-         different lengths.
+       ## Remarks
 
-         Using Columns can be particularly useful for Database operations, as
-         uploading a temporary table and using its column for an `Is_In` check
-         will likely be faster than using the vector directly.
+       ### Table Operations
+       It accepts a `Vector` of values. In case of Table operations, it can also
+       accept another column - then it acts as if `column.to_vector` was passed -
+       i.e. every element of the original table's column is checked if it is
+       contained in the provided column. The columns can have different lengths.
+       Using Columns can be particularly useful for Database operations, as
+       uploading a temporary table and using its column for an `Is_In` check will
+       likely be faster than using the vector directly.
     Is_In values=[] keep_or_remove:Filter_Action=..Keep
 
-    ## PRIVATE
-
-       Generic function based check. With a function that returns `True` or `False`.
+    ## ---
+       private: true
+       ---
+       Generic function based check. With a function that returns `True` or
+       `False`.
     Predicate (predicate:(Any -> Boolean) = (Missing_Argument.throw "predicate"))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The action to perform on the matched items.
     action : Filter_Action
     action self = case self of
@@ -177,15 +192,18 @@ type Filter_Condition
         Filter_Condition.Is_In _ action -> action
         _ -> Filter_Action.Keep
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolves a possibly auto-scoped value to a concrete value.
     resolve_auto_scoped filter = Predicate_Helpers.resolve_auto_scoped filter
 
-    ## ICON convert
-       Converts a `Filter_Condition` condition into a predicate taking an
-       element and returning a value indicating whether the element should be
-       accepted by the filter.
-
+    ## ---
+       icon: convert
+       ---
+       Converts a `Filter_Condition` condition into a predicate taking an element
+       and returning a value indicating whether the element should be accepted by
+       the filter.
        The predicate can handle `Nothing` values in all cases. However, the
        predicate will raise an error if the value is not of the expected type.
     to_predicate : (Any -> Boolean)
@@ -234,7 +252,9 @@ type Filter_Condition
             Predicate fn -> fn
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Filter_Condition.
     to_display_text : Text
     to_display_text self =
@@ -271,7 +291,9 @@ type Filter_Condition
             Predicate p -> "predicated " + p.to_display_text
         "Filter Condition: " + condition + (if self.action == Filter_Action.Keep then "" else " (Remove)")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a Single_Choice Widget for Filter_Conditions.
     default_widget include_comparable:Boolean=True include_text:Boolean=True include_boolean:Boolean=True include_nullable:Boolean=True include_numeric:Boolean=True include_date:Boolean=True include_time:Boolean=True include_date_time:Boolean=True display:Display=..When_Modified -> Widget =
         options = Vector.build builder->
@@ -326,12 +348,16 @@ type Filter_Action
     ## Items matching the filter are removed.
     Remove
 
-## PRIVATE
+## ---
+   private: true
+   ---
 sql_like_to_regex (sql_pattern : Text) =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Extends the provided predicate to handle `Nothing` values without error.
    The new predicate will return `False` for `Nothing`.
 handle_nothing : (Any -> Boolean) -> (Any -> Boolean)

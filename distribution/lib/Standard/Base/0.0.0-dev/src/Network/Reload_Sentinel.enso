@@ -11,9 +11,9 @@ from Standard.Base.Data.Boolean import True
    This is used by ReloadDetector.java to create a `Managed_Resource` that is
    garbage collected when the reload button is pressed.
 
-   The managed resource contains a Ref containing a 1 (the value is
+   The managed resource contains a `Ref` containing a 1 (the value is
    unimportant). When the reload button is pressed, the managed resource is
-   finalized and the ref is removed. The `has_reload_occurred` will then return
+   finalized and the `Ref is removed. The `has_reload_occurred` will then return
    true.
 type Reload_Sentinel
     private Value mr:Managed_Resource
@@ -30,10 +30,14 @@ type Reload_Sentinel
         IO.println "ZZZZZ Reload_Sentinel.has_reload_occurred "+r.to_text
         r
 
-## PRIVATE
+## ---
+   private: true
+   ---
 simulate_reload_test_only reload_sentinel =
     IO.println "ZZZZZ Reload_Sentinel.simulate_reload_test_only"
     reload_sentinel.mr.finalize
 
-## PRIVATE
+## ---
+   private: true
+   ---
 create_reload_sentinel = Reload_Sentinel.new

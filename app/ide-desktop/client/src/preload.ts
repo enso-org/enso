@@ -10,6 +10,7 @@ import type * as accessToken from 'enso-common/src/accessToken'
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as projectManagement from '@/projectManagement'
+import { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import { FileFilter } from './fileBrowser'
 
 // Even though this is already built as an mjs module, we are "faking" cjs format on preload script
@@ -180,15 +181,18 @@ exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
 // === Menu API ===
 // ================
 
-let showAboutModalHandler: (() => void) | null = null
+const menuApiHandlers: Record<MenuItem, MenuItemHandler | undefined> = {
+  about: undefined,
+  closeTab: undefined,
+}
 
-electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
-  showAboutModalHandler?.()
+electron.ipcRenderer.on(ipc.Channel.handleMenuItem, (_event, name: MenuItem) => {
+  menuApiHandlers[name]?.()
 })
 
 exposeInMainWorld(MENU_API_KEY, {
-  setShowAboutModalHandler: (callback: () => void) => {
-    showAboutModalHandler = callback
+  setMenuItemHandler: (name: MenuItem, handler: MenuItemHandler) => {
+    menuApiHandlers[name] = handler
   },
 })
 

@@ -16,38 +16,40 @@ import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Text.Extensions import all
 from project.Metadata import Display, Widget
 
-## ALIAS export, output, save, to_file
-   GROUP Output
-   ICON data_output
+## ---
+   aliases: [export, output, save, to_file]
+   group: Output
+   icon: data_output
+   ---
    Writes (or appends) the text to the specified file using the supplied
-   encoding. The behavior specified in the `existing_file` parameter will be
-   used if the file exists.
+   encoding. The behavior specified in the `existing_file` parameter will be used
+   if the file exists.
 
-   Arguments:
-   - path: The path to the target file.
-   - encoding: The encoding to use when writing the file.
-   - on_existing_file: Specifies how to proceed if the file already exists.
-   - on_problems: Specifies how to handle any encountered problems.
+   ## Arguments
+    - `path`: The path to the target file.
+    - `encoding`: The encoding to use when writing the file.
+    - `on_existing_file`: Specifies how to proceed if the file already exists.
+    - `on_problems`: Specifies how to handle any encountered problems.
 
+   ## Errors
    If a character cannot be converted to a byte, an `Encoding_Error` is raised.
-   If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
-   a substitute (either '�' (if Unicode) or '?' depending on the encoding).
+   If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with a
+   substitute (either '�' (if Unicode) or '?' depending on the encoding).
    Otherwise, the process is aborted.
-   If the path to the parent location cannot be found or the filename is
-   invalid, a `File_Error.Not_Found` is raised.
+   If the path to the parent location cannot be found or the filename is invalid,
+   a `File_Error.Not_Found` is raised.
    If another error occurs, such as access denied, an `File_Error.IO_Error` is
    raised.
    Otherwise, the file is created with the encoded text written to it.
-
    The method returns a `File` object for the written file.
 
-   ? Dry Run
+   ## Remarks
 
-     If writing to Output context is not enabled (such as in "Design" mode),
-     then this function will write to a temporary file. This temporary file will
-     be automatically deleted on exit of the Enso process.
-
-     This allows for building the workflow without affecting the real files.
+   ### Dry Run
+   If writing to Output context is not enabled (such as in "Design" mode), then
+   this function will write to a temporary file. This temporary file will be
+   automatically deleted on exit of the Enso process.
+   This allows for building the workflow without affecting the real files.
 @path (Widget.Text_Input display=Display.Always)
 @encoding Encoding.default_widget
 Text.write : Writable_File -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
@@ -58,38 +60,42 @@ Text.write self (path : Writable_File) (encoding : Encoding = Encoding.utf_8) (o
             # If the write succeeded, we return the file that was written to (original file or a dry run file).
             stream.write_bytes bytes . if_not_error effective_file
 
-## ICON data_output
+## ---
+   icon: data_output
+   ---
    Writes (or appends) the Vector of bytes into the specified file. The behavior
    specified in the `existing_file` parameter will be used if the file exists.
 
-   Arguments:
-   - path: The path to the target file.
-   - on_existing_file: Specifies how to proceed if the file already exists.
-
-   If the Vector contains any item which is not a `Byte`, an
-   `Illegal_Argument` will be raised. Enso follows the Java convention,
-   that a `Byte` is between -128 and 127.
-   If the path to the parent location cannot be found or the filename is
-   invalid, a `File_Not_Found` is raised.
+   If the Vector contains any item which is not a `Byte`, an `Illegal_Argument`
+   will be raised. Enso follows the Java convention, that a `Byte` is between
+   -128 and 127.
+   If the path to the parent location cannot be found or the filename is invalid,
+   a `File_Not_Found` is raised.
    If another error occurs, such as access denied, an `File_Error.IO_Error` is
    raised.
    Otherwise, the file is created with the encoded text written to it.
-
    The method returns a `File` object for the written file.
 
-   > Example
-     Write the UTF-8 bytes of the text "$£§€¢" to a file.
+   ## Arguments
+    - `path`: The path to the target file.
+    - `on_existing_file`: Specifies how to proceed if the file already exists.
 
+   ## Examples
+   ### Write the UTF-8 bytes of the text "$£§€¢" to a file.
+
+   ```
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file
+   ```
 
-   > Example
-     Append the UTF-8 bytes of the text "$£§€¢" to a file.
+   ### Append the UTF-8 bytes of the text "$£§€¢" to a file.
 
+   ```
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
+   ```
 Vector.write_bytes : Writable_File -> Existing_File_Behavior -> Any ! Illegal_Argument | File_Error
 Vector.write_bytes self (path : Writable_File) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) =
     Panic.catch Unsupported_Argument_Types handler=(_ -> Error.throw (Illegal_Argument.Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|

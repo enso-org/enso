@@ -1378,7 +1378,7 @@ export default class RemoteBackend extends Backend {
   async downloadProject(id: backend.ProjectId) {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
-      readonly targetDirectory: string
+      readonly projectRootDirectory: string
       readonly parentDirectory: string
     }
     const details = await this.getProjectDetails(id, true)
@@ -1403,7 +1403,7 @@ export default class RemoteBackend extends Backend {
     const responseBody = await response.json()
 
     return {
-      targetId: backend.DirectoryId(`directory-${responseBody.targetDirectory}`),
+      projectRootId: backend.DirectoryId(`directory-${responseBody.projectRootDirectory}`),
       parentId: backend.DirectoryId(`directory-${responseBody.parentDirectory}`),
     }
   }

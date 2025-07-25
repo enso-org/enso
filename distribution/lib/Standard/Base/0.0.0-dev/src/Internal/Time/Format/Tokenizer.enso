@@ -12,33 +12,48 @@ from project.Data.Text.Extensions import all
 
 polyglot java import org.enso.base.Text_Utils
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Format_Token
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A format pattern described by a single character and count.
     Pattern character:Text count:Integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A literal text string.
     Literal text:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates beginning of an optional section.
     Optional_Section_Start
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates end of an optional section.
     Optional_Section_End
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A special parameter in curly braces.
-
        Currently only used to customize base year for `yy`, i.e. `yy{2099}`.
     Curly_Section (inner_text : Text)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Tokenizer
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper type to hold the state of the tokenizer.
        Normally, we could keep these in the closure, inside of a method.
        But our 3 parse methods need to be able to call each other, and mutual
@@ -47,30 +62,40 @@ type Tokenizer
        member methods.
     Instance (original_text : Text) (chars : Vector Text) (tokens_builder : Builder Format_Token) (optional_nesting : Ref Integer)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new : Builder  -> Text -> Tokenizer
     new builder text =
         # Nothing is appended at the and as a guard to avoid checking for length.
         Tokenizer.Instance text text.characters+[Nothing] builder (Ref.new 0)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     finalize_token self current_token = case current_token of
         Nothing -> Nothing
         _ -> self.tokens_builder.append current_token
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if we are inside of an optional section.
     is_in_optional : Boolean
     is_in_optional self = self.optional_nesting.get > 0
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     enter_optional_section : Nothing
     enter_optional_section self =
         i = self.optional_nesting.get
         self.optional_nesting.put i+1
         self.tokens_builder.append Format_Token.Optional_Section_Start
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     exit_optional_section : Nothing
     exit_optional_section self =
         i = self.optional_nesting.get
@@ -79,7 +104,9 @@ type Tokenizer
         self.optional_nesting.put i-1
         self.tokens_builder.append Format_Token.Optional_Section_End
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse_normal self position current_token = case self.chars.at position of
         Nothing ->
             if self.is_in_optional then
@@ -120,7 +147,9 @@ type Tokenizer
                     self.tokens_builder.append (Format_Token.Literal new_character)
                     @Tail_Call self.parse_normal position+1 Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse_quoted self position text_accumulator = case self.chars.at position of
         Nothing ->
             Panic.throw (Date_Time_Format_Parse_Error.Error "Unterminated quoted sequence within the pattern "+self.original_text.to_display_text)
@@ -143,7 +172,9 @@ type Tokenizer
                     @Tail_Call self.parse_normal position+1 Nothing
         other_character -> @Tail_Call self.parse_quoted position+1 text_accumulator+other_character
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse_curly self position text_accumulator = case self.chars.at position of
         Nothing ->
             Panic.throw (Date_Time_Format_Parse_Error.Error "Unterminated curly sequence within the pattern "+self.original_text.to_display_text)
@@ -153,7 +184,9 @@ type Tokenizer
         other_character ->
             @Tail_Call self.parse_curly position+1 text_accumulator+other_character
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     tokenize : Text -> Vector Format_Token
     tokenize text = Panic.recover Date_Time_Format_Parse_Error <|
         Vector.build builder->

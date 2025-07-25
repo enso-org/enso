@@ -16,7 +16,7 @@ import project.Internal.Telemetry
 
 polyglot java import com.google.api.client.googleapis.json.GoogleJsonResponseException
 polyglot java import org.enso.google.GoogleSheetsForEnso
-polyglot java import org.enso.google.GoogleSheetsHeaders
+polyglot java import org.enso.google.GoogleSheetsHeaders.HeaderBehavior
 polyglot java import org.enso.google.WrappedGoogleCredentials
 
 ## Type representing a Google Sheets workbook.
@@ -143,9 +143,9 @@ private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
         _ -> Nothing
 
 private _make_java_headers headers:Headers = case headers of
-    Headers.Has_Headers -> GoogleSheetsHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-    Headers.Detect_Headers -> GoogleSheetsHeaders.HeaderBehavior.INFER
-    Headers.No_Headers -> GoogleSheetsHeaders.HeaderBehavior.DEFAULT_COLUMN_NAMES
+    Headers.Has_Headers -> HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+    Headers.Detect_Headers -> HeaderBehavior.INFER
+    Headers.No_Headers -> HeaderBehavior.DEFAULT_COLUMN_NAMES
 
 ## Creates a query widget for the `read` method.
 private _query_widget wb:Google_Sheets_Workbook display:Display=..Always -> Widget =

@@ -4,12 +4,14 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
+import project.Column.Column
 import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
 import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
 import project.Fixed_Width.Fixed_Width_Format.Infer_Layout
 import project.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.On_Empty_Field.On_Empty_Field
 import project.Internal.Java_Problems
+import project.Table.Table
 from project.Errors import Empty_File_Error, Fixed_Width_Line_Too_Long, No_Column_Names_Found
 from project.In_Memory_Table import from_java_table
 
@@ -63,7 +65,7 @@ read_stream format input_stream on_problems:Problem_Behavior related_file=Nothin
         buffered_input_stream = input_stream.as_peekable_stream
         decoding_problem_aggregator = FixedWidthDecodingProblemAggregator.new
         result = buffered_input_stream.with_java_stream java_stream->
-            Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <| No_Column_Names_Found.handle_java_exception <| Fixed_Width_Line_Too_Long.handle_java_exception <|
+            Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <| No_Column_Names_Found.handle_java_exception <| Fixed_Width_Line_Too_Long.handle_java_exception <| handle_non_ascii_line_endings format.line_endings <|
                 Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     reader = prepare_reader format format.encoding on_problems decoding_problem_aggregator java_problem_aggregator
                     java_table = reader.read java_stream
@@ -80,17 +82,29 @@ private prepare_reader format:Fixed_Width_Format effective_encoding:Encoding on_
     on_invalid_rows_java = case format.on_invalid_rows of
         Invalid_Fixed_Width_Rows.Keep_Invalid_Rows -> InvalidFixedWidthRowsBehavior.KEEP
         Invalid_Fixed_Width_Rows.Drop_Invalid_Rows -> InvalidFixedWidthRowsBehavior.DROP
+    line_endings = case format.line_endings of
+        style : Line_Ending_Style -> style.to_text
+        _ : No_Line_Ending -> ''
+        _ : Custom_Line_Ending -> format.line_endings.line_ending
+        _ : Infer -> Nothing
     empty_to_null = format.on_empty_field == On_Empty_Field.As_Nothing
     value_parser = if format.value_formatter.is_nothing then IdentityParser.new else
         wrapped = format.value_formatter.wrap_base_parser IdentityParser.new
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped
 
     # Pass either the layout, or the inference enum.
-    case format.layout of
+    case _resolve_layout format.layout of
         infer : Infer_Layout ->
-            FixedWidthReader.new Nothing infer.to_java effective_encoding.to_java_charset skip_rows row_limit on_invalid_rows_java empty_to_null value_parser warnings_as_errors decoding_problem_aggregator java_problem_aggregator
+            FixedWidthReader.new Nothing infer.to_java effective_encoding.to_java_charset skip_rows row_limit on_invalid_rows_java line_endings empty_to_null value_parser warnings_as_errors decoding_problem_aggregator java_problem_aggregator
         layout : Fixed_Width_Layout ->
-            FixedWidthReader.new (format_to_java layout) Nothing effective_encoding.to_java_charset skip_rows row_limit on_invalid_rows_java empty_to_null value_parser warnings_as_errors decoding_problem_aggregator java_problem_aggregator
+            FixedWidthReader.new (format_to_java layout) Nothing effective_encoding.to_java_charset skip_rows row_limit on_invalid_rows_java line_endings empty_to_null value_parser warnings_as_errors decoding_problem_aggregator java_problem_aggregator
+
+_resolve_layout layout = case layout of
+    _ : Infer_Layout -> layout
+    _ : Fixed_Width_Layout -> layout
+    _ : Vector -> Fixed_Width_Layout.from layout
+    _ : Column -> Fixed_Width_Layout.from layout
+    _ : Table -> Fixed_Width_Layout.from layout
 
 private format_to_java layout =
     layout.entries.map e->
@@ -101,3 +115,11 @@ private format_to_java layout =
    ---
 private handle_io_exception related_file ~action = Panic.catch IOException action cause->
     File_Error.wrap_io_exception related_file cause.payload
+
+## PRIVATE
+private handle_non_ascii_line_endings line_endings ~action =
+    case line_endings of
+        _ : Custom_Line_Ending ->
+            if line_endings.line_ending.is_ascii then action else
+                Error.throw (Illegal_Argument.Error "Line endings must be ASCII characters")
+        _  -> action

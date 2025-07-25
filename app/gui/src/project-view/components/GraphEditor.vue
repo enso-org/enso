@@ -6,7 +6,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { TabId } from '$/providers/container'
+import { useContainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
@@ -59,12 +59,21 @@ import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
-import { computed, onMounted, ref, toRaw, toRef, useTemplateRef, watch, watchEffect } from 'vue'
-
-const props = defineProps<{ tab: TabId }>()
+import {
+  computed,
+  onMounted,
+  ref,
+  toRaw,
+  toRef,
+  toValue,
+  useTemplateRef,
+  watch,
+  watchEffect,
+} from 'vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
+const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
@@ -351,10 +360,13 @@ const { handleClick } = useDoubleClick(
 // === Keyboard/Mouse bindings ===
 
 const graphBindingsHandler = graphBindings.handler(
-  objects.mapEntries(
-    graphBindings.bindings,
-    (actionName) => () => void actionHandlers[actionName].action(),
-  ),
+  objects.mapEntries(graphBindings.bindings, (actionName) => {
+    const actionDef = actionHandlers[actionName]
+    return () => {
+      if (toValue(actionDef.enabled) === false) return false
+      void actionDef.action()
+    }
+  }),
 )
 
 // === Documentation Editor ===
@@ -374,7 +386,7 @@ const displayedDocs = computed(() =>
 
 watchEffect(() => {
   const projectId = projectStore.id
-  rightPanel.setContext(props.tab, {
+  rightPanel.setContext(containerData.tab, {
     item: projectId,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
@@ -450,7 +462,7 @@ watch(
   },
 )
 
-const root = ref<HTMLElement>()
+const root = useTemplateRef<HTMLElement>('root')
 
 // === Node Creation ===
 
@@ -486,12 +498,20 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
-      placement: { type: 'source', node: sourceNode },
+      placement:
+        options.position ?
+          { type: 'fixed', position: options.position }
+        : { type: 'source', node: sourceNode },
       expression: options.content!.instantiateCopied([sourcePortAst]).code(),
     })),
   )
-  if (toEdit.length)
-    createWithComponentBrowser({ placement: { type: 'source', node: sourceNode }, sourcePort })
+  if (toEdit.length) {
+    const placement: PlacementStrategy =
+      toEdit[0]?.position ?
+        { type: 'fixed', position: toEdit[0].position }
+      : { type: 'source', node: sourceNode }
+    createWithComponentBrowser({ placement, sourcePort })
+  }
 }
 
 function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
@@ -615,6 +635,7 @@ const contextMenuActions: DisplayableActionName[] = [
 
 <template>
   <div
+    ref="root"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent

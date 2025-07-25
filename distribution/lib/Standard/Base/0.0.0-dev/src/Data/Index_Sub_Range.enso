@@ -23,13 +23,11 @@ from project.Random import Random
 
 type Index_Sub_Range
     ## Select the first `count` items.
-
        Selects no items if `count` is less than or equal to 0.
        Selects all items  if `count` is greater than the length of the input.
     First (count : Integer = 1)
 
     ## Select the last `count` characters.
-
        Selects no items if `count` is less than or equal to 0.
        Selects all items  if `count` is greater than the length of the input.
     Last (count : Integer = 1)
@@ -39,31 +37,30 @@ type Index_Sub_Range
 
     ## Selects specific indexes (starting from 0) either as an `Integer` or a
        `Range`.
-
-       If the index or start of the Range is out of bounds, an error is
-       reported. If the end of the Range is out of bounds, all items until the
-       end of the input are selected.
-
+       If the index or start of the Range is out of bounds, an error is reported.
+       If the end of the Range is out of bounds, all items until the end of the
+       input are selected.
        Only ranges with positive step and positive indices are supported.
-       Individual integer indices can be negative which allows for indexing
-       from the end of the collection.
+       Individual integer indices can be negative which allows for indexing from
+       the end of the collection.
     By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = Missing_Argument.throw "indexes")
 
     ## Gets a random sample of entries, without repetitions.
-
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
     Sample (count : Integer = 1) (seed:Integer=0)
 
     ## Gets every Nth entry.
 
-       Arguments:
-       - step: The step between consecutive entries that are included.
-       - first: The first entry to include. If it is outside of bounds of the
-         input, an error is raised.
+       ## Arguments
+        - `step`: The step between consecutive entries that are included.
+        - `first`: The first entry to include. If it is outside of bounds of the
+          input, an error is raised.
     Every (step:Integer=1) (first:Integer=0)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Index_Sub_Range.
     to_display_text : Text
     to_display_text self = case self of
@@ -74,7 +71,9 @@ type Index_Sub_Range
         Index_Sub_Range.Sample count _ -> "Sample " + count.to_display_text
         Index_Sub_Range.Every step first -> "Every " + step.to_display_text + (if first == 0 then "" else " from " + first.to_display_text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        It includes all constructors of `Index_Sub_Range` but also `Range`, since
        the `Index_Sub_Range` type is by default used in sum types containing
        `Range` too.
@@ -92,13 +91,17 @@ type Index_Sub_Range
         o3 = Option "While" "(..While (x-> False))"
         [o1, o2, o4, o5, o6, o7, o3]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     default_widget count:(Integer|Nothing)=Nothing display:Display=..Always -> Widget =
         Single_Choice display=display (Index_Sub_Range.default_options count)
 
-## PRIVATE
-   Resolves a vector of ranges or indices into a vector of ranges that fit
-   within a sequence.
+## ---
+   private: true
+   ---
+   Resolves a vector of ranges or indices into a vector of ranges that fit within
+   a sequence.
 resolve_ranges : Vector (Integer | Range) -> Integer -> Vector Range
 resolve_ranges ranges length =
     ## Ensures that a descriptor fits within the range of the current
@@ -117,7 +120,9 @@ resolve_ranges ranges length =
                             start.up_to actual_end . with_step step
     ranges.map trim
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Takes a list of descriptors and returns a new one where ranges with
    non-unitary step have been replaced with series of ranges covering the same
    set of indices with step equal to 1, and indices have been replaced with
@@ -131,19 +136,20 @@ normalize_ranges descriptors =
                     ix.up_to ix+1
     descriptors.flat_map normalize
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Inverts the selection determined by the input list of ranges.
-
    The input ranges are assumed to be normalized (i.e. all of them have step
    equal to 1).
 
-   Arguments:
-   - ranges: The list of ranges determining indices which are selected. The
-     result will be a list of ranges containing all the indices which were not
-     originally selected here.
-   - length: Length of the related sequence.
-   - needs_sorting: Determines if `ranges` need to be sorted and merged or if it
-     can be assumed that they are sorted already.
+   ## Arguments
+    - `ranges`: The list of ranges determining indices which are selected. The
+      result will be a list of ranges containing all the indices which were not
+      originally selected here.
+    - `length`: Length of the related sequence.
+    - `needs_sorting`: Determines if `ranges` need to be sorted and merged or if
+      it can be assumed that they are sorted already.
 invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
 invert_range_selection ranges length needs_sorting =
     sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
@@ -151,10 +157,11 @@ invert_range_selection ranges length needs_sorting =
     ranges_with_sentinels.zip (ranges_with_sentinels.drop 1) prev-> next->
         prev.end.up_to next.start
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns a new sorted list of ranges where intersecting ranges have been
    merged.
-
    Empty subranges are discarded.
 sort_and_merge_ranges : Vector Range -> Vector Range
 sort_and_merge_ranges ranges =
@@ -171,31 +178,33 @@ sort_and_merge_ranges ranges =
                         current_ref.put range
             builder.append current_ref.get
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that implements taking from an arbitrary collection using a set of
    callbacks.
 
-   Arguments:
-   - length: The length of the collection.
-   - at: An accessor returning ith element of the collection. Used only for
-     `While`.
-   - single_slice: A two argument function that returns a slice of the
-     collection starting from the index `start` (inclusive) and continuing until
-     the `end` (exclusive). The slice operation should be robust to negative
-     indices - if `start` is less than 0 it should just start slicing from the
-     beginning of the collection. If `end` is less than `start`, an empty
-     collection should be returned. If `end` is greater than `length`, the
-     collection should be sliced until the end of the collection. It should
-     avoid copying and just return the original collection if the whole
-     collection is included in the slice. It should never throw out of bounds
-     errors (these are handled at a higher level), but always return some
-     collection, possibly empty.
-   - slice_ranges: A function that takes a vector of ranges and indices and
-     constructs a new collection containing the provided subranges and indices
-     in the provided order. The input ranges do not need to be normalized, so if
-     the method wants to work only with normalized ranges, it must perform
-     normalization on its own.
-   - range: The `Index_Sub_Range` to take from the collection.
+   ## Arguments
+    - `length`: The length of the collection.
+    - `at`: An accessor returning ith element of the collection. Used only for
+      `While`.
+    - `single_slice`: A two argument function that returns a slice of the
+      collection starting from the index `start` (inclusive) and continuing until
+      the `end` (exclusive). The slice operation should be robust to negative
+      indices - if `start` is less than 0 it should just start slicing from the
+      beginning of the collection. If `end` is less than `start`, an empty
+      collection should be returned. If `end` is greater than `length`, the
+      collection should be sliced until the end of the collection. It should
+      avoid copying and just return the original collection if the whole
+      collection is included in the slice. It should never throw out of bounds
+      errors (these are handled at a higher level), but always return some
+      collection, possibly empty.
+    - `slice_ranges`: A function that takes a vector of ranges and indices and
+      constructs a new collection containing the provided subranges and indices
+      in the provided order. The input ranges do not need to be normalized, so if
+      the method wants to work only with normalized ranges, it must perform
+      normalization on its own.
+    - `range`: The `Index_Sub_Range` to take from the collection.
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
 take_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range | Integer) = case range of
     count : Integer -> take_helper length at single_slice slice_ranges (Index_Sub_Range.First count)
@@ -222,30 +231,32 @@ take_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range |
                 take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     _ -> handle_unmatched_type [Index_Sub_Range, Range, Integer] range
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that implements dropping from an arbitrary collection using a set of
    callbacks.
 
-   Arguments:
-   - length: The length of the collection.
-   - at: An accessor returning ith element of the collection. Used only for
-     `While`.
-   - single_slice: A two argument function that returns a slice of the
-     collection starting from the index `start` (inclusive) and continuing until
-     the `end` (exclusive). The slice operation should be robust to negative
-     indices - if `start` is less than 0 it should just start slicing from the
-     beginning of the collection. If `end` is less than `start`, an empty
-     collection should be returned. If `end` is greater than `length`, the
-     collection should be sliced until the end of the collection. It should
-     avoid copying and just return the original collection if the whole
-     collection is included in the slice. It should never throw out of bounds
-     errors (these are handled at a higher level), but always return some
-     collection, possibly empty.
-   - slice_ranges: A function that takes a vector of ranges and indices and
-     constructs a new collection containing the provided subranges and indices
-     in the provided order. The function may assume that the ranges have been
-     normalized.
-   - range: The `Index_Sub_Range` to drop from the collection.
+   ## Arguments
+    - `length`: The length of the collection.
+    - `at`: An accessor returning ith element of the collection. Used only for
+      `While`.
+    - `single_slice`: A two argument function that returns a slice of the
+      collection starting from the index `start` (inclusive) and continuing until
+      the `end` (exclusive). The slice operation should be robust to negative
+      indices - if `start` is less than 0 it should just start slicing from the
+      beginning of the collection. If `end` is less than `start`, an empty
+      collection should be returned. If `end` is greater than `length`, the
+      collection should be sliced until the end of the collection. It should
+      avoid copying and just return the original collection if the whole
+      collection is included in the slice. It should never throw out of bounds
+      errors (these are handled at a higher level), but always return some
+      collection, possibly empty.
+    - `slice_ranges`: A function that takes a vector of ranges and indices and
+      constructs a new collection containing the provided subranges and indices
+      in the provided order. The function may assume that the ranges have been
+      normalized.
+    - `range`: The `Index_Sub_Range` to drop from the collection.
 drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
 drop_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range | Integer) = case range of
     _ : Integer -> single_slice range length
@@ -274,7 +285,9 @@ drop_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range |
                 drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     _ -> handle_unmatched_type [Index_Sub_Range, Range, Integer] range
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_unmatched_type expected_types actual_value =
     m = Meta.meta actual_value
     return_type_error =

@@ -4,6 +4,7 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Popover } from '#/components/Dialog'
 import type { MenuEntryProps } from '#/components/MenuEntry'
 import { usePortalContext } from '#/components/Portal'
+import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isOnMacOS } from 'enso-common/src/detect'
@@ -11,6 +12,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
   type ForwardedRef,
   type MouseEvent,
@@ -39,6 +41,7 @@ export const ContextMenu = forwardRef(function ContextMenu(
 
   const inputBindings = useInputBindings()
   const root = usePortalContext()
+  const popoverRef = useRef<HTMLElement>(null)
   const [isOpen, setIsOpen] = useState(initialPosition != null)
   const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
     initialPosition ?? {
@@ -66,6 +69,21 @@ export const ContextMenu = forwardRef(function ContextMenu(
     })
   }, [inputBindings, isOpen])
 
+  useEventListener(
+    'scroll',
+    (event) => {
+      if (
+        event.target instanceof Element &&
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target)
+      ) {
+        setIsOpen(false)
+      }
+    },
+    document,
+    { capture: true },
+  )
+
   return (
     <Popover.Trigger>
       <Pressable>
@@ -73,9 +91,14 @@ export const ContextMenu = forwardRef(function ContextMenu(
       </Pressable>
       <Popover
         data-testid="context-menu"
-        style={{ left: position.pageX, top: position.pageY }}
+        // Remove the underlay element to allow scrolling.
+        isNonModal
+        ref={popoverRef}
+        // `position: sticky` must be here rather than in tailwind as `react-aria-components`
+        // sets `position: absolute` via `style`.
+        style={{ position: 'sticky', left: position.pageX, top: position.pageY }}
         shouldCloseOnInteractOutside={() => true}
-        className="sticky flex w-min items-start"
+        className="flex w-min items-start"
         UNSTABLE_portalContainer={root}
         isOpen={isOpen}
         onOpenChange={setIsOpen}

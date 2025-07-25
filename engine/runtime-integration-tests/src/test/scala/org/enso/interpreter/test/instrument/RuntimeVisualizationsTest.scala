@@ -4487,19 +4487,15 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Vector()
       )
       context.send(
-        Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+        Api.Request(
+          requestId,
+          Api.PushContextRequest(contextId, item1, execute = false)
+        )
       )
       context.receiveNIgnorePendingExpressionUpdates(
-        3
+        1
       ) should contain theSameElementsAs Seq(
-        Api.Response(requestId, Api.PushContextResponse(contextId)),
-        TestMessages.update(
-          contextId,
-          idY,
-          ConstantsGen.INTEGER,
-          Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
-        ),
-        context.executionComplete(contextId)
+        Api.Response(requestId, Api.PushContextResponse(contextId))
       )
 
       // Send IdMap
@@ -4509,9 +4505,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(),
-            execute = false,
+            execute = true,
             idMap = Some(
-              model.IdMap(Vector(model.Span(100, 101) -> idYX))
+              model.IdMap(
+                Vector(model.Span(100, 101) -> idYX, model.Span(65, 72) -> idY)
+              )
             )
           )
         )
@@ -4537,9 +4535,15 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
       val attachVisualizationResponses =
-        context.receiveNIgnoreExpressionUpdates(3)
+        context.receiveNIgnoreStdLib(5)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
+        TestMessages.update(
+          contextId,
+          idY,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
+        ),
         context.executionComplete(contextId)
       )
       val Some(data) = attachVisualizationResponses.collectFirst {
