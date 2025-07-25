@@ -318,6 +318,8 @@ export interface SearchDirectoryQueryOptions {
 export function searchDirectoryQueryOptions(options: SearchDirectoryQueryOptions) {
   const { backend, infinite = false, ...rest } = options
   return {
+    // Even though the default stale time is 0, we want to ensure that the query is not cached.
+    staleTime: 0,
     queryKey: ((): QueryKey => [backend.type, 'searchDirectory', { ...rest, infinite }])(),
     queryFn: (
       _context,
