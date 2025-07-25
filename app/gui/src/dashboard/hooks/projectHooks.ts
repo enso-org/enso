@@ -60,7 +60,7 @@ function useSetProjectAsset() {
       const listDirectoryQuery = queryClient
         .getQueryCache()
         .find<readonly backendModule.AnyAsset<backendModule.AssetType>[] | undefined>({
-          queryKey: [backendType, 'listDirectory', parentId],
+          queryKey: [backendType, 'listDirectory', parentId, { infinite: false }],
           exact: false,
         })
 
@@ -72,6 +72,29 @@ function useSetProjectAsset() {
             : child,
           ),
         )
+      }
+
+      const listDirectoryInfiniteQuery = queryClient
+        .getQueryCache()
+        .find<
+          | reactQuery.InfiniteData<readonly backendModule.AnyAsset<backendModule.AssetType>[]>
+          | undefined
+        >({
+          queryKey: [backendType, 'listDirectory', parentId, { infinite: true }],
+          exact: false,
+        })
+
+      if (listDirectoryInfiniteQuery?.state.data) {
+        listDirectoryInfiniteQuery.setData({
+          ...listDirectoryInfiniteQuery.state.data,
+          pages: listDirectoryInfiniteQuery.state.data.pages.map((page) =>
+            page.map((child) =>
+              child.id === assetId && child.type === backendModule.AssetType.project ?
+                transform(child)
+              : child,
+            ),
+          ),
+        })
       }
     },
   )
