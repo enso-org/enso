@@ -16,25 +16,33 @@ type OS
     ## An unknown operating system.
     Unknown
 
-## ICON system
+## ---
+   icon: system
+   ---
    Return the type of operating system.
 
-   > Example
-     Return the OS type:
+   ## Examples
+   ### Return the OS type:
 
+   ```
          import Standard.Base.System.Platform
 
          example_os = Platform.os
+   ```
 os : OS
 os = from_text System.os
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    Check if the operating system is UNIX.
 is_unix : Boolean
 is_unix = @Builtin_Method "System.is_unix"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Create an Os object from text.
 from_text : Text -> OS
 from_text os = case os of

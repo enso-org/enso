@@ -25,7 +25,9 @@ type Model
     ## Fit a power series (y = A x ^ B) to the data.
     Power
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Model.
     to_display_text : Text
     to_display_text self = case self of
@@ -36,7 +38,9 @@ type Model
         Model.Logarithmic -> "Logarithmic"
         Model.Power -> "Power"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Computes the R Squared value for a model and returns a new instance.
     fitted_model_with_r_squared : Any -> Number -> Number -> Vector -> Vector -> Fitted_Model
     fitted_model_with_r_squared constructor a b known_xs known_ys =
@@ -44,7 +48,9 @@ type Model
         r_squared = Statistic.compute known_ys (Statistic.R_Squared (known_xs.map model.predict))
         constructor a b r_squared
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Computes the natural log series as long as all values are positive.
     ln_series : Vector -> Text -> Vector ! Illegal_Argument
     ln_series xs series_name="Values" =
@@ -52,7 +58,9 @@ type Model
             if x <= 0 then Panic.throw (Illegal_Argument.Error (series_name + " must be positive.")) else x.ln
         Panic.recover Illegal_Argument <| xs.map ln_with_panic
 
-## ICON robot
+## ---
+   icon: robot
+   ---
    Use Least Squares to fit a line to the data.
 fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument | Fit_Error
 fit_least_squares known_xs known_ys model=Model.Linear =
@@ -90,13 +98,17 @@ type Fitted_Model
     ## Fitted power series (y = a x ^ b).
     Power a:Number b:Number r_squared:Number=0.0
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Display the fitted line.
     to_text : Text
     to_text self =
         "Fitted_Model(" + self.to_display_text + ")"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Fitted_Model.
     to_display_text : Text
     to_display_text self = case self of
@@ -105,8 +117,10 @@ type Fitted_Model
         Fitted_Model.Logarithmic a b _ -> a.to_text + " * X.ln + " + b.to_text
         Fitted_Model.Power a b _ -> a.to_text + " * X ^ " + b.to_text
 
-    ## GROUP Calculations
-       ICON robot
+    ## ---
+       group: Calculations
+       icon: robot
+       ---
        Use the model to predict a value.
     predict : Number -> Number
     predict self x = case self of
@@ -118,18 +132,24 @@ type Fitted_Model
 
 ## An error thrown when the linear regression cannot be computed.
 type Fit_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error thrown when the linear regression cannot be computed.
 
-       Arguments:
-       - message: The error message.
+       ## Arguments
+        - `message`: The error message.
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts the `Fit_Error` to a human-readable representation.
     to_display_text : Text
     to_display_text self = "Could not fit the model: " + self.message.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     handle_java_exception =
         Panic.catch FitError handler=(cause-> Error.throw (Fit_Error.Error cause.payload.getMessage))

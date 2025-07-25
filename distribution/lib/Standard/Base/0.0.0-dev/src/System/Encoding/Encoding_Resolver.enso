@@ -9,7 +9,9 @@ from project.Runtime import assert
 polyglot java import org.enso.base.encoding.DecodingProblemAggregator
 polyglot java import org.enso.base.encoding.Encoding_Utils
 
-## PRIVATE
+## ---
+   private: true
+   ---
 resolve_encoding (encoding : Encoding) (buffered_input_stream : Input_Stream) (problem_aggregator : DecodingProblemAggregator) (continuation : Encoding -> Input_Stream -> Any) -> Any =
     case encoding of
         Encoding.Default ->
@@ -24,7 +26,9 @@ resolve_encoding (encoding : Encoding) (buffered_input_stream : Input_Stream) (p
         # Any other encoding just continues without any additional processing.
         _ -> continuation encoding buffered_input_stream
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private detect_default_encoding (buffered_input_stream : Input_Stream) (problem_aggregator : DecodingProblemAggregator) (continuation : Encoding -> Input_Stream -> Any) -> Any =
     case detect_bom buffered_input_stream of
         # We rely on the detected BOM for the encoding, even if there are errors down the line.
@@ -47,7 +51,9 @@ private detect_default_encoding (buffered_input_stream : Input_Stream) (problem_
             restartable_stream.with_fresh_stream input_stream->
                 continuation effective_encoding input_stream
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private verify_unicode_encoding (encoding : Encoding) (expected_bom : Unicode_BOM) (buffered_input_stream : Input_Stream) (problem_aggregator : DecodingProblemAggregator) (continuation : Encoding -> Input_Stream -> Any) -> Any =
     case detect_bom buffered_input_stream of
          Nothing ->
@@ -65,33 +71,49 @@ private verify_unicode_encoding (encoding : Encoding) (expected_bom : Unicode_BO
                     problem_aggregator.reportOtherProblem message
                     continuation encoding buffered_input_stream
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Unicode_BOM
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     UTF_8
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     UTF_16_LE
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     UTF_16_BE
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     as_bytes self -> Vector = case self of
         Unicode_BOM.UTF_8 -> [-17, -69, -65]
         Unicode_BOM.UTF_16_LE -> [-1, -2]
         Unicode_BOM.UTF_16_BE -> [-2, -1]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     corresponding_encoding self -> Encoding = case self of
         Unicode_BOM.UTF_8 -> Encoding.utf_8
         Unicode_BOM.UTF_16_LE -> Encoding.utf_16_le
         Unicode_BOM.UTF_16_BE -> Encoding.utf_16_be
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     all = [Unicode_BOM.UTF_8, Unicode_BOM.UTF_16_LE, Unicode_BOM.UTF_16_BE]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private detect_bom (input_stream : Input_Stream) -> Unicode_BOM | Nothing =
     assert input_stream.is_peekable
     beginning = input_stream.peek_bytes 3
