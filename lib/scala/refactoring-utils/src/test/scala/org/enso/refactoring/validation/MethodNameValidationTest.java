@@ -25,6 +25,7 @@ public class MethodNameValidationTest {
     Assert.assertTrue(MethodNameValidation.isAllowedName("foo42"));
     Assert.assertTrue(MethodNameValidation.isAllowedName("_foo"));
     Assert.assertTrue(MethodNameValidation.isAllowedName("a"));
+    Assert.assertTrue(MethodNameValidation.isAllowedName("_42"));
   }
 
   @Test
@@ -46,10 +47,12 @@ public class MethodNameValidationTest {
     Assert.assertEquals("_foo", MethodNameValidation.normalize("  foo  "));
     Assert.assertEquals("foo_bar", MethodNameValidation.normalize("foo bar"));
     Assert.assertEquals("foo42", MethodNameValidation.normalize("foo42"));
-    Assert.assertEquals("foo42_bar", MethodNameValidation.normalize("foo42bar"));
-    Assert.assertEquals("foo_42_bar", MethodNameValidation.normalize("foo$ 42$bar"));
+    Assert.assertEquals("foo42bar", MethodNameValidation.normalize("foo42bar"));
+    Assert.assertEquals("foo_42bar", MethodNameValidation.normalize("foo$ 42$bar"));
     Assert.assertEquals("foo_bar", MethodNameValidation.normalize("fooBar"));
     Assert.assertEquals("foo_bar", MethodNameValidation.normalize("FooBar"));
     Assert.assertEquals("foo42_bar", MethodNameValidation.normalize("Foo42Bar"));
+    Assert.assertEquals("_123", MethodNameValidation.normalize("123"));
+    Assert.assertEquals("_1foo", MethodNameValidation.normalize("1foo"));
   }
 }
