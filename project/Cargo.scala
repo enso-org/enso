@@ -33,10 +33,12 @@ object Cargo {
     if (!cargoOk(log))
       throw new RuntimeException("Cargo isn't installed!")
 
-    log.info(cmd.toString())
+    log.debug(cmd.toString())
 
     val exitCode =
-      try Process(cmd, None, extraEnv: _*).!
+      try Process(cmd, None, extraEnv: _*).!(
+        ProcessLogger(log.debug(_), log.debug(_))
+      )
       catch {
         case _: RuntimeException =>
           throw new RuntimeException(s"`$cargoCmd` command failed to run.")

@@ -24,7 +24,7 @@ export const CloseButton = memo(function CloseButton<IconType extends string>(
     icon = DismissIcon,
     tooltip = false,
     'aria-label': ariaLabel = getText('closeModalShortcut'),
-    testId = 'close-button',
+    testId,
     ...buttonProps
   } = props
 

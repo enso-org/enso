@@ -5,8 +5,9 @@ import Standard.Table.Errors.Invalid_JSON_Format
 
 import project.Helpers
 import project.Helpers.Object_Type
-from project.Table_Extensions import Distance_Units, _to_radians
+from project.Table_Extensions import _to_radians, Distance_Units
 
+## Collection of Geospatial functions for Enso.
 type Geo
     ## ---
        icon: convert

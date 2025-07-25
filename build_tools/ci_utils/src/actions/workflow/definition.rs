@@ -988,11 +988,6 @@ impl Step {
         self
     }
 
-    pub fn with_if(mut self, condition: impl Into<String>) -> Self {
-        self.r#if = Some(condition.into());
-        self
-    }
-
     pub fn with_id(mut self, id: impl Into<String>) -> Self {
         self.id = Some(id.into());
         self

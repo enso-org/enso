@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
+import org.enso.common.Platform;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.PortableDistributionManager;
@@ -38,7 +39,7 @@ final class JavaFinder {
     if (javaHome != null) {
       var binDir = Path.of(javaHome).resolve("bin");
       Path javaExe;
-      if (isOnWindows()) {
+      if (Platform.getOperatingSystem().isWindows()) {
         javaExe = binDir.resolve("java.exe");
       } else {
         javaExe = binDir.resolve("java");
@@ -61,10 +62,6 @@ final class JavaFinder {
     }
     logger.warn("No JDK found on PATH. Cannot start the runtime.");
     return null;
-  }
-
-  private static boolean isOnWindows() {
-    return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
   /**
@@ -110,7 +107,7 @@ final class JavaFinder {
   private static File findJavaOnPath() {
     try {
       ProcessBuilder processBuilder;
-      if (isOnWindows()) {
+      if (Platform.getOperatingSystem().isWindows()) {
         processBuilder = new ProcessBuilder("java.exe", "-h");
       } else {
         processBuilder = new ProcessBuilder("java", "-h");

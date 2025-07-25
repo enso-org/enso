@@ -8,6 +8,7 @@ import type { FeatureFlags } from '$/providers/featureFlags'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
+import type { MenuItem, MenuItemHandler } from './src/project-view/util/menuItems'
 
 /** Nested configuration options with `string` values. */
 interface StringConfig {
@@ -69,7 +70,7 @@ interface NavigationApi {
 /** `window.menuApi` exposes functionality related to the system menu. */
 interface MenuApi {
   /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
-  readonly setShowAboutModalHandler: (callback: () => void) => void
+  readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
 }
 
 /** Options for downloading a URL. */
@@ -85,12 +86,14 @@ interface DownloadUrlOptions {
 interface SystemApi {
   readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
+  readonly getFilePath: (item: File) => string
 }
 
 /** Metadata for a newly imported project. */
-interface ProjectInfo {
+export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
@@ -179,5 +182,14 @@ declare module 'vite/client' {
      */
     const src: string
     export default src
+  }
+}
+
+declare global {
+  const URL: {
+    /**
+     *  @deprecated use {@link urlParse} to avoid issues during tests.
+     */
+    parse(url: string | URL, base?: string | URL): URL | null
   }
 }

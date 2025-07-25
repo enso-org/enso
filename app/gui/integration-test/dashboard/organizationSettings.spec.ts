@@ -1,5 +1,5 @@
 /** @file Test the organization settings tab. */
-import { expect, test } from '@playwright/test'
+import { expect, test } from 'playwright/test'
 
 import { Plan } from 'enso-common/src/services/Backend'
 import { mockAllAndLogin } from './actions'

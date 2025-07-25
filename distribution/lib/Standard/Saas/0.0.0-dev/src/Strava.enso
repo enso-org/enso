@@ -1,0 +1,37 @@
+from Standard.Base import all
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+
+polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
+polyglot java import org.enso.saas.strava.StravaService
+
+type Strava
+    ## ---
+       private: true
+       ---
+    private Service (strava_service:StravaService)
+
+    ## ---
+       icon: cloud
+       ---
+       Initializes the Strava instance using the given credentials file.
+
+       ## Arguments:
+        - `credentials`: a Cloud secret or a file containing Strava credentials.
+    initialize : File|Enso_Secret -> Strava
+    initialize credentials =
+        credentials_reference = as_credential_reference credentials
+        Strava.Service (StravaService.new credentials_reference)
+
+    user self =
+        _strava_get self "https://www.strava.com/api/v3/athlete"
+
+    zones self =
+        _strava_get self "https://www.strava.com/api/v3/athlete/zones"
+
+    stats self =
+        id = self.user.decode_as_json.get "id"
+        _strava_get self "https://www.strava.com/api/v3/athletes/"+id.to_text+"/stats"
+
+private _strava_get strava url =
+    header = Header.authorization_bearer strava.strava_service.getAccessToken.token
+    HTTP.fetch url headers=[header]

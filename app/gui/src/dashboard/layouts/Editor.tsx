@@ -1,24 +1,24 @@
 /** @file The container that launches the IDE. */
 import { Button } from '#/components/Button'
-import * as errorBoundary from '#/components/ErrorBoundary'
+import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
-import * as suspense from '#/components/Suspense'
+import { Loader } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
+import type { LaunchedProject } from '$/providers/container'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
+import * as analytics from '$/utils/analytics'
+import ProjectViewTabVue from '@/ProjectViewTab.vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 
-const ProjectViewTab = React.lazy(() =>
-  import('@/ProjectViewTab.vue').then(({ default: vue }) => vueComponent(vue)),
-)
+// eslint-disable-next-line no-restricted-syntax
+const ProjectViewTab = vueComponent(ProjectViewTabVue).default
 
 /** Props for the GUI editor root component. */
 export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
@@ -33,8 +33,18 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
+  return (
+    <ErrorBoundary>
+      <EditorContents {...props} />
+    </ErrorBoundary>
+  )
+}
+
+/** The container that launches the IDE. */
+function EditorContents(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
-  const { preventAutoReopen = false } = project
+  const preventAutoReopen =
+    project.type !== backendModule.BackendType.local || project.hybrid != null
   const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
@@ -71,10 +81,13 @@ export default function Editor(props: EditorProps) {
       assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
       backend: isHybrid ? remoteBackend : backend,
     }),
-    select: (projectDetails) => ({
-      name: projectDetails.name,
-      isHybridOpened: isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
-    }),
+    select: (projectDetails) => {
+      return {
+        name: projectDetails.name,
+        isHybridOpened:
+          isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
+      }
+    },
   })
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
@@ -151,7 +164,7 @@ export default function Editor(props: EditorProps) {
 
   if (openProjectMutation.isError) {
     return (
-      <errorBoundary.ErrorDisplay
+      <ErrorDisplay
         error={openProjectMutation.error}
         resetErrorBoundary={async () => {
           if (isProjectClosed) {
@@ -169,7 +182,7 @@ export default function Editor(props: EditorProps) {
         switch (true) {
           case projectQuery.isError:
             return (
-              <errorBoundary.ErrorDisplay
+              <ErrorDisplay
                 error={projectQuery.error}
                 resetErrorBoundary={() => projectQuery.refetch()}
               />
@@ -178,7 +191,7 @@ export default function Editor(props: EditorProps) {
           case isProjectClosed:
           case isProjectClosing:
           case isProjectOpening:
-            return <suspense.Loader minHeight="full" />
+            return <Loader minHeight="full" />
 
           case isProjectOpened:
             return (
@@ -203,7 +216,7 @@ export default function Editor(props: EditorProps) {
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {
   readonly openedProject: backendModule.Project
   readonly backendType: backendModule.BackendType
-  readonly renameProject: (newName: string) => void
+  readonly renameProject: (newName: string) => Promise<void>
   readonly projectName: string
 }
 
@@ -212,7 +225,6 @@ function EditorInternal(props: EditorInternalProps) {
   const { hidden = false, renameProject, openedProject, backendType, projectName } = props
 
   const { getText } = useText()
-  const gtagEvent = gtagHooks.useGtagEvent()
   const config = useConfig()
   const ydocUrl = useVueValue(React.useCallback(() => config.ydocUrl, [config]))
 
@@ -220,12 +232,12 @@ function EditorInternal(props: EditorInternalProps) {
 
   React.useEffect(() => {
     if (!hidden) {
-      return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_workflow', 'close_workflow')
+      return analytics.editorOpenCloseCallback()
     }
-  }, [hidden, gtagEvent])
+  }, [hidden])
 
-  const onRenameProject = useEventCallback((newName: string) => {
-    renameProject(newName)
+  const onRenameProject = useEventCallback(async (newName: string) => {
+    await renameProject(newName)
   })
 
   const jsonAddress = openedProject.jsonAddress
@@ -237,22 +249,21 @@ function EditorInternal(props: EditorInternalProps) {
   invariant(jsonAddress != null, getText('noJSONEndpointError'))
   invariant(binaryAddress != null, getText('noBinaryEndpointError'))
 
-  const appProps = {
+  const appProps: ProjectViewTabProps = {
     hidden,
     projectViewProps: {
       projectId: openedProject.projectId,
       projectInitialName: openedProject.packageName,
       projectDisplayedName: projectName,
+      projectPath: openedProject.ensoPath,
       engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
       renameProject: onRenameProject,
       projectBackend,
       remoteBackend,
     },
-  } as const
-
-  const key: string = appProps.projectViewProps.projectId
+  }
 
   // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
   // this is no longer necessary, the `key` could be removed.
-  return <ProjectViewTab key={key} {...appProps} />
+  return <ProjectViewTab key={openedProject.projectId} {...appProps} />
 }

@@ -28,8 +28,8 @@ import xsbti.Position
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
 
-  val frgaal      = "org.frgaal" % "compiler" % "21.0.0" % "provided"
-  val sourceLevel = "21"
+  val frgaal      = "org.frgaal" % "compiler" % "24.0.0" % "provided"
+  val sourceLevel = "24"
 
   val debugArg =
     "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
@@ -321,7 +321,7 @@ object FrgaalJavaCompiler {
       )
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ allSources
 
-    if (Integer.parseInt(target) >= 24) {
+    if (false) { // disable using JDK's `javac` for now
       return original.run(
         sources0.toArray,
         options.toArray,

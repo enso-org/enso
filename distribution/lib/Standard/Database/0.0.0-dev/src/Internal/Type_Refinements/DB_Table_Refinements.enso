@@ -3,7 +3,7 @@ private
 from Standard.Base import all
 
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
-from Standard.Table import Column, Value_Type, Table
+from Standard.Table import Column, Table, Value_Type
 
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -11,12 +11,9 @@ from project.Internal.Type_Refinements.DB_Table_Conversions import all
 from project.Internal.Type_Refinements.Single_Column_DB_Table_Conversions import all
 from project.Internal.Type_Refinements.Single_Column_Typed_DB_Table_Conversions import all
 
-refine_table (table : DB_Table) =
-    if is_single_column table . not then (table : Table & DB_Table) else
+refine_table (table : Table & DB_Table) =
+    if table . column_count != 1 then (table : Table & DB_Table) else
         _refine_single_column_table table
-
-is_single_column table:DB_Table -> Boolean =
-    (table:Table).column_count == 1
 
 private _refine_single_column_table table =
     column = (table:Table).at 0

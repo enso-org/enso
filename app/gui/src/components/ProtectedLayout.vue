@@ -69,9 +69,12 @@ function requireUserAgreements(route: RouteLocation) {
 }
 
 let scope: EffectScope | undefined
-export const dataLoader: DataLoader<{
+
+type Props = {
   agreementsModalProps: AgreementsModalProps | undefined
-}> = {
+}
+
+export const dataLoader: DataLoader<Props> = {
   async beforeRouteEnter(to) {
     const queryClient = vueQuery.useQueryClient()
     const localStorage = LocalStorage.getInstance()
@@ -113,9 +116,7 @@ export const dataLoader: DataLoader<{
 </script>
 
 <script setup lang="ts">
-const props = defineProps<{
-  agreementsModalProps: AgreementsModalProps | undefined
-}>()
+const props = defineProps<Props>()
 
 const session = useSession()
 const auth = useAuth()
@@ -178,7 +179,7 @@ const shouldDisplayAgreementsModal = computed(
     v-if="allowed && agreementsModalProps && shouldDisplayAgreementsModal"
     v-bind="agreementsModalProps"
   />
-  <RouterView v-else-if="allowed" />
+  <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
 
   <EnsoDevtools v-if="displayDevTools" />
 </template>

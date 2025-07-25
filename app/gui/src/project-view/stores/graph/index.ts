@@ -28,6 +28,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { type MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import { useCallbackRegistry } from 'enso-common/src/utilities/data/callbacks'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { map, set } from 'lib0'
 import {
@@ -40,7 +41,9 @@ import {
   toRef,
   watch,
   watchEffect,
+  type ComputedRef,
   type Ref,
+  type ShallowReactive,
   type ShallowRef,
 } from 'vue'
 import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
@@ -83,6 +86,41 @@ export class PortViewInstance {
   }
 }
 
+function useAssociatedFlag<K extends string>({
+  onCleanup,
+}: {
+  onCleanup?: (cleanup: (key: K) => void) => void
+}): {
+  add: (key: K) => void
+  delete: (key: K) => void
+  get: (key: K) => boolean
+  set: (key: K, value: boolean) => void
+  exists: ComputedRef<boolean>
+} {
+  const flagged = shallowReactive(new Set<K>())
+  onCleanup?.((key) => flagged.delete(key))
+  return {
+    add: flagged.add.bind(flagged),
+    delete: flagged.delete.bind(flagged),
+    get: flagged.has.bind(flagged),
+    set: (key: K, value: boolean) => {
+      if (value) flagged.add(key)
+      else flagged.delete(key)
+    },
+    exists: computed(() => flagged.size !== 0),
+  }
+}
+
+function useAssociatedValue<K extends string, V>({
+  onCleanup,
+}: {
+  onCleanup?: (cleanup: (key: K) => void) => void
+}): ShallowReactive<Map<K, V>> {
+  const values = shallowReactive(new Map<K, V>())
+  onCleanup?.((key) => values.delete(key))
+  return values
+}
+
 export type GraphStore = ReturnType<typeof createGraphStore>
 /**
  * A store containing state of currently displayed graph.
@@ -94,11 +132,18 @@ export function createGraphStore(
 ) {
   proj.setObservedFileName('Main.enso')
 
-  const nodeRects = reactive(new Map<NodeId, Rect>())
-  const nodeOutputAnimations = reactive(new Map<NodeId, number>())
-  const nodeHovered = reactive(new Map<NodeId, boolean>())
-  const nodeOutputVisible = reactive(new Map<NodeId, boolean>())
-  const vizRects = reactive(new Map<NodeId, Rect>())
+  const { run: cleanup, register: onCleanup } =
+    useCallbackRegistry<Parameters<(key: NodeId) => void>>()
+  const nodeState = {
+    nodeHovered: useAssociatedFlag({ onCleanup }),
+    nodeExtended: useAssociatedFlag({ onCleanup }),
+    nodeOutputVisible: useAssociatedFlag({ onCleanup }),
+    nodeRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
+    vizRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
+    nodeOutputAnimations: useAssociatedValue<NodeId, number>({ onCleanup }),
+  } as const
+  const { nodeRects, vizRects, nodeOutputAnimations } = nodeState
+
   // The currently visible nodes' areas (including visualization).
   const visibleNodeAreas = computed(() => {
     const existing = iter.filter(nodeRects.entries(), ([id]) => db.isNodeId(id))
@@ -342,7 +387,7 @@ export function createGraphStore(
 
   function deleteNodes(ids: Iterable<NodeId>) {
     edit((edit) => {
-      const deletedNodes = new Set()
+      const deletedNodes = new Set<NodeId>()
       for (const id of ids) {
         const node = db.nodeIdToNode.get(id)
         if (!node) continue
@@ -357,11 +402,8 @@ export function createGraphStore(
         }
         const outerAst = edit.getVersion(node.outerAst)
         if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
-        nodeRects.delete(id)
-        nodeHovered.delete(id)
-        nodeOutputVisible.delete(id)
-        nodeOutputAnimations.delete(id)
         deletedNodes.add(id)
+        cleanup(id)
       }
     })
   }
@@ -465,14 +507,6 @@ export function createGraphStore(
     if (rect.pos.equals(Vec2.Infinity)) {
       nodesToPlace.push(nodeId)
     }
-  }
-
-  function setNodeHovered(nodeId: NodeId, hovered: boolean) {
-    nodeHovered.set(nodeId, hovered)
-  }
-
-  function setNodeOutputVisible(nodeId: NodeId, hovered: boolean) {
-    nodeOutputVisible.set(nodeId, hovered)
   }
 
   function updateNodeOutputAnim(nodeId: NodeId, progress: number) {
@@ -811,11 +845,6 @@ export function createGraphStore(
     doAfterUpdate,
     editedNodeInfo,
     moduleSource,
-    nodeRects,
-    nodeHovered,
-    nodeOutputVisible,
-    nodeOutputAnimations,
-    vizRects,
     visibleNodeAreas,
     visibleArea,
     unregisterNodeRect,
@@ -834,8 +863,6 @@ export function createGraphStore(
     setWidgetMetadata,
     undoManager,
     updateNodeRect,
-    setNodeHovered,
-    setNodeOutputVisible,
     updateNodeOutputAnim,
     updateVizRect,
     addPortInstance,
@@ -863,6 +890,7 @@ export function createGraphStore(
       pointer: currentMethodPointer,
     }),
     ...unconnectedEdges,
+    ...nodeState,
   })
 }
 

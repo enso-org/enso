@@ -1,5 +1,6 @@
 import { isMacLike } from '@/composables/events'
 import { assert } from '@/util/assert'
+import * as objects from 'enso-common/src/utilities/data/object'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
@@ -258,8 +259,11 @@ type AutocompleteKeybind<T extends string, Key extends string = never> =
   : [Key] extends [never] ? SuggestedKeybindSegment
   : Key
 
-type AutocompleteKeybinds<T extends string[]> = {
-  [K in keyof T]: AutocompleteKeybind<T[K]>
+type AutocompleteKeybinds<T extends KeybindDefinition[]> = {
+  [K in keyof T]: T[K] extends FullKeybindDefinition ?
+    FullKeybindDefinition<AutocompleteKeybind<T[K]['key']>>
+  : T[K] extends string ? AutocompleteKeybind<T[K]>
+  : never
 }
 
 /** Some keys have not human-friendly name, these are overwritten here for {@link BindingInfo}. */
@@ -275,7 +279,7 @@ const HUMAN_READABLE_KEYS: Partial<Record<Key, string>> = {
 
 // `never extends T ? Result : InferenceSource` is a trick to unify `T` with the actual type of the
 // argument.
-type Keybinds<T extends Record<K, string[]>, K extends keyof T = keyof T> =
+type Keybinds<T extends Record<K, KeybindDefinition[]>, K extends keyof T = keyof T> =
   never extends T ?
     {
       [K in keyof T]: AutocompleteKeybinds<T[K]>
@@ -292,6 +296,14 @@ type PointerButtonFlags = number & { [brandPointerButtonFlags]: never }
 const definedNamespaces = new Set<string>()
 
 export const DefaultHandler = Symbol('default handler')
+
+interface KeybindOptions {
+  allowRepeat?: boolean
+}
+export interface FullKeybindDefinition<T = string> extends KeybindOptions {
+  key: T
+}
+export type KeybindDefinition = string | FullKeybindDefinition
 
 /**
  * Define key bindings for given namespace.
@@ -359,7 +371,7 @@ export const DefaultHandler = Symbol('default handler')
  * ```
  */
 export function defineKeybinds<
-  T extends Record<BindingName, [] | string[]>,
+  T extends Record<BindingName, [] | KeybindDefinition[]>,
   BindingName extends keyof T = keyof T,
 >(namespace: string, bindings: Keybinds<T>) {
   if (definedNamespaces.has(namespace)) {
@@ -370,12 +382,21 @@ export function defineKeybinds<
   const keyboardShortcuts: Partial<Record<Key_, Record<ModifierFlags, Set<BindingName>>>> = {}
   const mouseShortcuts: Record<PointerButtonFlags, Record<ModifierFlags, Set<BindingName>>> = []
 
+  function fullKeybind(keybind: KeybindDefinition): FullKeybindDefinition {
+    return typeof keybind === 'string' ? { key: keybind } : keybind
+  }
+
   const bindingsInfo = {} as Record<BindingName, BindingInfo>
-  for (const [name_, keybindStrings] of Object.entries(bindings)) {
+  const bindingsOptions = {} as Record<BindingName, KeybindOptions>
+  for (const [name_, keybindValues] of Object.entries(bindings)) {
     const name = name_ as BindingName
-    for (const keybindString of keybindStrings as string[]) {
-      const { bind: keybind, info } = parseKeybindString(keybindString)
-      if (bindingsInfo[name] == null) bindingsInfo[name] = info
+    for (const keybindValue of keybindValues as KeybindDefinition[]) {
+      const keybindDef = fullKeybind(keybindValue)
+      const { bind: keybind, info } = parseKeybindString(keybindDef.key)
+      if (bindingsInfo[name] == null) {
+        bindingsInfo[name] = info
+        bindingsOptions[name] = keybindDef
+      }
       switch (keybind.type) {
         case 'keybind': {
           const shortcutsByKey = (keyboardShortcuts[keybind.key] ??= [])
@@ -414,27 +435,27 @@ export function defineKeybinds<
     handlers: Partial<
       Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
     >,
-  ): (event: Event_, stopAndPrevent?: boolean) => boolean {
-    return (event, stopAndPrevent = true) => {
-      // Do not handle repeated keyboard events (held down key).
-      if (event instanceof KeyboardEvent && event.repeat) return false
-
+  ): (event: Event_) => boolean {
+    return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
         event instanceof KeyboardEvent ?
           keyboardShortcuts[eventKey(event)]?.[eventModifierFlags]
         : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
 
+      const isRepeat = event instanceof KeyboardEvent && event.repeat
       let handled = false
       if (keybinds != null) {
-        for (const bindingName in handlers) {
+        for (const bindingName of objects.unsafeKeys(handlers)) {
+          if (bindingName === DefaultHandler) continue
+          if (isRepeat && !bindingsOptions[bindingName].allowRepeat) continue
           if (keybinds.has(bindingName as BindingName)) {
             const handle = handlers[bindingName as BindingName]
             handled = handle && handle(event) !== false
             if (DEBUG_LOG)
               console.log(
                 `Event ${event.type} (${event instanceof KeyboardEvent ? event.key : buttonFlagsForEvent(event)})`,
-                `${handled ? 'handled' : 'processed'} by ${namespace}.${bindingName}`,
+                `${handled ? 'handled' : 'processed'} by ${namespace}.${String(bindingName)}`,
               )
             if (handled) break
           }
@@ -443,7 +464,7 @@ export function defineKeybinds<
       if (!handled && handlers[DefaultHandler] != null) {
         handled = handlers[DefaultHandler](event) !== false
       }
-      if (handled && stopAndPrevent) {
+      if (handled) {
         event.stopImmediatePropagation()
         // We don't prevent default on PointerEvents, because it may prevent emitting
         // mousedown/mouseup events, on which external libraries may rely (like AGGrid for hiding

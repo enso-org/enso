@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+import { EnsoPath } from '#/services/Backend'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
+import { useAppTitle } from '$/composables/appTitle'
+import { useAuth } from '$/providers/auth'
+import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
+import { provideRightPanelData } from '$/providers/rightPanel'
+import { useText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
+import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
-import { interactionBindings } from '@/bindings'
+import { appBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
-import { useEvent } from '@/composables/events'
+import { useEvent, useMounted } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
+import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -22,11 +30,8 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { onMounted, shallowRef } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
-import { provideContainerData } from './providers/container'
-import { provideRightPanelData } from './providers/rightPanel'
-import { useText } from './providers/text'
 
 const { projectViewOnly } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -43,6 +48,11 @@ const appTooltips = provideTooltipRegistry()
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
+const auth = useAuth()
+const userSession = computed(() => auth.session)
+
+useAppTitle(userSession)
+
 provideKeyboard()
 const interaction = provideInteractionHandler()
 const actions = initializeActions()
@@ -51,21 +61,19 @@ registerGlobalBlurHandler()
 
 const actionHandlers = registerHandlers(
   {
-    'interaction.cancel': { action: () => interaction.cancelAll() },
+    'app.cancel': { action: () => interaction.cancelAll() },
+    'app.close': { action: () => window.close() },
   },
   actions,
 )
 
-const interactionBindingsHandler = interactionBindings.handler(
-  objects.mapEntries(
-    interactionBindings.bindings,
-    (actionName) => actionHandlers[actionName].action,
-  ),
+const bindingsHandlers = appBindings.handler(
+  objects.mapEntries(appBindings.bindings, (actionName) => actionHandlers[actionName].action),
 )
 
 const { globalEventRegistry } = provideGlobalEventRegistry()
 
-useEvent(window, 'keydown', interactionBindingsHandler)
+useEvent(window, 'keydown', bindingsHandlers)
 useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 
 const platformClass = (() => {
@@ -94,12 +102,15 @@ onMounted(() => {
 })
 const fullscreenRoot = shallowRef<HTMLElement>()
 
+useMounted(appOpenCloseCallback)
+
 // Mock external context in Project View integration tests. Once both test projects will be merged,
 // this should be removed
 if (projectViewOnly) {
-  provideOpenedProjects()
-  provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId, () => false, useText())
+  const openedProjects = provideOpenedProjects()
+  provideAsyncResources(openedProjects)
+  provideContainerData(EnsoPath(projectViewOnly.options.projectPath))
+  provideRightPanelData(EnsoPath(projectViewOnly.options.projectPath), () => false, useText())
   provideFullscreenRoot(fullscreenRoot)
 }
 </script>

@@ -182,13 +182,13 @@ public class PersistableProcessor extends AbstractProcessor {
             .collect(Collectors.toList());
 
     ExecutableElement cons;
-    Element singleton;
+    List<Element> singletonFields;
     if (constructors.isEmpty()) {
-      var singletonFields =
+      singletonFields =
           typeElem.getEnclosedElements().stream()
               .filter(
                   e ->
-                      e.getKind() == ElementKind.FIELD
+                      e.getKind().isField()
                           && e.getModifiers().contains(Modifier.STATIC)
                           && isVisibleFrom(e, orig))
               .filter(e -> tu.isSameType(e.asType(), typeElem.asType()))
@@ -200,11 +200,10 @@ public class PersistableProcessor extends AbstractProcessor {
                 Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
         return false;
       }
-      singleton = singletonFields.get(0);
       cons = null;
     } else {
       cons = (ExecutableElement) constructors.get(0);
-      singleton = null;
+      singletonFields = null;
       if (constructors.size() > 1) {
         var snd = (ExecutableElement) constructors.get(1);
         if (richerConstructor.compare(cons, snd) == 0) {
@@ -302,11 +301,29 @@ public class PersistableProcessor extends AbstractProcessor {
         w.append("\n");
         w.append("    );\n");
       } else {
-        w.append("    return ")
-            .append(typeElemName)
-            .append(".")
-            .append(singleton.getSimpleName())
-            .append(";\n");
+        if (singletonFields.size() == 1) {
+          var singleton = singletonFields.get(0);
+          w.append("    return ")
+              .append(typeElemName)
+              .append(".")
+              .append(singleton.getSimpleName())
+              .append(";\n");
+        } else {
+          w.append("    return switch (in.readByte()) {\n");
+          for (var i = 0; i < singletonFields.size(); i++) {
+            var singleton = singletonFields.get(i);
+            w.append(
+                "      case "
+                    + i
+                    + " -> "
+                    + typeElemName
+                    + "."
+                    + singleton.getSimpleName()
+                    + ";\n");
+          }
+          w.append("      default -> throw new IOException();\n");
+          w.append("    };\n");
+        }
       }
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
@@ -349,6 +366,22 @@ public class PersistableProcessor extends AbstractProcessor {
                   .getMessager()
                   .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
             }
+        }
+      } else {
+        if (singletonFields.size() > 1) {
+          w.append("    var index = -1;\n");
+          for (var i = 0; i < singletonFields.size(); i++) {
+            var singleton = singletonFields.get(i);
+            w.append(
+                "    if (obj == "
+                    + typeElemName
+                    + "."
+                    + singleton.getSimpleName()
+                    + ") index = "
+                    + i
+                    + ";\n");
+          }
+          w.append("    out.write(index);\n");
         }
       }
       w.append("  }\n");

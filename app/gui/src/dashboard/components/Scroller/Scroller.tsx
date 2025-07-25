@@ -158,7 +158,7 @@ export function Scroller(props: ScrollerProps) {
     variants = SCROLLER_STYLES,
     orientation = 'horizontal',
     showShadows = true,
-    testId = 'scroller',
+    testId,
     onScroll,
     background = 'primary',
     ...rest

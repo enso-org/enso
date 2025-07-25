@@ -54,12 +54,12 @@ function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
 }
 
 /** Rules for positioning the dropdown. */
-function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement: Ref<Opt<HTMLElement>>) {
+function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement?: Ref<Opt<HTMLElement>>) {
   return computed(() => [
     offset(offsetSubmenu(isTopLevel)),
     size(sizeOptions(limitWidth)),
     // Try to keep the dropdown within node's bounds.
-    shift(() => (rootElement.value && isTopLevel ? { boundary: rootElement.value } : {})),
+    shift(() => (rootElement?.value && isTopLevel ? { boundary: rootElement.value } : {})),
     shift(), // Always keep within screen bounds, overriding node bounds.
   ])
 }
@@ -82,7 +82,7 @@ export function submenuDropdownStyles(
   floatReference: Ref<Opt<HTMLElement>>,
   dropdownElement: Ref<Opt<HTMLElement>>,
   isTopLevel: boolean,
-  rootElement: Ref<Opt<HTMLElement>>,
+  rootElement?: Ref<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
     placement: isTopLevel ? 'bottom-start' : 'right',

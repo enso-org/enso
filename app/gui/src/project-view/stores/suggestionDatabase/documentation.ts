@@ -4,7 +4,7 @@ import { findIndexOpt } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
 import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
-import { SyntaxNodeRef } from '@lezer/common'
+import type { SyntaxNodeRef } from '@lezer/common'
 import { type DeepReadonly } from 'vue'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
@@ -75,7 +75,7 @@ export function documentationData(
   const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
 
   return {
-    documentation: prerenderMarkdown(documentation ?? ''),
+    documentation: prerendered,
     documentationSummary: summary,
     iconName: iconName != null && isIconName(iconName) ? iconName : undefined,
     groupIndex,

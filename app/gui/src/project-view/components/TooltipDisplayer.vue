@@ -54,6 +54,7 @@ watch(activeTooltip, (newValue, oldValue) => {
 const isDisplayed = (tooltip: Opt<HoveredElement>) => {
   if (tooltip == null) return false
   if (tooltip.entry.isHidden) return false
+  if (tooltip.entry.forceShow) return true
   if (!tooltip.element.isConnected) return false
   switch (toValue(tooltip.entry.props.when)) {
     case 'always':
@@ -69,7 +70,7 @@ const isDisplayed = (tooltip: Opt<HoveredElement>) => {
 }
 
 const displayedTooltip = computed(() => {
-  if (!show.value) return undefined
+  if (!show.value && !activeTooltip.value?.entry.forceShow) return undefined
   // When hovering the element, display its tooltip.
   if (isDisplayed(activeTooltip.value)) {
     return activeTooltip.value

@@ -28,15 +28,6 @@ const props = defineProps<{ zoomLevel?: number }>()
   backdrop-filter: var(--blur-app-bg);
 }
 
-.label {
-  user-select: none;
-  pointer-events: none;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .zoomScaleLabel {
   width: 4em;
   text-align: center;

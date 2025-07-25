@@ -50,85 +50,103 @@ polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
 
 type HTTP
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Static helper for get-like methods
 
-       ! Response caching
+       ## Remarks
 
-         See `Data.fetch` for information about response caching.
+       ### Response caching
+       See `Data.fetch` for information about response caching.
     fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Cache_Policy -> Response ! Request_Error | HTTP_Error
     fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (cache_policy:Cache_Policy = ..Default) = if_fetch_method method <|
         request = Request.new method uri (Header.unify_vector headers) Request_Body.Empty
         HTTP.new.request request cache_policy=cache_policy
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Static helper for post-like methods
     post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
     post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) = if_post_method method <|
         request = Request.new method uri (Header.unify_vector headers) body
         HTTP.new.request request
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Create a new instance of the HTTP client.
 
-       Arguments:
-       - timeout: The length of time the client will wait for responses.
-       - follow_redirects: Whether or not the client should follow redirects.
-       - proxy: The proxy that the client should use, if any.
-       - version: The HTTP version supported by the client.
+       ## Arguments
+        - `timeout`: The length of time the client will wait for responses.
+        - `follow_redirects`: Whether or not the client should follow redirects.
+        - `proxy`: The proxy that the client should use, if any.
+        - `version`: The HTTP version supported by the client.
 
-       > Example
-         Create an HTTP client with default settings.
+       ## Examples
+       ### Create an HTTP client with default settings.
+       ```
              HTTP.new
 
-       > Example
-         Create an HTTP client with extended timeout.
+       ```
+
+       ### Create an HTTP client with extended timeout.
+       ```
              HTTP.new timeout=(Duration.new seconds=30)
 
-       > Example
-         Create an HTTP client with extended timeout and proxy settings.
+       ```
 
+       ### Create an HTTP client with extended timeout and proxy settings.
+
+       ```
              import Standard.Base.Data.Time.Duration.Duration
              import Standard.Base.Network.HTTP.HTTP
              import Standard.Base.Network.Proxy.Proxy
 
              example_new =
                 HTTP.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.Address "example.com" 8080)
+       ```
     new : Duration -> Boolean -> Proxy -> HTTP_Version -> HTTP
     new (timeout:Duration=(Duration.new seconds=10)) (follow_redirects:Boolean=True) (proxy:Proxy=..System) (version:HTTP_Version=..HTTP_2) =
         HTTP.Value timeout follow_redirects proxy version Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An HTTP client.
 
-       Arguments:
-       - timeout: The length of time the client will wait for responses.
-       - follow_redirects: Whether or not the client should follow redirects.
-       - proxy: The proxy that the client should use, if any.
-       - version: The HTTP version supported by the client.
-       - custom_ssl_context: A custom SSL context to use for requests, or
-         Nothing if the default should be used. For most use cases, it is
-         recommended to use the default.
-       - hash_method: The hash method to use for body hashing.
-       - make_client: Creates the Java HTTPClient.
+       ## Arguments
+        - `timeout`: The length of time the client will wait for responses.
+        - `follow_redirects`: Whether or not the client should follow redirects.
+        - `proxy`: The proxy that the client should use, if any.
+        - `version`: The HTTP version supported by the client.
+        - `custom_ssl_context`: A custom SSL context to use for requests, or
+          Nothing if the default should be used. For most use cases, it is
+          recommended to use the default.
+        - `hash_method`: The hash method to use for body hashing.
+        - `make_client`: Creates the Java HTTPClient.
     private Value timeout follow_redirects:Boolean proxy:Proxy version:HTTP_Version custom_ssl_context hash_method=Nothing make_client=internal_http_client
 
-    ## ADVANCED
-       ICON data_download
+    ## ---
+       advanced: true
+       icon: data_download
+       ---
        Sends a request using the HTTP client.
        The response body will contain a raw Input_Stream which can be read once.
        Please note, this must be closed after use (either directly or via the
        helpers on Response_Body).
 
-       ! Response caching
+       ## Arguments
+        - `req`: The HTTP request to send using `self` HTTP client.
+        - `error_on_failure_code`: Whether or not to throw an error if the
+          response code is not a success code.
 
-         See `Data.fetch` for information about response caching.
+       ## Remarks
 
-       Arguments:
-       - req: The HTTP request to send using `self` HTTP client.
-       - error_on_failure_code: Whether or not to throw an error if the response
-         code is not a success code.
+       ### Response caching
+       See `Data.fetch` for information about response caching.
     request : Request -> Boolean -> Cache_Policy -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
     request self req error_on_failure_code=True (cache_policy:Cache_Policy = ..Default) =
         # Prevent request if the method is a write-like method and output context is disabled.
@@ -167,31 +185,43 @@ type HTTP
                         message = if body.is_empty then Nothing else body
                         Error.throw (HTTP_Error.Status_Error response.code message response.uri)
 
-    ## ALIAS flush
-       ICON temp
+    ## ---
+       aliases: [flush]
+       icon: temp
+       ---
        Clear the HTTP request cache.
 
-       > Example
-         Clear the HTTP response cache.
+       ## Examples
+       ### Clear the HTTP response cache.
 
+       ```
              import Standard.Base.Network.HTTP
 
              HTTP.clear_response_cache
+       ```
     clear_response_cache : Nothing
     clear_response_cache -> Nothing = EnsoSecretHelper.getCache.clear
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Create a copy of the HTTP client with a custom SSL context.
     set_custom_ssl_context : SSLContext -> HTTP
     set_custom_ssl_context self ssl_context =
         HTTP.Value self.timeout self.follow_redirects self.proxy self.version ssl_context
 
-## PRIVATE
-   If either encoding or content type is specified in the Request_Body, that is used as the content type header.
-   If encoding is specified without content type, "text/plain" is used as the content type.
-   It is an error to specify the content type in both the request body and the header list.
-   If the body is not Request_Body.Empty, and no content type is specified, a default is used.
+## ---
+   private: true
+   ---
+   If either encoding or content type is specified in the Request_Body, that is
+   used as the content type header.
+   If encoding is specified without content type, "text/plain" is used as the
+   content type.
+   It is an error to specify the content type in both the request body and the
+   header list.
+   If the body is not Request_Body.Empty, and no content type is specified, a
+   default is used.
    Not explicitly private as allows direct testing.
 _resolve_headers : Request -> Vector Header
 _resolve_headers req =
@@ -229,12 +259,17 @@ _resolve_headers req =
 
         all_headers + default_content_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Resolved_Body
     private Value publisher:BodyPublisher boundary:Text|Nothing hash:Text|Nothing
 
-## PRIVATE
-   Generate body publisher, optional form content boundary and optionally hash from the body
+## ---
+   private: true
+   ---
+   Generate body publisher, optional form content boundary and optionally hash
+   from the body
 _resolve_body : Request_Body -> Function | Nothing -> Resolved_Body
 private _resolve_body body:Request_Body hash_function =
     body_publishers = HttpRequest.BodyPublishers
@@ -265,9 +300,12 @@ private _resolve_body body:Request_Body hash_function =
         _ ->
             Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug library."))
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Build a BodyPublisher from the given form data.
-   The pair's second value is a content boundary in the case of a `multipart/form-data` form; otherwise, Nothing
+   The pair's second value is a content boundary in the case of a
+   `multipart/form-data` form; otherwise, Nothing
 _resolve_form_body : Dictionary Text (Text | File) -> Boolean -> Function | Nothing -> Resolved_Body
 private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False) hash_function = case url_encoded of
     True ->
@@ -289,25 +327,33 @@ private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_enco
         hash = if hash_function.is_nothing then "" else hash_function body_builder.getContents
         Resolved_Body.Value publisher body_builder.get_boundary hash
 
-## PRIVATE
+## ---
+   private: true
+   ---
 if_fetch_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
 if_fetch_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
     if [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options, HTTP_Method.Trace].contains method then action else
         if_not
 
-## PRIVATE
+## ---
+   private: true
+   ---
 if_post_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
 if_post_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
     if [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete].contains method then action else
         if_not
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Build a custom HTTP with hash function and make_client function.
 with_hash_and_client : HTTP -> Function -> Function -> HTTP
 with_hash_and_client http hash_method make_client =
     HTTP.Value http.timeout http.follow_redirects http.proxy http.version http.custom_ssl_context hash_method make_client
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Build a Java HttpClient with the given settings.
 internal_http_client : HTTP -> Text -> HttpClient
 internal_http_client http hash =
@@ -331,17 +377,23 @@ internal_http_client http hash =
 
     builder.build
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An error when sending an HTTP request.
 
-   Arguments:
-   - error_type: The type of the error.
-   - message: The message for the error.
+   ## Arguments
+    - `error_type`: The type of the error.
+    - `message`: The message for the error.
 type Request_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error error_type message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert a request error to a human-readable form.
     to_display_text : Text
     to_display_text self =
@@ -350,22 +402,30 @@ type Request_Error
             _ -> " " + self.message
         self.error_type + " error when sending request." + description_text
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Access the HTTP's timeout (for testing purposes).
 _get_timeout : HTTP -> Duration
 _get_timeout http:HTTP = http.timeout
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Access the HTTP's follow_redirects (for testing purposes).
 _get_follow_redirects : HTTP -> Boolean
 _get_follow_redirects http:HTTP = http.follow_redirects
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Access the HTTP's proxy (for testing purposes).
 _get_proxy : HTTP -> Proxy
 _get_proxy http:HTTP = http.proxy
 
-## PRIVATE
-    Access the HTTP's version (for testing purposes).
+## ---
+   private: true
+   ---
+   Access the HTTP's version (for testing purposes).
 _get_version : HTTP -> HTTP_Version
 _get_version http:HTTP = http.version

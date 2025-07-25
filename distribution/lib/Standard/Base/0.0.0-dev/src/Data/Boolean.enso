@@ -5,7 +5,6 @@ export project.Data.Boolean.Boolean.False
 export project.Data.Boolean.Boolean.True
 
 ## A type with only two possible values.
-
    The boolean type represents the two truth values of boolean logic. It is
    primarily used for control-flow.
 @Builtin_Type
@@ -16,88 +15,112 @@ type Boolean
     ## The boolean value representing false.
     False
 
-    ## ALIAS and
-       GROUP Logical
-       ICON operators
+    ## ---
+       aliases: [and]
+       group: Logical
+       icon: operators
+       ---
        Computes the logical and (conjunction) of two booleans.
 
-       Arguments:
-       - that: The boolean to compute the conjunction of this with.
+       ## Arguments
+        - `that`: The boolean to compute the conjunction of this with.
 
-       ! Short Circuiting
-         This method is implemented in a short-circuiting manner. This means
-         that if this is False, it will no longer evaluate that.
+       ## Examples
+       ### Computing the conjunction of False and True (to get False).
 
-       > Example
-         Computing the conjunction of False and True (to get False).
-
+       ```
              False && True
+       ```
+
+       ## Remarks
+
+       ### Short Circuiting
+       This method is implemented in a short-circuiting manner. This means that
+       if this is False, it will no longer evaluate that.
     && : Boolean -> Boolean
     && self ~that = @Builtin_Method "Boolean.&&"
 
-    ## ALIAS or
-       GROUP Logical
-       ICON operators
+    ## ---
+       aliases: [or]
+       group: Logical
+       icon: operators
+       ---
        Computes the logical or (disjunction) of two booleans.
 
-       Arguments:
-       - that: The boolean to compute the disjunction of this with.
+       ## Arguments
+        - `that`: The boolean to compute the disjunction of this with.
 
-       ! Short Circuiting
-         This method is implemented in a short-circuiting manner. This means
-         that if this is True, it will no longer evaluate that.
+       ## Examples
+       ### Computing the disjunction of True and False (to get True).
 
-       > Example
-         Computing the disjunction of True and False (to get True).
-
+       ```
              True || False
+       ```
+
+       ## Remarks
+
+       ### Short Circuiting
+       This method is implemented in a short-circuiting manner. This means that
+       if this is True, it will no longer evaluate that.
     || : Boolean -> Boolean
     || self ~that = @Builtin_Method "Boolean.||"
 
-    ## GROUP Logical
-       ICON operators
+    ## ---
+       group: Logical
+       icon: operators
+       ---
        Computes the logical negation of this.
 
-       > Example
-         Negating True to get False.
+       ## Examples
+       ### Negating True to get False.
 
+       ```
              True.not
+       ```
     not : Boolean
     not self = @Builtin_Method "Boolean.not"
 
-    ## GROUP Logical
-       ICON operators
+    ## ---
+       group: Logical
+       icon: operators
+       ---
        The if-then-else control flow operator that executes one of two branches
        based on a conditional.
-
-       Arguments:
-       - on_true: The computation to evaluate if this evaluates to True.
-       - on_false: The computation to evaluate if this evaluates to False.
 
        Both of the arguments to this method are _lazy_, meaning that they will
        only be evaluated if they are needed (based on the condition).
 
-       > Example
-         Telling the user if a number 27 is divisible by three.
+       ## Arguments
+        - `on_true`: The computation to evaluate if this evaluates to True.
+        - `on_false`: The computation to evaluate if this evaluates to False.
 
+       ## Examples
+       ### Telling the user if a number 27 is divisible by three.
+
+       ```
              if (27 % 3) == 0 then IO.println "Yes" else IO.println "No"
+       ```
     if_then_else : Any -> Any -> Any
     if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
 
-    ## GROUP Logical
-       ICON operators
+    ## ---
+       group: Logical
+       icon: operators
+       ---
        The if-then control flow operator that executes a branch if the condition
        is true, and otherwise returns Nothing.
-
-       Arguments:
-       - on_true: The computation to evaluate if this evaluates to True.
 
        The argument to this method is _lazy_, meaning that it will only be
        evaluated if the this evaluates to True.
 
-       > Example
-         Printing a message to the user only if a number is divisible by three.
+       ## Arguments
+        - `on_true`: The computation to evaluate if this evaluates to True.
 
+       ## Examples
+       ### Printing a message to the user only if a number is divisible by three.
+
+       ```
              if (27 % 3) == 0 then IO.println "Fizz"
+       ```
     if_then : Any -> Any | Nothing
     if_then self ~on_true = @Builtin_Method "Boolean.if_then"

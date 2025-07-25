@@ -11,42 +11,58 @@ polyglot java import org.enso.table.data.column.builder.BuilderForDouble
 polyglot java import org.enso.table.data.column.builder.BuilderForLong
 polyglot java import org.enso.table.problems.ProblemAggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Note: Value_Type must have an exact representation in Java.
 make_builder_for_type : Value_Type -> Integer -> ProblemAggregator -> Builder
 make_builder_for_type value_type initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     storage_type = Storage.from_value_type_strict value_type
     Builder.getForType storage_type initial_size java_problem_aggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_bool_builder : Integer -> BuilderForBoolean
 make_bool_builder initial_size = Builder.getForBoolean initial_size
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_double_builder : Integer -> ProblemAggregator -> BuilderForDouble
 make_double_builder initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     float_type = Storage.from_value_type_strict Value_Type.Float
     Builder.getForDouble float_type initial_size java_problem_aggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_long_builder : Integer -> Bits -> ProblemAggregator -> BuilderForLong
 make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
     Builder.getForLong integer_type initial_size java_problem_aggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_string_builder : Integer -> Value_Type -> Builder
 make_string_builder initial_size value_type=Value_Type.Char =
     storage_type = Storage.from_value_type_strict value_type
     Builder.getForText storage_type initial_size
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_inferred_builder : Integer -> ProblemAggregator -> Builder
 make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     Builder.getInferredBuilder initial_size java_problem_aggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_column_from_storage = In_Memory_Column.from_storage
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_column_from_java_column = In_Memory_Column.from_java_column

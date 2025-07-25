@@ -4,22 +4,23 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
+from project.Helpers import time_visualization
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Prepares the database table for visualization.
-
-   Arguments:
-   - table: The database table to prepare for visualization.
 
    For each interpolation it provides its value, its actual type name, its
    expected SQL type name and if it was possible to infer it, its expected Enso
    typename.
+   Expected Enso types are inferred based on known SQL types and their mapping to
+   Enso types.
 
-   Expected Enso types are inferred based on known SQL types and their mapping
-   to Enso types.
+   ## Arguments
+    - `table`: The database table to prepare for visualization.
 prepare_visualization : DB_Table -> Text
-prepare_visualization table =
+prepare_visualization table = time_visualization Visualization ("prepare_visualization: " + table.to_display_text) <|
     prepared = (table:DB_Table|DB_Column).to_sql.prepare
     code = prepared.first
     interpolations = prepared.second

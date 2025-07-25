@@ -21,6 +21,7 @@
 - Standard.Base.Data.Text.Text.get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.index_of self term:Standard.Base.Data.Text.Text= start:Standard.Base.Data.Numbers.Integer= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.insert self index:Standard.Base.Data.Numbers.Integer that:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.is_ascii self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.is_digit self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.is_whitespace self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.last self -> Standard.Base.Any.Any

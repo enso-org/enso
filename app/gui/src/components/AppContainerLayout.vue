@@ -1,21 +1,46 @@
 <script lang="ts">
 import {
-  SetupOrganizationAfterSubscribeProps,
-  SetupOrganizationAfterSubscribe as SetupOrganizationAfterSubscribeReact,
-} from '#/modals/SetupOrganizationAfterSubscribe'
+  type AcceptInvitationModalProps,
+  AcceptInvitationModal as AcceptInvitationModalReact,
+} from '#/modals/AcceptInvitationModal'
+import {
+  type PlanDowngradedModalProps,
+  PlanDowngradedModal as PlanDowngradedModalReact,
+} from '#/modals/PlanDowngradedModal'
+import { SetupOrganizationModal as SetupOrganizationModalReact } from '#/modals/SetupOrganizationForm'
+import {
+  type TrialEndedModalProps,
+  TrialEndedModal as TrialEndedModalReact,
+} from '#/modals/TrialEndedModal'
 import * as backendModule from '#/services/Backend'
+import { DAY_MS } from '#/utilities/time'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
-import type { DataLoader } from '$/router'
+import { DataLoader } from '$/router'
 import { backendQueryOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
+import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
-import { useQueryClient } from '@tanstack/vue-query'
-import { onMounted, onUnmounted } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
-const SetupOrganizationAfterSubscribe = reactComponent(SetupOrganizationAfterSubscribeReact)
+import { proxyRefs } from '@/util/reactivity'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, onMounted, onUnmounted } from 'vue'
+
+const SetupOrganizationModal = reactComponent(SetupOrganizationModalReact)
+const TrialEndedModal = reactComponent(TrialEndedModalReact)
+const PlanDowngradedModal = reactComponent(PlanDowngradedModalReact)
+const AcceptInvitationModal = reactComponent(AcceptInvitationModalReact)
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
+
+type Props = {
+  shouldSetupOrganization: boolean
+  trialEndedModalProps: TrialEndedModalProps | undefined
+  planDowngradedModalProps: PlanDowngradedModalProps | undefined
+  acceptInvitationModalProps: AcceptInvitationModalProps | undefined
+}
+
+/** Days of asset retention after trial ends. */
+const DAYS_BEFORE_DELETE = 90
 
 /**
  * A layout for "main app" router views.
@@ -23,33 +48,63 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * TODO[ao]: should be merged with `AppContainer` probably, but first we need to remove
  * the "Dashboard" layer between them.
  */
-export const dataLoader: DataLoader<{
-  setupOrganizationModalProps?: SetupOrganizationAfterSubscribeProps
-}> = {
+export const dataLoader: DataLoader<Props> = {
   async beforeRouteEnter() {
-    const queryClient = useQueryClient()
     const auth = useAuth()
     const { remoteBackend: backend } = useBackends()
-    if (!auth.session) return Ok({})
-    const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = auth.session.user
-    if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return Ok({})
-    const [organization, fetchedUserGroups] = await Promise.all([
-      queryClient.fetchQuery(backendQueryOptions('getOrganization', [], backend)),
-      queryClient.fetchQuery(backendQueryOptions('listUserGroups', [], backend)),
-    ])
-    return Ok({
-      setupOrganizationModalProps: {
-        userId,
-        organizationName: organization?.name ?? null,
-        userGroupsCount: fetchedUserGroups.length,
-      },
+
+    const { isOrganizationAdmin, plan, invitation } = auth.session?.user ?? {
+      isOrganizationAdmin: false,
+      plan: backendModule.Plan.free,
+    }
+
+    const needsOrganizationSetup = PLANS_TO_SPECIFY_ORG_NAME.includes(plan)
+
+    const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
+    await organizationQuery.suspense()
+
+    const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
+
+    const trialEndedModalProps = computed<TrialEndedModalProps | undefined>(() => {
+      if (plan == backendModule.Plan.free) return undefined
+
+      const subscription = organizationQuery.data.value?.subscription
+      if (subscription?.isPaused && subscription.id != null) {
+        return { subscriptionId: subscription.id }
+      }
+      return undefined
     })
+
+    const planDowngradedModalProps = computed<PlanDowngradedModalProps | undefined>(() => {
+      if (plan != backendModule.Plan.free) return undefined
+      const subscription = organizationQuery.data.value?.subscription
+      if (subscription?.isPaused && subscription.id != null && subscription.trialEnd != null) {
+        return {
+          deletionDeadlineTimestamp:
+            Number(new Date(subscription.trialEnd)) + DAYS_BEFORE_DELETE * DAY_MS,
+        }
+      }
+      return undefined
+    })
+
+    const shouldSetupOrganization = computed(
+      () => isOrganizationAdmin && needsOrganizationSetup && !organizationQuery.data.value?.name,
+    )
+
+    return Ok(
+      proxyRefs({
+        shouldSetupOrganization,
+        trialEndedModalProps,
+        planDowngradedModalProps,
+        acceptInvitationModalProps,
+      }),
+    )
   },
 }
 </script>
 
 <script setup lang="ts">
-defineProps<{ setupOrganizationModalProps?: SetupOrganizationAfterSubscribeProps }>()
+defineProps<Props>()
 
 const { remoteBackend } = useBackends()
 const logUserOpen = () => remoteBackend.logEvent('open_app')
@@ -60,9 +115,9 @@ useEvent(window, 'beforeunload', logUserClose)
 </script>
 
 <template>
-  <SetupOrganizationAfterSubscribe
-    v-if="setupOrganizationModalProps"
-    v-bind="setupOrganizationModalProps"
-  />
+  <SetupOrganizationModal v-if="shouldSetupOrganization" />
+  <TrialEndedModal v-if="trialEndedModalProps" v-bind="trialEndedModalProps" />
+  <PlanDowngradedModal v-if="planDowngradedModalProps" v-bind="planDowngradedModalProps" />
+  <AcceptInvitationModal v-if="acceptInvitationModalProps" v-bind="acceptInvitationModalProps" />
   <RouterView />
 </template>

@@ -1,4 +1,4 @@
-import { injectProjectBackend } from '@/providers/projectBackend'
+import { useBackends } from '$/providers/backends'
 import type { ToValue } from '@/util/reactivity'
 import type {
   UseMutationOptions,
@@ -107,7 +107,7 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
  */
 export function useBackend(which: 'remote' | 'project') {
   const queryClient = useQueryClient()
-  const { project, remote } = injectProjectBackend()
+  const { localBackend: project, remoteBackend: remote } = useBackends()
   const backend = which === 'project' ? project : remote
 
   /** Perform the specified query, and keep the result up-to-date if the provided arguments change. */

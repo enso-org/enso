@@ -20,7 +20,9 @@ from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
 from project.Internal.Upload.Operations.Upload_Table import create_table_upload_operation
 
-## PRIVATE
+## ---
+   private: true
+   ---
 common_update_table (source_table : Table) (target_table : Table) update_action key_columns error_on_missing_columns on_problems:Problem_Behavior =
     check_target_table_for_update target_table <|
         connection = (target_table:DB_Table).connection
@@ -45,13 +47,14 @@ common_update_table (source_table : Table) (target_table : Table) update_action 
                                 warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged.  Press the Write button ▶ to update the actual table."
                                 Warning.attach warning resulting_table
 
-## PRIVATE
-   Assumes that `source_table` is a simple table query without any filters,
-   joins and other composite operations - if a complex query is needed, it
-   should be first materialized into a temporary table.
-
-   If `dry_run` is set to True, only the checks are performed, but the
-   operations actually modifying the target table are not.
+## ---
+   private: true
+   ---
+   Assumes that `source_table` is a simple table query without any filters, joins
+   and other composite operations - if a complex query is needed, it should be
+   first materialized into a temporary table.
+   If `dry_run` is set to True, only the checks are performed, but the operations
+   actually modifying the target table are not.
 append_to_existing_table source_table target_table update_action key_columns dry_run = In_Transaction.ensure_in_transaction <|
     helper = Append_Helper.Context source_table target_table key_columns dry_run
     upload_status = case update_action of
@@ -73,29 +76,40 @@ append_to_existing_table source_table target_table update_action key_columns dry
                         helper.delete_unmatched_target_rows
     upload_status.if_not_error target_table
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Append_Helper
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Context source_table target_table key_columns dry_run
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     connection self = self.target_table.connection
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Runs the action only if running in normal mode.
        In dry run mode, it will just return `Nothing`.
     if_not_dry_run self ~action = if self.dry_run then Nothing else action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The update only affects matched rows, unmatched rows are ignored.
     update_common_rows self = self.if_not_dry_run <|
         update_statement = self.connection.dialect.generate_sql <|
             SQL_IR_Statement.Update_From_Table self.target_table.name self.source_table.name self.source_table.column_names self.key_columns
         Panic.rethrow <| self.connection.execute_update update_statement
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Inserts all rows from the source.
-
        Behaviour is ill-defined if any of the rows already exist in the target.
        If only new rows are supposed to be inserted, they have to be filtered
        before inserting.
@@ -104,22 +118,27 @@ type Append_Helper
             SQL_IR_Statement.Insert_From_Select self.target_table.name table_to_insert.column_names (table_to_insert:DB_Table).to_select_query
         Panic.rethrow <| self.connection.execute_update insert_statement
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Deletes rows from target table that were not present in the source.
     delete_unmatched_target_rows self = self.if_not_dry_run <|
         delete_statement = self.connection.dialect.generate_sql <|
             SQL_IR_Statement.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
         Panic.rethrow <| self.connection.execute_update delete_statement
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Finds rows that are present in the source but not in the target.
     new_source_rows self =
         self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if any rows from the source table already exist in the target, and
        if they do - raises an error.
-
        Does nothing if `key_columns` is empty, as then there is no notion of
        'matching' rows.
     check_already_existing_rows self ~continuation =
@@ -129,14 +148,18 @@ type Append_Helper
             if count == 0 then continuation else
                 Error.throw (Rows_Already_Present.Error count)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_rows_unmatched_in_target self ~continuation =
         assert self.key_columns.not_empty
         unmatched_rows = self.new_source_rows
         count = unmatched_rows.row_count
         if count != 0 then Error.throw (Unmatched_Rows.Error count) else continuation
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Check if there are rows in source that match multiple rows in the target.
     check_multiple_target_rows_match self ~continuation =
         ## This aggregation will only find duplicated in target, not in the source,
