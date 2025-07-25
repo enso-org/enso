@@ -144,8 +144,20 @@ export class ResultError<E = unknown> {
   message(preamble: string = 'error') {
     const ctx =
       this.context.length > 0 ? `\n${Array.from(this.context, (ctx) => ctx()).join('\n')}` : ''
-    return `${preamble}${preamble ? ': ' : ''}${this.payload}${ctx}`
+    const payload = coercePayloadToString(this.payload)
+    return `${preamble}${preamble ? ': ' : ''}${payload}${ctx}`
   }
+}
+
+function coercePayloadToString(payload: unknown) {
+  if (payload == null) return 'unknown error'
+  if (payload instanceof Error) return payload.message
+  if (payload != null && typeof payload === 'object') {
+    if ('code' in payload && 'message' in payload) {
+      return `[${payload.code}] ${payload.message}`
+    } else return JSON.stringify(payload)
+  }
+  return payload
 }
 
 /**
