@@ -613,7 +613,7 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
 
   const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
 
-  const labelOnPress = useEventCallback((label?: BackendLabel) => {
+  const toggleLabel = useEventCallback((label?: BackendLabel) => {
     if (label == null) {
       return
     }
@@ -640,7 +640,7 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
               color={label.color}
               label={label}
               active={query.labels.some((term) => term === label.value)}
-              onPress={labelOnPress}
+              onPress={toggleLabel}
             >
               {label.value}
             </Label>

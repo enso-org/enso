@@ -1,4 +1,5 @@
 /** @file Parsing and representation of the search query. */
+import { unsafeKeyValuePair } from '#/utilities/object'
 import * as array from './array'
 
 // Control characters must be handled, in order to follow the JSON spec.
@@ -235,13 +236,15 @@ export default class AssetQuery {
   /** Return a new {@link AssetQuery} with the specified terms added. */
   add(key: AssetQueryKey, value: readonly string[]): AssetQuery {
     const update = AssetQuery.updatedTerms(this[key], value, null)
-    return this.withUpdates({ [key]: update })
+    if (!update) return this
+    return this.withUpdates(unsafeKeyValuePair(key, update))
   }
 
   /** Return a new {@link AssetQuery} with the specified terms deleted. */
   delete(key: AssetQueryKey, value: readonly string[]): AssetQuery {
     const update = AssetQuery.updatedTerms(this[key], null, value)
-    return this.withUpdates({ [key]: update })
+    if (!update) return this
+    return this.withUpdates(unsafeKeyValuePair(key, update))
   }
 
   /** Try to cycle the tag between present, and not present. */

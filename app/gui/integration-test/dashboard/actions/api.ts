@@ -130,6 +130,8 @@ interface ListDirectoryQuery {
   readonly filter_by?: backend.FilterBy
   readonly labels?: backend.LabelName[]
   readonly recent_projects?: boolean
+  readonly from?: backend.AssetId | null
+  readonly page_size?: number | null
 }
 
 /**
@@ -282,7 +284,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     called('listDirectory', query)
     const parentId = query.parent_id ?? defaultDirectoryId
     let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
-
     switch (query.filter_by) {
       case backend.FilterBy.active: {
         filteredAssets = filteredAssets.filter((asset) => !deletedAssets.has(asset.id))
@@ -297,18 +298,17 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         break
       }
       case backend.FilterBy.all:
-      case null: {
-        // do nothing
-        break
-      }
+      case null:
       case undefined: {
         // do nothing
         break
       }
     }
-    return filteredAssets.sort(
+    const sortedAssets = filteredAssets.sort(
       (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
     )
+    const index = query.from == null ? 0 : assets.findIndex((asset) => asset.id === query.from) + 1
+    return sortedAssets.slice(index, query.page_size != null ? index + query.page_size : undefined)
   }
 
   function listRootDirectory() {

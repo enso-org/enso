@@ -307,6 +307,7 @@ export default class LocalBackend extends Backend {
         sortExpression: query.sortExpression,
         recentProjects: false,
         from: null,
+        fromModifiedAt: null,
         pageSize: null,
         recursive: true,
       })
@@ -1064,6 +1065,7 @@ export default class LocalBackend extends Backend {
       sortExpression: null,
       sortDirection: null,
       from: null,
+      fromModifiedAt: null,
       pageSize: null,
     })
 
