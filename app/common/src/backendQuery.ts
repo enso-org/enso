@@ -4,10 +4,10 @@ import type * as queryCore from '@tanstack/query-core'
 
 import type Backend from './services/Backend.js'
 import * as backendModule from './services/Backend.js'
-import * as objects from './utilities/data/object.js'
+import { type ExtractKeys, type MethodOf, omit } from './utilities/data/object.js'
 
 /** The properties of the Backend type that are methods. */
-export type BackendMethods = objects.ExtractKeys<Backend, objects.MethodOf<Backend>>
+export type BackendMethods = ExtractKeys<Backend, MethodOf<Backend>>
 
 /** Ensure that the given type contains only names of backend methods. */
 type DefineBackendMethods<T extends BackendMethods> = T
@@ -118,7 +118,7 @@ type BackendQueryNormalizers = {
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: (query) => [query.parentId, objects.omit(query, 'parentId')],
+  listDirectory: (query) => [query.parentId, omit(query, 'parentId')],
   getFileDetails: (fileId) => [fileId],
 }
 

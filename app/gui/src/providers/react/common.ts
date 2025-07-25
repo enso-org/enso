@@ -1,6 +1,6 @@
 import { assert } from '@/util/assert'
 import * as react from 'react'
-import { Ref, toValue, watch } from 'vue'
+import { Ref, toValue, watch, WatchSource } from 'vue'
 
 /**
  * A helper for getting contexts where they are asserted to be provided with non-nullish
@@ -19,25 +19,19 @@ export function useInReactFunction<T>(context: react.Context<T | null>) {
  *
  * The selector vue's reactive dependencies are tracked, and the React component is re-rendered
  * when the value changed.
- *
- * Returns also a setter if selector returns vue's Ref.
  */
-export function useVueValue<T>(selector: () => T): T {
-  const initialValue = selector()
-  const [state, setState] = react.useState(initialValue)
-
-  react.useEffect(
-    () =>
-      watch(
-        () => selector(),
-        (newValue) => {
-          setState(newValue)
-        },
-        // We need to set state synchronously to make react transitions working properly.
-        { flush: 'sync' },
-      ),
-    [selector, setState],
-  )
+export function useVueValue<T>(selector: WatchSource<T>, deep = false): T {
+  const [state, setState] = react.useState(() => toValue<T>(selector))
+  react.useEffect(() => {
+    return watch(
+      selector,
+      (newValue) => {
+        setState(newValue)
+      },
+      // We need to set state synchronously to make react transitions working properly.
+      { flush: 'sync', deep },
+    )
+  }, [selector, deep])
   return state
 }
 

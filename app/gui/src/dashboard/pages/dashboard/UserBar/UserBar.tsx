@@ -183,12 +183,18 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   return (
     <Button.Group gap="small" buttonVariants={{ variant: 'icon' }} className={className}>
       {items.map((item) => {
-        if (item.url != null && item.menu != null) {
+        if (item.url != null) {
+          const button = (
+            <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
+              {getText(item.name)}
+            </Button>
+          )
+          if (item.menu == null) {
+            return button
+          }
           return (
             <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
-              <Button href={item.url} {...getSafetyProps(item.url)}>
-                {getText(item.name)}
-              </Button>
+              {button}
               <Menu.Trigger>
                 <Button icon={ArrowDownIcon} aria-label={getText('more')} />
                 <Menu placement="bottom right">
@@ -206,15 +212,6 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
             </Button.GroupJoin>
           )
         }
-
-        if (item.url != null) {
-          return (
-            <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
-              {getText(item.name)}
-            </Button>
-          )
-        }
-
         return null
       })}
     </Button.Group>

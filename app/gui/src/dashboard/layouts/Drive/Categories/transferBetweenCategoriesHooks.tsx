@@ -29,9 +29,7 @@ import {
 } from './Category'
 import { useCategories } from './categoriesHooks'
 
-/**
- * A transferrable asset.
- */
+/** A transferrable asset. */
 export const TRANSFERRABLE_ASSET_SCHEMA = z.object({
   // eslint-disable-next-line no-restricted-syntax
   id: z.string().transform((id) => id as AssetId),
@@ -43,22 +41,16 @@ export const TRANSFERRABLE_ASSET_SCHEMA = z.object({
   virtualParentsPath: z.string(),
 })
 
-/**
- * A data transfer payload for assets.
- */
+/** A data transfer payload for assets. */
 export const ASSETS_DATA_TRANSFER_PAYLOAD = z.object({
   category: CATEGORY_SCHEMA,
   items: z.array(TRANSFERRABLE_ASSET_SCHEMA),
 })
 
-/**
- * A data transfer payload for assets.
- */
+/** A data transfer payload for assets. */
 export type AssetsDataTransferPayload = z.infer<typeof ASSETS_DATA_TRANSFER_PAYLOAD>
 
-/**
- * A transferrable asset.
- */
+/** A transferrable asset. */
 export type TransferrableAsset = z.infer<typeof TRANSFERRABLE_ASSET_SCHEMA>
 
 /** A function to transfer a list of assets between categories. */
@@ -67,9 +59,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
   const backend = backendForType(currentCategory.backend)
 
   const { rootDirectoryId } = useUser()
-
   const { getCategoryByDirectoryId } = useCategories()
-
   const { getText } = useText()
 
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
@@ -97,15 +87,8 @@ export function useTransferBetweenCategories(currentCategory: Category) {
       method: DropOperation = 'move',
     ) => {
       const operation = dropOperationBetweenCategories(from, to, newParentId)
-
-      if (operation === 'cancel') {
-        return
-      }
-
-      if (to.type === 'recent') {
-        return
-      }
-
+      if (operation === 'cancel') return
+      if (to.type === 'recent') return
       const assetsArray = Array.from(assets)
       const keysArray = assetsArray.map((asset) => asset.id)
       const targetDirectoryId = newParentId ?? to.homeDirectoryId
@@ -217,19 +200,13 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             localBackend != null,
             'The Local backend must be present to transfer assets from or to the local category.',
           )
-
           if (isCloudCategory(to)) {
             return uploadFileToCloudMutation(localBackend, {
               assets: assetsArray,
               targetDirectoryId,
             })
           }
-
-          if (to.type === 'local') {
-            return mutationByOperation[method](keysArray, targetDirectoryId)
-          }
-
-          return
+          return mutationByOperation[method](keysArray, targetDirectoryId)
         }
         case 'recent': {
           return
@@ -239,9 +216,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
   )
 }
 
-/**
- * Groups transferrable assets by category.
- */
+/** Groups transferrable assets by category. */
 function groupTransferrableAssetsByCategory(
   assets: Iterable<TransferrableAsset>,
   rootDirectoryId: DirectoryId,
@@ -267,9 +242,7 @@ function groupTransferrableAssetsByCategory(
   return groups
 }
 
-/**
- * Asks the user to copy instead of the operation.
- */
+/** Asks the user to copy instead of the operation. */
 function askToCopyInstead(getText: GetText, text: string) {
   return ask(AlertDialog, {
     title: getText('actionUnavailable'),

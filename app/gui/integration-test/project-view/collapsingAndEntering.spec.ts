@@ -122,22 +122,27 @@ test('Collapsing nodes', async ({ page }) => {
     .graphNodeByBinding(page, 'ten')
     .locator('.grab-handle')
     .click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'sum')
+    .locator('.grab-handle')
+    .click({ modifiers: ['Shift'] })
   // Wait till node is selected.
-  await expect(locate.graphNodeByBinding(page, 'ten').and(page.locator('.selected'))).toHaveCount(1)
+  await expect(locate.graphNodeByBinding(page, 'sum').and(page.locator('.selected'))).toHaveCount(1)
   await page.keyboard.press(COLLAPSE_SHORTCUT)
-  await expect(locate.graphNode(page)).toHaveCount(5)
+  await expect(locate.graphNode(page)).toHaveCount(4)
   await expect(locate.inputNode(page)).toHaveCount(1)
 
-  const secondCollapsedNode = locate.graphNodeByBinding(page, 'ten')
+  const secondCollapsedNode = locate.graphNodeByBinding(page, 'sum')
   await expect(secondCollapsedNode.locator('.WidgetToken')).toHaveText([
     'Main',
     '.',
     'user_defined_component1',
+    'five',
   ])
-  await mockUserDefinedFunctionInfo(page, 'ten', 'user_defined_component1')
+  await mockUserDefinedFunctionInfo(page, 'sum', 'user_defined_component1')
   await secondCollapsedNode.dblclick()
-  await expect(locate.graphNode(page)).toHaveCount(2)
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
+  await expect(locate.graphNode(page)).toHaveCount(4)
 })
 
 test('Display message when User Defined Component ceases to exist', async ({ page }) => {

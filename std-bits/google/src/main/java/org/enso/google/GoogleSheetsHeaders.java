@@ -1,6 +1,6 @@
 package org.enso.google;
 
-import java.util.List;
+import com.google.api.services.sheets.v4.model.RowData;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
@@ -11,8 +11,8 @@ public class GoogleSheetsHeaders {
 
   public GoogleSheetsHeaders(
       HeaderBehavior headerBehavior,
-      List<Object> firstRow,
-      List<Object> secondRow,
+      RowData firstRow,
+      RowData secondRow,
       ProblemAggregator problemAggregator) {
     deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
@@ -40,23 +40,35 @@ public class GoogleSheetsHeaders {
     return this.names == null ? 0 : 1;
   }
 
-  private static String[] readFirstRowAsHeaders(
-      List<Object> firstRow, NameDeduplicator deduplicator) {
-    return firstRow.stream()
-        .map(cell -> cell == null ? "" : cell.toString())
+  private static String[] readFirstRowAsHeaders(RowData firstRow, NameDeduplicator deduplicator) {
+    return firstRow.getValues().stream()
+        .map(
+            cell ->
+                cell.getEffectiveValue() == null
+                        || cell.getEffectiveValue().getStringValue() == null
+                    ? ""
+                    : cell.getEffectiveValue().getStringValue())
         .map(deduplicator::makeUnique)
         .toArray(String[]::new);
   }
 
+  private static boolean cellIsString(com.google.api.services.sheets.v4.model.CellData cell) {
+    return cell != null
+        && ((cell.getEffectiveValue() != null
+            && cell.getEffectiveValue().getStringValue() != null));
+  }
+
   private static String[] inferHeaders(
-      List<Object> firstRow, List<Object> secondRow, NameDeduplicator deduplicator) {
+      RowData firstRow, RowData secondRow, NameDeduplicator deduplicator) {
     // No data or 1 row of data => No Headers
     if (firstRow == null || firstRow.isEmpty() || secondRow == null) {
       return null;
     }
 
-    boolean row1AllStrings = firstRow.stream().allMatch(cell -> cell instanceof String);
-    boolean row2AllStrings = secondRow.stream().allMatch(cell -> cell instanceof String);
+    boolean row1AllStrings =
+        firstRow.getValues().stream().allMatch(GoogleSheetsHeaders::cellIsString);
+    boolean row2AllStrings =
+        secondRow.getValues().stream().allMatch(GoogleSheetsHeaders::cellIsString);
 
     if (!row1AllStrings) { // Row 1 has non string => no headers
       return null;

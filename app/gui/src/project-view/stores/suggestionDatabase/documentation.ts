@@ -5,6 +5,7 @@ import { isSome, type Opt } from '@/util/data/opt'
 import { parseDocs, type Doc } from '@/util/docParser'
 import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
+import type { SyntaxNodeRef } from '@lezer/common'
 import { type DeepReadonly } from 'vue'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import { ensoStandardMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
@@ -56,7 +57,7 @@ export function getGroupIndex(
 }
 
 /** @internal */
-export function getDocumentationSummary(sections: Doc.Section[]) {
+export function getLegacyDocumentationSummary(sections: Doc.Section[]) {
   const firstParagraph = sections.find(
     (section): section is { Paragraph: Doc.Section.Paragraph } => 'Paragraph' in section,
   )?.Paragraph.body
@@ -64,6 +65,15 @@ export function getDocumentationSummary(sections: Doc.Section[]) {
   const endOfSummary = firstParagraph.search(/<\s*p|(?<=\.)\W/)
   if (endOfSummary < 0) return firstParagraph
   else return firstParagraph.substring(0, endOfSummary)
+}
+
+function getDocumentationSummary(parsed: SyntaxNodeRef, source: string) {
+  const firstParagraph = parsed.node.getChild('Paragraph')
+  if (firstParagraph == null) return undefined
+  const paragraphText = source.slice(firstParagraph.from, firstParagraph.to)
+  const endOfSummary = paragraphText.search(/(?<=\.)\W/)
+  if (endOfSummary < 0) return paragraphText
+  else return paragraphText.slice(0, endOfSummary)
 }
 
 /** @internal */
@@ -105,7 +115,10 @@ export function documentationData(
     rawDocumentation: prerenderMarkdown(documentation ?? ''),
     documentation: parsed,
     isMarkdownDocs: metadata != null,
-    docSummaryHtml: getDocumentationSummary(parsed),
+    docSummaryHtml:
+      metadata == null ?
+        getLegacyDocumentationSummary(parsed)
+      : getDocumentationSummary(cursor, documentation ?? ''),
     iconName: iconName != null && isIconName(iconName) ? iconName : undefined,
     groupIndex,
     aliasesAndMacros: [...aliases, ...macros.map((macro) => macro.description)].sort(),

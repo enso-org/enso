@@ -3,7 +3,7 @@ import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
-import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
+import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 /**
  * Every edge consists of multiple parts.
@@ -93,8 +93,8 @@ async function testCopyMultiple(
   // Check that two copied nodes are isolated, i.e. connected to each other, not original nodes.
   await expect(locate.graphNodeByBinding(page, 'prod1')).toBeVisible()
   await expect(locate.graphNodeByBinding(page, 'final1')).toBeVisible()
-  await expect(await edgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
-  await expect(await edgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
 
   await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(1 * EDGE_PARTS)
