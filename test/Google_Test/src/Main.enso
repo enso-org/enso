@@ -242,5 +242,10 @@ add_specs suite_builder =
             ws = wb.read_many ['1RowStringData','2RowStringData'] return=..With_New_Column
             s1 = wb.read '1RowStringData'
             s2 = wb.read '2RowStringData'
-            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData']],['Table', [s1, s2]]])
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal '1RowStringData'
+            ws . at 'Sheet Name' . at 1 .  should_equal '2RowStringData'
+            ws . at 'Table' . at 0 .  should_equal s1
+            ws . at 'Table' . at 1 .  should_equal s2
+            
         
