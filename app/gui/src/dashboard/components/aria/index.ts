@@ -1,17 +1,151 @@
 /** @file Barrel file for `react-aria-components`. */
-export * from '@react-aria/interactions'
-export { ClearPressResponder } from '@react-aria/interactions'
-export type * from '@react-types/shared'
-export * from 'react-aria'
-// @ts-expect-error The conflicting exports are props types ONLY
-export * from 'react-aria-components'
-// Resolve ambigouous star exports (`react-aria` and `react-aria-components`)
-export { I18nProvider, RouterProvider } from 'react-aria-components'
+import type { Mutable } from 'enso-common/src/utilities/data/object'
+import { mergeProps as ariaMergeProps } from 'react-aria'
+
+export { ClearPressResponder, Pressable } from '@react-aria/interactions'
+export type {
+  AriaLabelingProps,
+  DOMAttributes,
+  DOMProps,
+  DropEnterEvent,
+  DropEvent,
+  FocusableElement,
+  KeyboardEvent,
+  PressEvent,
+} from '@react-types/shared'
+export {
+  FocusRing,
+  useBreadcrumbs,
+  useFocusRing,
+  useFocusVisible,
+  useFocusWithin,
+  useHover,
+  useId,
+  useInteractOutside,
+  useOverlayPosition,
+  useRadio,
+  useRadioGroup,
+  useTooltipTrigger,
+  type AriaBreadcrumbsProps,
+  type AriaPositionProps,
+  type DropOptions,
+  type FocusRingProps,
+  type Placement,
+} from 'react-aria'
+export {
+  Button,
+  Calendar,
+  CalendarCell,
+  CalendarGrid,
+  CalendarGridBody,
+  CalendarGridHeader,
+  CalendarHeaderCell,
+  Cell,
+  Checkbox,
+  CheckboxGroup,
+  CheckboxGroupStateContext,
+  Column,
+  ComboBox,
+  ComboBoxStateContext,
+  composeRenderProps,
+  DateInput,
+  DatePicker,
+  DatePickerStateContext,
+  DateSegment,
+  Dialog,
+  DialogContext,
+  DialogTrigger,
+  DropZone,
+  FieldError,
+  FieldErrorContext,
+  FileTrigger,
+  GridList,
+  GridListItem,
+  Group,
+  Header,
+  Heading,
+  I18nProvider,
+  Input,
+  Label,
+  LabelContext,
+  Link,
+  ListBox,
+  ListBoxItem,
+  Modal,
+  ModalOverlay,
+  OverlayTriggerStateContext,
+  Popover,
+  PopoverRenderProps,
+  ProgressBar,
+  Provider,
+  Radio,
+  RadioGroup,
+  RadioGroupContext,
+  RadioGroupStateContext,
+  RouterProvider,
+  Row,
+  SearchField,
+  Separator,
+  Switch,
+  Table,
+  TableBody,
+  TableHeader,
+  Text,
+  TextArea,
+  TextContext,
+  TextField,
+  TimeField,
+  TimeFieldStateContext,
+  Tooltip,
+  TooltipTrigger,
+  useContextProps,
+  type ButtonProps,
+  type ButtonRenderProps,
+  type CheckboxGroupProps,
+  type CheckboxProps,
+  type ComboBoxProps,
+  type DatePickerProps,
+  type DateValue,
+  type DialogProps,
+  type DropZoneProps,
+  type GridLayoutOptions,
+  type InputProps,
+  type InputRenderProps,
+  type LinkProps,
+  type LinkRenderProps,
+  type ListBoxItemProps,
+  type ListBoxProps,
+  type ModalOverlayProps,
+  type PopoverProps,
+  type ProgressBarProps,
+  type RadioGroupProps,
+  type RadioProps,
+  type SeparatorProps,
+  type SwitchProps,
+  type TextFieldProps,
+  type TextProps,
+  type TimeFieldProps,
+  type TimeValue,
+  type TooltipProps,
+} from 'react-aria-components'
 export {
   useTooltipTriggerState,
   type OverlayTriggerState,
   type TooltipTriggerState,
 } from 'react-stately'
 
-export { mergeProps } from './aria'
-export { TabPanel } from './TabPanel'
+/**
+ * Merges multiple props objects together.
+ * Event handlers are chained, classNames are combined, and ids are deduplicated -
+ * different ids will trigger a side-effect and re-render components hooked up with `useId`.
+ * For all other props, the last prop object overrides all previous ones.
+ *
+ * The constraint is defaulted to `never` to make an explicit constraint mandatory.
+ */
+export function mergeProps<Constraint extends object = never>() {
+  return <const T extends readonly (Partial<Constraint> | null | undefined)[]>(
+    ...args: T & { [K in keyof T]: Pick<T[K], keyof Constraint & keyof T[K]> }
+    // This is SAFE, as `args` is an intersection of `T` and another type.
+    // eslint-disable-next-line no-restricted-syntax
+  ) => ariaMergeProps<Mutable<T>>(...(args as T))
+}

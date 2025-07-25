@@ -13,7 +13,7 @@ export interface RadioGroupProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, string>,
 > extends FieldStateProps<
-      Omit<aria.AriaRadioGroupProps, 'description' | 'label'>,
+      Omit<aria.RadioGroupProps, 'description' | 'label'>,
       Schema,
       TFieldName,
       string

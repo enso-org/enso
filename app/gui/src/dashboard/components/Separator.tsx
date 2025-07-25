@@ -6,9 +6,7 @@ import {
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 /** The props for {@link Separator} component. */
-export interface SeparatorProps extends AriaSeparatorProps, VariantProps<typeof SEPARATOR_STYLES> {
-  readonly className?: string | undefined
-}
+export interface SeparatorProps extends AriaSeparatorProps, VariantProps<typeof SEPARATOR_STYLES> {}
 
 /** The styles for the {@link Separator} component. */
 // eslint-disable-next-line react-refresh/only-export-components
