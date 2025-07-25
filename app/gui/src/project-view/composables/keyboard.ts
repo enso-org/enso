@@ -11,9 +11,9 @@ export interface KeyboardComposable {
   /** The control key; see also the platform-specific modifier key {@link mod}. */
   readonly ctrl: boolean
   /**
-   * Update the known state of modifier keys using the information in the given event. This can be used in an event
-   * handler to ensure the state is accurate; currently we miss transitions in some cases when they occur while the
-   * window is not focused.
+   * Update the known state of modifier keys using the information in the given event. This can be
+   * used in an event handler to ensure the state is accurate; currently we miss transitions in some
+   * cases when they occur while the window is not focused.
    */
   readonly updateState: (e: MouseEvent | KeyboardEvent) => void
 }

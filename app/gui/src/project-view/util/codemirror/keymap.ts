@@ -53,15 +53,23 @@ function bindCommands<T extends string>(
   })
 }
 
+function isNormalPrintableKey(event: KeyboardEvent) {
+  // This condition matches most printable characters, but not Enter or Tab.
+  return event.key.length === 1 && !modKey(event) && !event.altKey
+}
+
+function isModifierKey(key: string) {
+  // This condition matches modifier keys that may be used as part of text editing and should be
+  // stopped from propagating to ancestors.
+  return ['Control', 'Alt', 'Meta', 'Shift'].includes(key)
+}
+
 const stopNormalKeys: KeyBinding[] = [
   {
     any: (_view, event: KeyboardEvent) => {
       // Stop propagation of typical keys that will result in a character being inserted into the
-      // editor.
-      // This condition matches most printable characters, but not Enter or Tab.
-      if (event.key.length === 1 && !modKey(event) && !event.altKey) {
-        event.stopImmediatePropagation()
-      }
+      // editor, and modifier keys occurring alone.
+      if (isNormalPrintableKey(event) || isModifierKey(event.key)) event.stopImmediatePropagation()
       return false
     },
   },
