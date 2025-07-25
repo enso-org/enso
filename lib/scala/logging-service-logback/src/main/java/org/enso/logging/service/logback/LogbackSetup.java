@@ -30,6 +30,7 @@ import org.slf4j.event.Level;
 public final class LogbackSetup extends LoggerSetup {
 
   private static final String CONSOLE_APPENDER_NAME = "enso-console";
+  private static final String TELEMETRY_ROOT_LOGGER = "org.enso.telemetry";
 
   private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
     this.config = config;
@@ -139,8 +140,26 @@ public final class LogbackSetup extends LoggerSetup {
           Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
     }
 
+    acceptAllTelemetryEvents(socketAppender);
     env.finalizeAppender(socketAppender);
     return true;
+  }
+
+  private static void acceptAllTelemetryEvents(
+      ch.qos.logback.core.Appender<ILoggingEvent> appender) {
+    // This filter lets all the telemetry log events through.
+    var telemetryAcceptingFilter =
+        new Filter<ILoggingEvent>() {
+          @Override
+          public FilterReply decide(ILoggingEvent event) {
+            if (event.getLoggerName().startsWith(TELEMETRY_ROOT_LOGGER)) {
+              return FilterReply.ACCEPT;
+            } else {
+              return FilterReply.NEUTRAL;
+            }
+          }
+        };
+    appender.addFilter(telemetryAcceptingFilter);
   }
 
   @Override
@@ -289,7 +308,7 @@ public final class LogbackSetup extends LoggerSetup {
     var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     telemetryAppender.setExecutor(executor);
 
-    var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
+    var telemetryLogger = env.ctx.getLogger(TELEMETRY_ROOT_LOGGER);
     telemetryLogger.addAppender(telemetryAppender);
     telemetryLogger.setLevel(ch.qos.logback.classic.Level.ALL);
 
@@ -324,7 +343,7 @@ public final class LogbackSetup extends LoggerSetup {
           @Override
           public FilterReply decide(ILoggingEvent event) {
             var exclude =
-                event.getLoggerName().startsWith("org.enso.telemetry")
+                event.getLoggerName().startsWith(TELEMETRY_ROOT_LOGGER)
                     || event.getLoggerName().startsWith("org.enso.logging.service");
             return exclude ? FilterReply.DENY : FilterReply.NEUTRAL;
           }
