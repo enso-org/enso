@@ -1,6 +1,6 @@
 import { mockProjectNameStore } from '@/stores/projectNames'
 import {
-  getDocumentationSummary,
+  getLegacyDocumentationSummary as getDocumentationSummary,
   getGroupIndex,
   getSuggestedRank,
   tagValue,

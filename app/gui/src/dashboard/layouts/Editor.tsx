@@ -216,7 +216,7 @@ function EditorContents(props: EditorProps) {
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {
   readonly openedProject: backendModule.Project
   readonly backendType: backendModule.BackendType
-  readonly renameProject: (newName: string) => void
+  readonly renameProject: (newName: string) => Promise<void>
   readonly projectName: string
 }
 
@@ -236,8 +236,8 @@ function EditorInternal(props: EditorInternalProps) {
     }
   }, [hidden])
 
-  const onRenameProject = useEventCallback((newName: string) => {
-    renameProject(newName)
+  const onRenameProject = useEventCallback(async (newName: string) => {
+    await renameProject(newName)
   })
 
   const jsonAddress = openedProject.jsonAddress
