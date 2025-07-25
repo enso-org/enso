@@ -589,8 +589,8 @@ type Array
     ## ---
        icon: column_add
        ---
-       Combines all the elements of the array, by iteratively applying the passed
-       function with next elements of the array.
+       Combines all the elements of the array, by iteratively applying the
+       passed function with next elements of the array.
 
        In general, the result of [l0, l1, ..., ln].to_array . fold init f is the
        same as f (...(f (f init l0) l1)...) ln
