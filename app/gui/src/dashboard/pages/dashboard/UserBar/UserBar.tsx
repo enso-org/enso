@@ -183,33 +183,53 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   return (
     <Button.Group gap="small" buttonVariants={{ variant: 'icon' }} className={className}>
       {items.map((item) => {
+        if (item.url != null && item.menu != null) {
+          return (
+            <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
+              <Button href={item.url} {...getSafetyProps(item.url)}>
+                {getText(item.name)}
+              </Button>
+
+              <Menu.Trigger>
+                <Button icon={ArrowDownIcon} aria-label={getText('more')} />
+
+                <Menu placement="bottom right">
+                  {item.menu.map((menuItem) => (
+                    <Menu.Item
+                      key={menuItem.name}
+                      href={menuItem.url}
+                      {...getSafetyProps(menuItem.url)}
+                    >
+                      {getText(menuItem.name)}
+                    </Menu.Item>
+                  ))}
+                </Menu>
+              </Menu.Trigger>
+            </Button.GroupJoin>
+          )
+        }
+
+        if (item.menu != null) {
+          return (
+            <Menu.Trigger key={item.name}>
+              <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
+
+              <Menu placement="bottom right">
+                {item.menu.map((menuItem) => (
+                  <Menu.Item
+                    key={menuItem.name}
+                    href={menuItem.url}
+                    {...getSafetyProps(menuItem.url)}
+                  >
+                    {getText(menuItem.name)}
+                  </Menu.Item>
+                ))}
+              </Menu>
+            </Menu.Trigger>
+          )
+        }
+
         if (item.url != null) {
-          if (item.menu != null) {
-            return (
-              <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
-                <Button href={item.url} {...getSafetyProps(item.url)}>
-                  {getText(item.name)}
-                </Button>
-
-                <Menu.Trigger>
-                  <Button icon={ArrowDownIcon} aria-label={getText('more')} />
-
-                  <Menu placement="bottom right">
-                    {item.menu.map((menuItem) => (
-                      <Menu.Item
-                        key={menuItem.name}
-                        href={menuItem.url}
-                        {...getSafetyProps(menuItem.url)}
-                      >
-                        {getText(menuItem.name)}
-                      </Menu.Item>
-                    ))}
-                  </Menu>
-                </Menu.Trigger>
-              </Button.GroupJoin>
-            )
-          }
-
           return (
             <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
               {getText(item.name)}

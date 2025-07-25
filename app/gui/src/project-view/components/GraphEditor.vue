@@ -59,7 +59,17 @@ import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
-import { computed, onMounted, ref, toRaw, toRef, useTemplateRef, watch, watchEffect } from 'vue'
+import {
+  computed,
+  onMounted,
+  ref,
+  toRaw,
+  toRef,
+  toValue,
+  useTemplateRef,
+  watch,
+  watchEffect,
+} from 'vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
@@ -350,10 +360,13 @@ const { handleClick } = useDoubleClick(
 // === Keyboard/Mouse bindings ===
 
 const graphBindingsHandler = graphBindings.handler(
-  objects.mapEntries(
-    graphBindings.bindings,
-    (actionName) => () => void actionHandlers[actionName].action(),
-  ),
+  objects.mapEntries(graphBindings.bindings, (actionName) => {
+    const actionDef = actionHandlers[actionName]
+    return () => {
+      if (toValue(actionDef.enabled) === false) return false
+      void actionDef.action()
+    }
+  }),
 )
 
 // === Documentation Editor ===
