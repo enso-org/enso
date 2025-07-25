@@ -51,55 +51,6 @@ describe('Backend', () => {
     ])
   })
 
-  it('sorts assets by title if modified dates are equal', () => {
-    const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'a' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'g' },
-      { type: AssetType.directory, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'b' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'c' },
-      { type: AssetType.directory, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'd' },
-      { type: AssetType.project, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'e' },
-      { type: AssetType.datalink, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'f' },
-      { type: AssetType.datalink, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'a' },
-    ] as AnyAsset[]
-
-    const sorted = assets.sort(compareAssets)
-    expect(sorted).toMatchObject([
-      { type: AssetType.directory, modifiedAt: '2024-01-01', title: 'b' },
-      { type: AssetType.directory, modifiedAt: '2024-01-01', title: 'd' },
-      { type: AssetType.project, modifiedAt: '2024-01-01', title: 'e' },
-      { type: AssetType.file, modifiedAt: '2024-01-01', title: 'a' },
-      { type: AssetType.file, modifiedAt: '2024-01-01', title: 'c' },
-      { type: AssetType.file, modifiedAt: '2024-01-01', title: 'g' },
-      { type: AssetType.datalink, modifiedAt: '2024-01-01', title: 'a' },
-      { type: AssetType.datalink, modifiedAt: '2024-01-01', title: 'f' },
-    ])
-  })
-
-  it('sorts by type, then by modified date, then by title', () => {
-    const assets = [
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'd' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2021-01-01'), title: 'b' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2023-01-01'), title: 'c' },
-      { type: AssetType.directory, modifiedAt: Rfc3339DateTime('2020-01-01'), title: 'd' },
-      { type: AssetType.directory, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'e' },
-      { type: AssetType.project, modifiedAt: Rfc3339DateTime('2021-01-01'), title: 'f' },
-      { type: AssetType.datalink, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'g' },
-      { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'a' },
-    ] as AnyAsset[]
-
-    const sorted = assets.sort(compareAssets)
-    expect(sorted).toMatchObject([
-      { type: AssetType.directory, modifiedAt: '2024-01-01', title: 'e' },
-      { type: AssetType.directory, modifiedAt: '2020-01-01', title: 'd' },
-      { type: AssetType.project, modifiedAt: '2021-01-01', title: 'f' },
-      { type: AssetType.file, modifiedAt: '2024-01-01', title: 'a' },
-      { type: AssetType.file, modifiedAt: '2024-01-01', title: 'd' },
-      { type: AssetType.file, modifiedAt: '2023-01-01', title: 'c' },
-      { type: AssetType.file, modifiedAt: '2021-01-01', title: 'b' },
-      { type: AssetType.datalink, modifiedAt: '2024-01-01', title: 'g' },
-    ])
-  })
   it('sorts titles case-insensitively', () => {
     const assets = [
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Apple' },
@@ -108,7 +59,7 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'date' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
       { title: 'Apple' },
       { title: 'banana' },
@@ -125,11 +76,11 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file20' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
       { title: 'file1' },
-      { title: 'file10' },
       { title: 'file2' },
+      { title: 'file10' },
       { title: 'file20' },
     ])
   })
@@ -142,12 +93,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '_underscore' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
+      { title: '_underscore' },
+      { title: '@special' },
       { title: '#hashtag' },
       { title: '$money' },
-      { title: '@special' },
-      { title: '_underscore' },
     ])
   })
 
@@ -159,7 +110,7 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '🌴 palm' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
       { title: '🌴 palm' },
       { title: '🍌 banana' },
@@ -180,7 +131,7 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'trailing space ' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
       { title: ' leading space' },
       { title: 'multiple   spaces' },
@@ -197,11 +148,11 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'café' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
       { title: 'café' },
-      { title: 'naïve' },
       { title: 'étoile' },
+      { title: 'naïve' },
       { title: 'über' },
     ])
   })
@@ -214,12 +165,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file[4].txt' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: 'file(3).txt' },
-      { title: 'file-1.txt' },
-      { title: 'file[4].txt' },
       { title: 'file_2.txt' },
+      { title: 'file-1.txt' },
+      { title: 'file(3).txt' },
+      { title: 'file[4].txt' },
     ])
   })
 
@@ -231,7 +182,7 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '♣️ clubs' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
       { title: '♠️ spades' },
       { title: '♣️ clubs' },
@@ -248,12 +199,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'FiLe123' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: 'File123' },
       { title: 'file123' },
-      { title: 'FILE123' },
+      { title: 'File123' },
       { title: 'FiLe123' },
+      { title: 'FILE123' },
     ])
   })
 
@@ -265,12 +216,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'file <old>' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
       { title: 'file (copy)' },
-      { title: 'file <old>' },
       { title: 'file [backup]' },
       { title: 'file {draft}' },
+      { title: 'file <old>' },
     ])
   })
 
@@ -282,12 +233,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'PrOjEcT' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: 'Project' },
-      { title: 'PROJECT' },
       { title: 'project' },
+      { title: 'Project' },
       { title: 'PrOjEcT' },
+      { title: 'PROJECT' },
     ])
   })
 
@@ -299,12 +250,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'New project' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: 'New Project' },
-      { title: 'NEW PROJECT' },
       { title: 'new project' },
       { title: 'New project' },
+      { title: 'New Project' },
+      { title: 'NEW PROJECT' },
     ])
   })
 
@@ -316,12 +267,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'beta' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: 'Alpha' },
       { title: 'alpha' },
-      { title: 'Beta' },
+      { title: 'Alpha' },
       { title: 'beta' },
+      { title: 'Beta' },
     ])
   })
 
@@ -333,14 +284,15 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'project-A' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: 'Project-a' },
-      { title: 'project-A' },
       { title: 'Project_A' },
       { title: 'PROJECT_A' },
+      { title: 'project-A' },
+      { title: 'Project-a' },
     ])
   })
+
   it('sorts titles with numbers in different positions', () => {
     const assets = [
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: '1Project' },
@@ -351,12 +303,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Pro10ject' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: '10Project' },
       { title: '1Project' },
-      { title: 'Pro10ject' },
+      { title: '10Project' },
       { title: 'Pro2ject' },
+      { title: 'Pro10ject' },
       { title: 'Project1' },
       { title: 'Project10' },
     ])
@@ -370,12 +322,12 @@ describe('Backend', () => {
       { type: AssetType.file, modifiedAt: Rfc3339DateTime('2024-01-01'), title: 'Project_1' },
     ] as AnyAsset[]
 
-    const sorted = assets.sort(compareAssets)
+    const sorted = assets.sort((a, b) => compareAssets(a, b, 'title', 'ascending'))
     expect(sorted).toMatchObject([
-      { title: '1-Project' },
       { title: '1_Project' },
-      { title: 'Project-1' },
+      { title: '1-Project' },
       { title: 'Project_1' },
+      { title: 'Project-1' },
     ])
   })
 })
