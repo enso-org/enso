@@ -326,6 +326,98 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List()
   }
 
+  it should "substitute arguments when pushing method with unapplied typed arguments" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata         = new Metadata
+    val identityResultId = metadata.addItem(56, 1, "aa")
+    val identityCallId   = metadata.addItem(70, 8, "ab")
+
+    val code =
+      """from Standard.Base import Integer
+        |
+        |identity x:Integer = x
+        |
+        |main =
+        |    identity
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        identityCallId,
+        ConstantsGen.FUNCTION,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "identity"),
+            Vector(0)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "identity"),
+              Vector(0)
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List()
+
+    // push identity
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.LocalCall(identityCallId)
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(contextId, identityResultId, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List()
+  }
+
   it should "push method with default arguments on top of the stack" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
