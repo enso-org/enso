@@ -39,7 +39,6 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
   padding: 8px;
   width: max-content;
-  z-index: 9999999;
 }
 
 .link {
