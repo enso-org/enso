@@ -530,6 +530,7 @@ function useOpenHybridProject() {
             sortExpression: null,
             sortDirection: null,
             from: null,
+            fromModifiedAt: null,
             pageSize: null,
             recentProjects: false,
           })

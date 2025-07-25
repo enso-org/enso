@@ -374,6 +374,7 @@ export async function getAllTrashedItems(
         filterBy: FilterBy.trashed,
         recentProjects: false,
         from: null,
+        fromModifiedAt: null,
         pageSize: null,
         sortExpression: null,
         sortDirection: null,
