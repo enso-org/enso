@@ -84,7 +84,8 @@ type Array
     to_array self = self
 
     ## ---
-       aliases: [order_by]
+       aliases:
+        - order_by
        group: Calculations
        icon: order
        suggested: 11
@@ -166,7 +167,16 @@ type Array
         Array_Like_Helpers.sort self order on by on_problems
 
     ## ---
-       aliases: [first, head, keep, last, limit, sample, slice, tail, top]
+       aliases:
+        - first
+        - head
+        - keep
+        - last
+        - limit
+        - sample
+        - slice
+        - tail
+        - top
        group: Selections
        icon: parse3
        suggested: 6
@@ -185,7 +195,9 @@ type Array
         Array_Like_Helpers.take self range
 
     ## ---
-       aliases: [remove, skip]
+       aliases:
+        - remove
+        - skip
        group: Selections
        icon: parse3
        ---
@@ -306,13 +318,13 @@ type Array
        ### Find the index of an element in an array.
 
        ```
-             [1, 2, 3].to_array.index_of 2 == 1
+           [1, 2, 3].to_array.index_of 2 == 1
        ```
 
        ### Find the index of the first palindrome.
 
        ```
-             ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
+           ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
        ```
     @condition Filter_Condition.default_widget
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
@@ -372,7 +384,9 @@ type Array
     to_list self = Array_Like_Helpers.to_list self
 
     ## ---
-       aliases: [deduplicate, unique]
+       aliases:
+        - deduplicate
+        - unique
        group: Selections
        icon: preparation
        suggested: 7
@@ -404,7 +418,8 @@ type Array
     distinct self (on = x->x) = Array_Like_Helpers.distinct self on
 
     ## ---
-       aliases: [duplicates]
+       aliases:
+        - duplicates
        group: Selections
        icon: preparation
        ---
@@ -430,8 +445,8 @@ type Array
     ## ---
        icon: column_add
        ---
-       Applies a function to each element of the array, returning the `Vector` of
-       results.
+       Applies a function to each element of the array, returning the `Vector`
+       of results.
 
        ## Arguments
         - `function`: A function that takes an element in the array and returns
@@ -502,7 +517,8 @@ type Array
         Array_Like_Helpers.flat_map self function on_problems
 
     ## ---
-       aliases: [where]
+       aliases:
+        - where
        macros:
         - equals: filter=..Equal
         - not_equals: filter=..Not_Equal
@@ -568,9 +584,9 @@ type Array
     ## ---
        icon: column_add
        ---
-       Combines all the elements of the array, by iteratively applying the passed
-       function with the next element of the array. After each step the value is
-       stored resulting in a new array of the same size as self.
+       Combines all the elements of the array, by iteratively applying the
+       passed function with the next element of the array. After each step the
+       value is stored resulting in a new array of the same size as self.
 
        ## Arguments
         - `init`: The initial value for the fold.
@@ -612,8 +628,8 @@ type Array
     ## ---
        icon: column_add
        ---
-       Combines all the elements of the array, by iteratively applying the passed
-       function with next elements of the array.
+       Combines all the elements of the array, by iteratively applying the
+       passed function with next elements of the array.
 
        ## Arguments
         - `init`: The initial value for the fold.
@@ -760,8 +776,8 @@ type Array
     ## ---
        icon: column_add
        ---
-       Applies a function to each element of the array, returning the `Vector` of
-       results.
+       Applies a function to each element of the array, returning the `Vector`
+       of results.
 
        The function is called with both the element index as well as the element
        itself.
@@ -975,7 +991,6 @@ type Array
 
        ```
              [1, 2, 3, 4, 5].to_array.any (..Greater than=3)
-
        ```
 
        ### Checking if any element of the array is even.
@@ -1034,7 +1049,10 @@ type Array
     contains self elem = self.any (== elem)
 
     ## ---
-       aliases: [combine, join by row position, merge]
+       aliases:
+        - combine
+        - join by row position
+        - merge
        group: Calculations
        icon: join2-1
        suggested: 13
@@ -1169,7 +1187,10 @@ type Array
     each_with_index self f = Array_Like_Helpers.each_with_index self f
 
     ## ---
-       aliases: [append, concatenate, union]
+       aliases:
+        - append
+        - concatenate
+        - union
        group: Operators
        icon: union
        ---
