@@ -274,6 +274,7 @@ function AssetsTable(props: AssetsTableProps) {
   const directoryQueryOptions =
     debouncedQuery.query === '' ?
       listDirectoryQueryOptions({
+        infinite: true,
         backend,
         parentId: queryDirectoryId,
         category,
@@ -283,6 +284,7 @@ function AssetsTable(props: AssetsTableProps) {
         sortDirection: sortInfo?.direction ?? null,
       })
     : searchDirectoryQueryOptions({
+        infinite: true,
         backend,
         parentId: queryDirectoryId,
         // The `query` parameter is not supported.
@@ -301,6 +303,7 @@ function AssetsTable(props: AssetsTableProps) {
   const pageSize = useFeatureFlag('listDirectoryPageSize')
   const assetsPages = useInfiniteQuery({
     ...directoryQueryOptions,
+    queryKey: ['infinite', ...directoryQueryOptions.queryKey],
     queryFn: (context) =>
       directoryQueryOptions.queryFn(context, {
         from: context.pageParam.from,
@@ -324,7 +327,6 @@ function AssetsTable(props: AssetsTableProps) {
       setDriveLocation(null, category.id)
       return false
     },
-    meta: { persist: false },
   })
   const assets = useMemo(() => assetsPages.data?.pages.flat() ?? [], [assetsPages.data?.pages])
   const fetchNextAssetPage = assetsPages.fetchNextPage

@@ -227,6 +227,7 @@ export interface ListDirectoryQueryOptions {
    * `undefined` is intentionally excluded as this value should be explicitly given.
    */
   readonly refetchInterval: number | null
+  readonly infinite?: boolean
 }
 
 /** Build a query options object to fetch the children of a directory. */
@@ -240,6 +241,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
     sortExpression,
     sortDirection,
     filterBy = CATEGORY_TO_FILTER_BY[category.type],
+    infinite = false,
   } = options
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
   return {
@@ -254,6 +256,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         sortDirection,
         filterBy,
         recentProjects: category.type === 'recent',
+        infinite,
       },
     ])(),
     ...(refetchInterval != null ? { refetchInterval } : {}),
@@ -308,13 +311,15 @@ export interface SearchDirectoryQueryOptions {
   readonly labels: readonly backendModule.LabelName[] | null
   readonly sortExpression: backendModule.AssetSortExpression | null
   readonly sortDirection: backendModule.AssetSortDirection | null
+  readonly infinite?: boolean
 }
 
 /** Build a query options object to fetch the children of a directory. */
 export function searchDirectoryQueryOptions(options: SearchDirectoryQueryOptions) {
-  const { backend, ...rest } = options
+  const { backend, ...restWithInfinite } = options
+  const { infinite, ...rest } = restWithInfinite
   return {
-    queryKey: ((): QueryKey => [backend.type, 'searchDirectory', rest])(),
+    queryKey: ((): QueryKey => [backend.type, 'searchDirectory', restWithInfinite])(),
     queryFn: (
       _context,
       {

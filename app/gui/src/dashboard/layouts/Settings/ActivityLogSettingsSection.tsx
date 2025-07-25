@@ -90,7 +90,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       pageSize,
     },
   ] satisfies Parameters<typeof backend.getLogEvents>
-  const getLogEventsOptions = backendQueryOptions(backend, 'getLogEvents', getLogEventsArgs)
+  const getLogEventsOptions = backendQueryOptions(backend, 'getLogEvents', getLogEventsArgs, {
+    queryKey: [{ infinite: true }],
+  })
   const logsPages = useInfiniteQuery({
     queryKey: getLogEventsOptions.queryKey,
     queryFn: ({ pageParam }) => backend.getLogEvents({ from: pageParam, ...getLogEventsArgs[0] }),
