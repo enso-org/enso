@@ -76,7 +76,17 @@ async function shouldOpenInitialProject(
   const anyProjectLaunched = LocalStorage.getInstance().get('launchedProjects')
   if (navigatedInDrive || anyProjectLaunched) return false
 
-  const homeDirQuery = { parentId: null, filterBy: null, labels: null, recentProjects: false }
+  const homeDirQuery = {
+    parentId: null,
+    filterBy: null,
+    labels: null,
+    sortExpression: null,
+    sortDirection: null,
+    from: null,
+    fromModifiedAt: null,
+    pageSize: null,
+    recentProjects: false,
+  }
   const onError = (err: unknown) => {
     console.error('Cannot read user home directory; will skip launching Welcome Project', err)
     return null
