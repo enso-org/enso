@@ -19,7 +19,7 @@ refine_column (column : Column & In_Memory_Column) =
         Value_Type.Decimal _ _ -> _refine_numeric_column column
         _ -> _refine_other_column column
 
-private _refine_numeric_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column & Numeric_Column & Any = case column.length of
+private _refine_numeric_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column & Numeric_Column = case column.length of
     1 -> case column.at 0 of
         _ : Integer -> column : Column & In_Memory_Column & Numeric_Column & Integer
         _ : Float -> column : Column & In_Memory_Column & Numeric_Column & Float
