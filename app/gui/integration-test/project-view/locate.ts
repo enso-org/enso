@@ -158,9 +158,10 @@ export function visualisationNodeType(page: Page) {
 
 // === Edge locators ===
 
-/** All edges going from a node with given binding. */
-export async function edgesFromNodeWithBinding(page: Page, binding: string) {
-  return edgesFromNode(page, graphNodeByBinding(page, binding).first())
+/** All edges going from a node with given binding that are connected to another node. */
+export async function connectedEdgesFromNodeWithBinding(page: Page, binding: string) {
+  const fromNode = await edgesFromNode(page, graphNodeByBinding(page, binding).first())
+  return fromNode.and(page.locator('[data-target-node-id]'))
 }
 
 /** All edges going from a node. */
@@ -201,7 +202,10 @@ export async function outputPortCoordinates(page: Page, node: Locator) {
 /** Returns a locator for the create node from port button. */
 export async function createNodeFromPortButton(page: Page, node: Locator) {
   const nodeId = await node.getAttribute('data-node-id')
-  return page.locator(
-    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton .plusIcon`,
+  const button = page.locator(
+    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton`,
   )
+  // Ensure the animation is complete.
+  await button.elementHandle().then((el) => el!.waitForElementState('stable'))
+  return button
 }

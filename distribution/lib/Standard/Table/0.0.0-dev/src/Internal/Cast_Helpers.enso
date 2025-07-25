@@ -7,7 +7,9 @@ import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if one type can be cast into another and returns a dataflow error
    explaining the situation if not.
 check_cast_compatibility source_type target_type ~action =

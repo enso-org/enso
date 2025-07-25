@@ -7,6 +7,7 @@ import * as backend from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
+import { useDowngadeModalState } from './PlanDowngradedModal'
 
 /** Props for a {@link TrialEndedModal}. */
 export interface TrialEndedModalProps {
@@ -18,6 +19,8 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
   const { subscriptionId } = props
   const { getText } = useText()
   const { remoteBackend } = useBackends()
+
+  const { markAsShown } = useDowngadeModalState()
 
   const onConfirm = useMutation(
     backendMutationOptions(remoteBackend, 'createCheckoutSession', {
@@ -33,8 +36,9 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
       modalProps={{ defaultOpen: true }}
       cancel={getText('downgrade')}
       confirm={getText('subscribe')}
-      onConfirm={() => {
-        onConfirm.mutate([
+      onConfirm={async () => {
+        markAsShown()
+        await onConfirm.mutateAsync([
           {
             price: backend.Plan.solo,
             quantity: 1,
@@ -42,8 +46,9 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
           },
         ])
       }}
-      onCancel={() => {
-        onCancel.mutate([subscriptionId])
+      onCancel={async () => {
+        markAsShown()
+        await onCancel.mutateAsync([subscriptionId])
       }}
     >
       <Text className="relative">{getText('trialEndedExplanation')}</Text>

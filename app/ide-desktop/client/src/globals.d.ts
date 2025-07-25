@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 
+import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import type { FileFilter } from './fileBrowser'
 
 // =============
@@ -86,7 +87,7 @@ interface NavigationApi {
 /** `window.menuApi` exposes functionality related to the system menu. */
 interface MenuApi {
   /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
-  readonly setShowAboutModalHandler: (callback: () => void) => void
+  readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
 }
 
 // ==================

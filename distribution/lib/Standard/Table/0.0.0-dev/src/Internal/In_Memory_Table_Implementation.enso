@@ -754,13 +754,17 @@ type In_Memory_Table_Implementation
         data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
         "Table.new [" + data + "]"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = normalize_ranges ranges
     from_java_table (table.java_table.slice normalized)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_join_helpers left_table right_table =
     make_equals _ left right = Java_Join_Equals.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column
     make_equals_ignore_case _ left right locale =

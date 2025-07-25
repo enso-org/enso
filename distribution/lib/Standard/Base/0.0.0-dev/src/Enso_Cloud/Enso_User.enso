@@ -12,33 +12,41 @@ from project.Data.Boolean import Boolean, False, True
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 type Enso_User
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Represents a user within Enso Cloud.
 
-       Arguments:
-       - name: The user's name.
-       - email: The user's email address.
-       - id: The user's unique ID.
-       - is_enabled: Whether the user is enabled.
-       - root_directory_id: The ID of the user's root directory.
-       - organization_name: The name of the organization the user belongs to.
-         If it is missing, it is set to the user's name.
+       ## Arguments
+        - `name`: The user's name.
+        - `email`: The user's email address.
+        - `id`: The user's unique ID.
+        - `is_enabled`: Whether the user is enabled.
+        - `root_directory_id`: The ID of the user's root directory.
+        - `organization_name`: The name of the organization the user belongs to.
+          If it is missing, it is set to the user's name.
     User name:Text email:Text id:Text is_enabled:Boolean root_directory_id:Text organization_name:Text
 
-    ## ICON people
+    ## ---
+       icon: people
+       ---
        Fetch the current user.
     current -> Enso_User =
         Utils.get_cached "users/me" cache_duration=(Duration.new minutes=120) <|
             json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users/me")
             Enso_User.from json
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if the user is logged in.
     is_logged_in -> Boolean =
         Panic.catch Not_Logged_In handler=(_->False) <|
             Authentication.get_access_token.is_error.not
 
-    ## ICON people
+    ## ---
+       icon: people
+       ---
        Lists all known users.
     list : Vector Enso_User
     list =
@@ -46,27 +54,35 @@ type Enso_User
         users = get_required_field "users" json
         users.map (user-> Enso_User.from user)
 
-    ## ICON trash
+    ## ---
+       icon: trash
+       ---
        Flushes all cloud caches.
        For example, it will flush cached secrets, ensuring that new values will
        be fetched the next time the secrets are accessed.
     flush_caches : Nothing
     flush_caches = Utils.flush_caches
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Return a string representation of this user.
     to_text : Text
     to_text self =
         if self.name == self.organization_name then self.name else
             self.organization_name + '/' + self.name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this user.
     to_display_text : Text
     to_display_text self = "Enso_User {" + self.to_text + "}"
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Enso_User.from (that:JS_Object) =
     id = get_required_field "userId" that expected_type=Text
     name = get_required_field "name" that expected_type=Text

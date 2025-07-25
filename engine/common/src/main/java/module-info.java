@@ -1,5 +1,4 @@
 import org.enso.common.ContextLoggingConfigurator;
-import org.enso.common.PolyglotSymbolResolver;
 
 module org.enso.engine.common {
   requires org.graalvm.nativeimage;
@@ -7,6 +6,5 @@ module org.enso.engine.common {
 
   exports org.enso.common;
 
-  uses PolyglotSymbolResolver;
   uses ContextLoggingConfigurator;
 }

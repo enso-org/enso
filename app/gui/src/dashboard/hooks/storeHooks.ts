@@ -73,7 +73,7 @@ export function useStore<State, Slice>(
 }
 
 /** A hook that allows to use React transitions with Zustand store. */
-export function useTearingTransitionStore<State, Slice>(
+function useTearingTransitionStore<State, Slice>(
   store: StoreApi<State>,
   selector: (state: State) => Slice,
   areEqual: AreEqual<Slice> = 'shallow',

@@ -41,6 +41,7 @@ import { FileFilter, toElectronFileFilter } from './fileBrowser'
 
 import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from './globals'
+import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 const logger = contentConfig.logger
 
 /** Convert path to proper `file://` URL. */
@@ -420,21 +421,35 @@ class App {
         }
         const window = new electron.BrowserWindow(windowPreferences)
 
-        const menu = electron.Menu.buildFromTemplate([
-          {
-            label: common.PRODUCT_NAME,
-            role: 'windowMenu',
-            submenu: electron.Menu.buildFromTemplate([
-              {
-                label: `About ${common.PRODUCT_NAME}`,
-                click: () => {
-                  window.webContents.send(ipc.Channel.showAboutModal)
-                },
-              },
-            ]),
-          },
-        ])
-        electron.Menu.setApplicationMenu(menu)
+        const oldMenu = electron.Menu.getApplicationMenu()
+        if (oldMenu != null) {
+          const newMenu = replaceMenuItems(oldMenu.items, [
+            {
+              filter: [filterByRole('help')],
+              replacement: (item) =>
+                inheritMenuItem(item, undefined, [
+                  makeMenuItem(window, `About ${common.PRODUCT_NAME}`, 'about'),
+                ]),
+            },
+            {
+              filter: [filterByRole('fileMenu'), filterByRole('close')],
+              replacement: () => makeMenuItem(window, 'Close Tab', 'closeTab', 'CmdOrCtrl+W'),
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('about')],
+              replacement: () => undefined,
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('hide')],
+              replacement: (item) => inheritMenuItem(item, `Hide ${common.PRODUCT_NAME}`),
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('quit')],
+              replacement: (item) => inheritMenuItem(item, `Quit ${common.PRODUCT_NAME}`),
+            },
+          ])
+          electron.Menu.setApplicationMenu(newMenu)
+        }
         window.setMenuBarVisibility(false)
 
         if (this.args.groups.debug.options.devTools.value) {

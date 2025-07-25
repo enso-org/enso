@@ -71,20 +71,23 @@ add_specs suite_builder =
         group_builder.specify 'should convert columns to JSON using to_json_data (Date)' <|
             date txt = txt.parse_date
             dates = [date "2020-01-01", date "2021-02-02", date "2022-03-03"]
+            dates_json = '[{"type":"Date","constructor":"new","_display_text_":"2020-01-01","day":1,"month":1,"year":2020},{"type":"Date","constructor":"new","_display_text_":"2021-02-02","day":2,"month":2,"year":2021},{"type":"Date","constructor":"new","_display_text_":"2022-03-03","day":3,"month":3,"year":2022}]'
             dates_column = Table.new [['Dates', dates]] . at 'Dates'
-            dates_column.to_json_data . should_equal dates.to_json
+            dates_column.to_json_data . should_equal dates_json
 
         group_builder.specify 'should convert columns to JSON using to_json_data (Time_Of_Day)' <|
             time_of_day txt = txt.parse_time_of_day
             times_of_day = [time_of_day "00:00:00", time_of_day "12:34:56", time_of_day "23:59:59"]
+            times_of_day_json = '[{"type":"Time_Of_Day","constructor":"new","_display_text_":"00:00:00","hour":0,"minute":0,"second":0,"nanosecond":0},{"type":"Time_Of_Day","constructor":"new","_display_text_":"12:34:56","hour":12,"minute":34,"second":56,"nanosecond":0},{"type":"Time_Of_Day","constructor":"new","_display_text_":"23:59:59","hour":23,"minute":59,"second":59,"nanosecond":0}]'
             times_of_day_column = Table.new [['TimesOfDay', times_of_day]] . at 'TimesOfDay'
-            times_of_day_column.to_json_data . should_equal times_of_day.to_json
+            times_of_day_column.to_json_data . should_equal times_of_day_json
 
         group_builder.specify 'should convert columns to JSON using to_json_data (Date_Time)' <|
             date_time txt = txt.parse_date_time
             date_times = [date_time "2020-01-01T00:00:00Z", date_time "2021-02-02T12:34:56Z", date_time "2022-03-03T23:59:59Z"]
+            date_times_json = '[{"type":"Date_Time","constructor":"new","_display_text_":"2020-01-01 00:00:00[Z]","year":2020,"month":1,"day":1,"hour":0,"minute":0,"second":0,"nanosecond":0,"zone":{"type":"Time_Zone","constructor":"parse","id":"Z"}},{"type":"Date_Time","constructor":"new","_display_text_":"2021-02-02 12:34:56[Z]","year":2021,"month":2,"day":2,"hour":12,"minute":34,"second":56,"nanosecond":0,"zone":{"type":"Time_Zone","constructor":"parse","id":"Z"}},{"type":"Date_Time","constructor":"new","_display_text_":"2022-03-03 23:59:59[Z]","year":2022,"month":3,"day":3,"hour":23,"minute":59,"second":59,"nanosecond":0,"zone":{"type":"Time_Zone","constructor":"parse","id":"Z"}}]'
             date_times_column = Table.new [['DateTimes', date_times]] . at 'DateTimes'
-            date_times_column.to_json_data . should_equal date_times.to_json
+            date_times_column.to_json_data . should_equal date_times_json
 
 
 main filter=Nothing =

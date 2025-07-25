@@ -6,30 +6,37 @@ import project.Column.Column
 type Numeric_Column
     private Value column operations_implementation
 
-    ## GROUP Standard.Base.Math
-       ICON operators
+    ## ---
+       group: Standard.Base.Math
+       icon: operators
+       ---
        Computes the absolute value of each element in the column.
 
-       > Example
-         Compute the absolute value of values in a column.
+       ## Examples
+       ### Compute the absolute value of values in a column.
 
+       ```
              import Standard.Examples
 
              example_abs = Examples.decimal_column.abs
+       ```
     abs self -> Column & Numeric_Column =
         self.operations_implementation.abs self.column
 
-    ## GROUP Standard.Base.Math
-       ICON operators
+    ## ---
+       group: Standard.Base.Math
+       icon: operators
+       ---
        Computes the sign of each element in the column.
-
        It will return -1, 0 or 1 depending on the sign of the value.
 
-       > Example
-         Compute the signum of values in a column.
+       ## Examples
+       ### Compute the signum of values in a column.
 
+       ```
              import Standard.Examples
 
              example_signum = Examples.decimal_column.signum
+       ```
     signum self -> Column & Numeric_Column =
         self.operations_implementation.signum self.column

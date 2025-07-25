@@ -104,7 +104,7 @@ add_specs suite_builder =
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
             ws = wb.read 'Row1StringRow2HasNumeric' ..Detect_Headers
             ws.column_names . should_equal (['X', 'Y', 'Z'])
-            ## TODO when types fixed ws . should_equal (Table.new [['X', ['U']],['Y', ['V']],['Z', [3]]])
+            ws . should_equal (Table.new [['X', ['U']],['Y', ['V']],['Z', [3]]])
         group_builder.specify "First row has a numeric, gives no headers" <|
             ## Test3
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
@@ -199,3 +199,18 @@ add_specs suite_builder =
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             wb.named_ranges . should_equal []
+
+    suite_builder.group "Google Sheets - Data Types" group_builder->
+        group_builder.specify "can read different data types correctly" <|
+            ## Test4
+            wb = Google_Sheets.read '1ggI7Kcs6W4E_zeMraHbHbnK9p5FL5YPXIB_be6R3jiw' (Enso_Secret.get 'GS')
+            ws = wb.read 'Sheet1'
+            c1 = ['Integers', [123, -5, 0, Nothing, 78]]
+            c2 = ['Strings', ["Alea", "iacta", "est", Nothing, "after"]]
+            c3 = ['Floats', [12.34, -98.1, 0, Nothing, 7.8]]
+            c4 = ['Dates', [Date.new 2010 1 1, Date.new 1999 4 12, Date.new 2025 6 7, Nothing, Date.new 1985 4 30]]
+            c5 = ['Percents', [0.1, 0.25, 0.75, Nothing, 3.33]]
+            c6 = ['Currency', [1.23, 4.56, 78.9, Nothing, -1.2]]
+            c7 = ['Times', [Time_Of_Day.new 23 10, Time_Of_Day.new 5 12,  Time_Of_Day.new 23 59, Nothing, Time_Of_Day.new 7 30]]
+            c8 = ['DateTimes', [Date_Time.new 2025 12 30 23 10, Date_Time.new 1981 1 1 5 12 , Date_Time.new 2002 12 11 23 59, Nothing, Date_Time.new 2030 4 30 7 30]]
+            ws . should_equal (Table.new [c1, c2, c3, c4, c5, c6, c7, c8])

@@ -1,7 +1,10 @@
 /** @file Metadata for rendering each settings section. */
 import ComputerIcon from '#/assets/computer.svg'
 import { Button } from '#/components/Button'
-import { actionToTextId } from '#/components/MenuEntry'
+import type { TSchema } from '#/components/Form'
+import type { ComboBoxProps } from '#/components/Inputs/ComboBox'
+import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import { Text } from '#/components/Text'
 import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
@@ -12,6 +15,7 @@ import {
   EmailAddress,
   HttpsUrl,
   isUserOnPlanWithOrganization,
+  Plan,
   type OrganizationInfo,
   type User,
 } from '#/services/Backend'
@@ -21,8 +25,17 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import type { GetText } from '$/providers/text'
+import { getLocalTimeZone, now } from '@internationalized/date'
 import type { QueryClient } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
+import {
+  getTimeZoneFromDescription,
+  getTimeZoneOffsetStringWithGMT,
+  IanaTimeZone,
+  tryGetDescriptionForTimeZone,
+  tryGetTimeZoneFromDescription,
+  WHITELISTED_TIME_ZONE_DESCRIPTIONS,
+} from 'enso-common/src/utilities/data/dateTime'
 import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
 import * as z from 'zod'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
@@ -66,16 +79,49 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             }),
             getValue: (context) => ({
               ...pick(context.user, 'name', 'email'),
-              timeZone: context.preferredTimeZone ?? '',
+              timeZone: tryGetDescriptionForTimeZone(
+                context.preferredTimeZone,
+                IanaTimeZone(getLocalTimeZone()),
+              ),
             }),
             onSubmit: async (context, { name, timeZone }) => {
-              context.setPreferredTimeZone(timeZone)
-              await context.updateUser([{ username: name }])
+              const newTimeZone = timeZone != null ? tryGetTimeZoneFromDescription(timeZone) : null
+              if (newTimeZone != null) {
+                context.setPreferredTimeZone(newTimeZone)
+              }
+              if (name !== context.user.name) {
+                await context.updateUser([{ username: name }])
+              }
             },
             inputs: [
               { nameId: 'userNameSettingsInput', name: 'name' },
               { nameId: 'userEmailSettingsInput', name: 'email', editable: false },
-              { nameId: 'userTimeZoneSettingsInput', name: 'timeZone' },
+              {
+                nameId: 'userTimeZoneSettingsInput',
+                descriptionId: 'userTimeZoneSettingsInputDescription',
+                name: 'timeZone',
+                type: 'comboBox',
+                comboBoxProps: () => ({
+                  items: WHITELISTED_TIME_ZONE_DESCRIPTIONS,
+                  addonStart: (description: string | null) => {
+                    const timeZone =
+                      description != null ? tryGetTimeZoneFromDescription(description) : null
+                    return (
+                      <Text className="w-20">
+                        {getTimeZoneOffsetStringWithGMT(now(timeZone ?? getLocalTimeZone()))}
+                      </Text>
+                    )
+                  },
+                  toTextValue: (timeZone: string) => timeZone,
+                  children: (description: string) => {
+                    const otherTimeZone = getTimeZoneFromDescription(description)
+                    const timezoneOffsetString = getTimeZoneOffsetStringWithGMT(now(otherTimeZone))
+                    return `${timezoneOffsetString} ${description}`
+                  },
+                }),
+                hidden: (context) =>
+                  context.user.plan === Plan.free || context.user.plan === Plan.solo,
+              },
             ],
           }),
         ],
@@ -401,7 +447,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 if (v.rebindable === false) {
                   return []
                 } else {
-                  return actionToTextId(k)
+                  return [ACTION_TO_TEXT_ID[k]]
                 }
               })
               return rebindableBindings.map((binding) => context.getText(binding))
@@ -491,20 +537,42 @@ export interface SettingsContext {
  *
  * TODO: Add support for other types.
  */
-export type SettingsInputType = Extract<HTMLInputTypeAttribute, 'email' | 'password' | 'text'>
+export type SettingsInputType =
+  | Extract<HTMLInputTypeAttribute, 'email' | 'password' | 'text'>
+  | 'comboBox'
+
+/** Either `T`, or a function that returns `T` given a `SettingsContext`. */
+type ToValue<T> = T | ((context: SettingsContext) => T)
 
 /** Metadata describing an input in a {@link SettingsFormEntryData}. */
-export interface SettingsInputData<T> {
+interface SettingsInputDataBase<T> {
   readonly nameId: TextId & `${string}SettingsInput`
   readonly name: string & keyof T
   readonly autoComplete?: HTMLInputAutoCompleteAttribute
   /** Defaults to `false`. */
-  readonly hidden?: boolean | ((context: SettingsContext) => boolean)
+  readonly hidden?: ToValue<boolean>
   /** Defaults to `true`. */
-  readonly editable?: boolean | ((context: SettingsContext) => boolean)
+  readonly editable?: ToValue<boolean>
   readonly descriptionId?: TextId
-  readonly type?: SettingsInputType
 }
+
+/** Metadata describing a native input in a {@link SettingsFormEntryData}. */
+interface SettingsNativeInputData<T> extends SettingsInputDataBase<T> {
+  readonly type?: Extract<HTMLInputTypeAttribute, SettingsInputType>
+}
+
+/** The relevant `ComboBox` props for a {@link SettingsComboBoxInputData}. */
+type ComboBoxPartialProps = Partial<ComboBoxProps<TSchema, string>> &
+  Pick<ComboBoxProps<TSchema, string>, 'items'>
+
+/** Metadata describing a combo box input in a {@link SettingsFormEntryData}. */
+interface SettingsComboBoxInputData<T> extends SettingsInputDataBase<T> {
+  readonly comboBoxProps: ToValue<ComboBoxPartialProps>
+  readonly type: 'comboBox'
+}
+
+/** Metadata describing an input in a {@link SettingsFormEntryData}. */
+export type SettingsInputData<T> = SettingsComboBoxInputData<T> | SettingsNativeInputData<T>
 
 /** Metadata describing a settings entry that is a form. */
 export interface SettingsFormEntryData<T> {

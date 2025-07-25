@@ -12,6 +12,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils.Builder;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -85,6 +86,31 @@ prefer-local-libraries: true
    */
   public static void testProjectRun(
       ContextUtils.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
+    testProjectRun(ctxBuilder, projDir, resultConsumer, null);
+  }
+
+  /**
+   * Tests running the project located in the given {@code projDir}. Is equal to running {@code enso
+   * --run <projDir>}. If failure is expected, provide {@code errorConsumer}. One of {@code
+   * errorConsumer} or {@code resultConsumer} must be non-null.
+   *
+   * @param ctxBuilder A context builder that might be initialized with some specific options.
+   * @param projDir Root directory of the project.
+   * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
+   *     main} method. If null, the execution is expected to fail with an exception.
+   * @param errorConsumer If project execution throws {@link PolyglotException}, it will be consumed
+   *     by this consumer. May be null.
+   */
+  private static void testProjectRun(
+      ContextUtils.Builder ctxBuilder,
+      Path projDir,
+      Consumer<Value> resultConsumer,
+      Consumer<PolyglotException> errorConsumer) {
+    if ((errorConsumer == null && resultConsumer == null)
+        || (errorConsumer != null && resultConsumer != null)) {
+      throw new IllegalArgumentException(
+          "Either resultConsumer or errorConsumer must be provided, but not both");
+    }
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
           "Project directory " + projDir + " must already be created");
@@ -106,7 +132,18 @@ prefer-local-libraries: true
       var assocMainModType = mainMod.getAssociatedType();
       var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
       var res = mainMethod.execute();
-      resultConsumer.accept(res);
+      if (resultConsumer != null) {
+        resultConsumer.accept(res);
+      } else {
+        throw new AssertionError(
+            "Project execution was expected to fail, but succeeded with result: " + res);
+      }
+    } catch (PolyglotException e) {
+      if (errorConsumer != null) {
+        errorConsumer.accept(e);
+      } else {
+        throw e;
+      }
     }
   }
 
@@ -155,6 +192,19 @@ prefer-local-libraries: true
    */
   public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
     testProjectRun(ContextUtils.newBuilder(), projDir, resultConsumer);
+  }
+
+  /**
+   * Wrapper for {@link #testProjectRun(Builder, Path, Consumer, Consumer)} with {@code
+   * errorConsumer} set to non-null.
+   *
+   * @param projDir Root directory of the project.
+   * @param errorConsumer Any action that is to be evaluated on the exception thrown by the project
+   *     execution.
+   */
+  public static void testProjectRunFailure(
+      Path projDir, Consumer<PolyglotException> errorConsumer) {
+    testProjectRun(ContextUtils.newBuilder(), projDir, null, errorConsumer);
   }
 
   /** Deletes provided directory recursively. */

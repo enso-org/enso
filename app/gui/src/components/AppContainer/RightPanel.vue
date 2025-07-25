@@ -113,12 +113,10 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 }
 
 .content {
-  background-color: rgb(254, 253, 252);
   display: flex;
   justify-content: stretch;
   min-width: 312px;
   width: 400px;
-  padding: 1.25rem 1rem;
   overflow: auto;
 }
 
@@ -128,6 +126,8 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: rgb(254, 253, 252);
+  padding: 1.25rem 1rem;
 }
 
 .rightBar {

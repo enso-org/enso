@@ -8,19 +8,24 @@ from project.Data.Boolean import False, True
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    Compares two text values according to the natural dictionary ordering.
 
-   > Example
-     Compare two texts according to the natural dictionary ordering.
+   ## Examples
+   ### Compare two texts according to the natural dictionary ordering.
 
+   ```
          Natural_Order.compare "a2" "a100" == Ordering.Less
+   ```
 
-   > Example
-     Sort a vector of texts according to the natural dictionary ordering.
+   ### Sort a vector of texts according to the natural dictionary ordering.
 
+   ```
          ["a2", "a1", "a100", "a001", "a0001"].sort by=Natural_Order.compare . should_equal ["a0001", "a001", "a1", "a2", "a100"]
+   ```
 compare : Text -> Text -> Case_Sensitivity -> Ordering
 compare text1 text2 case_sensitivity=Case_Sensitivity.Sensitive =
     compare_text = case case_sensitivity of

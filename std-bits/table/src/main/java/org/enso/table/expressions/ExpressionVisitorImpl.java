@@ -148,8 +148,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
       try {
         var result = methodResolver.resolve(this.name).execute(objects);
-        if (result.canExecute()) {
-          throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
+        // Date and Time objects report as can execute() but we want to treat as a value.
+        if (!result.isDate() && !result.isTime() && result.canExecute()) {
+          throw new IllegalArgumentException("Insufficient arguments for method " + name);
         }
         return result;
       } catch (PolyglotException e) {
