@@ -140,16 +140,18 @@ function openDocs(url: string) {
 <template>
   <div class="ComponentHelp scrollable" :style="style" @wheel.stop.passive>
     <div v-if="!isPlaceholder" class="topBar">
-      <Breadcrumbs
-        :breadcrumbs="breadcrumbs"
-        :color="color"
-        :icon="icon"
-        :canGoForward="historyStack.canGoForward()"
-        :canGoBackward="historyStack.canGoBackward()"
-        @click="(index) => handleBreadcrumbClick(index)"
-        @forward="historyStack.forward()"
-        @backward="historyStack.backward()"
-      />
+      <div class="breadcrumbsWrapper">
+        <Breadcrumbs
+          :breadcrumbs="breadcrumbs"
+          :color="color"
+          :icon="icon"
+          :canGoForward="historyStack.canGoForward()"
+          :canGoBackward="historyStack.canGoBackward()"
+          @click="(index) => handleBreadcrumbClick(index)"
+          @forward="historyStack.forward()"
+          @backward="historyStack.backward()"
+        />
+      </div>
       <SvgButton
         v-if="documentationUrl"
         name="open"
@@ -232,5 +234,16 @@ function openDocs(url: string) {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+}
+
+.breadcrumbsWrapper {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topBar .SvgButton {
+  flex: 0 0 auto;
 }
 </style>
