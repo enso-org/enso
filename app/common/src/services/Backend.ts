@@ -966,11 +966,11 @@ export interface SpecialAssetIdType {
  */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
-  [AssetType.project]: 1,
-  [AssetType.file]: 2,
-  [AssetType.datalink]: 3,
-  [AssetType.secret]: 4,
-  [AssetType.specialUp]: -1,
+  [AssetType.project]: -1,
+  [AssetType.file]: -2,
+  [AssetType.datalink]: -3,
+  [AssetType.secret]: -4,
+  [AssetType.specialUp]: 1,
 }
 
 /** A state associated with a credential. */
@@ -1569,23 +1569,23 @@ export function compareAssets(
   sortDirection?: AssetSortDirection | null,
 ) {
   sortExpression ??= 'asset_id_discriminator_and_modified_at'
-  sortDirection ??= sortExpression == 'modified_at' ? 'descending' : 'ascending'
+  sortDirection ??=
+    sortExpression == 'asset_id_discriminator_and_modified_at' ? 'descending' : 'ascending'
 
   const multiplier = sortDirection === 'ascending' ? 1 : -1
+
+  const relativeTypeOrder = multiplier * (ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type])
   const modifiedAtDelta =
     multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
   const titleDelta = multiplier * a.title.localeCompare(b.title, 'en-US', { numeric: true })
+
   switch (sortExpression) {
     case 'asset_id_discriminator_and_modified_at': {
-      const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
       if (relativeTypeOrder !== 0) {
-        return multiplier * relativeTypeOrder
+        return relativeTypeOrder
       }
-      if (modifiedAtDelta !== 0) {
-        // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
-        return modifiedAtDelta
-      }
-      return titleDelta
+      // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
+      return modifiedAtDelta
     }
     case 'modified_at': {
       return modifiedAtDelta

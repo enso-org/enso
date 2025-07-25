@@ -57,12 +57,8 @@ function array<T>(): Readonly<T>[] {
 const INITIAL_CALLS_OBJECT = {
   changePassword: array<{ oldPassword: string; newPassword: string }>(),
   getAssetDetails: array<{ assetId: backend.AssetId }>(),
-  listDirectory: array<{
-    parent_id?: string
-    filter_by?: backend.FilterBy
-    labels?: backend.LabelName[]
-    recent_projects?: boolean
-  }>(),
+  listDirectory: array<ListDirectoryQuery>(),
+  searchDirectory: array<SearchDirectoryQuery>(),
   listSecrets: array<object>(),
   listTags: array<object>(),
   listUsers: array<object>(),
@@ -130,7 +126,26 @@ interface ListDirectoryQuery {
   readonly filter_by?: backend.FilterBy
   readonly labels?: backend.LabelName[]
   readonly recent_projects?: boolean
+  readonly sort_expression?: backend.AssetSortExpression | null
+  readonly sort_direction?: backend.AssetSortDirection | null
   readonly from?: backend.AssetId | null
+  readonly from_modified_at?: dateTime.Rfc3339DateTime | null
+  readonly page_size?: number | null
+}
+
+/** The type for the search query for the "search directory" endpoint. */
+interface SearchDirectoryQuery {
+  readonly parent_id?: backend.DirectoryId | null
+  readonly query?: string | null
+  readonly title?: string | null
+  readonly description?: string | null
+  readonly type?: string | null
+  readonly extension?: string | null
+  readonly labels?: readonly backend.LabelName[] | null
+  readonly sort_expression?: backend.AssetSortExpression | null
+  readonly sort_direction?: backend.AssetSortDirection | null
+  readonly from?: backend.AssetId | null
+  readonly from_modified_at?: dateTime.Rfc3339DateTime | null
   readonly page_size?: number | null
 }
 
@@ -281,7 +296,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   function listDirectory(query: ListDirectoryQuery) {
-    called('listDirectory', query)
     const parentId = query.parent_id ?? defaultDirectoryId
     let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
     switch (query.filter_by) {
@@ -304,15 +318,56 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         break
       }
     }
-    const sortedAssets = filteredAssets.sort(
-      (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
+    const sortedAssets = [...filteredAssets].sort((a, b) =>
+      backend.compareAssets(a, b, query.sort_expression, query.sort_direction),
     )
-    const index = query.from == null ? 0 : assets.findIndex((asset) => asset.id === query.from) + 1
+    const index =
+      query.from == null ? 0 : sortedAssets.findIndex((asset) => asset.id === query.from) + 1
     return sortedAssets.slice(index, query.page_size != null ? index + query.page_size : undefined)
   }
 
   function listRootDirectory() {
     return listDirectory({})
+  }
+
+  function searchDirectory(query: SearchDirectoryQuery) {
+    called('searchDirectory', query)
+    const parentId = query.parent_id ?? defaultDirectoryId
+    const queuedParentIds = [parentId]
+    const isMatch = backend.doesAssetMatchQuery({
+      parentId: query.parent_id ?? null,
+      query: query.query ?? null,
+      title: query.title ?? null,
+      description: query.description ?? null,
+      type: query.type ?? null,
+      extension: query.extension ?? null,
+      labels: query.labels ?? [],
+      sortExpression: query.sort_expression ?? null,
+      sortDirection: query.sort_direction ?? null,
+      from: query.from ?? null,
+      fromModifiedAt: query.from_modified_at ?? null,
+      pageSize: query.page_size ?? null,
+    })
+    const matchingAssets: backend.AnyAsset[] = []
+    while (true) {
+      const currentParentId = queuedParentIds.shift()
+      if (currentParentId == null) break
+      const siblings = assets.filter((asset) => asset.parentId === currentParentId)
+      for (const sibling of siblings) {
+        if (sibling.type === backend.AssetType.directory) {
+          queuedParentIds.push(sibling.id)
+        }
+        if (isMatch(sibling)) {
+          matchingAssets.push(sibling)
+        }
+      }
+    }
+    const sortedAssets = [...matchingAssets].sort((a, b) =>
+      backend.compareAssets(a, b, query.sort_expression, query.sort_direction),
+    )
+    const index =
+      query.from == null ? 0 : sortedAssets.findIndex((asset) => asset.id === query.from) + 1
+    return sortedAssets.slice(index, query.page_size != null ? index + query.page_size : undefined)
   }
 
   const addAsset = <T extends backend.AnyAsset>(asset: T) => {
@@ -692,6 +747,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const query = Object.fromEntries(params.entries()) as ListDirectoryQuery
       called('listDirectory', query)
       const json: backend.ListDirectoryResponseBody = { assets: listDirectory(query) }
+      route.fulfill({ json })
+    })
+    await get(paths.SEARCH_DIRECTORY_PATH, (route, _req, _, params) => {
+      const query = Object.fromEntries(params.entries()) as SearchDirectoryQuery
+      called('searchDirectory', query)
+      const json: backend.ListDirectoryResponseBody = { assets: searchDirectory(query) }
       route.fulfill({ json })
     })
     await get(paths.LIST_SECRETS_PATH, () => {
