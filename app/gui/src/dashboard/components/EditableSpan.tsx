@@ -9,14 +9,14 @@ import { Text } from '#/components/Text'
 import { Underlay } from '#/components/Underlay'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useMeasure } from '#/hooks/measureHooks'
+import { AnimatePresence, motion, type Variants } from '#/utilities/motion'
 import { twJoin } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
-import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import * as React from 'react'
 import { useLayoutEffect } from 'react'
 import type { z } from 'zod'
 
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-assignment
+// eslint-disable-next-line no-restricted-syntax
 const MotionText = motion(Text)
 
 /**

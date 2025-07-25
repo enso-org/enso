@@ -38,7 +38,7 @@ export * from 'framer-motion'
  */
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax
-export const motion = originalMotion as unknown as (<Props extends object>(
+export const motion = originalMotion.create as unknown as (<Props extends object>(
   Component: ComponentType<PropsWithChildren<Props>> | string,
   customMotionComponentConfig?: CustomMotionComponentConfig,
 ) => ForwardRefExoticComponent<

@@ -11,7 +11,7 @@ import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
+import { LayoutGroup, motion, type Transition } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { unsafeWriteValue } from '#/utilities/write'
 import * as React from 'react'
@@ -27,7 +27,7 @@ import { DIALOG_MODAL_STYLES, DIALOG_OVERLAY_STYLES, DIALOG_STYLES } from './var
 // eslint-disable-next-line no-restricted-syntax
 const MotionDialog = motion(aria.Dialog)
 
-const TRANSITION: Spring = {
+const TRANSITION: Transition = {
   type: 'spring',
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   stiffness: 1_200,

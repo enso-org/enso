@@ -16,24 +16,24 @@ export const CHECK_VARIANTS: Variants = {
   checked: {
     pathLength: 1,
     opacity: 1,
-    transition: { type: 'tween', duration: 0.2, easings: 'circIn' },
+    transition: { type: 'tween', duration: 0.2, ease: 'circIn' },
   },
   // eslint-disable-next-line @typescript-eslint/naming-convention
   'pressed-checked': {
     pathLength: 0.8,
     opacity: 1,
-    transition: { type: 'tween', duration: 0.2, easings: 'circIn' },
+    transition: { type: 'tween', duration: 0.2, ease: 'circIn' },
   },
   // eslint-disable-next-line @typescript-eslint/naming-convention
   'pressed-unchecked': {
     pathLength: 0.2,
     opacity: 0.5,
-    transition: { type: 'tween', duration: 0.2, easings: 'circIn' },
+    transition: { type: 'tween', duration: 0.2, ease: 'circIn' },
   },
   unchecked: {
     pathLength: 0,
     opacity: 0,
-    transition: { type: 'tween', duration: 0.2, easings: 'circOut' },
+    transition: { type: 'tween', duration: 0.2, ease: 'circOut' },
   },
 }
 /* eslint-enable @typescript-eslint/no-magic-numbers */
