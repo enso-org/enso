@@ -24,8 +24,8 @@ polyglot java import java.nio.file.NotDirectoryException
 type File_Error
     ## An error that indicates that the requested file does not exist.
 
-       Arguments:
-       - file: The file that doesn't exist.
+       ## Arguments
+        - `file`: The file that doesn't exist.
     Not_Found (file : File_Like)
 
     ## Indicates that a destination file already exists.
@@ -37,16 +37,17 @@ type File_Error
 
     ## A generic IO error.
 
-       Arguments:
-       - file: The file that couldn't be read.
-       - message: The message for the error.
+       ## Arguments
+        - `file`: The file that couldn't be read.
+        - `message`: The message for the error.
     IO_Error (file : File_Like | Nothing) (message : Text)
 
     ## Indicates that the given directory was not empty, but `recursive` was not
        set to `True`.
     Directory_Not_Empty (file : File_Like)
 
-    ## Indicates that the given path was expected to be a directory, but it is not.
+    ## Indicates that the given path was expected to be a directory, but it is
+       not.
        Raised for example when creating a new file or directory inside of a path
        that is a regular file.
     Not_A_Directory (file : File_Like)
@@ -58,11 +59,13 @@ type File_Error
        format.
     Unsupported_Output_Type (format : File_Format | File_Like | Any) (data_type : Any)
 
-    ## Indicates that the given file is corrupted, i.e. the data it contains
-       is not in the expected format.
+    ## Indicates that the given file is corrupted, i.e. the data it contains is
+       not in the expected format.
     Corrupted_Format (file : File_Like | Nothing) (message : Text) (cause : Any | Nothing = Nothing)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the File error to a human-readable format.
     to_display_text : Text
     to_display_text self = case self of
@@ -84,8 +87,9 @@ type File_Error
             at_part = if file.is_nothing then "" else " at " + file.path
             "The file"+at_part+" is corrupted: " + msg
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions (file : File | Nothing) ~action =
         handle_io_exception caught_panic =
@@ -96,13 +100,17 @@ type File_Error
             Panic.catch UncheckedIOException handler=handle_unchecked_io_exception <|
                 action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Raises an error indicating that the user does not have permission to
        access the file in a given way.
     access_denied : File -> Nothing ! File_Error
     access_denied file = Error.throw (File_Error.Access_Denied file)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts a Java `IOException` into its Enso counterpart.
     wrap_io_exception (file : File | Nothing) io_exception =
         associated_file = case io_exception of

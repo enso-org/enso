@@ -5,7 +5,9 @@ from project.Data.Ordering import Ordering
 
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Decimal_Comparator
     compare (x : Decimal) (y : Decimal) =
         Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)

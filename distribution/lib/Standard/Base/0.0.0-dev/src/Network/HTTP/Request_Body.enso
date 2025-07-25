@@ -22,46 +22,50 @@ type Request_Body
 
     ## Request body with text.
 
-       Arguments:
-       - text: The plain text in the request body.
-       - encoding: the text encoding to send as a Content-Encoding header
-       - content_type: the content_type to send as a Content-Type header
+       ## Arguments
+        - `text`: The plain text in the request body.
+        - `encoding`: the text encoding to send as a Content-Encoding header
+        - `content_type`: the content_type to send as a Content-Type header
     @encoding Encoding.default_widget
     @content_type content_type_widget
     Text (text:Text="") (encoding:(Encoding|Nothing)=Nothing) (content_type:(Text|Nothing)=Nothing)
 
     ## Request body with an object to be sent as JSON.
 
-       Arguments:
-       - x: The object to convert to JSON using `.to_json`.
+       ## Arguments
+        - `x`: The object to convert to JSON using `.to_json`.
     @x make_all_with_json
     Json (x:Any=(Missing_Argument.throw "x"))
 
     ## Request body with an object to be sent as a binary file.
 
-       Arguments:
-       - file: The file to send.
+       ## Arguments
+        - `file`: The file to send.
     Binary (file:File=(Missing_Argument.throw "file"))
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Raw bytes array to be sent as binary data.
        This is mostly used for internal purposes.
     Byte_Array bytes
 
     ## Request body with form data.
 
-       Arguments:
-       - form_data: the form fields (text or file) to be sent
-       - url_encoded: if true, use a URL-encoded form; otherwise, use a
-         multi-part encoding.
+       ## Arguments
+        - `form_data`: the form fields (text or file) to be sent
+        - `url_encoded`: if true, use a URL-encoded form; otherwise, use a
+          multi-part encoding.
     @form_data dictionary_widget
     Form_Data (form_data:Dictionary=(Missing_Argument.throw "form_data")) (url_encoded:Boolean=False)
 
     ## Empty request body; used for GET
     Empty
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        For `Request_Body.Form_Data url_encoded=False`, this returns `Nothing`,
        because the content type must include a content boundary.
     default_content_type_header : Header | Nothing
@@ -75,22 +79,32 @@ type Request_Body
                 if url_encoded then Header.application_x_www_form_urlencoded else Nothing
             Request_Body.Empty -> Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Request_Body.from (that:Text) = Request_Body.Text that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Request_Body.from (that:File) = Request_Body.Binary that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Request_Body.from (that:Any) = Request_Body.Json that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_all_with_json =
     base_selector = make_all_selector Request_Body
     values = [Option "JSON Object" key_value_widget] + base_selector.values
     Single_Choice display=..Always values=values
 
-## PRIVATE
+## ---
+   private: true
+   ---
 dictionary_widget -> Widget =
     fqn = Pair.to Meta.Type . qualified_name . take (..Before_Last '.')
     default = 'pair "key" ""'

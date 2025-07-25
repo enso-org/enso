@@ -33,10 +33,11 @@ from project.Logging import all
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
-## PRIVATE
-   Returns an access token for the current user, that should be valid for
-   at least 2 more minutes.
-
+## ---
+   private: true
+   ---
+   Returns an access token for the current user, that should be valid for at
+   least 2 more minutes.
    If the current token is expired or <2m from expiration, it will be refreshed
    and a new one will be returned. Because of that, this method may make network
    requests.
@@ -44,28 +45,38 @@ get_access_token : Text
 get_access_token = Panic.recover Enso_Cloud_Error <|
     AuthenticationProvider.INSTANCE.getAccessToken
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Forcibly refreshes the access token.
 refresh_access_token : Nothing
 refresh_access_token = Panic.recover Enso_Cloud_Error <|
     AuthenticationProvider.INSTANCE.getAuthenticationServiceEnsoInstance.force_refresh
 
-## PRIVATE
+## ---
+   private: true
+   ---
 credentials_file : File
 credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
     Nothing -> File.home / ".enso" / "credentials"
     path -> File.new path
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Authentication_Service
     private Instance (_auth_data : Ref Authentication_Data)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The authentication data, which is a mutable reference to the current
        authentication data.
     auth_data self -> Ref Authentication_Data = self._auth_data
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_access_token self -> Text =
         expiry_date = self.auth_data.get.expire_at
         is_still_valid = expiry_date > (Date_Time.now + token_early_refresh_period)
@@ -75,20 +86,27 @@ type Authentication_Service
             self.force_refresh
             self.auth_data.get.access_token
 
-    ## PRIVATE
-       Refreshes the access token using the refresh token, regardless of its freshness.
+    ## ---
+       private: true
+       ---
+       Refreshes the access token using the refresh token, regardless of its
+       freshness.
     force_refresh self -> Nothing =
         refresh_token_data = Refresh_Token_Data.read_from_credentials
         new_auth_data = refresh_token_data.fetch_new_access_token
         Panic.rethrow <| self.auth_data.put new_auth_data
         Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new -> Authentication_Service =
         initial_data = Authentication_Data.read_from_credentials
         Authentication_Service.Instance (Ref.new initial_data)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The method called from Java that creates a new instance of the service, to be
    stored in the global state.
 instantiate_authentication_service =
@@ -96,14 +114,20 @@ instantiate_authentication_service =
     Panic.rethrow <|
         Authentication_Service.new
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Authentication_Data
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value _access_token:Text expire_at:Date_Time
 
     access_token self -> Text = self._access_token
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     read_from_credentials -> Authentication_Data =
         content = credentials_file.read_text . catch File_Error error-> case error of
             File_Error.Not_Found _ -> Panic.throw Not_Logged_In.Error
@@ -118,12 +142,18 @@ type Authentication_Data
             Panic.throw (Illegal_State.Error invalid_format_prefix+"invalid date format in `expire_at` field: "+error.to_display_text cause=error)
         Authentication_Data.Value token expiration_date
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Refresh_Token_Data
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value client_id:Text refresh_url:Text refresh_token:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     read_from_credentials -> Refresh_Token_Data =
         content = credentials_file.read_text . catch File_Error error->
             Panic.throw (Illegal_State.Error "Token refresh failed - cannot read credentials file: "+error.to_display_text cause=error)
@@ -136,7 +166,9 @@ type Refresh_Token_Data
         refresh_token = get_field "refresh_token"
         Refresh_Token_Data.Value client_id=client_id refresh_url=refresh_url refresh_token=refresh_token
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     fetch_new_access_token self -> Authentication_Data =
         headers = [Header.content_type "application/x-amz-json-1.1", Header.new "X-Amz-Target" "AWSCognitoIdentityProviderService.InitiateAuth"]
         auth_parameters = JS_Object.from_pairs [["REFRESH_TOKEN", self.refresh_token], ["DEVICE_KEY", Nothing]]
@@ -171,21 +203,28 @@ type Refresh_Token_Data
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid `TokenType` field in response: expected `Bearer`, got `"+token_type+"`.")
         Authentication_Data.Value access_token expire_at
 
-## PRIVATE
-   The amount of time before the token expiration that we pro-actively refresh
-   it to reduce the chance of it expiring during a request.
+## ---
+   private: true
+   ---
+   The amount of time before the token expiration that we pro-actively refresh it
+   to reduce the chance of it expiring during a request.
 token_early_refresh_period = Duration.new minutes=2
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_refresh_token_expired status message -> Boolean =
     # As per OAuth specification, an expired refresh token should result in a 401 status code: https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
     # But empirically, it failed with: 400 Bad Request: {"__type":"NotAuthorizedException","message":"Refresh Token has expired"}.
     # Let's just handle both just in case
     (status.code == 401) || (status.code == 400 && message.contains '"Refresh Token has expired"')
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A sibling to `get_required_field`.
-   This one raises `Illegal_State` error, because it is dealing with local files and not cloud responses.
+   This one raises `Illegal_State` error, because it is dealing with local files
+   and not cloud responses.
 file_get_required_string_field json prefix field_name = case json of
     _ : JS_Object ->
         result = json.get field_name if_missing=(Panic.throw (Illegal_State.Error prefix+"missing field `"+field_name+"`."))

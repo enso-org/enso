@@ -124,7 +124,7 @@ function AppRouter(props: React.PropsWithChildren) {
   const aboutModalRef = React.useRef<ModalApi>(null)
 
   React.useEffect(() => {
-    window.menuApi?.setShowAboutModalHandler(() => {
+    window.menuApi?.setMenuItemHandler('about', () => {
       aboutModalRef.current?.open()
     })
 

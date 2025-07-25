@@ -8,6 +8,7 @@ import type { FeatureFlags } from '$/providers/featureFlags'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
+import type { MenuItem, MenuItemHandler } from './src/project-view/util/menuItems'
 
 /** Nested configuration options with `string` values. */
 interface StringConfig {
@@ -69,7 +70,7 @@ interface NavigationApi {
 /** `window.menuApi` exposes functionality related to the system menu. */
 interface MenuApi {
   /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
-  readonly setShowAboutModalHandler: (callback: () => void) => void
+  readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
 }
 
 /** Options for downloading a URL. */

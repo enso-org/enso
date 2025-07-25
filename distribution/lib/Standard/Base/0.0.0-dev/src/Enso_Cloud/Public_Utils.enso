@@ -8,17 +8,19 @@ import project.Meta
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, True
 
-## PRIVATE
-   A helper that extracts a required field from a response and handles
-   unexpected response structure.
+## ---
+   private: true
+   ---
+   A helper that extracts a required field from a response and handles unexpected
+   response structure.
 
-   Arguments:
-   - key: The key of the field to extract.
-   - js_object: The JSON object to extract the field from.
-   - show_value: Whether to include the value of the field in the error message.
-     It is usually better to include it, but in cases like handling of access
-     tokens, it may be better to just include the type of the field.
-   - expected_type: The type that the field is expected to be.
+   ## Arguments
+    - `key`: The key of the field to extract.
+    - `js_object`: The JSON object to extract the field from.
+    - `show_value`: Whether to include the value of the field in the error
+      message. It is usually better to include it, but in cases like handling of
+      access tokens, it may be better to just include the type of the field.
+    - `expected_type`: The type that the field is expected to be.
 get_required_field (key : Text) js_object (show_value : Boolean = True) (expected_type = Any) = case js_object of
     _ : JS_Object ->
         handle_missing =
@@ -32,21 +34,22 @@ get_required_field (key : Text) js_object (show_value : Boolean = True) (expecte
         representation = if show_value then js_object.to_text else Meta.type_of js_object . to_display_text
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+representation+".")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that extracts an optional field from a response and handles
    unexpected response structure.
-
    This method treats the field missing or being set to `null` as the same.
 
-   Arguments:
-   - key: The key of the field to extract.
-   - js_object: The JSON object to extract the field from.
-   - if_missing: The value to return if the field is missing or `null`.
-   - show_value: Whether to include the value of the field in the error message.
-     It is usually better to include it, but in cases like handling of access
-     tokens, it may be better to just include the type of the field.
-   - expected_type: The type that the field is expected to be.
-     The type of `if_missing` is not checked against `expected_type`.
+   ## Arguments
+    - `key`: The key of the field to extract.
+    - `js_object`: The JSON object to extract the field from.
+    - `if_missing`: The value to return if the field is missing or `null`.
+    - `show_value`: Whether to include the value of the field in the error
+      message. It is usually better to include it, but in cases like handling of
+      access tokens, it may be better to just include the type of the field.
+    - `expected_type`: The type that the field is expected to be. The type of
+      `if_missing` is not checked against `expected_type`.
 get_optional_field (key : Text) js_object (~if_missing = Nothing) (show_value : Boolean = True) (expected_type = Any) = case js_object of
     _ : JS_Object ->
         result = js_object.get key if_missing=Nothing
@@ -59,8 +62,10 @@ get_optional_field (key : Text) js_object (~if_missing = Nothing) (show_value : 
         representation = if show_value then js_object.to_text else Meta.type_of js_object . to_display_text
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+representation+".")
 
-## PRIVATE
-   UNSTABLE
+## ---
+   private: true
+   unstable: true
+   ---
    Re-exports parts of the functionality of `http_request_as_json` function that
    is needed in tests.
    It should not be used anywhere else and may be removed in the near future.

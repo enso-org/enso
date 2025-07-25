@@ -1,4 +1,5 @@
 /** @file A page. */
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import Portal from '#/components/Portal'
 import InfoBar from '#/layouts/InfoBar'
 import TheModal from '#/pages/dashboard/components/TheModal'
@@ -15,17 +16,19 @@ export default function Page(props: PageProps) {
 
   return (
     <>
-      {children}
+      <ErrorBoundary>{children}</ErrorBoundary>
       {!hideInfoBar && (
         <div className="fixed right top z-1 m-2.5 text-primary">
           <InfoBar />
         </div>
       )}
-      <Portal>
-        <div className="select-none text-xs text-primary">
-          <TheModal />
-        </div>
-      </Portal>
+      <ErrorBoundary>
+        <Portal>
+          <div className="select-none text-xs text-primary">
+            <TheModal />
+          </div>
+        </Portal>
+      </ErrorBoundary>
     </>
   )
 }

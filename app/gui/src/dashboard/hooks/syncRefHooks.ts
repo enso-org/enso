@@ -12,9 +12,7 @@ export function useSyncRef<T>(value: T): MutableRefObject<T> {
 
     React compiler works on the file level, so disabling the rule for this one line is fine as it won't affect other files.
    */
-  // eslint-disable-next-line react-compiler/react-compiler
   if (ref.current !== value) {
-    // eslint-disable-next-line react-compiler/react-compiler
     ref.current = value
   }
 

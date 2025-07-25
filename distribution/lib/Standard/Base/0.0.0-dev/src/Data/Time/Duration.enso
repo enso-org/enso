@@ -24,34 +24,40 @@ polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Create an interval representing the duration between two points in time.
 
-   Arguments:
-   - start_inclusive: The start datetime of the duration, included.
-   - end_exclusive: The end datetime of the duration, excluded.
-   - timezone_aware: Whether the duration between two given times should be
-     aware of the timezone, that can be set for start or end times.
-
    Recommended to use `Duration.between` instead which provides defaults.
+
+   ## Arguments
+    - `start_inclusive`: The start datetime of the duration, included.
+    - `end_exclusive`: The end datetime of the duration, excluded.
+    - `timezone_aware`: Whether the duration between two given times should be
+      aware of the timezone, that can be set for start or end times.
 between_builtin : Date_Time -> Date_Time -> Boolean -> Duration
 between_builtin start_inclusive end_exclusive timezone_aware = @Builtin_Method "Duration.between_builtin"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Create a duration from time units.
 
-   Arguments:
-   - hours: hours
-   - minutes: minutes
-   - seconds: seconds
-   - milliseconds: milliseconds
-   - nanoseconds: nanoseconds
-
    Recommended to use `Duration.new` instead which provides defaults.
+
+   ## Arguments
+    - `hours`: hours
+    - `minutes`: minutes
+    - `seconds`: seconds
+    - `milliseconds`: milliseconds
+    - `nanoseconds`: nanoseconds
 new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new_builtin hours minutes seconds milliseconds nanoseconds = @Builtin_Method "Duration.new_builtin"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 ensure_duration : Any -> (Any -> Any) -> Any ! (Time_Error | Illegal_Argument)
 ensure_duration object ~action =
     case object of
@@ -64,65 +70,79 @@ ensure_duration object ~action =
 ## Represents the amount of time between two points in time.
 @Builtin_Type
 type Duration
-    ## ICON time
+    ## ---
+       icon: time
+       ---
        Create an interval representing the duration between two points in time.
 
-       Arguments:
-       - start_inclusive: The start datetime of the duration, included.
-       - end_exclusive: The end datetime of the duration, excluded.
-       - timezone_aware: Whether the duration between two given times should be
-         aware of the timezone, that can be set for start or end times.
+       ## Arguments
+        - `start_inclusive`: The start datetime of the duration, included.
+        - `end_exclusive`: The end datetime of the duration, excluded.
+        - `timezone_aware`: Whether the duration between two given times should
+          be aware of the timezone, that can be set for start or end times.
 
-       > Example
-         An hour interval between two points in time.
+       ## Examples
+       ### An hour interval between two points in time.
 
+       ```
              from Standard.Base import Date_Time
              import Standard.Base.Data.Time.Duration
 
              example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
+       ```
     between : Date_Time -> Date_Time -> Boolean -> Duration
     between start_inclusive end_exclusive timezone_aware=True =
         between_builtin start_inclusive end_exclusive timezone_aware
 
-    ## ICON time
+    ## ---
+       icon: time
+       ---
        Create a duration from time units.
 
-       Arguments:
-       - hours: hours
-       - minutes: minutes
-       - seconds: seconds
-       - milliseconds: milliseconds
-       - nanoseconds: nanoseconds
+       ## Arguments
+        - `hours`: hours
+        - `minutes`: minutes
+        - `seconds`: seconds
+        - `milliseconds`: milliseconds
+        - `nanoseconds`: nanoseconds
 
-       > Example
-         Duration of 2 hours.
+       ## Examples
+       ### Duration of 2 hours.
 
+       ```
              import Standard.Base.Data.Time.Duration
 
              example_duration = Duration.new hours=2
+       ```
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
     new (hours : Integer = 0) (minutes : Integer = 0) (seconds : Integer = 0) (milliseconds : Integer = 0) (nanoseconds : Integer = 0) =
         new_builtin hours minutes seconds milliseconds nanoseconds
 
-    ## ICON time
+    ## ---
+       icon: time
+       ---
        Create a zero (empty) duration.
-       > Example
-         Folding a vector of durations.
 
+       ## Examples
+       ### Folding a vector of durations.
+
+       ```
              import Standard.Base.Data.Time.Duration
 
              durations = [(Duration.new seconds=1), (Duration.new seconds=2), (Duration.new seconds=3)]
              example_sum = durations.fold Duration.zero (+)
+       ```
     zero : Duration
     zero = Duration.new
 
-    ## ADVANCED
-       ICON time
-
+    ## ---
+       advanced: true
+       icon: time
+       ---
        Time the evaluation of a function, return a Pair of Duration and Result
 
-       Arguments:
-       - function: Function to execute.
+       ## Arguments
+        - `function`: Function to execute.
     time_execution : Any -> Pair
     time_execution ~function =
         start = System.nano_time
@@ -131,151 +151,193 @@ type Duration
         duration = Duration.new nanoseconds=(end - start)
         Pair.new duration result
 
-    ## ALIAS add duration
-       GROUP Operators
-       ICON time
+    ## ---
+       aliases: [add duration]
+       group: Operators
+       icon: time
+       ---
        Add the specified amount of time to this duration.
 
-       Arguments:
-       - that: The duration to add to `self`.
+       ## Arguments
+        - `that`: The duration to add to `self`.
 
-       > Example
-         Add 6 seconds to a duration of 3 minutes
+       ## Examples
+       ### Add 6 seconds to a duration of 3 minutes
 
+       ```
              import Standard.Base.Data.Time.Duration
 
              example_add = (Duration.new minutes=3) + (Duration.new seconds=6)
 
-       > Example
-         Add 12 hours to a duration of 30 minutes.
+       ```
 
+       ### Add 12 hours to a duration of 30 minutes.
+
+       ```
              import Standard.Base.Data.Time.Duration
 
              example_add = (Duration.new minutes=30) + (Duration.new hours=12)
+       ```
     + : Duration -> Duration ! Time_Error
     + self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.plus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
-    ## ALIAS subtract duration
-       GROUP Operators
-       ICON time
+    ## ---
+       aliases: [subtract duration]
+       group: Operators
+       icon: time
+       ---
        Subtract the specified amount of time from this duration.
 
-       Arguments:
-       - that: The duration to subtract from `self`.
+       ## Arguments
+        - `that`: The duration to subtract from `self`.
 
-       > Example
-         Substract 30 minutes from a duration of 6 hours.
+       ## Examples
+       ### Subtract 30 minutes from a duration of 6 hours.
 
+       ```
              import Standard.Base.Data.Time.Duration
 
              example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
+       ```
     - : Duration -> Duration ! Time_Error
     - self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.minus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the portion of the duration expressed in nanoseconds.
 
-       > Example
-         Get the portion of the duration expressed in nanoseconds.
+       ## Examples
+       ### Get the portion of the duration expressed in nanoseconds.
 
+       ```
              import Standard.Examples
 
              example_nanos = Examples.duration.nanoseconds
+       ```
     nanoseconds : Integer
     nanoseconds self = @Builtin_Method "Duration.nanoseconds"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the portion of the duration expressed in milliseconds.
 
-       > Example
-         Get the portion of the duration expressed in milliseconds.
+       ## Examples
+       ### Get the portion of the duration expressed in milliseconds.
 
+       ```
              import Standard.Examples
 
              example_millis = Examples.duration.milliseconds
+       ```
     milliseconds : Integer
     milliseconds self = @Builtin_Method "Duration.milliseconds"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the portion of the duration expressed in seconds.
 
-       > Example
-         Get the portion of the duration expressed in seconds.
+       ## Examples
+       ### Get the portion of the duration expressed in seconds.
 
+       ```
              import Standard.Examples
 
              example_seconds = Examples.duration.seconds
+       ```
     seconds : Integer
     seconds self = @Builtin_Method "Duration.seconds"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the portion of the duration expressed in minutes.
 
-       > Example
-         Get the portion of the duration expressed in minutes.
+       ## Examples
+       ### Get the portion of the duration expressed in minutes.
 
+       ```
              import Standard.Examples
 
              example_minutes = Examples.duration.minutes
+       ```
     minutes : Integer
     minutes self = @Builtin_Method "Duration.minutes"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the portion of the duration expressed in hours.
 
-       > Example
-         Get the portion of the duration expressed in hours.
+       ## Examples
+       ### Get the portion of the duration expressed in hours.
 
+       ```
              import Standard.Examples
 
              example_hours = Examples.duration.milliseconds
+       ```
     hours : Integer
     hours self = @Builtin_Method "Duration.hours"
 
-    ## GROUP DateTime
-       ICON convert
+    ## ---
+       group: DateTime
+       icon: convert
+       ---
        Convert the duration to total milliseconds.
     total_milliseconds : Integer ! Illegal_State
     total_milliseconds self =
         Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
             Error.throw (Illegal_State.Error "The duration is too large to convert it to milliseconds")
 
-    ## GROUP DateTime
-       ICON convert
+    ## ---
+       group: DateTime
+       icon: convert
+       ---
        Convert the duration to total seconds.
     total_seconds : Float ! Illegal_State
     total_seconds self = self.total_milliseconds / 1000.0
 
-    ## GROUP DateTime
-       ICON convert
+    ## ---
+       group: DateTime
+       icon: convert
+       ---
        Convert the duration to total minutes.
     total_minutes : Float ! Illegal_State
     total_minutes self = self.total_seconds / 60.0
 
-    ## GROUP DateTime
-       ICON convert
+    ## ---
+       group: DateTime
+       icon: convert
+       ---
        Convert the duration to total minutes.
     total_hours : Float ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a JavaScript Object representing a Duration.
 
-       > Example
-         Convert a duration of 10 seconds to a JS_Object.
+       ## Examples
+       ### Convert a duration of 10 seconds to a JS_Object.
 
+       ```
              example_to_json = (Duration.new seconds=10).to_js_object
+       ```
     to_js_object : JS_Object
     to_js_object self =
         v = Vector.build initial_capacity=7 builder->
@@ -288,7 +350,9 @@ type Duration
             if self.nanoseconds==0 . not then builder.append ["nanoseconds", self.nanoseconds]
         JS_Object.from_pairs v
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert Duration to a friendly string.
     to_display_text : Text
     to_display_text self = if self == Duration.zero then "0s" else

@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
-import { AssetType, EnsoPath } from '#/services/Backend'
+import { EnsoPath } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
@@ -11,7 +11,14 @@ import { provideAsyncResources } from '@/providers/asyncResources'
 import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
-import { isRemoteAssetPath } from 'enso-common/src/services/Backend'
+import {
+  AssetDetailsResponse,
+  AssetType,
+  extractTypeFromId,
+  isRemoteAssetPath,
+  ProjectAsset,
+  ProjectId,
+} from 'enso-common/src/services/Backend'
 
 const Dashboard = reactComponent(DashboardReact)
 
@@ -29,15 +36,18 @@ export const dataLoader: DataLoader<DashboardProps> = {
     const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
     if (backend == null) return Ok({})
     const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
-    if (resolvedPath == null) return Ok({})
-    const asset = await queryClient.fetchQuery(
-      backendQueryOptions('getAssetDetails', [resolvedPath.id], backend),
-    )
-    if (asset?.type === AssetType.project) {
-      return Ok({ projectToOpen: { asset: { ...asset, ensoPath: path }, backend: backend.type } })
-    } else {
-      return Ok({})
+    const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
+    if (typedAsset?.type !== AssetType.project) return Ok({})
+
+    const options = backendQueryOptions('getAssetDetails', [typedAsset.id], backend)
+    const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
+    if (!assetResponse) return Ok({})
+
+    const asset: ProjectAsset = {
+      ...assetResponse,
+      ensoPath: path,
     }
+    return Ok({ projectToOpen: { asset, backend: backend.type } })
   },
 }
 </script>
