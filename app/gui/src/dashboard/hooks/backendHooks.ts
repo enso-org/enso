@@ -15,6 +15,7 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
+import { omit } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
 import { useBackends, useFullUserSession } from '$/providers/react'
@@ -317,7 +318,7 @@ export interface SearchDirectoryQueryOptions {
 /** Build a query options object to fetch the children of a directory. */
 export function searchDirectoryQueryOptions(options: SearchDirectoryQueryOptions) {
   const { backend, ...restWithInfinite } = options
-  const { infinite, ...rest } = restWithInfinite
+  const rest = omit(restWithInfinite, 'infinite')
   return {
     queryKey: ((): QueryKey => [backend.type, 'searchDirectory', restWithInfinite])(),
     queryFn: (
