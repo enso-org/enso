@@ -1,0 +1,21 @@
+private
+
+type A
+    a = "a"
+type B
+    B v
+
+    b self = "b"
+
+type C
+    C v
+
+    c self = "c"
+
+B.from (that:A) = B.B that
+C.from (that:A) = C.C that
+
+abc = A:A&B&C
+ac_hidden_b =
+    v = abc
+    v:A&C

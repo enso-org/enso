@@ -1,0 +1,43 @@
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Internal.Meta_Helpers
+from project.Types.Any_Intersection import A, B, C, abc, ac_hidden_b
+
+add_specs suite_builder =
+    suite_builder.group "Any Intersection Tests" group_builder->
+        type_name = Meta_Helpers.simple_type_name_builtin
+
+        extract_b_1 b:B -> B = b
+        extract_b_2 b -> B = b
+        extract_b_3 b = b:B
+        extract_b_4 b:B = b
+
+        group_builder.specify "Extract B visible type" <|
+            v = abc
+            r1 = extract_b_1 v
+            r2 = extract_b_2 v
+            r3 = extract_b_3 v
+            r4 = extract_b_4 v
+
+            type_name r1 . should_equal "B & ~A & ~C"
+            type_name r2 . should_equal "B & ~A & ~C"
+            type_name r3 . should_equal "B & ~A & ~C"
+            type_name r4 . should_equal "B & ~A & ~C"
+
+        group_builder.specify "Extract B hidden type" <|
+            v = ac_hidden_b
+
+            r1 = extract_b_1 v
+            r2 = extract_b_2 v
+            r3 = extract_b_3 v
+            r4 = extract_b_4 v
+
+            type_name r1 . should_equal "B"
+            type_name r2 . should_equal "B & ~A & ~C"
+            type_name r3 . should_equal "B & ~A & ~C"
+            type_name r4 . should_equal "B"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

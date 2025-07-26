@@ -209,6 +209,79 @@ In short: when a [conversion](../syntax/conversions.md) is needed to satisfy a
 type check a new value is created to satisfy just the types requested in the
 check.
 
+## Signature vs. Cast
+
+There are two slightly different places where _type checking_ occurs:
+
+- function signature definitions - e.g.
+  `inc value:Integer by:Integer=1 -> Integer = value+by`
+- explicit runtime type checks - e.g. `new_value = value:Integer`
+
+These _type checks_ are almost the same, except small difference with respect to
+_intersection types_. While the _function signature checks_ consider **only
+visible part** of a type, the _explicit type checks_ "try hard" and **also
+include the hidden part** of a type. As a result there two checks maybe yield a
+different result:
+
+```ruby
+id x -> Text = x
+
+t1 = v:Text
+t2 = id v
+```
+
+The values `t1` and `t2` are guaranteed to be of type `Text` if the type check
+succeeds (and doesn't `Panic`). However it is possible that `t1` becomes `Text`
+and `t2` definition panics. Imagine a value defined as
+
+```ruby
+both = 42 : Integer&Text # requires a conversion to Text to be around
+v = both:Integer # hides the Text type
+```
+
+This behavior is important for
+[static type checking](./inference-and-checking.md) which operates _only on
+visible types_ of a value. Otherwise it wouldn't be possible to report
+[meaningful type mismatch errors](./inference-and-checking.md#relation-to-intersection-types).
+
+### Return Type Checks
+
+The small difference in treating _hidden types_ implies that there is a
+difference in following two definitions...
+
+```ruby
+id x:Text -> Text = x
+id x = x:Text
+```
+
+...with respect to _intersection types_. Both type check the returned value to
+`Text`, but the first one only considers _visible types_, while the second one
+considers also _hidden types_.
+
+### Any type Check
+
+Another implication of treating _hidden types_ differently implies that
+[open type check](#open-type-check) behaves differently in
+
+```ruby
+id x:Text&Any -> Text&Any = x
+id x = x:Text&Any
+```
+
+again. The first one only considers _visible types_, while the second one
+considers also _hidden types_. As a project of this behavior, there is also a
+difference in a simple _Any type check_:
+
+```ruby
+id x:Any -> Any = x
+id x = x:Any
+```
+
+the first one is a no-op as every value in Enso is of type `Any`. The second
+explicit cast of `x:Any` however **considers the hidden types** and makes them
+all visible. Explicit cast to `Any` instructs the runtime to _unhide all types_
+of a value and make them _visible_.
+
 ## Equality & Hash Code
 
 A value of an intersection type is equal with other value, if all values _it has
