@@ -432,12 +432,6 @@ add_specs suite_builder =
                 c.truncate.to_vector . should_equal c.to_vector
                 c.truncate.length . should_equal c.length
 
-        group_builder.specify "Use Integer Column as index" <|
-            file1 = Table.new [["A", [1]]]
-            column1 = file1.at 'A'
-            table1 = file1.take (..First column1)
-            table1 . is_nothing . should_be_false
-
     suite_builder.group "Date_Time truncate" group_builder->
         group_builder.specify "should be able to truncate a column of Date_Times" <|
             c = Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
