@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Test import all
 import Standard.Base.Internal.Meta_Helpers
+
 from project.Types.Any_Intersection import A, B, C, abc, ac_hidden_b
 
 add_specs suite_builder =
@@ -14,6 +15,8 @@ add_specs suite_builder =
 
         group_builder.specify "Extract B visible type" <|
             v = abc
+            type_name v . should_equal "A & B & C"
+
             r1 = extract_b_1 v
             r2 = extract_b_2 v
             r3 = extract_b_3 v
@@ -27,15 +30,15 @@ add_specs suite_builder =
         group_builder.specify "Extract B hidden type" <|
             v = ac_hidden_b
 
-            r1 = extract_b_1 v
+            r1 = Panic.recover Any <| extract_b_1 v
             r2 = extract_b_2 v
             r3 = extract_b_3 v
-            r4 = extract_b_4 v
+            r4 = Panic.recover Any <| extract_b_4 v
 
-            type_name r1 . should_equal "B"
+            type_name r1 . should_equal "Error"
             type_name r2 . should_equal "B & ~A & ~C"
             type_name r3 . should_equal "B & ~A & ~C"
-            type_name r4 . should_equal "B"
+            type_name r4 . should_equal "Error"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

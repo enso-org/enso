@@ -1,5 +1,7 @@
 private
 
+import project.Types.Any_Intersection_Conv
+
 type A
     a = "a"
 type B
@@ -12,10 +14,5 @@ type C
 
     c self = "c"
 
-B.from (that:A) = B.B that
-C.from (that:A) = C.C that
-
-abc = A:A&B&C
-ac_hidden_b =
-    v = abc
-    v:A&C
+abc = Any_Intersection_Conv.abc
+ac_hidden_b = Any_Intersection_Conv.ac_hidden_b
