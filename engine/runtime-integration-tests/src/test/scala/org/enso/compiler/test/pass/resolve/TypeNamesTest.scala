@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.resolve
 
+import org.enso.test.utils.IRDumperTestWrapper
 import org.enso.compiler.Passes
 import org.enso.compiler.pass.MiniIRPass
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -10,8 +11,6 @@ import org.enso.compiler.data.BindingsMap.ResolutionNotFound
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.compiler.test.CompilerTest
-import org.enso.compiler.dump.service.IRDumpFactoryService
-import org.enso.compiler.dump.service.IRSource
 
 class TypeNamesTest extends CompilerTest {
 
@@ -46,23 +45,10 @@ class TypeNamesTest extends CompilerTest {
 
       if (orig != now) {
         val modName = moduleContext.getName().toString()
-        val dumper  = IRDumpFactoryService.DEFAULT.create(modName)
-        val origSrc = new IRSource(
-          orig,
-          modName,
-          "Original",
-          null,
-          null
-        );
-        dumper.dumpModule(origSrc)
-        val newSrc = new IRSource(
-          now,
-          modName,
-          "New",
-          null,
-          null
-        );
-        dumper.dumpModule(newSrc)
+        val dumper  = new IRDumperTestWrapper()
+        dumper.dump(orig, modName, "Original pass")
+        dumper.dump(now, modName, "New pass")
+        dumper.close()
         throw new IllegalStateException()
       }
       return now
