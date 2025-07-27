@@ -386,11 +386,17 @@ class Compiler(
           isGeneratingDocs = generateDocs
         )
         val compilerOutput =
-          runGlobalTypingPasses(
-            module.getIr(),
-            moduleContext,
-            irDumper = getOrCreateDumper(module)
-          )
+          try {
+            runGlobalTypingPasses(
+              module.getIr(),
+              moduleContext,
+              irDumper = getOrCreateDumper(module)
+            )
+          } catch {
+            case err: CompilerError =>
+              err.attachInfo("At " + moduleContext.getName())
+              throw err
+          }
 
         context.updateModule(
           module,
