@@ -1,5 +1,8 @@
-package org.enso.compiler.pass.resolve
+package org.enso.compiler.test.pass.resolve
 
+import org.enso.compiler.pass.resolve.MethodDefinitions
+import org.enso.compiler.pass.resolve.TypeSignatures
+import org.enso.compiler.pass.resolve.SuspendedArguments
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
@@ -15,7 +18,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 
 /** Resolves and desugars referent name occurrences in type positions.
   */
-case object TypeNames extends IRPass {
+case object TypeNamesOrig extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = BindingsMap.Resolution

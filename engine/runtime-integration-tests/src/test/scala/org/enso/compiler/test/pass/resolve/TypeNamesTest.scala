@@ -1,6 +1,7 @@
 package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
+import org.enso.compiler.pass.MiniIRPass
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Diagnostic, Expression, Module}
@@ -9,6 +10,8 @@ import org.enso.compiler.data.BindingsMap.ResolutionNotFound
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.compiler.test.CompilerTest
+import org.enso.compiler.dump.service.IRDumpFactoryService
+import org.enso.compiler.dump.service.IRSource
 
 class TypeNamesTest extends CompilerTest {
 
@@ -16,7 +19,7 @@ class TypeNamesTest extends CompilerTest {
 
   val passes = new Passes(defaultConfig)
 
-  val precursorPasses: PassGroup = passes.getPrecursors(TypeNames).get
+  val precursorPasses: PassGroup = passes.getPrecursors(TypeNames.INSTANCE).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
@@ -36,7 +39,33 @@ class TypeNamesTest extends CompilerTest {
       * @return [[ir]], with all type signatures resolved
       */
     def resolve(implicit moduleContext: ModuleContext): Module = {
-      TypeNames.runModule(ir, moduleContext)
+      val orig = TypeNamesOrig.runModule(ir.duplicate(), moduleContext)
+
+      val mini = TypeNames.INSTANCE.createForModuleCompilation(moduleContext)
+      val now  = MiniIRPass.compile(classOf[Module], ir, mini)
+
+      if (orig != now) {
+        val modName = moduleContext.getName().toString()
+        val dumper  = IRDumpFactoryService.DEFAULT.create(modName)
+        val origSrc = new IRSource(
+          orig,
+          modName,
+          "Original",
+          null,
+          null
+        );
+        dumper.dumpModule(origSrc)
+        val newSrc = new IRSource(
+          now,
+          modName,
+          "New",
+          null,
+          null
+        );
+        dumper.dumpModule(newSrc)
+        throw new IllegalStateException()
+      }
+      return now
     }
   }
 
@@ -53,7 +82,12 @@ class TypeNamesTest extends CompilerTest {
       * @return [[ir]], with all type signatures resolved
       */
     def resolve(implicit inlineContext: InlineContext): Expression = {
-      TypeNames.runExpression(ir, inlineContext)
+      val mini = TypeNames.INSTANCE.createForInlineCompilation(inlineContext)
+      if (mini != null) {
+        MiniIRPass.compile(classOf[Expression], ir, mini)
+      } else {
+        ir
+      }
     }
   }
 

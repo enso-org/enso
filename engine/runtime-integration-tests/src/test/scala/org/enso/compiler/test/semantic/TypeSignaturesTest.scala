@@ -1,5 +1,6 @@
 package org.enso.compiler.test.semantic
 
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module, Type}
 import org.enso.compiler.core.ir
@@ -63,19 +64,24 @@ trait TypeMatchers {
       case (Name(n), t: ir.Name.Literal) =>
         Option.when(n != t.name)((sig, expr, "names do not match"))
       case (AnyQualName(n), _) =>
-        val meta = expr.getMetadata(TypeNames)
+        val meta = expr.getMetadata(TypeNames.INSTANCE)
         meta match {
           case None =>
             Some((sig, expr, "the expression does not have a resolution"))
           case Some(resolution) =>
-            if (resolution.target.qualifiedName == n) {
+            if (
+              resolution
+                .asInstanceOf[BindingsMap.Resolution]
+                .target
+                .qualifiedName == n
+            ) {
               None
             } else {
               Some(
                 (
                   sig,
                   expr,
-                  s"The resolution is ${resolution.target.qualifiedName}, but expected ${n}"
+                  s"The resolution is ${resolution.asInstanceOf[BindingsMap.Resolution].target.qualifiedName}, but expected ${n}"
                 )
               )
             }

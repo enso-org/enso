@@ -28,7 +28,7 @@ import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns;
 import org.enso.compiler.pass.resolve.Patterns$;
-import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeNames;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
@@ -153,7 +153,7 @@ public final class NameResolutionTest {
           assertThat(signatureMeta.signature(), instanceOf(Name.Qualified.class));
           var res =
               MetadataInteropHelpers.getMetadataOrNull(
-                  signatureMeta.signature(), TypeNames$.MODULE$, BindingsMap.Resolution.class);
+                  signatureMeta.signature(), TypeNames.INSTANCE, BindingsMap.Resolution.class);
           assertThat(res, is(notNullValue()));
           assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
           assertThat(res.target().qualifiedName().toString(), is("local.Proj.My_Module.My_Type"));
@@ -205,7 +205,7 @@ public final class NameResolutionTest {
           var ascribedTypeName = ((Name.Qualified) defArg.ascribedType().get());
           var res =
               MetadataInteropHelpers.getMetadataOrNull(
-                  ascribedTypeName, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+                  ascribedTypeName, TypeNames.INSTANCE, BindingsMap.Resolution.class);
           assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
           assertThat(res.target().qualifiedName().toString(), is("local.Proj.My_Module.My_Type"));
         });
@@ -255,7 +255,7 @@ public final class NameResolutionTest {
       var ascribedTypeName = ((Name.Qualified) defArg.ascribedType().get());
       var res =
           MetadataInteropHelpers.getMetadataOrNull(
-              ascribedTypeName, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+              ascribedTypeName, TypeNames.INSTANCE, BindingsMap.Resolution.class);
       assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
       assertThat(res.target().qualifiedName().toString(), is("local.Lib.My_Module.My_Type"));
     }
@@ -350,7 +350,7 @@ public final class NameResolutionTest {
       var ascribedTypeName = ((Name.Qualified) defArg.ascribedType().get());
       var res =
           MetadataInteropHelpers.getMetadataOrNull(
-              ascribedTypeName, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+              ascribedTypeName, TypeNames.INSTANCE, BindingsMap.Resolution.class);
       assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
       assertThat(res.target().qualifiedName().toString(), is("local.Lib.Data.Numbers.Integer"));
     }
