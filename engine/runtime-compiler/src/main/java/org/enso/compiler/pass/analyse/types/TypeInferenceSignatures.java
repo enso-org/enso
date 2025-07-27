@@ -17,7 +17,7 @@ import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns$;
-import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeNames;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.scala.wrapper.ScalaConversions;
 import org.slf4j.Logger;
@@ -68,7 +68,7 @@ public final class TypeInferenceSignatures implements IRPass {
             BindingAnalysis$.MODULE$,
             GlobalNames$.MODULE$,
             FullyQualifiedNames$.MODULE$,
-            TypeNames$.MODULE$,
+            TypeNames.INSTANCE,
             Patterns$.MODULE$,
             TypeSignatures$.MODULE$);
     return ScalaConversions.seq(passes);

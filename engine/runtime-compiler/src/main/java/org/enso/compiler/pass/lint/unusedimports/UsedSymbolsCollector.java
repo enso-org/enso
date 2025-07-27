@@ -28,7 +28,7 @@ import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations;
 import org.enso.compiler.pass.resolve.Patterns$;
-import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeNames;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
@@ -296,7 +296,7 @@ final class UsedSymbolsCollector {
 
   private static BindingsMap.Resolution getTypeNameMeta(IR ir) {
     return MetadataInteropHelpers.getMetadataOrNull(
-        ir, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+        ir, TypeNames.INSTANCE, BindingsMap.Resolution.class);
   }
 
   private static BindingsMap.Resolution getMethodDefinitionsMeta(IR ir) {

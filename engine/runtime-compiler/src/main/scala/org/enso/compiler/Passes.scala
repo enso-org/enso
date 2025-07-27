@@ -72,7 +72,7 @@ class Passes(config: CompilerConfig) {
       AliasAnalysis,
       FullyQualifiedNames,
       GlobalNames,
-      TypeNames,
+      TypeNames.INSTANCE,
       MethodCalls,
       FullyAppliedFunctionUses,
       AliasAnalysis

@@ -23,7 +23,7 @@ import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.ModuleAnnotations$;
 import org.enso.compiler.pass.resolve.Patterns$;
-import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeNames;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
@@ -49,7 +49,7 @@ import org.enso.persist.Persistance;
 @Persistable(clazz = IgnoredBindings$.class, id = 1206)
 @Persistable(clazz = Patterns$.class, id = 1207)
 @Persistable(clazz = TailCall.class, id = 1208)
-@Persistable(clazz = TypeNames$.class, id = 1209)
+@Persistable(clazz = TypeNames.class, id = 1209)
 @Persistable(clazz = TypeSignatures$.class, id = 1210)
 @Persistable(clazz = DocumentationComments$.class, id = 1211)
 @Persistable(clazz = ModuleAnnotations$.class, id = 1212)

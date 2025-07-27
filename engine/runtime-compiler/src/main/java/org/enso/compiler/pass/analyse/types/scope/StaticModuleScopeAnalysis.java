@@ -27,7 +27,7 @@ import org.enso.compiler.pass.analyse.types.TypeResolver;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.MethodDefinitions;
-import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeNames;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
 import org.slf4j.Logger;
@@ -56,7 +56,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
             GlobalNames$.MODULE$,
             BindingAnalysis$.MODULE$,
             FullyQualifiedNames$.MODULE$,
-            TypeNames$.MODULE$,
+            TypeNames.INSTANCE,
             MethodDefinitions.INSTANCE,
             TypeInferenceSignatures.INSTANCE);
     return ScalaConversions.seq(passes);

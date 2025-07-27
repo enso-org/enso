@@ -538,8 +538,10 @@ final class SuggestionBuilder[A: IndexedSource](
         buildTypeSignature(tpeError.typed)
       case tname: Name =>
         tname
-          .getMetadata(TypeNames)
-          .map(t => buildResolvedTypeName(t.target))
+          .getMetadata(TypeNames.INSTANCE)
+          .map(t =>
+            buildResolvedTypeName(t.asInstanceOf[BindingsMap.Resolution].target)
+          )
           .getOrElse(TypeArg.Value(QualifiedName.simpleName(tname.name)))
 
       case _ =>

@@ -17,7 +17,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.resolve.MethodDefinitions;
-import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeNames;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
@@ -170,7 +170,7 @@ final class DocsUtils {
   }
 
   private static QualifiedName extractFqnOrNull(IR ir) {
-    var typeNameOpt = ir.passData().get(TypeNames$.MODULE$);
+    var typeNameOpt = ir.passData().get(TypeNames.INSTANCE);
     if (typeNameOpt.isDefined()) {
       var typeName = (BindingsMap.Resolution) typeNameOpt.get();
       return typeName.target().qualifiedName();

@@ -11,7 +11,7 @@ import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.resolve.Patterns$;
-import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeNames;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
@@ -83,7 +83,7 @@ public class TypeResolver {
 
   private TypeRepresentation getResolvedTypeFromBindingsMap(Name name) {
     BindingsMap.Resolution resolutionOrNull =
-        getMetadataOrNull(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+        getMetadataOrNull(name, TypeNames.INSTANCE, BindingsMap.Resolution.class);
 
     if (resolutionOrNull == null) {
       // As fallback, try getting from the Patterns pass.

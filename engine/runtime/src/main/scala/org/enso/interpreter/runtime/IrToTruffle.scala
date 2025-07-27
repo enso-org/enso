@@ -836,7 +836,7 @@ class IrToTruffle(
     case err: errors.Resolution =>
       TypeCheckValueNode.fail("unresolved symbol " + err.originalName.name)
     case t => {
-      val res = t.getMetadata(TypeNames)
+      val res = t.getMetadata(TypeNames.INSTANCE)
       res match {
         case Some(
               BindingsMap
