@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Google import all
 
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet, Not_All_Rows_Downloaded, No_Rows
 import Standard.Google.Google_Sheets_Workbook.Google_API_Error
 
@@ -265,8 +266,12 @@ add_specs suite_builder =
             ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] on_problems=..Report_Error
             ws.should_fail_with Google_API_Error
             ws.catch.to_display_text . should_equal 'Unable to parse range: BadSheetName'
-
-
+        group_builder.specify "can read multiple sheets - error case - no valid sheets is an error" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['BadSheetName','BadSheetName2']
+            ws.should_fail_with Illegal_Argument.Error
+            ws.catch.to_display_text . should_equal 'No valid sheets found.'
 
 ## No valid sheets errrors
         
