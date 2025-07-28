@@ -253,6 +253,13 @@ add_specs suite_builder =
             ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData']
             ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData','2RowStringData']],['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
             Problems.get_attached_warnings ws . should_equal [(No_Rows.Warning "The sheet BadSheetName failed to load, so it is not included in the `As_Merged_Table` result of `read_many`. The error was: Unable to parse range: BadSheetName")]
+        group_builder.specify "can read multiple sheets - error case - can ignore errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] on_problems=..Ignore
+            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData','2RowStringData']],['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
+            Problems.get_attached_warnings ws . should_equal []
+
 
 
 ## No valid sheets errrors
