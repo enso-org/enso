@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
@@ -76,16 +77,48 @@ final class MiniPassTraverser {
   private static List<IR> enqueueSubExpressions(
       Collection<MiniPassTraverser> queue, IR ir, MiniIRPass miniPass) {
     var childExpressions = new ArrayList<IR>();
-    var i = new int[1];
+    var i = new AtomicInteger();
+    if (ir instanceof Module mod) {
+      mod.imports()
+          .foreach(
+              v -> {
+                iterateSubExpressions(i, childExpressions, queue, v, miniPass);
+                return null;
+              });
+      mod.exports()
+          .foreach(
+              v -> {
+                iterateSubExpressions(i, childExpressions, queue, v, miniPass);
+                return null;
+              });
+      mod.bindings()
+          .foreach(
+              v -> {
+                iterateSubExpressions(i, childExpressions, queue, v, miniPass);
+                return null;
+              });
+    } else {
+      iterateSubExpressions(i, childExpressions, queue, ir, miniPass);
+    }
+    return childExpressions;
+  }
+
+  private static void iterateSubExpressions(
+      AtomicInteger counter,
+      List<IR> childExpressions,
+      Collection<MiniPassTraverser> queue,
+      IR ir,
+      MiniIRPass miniPass) {
     ir.mapExpressions(
         (ch) -> {
           var preparedMiniPass = miniPass.prepare(ir, ch);
           childExpressions.add(ch);
           if (preparedMiniPass != null) {
-            queue.add(new MiniPassTraverser(preparedMiniPass, childExpressions, i[0]++));
+            queue.add(
+                new MiniPassTraverser(
+                    preparedMiniPass, childExpressions, counter.getAndIncrement()));
           }
           return ch;
         });
-    return childExpressions;
   }
 }
