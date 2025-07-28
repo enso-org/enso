@@ -1,4 +1,5 @@
 import { type Opt } from '@/util/data/opt'
+import { ToValue } from '@/util/reactivity'
 import {
   autoUpdate,
   offset,
@@ -8,7 +9,7 @@ import {
   type OffsetOptions,
   type SizeOptions,
 } from '@floating-ui/vue'
-import { computed, type Ref } from 'vue'
+import { computed, toValue, type Ref } from 'vue'
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
@@ -54,12 +55,19 @@ function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
 }
 
 /** Rules for positioning the dropdown. */
-function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement?: Ref<Opt<HTMLElement>>) {
+function middleware(
+  isTopLevel: boolean,
+  limitWidth: boolean,
+  rootElement?: ToValue<Opt<HTMLElement>>,
+) {
   return computed(() => [
     offset(offsetSubmenu(isTopLevel)),
     size(sizeOptions(limitWidth)),
     // Try to keep the dropdown within node's bounds.
-    shift(() => (rootElement?.value && isTopLevel ? { boundary: rootElement.value } : {})),
+    shift(() => {
+      const root = toValue(rootElement)
+      return root && isTopLevel ? { boundary: root } : {}
+    }),
     shift(), // Always keep within screen bounds, overriding node bounds.
   ])
 }
@@ -68,7 +76,7 @@ function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement?: Ref<
 export function activityDropdownStyles(
   floatReference: Ref<Opt<HTMLElement>>,
   dropdownElement: Ref<Opt<HTMLElement>>,
-  rootElement: Ref<Opt<HTMLElement>>,
+  rootElement: ToValue<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
     placement: 'bottom-start',
@@ -82,7 +90,7 @@ export function submenuDropdownStyles(
   floatReference: Ref<Opt<HTMLElement>>,
   dropdownElement: Ref<Opt<HTMLElement>>,
   isTopLevel: boolean,
-  rootElement?: Ref<Opt<HTMLElement>>,
+  rootElement?: ToValue<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
     placement: isTopLevel ? 'bottom-start' : 'right',

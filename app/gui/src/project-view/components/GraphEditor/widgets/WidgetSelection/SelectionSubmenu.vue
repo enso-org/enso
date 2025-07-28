@@ -6,7 +6,7 @@ import { unrefElement } from '@/composables/events'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
 import { Opt } from '@/util/data/opt'
-import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
+import { computed, ComputedRef, ref, toRef, toValue, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
@@ -111,7 +111,7 @@ export interface SubmenuComponent {
 </script>
 
 <template>
-  <ConditionalTeleport :target="rootElement">
+  <ConditionalTeleport :target="toValue(rootElement)">
     <div
       ref="dropdownElement"
       :style="floatingStyles"
