@@ -340,7 +340,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [fetchNextAssetPage, assetsPages.data?.pages])
 
-  const { visibleItems } = useAssetsTableItems({ parentId: currentDirectoryId, assets })
+  useAssetsTableItems({ parentId: currentDirectoryId, assets })
 
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -594,7 +594,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
     const { selectedAssets } = driveStore.getState()
     const prevIndex = mostRecentlySelectedIndexRef.current
-    const item = prevIndex == null ? null : visibleItems[prevIndex]
+    const item = prevIndex == null ? null : assets[prevIndex]
     if (selectedAssets.length === 1 && item != null) {
       switch (event.key) {
         case 'Enter':
@@ -685,7 +685,7 @@ function AssetsTable(props: AssetsTableProps) {
         const index =
           event.key === 'ArrowUp' ?
             Math.max(0, oldIndex - 1)
-          : Math.min(visibleItems.length - 1, oldIndex + 1)
+          : Math.min(assets.length - 1, oldIndex + 1)
         setMostRecentlySelectedIndex(index, true)
         if (event.shiftKey) {
           event.preventDefault()
@@ -696,7 +696,7 @@ function AssetsTable(props: AssetsTableProps) {
           }
           const startIndex = Math.min(index, selectionStartIndexRef.current)
           const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
-          const selection = visibleItems.slice(startIndex, endIndex)
+          const selection = assets.slice(startIndex, endIndex)
           setSelectedAssets(selection)
         } else if (event.ctrlKey) {
           event.preventDefault()
@@ -705,7 +705,7 @@ function AssetsTable(props: AssetsTableProps) {
         } else if (index !== prevIndex) {
           event.preventDefault()
           event.stopPropagation()
-          const newItem = visibleItems[index]
+          const newItem = assets[index]
           if (newItem != null) {
             setSelectedAssets([newItem])
           }
@@ -968,7 +968,7 @@ function AssetsTable(props: AssetsTableProps) {
         if (range == null) {
           setVisuallySelectedKeys(null)
         } else {
-          const otherAssets = visibleItems.slice(range.start, range.end).map((node) => node)
+          const otherAssets = assets.slice(range.start, range.end).map((node) => node)
           setVisuallySelectedKeys(
             new Set(calculateNewSelection(event, otherAssets, () => []).map((asset) => asset.id)),
           )
@@ -983,7 +983,7 @@ function AssetsTable(props: AssetsTableProps) {
     onMouseEvent(event)
     const range = dragSelectionRangeRef.current
     if (range != null) {
-      const otherAssets = visibleItems.slice(range.start, range.end).map((node) => node)
+      const otherAssets = assets.slice(range.start, range.end).map((node) => node)
       setSelectedAssets(calculateNewSelection(event, otherAssets, () => []))
     }
     setVisuallySelectedKeys(null)
@@ -1001,7 +1001,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const onRowClick = useEventCallback(({ asset }: AssetRowInnerProps, event: ReactMouseEvent) => {
     event.stopPropagation()
-    const newIndex = visibleItems.findIndex((otherAset) => otherAset.id === asset.id)
+    const newIndex = assets.findIndex((otherAset) => otherAset.id === asset.id)
     const getRange = () => {
       if (mostRecentlySelectedIndexRef.current == null) {
         return [asset]
@@ -1010,7 +1010,7 @@ function AssetsTable(props: AssetsTableProps) {
         const index2 = newIndex
         const startIndex = Math.min(index1, index2)
         const endIndex = Math.max(index1, index2) + 1
-        return visibleItems.slice(startIndex, endIndex)
+        return assets.slice(startIndex, endIndex)
       }
     }
     setSelectedAssets(calculateNewSelection(event, [asset], getRange))
@@ -1021,7 +1021,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const selectRow = useEventCallback((asset: AnyAsset) => {
-    setMostRecentlySelectedIndex(visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id))
+    setMostRecentlySelectedIndex(assets.findIndex((otherAsset) => otherAsset.id === asset.id))
     selectionStartIndexRef.current = null
     setSelectedAssets([asset])
   })
@@ -1035,9 +1035,7 @@ function AssetsTable(props: AssetsTableProps) {
       let newSelectedKeys = driveStore.getState().selectedIds
 
       if (!newSelectedKeys.has(asset.id)) {
-        setMostRecentlySelectedIndex(
-          visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id),
-        )
+        setMostRecentlySelectedIndex(assets.findIndex((otherAsset) => otherAsset.id === asset.id))
         selectionStartIndexRef.current = null
         newSelectedKeys = new Set([asset.id])
         setSelectedAssets([asset])
@@ -1151,7 +1149,7 @@ function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows = visibleItems.map((item) => {
+  const itemRows = assets.map((item) => {
     const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
     const isOpenedOnTheBackend =
       item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
@@ -1166,9 +1164,7 @@ function AssetsTable(props: AssetsTableProps) {
         parentId={item.parentId}
         state={state}
         item={item}
-        isKeyboardSelected={
-          keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
-        }
+        isKeyboardSelected={keyboardSelectedIndex != null && item === assets[keyboardSelectedIndex]}
         grabKeyboardFocus={grabRowKeyboardFocus}
         onClick={onRowClick}
         select={selectRow}

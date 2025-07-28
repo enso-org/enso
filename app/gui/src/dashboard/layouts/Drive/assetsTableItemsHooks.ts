@@ -47,15 +47,11 @@ export function useGetAssetChildren() {
 
 /** A hook to return the items in the assets table. */
 export function useAssetsTableItems(options: UseAssetsTableOptions) {
-  const { parentId, assets: items } = options
-  const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems, {
-    unsafeEnableTransition: true,
-  })
+  const { parentId, assets } = options
+
   useEffect(() => {
     startTransition(() => {
-      setAssetItems(parentId, items)
+      ASSET_ITEMS_STORE.getState().setItems(parentId, assets)
     })
-  }, [items, parentId, setAssetItems])
-  const visibleItems = items
-  return { visibleItems } as const
+  }, [assets, parentId])
 }
