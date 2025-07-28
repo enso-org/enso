@@ -30,9 +30,8 @@ object JarExtractPlugin extends AutoPlugin {
     lazy val thinJarOutput = taskKey[File](
       "Output thin jar with some files copied from the input jar"
     )
-    // Is implemented by this plugin
-    val extractedFiles = taskKey[Seq[File]](
-      "Files extracted from the input jar"
+    val extractedFilesDir = taskKey[File](
+      "Directory where extracted files will be put"
     )
   }
 
@@ -42,14 +41,11 @@ object JarExtractPlugin extends AutoPlugin {
   private lazy val extract = taskKey[Unit](
     "Extract files from the input jar using the defined jar visitor"
   )
-  private lazy val isExtracted = taskKey[Boolean](
-    "Check if the input jar has been extracted - if the outputs are cached"
+  private lazy val thinJarOutputPath = settingKey[File](
+    "thinJarOutputPath"
   )
-  private lazy val extractedFilesDir = settingKey[File](
-    "Directory where extracted files will be put"
-  )
-  private lazy val jarOut = settingKey[File](
-    "jarOut"
+  private lazy val extractedFilesPath = settingKey[File](
+    "extractedFilesPath"
   )
 
   import autoImport._
@@ -75,19 +71,19 @@ object JarExtractPlugin extends AutoPlugin {
       }
       resolvedModules.head
     },
-    jarOut := {
+    thinJarOutputPath := {
       val targetDir = (Compile / target).value
       val modName   = moduleName.value
       targetDir / (modName + "-thin.jar")
     },
-    extractedFilesDir := {
+    extractedFilesPath := {
       val targetDir = (Compile / target).value
       targetDir / "extracted-files"
     },
     extract := {
       val inJar       = inputJarResolved.value
-      val outJar      = jarOut.value
-      val extFilesDir = extractedFilesDir.value
+      val outJar      = thinJarOutputPath.value
+      val extFilesDir = extractedFilesPath.value
       val trackedFiles = Set(
         inJar,
         outJar,
@@ -106,6 +102,9 @@ object JarExtractPlugin extends AutoPlugin {
           logger.info(
             s"[JarExtractPlugin:$modName] Extracting ${inJar.getName}"
           )
+          // Ensure that both outputs are deleted before extraction
+          IO.delete(outJar)
+          IO.delete(extFilesDir)
           JarExtract.extract(
             inJar.toPath,
             extFilesDir.toPath,
@@ -121,23 +120,22 @@ object JarExtractPlugin extends AutoPlugin {
         outputsExist && report.modified.isEmpty
       }
     },
-    extractedFiles := Def
+    extractedFilesDir := Def
       .task {
-        val dir = extractedFilesDir.value
-        Files
-          .walk(dir.toPath)
-          .toList
-          .asScala
-          .map(_.toFile)
-          .filter(_.isFile)
+        extractedFilesPath.value
       }
       .dependsOn(extract)
       .value,
     thinJarOutput := Def
       .task {
-        jarOut.value
+        thinJarOutputPath.value
       }
       .dependsOn(extract)
-      .value
+      .value,
+    clean := {
+      val _ = clean.value
+      IO.delete(extractedFilesPath.value)
+      IO.delete(thinJarOutputPath.value)
+    }
   )
 }
