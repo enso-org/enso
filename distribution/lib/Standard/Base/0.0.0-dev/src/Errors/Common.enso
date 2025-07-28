@@ -510,6 +510,7 @@ type Out_Of_Memory
 
 ## Indicates that an expression cannot be evaluated because somewhere within it,
    a function does not have all required arguments provided.
+@Builtin_Type
 type Missing_Argument
     ## PRIVATE
        Indicates that an expression cannot be evaluated because somewhere within

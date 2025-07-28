@@ -320,7 +320,12 @@ class RuntimeServerTest
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
-        .update(contextId, identityResultId, ConstantsGen.NOTHING_BUILTIN),
+        .update(
+          contextId,
+          identityResultId,
+          ConstantsGen.ERROR_BUILTIN,
+          payload = Api.ExpressionUpdate.Payload.DataflowError(Nil)
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -331,17 +336,20 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
-    val metadata         = new Metadata
-    val identityResultId = metadata.addItem(56, 1, "aa")
-    val identityCallId   = metadata.addItem(70, 8, "ab")
+    val metadata     = new Metadata
+    val fooYResultId = metadata.addItem(57, 2, "aa")
+    val fooResultId  = metadata.addItem(62, 5, "ab")
+    val fooCallId    = metadata.addItem(80, 3, "ac")
 
     val code =
       """from Standard.Base import Integer
         |
-        |identity x:Integer = x
+        |foo x:Integer =
+        |  y = 42
+        |  x + y
         |
         |main =
-        |    identity
+        |    foo
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -378,18 +386,18 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
-        identityCallId,
+        fooCallId,
         ConstantsGen.FUNCTION,
         methodCall = Some(
           Api.MethodCall(
-            Api.MethodPointer(moduleName, moduleName, "identity"),
+            Api.MethodPointer(moduleName, moduleName, "foo"),
             Vector(0)
           )
         ),
         payload = Api.ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
-              Api.MethodPointer(moduleName, moduleName, "identity"),
+              Api.MethodPointer(moduleName, moduleName, "foo"),
               Vector(0)
             )
           )
@@ -399,20 +407,30 @@ class RuntimeServerTest
     )
     context.consumeOut shouldEqual List()
 
-    // push identity
+    // push foo
     context.send(
       Api.Request(
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.LocalCall(identityCallId)
+          Api.StackItem.LocalCall(fooCallId)
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        fooYResultId,
+        ConstantsGen.INTEGER
+      ),
       TestMessages
-        .update(contextId, identityResultId, ConstantsGen.NOTHING),
+        .update(
+          contextId,
+          fooResultId,
+          ConstantsGen.ERROR,
+          payload = Api.ExpressionUpdate.Payload.DataflowError(Nil)
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
