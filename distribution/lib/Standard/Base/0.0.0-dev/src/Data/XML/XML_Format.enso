@@ -16,15 +16,20 @@ from project.Metadata.Choice import Option
 
 ## A `File_Format` for reading and writing XML files.
 type XML_Format
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> XML_Format | Nothing
     resolve constructor =
         _ = constructor
         Nothing
 
-    ## PRIVATE
-       If the File_Format supports reading from the file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
     for_read : File_Format_Metadata -> XML_Format | Nothing
     for_read file:File_Format_Metadata =
         content_type = file.interpret_content_type
@@ -39,22 +44,31 @@ type XML_Format
                 ".xml" -> XML_Format
                 _ -> Nothing
 
-    ## PRIVATE
-       If this File_Format should be used for writing to that file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
     for_file_write : Writable_File -> XML_Format | Nothing
     for_file_write file:Writable_File =
         _ = [file]
         Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "XML" (XML_Format.to Meta.Type . qualified_name)]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_name_patterns -> Vector File_Name_Pattern =
         [File_Name_Pattern.Value "XML" ["*.xml"]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file:File on_problems:Problem_Behavior =
@@ -64,7 +78,9 @@ type XML_Format
             Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["XML_Format", "XML_Document"]
             result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =

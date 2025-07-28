@@ -2,22 +2,27 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 
 type Time_Error
-    ## PRIVATE
-       UNSTABLE
-
+    ## ---
+       private: true
+       unstable: true
+       ---
        An error produced while working with time- and date-related methods.
 
-       Arguments:
-       - error_message: The message for the error.
-       - cause: An optional exception that caused this error (usually a Java Exception).
+       ## Arguments
+        - `error_message`: The message for the error.
+        - `cause`: An optional exception that caused this error (usually a Java
+          Exception).
     Error error_message cause=Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     epoch_start : Time_Error
     epoch_start = Time_Error.Error "Epoch start underflow"
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Provides a human-readable representation of the time error.
     to_display_text : Text
     to_display_text self = "Time_Error: " + self.error_message.to_text

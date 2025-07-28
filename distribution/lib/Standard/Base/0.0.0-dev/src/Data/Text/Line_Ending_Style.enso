@@ -13,7 +13,9 @@ type Line_Ending_Style
        The text equivalent is `'\r\n'`.
     Mac_Legacy
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the text equivalent of the line ending.
     to_text : Text
     to_text self = case self of

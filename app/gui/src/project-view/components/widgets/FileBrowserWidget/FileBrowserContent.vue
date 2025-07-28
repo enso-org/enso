@@ -218,6 +218,7 @@ defineExpose({
     class="FileBrowserContent"
     :class="{ centerContent: isEmpty }"
     @click.stop="focused = undefined"
+    @wheel.stop.passive
   >
     <div v-if="isEmpty" class="centerContent">Directory is empty</div>
     <ContextMenuTrigger v-show="!isEmpty" :actions="['fileBrowser.renameDirectory']">

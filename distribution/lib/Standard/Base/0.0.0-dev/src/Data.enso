@@ -36,56 +36,58 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vector_Editor
 from project.System.File_Format import Auto_Detect, File_Format
 
-## ALIAS csv, delimited, excel, hyper, load, open, tableau
-   GROUP File
-   ICON data_input
-   SUGGESTED 1
+## ---
+   aliases: [csv, delimited, excel, hyper, load, open, tableau]
+   group: File
+   icon: data_input
+   suggested: 1
+   ---
    Reads a file into Enso.
-
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
 
-   Arguments:
-   - path: The path to the file to read. If the path is a URI, the data
-     will be fetched from a supported protocol.
-   - format: A `File_Format` object used to read file into memory.
-     If `Auto_Detect` is specified, the provided file determines the specific
-     type and configures it appropriately. A `File_Error.Unsupported_Type`
-     error is returned if it cannot match the type.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     The operation proceeds without errors or warnings if set to `Ignore`.
+   ## Arguments
+    - `path`: The path to the file to read. If the path is a URI, the data will
+      be fetched from a supported protocol.
+    - `format`: A `File_Format` object used to read file into memory. If
+      `Auto_Detect` is specified, the provided file determines the specific type
+      and configures it appropriately. A `File_Error.Unsupported_Type` error is
+      returned if it cannot match the type.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. The
+      operation proceeds without errors or warnings if set to `Ignore`.
 
-   > Example
-     Read the first sheet of an XLSX from disk and convert it into a table.
+   ## Examples
+   ### Read the first sheet of an XLSX from disk and convert it into a table.
 
+   ```
          from Standard.Table import all
          import Standard.Examples
 
          example_xlsx_to_table = Data.read Examples.xlsx
+   ```
 
+   ### Read the sheet named `Dates` from an XLS and convert it to a table.
 
-   > Example
-     Read the sheet named `Dates` from an XLS and convert it to a table.
-
+   ```
          from Standard.Table import all
          import Standard.Examples
 
          example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
+   ```
 
-   ! Request Caching
+   ## Remarks
 
-     Responses to HTTP data requests are cached, and additional requests for the
-     same resources will use the cache, saving a round-trip call to the remote
-     server. Two resources are considered the same if the URIs and request
-     headers are the same. Header order does not affect sameness.
-
-     The cache respects the "max-age" and "Age" response headers; see
-     `Data.fetch` for more details.
-
-     The cached values are retained as long as the project remains open. Closing
-     a project will clear the cache.
+   ### Request Caching
+   Responses to HTTP data requests are cached, and additional requests for the
+   same resources will use the cache, saving a round-trip call to the remote
+   server. Two resources are considered the same if the URIs and request headers
+   are the same. Header order does not affect sameness.
+   The cache respects the "max-age" and "Age" response headers; see `Data.fetch`
+   for more details.
+   The cached values are retained as long as the project remains open. Closing a
+   project will clear the cache.
 @path (Text_Input display=..Always)
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
@@ -107,51 +109,53 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
                         Telemetry.log "Data.read" "Read file: size={}, extension={}, file_type={}, data_link={}" [file_obj.size, file_obj.extension, file_obj.to Meta.Type . name, False]
                 file_content
 
-## ALIAS load, open
-   GROUP File
-   ICON data_input
-   SUGGESTED 2
+## ---
+   aliases: [load, open]
+   group: File
+   icon: data_input
+   suggested: 2
+   ---
    Reads a list of files into Enso.
 
-   Arguments:
-   - paths: A list of files to load. It can be a Vector, Column or Table of
-     files, paths or URIs to fetch. If a Table is provided, it must either
-     contain a single column or a column called `path` (case insensitive).
-   - format: A `File_Format` object used to read file into memory.
-     If `Auto_Detect` is specified, the provided file determines the specific
-     type and configures it appropriately. A `File_Error.Unsupported_Type`
-     error is returned if it cannot match the type.
-   - return: Specifies the shape of the data to return.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function.
-     By default, if one of the files fails to load, a warning is issued and the
-     entry for that file becomes `Nothing`, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error on the
-     first failing file.
-     If set to `Ignore`, the operation proceeds without errors or warnings,
-     replacing files that fail to load with `Nothing`.
+   ## Arguments
+    - `paths`: A list of files to load. It can be a Vector, Column or Table of
+      files, paths or URIs to fetch. If a Table is provided, it must either
+      contain a single column or a column called `path` (case insensitive).
+    - `format`: A `File_Format` object used to read file into memory. If
+      `Auto_Detect` is specified, the provided file determines the specific type
+      and configures it appropriately. A `File_Error.Unsupported_Type` error is
+      returned if it cannot match the type.
+    - `return`: Specifies the shape of the data to return.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, if one of the files fails to load, a warning is
+      issued and the entry for that file becomes `Nothing`, but the operation
+      proceeds. If set to `Report_Error`, the operation fails with a dataflow
+      error on the first failing file. If set to `Ignore`, the operation proceeds
+      without errors or warnings, replacing files that fail to load with
+      `Nothing`.
 
-   > Example
-     Read all CSV files from a directory into a single merged table.
+   ## Examples
+   ### Read all CSV files from a directory into a single merged table.
 
+   ```
          from Standard.Table import all
          import Standard.Examples
 
          files = Data.list name_filter="*.csv"
          example_csv_dir_to_table = Data.read_many files
+   ```
 
-   ! Request Caching
+   ## Remarks
 
-     Responses to HTTP data requests are cached, and additional requests for the
-     same resources will use the cache, saving a round-trip call to the remote
-     server. Two resources are considered the same if the URIs and request
-     headers are the same. Header order does not affect sameness.
-
-     The cache respects the "max-age" and "Age" response headers; see
-     `Data.fetch` for more details.
-
-     The cached values are retained as long as the project remains open. Closing
-     a project will clear the cache.
+   ### Request Caching
+   Responses to HTTP data requests are cached, and additional requests for the
+   same resources will use the cache, saving a round-trip call to the remote
+   server. Two resources are considered the same if the URIs and request headers
+   are the same. Header order does not affect sameness.
+   The cache respects the "max-age" and "Age" response headers; see `Data.fetch`
+   for more details.
+   The cached values are retained as long as the project remains open. Closing a
+   project will clear the cache.
 @paths (Vector_Editor item_editor=File_Browse item_default='""' display=..Always)
 @format File_Format.default_widget
 @return Return_As.default_widget
@@ -167,57 +171,64 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
             Telemetry.log "Data.read_many" "Read files: count={}, output={}" [paths.paths_to_load.length, result.to Meta.Type . name]
             result
 
-## ALIAS load text, open text
-   ICON data_input
+## ---
+   aliases: [load text, open text]
+   icon: data_input
+   ---
    Open and read the file at the provided `path`.
 
-   Arguments:
-   - path: The path of the file to open and read the contents of. It will
-     accept a textual path or a file.
-   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function.
-     By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
+   ## Arguments
+    - `path`: The path of the file to open and read the contents of. It will
+      accept a textual path or a file.
+    - `encoding`: The text encoding to decode the file with. Defaults to UTF-8.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
 
-   > Example
-     Read the `data.csv` file in the project directory's `data` directory. You
+   ## Examples
+   ### Read the `data.csv` file in the project directory's `data` directory. You
      will need to create the file `data.csv` manually in that directory.
 
+   ```
          import Standard.Base.Data
          import Standard.Examples
 
          example_read = Data.read_text Examples.csv_path
+   ```
 @path (Text_Input display=..Always)
 @encoding Encoding.default_widget
 read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
     File.new path . read_text encoding on_problems
 
-## GROUP File
-   ICON folder
-   SUGGESTED 3
+## ---
+   group: File
+   icon: folder
+   suggested: 3
+   ---
    Lists files contained in the provided directory.
-
    - directory: A path or `File` object to get the contents of.
    - name_filter: A glob pattern that can be used to filter the returned files.
-     If it is not specified, all files are returned.
+   If it is not specified, all files are returned.
    - recursive: Specifies whether the returned list of files should include also
      files from the subdirectories. If set to `False` (the default), only the
      immediate children of the listed directory are considered.
 
-   > Example
-     List all files with `.md` extension in the example directory and any of its
+   ## Examples
+   ### List all files with `.md` extension in the example directory and any of its
      subdirectories.
 
+   ```
          import Standard.Examples
 
          example_list_files =
              Data.list Examples.data_dir name_filter="**.md" recursive=True
+   ```
 
-   ? Name Filter Rules
+   ## Remarks
 
+   ### Name Filter Rules
    The `name_filter` can contain the following special characters:
    - `"?"` - which matches a single filename character (so it will not match a
      `"/"`).
@@ -233,16 +244,14 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
    - Brackets can be used to match exactly one character from some set of
      characters. For example `"[xy]"` matches `"x"` or `"y"`. Character ranges
      can also be specified: `"[a-z]"` matches any character from `"a"` to `"z"`.
-     An exclamation mark can be used to negate the match, i.e. `"[!xz]"` will
-     match any characters except for `"x"` and `"z"`. Moreover the ranges and
-     single characters can be used together, so for example `"[a-cxy]"` will
-     match `"a"`, `"b"`, `"c"`, `"x"` or `"y"`. Within the brackets, the special
-     characters `"*"`, `"?"` and `"\"` stand for themselves instead of their
-     special meanings.
+   An exclamation mark can be used to negate the match, i.e. `"[!xz]"` will match
+   any characters except for `"x"` and `"z"`. Moreover the ranges and single
+   characters can be used together, so for example `"[a-cxy]"` will match `"a"`,
+   `"b"`, `"c"`, `"x"` or `"y"`. Within the brackets, the special characters
+   `"*"`, `"?"` and `"\"` stand for themselves instead of their special meanings.
    - Braces allow to specify multiple patterns (separated with a comma), one of
      which must be matched. For example: `"{abc,x*}"` will match either the name
      `"abc"` or any name starting with `"x"`. The groups cannot be nested.
-
    Keep in mind that if `recursive` is set to True and a `name_filter` is used,
    the function will return files from subdirectories only if the set
    `name_filter` allows crossing directories. So even with `recursive=True` a
@@ -260,62 +269,64 @@ list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False
         Telemetry.log "Data.list" "List folder: count={}, recursive={}, filtered={}, file_type={}" [file_list.length, recursive, name_filter != "", file_obj.to Meta.Type . name]
         file_list
 
-## ALIAS download, http get
-   GROUP Web
-   ICON data_download
-   SUGGESTED 4
+## ---
+   aliases: [download, http get]
+   group: Web
+   icon: data_download
+   suggested: 4
+   ---
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
 
-   Arguments:
-   - uri: The URI to fetch.
-   - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
-     `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
-     Defaults to `HTTP_Method.Get`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
-   - format: The format to use for interpreting the response.
-     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
-     cannot be determined automatically, a raw HTTP `Response` will be returned.
+   ## Arguments
+    - `uri`: The URI to fetch.
+    - `method`: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`. Defaults
+      to `HTTP_Method.Get`.
+    - `headers`: The headers to send with the request. Defaults to an empty
+      vector.
+    - `format`: The format to use for interpreting the response. Defaults to
+      `Auto_Detect`. If `Raw_Response` is selected or if the format cannot be
+      determined automatically, a raw HTTP `Response` will be returned.
 
-   ! Request Caching
+   ## Examples
+   ### Read from an HTTP endpoint.
 
-     Responses to HTTP data requests are cached, and additional requests for the
-     same resources will use the cache, saving a round-trip call to the remote
-     server. Two resources are considered the same if the URIs and request
-     headers are the same. Header order does not affect sameness.
-
-     The cached values are retained as long as the project remains open. Closing
-     a project will clear the cache.
-
-     The cache respects the "max-age" and "Age" response headers received from
-     remote servers. These headers are used to determine if the cached value is
-     fresh or stale. If it is stale, the cached value is removed and a request
-     is made again to the remote servers.
-
-     The following limits are imposed on values stored in the cache:
-     - Single file limit: a single file can be no more than 10M.
-     - Total cache size limit: the entire cache can be no more than 10G.
-
-     For data responses over the single file limit, you can use `Data.download`
-     to download the file locally. Download sizes are not constrained by either
-     limit.
-
-     If the entire cache goes over the total cache size limit, the
-     least-recently-used entries are removed.
-
-   > Example
-     Read from an HTTP endpoint.
-
+   ```
          import Standard.Base.Data
          response = Data.fetch URL
 
-   > Example
-     Read from an HTTP endpoint and write the results to a file.
+   ```
 
+   ### Read from an HTTP endpoint and write the results to a file.
+
+   ```
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . write file
+   ```
+
+   ## Remarks
+
+   ### Request Caching
+   Responses to HTTP data requests are cached, and additional requests for the
+   same resources will use the cache, saving a round-trip call to the remote
+   server. Two resources are considered the same if the URIs and request headers
+   are the same. Header order does not affect sameness.
+   The cached values are retained as long as the project remains open. Closing a
+   project will clear the cache.
+   The cache respects the "max-age" and "Age" response headers received from
+   remote servers. These headers are used to determine if the cached value is
+   fresh or stale. If it is stale, the cached value is removed and a request is
+   made again to the remote servers.
+   The following limits are imposed on values stored in the cache:
+   - Single file limit: a single file can be no more than 10M.
+   - Total cache size limit: the entire cache can be no more than 10G.
+   For data responses over the single file limit, you can use `Data.download` to
+   download the file locally. Download sizes are not constrained by either limit.
+   If the entire cache goes over the total cache size limit, the
+   least-recently-used entries are removed.
 @uri (Text_Input display=..Always)
 @method HTTP_Method.default_fetch_widget
 @format Data_Read_Helpers.format_widget_with_raw_response
@@ -324,52 +335,116 @@ fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_
 fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (cache_policy:Cache_Policy = ..Default) =
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format) cache_policy=cache_policy
 
-## ALIAS http post, upload
-   GROUP Web
-   ICON data_upload
-   SUGGESTED 8
-   Writes the provided data to the provided URI. Returns the response,
-   parsing the body if the content-type is recognised. Returns an  error if the
-   status code does not represent a successful response.
+## ---
+   aliases: [http post, upload]
+   group: Web
+   icon: data_upload
+   suggested: 8
+   ---
+   Writes the provided data to the provided URI. Returns the response, parsing
+   the body if the content-type is recognised. Returns an  error if the status
+   code does not represent a successful response.
 
-   Arguments:
-   - uri: The URI to fetch.
-   - body: The data to write. See `Supported Body Types` below.
-   - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
-     `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
-   - response_format: The format to use for interpreting the response.
-     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
-     cannot be determined automatically, a raw HTTP `Response` will be returned.
+   ## Arguments
+    - `uri`: The URI to fetch.
+    - `body`: The data to write. See `Supported Body Types` below.
+    - `method`: The HTTP method to use. Must be one of `HTTP_Method.Post`,
+      `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
+    - `headers`: The headers to send with the request. Defaults to an empty
+      vector.
+    - `response_format`: The format to use for interpreting the response.
+      Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+      cannot be determined automatically, a raw HTTP `Response` will be returned.
 
-   ! Supported Body Types
+   ## Examples
+   ### Write a text string to an HTTP endpoint.
 
-     - Request_Body.Text: Sends a text string, with optional encoding and content
-       type.
-     - Request_Body.Json: Sends an Enso object, after converting it to JSON.
-     - Request_Body.Binary: Sends a file.
-     - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys
-       must be `Text`, and the values must be `Text` or `File`.
-     - Request_Body.Empty: Sends an empty body.
+   ```
+         import Standard.Base.Data
+         response = Data.post url_post (Request_Body.Text "hello world")
+   ```
 
-     Additionally, the following types are allowed as the `body` parameter:
+   ### Write JSON to an HTTP endpoint.
 
-     - Text: shorthand for `Request_Body.Text that_text`.
-     - File: shorthand for `Request_Body.Binary that_file`.
-     - Any other Enso object: shorthand for `Request_Body.Json that_object`.
+   ```
+         import Standard.Base.Data
+         json = Json.parse '{"a": "asdf", "b": 123}'
+         response = Data.post url_post json
+   ```
 
-   ! Specifying Content Types
+   ### Write an Enso object to an HTTP endpoint.
 
-     If the `body` parameter specifies an explicit content type, then it is an
-     error to also specify additional `Content-Type` headers in the `headers`
-     parameter. (It is not an error to specify multiple `Content-Type` values in
-     `headers`, however.)
+   ```
+         import Standard.Base.Data
+         response = Data.post url_post (My_Type.Value 12)
+   ```
 
-   ! Default Content Types
+   ### Write a text string to an HTTP endpoint, with a specific text encoding.
 
-     The following specifies the default content type for each `Request_Body`
-     type.
+   ```
+         import Standard.Base.Data
+         body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
+         response = Data.post url_post body
+   ```
 
+   ### Write a text string to an HTTP endpoint, with a specific content type.
+
+   ```
+         import Standard.Base.Data
+         body = Request_Body.Text 'a,b,c\n' content_type="text/csv"
+         response = Data.post url_post body
+   ```
+
+   ### Write the contents of a file to an HTTP endpoint.
+
+   ```
+         import Standard.Base.Data
+         test_file = enso_project.data / "sample.png"
+         response = Data.post url_post (Request_Body.Binary test_file)
+   ```
+
+   ### Write a multipart form to an HTTP endpoint.
+
+   ```
+         import Standard.Base.Data
+         test_file = enso_project.data / "sample.png"
+         form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
+         response = Data.post url_post (Request_Body.Form_Data form_data)
+   ```
+
+   ### Write a URL-encoded form to an HTTP endpoint.
+
+   ```
+         import Standard.Base.Data
+         test_file = enso_project.data / "sample.txt"
+         form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
+         response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
+   ```
+
+   ## Remarks
+
+   ### Supported Body Types
+   - Request_Body.Text: Sends a text string, with optional encoding and content
+   type.
+   - Request_Body.Json: Sends an Enso object, after converting it to JSON.
+   - Request_Body.Binary: Sends a file.
+   - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys
+   must be `Text`, and the values must be `Text` or `File`.
+   - Request_Body.Empty: Sends an empty body.
+
+   Additionally, the following types are allowed as the `body` parameter:
+   - Text: shorthand for `Request_Body.Text that_text`.
+   - File: shorthand for `Request_Body.Binary that_file`.
+   - Any other Enso object: shorthand for `Request_Body.Json that_object`.
+
+   ### Specifying Content Types
+   If the `body` parameter specifies an explicit content type, then it is an
+   error to also specify additional `Content-Type` headers in the `headers`
+   parameter. (It is not an error to specify multiple `Content-Type` values in
+   `headers`, however.)
+
+   ### Default Content Types
+   The following specifies the default content type for each `Request_Body` type.
      - Request_Body.Text: `text/plain`
      - Request_Body.Json: `application/json`
      - Request_Body.Binary: `application/octet-stream`
@@ -380,71 +455,12 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
      - Text: `text/plain`
      - File: `application/octet-stream`
      - Any other Enso object: `application/json`
-
-   ! Specifying Text Encodings
-
-     Text encoding can be specified in the `encoding` parameter to the
-     `Request_Body.Text` constructor. This value will be added to the
-     `Content-Type` header.
-
-     If a value for `encoding` is specified, but no value for `content_type` is
-     specified, then `"text/plain"` is used as the content type.
-
-   > Example
-     Write a text string to an HTTP endpoint.
-
-         import Standard.Base.Data
-         response = Data.post url_post (Request_Body.Text "hello world")
-
-   > Example
-     Write JSON to an HTTP endpoint.
-
-         import Standard.Base.Data
-         json = Json.parse '{"a": "asdf", "b": 123}'
-         response = Data.post url_post json
-
-   > Example
-     Write an Enso object to an HTTP endpoint.
-
-         import Standard.Base.Data
-         response = Data.post url_post (My_Type.Value 12)
-
-   > Example
-     Write a text string to an HTTP endpoint, with a specific text encoding.
-
-         import Standard.Base.Data
-         body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
-         response = Data.post url_post body
-
-   > Example
-     Write a text string to an HTTP endpoint, with a specific content type.
-
-         import Standard.Base.Data
-         body = Request_Body.Text 'a,b,c\n' content_type="text/csv"
-         response = Data.post url_post body
-
-   > Example
-     Write the contents of a file to an HTTP endpoint.
-
-         import Standard.Base.Data
-         test_file = enso_project.data / "sample.png"
-         response = Data.post url_post (Request_Body.Binary test_file)
-
-   > Example
-     Write a multipart form to an HTTP endpoint.
-
-         import Standard.Base.Data
-         test_file = enso_project.data / "sample.png"
-         form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
-         response = Data.post url_post (Request_Body.Form_Data form_data)
-
-   > Example
-     Write a URL-encoded form to an HTTP endpoint.
-
-         import Standard.Base.Data
-         test_file = enso_project.data / "sample.txt"
-         form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
-         response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
+   ### Specifying Text Encodings
+   Text encoding can be specified in the `encoding` parameter to the
+   `Request_Body.Text` constructor. This value will be added to the
+   `Content-Type` header.
+   If a value for `encoding` is specified, but no value for `content_type` is
+   specified, then `"text/plain"` is used as the content type.
 @uri (Text_Input display=..Always)
 @method HTTP_Method.default_post_widget
 @headers Header.default_widget
@@ -454,27 +470,27 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
     response = HTTP.post uri body method headers
     Data_Read_Helpers.decode_http_response_following_data_links response (Data_Read_Helpers.handle_legacy_format "post" "response_format" response_format)
 
-## GROUP Web
-   ICON data_download
-   Fetches from the provided URI and if successful writes to the file. Returns
-   an error if the status code does not represent a successful response.
+## ---
+   group: Web
+   icon: data_download
+   ---
+   Fetches from the provided URI and if successful writes to the file. Returns an
+   error if the status code does not represent a successful response.
 
-   Arguments:
-   - uri: The URI to fetch.
-   - file: The file to write the response to.
-   - replace_existing: Determines when `download` should proceed with the
-     download, if the destination file already exists. (If the destination file
-     does not exist, the download always proceeds).
-     Options include:
-         - `If_Not_Exists`: Download the file if it does not already exist on
-           disk. (The default.)
-         - `If_Older_Than age`: Download the file if the existing file is older
-           than the specified age.
-         - `Always`: Always download.
-   - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
-     `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
-     Defaults to `HTTP_Method.Get`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
+   ## Arguments
+    - `uri`: The URI to fetch.
+    - `file`: The file to write the response to.
+    - `replace_existing`: Determines when `download` should proceed with the
+      download, if the destination file already exists. (If the destination file
+      does not exist, the download always proceeds). Options include: -
+      `If_Not_Exists`: Download the file if it does not already exist on disk.
+      (The default.) - `If_Older_Than age`: Download the file if the existing
+      file is older than the specified age. - `Always`: Always download.
+    - `method`: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`. Defaults
+      to `HTTP_Method.Get`.
+    - `headers`: The headers to send with the request. Defaults to an empty
+      vector.
 @uri (Text_Input display=..Always)
 @method HTTP_Method.default_fetch_widget
 @headers Header.default_widget
@@ -494,6 +510,8 @@ download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (r
 ## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
    that can be then processed further manually.
 type Raw_Response
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "Raw HTTP Response" (Raw_Response.to Meta.Type . qualified_name)]

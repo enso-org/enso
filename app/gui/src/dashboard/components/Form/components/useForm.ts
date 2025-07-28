@@ -62,7 +62,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
   // but it's safe to do so, because we don't switch between the two types of arguments
   // and if we do, we throw an error.
 
-  /* eslint-disable react-compiler/react-compiler */
   /* eslint-disable react-hooks/rules-of-hooks */
   if ('formState' in optionsOrFormInstance) {
     return optionsOrFormInstance
@@ -172,7 +171,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     // We need to disable the eslint rules here, because we call hooks conditionally
     // but it's safe to do so, because we don't switch between the two types of arguments
     // and if we do, we throw an error.
-    /* eslint-disable react-compiler/react-compiler */
     /* eslint-disable react-hooks/rules-of-hooks */
     const formMutation = useMutationCallback({
       // We use template literals to make the mutation key more readable in the devtools
@@ -296,7 +294,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     return form
   }
   /* eslint-enable react-hooks/rules-of-hooks */
-  /* eslint-enable react-compiler/react-compiler */
 }
 
 /** Get the type of arguments passed to the useForm hook */
