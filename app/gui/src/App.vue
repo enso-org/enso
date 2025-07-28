@@ -23,7 +23,7 @@ import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
-import { provideKeyboard } from '@/providers/keyboard'
+import { provideBubblingKeyboard, provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { reactComponent } from '@/util/react'
@@ -54,6 +54,7 @@ const userSession = computed(() => auth.session)
 useAppTitle(userSession)
 
 provideKeyboard()
+provideBubblingKeyboard()
 const interaction = provideInteractionHandler()
 const actions = initializeActions()
 registerAutoBlurHandler()
