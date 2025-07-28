@@ -9,7 +9,6 @@ import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
-from project.Logging import all
 
 type Display
     ## Parameter is always shown on the collapsed view.
@@ -171,7 +170,6 @@ type Widget
        Override the to_js_object and don't include Nothing.
     to_js_object : JS_Object
     to_js_object self =
-        Widget.log_message ("to_js_object called for "+self.to_text) ..Info
         type_pair = [["type", Meta.type_of self . to_text]]
 
         m = Meta.meta self
