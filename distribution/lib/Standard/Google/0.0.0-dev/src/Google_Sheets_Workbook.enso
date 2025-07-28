@@ -1,16 +1,21 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Internal.Java_Problems
+import Standard.Table.Return_As_Table.Return_As_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Headers, Table
-from Standard.Table.Errors import Empty_Sheet, Invalid_Location
+from Standard.Table import Column, Headers, Table
+from Standard.Table.Errors import Empty_Sheet, Invalid_Location, No_Rows
 from Standard.Table.In_Memory_Table import from_java_table
+from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
 import project.Internal.Telemetry
 
@@ -73,13 +78,38 @@ type Google_Sheets_Workbook
         result
 
     ## ---
-       group: Standard.Base.Metadata
-       icon: metadata
+       group: Standard.Base.Input
+       icon: data_input
        suggested: 2
        ---
-       Gets the number of sheets.
-    sheet_count self -> Integer = _handle_exceptions <|
-        self.java_service.getNumberOfSheets self.workbook_id
+       Reads one or more sheets into a Table.
+
+       ## Arguments
+        - `sheet_names`: the names of sheets, ranges or addresses to read.
+          Defaults to all sheets. An invalid `sheet_name` will be reported as a
+          problem.
+        - `headers`: whether to use the first row as headers (default is
+          `Detect_Headers`) for each sheet.
+        - `return`: how to return the tables. Defaults to `As_Merged_Table`
+          meaning the tables are merged into a single table.
+        - `on_problems`: how to handle problems during reading. Defaults to
+          `Report_Warning`.
+    @sheet_names _sheet_selector_widget
+    @return make_single_choice Return_As_Table.get_dropdown_options
+    read_many self sheet_names:Vector=self.sheet_names headers:Headers=..Detect_Headers return:Return_As_Table=..As_Merged_Table on_problems:Problem_Behavior=..Report_Warning =
+        case return of
+            Return_As_Table.With_New_Column ->
+                tables_or_nothing = sheet_names.map on_problems=on_problems address->
+                    self.read address headers on_problems=on_problems
+                Table.new [["Sheet Name", sheet_names], ["Table", tables_or_nothing]]
+            Return_As_Table.As_Merged_Table columns_to_keep match ->
+                names_and_tables = _read_sheets self sheet_names headers on_problems
+                only_valid = names_and_tables.filter p-> p.second.is_nothing.not
+                if only_valid.is_empty then Error.throw (Illegal_Argument.Error "No valid sheets found.") else
+                    valid_names = only_valid.map .first
+                    valid_tables = only_valid.map .second
+                    unified_tables = Table.from_union valid_tables columns_to_keep=columns_to_keep match_columns=match on_problems=on_problems
+                    (_sheet_names_table valid_names valid_tables).zip unified_tables right_prefix="" on_problems=on_problems
 
     ## ---
        group: Standard.Base.Metadata
@@ -95,18 +125,27 @@ type Google_Sheets_Workbook
        icon: metadata
        suggested: 4
        ---
-       Gets the number of named ranges.
-    named_ranges_count self -> Integer = _handle_exceptions <|
-        self.java_service.getNumberOfNames self.workbook_id
+       Gets the names of all the named ranges.
+    named_ranges self -> Vector Text = _handle_exceptions <|
+        Vector.from_polyglot_array (self.java_service.getRangeNames self.workbook_id) . sort
 
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
        suggested: 5
        ---
-       Gets the names of all the named ranges.
-    named_ranges self -> Vector Text = _handle_exceptions <|
-        Vector.from_polyglot_array (self.java_service.getRangeNames self.workbook_id) . sort
+       Gets the number of sheets.
+    sheet_count self -> Integer = _handle_exceptions <|
+        self.java_service.getNumberOfSheets self.workbook_id
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       suggested: 6
+       ---
+       Gets the number of named ranges.
+    named_ranges_count self -> Integer = _handle_exceptions <|
+        self.java_service.getNumberOfNames self.workbook_id
 
 ## ---
    private: true
@@ -146,6 +185,28 @@ private _make_java_headers headers:Headers = case headers of
     Headers.Has_Headers -> HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
     Headers.Detect_Headers -> HeaderBehavior.INFER
     Headers.No_Headers -> HeaderBehavior.DEFAULT_COLUMN_NAMES
+
+private _sheet_names_table (sheet_names : Vector Text) (loaded_tables : Vector Table) -> Table =
+    table = Column.from_vector "Sheet Name" sheet_names . to_table
+    counts = loaded_tables.map t-> t.row_count
+    duplicate_rows table counts
+
+private _read_sheets workbook:Google_Sheets_Workbook (sheet_names : Vector Text) headers:Headers on_problems:Problem_Behavior -> Vector (Pair Text (Table | Nothing)) =
+    sheet_names.map on_problems=No_Wrap.Value address->
+        table = workbook.read address headers on_problems=on_problems
+        r = Pair.new address table
+        # If in Report_Error mode, we forward the original error without wrapping, otherwise we wrap any warnings.
+        if on_problems == Problem_Behavior.Report_Error then r else 
+            r.catch Any error->
+                on_problems.attach_problem_after (Pair.new address Nothing) <|
+                    (No_Rows.Warning "The sheet "+address.to_display_text+" failed to load, so it is not included in the `As_Merged_Table` result of `read_many`. The error was: "+error.to_display_text)
+
+
+## Creates widget for read_many sheet selector
+private _sheet_selector_widget workbook:Google_Sheets_Workbook display:Display=Display.Always -> Widget =
+    names = workbook.sheet_names.map n-> Option n n.pretty
+    Multiple_Choice display=display values=names
+
 
 ## Creates a query widget for the `read` method.
 private _query_widget wb:Google_Sheets_Workbook display:Display=..Always -> Widget =
