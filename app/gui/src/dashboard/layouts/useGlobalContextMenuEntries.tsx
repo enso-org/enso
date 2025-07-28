@@ -26,10 +26,6 @@ export interface GlobalContextMenuEntriesOptions {
 
 /** Context menu entries available everywhere in the directory. */
 export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOptions) {
-  // For some reason, applying the ReactCompiler for this component breaks the copy-paste functionality
-  // eslint-disable-next-line react-compiler/react-compiler
-  'use no memo'
-
   const { backend, category, directoryId = null, currentDirectoryId, doPaste } = options
 
   const isCloud = backend.type === BackendType.remote

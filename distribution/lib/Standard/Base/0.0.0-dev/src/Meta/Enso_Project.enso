@@ -7,103 +7,134 @@ from project.Errors.Common import Module_Not_In_Package_Error
 ## Functionality for inspecting the current project.
 @Builtin_Type
 type Project_Description
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns the Enso project description for the given module. If no module is
        given, returns the description of the project that the engine was executed
        with, i.e., the project that contains the `main` method, or throws
        `Module_Not_In_Package_Error` if there is no such project, e.g., when
        executing a single file.
 
-       Arguments:
-       - module: An optional module for which the Enso project description
-         will be fetched. If `Nothing`, the current project description will
-         be fetched.
+       ## Arguments
+        - `module`: An optional module for which the Enso project description
+          will be fetched. If `Nothing`, the current project description will be
+          fetched.
 
-       > Example
-         Get the project description for the project that contains the `main`
+       ## Examples
+       ### Get the project description for the project that contains the `main`
          method.
 
+       ```
              Project_Description.new
+       ```
 
-       > Example
-         Get the project description for the `Standard.Visualizations` project.
+       ### Get the project description for the `Standard.Visualizations` project.
 
+       ```
              Project_Description.new Standard.Visualizations
 
-       > Example
-         Get the project description for the `Standard.Base` project from the
+       ```
+
+       ### Get the project description for the `Standard.Base` project from the
          `Vector` module.
 
+       ```
              Project_Description.new Standard.Base.Data.Vector
+       ```
     new : (Any | Nothing) -> Project_Description ! Module_Not_In_Package_Error
     new module=Nothing = Project_Description.enso_project_builtin module
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A representation of an Enso project.
 
-       Arguments:
-       - prim_root_file: The primitive root file of the project.
-       - prim_config: The primitive config of the project.
+       ## Arguments
+        - `prim_root_file`: The primitive root file of the project.
+        - `prim_config`: The primitive config of the project.
     private Value prim_root_file ns:Text n:Text
 
-    ## GROUP Metadata
-       ICON folder
+    ## ---
+       group: Metadata
+       icon: folder
+       ---
        Returns the root directory of the project.
 
-       > Example
-         Get the root directory of the project.
+       ## Examples
+       ### Get the root directory of the project.
 
+       ```
              enso_project.root
+       ```
     root : File
     root self = File.new self.prim_root_file
 
-    ## GROUP Input
-       ICON folder
+    ## ---
+       group: Input
+       icon: folder
+       ---
        Returns the root data directory of the project.
 
-       > Example
-         Get the data directory of the project.
+       ## Examples
+       ### Get the data directory of the project.
 
+       ```
              enso_project.data
+       ```
     data : File
     data self = self.root / "data"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the name of the project.
 
-       > Example
-         Get the name of the project.
+       ## Examples
+       ### Get the name of the project.
 
+       ```
              enso_project.name
+       ```
     name : Text
     name self = self.n
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the namespace of the project.
 
-       > Example
-         Get the namespace of the project.
+       ## Examples
+       ### Get the namespace of the project.
 
+       ```
              enso_project.namespace
+       ```
     namespace : Text
     namespace self = self.ns
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     enso_project_builtin module = @Builtin_Method "Project_Description.enso_project_builtin"
 
-## ICON enso_icon
+## ---
+   icon: enso_icon
+   ---
    Returns the Enso project description for the project that the engine was
-   executed with, i.e., the project that contains the `main` method, or
-   throws `Module_Not_In_Package_Error` if executing a single file.
+   executed with, i.e., the project that contains the `main` method, or throws
+   `Module_Not_In_Package_Error` if executing a single file.
 
-   > Example
-     Get the project description for the project that contains the `main`
+   ## Examples
+   ### Get the project description for the project that contains the `main`
      method.
 
+   ```
          enso_project
+   ```
 enso_project : Project_Description ! Module_Not_In_Package_Error
 enso_project =
     Project_Description.enso_project_builtin Nothing

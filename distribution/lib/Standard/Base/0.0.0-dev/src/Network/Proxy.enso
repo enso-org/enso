@@ -11,14 +11,16 @@ type Proxy
 
     ## Use the provided proxy server.
 
-       Arguments:
-       - host: The host address for the proxy.
-       - port: The port number for the proxy server on `host`.
+       ## Arguments
+        - `host`: The host address for the proxy.
+        - `port`: The port number for the proxy server on `host`.
 
-       > Example
-         Create a new proxy running on localhost at port 80080.
+       ## Examples
+       ### Create a new proxy running on localhost at port 80080.
 
+       ```
              import Standard.Base.Network.Proxy.Proxy
 
              example_new = Proxy.Address "localhost" 80800
+       ```
     Address proxy_host:Text proxy_port:Integer=80

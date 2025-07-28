@@ -24,17 +24,21 @@ type Not_Found
 
 @Builtin_Type
 type Index_Out_Of_Bounds
-    ## PRIVATE
-       UNSTABLE
+    ## ---
+       private: true
+       unstable: true
+       ---
+       An error indicating that a requested index was out of bounds of a
+       collection.
 
-       An error indicating that a requested index was out of bounds of a collection.
-
-       Arguments:
-       - index: The requested index.
-       - length: The length of the collection.
+       ## Arguments
+        - `index`: The requested index.
+        - `length`: The length of the collection.
     Error index length
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Pretty prints an index out of bounds error.
     to_display_text : Text
     to_display_text self =
@@ -42,31 +46,39 @@ type Index_Out_Of_Bounds
 
 @Builtin_Type
 type Syntax_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The runtime representation of a syntax error.
 
-       Arguments:
-       - message: A description of the erroneous syntax.
+       ## Arguments
+        - `message`: A description of the erroneous syntax.
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Syntax_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Syntax error: "+self.message+"."
 
 @Builtin_Type
 type Type_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The runtime representation of a type error.
 
-       Arguments:
-       - expected: The expected type at the error location.
-       - actual: The actual type at the error location.
-       - comment: Description of the value that was being checked,
-         e.g. function argument, result or an arbitrary expression.
+       ## Arguments
+        - `expected`: The expected type at the error location.
+        - `actual`: The actual type at the error location.
+        - `comment`: Description of the value that was being checked, e.g.
+          function argument, result or an arbitrary expression.
     private Error expected actual comment
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Type_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -101,62 +113,80 @@ type Type_Error
             . replace "{got}" got
         "Type error: "+msg+"."
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Render the error as text.
     to_text : Text
     to_text self = self.to_display_text
 
 @Builtin_Type
 type Compile_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The runtime representation of a compilation error.
 
-       Arguments:
-       - message: A description of the erroneous state.
+       ## Arguments
+        - `message`: A description of the erroneous state.
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Compile_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Compile error: "+self.message+"."
 
 @Builtin_Type
 type Assertion_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Assertion_Error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Assertion Error: '" + self.message.to_text + "'"
 
 @Builtin_Type
 type Inexhaustive_Pattern_Match
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The error thrown when a there is no pattern to match on the scrutinee.
 
-       Arguments:
-       - scrutinee: The scrutinee that failed to match.
+       ## Arguments
+        - `scrutinee`: The scrutinee that failed to match.
     Error scrutinee
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Inexhaustive_Pattern_Match error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Inexhaustive pattern match: no branch matches "+self.scrutinee.to_display_text+"."
 
 @Builtin_Type
 type Arity_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The error thrown when the number of arguments provided to an operation
        does not match the expected number of arguments.
 
-       Arguments:
-       - expected_min: the minimum expected number of arguments.
-       - expected_max: the maximum expected number of arguments.
-       - actual: the actual number of arguments passed.
+       ## Arguments
+        - `expected_min`: the minimum expected number of arguments.
+        - `expected_max`: the maximum expected number of arguments.
+        - `actual`: the actual number of arguments passed.
     Error expected_min expected_max actual
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Arity_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -168,47 +198,59 @@ type Arity_Error
 
 @Builtin_Type
 type Uninitialized_State
-    ## PRIVATE
-       The error thrown when the program attempts to read from a state slot that has
-       not yet been initialized.
+    ## ---
+       private: true
+       ---
+       The error thrown when the program attempts to read from a state slot that
+       has not yet been initialized.
 
-       Arguments:
-       - key: The key for the state slot that was not initialized.
+       ## Arguments
+        - `key`: The key for the state slot that was not initialized.
     Error key
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Uninitialized_State error to a human-readable format.
     to_display_text : Text
     to_display_text self = "State is not initialized for type "+self.key.to_display_text+"."
 
 @Builtin_Type
 type No_Such_Method
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The error thrown when the specified symbol does not exist as a method on
        the target.
 
-       Arguments:
-       - target: The target on which the attempted method call was performed.
-       - symbol: The symbol that was attempted to be called on target.
+       ## Arguments
+        - `target`: The target on which the attempted method call was performed.
+        - `symbol`: The symbol that was attempted to be called on target.
     Error target symbol
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns the method name of the method that could not be found.
 
-       > Example
-         Getting the method name from a no such method error.
+       ## Examples
+       ### Getting the method name from a no such method error.
 
+       ```
              import Standard.Examples
 
              example_method_name =
                  error = Examples.no_such_method
                  error.method_name
+       ```
     method_name : Text
     method_name self =
         Meta.meta self.symbol . name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -222,16 +264,20 @@ type No_Such_Method
 
 @Builtin_Type
 type No_Such_Field
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The error thrown when the specified symbol does not exist as a field on
        the value.
 
-       Arguments:
-       - target: The target on which the field was accessed.
-       - field_name: The name of the field that was being accessed.
+       ## Arguments
+        - `target`: The target on which the field was accessed.
+        - `field_name`: The name of the field that was being accessed.
     Error value field_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -244,27 +290,36 @@ type Module_Not_In_Package_Error
        that is not part of a project.
     Error
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Module_Not_In_Package_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Module is not a part of a package."
 
 @Builtin_Type
 type Arithmetic_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error for when an erroneous arithmetic computation takes place.
 
-       Arguments:
-       - message: A description of the error condition.
+       ## Arguments
+        - `message`: A description of the error condition.
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Arithmetic_Error error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Arithmetic error: "+self.message+"."
 
-    ## PRIVATE
-       Capture a Java `ArithmeticException` and convert it to an Enso dataflow error - `Arithmetic_Error.Error`.
+    ## ---
+       private: true
+       ---
+       Capture a Java `ArithmeticException` and convert it to an Enso dataflow
+       error - `Arithmetic_Error.Error`.
     handle_java_exception =
         Panic.catch ArithmeticException handler=(cause-> Error.throw (Arithmetic_Error.Error cause.payload.getMessage))
 
@@ -272,12 +327,14 @@ type Arithmetic_Error
 type Incomparable_Values
     ## An error that indicates that the two values are not comparable.
 
-       Arguments:
-       - left: The left value (first operand).
-       - right: The right value (second operand).
+       ## Arguments
+        - `left`: The left value (first operand).
+        - `right`: The right value (second operand).
     Error left right
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Incomparable_Values error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -288,8 +345,10 @@ type Incomparable_Values
                 right_text = self.right.to_display_text + " (" + (Meta.type_of self.right).to_text + ")"
                 "Cannot compare " + left_text + " with " + right_text + "."
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Catches possible errors from comparing values and throws an
        `Incomparable_Values` if any occur.
     handle_errors ~function =
@@ -301,32 +360,40 @@ type Incomparable_Values
 
 @Builtin_Type
 type Invalid_Array_Index
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error that occurs when a program requests a read from an array index
        that is out of bounds in the array.
 
-       Arguments:
-       - array: The array in which the index was requested.
-       - index: The index that was out of bounds.
+       ## Arguments
+        - `array`: The array in which the index was requested.
+        - `index`: The index that was out of bounds.
     Error array index
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Invalid_Array_Index error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Invalid array index: "+self.index.to_text+"."
 
 @Builtin_Type
 type Not_Invokable
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error that occurs when an object is used as a function in a function
        call, but it cannot be called.
 
-       Arguments:
-       - target: The called object.
-       - cause: Additional information about what may have caused the error.
+       ## Arguments
+        - `target`: The called object.
+        - `cause`: Additional information about what may have caused the error.
     Error target cause
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Not_Invokable error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -337,36 +404,47 @@ type Not_Invokable
 
 @Builtin_Type
 type No_Such_Argument
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates that an argument was passed by name, but the function being
        called did not take any argument that matched that name.
 
-       Arguments:
-       - argument_name: The name of the argument that was not found.
+       ## Arguments
+        - `argument_name`: The name of the argument that was not found.
     Error argument_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the No_Such_Argument error to a human-readable format.
     to_display_text : Text
     to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
 @Builtin_Type
 type Private_Access
-    ## PRIVATE
-       An error that occurs when a private (project-private) method is called from a different
-       project.
+    ## ---
+       private: true
+       ---
+       An error that occurs when a private (project-private) method is called
+       from a different project.
 
-       Arguments:
-       - this_project_name: Optional qualified name of the current (caller) project.
-       - target_project_name: Optional qualified name name of the project of callee.
-       - target_method_name: The name of the target method call that is project-private and thus cannot be called.
+       ## Arguments
+        - `this_project_name`: Optional qualified name of the current (caller)
+          project.
+        - `target_project_name`: Optional qualified name name of the project of
+          callee.
+        - `target_method_name`: The name of the target method call that is
+          project-private and thus cannot be called.
     private Error
         (this_project_name : (Text | Nothing))
         (target_project_name : (Text | Nothing))
         (target_method_name : Text)
         (msg : (Text | Nothing) = Nothing)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Private_Access error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -385,71 +463,92 @@ type Private_Access
 
 @Builtin_Type
 type Unsupported_Argument_Types
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error that occurs when arguments used in a function call are invalid
        types for the function.
 
-       Arguments:
-       - arguments: The passed arguments.
-       - message: A detailed message.
+       ## Arguments
+        - `arguments`: The passed arguments.
+        - `message`: A detailed message.
     Error arguments message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Unsupported_Argument_Types error to a human-readable format.
     to_display_text : Text
     to_display_text self = self.message.to_text
 
 @Builtin_Type
 type Module_Does_Not_Exist
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error that occurs when the specified module cannot be found.
 
-       Arguments:
-       - name: The module searched for.
+       ## Arguments
+        - `name`: The module searched for.
     Error name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Module_Does_Not_Exist error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Module "+self.name+" does not exist."
 
 @Builtin_Type
 type Invalid_Conversion_Target
-    ## PRIVATE
-       An error that occurs when the specified value cannot be converted to a given type.
+    ## ---
+       private: true
+       ---
+       An error that occurs when the specified value cannot be converted to a
+       given type.
 
-       Arguments:
-       - target: the type trying to be converted to.
+       ## Arguments
+        - `target`: the type trying to be converted to.
     Error target
 
 @Builtin_Type
 type No_Such_Conversion
-    ## PRIVATE
-       An error that occurs when the conversion from one type to another does not exist.
+    ## ---
+       private: true
+       ---
+       An error that occurs when the conversion from one type to another does not
+       exist.
 
-       Arguments:
-       - target: the type trying to be converted to.
-       - that: the value to be converted.
-       - conversion: the conversion that was attempted.
+       ## Arguments
+        - `target`: the type trying to be converted to.
+        - `that`: the value to be converted.
+        - `conversion`: the conversion that was attempted.
     Error target that conversion
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the No_Such_Conversion error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Could not find a conversion from `"+self.that.to_display_text+"` to `"+self.target.to_display_text+"`."
 
 @Builtin_Type
 type No_Conversion_Currying
-    ## PRIVATE
-       An error that occurs when an attempt is made to curry a conversion function.
+    ## ---
+       private: true
+       ---
+       An error that occurs when an attempt is made to curry a conversion
+       function.
 
-       Arguments:
-       - has_this: true, when `this` argument is present
-       - has_that: true, when `that` argument is present
-       - conversion: the conversion that was attempted.
+       ## Arguments
+        - `has_this`: true, when `this` argument is present
+        - `has_that`: true, when `that` argument is present
+        - `conversion`: the conversion that was attempted.
     Error has_this has_that conversion
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the No_Conversion_Currying error to a human-readable format.
     to_display_text : Text
     to_display_text self =
@@ -465,44 +564,58 @@ type No_Conversion_Currying
 
 @Builtin_Type
 type Forbidden_Operation
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error that occurs when the action is not allowed to perform the
        operation in the given context.
 
-       Arguments:
-       - message: message describing the operation that was not allowed.
+       ## Arguments
+        - `message`: message describing the operation that was not allowed.
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Forbidden_Operation error to a human-readable format.
     to_display_text : Text
     to_display_text self = self.message
 
 type Dry_Run_Operation
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A warning that the operation has only been performed in a test mode.
 
-       Arguments:
-       - message: The message to be displayed.
+       ## Arguments
+        - `message`: The message to be displayed.
     Warning message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Dry_Run_Operation to a human-readable format.
     to_display_text : Text
     to_display_text self = self.message
 
 type Out_Of_Memory
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error when Enso run's out of memory
     Error operation
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Out_Of_Memory to a human-readable format.
     to_display_text : Text
     to_display_text self = "Enso ran out of memory performing the "+self.operation+" operation."
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Catches possible `OutOfMemoryError` and throws an `Out_Of_Memory` error.
     handle_java_exception operation ~function =
         Panic.catch OutOfMemoryError handler=(_-> Error.throw (Out_Of_Memory.Error operation)) <|
@@ -511,16 +624,22 @@ type Out_Of_Memory
 ## Indicates that an expression cannot be evaluated because somewhere within it,
    a function does not have all required arguments provided.
 type Missing_Argument
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates that an expression cannot be evaluated because somewhere within
        it, a function does not have all required arguments provided.
     Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing) (message : Text = "Provide a value for the argument `" + argument_name + "`.")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = self.message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Throws an error saying that a required argument has not been provided.
     throw : Text -> Text|Nothing -> Nothing ! Missing_Argument
     throw argument_name:Text message_override:Text|Nothing=Nothing =
@@ -538,45 +657,60 @@ type Missing_Argument
 ## Warning when additional warnings occurred.
 @Builtin_Type
 type Additional_Warnings
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error (count:Integer)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "There were "+self.count.to_text+" additional issues."
 
 type Loss_Of_Numeric_Precision
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates that a numeric conversion of a value has lost precision.
     Warning original_value new_value
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "Loss of precision in converting "+self.original_value.to_text+" to "+self.new_value.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self =
         "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = "+self.new_value.to_text+"))"
 
 ## Indicates that a computed or provided value is outside the allowable range.
 type Out_Of_Range
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error value message=Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         extra = if self.message.is_nothing then "" else ": "+self.message.to_text
         "Value out of range: "+self.value.to_text+extra
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self =
         extra = if self.message.is_nothing then "" else " (message = "+self.message.to_text+")"
@@ -584,10 +718,14 @@ type Out_Of_Range
 
 ## Indicates that the response from a remote endpoint is over the size limit.
 type Response_Too_Large
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error actual_size:Integer|Nothing limit:Integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
@@ -595,12 +733,16 @@ type Response_Too_Large
         actual_size_message = if self.actual_size == Nothing then "" else " "+self.actual_size.to_text
         "Response too large: response size"+actual_size_message+" is over the limit "+self.limit.to_text+"."+suggestion
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self =
         "(Response_Too_Large (actual_size = "+self.actual_size.to_text+") (limit = "+self.limit.to_text+"))"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert the Java exception to an Enso dataflow error.
     handle_java_exception ~action =
         Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getActualSize cause.payload.getLimit))
@@ -608,15 +750,22 @@ type Response_Too_Large
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.
 type Floating_Point_Equality
-    ## PRIVATE
-       Represents a general floating-point equality error, such as a direct comparison.
+    ## ---
+       private: true
+       ---
+       Represents a general floating-point equality error, such as a direct
+       comparison.
     Error (location:Text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Represents the use of a floating-point value as a `Dictionary` key.
     Used_As_Dictionary_Key value:Float
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = case self of
@@ -625,7 +774,9 @@ type Floating_Point_Equality
         Floating_Point_Equality.Used_As_Dictionary_Key value ->
             "Float used as dictionary key: "+value.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self = case self of
         Floating_Point_Equality.Error location ->
@@ -635,10 +786,14 @@ type Floating_Point_Equality
 
 ## A warning indicating that a file failed to be loaded.
 type Failed_To_Load
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Warning path cause
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text
@@ -647,18 +802,24 @@ type Length_Mismatch
     ## Indicates that the lengths of zipped Vectors do not match.
     private Error (left_length : Integer) (right_length : Integer)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         "The Vector lengths do not match: "+self.left_length.to_text+" does not equal "+self.right_length.to_text+"."
 
 type Mixed_Signed_And_Unsigned_Bytes
-    ## PRIVATE
-       Indicates that a collection of bytes contains both unsigned and signed bytes.
+    ## ---
+       private: true
+       ---
+       Indicates that a collection of bytes contains both unsigned and signed
+       bytes.
     Error
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = "Collection contains both signed (value < 0) and unsigned (value > 127) bytes. Please use one convention consistently."

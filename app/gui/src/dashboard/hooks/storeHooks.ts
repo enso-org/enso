@@ -150,7 +150,6 @@ function useNonCompilableConditionalStore<State, Slice>(
   equalityFunction: EqualityFunction<Slice>,
   prevUnsafeEnableTransition: RefObject<boolean>,
 ) {
-  /* eslint-disable react-compiler/react-compiler */
   /* eslint-disable react-hooks/rules-of-hooks */
   if (prevUnsafeEnableTransition.current !== unsafeEnableTransition) {
     throw new Error(
@@ -160,6 +159,5 @@ function useNonCompilableConditionalStore<State, Slice>(
   return unsafeEnableTransition ?
       useTearingTransitionStore(store, selector, equalityFunction)
     : useStoreWithEqualityFn(store, selector, equalityFunction)
-  /* eslint-enable react-compiler/react-compiler */
   /* eslint-enable react-hooks/rules-of-hooks */
 }

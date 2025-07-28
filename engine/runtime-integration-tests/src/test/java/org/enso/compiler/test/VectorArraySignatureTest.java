@@ -134,7 +134,7 @@ public class VectorArraySignatureTest {
           if (v instanceof Function.Binding b) {
             var name = b.name().name();
             var d = documentation.get(b);
-            if (!d.doc().contains("PRIVATE")) {
+            if (!d.doc().contains("private: true")) {
               assertNotNull("Documentation for " + name, d);
 
               var head =

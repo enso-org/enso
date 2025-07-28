@@ -30,32 +30,44 @@ from project.Data.Text.Extensions import all
 from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import format_types
 
-## PRIVATE
+## ---
+   private: true
+   ---
    How large a response body can be before it is written to a temporary file.
 maximum_body_in_memory = 4192
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Response_Body
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a Response_Body.
 
-       Arguments:
-       - stream: The body of the response as an InputStream.
-       - metadata: File format metadata associated with the response.
-       - uri: The URI of the response.
+       ## Arguments
+        - `stream`: The body of the response as an InputStream.
+        - `metadata`: File format metadata associated with the response.
+        - `uri`: The URI of the response.
     new : Input_Stream -> File_Format_Metadata -> URI -> Response_Body
     new input_stream (metadata : File_Format_Metadata) (uri : URI) =
         Response_Body.Raw_Stream input_stream metadata uri
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        For internal use only. Should be materialised before returning to an end
        user.
     Raw_Stream (raw_stream:Input_Stream) (metadata:File_Format_Metadata) uri:URI
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Materialized_Stream (restartable_stream:Restartable_Input_Stream) (metadata:File_Format_Metadata) uri:URI
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     with_stream : (Input_Stream -> Any ! HTTP_Error) -> Any ! HTTP_Error
     with_stream self action = case self of
         Response_Body.Raw_Stream raw_stream _ _ ->
@@ -63,8 +75,10 @@ type Response_Body
         Response_Body.Materialized_Stream restartable_stream _ _ ->
             restartable_stream.with_fresh_stream action
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Materializes the stream into either a byte array or a temporary file and
        return a new Response_Body.
     materialize : Input_Stream
@@ -75,17 +89,19 @@ type Response_Body
             Response_Body.Materialized_Stream restartable_stream metadata uri
         Response_Body.Materialized_Stream _ _ _ -> self
 
-    ## ALIAS parse
-       GROUP Input
-       ICON convert
+    ## ---
+       aliases: [parse]
+       group: Input
+       icon: convert
+       ---
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.
 
-       Arguments:
-       - format: The format to use to decode the body.
-       - if_unsupported: Specifies how to proceed if `Auto_Detect` was selected
-         but the format could not be determined.
+       ## Arguments
+        - `format`: The format to use to decode the body.
+        - `if_unsupported`: Specifies how to proceed if `Auto_Detect` was
+          selected but the format could not be determined.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=(Error.throw (File_Error.Unsupported_Type self.metadata)) =
@@ -101,76 +117,93 @@ type Response_Body
                     self.with_stream stream->
                         resolved_format.read_stream stream self.metadata
 
-    ## ALIAS bytes
-       GROUP Input
-       ICON convert
+    ## ---
+       aliases: [bytes]
+       group: Input
+       icon: convert
+       ---
        Read the body as a byte array.
     decode_as_bytes : Vector
     decode_as_bytes self = self.decode Bytes
 
-    ## ALIAS parse as text
-       GROUP Conversions
-       ICON data_input
+    ## ---
+       aliases: [parse as text]
+       group: Conversions
+       icon: data_input
+       ---
        Decodes the body to a Text value.
 
-       Arguments:
-       - encoding: The encoding to use. If not specified, the encoding is
-         inferred from response headers. If that fails, UTF-8 is used as the
-         fallback.
+       ## Arguments
+        - `encoding`: The encoding to use. If not specified, the encoding is
+          inferred from response headers. If that fails, UTF-8 is used as the
+          fallback.
     @encoding Encoding.default_widget
     decode_as_text : Encoding | Infer -> Text
     decode_as_text self (encoding : Encoding | Infer = Infer) = self.decode (..Plain_Text encoding)
 
-    ## ALIAS parse as json, parse json
-       GROUP Conversions
-       ICON data_input
+    ## ---
+       aliases: [parse as json, parse json]
+       group: Conversions
+       icon: data_input
+       ---
        Decodes the body as JSON.
 
-       Arguments:
-       - encoding: The encoding to use. If not specified, the encoding is
-         inferred from response headers. If that fails, UTF-8 is used as the
-         fallback.
+       ## Arguments
+        - `encoding`: The encoding to use. If not specified, the encoding is
+          inferred from response headers. If that fails, UTF-8 is used as the
+          fallback.
 
-       > Example
-         Convert a response from JSON.
+       ## Examples
+       ### Convert a response from JSON.
 
+       ```
              import Standard.Examples
 
              example_to_text = Examples.get_geo_data.decode_as_json
+       ```
     @encoding Encoding.default_widget
     decode_as_json : Encoding | Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.decode_as_text encoding . parse_json
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        The content type of the response.
     content_type : Text | Nothing
     content_type self = self.metadata.content_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert response body to Text.
     to_text : Text
     to_text self = "Response_Body"
 
-    ## ALIAS export, output, save, to_file
-       GROUP Output
-       ICON data_output
+    ## ---
+       aliases: [export, output, save, to_file]
+       group: Output
+       icon: data_output
+       ---
        Write response body to a File.
 
-       Arguments:
-       - file: The file to write the body to.
-       - on_existing_file: Specifies how to proceed if the file already exists.
+       ## Arguments
+        - `file`: The file to write the body to.
+        - `on_existing_file`: Specifies how to proceed if the file already
+          exists.
 
-       > Example
-         Write the contents of the request body to a scratch file on disk. The
+       ## Examples
+       ### Write the contents of the request body to a scratch file on disk. The
          file will be created if it does not exist, and will be overwritten if
          it does.
 
+       ```
              import Standard.Examples
 
              example_write =
                 Examples.get_geo_data.write Examples.scratch_file
+       ```
     @file (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
     write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
@@ -179,18 +212,24 @@ type Response_Body
                 r = output_stream.write_stream body_stream
                 r.if_not_error file.file_for_return
 
-## PRIVATE
+## ---
+   private: true
+   ---
 can_decode : File_Format -> Boolean
 can_decode type = Meta.meta type . methods . contains "read_stream"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Selector for decoding from the web.
 decode_format_selector : Widget
 decode_format_selector =
     all_types = [Auto_Detect] + (format_types.filter can_decode)
     Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Utility method for closing primitive Java streams. Provided to avoid
    accidental scope capture with `Managed_Resource` finalizers.
 delete_file : Any -> Nothing

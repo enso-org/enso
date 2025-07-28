@@ -41,6 +41,7 @@ import { FileFilter, toElectronFileFilter } from './fileBrowser'
 
 import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from './globals'
+import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 const logger = contentConfig.logger
 
 /** Convert path to proper `file://` URL. */
@@ -419,33 +420,37 @@ class App {
           : {}),
         }
         const window = new electron.BrowserWindow(windowPreferences)
-        window.setMenuBarVisibility(false)
+
         const oldMenu = electron.Menu.getApplicationMenu()
         if (oldMenu != null) {
-          const items = oldMenu.items.map((item) => {
-            if (item.role !== 'help') {
-              return item
-            } else {
-              // `click` is a property that is intentionally removed from this
-              // destructured object, in order to satisfy TypeScript.
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              const { click, ...passthrough } = item
-              return new electron.MenuItem({
-                ...passthrough,
-                submenu: electron.Menu.buildFromTemplate([
-                  new electron.MenuItem({
-                    label: `About ${common.PRODUCT_NAME}`,
-                    click: () => {
-                      window.webContents.send(ipc.Channel.showAboutModal)
-                    },
-                  }),
+          const newMenu = replaceMenuItems(oldMenu.items, [
+            {
+              filter: [filterByRole('help')],
+              replacement: (item) =>
+                inheritMenuItem(item, undefined, [
+                  makeMenuItem(window, `About ${common.PRODUCT_NAME}`, 'about'),
                 ]),
-              })
-            }
-          })
-          const newMenu = electron.Menu.buildFromTemplate(items)
+            },
+            {
+              filter: [filterByRole('fileMenu'), filterByRole('close')],
+              replacement: () => makeMenuItem(window, 'Close Tab', 'closeTab', 'CmdOrCtrl+W'),
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('about')],
+              replacement: () => undefined,
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('hide')],
+              replacement: (item) => inheritMenuItem(item, `Hide ${common.PRODUCT_NAME}`),
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('quit')],
+              replacement: (item) => inheritMenuItem(item, `Quit ${common.PRODUCT_NAME}`),
+            },
+          ])
           electron.Menu.setApplicationMenu(newMenu)
         }
+        window.setMenuBarVisibility(false)
 
         if (this.args.groups.debug.options.devTools.value) {
           window.webContents.openDevTools()
@@ -697,7 +702,6 @@ class App {
     }
   }
 
-  /** Register keyboard shortcuts. */
   registerShortcuts() {
     electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
       webContents.on('before-input-event', (_beforeInputEvent, input) => {
@@ -711,18 +715,6 @@ class App {
             if (control && alt && shift && !meta && code === 'KeyR') {
               focusedWindow.reload()
             }
-          }
-
-          const cmdQ = meta && !control && !alt && !shift && code === 'KeyQ'
-          const ctrlQ = !meta && control && !alt && !shift && code === 'KeyQ'
-          const altF4 = !meta && !control && alt && !shift && code === 'F4'
-          const ctrlW = !meta && control && !alt && !shift && code === 'KeyW'
-          const quitOnMac = process.platform === 'darwin' && (cmdQ || altF4)
-          const quitOnWin = process.platform === 'win32' && (altF4 || ctrlW)
-          const quitOnLinux = process.platform === 'linux' && (altF4 || ctrlQ || ctrlW)
-          const quit = quitOnMac || quitOnWin || quitOnLinux
-          if (quit) {
-            electron.app.quit()
           }
         }
       })

@@ -30,44 +30,47 @@ type File_Action
 type Choice
     ## Describes an entry in a Single_Choice or Multiple_Choice widget.
 
-       Arguments:
-       - label: The text to display for the entry.
-       - value: The code to insert for the entry. By default, the `label` is used.
-       - parameters: A list of parameters for the arguments for the `value`.
-         This provides the structure needed for nested widgets.
-       - icon: The icon to display for the entry. By default, no icon is used.
+       ## Arguments
+        - `label`: The text to display for the entry.
+        - `value`: The code to insert for the entry. By default, the `label` is
+          used.
+        - `parameters`: A list of parameters for the arguments for the `value`.
+          This provides the structure needed for nested widgets.
+        - `icon`: The icon to display for the entry. By default, no icon is used.
     Option label:Text value:(Text | Vector Choice)=label parameters:(Vector (Pair Text Widget))=[] icon:Text=""
 
 type File_Type
     ## Describes a file type.
 
-       Arguments:
-       - label: The text to display for the file type.
-       - extensions: A list of extensions for the file type. 
-         Extensions do not include the dot, the only supported glob pattern is '*' (all files).
-       - icon: The icon to display for the file type.
+       ## Arguments
+        - `label`: The text to display for the file type.
+        - `extensions`: A list of extensions for the file type. Extensions do not
+          include the dot, the only supported glob pattern is '*' (all files).
+        - `icon`: The icon to display for the file type.
     Option label:Text extensions:(Vector Text | Vector File_Type)=[label] icon:Text=""
 
 type Widget
     ## Describes a single value widget (dropdown).
 
-       Arguments:
-       - values: A list of choices to display.
-       - label: The placeholder text value.
-         By default, the parameter name is used.
-       - display: The display mode for the parameter.
-       - allow_custom: Allow the user to enter a value not in the list?
+       ## Arguments
+        - `values`: A list of choices to display.
+        - `label`: The placeholder text value. By default, the parameter name is
+          used.
+        - `display`: The display mode for the parameter.
+        - `allow_custom`: Allow the user to enter a value not in the list?
     Single_Choice values:(Vector Choice) label:(Nothing | Text)=Nothing display:Display=Display.When_Modified allow_custom:Boolean=True
 
     ## Describes a list editor widget producing a Vector.
-       Items can be dragged around to change the order, or dragged out to be deleted from the Vector.
+       Items can be dragged around to change the order, or dragged out to be
+       deleted from the Vector.
 
-       Arguments:
-       - item_editor: The widget to use for editing the items.
-       - item_default: The default value for new items inserted when the user clicks the `+` button.
-       - label: The placeholder text value.
-         By default, the parameter name is used.
-       - display: The display mode for the parameter.
+       ## Arguments
+        - `item_editor`: The widget to use for editing the items.
+        - `item_default`: The default value for new items inserted when the user
+          clicks the `+` button.
+        - `label`: The placeholder text value. By default, the parameter name is
+          used.
+        - `display`: The display mode for the parameter.
     Vector_Editor item_editor:Widget item_default:Text label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
 
     ## Describes a multi value widget.
@@ -101,7 +104,9 @@ type Widget
     ## Describes a secret chooser.
     Secret_Browse display:Display=..When_Modified
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Override the to_js_object and don't include Nothing.
     to_js_object : JS_Object
     to_js_object self =
@@ -118,7 +123,9 @@ type Widget
 
         JS_Object.from_pairs (type_pair + cons_pair + field_pairs)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_single_choice values:Vector display:Display=..Always -> Widget =
     make_option value = case value of
         _ : Vector -> Choice.Option value.first value.second

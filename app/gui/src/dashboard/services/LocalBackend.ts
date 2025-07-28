@@ -300,7 +300,7 @@ export default class LocalBackend extends Backend {
   }
 
   /**
-   * Close the project identified by the given project ID.
+   * Returns information about the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails.
    */
   override async getProjectDetails(

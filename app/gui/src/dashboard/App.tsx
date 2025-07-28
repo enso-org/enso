@@ -50,6 +50,10 @@ LocalStorage.registerKey('loginRedirect', {
   schema: z.string(),
 })
 
+window.menuApi?.setMenuItemHandler('about', () => {
+  AboutModal.open()
+})
+
 /**
  * Component called by the parent module, returning the root React component for this
  * package.
@@ -121,10 +125,6 @@ function AppRouter(props: React.PropsWithChildren) {
   const aboutModalRef = React.useRef<ModalApi>(null)
 
   React.useEffect(() => {
-    window.menuApi?.setShowAboutModalHandler(() => {
-      aboutModalRef.current?.open()
-    })
-
     let isClick = false
     const onMouseDown = () => {
       isClick = true

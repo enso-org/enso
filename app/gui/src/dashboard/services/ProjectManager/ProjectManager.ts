@@ -4,11 +4,12 @@
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
 import * as backend from '#/services/Backend'
+import { getFileName, getFolderPath } from '#/utilities/fileInfo'
 import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
+import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
-import { getFileName, getFolderPath } from '../../utilities/fileInfo'
 import {
   MissingComponentAction,
   Path,
@@ -224,7 +225,11 @@ export class ProjectManager {
     if (state?.state === backend.ProjectState.opened) {
       this.projects.set(fullParams.projectId, {
         state: state.state,
-        data: { ...state.data, projectName: params.name },
+        data: {
+          ...state.data,
+          projectName: params.name,
+          projectNormalizedName: normalizeName(params.name),
+        },
       })
     }
     // Update `internalDirectories` by listing the project's parent directory, because the new

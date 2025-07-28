@@ -31,55 +31,66 @@ polyglot java import java.util.Optional
 polyglot java import org.enso.base.enso_cloud.EnsoHttpResponse
 
 type Response
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A type representing an HTTP response.
 
-       Arguments:
-       - internal_http_response: The internal representation of the HTTP
-         response.
-       - body_object: The body of the response. If nothing will be read from the
-         internal_http_response. Allows for materialization.
+       ## Arguments
+        - `internal_http_response`: The internal representation of the HTTP
+          response.
+        - `body_object`: The body of the response. If nothing will be read from
+          the internal_http_response. Allows for materialization.
     private Value internal_http_response:Enso_Http_Response body_object=Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new java_http_response:EnsoHttpResponse =
         Response.Value (Enso_Http_Response.new java_http_response)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a new Response with the body materialized.
     with_materialized_body : Response
     with_materialized_body self =
         Response.Value self.internal_http_response self.body.materialize
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the uri for the response.
     uri : URI
     uri self = self.internal_http_response.uri
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the response headers.
-
        It returns a vector of Header objects and not a mapping, because the
        response may contain multiple headers with the same name.
 
-       > Example
-         Getting the headers from a response.
+       ## Examples
+       ### Getting the headers from a response.
          Note: This example will make a network request.
 
+       ```
              import Standard.Examples
 
              example_headers = Examples.get_response.headers
+       ```
 
-       > Example
-         Creating a mapping from the headers, throwing an error if there are duplicates.
+       ### Creating a mapping from the headers, throwing an error if there are duplicates.
          Note: This example will make a network request.
 
+       ```
              import Standard.Examples
 
              example_headers = Dictionary.from_vector error_on_duplicates=True (Examples.get_response.headers.map h-> [h.name, h.value])
+       ```
     headers : Vector Header
     headers self =
         # This is a mapping that maps a header name to a list of values (since headers may be duplicated).
@@ -89,13 +100,17 @@ type Response
             values = p.second
             values.map v-> Header.new key v
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Get the response content type.
     content_type : Text | Nothing
     content_type self = self.get_header "Content-Type"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the response content length in bytes.
        This method uses the `Content-Length` header, and does not read the body.
        If the header is not present will return Nothing.
@@ -104,37 +119,47 @@ type Response
         length_text = self.get_header "Content-Length"
         length_text.if_not_nothing <| Integer.parse length_text
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Get the response body.
 
-       > Example
-         Getting the body from a response.
+       ## Examples
+       ### Getting the body from a response.
          Note: This example will make a network request.
 
+       ```
              import Standard.Examples
 
              example_body = Examples.get_response.body
+       ```
     body : Response_Body
     body self = self.body_object.if_nothing <|
         metadata = resolve_file_metadata_for_response self
         Response_Body.new self.internal_http_response.body metadata self.uri
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Get the response status code.
 
-       > Example
-         Getting the code from a response.
+       ## Examples
+       ### Getting the code from a response.
          Note: This example will make a network request.
 
+       ```
              import Standard.Examples
 
              example_code = Examples.get_response.code
+       ```
     code : HTTP_Status_Code
     code self = HTTP_Status_Code.Value self.internal_http_response.status_code
 
-    ## ALIAS parse
-       GROUP Conversions
-       ICON data_input
+    ## ---
+       aliases: [parse]
+       group: Conversions
+       icon: data_input
+       ---
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format. If the format cannot be detected automatically, `if_unsupported`
@@ -144,87 +169,106 @@ type Response
     decode self format=Auto_Detect ~if_unsupported=(Error.throw (File_Error.Unsupported_Type (resolve_file_metadata_for_response self))) =
         self.body.decode format if_unsupported
 
-    ## ALIAS parse as text
-       GROUP Conversions
-       ICON data_input
+    ## ---
+       aliases: [parse as text]
+       group: Conversions
+       icon: data_input
+       ---
        Decodes the body to a Text value.
 
-       Arguments:
-       - encoding: The encoding to use. If not specified, the encoding is
-         inferred from response headers. If that fails, UTF-8 is used as the
-         fallback.
+       ## Arguments
+        - `encoding`: The encoding to use. If not specified, the encoding is
+          inferred from response headers. If that fails, UTF-8 is used as the
+          fallback.
     @encoding Encoding.default_widget
     decode_as_text : Encoding | Infer -> Text
     decode_as_text self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_text encoding
 
-    ## ALIAS parse as json, parse json
-       GROUP Conversions
-       ICON data_input
+    ## ---
+       aliases: [parse as json, parse json]
+       group: Conversions
+       icon: data_input
+       ---
        Decodes the body as JSON.
 
-       Arguments:
-       - encoding: The encoding to use. If not specified, the encoding is
-         inferred from response headers. If that fails, UTF-8 is used as the
-         fallback.
+       ## Arguments
+        - `encoding`: The encoding to use. If not specified, the encoding is
+          inferred from response headers. If that fails, UTF-8 is used as the
+          fallback.
 
-       > Example
-         Convert a response from JSON.
+       ## Examples
+       ### Convert a response from JSON.
 
+       ```
              import Standard.Examples
 
              example_to_text = Data.fetch Examples.geo_data_url . decode_as_json
+       ```
     @encoding Encoding.default_widget
     decode_as_json : Encoding | Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
 
-    ## ALIAS export, output, save, to_file
-       GROUP Output
-       ICON data_download
+    ## ---
+       aliases: [export, output, save, to_file]
+       group: Output
+       icon: data_download
+       ---
        Write response body to a File.
 
-       Arguments:
-       - file: The file to write the body to.
-       - on_existing_file: Specifies how to proceed if the file already exists.
+       ## Arguments
+        - `file`: The file to write the body to.
+        - `on_existing_file`: Specifies how to proceed if the file already
+          exists.
 
-       > Example
-         Write the contents of the request body to a scratch file on disk. The
+       ## Examples
+       ### Write the contents of the request body to a scratch file on disk. The
          file will be created if it does not exist, and will be overwritten if
          it does.
 
+       ```
              import Standard.Examples
 
              example_write =
                 Data.fetch Examples.geo_data_url . write Examples.scratch_file
+       ```
     @file (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
     write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.body.write file on_existing_file
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a JavaScript Object representing this Response.
 
-       > Example
-         Convert a response to JS_Object.
+       ## Examples
+       ### Convert a response to JS_Object.
          Note: This example will make a network request.
 
+       ```
              import Standard.Examples
 
              example_to_json = Examples.get_response.to_js_object
+       ```
     to_js_object : JS_Object
     to_js_object self =
         type_pair = ["type", "Response"]
         cons_pair = ["constructor", "Value"]
         JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_header : Text -> Any -> Text | Any
     get_header self name:Text ~if_missing=Nothing =
         java_optional = self.internal_http_response.headers.firstValue name
         if java_optional.isPresent then java_optional.get else if_missing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 resolve_file_metadata_for_response : Response -> File_Format_Metadata
 resolve_file_metadata_for_response response =
     uri_as_text = response.uri.to_text
@@ -236,21 +280,27 @@ resolve_file_metadata_for_response response =
         if last_path_segment.contains "." then last_path_segment else Nothing
     File_Format_Metadata.Value path=uri_as_text name=guessed_filename content_type=response.content_type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 filename_from_content_disposition : Text | Nothing -> Text | Nothing
 filename_from_content_disposition content_disposition =
     content_disposition.if_not_nothing <|
         match = 'filename="(.*)"'.to_regex.match content_disposition
         match.if_not_nothing <| match.get 1
 
-## PRIVATE
+## ---
+   private: true
+   ---
    After an `EnsoHttpResponse` has been returned from Java to Enso, it should be
-   converted to this, which takes care of ensuring that the body `InputStream`
-   is wrapped as a `Managed_Resource`.
+   converted to this, which takes care of ensuring that the body `InputStream` is
+   wrapped as a `Managed_Resource`.
 type Enso_Http_Response
     private Value uri:URI (headers:HttpHeaders) body:Input_Stream status_code:Integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new java_response:EnsoHttpResponse -> Enso_Http_Response =
         uri = URI.parse java_response.uri.toString
         error_handler = (HTTP_Error.handle_java_exceptions uri)
