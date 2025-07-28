@@ -262,13 +262,8 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
     ...(refetchInterval != null ? { refetchInterval } : {}),
     queryFn: async (
       _context,
-      {
-        from,
-        fromModifiedAt,
-        pageSize,
-      }: Pick<backendModule.ListDirectoryRequestParams, 'from' | 'fromModifiedAt' | 'pageSize'> = {
+      { from, pageSize }: Pick<backendModule.ListDirectoryRequestParams, 'from' | 'pageSize'> = {
         from: null,
-        fromModifiedAt: null,
         pageSize: null,
       },
     ) => {
@@ -283,7 +278,6 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             filterBy,
             recentProjects: category.type === 'recent',
             from,
-            fromModifiedAt,
             pageSize,
           },
           parentId ?? '(unknown)',
@@ -296,7 +290,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         }
       }
     },
-  } satisfies UnusedSkipTokenOptions<readonly backendModule.AnyAsset<backendModule.AssetType>[]>
+  } satisfies UnusedSkipTokenOptions<backendModule.ListDirectoryResponseBody>
 }
 
 /** Options for {@link searchDirectoryQueryOptions}. */
@@ -323,20 +317,12 @@ export function searchDirectoryQueryOptions(options: SearchDirectoryQueryOptions
     queryKey: ((): QueryKey => [backend.type, 'searchDirectory', { ...rest, infinite }])(),
     queryFn: (
       _context,
-      {
-        from,
-        fromModifiedAt,
-        pageSize,
-      }: Pick<
-        backendModule.SearchDirectoryRequestParams,
-        'from' | 'fromModifiedAt' | 'pageSize'
-      > = {
+      { from, pageSize }: Pick<backendModule.SearchDirectoryRequestParams, 'from' | 'pageSize'> = {
         from: null,
-        fromModifiedAt: null,
         pageSize: null,
       },
-    ) => backend.searchDirectory({ ...rest, from, fromModifiedAt, pageSize }),
-  } satisfies UnusedSkipTokenOptions<readonly backendModule.AnyAsset<backendModule.AssetType>[]>
+    ) => backend.searchDirectory({ ...rest, from, pageSize }),
+  } satisfies UnusedSkipTokenOptions<backendModule.ListDirectoryResponseBody>
 }
 
 /** Options for {@link unsafe_assetFromCacheQueryOptions}. */
@@ -454,22 +440,23 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
 export function useEnsureListDirectory(backend: Backend, category: Category) {
   const queryClient = useQueryClient()
   return useEventCallback(async (parentId: DirectoryId) => {
-    return await queryClient.ensureQueryData(
-      backendQueryOptions(backend, 'listDirectory', [
-        {
-          parentId,
-          labels: null,
-          filterBy: CATEGORY_TO_FILTER_BY[category.type],
-          recentProjects: category.type === 'recent',
-          sortExpression: null,
-          sortDirection: null,
-          from: null,
-          fromModifiedAt: null,
-          pageSize: null,
-        },
-        '(unknown)',
-      ]),
-    )
+    return (
+      await queryClient.ensureQueryData(
+        backendQueryOptions(backend, 'listDirectory', [
+          {
+            parentId,
+            labels: null,
+            filterBy: CATEGORY_TO_FILTER_BY[category.type],
+            recentProjects: category.type === 'recent',
+            sortExpression: null,
+            sortDirection: null,
+            from: null,
+            pageSize: null,
+          },
+          '(unknown)',
+        ]),
+      )
+    ).assets
   })
 }
 

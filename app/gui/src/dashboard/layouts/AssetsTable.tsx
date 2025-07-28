@@ -62,7 +62,13 @@ import {
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import type { AssetId, AssetSortExpression, DirectoryId, ProjectId } from '#/services/Backend'
+import type {
+  AssetId,
+  AssetSortExpression,
+  DirectoryId,
+  PaginationToken,
+  ProjectId,
+} from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -95,7 +101,6 @@ import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
 import { useLaunchedProjects } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import type { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import {
   Children,
   cloneElement,
@@ -306,29 +311,20 @@ function AssetsTable(props: AssetsTableProps) {
     queryKey: directoryQueryOptions.queryKey,
     queryFn: (context) =>
       directoryQueryOptions.queryFn(context, {
-        from: context.pageParam.from,
-        fromModifiedAt: context.pageParam.fromModifiedAt,
+        from: context.pageParam,
         pageSize,
       }),
-    initialPageParam: ((): {
-      readonly from: AssetId | null
-      fromModifiedAt: Rfc3339DateTime | null
-    } => ({ from: null, fromModifiedAt: null }))(),
-    getNextPageParam: (lastPage) => {
-      const last = lastPage.at(-1)
-      if (!last) return null
-      const from = last.id
-      const isDefaultSorting =
-        sortInfo?.field == null || sortInfo.field === 'asset_id_discriminator_and_modified_at'
-      const fromModifiedAt = isDefaultSorting ? last.modifiedAt : null
-      return { from, fromModifiedAt }
-    },
+    initialPageParam: ((): PaginationToken | null => null)(),
+    getNextPageParam: (lastPage) => lastPage.paginationToken,
     retry: () => {
       setDriveLocation(null, category.id)
       return false
     },
   })
-  const assets = useMemo(() => assetsPages.data?.pages.flat() ?? [], [assetsPages.data?.pages])
+  const assets = useMemo(
+    () => assetsPages.data?.pages.flatMap((page) => page.assets) ?? [],
+    [assetsPages.data?.pages],
+  )
   const fetchNextAssetPage = assetsPages.fetchNextPage
   const isFetching = assetsPages.isLoading || assetsPages.isFetchingNextPage
 

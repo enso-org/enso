@@ -395,7 +395,7 @@ function useGetSiblings() {
             refetchInterval: null,
           }),
         )
-      : []
+      : null
     const deletedAssets =
       cloudTrashCategory ?
         await queryClient.fetchQuery(
@@ -409,8 +409,8 @@ function useGetSiblings() {
             refetchInterval: null,
           }),
         )
-      : []
-    return [...nonDeletedAssets, ...deletedAssets] as const
+      : null
+    return [...(nonDeletedAssets?.assets ?? []), ...(deletedAssets?.assets ?? [])] as const
   })
 }
 

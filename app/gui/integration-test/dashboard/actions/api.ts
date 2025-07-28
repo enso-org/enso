@@ -144,8 +144,7 @@ interface SearchDirectoryQuery {
   readonly labels?: readonly backend.LabelName[] | null
   readonly sort_expression?: backend.AssetSortExpression | null
   readonly sort_direction?: backend.AssetSortDirection | null
-  readonly from?: backend.AssetId | null
-  readonly from_modified_at?: dateTime.Rfc3339DateTime | null
+  readonly from?: backend.PaginationToken | null
   readonly page_size?: number | null
 }
 
@@ -345,7 +344,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       sortExpression: query.sort_expression ?? null,
       sortDirection: query.sort_direction ?? null,
       from: query.from ?? null,
-      fromModifiedAt: query.from_modified_at ?? null,
       pageSize: query.page_size ?? null,
     })
     const matchingAssets: backend.AnyAsset[] = []
@@ -366,7 +364,11 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       backend.compareAssets(a, b, query.sort_expression, query.sort_direction),
     )
     const index =
-      query.from == null ? 0 : sortedAssets.findIndex((asset) => asset.id === query.from) + 1
+      query.from == null ?
+        0
+      : sortedAssets.findIndex(
+          (asset) => asset.id === (query.from as backend.AssetId | null | undefined),
+        ) + 1
     return sortedAssets.slice(index, query.page_size != null ? index + query.page_size : undefined)
   }
 
@@ -746,13 +748,21 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     await get(paths.LIST_DIRECTORY_PATH, (route, _req, _, params) => {
       const query = Object.fromEntries(params.entries()) as ListDirectoryQuery
       called('listDirectory', query)
-      const json: backend.ListDirectoryResponseBody = { assets: listDirectory(query) }
+      const assets = listDirectory(query)
+      const json: backend.ListDirectoryResponseBody = {
+        assets,
+        paginationToken: assets[0] ? backend.PaginationToken(String(assets[0].id)) : null,
+      }
       route.fulfill({ json })
     })
     await get(paths.SEARCH_DIRECTORY_PATH, (route, _req, _, params) => {
       const query = Object.fromEntries(params.entries()) as SearchDirectoryQuery
       called('searchDirectory', query)
-      const json: backend.ListDirectoryResponseBody = { assets: searchDirectory(query) }
+      const assets = searchDirectory(query)
+      const json: backend.ListDirectoryResponseBody = {
+        assets,
+        paginationToken: assets[0] ? backend.PaginationToken(String(assets[0].id)) : null,
+      }
       route.fulfill({ json })
     })
     await get(paths.LIST_SECRETS_PATH, () => {

@@ -546,14 +546,13 @@ function useOpenHybridProject() {
 
         let project
         for (const parentId of [localProject.parentId, localProject.projectRootId]) {
-          const assets = await localBackend.listDirectory({
+          const { assets } = await localBackend.listDirectory({
             parentId: parentId,
             filterBy: null,
             labels: null,
             sortExpression: null,
             sortDirection: null,
             from: null,
-            fromModifiedAt: null,
             pageSize: null,
             recentProjects: false,
           })

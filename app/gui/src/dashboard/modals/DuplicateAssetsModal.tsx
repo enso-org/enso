@@ -467,7 +467,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       const map = new Map<string, backendModule.AnyAsset>()
       const siblings = []
       for (const query of queries) {
-        for (const asset of query.data) {
+        for (const asset of query.data.assets) {
           map.set(asset.title, asset)
           siblings.push(asset)
         }

@@ -390,7 +390,7 @@ export default class RemoteBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
     title: string,
-  ): Promise<readonly backend.AnyAsset[]> {
+  ): Promise<backend.ListDirectoryResponseBody> {
     const paramsString = new URLSearchParams(
       query.recentProjects ?
         [['recent_projects', String(true)]]
@@ -416,14 +416,18 @@ export default class RemoteBackend extends Backend {
           : `Error listing root directory`,
         )
         // The directory is probably empty.
-        return []
+        return { assets: [], paginationToken: null }
       } else if (query.parentId != null) {
         return await this.throw(response, 'listFolderBackendError', title)
       } else {
         return await this.throw(response, 'listRootFolderBackendError')
       }
     } else {
-      return this.listDirectoryResponseToAssetList(await response.json(), query.parentId)
+      const responseBody = await response.json()
+      return {
+        ...responseBody,
+        assets: this.listDirectoryResponseToAssetList(responseBody.assets, query.parentId),
+      }
     }
   }
 
@@ -433,7 +437,7 @@ export default class RemoteBackend extends Backend {
    */
   override async searchDirectory(
     query: backend.SearchDirectoryRequestParams,
-  ): Promise<readonly backend.AnyAsset[]> {
+  ): Promise<backend.ListDirectoryResponseBody> {
     const paramsString = new URLSearchParams([
       ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
       ...(query.query != null ? [['query', query.query]] : []),
@@ -452,7 +456,11 @@ export default class RemoteBackend extends Backend {
     if (!response.ok) {
       return await this.throw(response, 'searchFolderBackendError')
     } else {
-      return this.listDirectoryResponseToAssetList(await response.json(), query.parentId)
+      const responseBody = await response.json()
+      return {
+        ...responseBody,
+        assets: this.listDirectoryResponseToAssetList(responseBody.assets, query.parentId),
+      }
     }
   }
 
@@ -1510,10 +1518,10 @@ export default class RemoteBackend extends Backend {
 
   /** Convert a {@link ListDirectoryResponseBody} to an array of {@link backend.AnyAsset}. */
   private listDirectoryResponseToAssetList(
-    response: backend.ListDirectoryResponseBody,
+    assets: readonly backend.AnyAsset[],
     parentId: backend.DirectoryId | null,
   ): readonly backend.AnyAsset[] {
-    return response.assets.map((asset) =>
+    return assets.map((asset) =>
       objects.merge(asset, {
         type: backend.getAssetTypeFromId(asset.id),
         // `Users` and `Teams` folders are virtual, so their children incorrectly have

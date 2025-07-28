@@ -3,12 +3,12 @@ import { type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import { findDifferenceIndex } from '@/util/data/array'
 import { Err, Ok, type Result } from '@/util/data/result'
 import {
-  type AnyAsset,
   assetIsDirectory,
+  ListDirectoryResponseBody,
   type DirectoryAsset,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'
-import { computed, reactive, ref, type Ref, toRaw } from 'vue'
+import { computed, reactive, ref, toRaw, type Ref } from 'vue'
 
 /** A directory on browser's stack. */
 export interface Directory {
@@ -56,7 +56,7 @@ export interface PathBrowsing {
 export function usePathBrowsing({
   listDirectory,
 }: {
-  listDirectory: (dir: Directory) => Promise<readonly AnyAsset[] | null>
+  listDirectory: (dir: Directory) => Promise<ListDirectoryResponseBody | null>
 }): PathBrowsing {
   const enteredDirectories = reactive<Directory[]>([])
   const unenteredPathSuffix = ref('')
@@ -67,7 +67,7 @@ export function usePathBrowsing({
     name: string,
     parent: Directory,
   ): Promise<Result<DirectoryAsset, CannotEnterDir>> {
-    const content = (await listDirectory(parent)) ?? []
+    const content = (await listDirectory(parent))?.assets ?? []
     const nextAsset = content.find((asset) => asset.title === name)
     if (!nextAsset) return Err(new CannotEnterDir('notFound', name))
     if (!assetIsDirectory(nextAsset)) return Err(new CannotEnterDir('notDir', name))

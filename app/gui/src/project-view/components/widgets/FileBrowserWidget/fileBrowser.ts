@@ -24,7 +24,6 @@ export function listDirectoryArgs(params: ToValue<Directory | undefined>) {
             labels: null,
             recentProjects: false,
             from: null,
-            fromModifiedAt: null,
             pageSize: null,
             sortDirection: null,
             sortExpression: null,

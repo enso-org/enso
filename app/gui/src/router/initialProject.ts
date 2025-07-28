@@ -83,7 +83,6 @@ async function shouldOpenInitialProject(
     sortExpression: null,
     sortDirection: null,
     from: null,
-    fromModifiedAt: null,
     pageSize: null,
     recentProjects: false,
   }
@@ -93,12 +92,12 @@ async function shouldOpenInitialProject(
   }
 
   const homeContent = await Promise.all([
-    localBackend?.listDirectory(homeDirQuery) ?? [],
+    localBackend?.listDirectory(homeDirQuery),
     remoteBackend.listDirectory(homeDirQuery, 'User Home'),
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
-  return ![...localHome, ...cloudHome].some((asset) => {
+  return ![...(localHome?.assets ?? []), ...cloudHome.assets].some((asset) => {
     return asset.type != AssetType.directory || asset.title != SAMPLES_DIRECTORY
   })
 }

@@ -327,7 +327,7 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
 
   const { data: isEmpty } = useSuspenseQuery({
     ...rootDirectoryQueryOptions,
-    select: (data) => data.length === 0,
+    select: (data) => data.assets.length === 0,
   })
 
   const queryClient = useQueryClient()

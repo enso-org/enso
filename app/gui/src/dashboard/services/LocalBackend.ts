@@ -177,7 +177,7 @@ export default class LocalBackend extends Backend {
    */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams & { readonly recursive?: boolean },
-  ): Promise<readonly backend.AnyRealAsset[]> {
+  ): Promise<backend.ListDirectoryResponseBody> {
     const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
@@ -290,30 +290,40 @@ export default class LocalBackend extends Backend {
       }
     }
     result.sort((a, b) => backend.compareAssets(a, b, query.sortExpression, query.sortDirection))
-    const index = query.from == null ? 0 : result.findIndex((asset) => asset.id === query.from) + 1
-    return result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
+    // This is SAFE as the only `PaginationToken`s returned from this class are created from `AssetId`s.
+    // eslint-disable-next-line no-restricted-syntax
+    const from = query.from as backend.AssetId | null
+    const index = from == null ? 0 : result.findIndex((asset) => asset.id === from) + 1
+    return {
+      assets: result.slice(index, query.pageSize != null ? index + query.pageSize : undefined),
+      paginationToken: result[0] ? backend.PaginationToken(String(result[0].id)) : null,
+    }
   }
 
   /** Recursively search for assets in a directory. */
   override async searchDirectory(
     query: backend.SearchDirectoryRequestParams,
-  ): Promise<readonly backend.AnyAsset[]> {
-    const assets = (
-      await this.listDirectory({
-        parentId: query.parentId,
-        filterBy: null,
-        labels: query.labels,
-        sortDirection: query.sortDirection,
-        sortExpression: query.sortExpression,
-        recentProjects: false,
-        from: null,
-        fromModifiedAt: null,
-        pageSize: null,
-        recursive: true,
-      })
-    ).filter(backend.doesAssetMatchQuery(query))
-    const index = query.from == null ? 0 : assets.findIndex((asset) => asset.id === query.from) + 1
-    return assets.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
+  ): Promise<backend.ListDirectoryResponseBody> {
+    const result = await this.listDirectory({
+      parentId: query.parentId,
+      filterBy: null,
+      labels: query.labels,
+      sortDirection: query.sortDirection,
+      sortExpression: query.sortExpression,
+      recentProjects: false,
+      from: null,
+      pageSize: null,
+      recursive: true,
+    })
+    const assets = result.assets.filter(backend.doesAssetMatchQuery(query))
+    // This is SAFE as the only `PaginationToken`s returned from this class are created from `AssetId`s.
+    // eslint-disable-next-line no-restricted-syntax
+    const from = query.from as backend.AssetId | null
+    const index = from == null ? 0 : assets.findIndex((asset) => asset.id === from) + 1
+    return {
+      assets: assets.slice(index, query.pageSize != null ? index + query.pageSize : undefined),
+      paginationToken: assets[0] ? backend.PaginationToken(String(assets[0].id)) : null,
+    }
   }
 
   /**
@@ -1065,11 +1075,10 @@ export default class LocalBackend extends Backend {
       sortExpression: null,
       sortDirection: null,
       from: null,
-      fromModifiedAt: null,
       pageSize: null,
     })
 
-    const entry = directoryContents.find((content) => content[key] === value)
+    const entry = directoryContents.assets.find((content) => content[key] === value)
 
     if (entry == null) {
       if (backend.isDirectoryId(value)) {

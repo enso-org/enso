@@ -130,6 +130,10 @@ export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>
 export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
 export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
 
+/** A pagination token for an arbitrary endpoint. */
+export type PaginationToken = newtype.Newtype<string, 'PaginationToken'>
+export const PaginationToken = newtype.newtypeConstructor<PaginationToken>()
+
 /** Check if this path points to an asset in cloud drive. */
 export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
   return ensoPath.startsWith('enso://')
@@ -649,9 +653,11 @@ export interface ListUsersResponseBody {
   readonly users: readonly User[]
 }
 
-/** HTTP response body for the "list projects" endpoint. */
+/** HTTP response body for the "list directory" endpoint. */
 export interface ListDirectoryResponseBody {
   readonly assets: readonly AnyAsset[]
+  /** `null` if and only if this is the last page. */
+  readonly paginationToken: PaginationToken | null
 }
 
 /** HTTP response body for the "list files" endpoint. */
@@ -1460,8 +1466,7 @@ export interface ListDirectoryRequestParams {
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
-  readonly from: AssetId | null
-  readonly fromModifiedAt: dateTime.Rfc3339DateTime | null
+  readonly from: PaginationToken | null
   readonly pageSize: number | null
 }
 
@@ -1476,8 +1481,7 @@ export interface SearchDirectoryRequestParams {
   readonly labels: readonly LabelName[] | null
   readonly sortExpression: AssetSortExpression | null
   readonly sortDirection: AssetSortDirection | null
-  readonly from: AssetId | null
-  readonly fromModifiedAt: dateTime.Rfc3339DateTime | null
+  readonly from: PaginationToken | null
   readonly pageSize: number | null
 }
 
@@ -1836,9 +1840,9 @@ export default abstract class Backend {
   abstract listDirectory(
     query: ListDirectoryRequestParams,
     title: string,
-  ): Promise<readonly AnyAsset[]>
+  ): Promise<ListDirectoryResponseBody>
   /** Return a list of assets recursively in a directory matching a query. */
-  abstract searchDirectory(query: SearchDirectoryRequestParams): Promise<readonly AnyAsset[]>
+  abstract searchDirectory(query: SearchDirectoryRequestParams): Promise<ListDirectoryResponseBody>
   /** Create a directory. */
   abstract createDirectory(
     body: CreateDirectoryRequestBody,
