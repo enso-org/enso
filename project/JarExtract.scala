@@ -26,10 +26,10 @@ object JarExtract {
     * according to the provided `visitor` rules.
     * The extracted files are copied to the `extractedFilesDir`, and the
     * output JAR is created at `outputJarFile`.
-   *
-   * Directory entries are not visited.
     *
-   * @param jarFile Input Jar file. Is not modified.
+    * Directory entries are not visited.
+    *
+    * @param jarFile Input Jar file. Is not modified.
     * @param extractedFilesDir Destination directory for extracted files.
     * @param outputJarFile Destination of the thin output jar
     * @param visitor

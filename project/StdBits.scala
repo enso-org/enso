@@ -6,8 +6,9 @@ import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 import sbt.util.CacheStoreFactory
 
 import java.io.{File, IOException}
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.Locale
+import scala.jdk.CollectionConverters.asScalaBufferConverter
 
 object StdBits {
 
@@ -31,7 +32,8 @@ object StdBits {
     * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
     * @param polyglotLibDir `polyglot/lib` directory for extracted native libraries.
-    * @param extractedNativeLibs Native libraries that will be copied into `polyglotLibDir`
+    * @param extractedNativeLibsDir Directory where all the extracted native libraries are present.
+    *                               If specified, `polyglotLibDir` must also be specified.
     * @param extraJars Additional JARs that will be copied into `destination` directory.
     *
     * @param previousRun summary of previous extraction data, if available
@@ -49,14 +51,14 @@ object StdBits {
     ignoreDependencyIncludeTransitive: Option[String]   = None,
     ignoreUnmanagedDependency: Option[File => Boolean]  = None,
     polyglotLibDir: Option[File]                        = None,
-    extractedNativeLibs: Seq[File]                      = Seq.empty,
+    extractedNativeLibsDir: Option[File]                = None,
     extraJars: Seq[File]                                = Seq.empty,
     previousRun: Option[AnalysisOfExtractedNativeLibs]  = None
   ): Unit = {
-    if (extractedNativeLibs.nonEmpty) {
+    if (extractedNativeLibsDir.nonEmpty) {
       require(
         polyglotLibDir.isDefined,
-        "If extracted native libraries are provided, polyglotLibDir must be defined."
+        "If extracted native libraries dir is provided, polyglotLibDir must be defined."
       )
     }
 
@@ -164,40 +166,74 @@ object StdBits {
     }
 
     // Copy native libs into `polyglotLibDir` if necessary.
-    // TODO: Respect the directory hierarchy of extractedNativeLibs.
-    val nativeLibsStore =
-      cacheStoreFactory.make("std-bits-native-libs")
-    Tracked.diffInputs(nativeLibsStore, FileInfo.hash)(
-      extractedNativeLibs.toSet
-    ) { report =>
-      logger.debug(s"nativeLibsStore report: " + report)
-      val expectedFileNames = report.checked.map(_.getName)
-      for (existing <- IO.listFiles(polyglotLibDir.get)) {
-        if (!expectedFileNames.contains(existing.getName)) {
-          logger.info(
-            s"Removing outdated std-bits native lib ${existing.getName}"
+    extractedNativeLibsDir match {
+      case None => ()
+      case Some(nativeLibsInputDir) =>
+        val nativeLibsStore =
+          cacheStoreFactory.make("std-bits-native-libs")
+        val nativeLibsOutputDir = polyglotLibDir.get
+        Tracked.diffInputs(nativeLibsStore, FileInfo.hash)(
+          Set(
+            nativeLibsInputDir,
+            nativeLibsOutputDir
           )
-          IO.delete(existing)
-        } else {
-          logger.info(
-            s"Keeping target ${existing.getName} native lib as a dependency. Still up-to-date"
-          )
+        ) { report =>
+          logger.info("nativeLibsReport: " + report)
+          val reportChanged = report.modified.nonEmpty ||
+            report.removed.nonEmpty ||
+            report.added.nonEmpty
+          val shouldCopy = !nativeLibsOutputDir.exists() || reportChanged
+          if (shouldCopy) {
+            logger.info(
+              s"Copying native libraries from ${nativeLibsInputDir.getAbsolutePath} to ${nativeLibsOutputDir.getAbsolutePath}"
+            )
+            // Delete and recreate the output dir, just to be sure
+            IO.delete(nativeLibsOutputDir)
+            IO.createDirectory(nativeLibsOutputDir)
+            IO.copyDirectory(
+              nativeLibsInputDir,
+              nativeLibsOutputDir,
+              overwrite = true
+            )
+          } else {
+            logger.info(
+              s"Native libraries in ${nativeLibsInputDir.getAbsolutePath} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
+            )
+          }
         }
-      }
-      for (changed <- report.modified -- report.removed) {
-        logger.info(
-          s"Updating changed std-bits native lib ${changed.getName}."
-        )
-        updateDependency(changed, polyglotLibDir.get, logger)
-      }
-      for (file <- report.unmodified) {
-        val dest = polyglotLibDir.get / file.getName
-        if (!dest.exists()) {
-          logger.info(s"Adding missing std-bits native lib ${file.getName}.")
-          updateDependency(file, polyglotLibDir.get, logger)
-        }
-      }
     }
+  }
+
+  private def copyRecursively(
+    destDir: File,
+    srcDir: File
+  ): Unit = {
+    if (!destDir.exists()) {
+      IO.createDirectory(destDir)
+    }
+    val files = listRecursively(srcDir)
+    for (srcFile <- files) {
+      val relativePath = srcFile.toPath.subpath(
+        srcDir.toPath.getNameCount,
+        srcFile.toPath.getNameCount
+      )
+      val destFile = destDir / relativePath.toString
+      if (!destFile.getParentFile.exists()) {
+        IO.createDirectory(destFile.getParentFile)
+      }
+      IO.copyFile(srcFile, destFile, preserveLastModified = true)
+    }
+  }
+
+  private def listRecursively(
+    dir: File
+  ): Seq[File] = {
+    Files
+      .walk(dir.toPath)
+      .toList
+      .asScala
+      .map(_.toFile)
+      .filter(_.isFile)
   }
 
   /** Extract native libraries from `opencv.jar` and put them under

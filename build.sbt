@@ -4918,13 +4918,14 @@ lazy val `std-image` = project
           ignoreScalaLibrary = true,
           ignoreDependenciesByModuleID =
             Some(Seq("org.openpnp" % "opencv" % opencvVersion)),
-          libraryUpdates      = (Compile / update).value,
-          logger              = logger,
-          cacheStoreFactory   = cacheStoreFactory,
-          unmanagedClasspath  = (Compile / unmanagedJars).value,
-          polyglotLibDir      = Some(`image-native-libs`),
-          extractedNativeLibs = (`opencv-thin` / extractedFiles).value,
-          extraJars           = Seq((`opencv-thin` / thinJarOutput).value)
+          libraryUpdates     = (Compile / update).value,
+          logger             = logger,
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          polyglotLibDir     = Some(`image-native-libs`),
+          extractedNativeLibsDir =
+            Some((`opencv-thin` / extractedFilesDir).value),
+          extraJars = Seq((`opencv-thin` / thinJarOutput).value)
         )
       prev
     },
