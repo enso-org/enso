@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
@@ -101,10 +102,11 @@ type Google_Sheets_Workbook
             Return_As_Table.As_Merged_Table columns_to_keep match ->
                 names_and_tables = _read_sheets self sheet_names headers on_problems
                 only_valid = names_and_tables.filter p-> p.second.is_nothing.not
-                valid_names = only_valid.map .first
-                valid_tables = only_valid.map .second
-                unified_tables = Table.from_union valid_tables columns_to_keep=columns_to_keep match_columns=match on_problems=on_problems
-                (_sheet_names_table valid_names valid_tables).zip unified_tables right_prefix="" on_problems=on_problems
+                if only_valid.is_empty then Error.throw (Illegal_Argument.Error "No valid sheets found.") else
+                    valid_names = only_valid.map .first
+                    valid_tables = only_valid.map .second
+                    unified_tables = Table.from_union valid_tables columns_to_keep=columns_to_keep match_columns=match on_problems=on_problems
+                    (_sheet_names_table valid_names valid_tables).zip unified_tables right_prefix="" on_problems=on_problems
 
     ## ---
        group: Standard.Base.Metadata

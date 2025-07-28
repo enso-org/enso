@@ -270,8 +270,5 @@ add_specs suite_builder =
             ## Test3
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
             ws = wb.read_many ['BadSheetName','BadSheetName2']
-            ws.should_fail_with Illegal_Argument.Error
-            ws.catch.to_display_text . should_equal 'No valid sheets found.'
-
-## No valid sheets errrors
-        
+            ws.should_fail_with Illegal_Argument
+            ws.catch.to_display_text . should_equal 'Illegal Argument: No valid sheets found.'
