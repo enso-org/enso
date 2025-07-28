@@ -1994,7 +1994,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(8)
+      val attachVisualizationResponses = context.receiveN(7)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
