@@ -14,6 +14,7 @@ import {
 } from '#/modals/TrialEndedModal'
 import * as backendModule from '#/services/Backend'
 import { DAY_MS } from '#/utilities/time'
+import CommandPalette from '$/components/CommandPalette.vue'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { DataLoader } from '$/router'
@@ -119,5 +120,6 @@ useEvent(window, 'beforeunload', logUserClose)
   <TrialEndedModal v-if="trialEndedModalProps" v-bind="trialEndedModalProps" />
   <PlanDowngradedModal v-if="planDowngradedModalProps" v-bind="planDowngradedModalProps" />
   <AcceptInvitationModal v-if="acceptInvitationModalProps" v-bind="acceptInvitationModalProps" />
+  <CommandPalette />
   <RouterView />
 </template>

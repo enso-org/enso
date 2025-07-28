@@ -1,25 +1,42 @@
 /** @file Hooks for menus. */
-import type { MenuEntryProps } from '#/components/MenuEntry'
+import { actionToTextId, type MenuEntryProps } from '#/components/MenuEntry'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useBindingFocusScope } from '#/providers/BindingFocusScopeProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
+import { useActionsStore, useText } from '$/providers/react'
 import { useEffect, useRef } from 'react'
 
 /** A hook to provide an input handler. */
 export function useMenuEntries(entries: readonly (MenuEntryProps | false | null | undefined)[]) {
   const inputBindings = useInputBindings()
   const bindingFocusScope = useBindingFocusScope()
+  const { getText } = useText()
+  const { bindGlobalActions } = useActionsStore()
   const entriesByActionRef = useRef<Partial<Record<DashboardBindingKey, MenuEntryProps>>>({})
 
   useEffect(() => {
     for (const entry of entries) {
-      if (entry == null || entry === false) {
-        continue
-      }
+      if (entry == null || entry === false) continue
       entriesByActionRef.current[entry.action] = entry
     }
   })
+
+  useEffect(
+    () =>
+      bindGlobalActions(
+        entries.flatMap((entry) => {
+          if (entry == null || entry === false || entry.isDisabled === true) return []
+          return [
+            {
+              name: getText(actionToTextId(entry.action)),
+              doAction: entry.doAction,
+            },
+          ]
+        }),
+      ),
+    [bindGlobalActions, entries, getText],
+  )
 
   useEffect(
     () =>

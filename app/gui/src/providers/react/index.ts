@@ -1,5 +1,6 @@
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
+import { ActionsStore } from '$/providers/actions'
 import { SessionStore } from '$/providers/session'
 import { TextStore } from '$/providers/text'
 import { GuiConfig } from '@/providers/guiConfig'
@@ -25,3 +26,6 @@ export const useLocalStorage = useInReactFunction(LocalStorageContext)
 
 export const SessionContext = react.createContext<SessionStore | null>(null)
 export const useSession = useInReactFunction(SessionContext)
+
+export const ActionsContext = react.createContext<ActionsStore | null>(null)
+export const useActionsStore = useInReactFunction(ActionsContext)

@@ -1,6 +1,7 @@
 import {
   appBindings,
   appContainerBindings,
+  commandPaletteBindings,
   componentBrowserBindings,
   documentationEditorFormatBindings,
   graphBindings,
@@ -270,6 +271,19 @@ const displayableActions = {
     available: false,
     icon: 'fullscreen',
     description: 'Fullscreen',
+  },
+
+  // === Command Palette ===
+
+  'commandPalette.open': {
+    icon: 'code',
+    description: 'Open Command Palette',
+    shortcut: commandPaletteBindings.bindings['commandPalette.open'],
+  },
+  'commandPalette.close': {
+    icon: 'close',
+    description: 'Close Command Palette',
+    shortcut: commandPaletteBindings.bindings['commandPalette.close'],
   },
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
