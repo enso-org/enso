@@ -272,3 +272,46 @@ add_specs suite_builder =
             ws = wb.read_many ['BadSheetName','BadSheetName2']
             ws.should_fail_with Illegal_Argument
             ws.catch.to_display_text . should_equal 'Illegal Argument: No valid sheets found.'
+        group_builder.specify "can read multiple sheets - error case - With_New_Column - default warns" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] return=..With_New_Column
+            s1 = wb.read '1RowStringData'
+            s2 = wb.read '2RowStringData'
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal '1RowStringData'
+            ws . at 'Sheet Name' . at 1 .  should_equal 'BadSheetName'
+            ws . at 'Sheet Name' . at 2 .  should_equal '2RowStringData'
+            ws . at 'Table' . at 0 .  should_equal s1
+            ws . at 'Table' . at 1 .  should_equal Nothing
+            ws . at 'Table' . at 2 .  should_equal s2
+            Problems.get_attached_warnings ws . should_equal [(No_Rows.Warning "The sheet BadSheetName failed to load, so it is not included in the `As_Merged_Table` result of `read_many`. The error was: Unable to parse range: BadSheetName")]
+        group_builder.specify "can read multiple sheets - error case - With_New_Column - can ignore errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] return=..With_New_Column on_problems=..Ignore
+            s1 = wb.read '1RowStringData'
+            s2 = wb.read '2RowStringData'
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal '1RowStringData'
+            ws . at 'Sheet Name' . at 1 .  should_equal 'BadSheetName'
+            ws . at 'Sheet Name' . at 2 .  should_equal '2RowStringData'
+            ws . at 'Table' . at 0 .  should_equal s1
+            ws . at 'Table' . at 1 .  should_equal Nothing
+            ws . at 'Table' . at 2 .  should_equal s2
+            Problems.get_attached_warnings ws . should_equal []
+        group_builder.specify "can read multiple sheets - error case - With_New_Column- can promote to error" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] return=..With_New_Column on_problems=..Report_Error
+            ws.should_fail_with Google_API_Error
+            ws.catch.to_display_text . should_equal 'Unable to parse range: BadSheetName'
+        group_builder.specify "can read multiple sheets - error case - With_New_Column - no valid sheets" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read_many ['BadSheetName','BadSheetName2'] return=..With_New_Column
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal 'BadSheetName'
+            ws . at 'Sheet Name' . at 1 .  should_equal 'BadSheetName'
+            ws . at 'Table' . at 0 .  should_equal Nothing
+            ws . at 'Table' . at 1 .  should_equal Nothing
