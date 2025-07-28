@@ -1149,36 +1149,6 @@ function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows = assets.map((item) => {
-    const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
-    const isOpenedOnTheBackend =
-      item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
-    return (
-      <AssetRow
-        key={item.id + item.virtualParentsPath}
-        isPlaceholder={false}
-        isOpened={isOpenedByYou || isOpenedOnTheBackend}
-        columns={columns}
-        id={item.id}
-        type={item.type}
-        parentId={item.parentId}
-        state={state}
-        item={item}
-        isKeyboardSelected={keyboardSelectedIndex != null && item === assets[keyboardSelectedIndex]}
-        grabKeyboardFocus={grabRowKeyboardFocus}
-        onClick={onRowClick}
-        select={selectRow}
-        labels={labels ?? []}
-        onDragStart={onRowDragStart}
-        onDragEnd={endAutoScroll}
-        onDrop={onRowDrop}
-        renameAsset={doRenameAsset}
-        closeProject={closeProjectMutationCallback}
-        openProject={doOpenProject}
-      />
-    )
-  })
-
   const specialEmptyText =
     query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
     : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
@@ -1208,7 +1178,37 @@ function AssetsTable(props: AssetsTableProps) {
         </thead>
 
         <tbody ref={bodyRef} className="isolate">
-          {itemRows}
+          {assets.map((item) => {
+            const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
+            const isOpenedOnTheBackend =
+              item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
+            return (
+              <AssetRow
+                key={item.id + item.virtualParentsPath}
+                isPlaceholder={false}
+                isOpened={isOpenedByYou || isOpenedOnTheBackend}
+                columns={columns}
+                id={item.id}
+                type={item.type}
+                parentId={item.parentId}
+                state={state}
+                item={item}
+                isKeyboardSelected={
+                  keyboardSelectedIndex != null && item === assets[keyboardSelectedIndex]
+                }
+                grabKeyboardFocus={grabRowKeyboardFocus}
+                onClick={onRowClick}
+                select={selectRow}
+                labels={labels ?? []}
+                onDragStart={onRowDragStart}
+                onDragEnd={endAutoScroll}
+                onDrop={onRowDrop}
+                renameAsset={doRenameAsset}
+                closeProject={closeProjectMutationCallback}
+                openProject={doOpenProject}
+              />
+            )
+          })}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="h-table-row bg-transparent">
               <Text className="px-cell-x placeholder" disableLineHeightCompensation>
