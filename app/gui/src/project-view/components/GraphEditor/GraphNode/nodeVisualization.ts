@@ -1,7 +1,7 @@
 import type GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { type RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { injectKeyboard } from '@/providers/keyboard'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import type { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
