@@ -3,34 +3,37 @@ import project.Data.Text.Text
 from project.Data.Boolean import Boolean, False
 
 ## A type representing an interval bound over any order-able type.
-
    An order-able type is one that has a
    [total order](https://en.wikipedia.org/wiki/Total_order) defined for it.
 type Bound
     ## A bound that includes the value `n`.
 
-       Arguments:
-       - n: The value defining the inclusive bound.
+       ## Arguments
+        - `n`: The value defining the inclusive bound.
 
-       > Example
-         Create a bound that includes the value 2.
+       ## Examples
+       ### Create a bound that includes the value 2.
 
+       ```
              import Standard.Base.Data.Interval.Bound
 
              example_bound_inclusive = Bound.Inclusive 2
+       ```
     Inclusive n
 
     ## A bound that excludes the value `n`.
 
-       Arguments:
-       - n: The value defining the exclusive bound.
+       ## Arguments
+        - `n`: The value defining the exclusive bound.
 
-       > Example
-         Create a bound that excludes the value 2.
+       ## Examples
+       ### Create a bound that excludes the value 2.
 
+       ```
              import Standard.Base.Data.Interval.Bound
 
              example_bound_exclusive = Bound.Exclusive 2.
+       ```
     Exclusive n
 
 type Interval_Type
@@ -48,42 +51,53 @@ type Interval_Type
 
 ## A type representing an interval over real numbers.
 type Interval
-    ## ICON time
+    ## ---
+       icon: time
+       ---
        Creates an interval.
 
-       Arguments:
-       - start: The start of the interval. (Included by default)
-       - end: The end of the interval. (Excluded by default)
-       - interval_type: The type of interval to create. (End_Exclusive by default)
+       ## Arguments
+        - `start`: The start of the interval. (Included by default)
+        - `end`: The end of the interval. (Excluded by default)
+        - `interval_type`: The type of interval to create. (End_Exclusive by
+          default)
 
-       > Example
-         Create the bounds-exclusive range from 0.1 to 0.5.
+       ## Examples
+       ### Create the bounds-exclusive range from 0.1 to 0.5.
 
+       ```
              import Standard.Base.Data.Interval.Interval
              import Standard.Base.Data.Interval.Interval_Type
 
              example_exclusive = Interval.new 0.1 0.5 Interval_Type.Exclusive
-       > Example
-         Create the start-exclusive range from 1 to 5.
+       ```
 
+       ### Create the start-exclusive range from 1 to 5.
+
+       ```
              import Standard.Base.Data.Interval.Interval
              import Standard.Base.Data.Interval.Interval_Type
 
              example_start_exclusive = Interval.new 1 5 Interval_Type.Start_Exclusive
-       > Example
-         Create the end-exclusive range from 1 to 5.
+       ```
 
+       ### Create the end-exclusive range from 1 to 5.
+
+       ```
              import Standard.Base.Data.Interval.Interval
              import Standard.Base.Data.Interval.Interval_Type
 
              example_end_exclusive = Interval.new 1 5 Interval_Type.End_Exclusive
-       > Example
-         Create the inclusive range from 0 to 0.
+       ```
 
+       ### Create the inclusive range from 0 to 0.
+
+       ```
              import Standard.Base.Data.Interval.Interval
              import Standard.Base.Data.Interval.Interval_Type
 
              example_inclusive = Interval.new 0 0 Interval_Type.Inclusive
+       ```
     new : Number -> Number -> Interval_Type -> Interval
     new start end interval_type=Interval_Type.End_Exclusive = case interval_type of
         Interval_Type.Inclusive -> Interval.Between (Bound.Inclusive start) (Bound.Inclusive end)
@@ -91,28 +105,33 @@ type Interval
         Interval_Type.End_Exclusive -> Interval.Between (Bound.Inclusive start) (Bound.Exclusive end)
         Interval_Type.Exclusive -> Interval.Between (Bound.Exclusive start) (Bound.Exclusive end)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A type representing an interval over real numbers.
 
-       Arguments:
-       - start: The start of the interval.
-       - end: The end of the interval.
+       ## Arguments
+        - `start`: The start of the interval.
+        - `end`: The end of the interval.
     Between (start : Bound) (end : Bound)
 
-    ## GROUP Logical
-       ICON preparation
+    ## ---
+       group: Logical
+       icon: preparation
+       ---
        Checks if the interval contains `that`.
 
-       Arguments:
-       - that: The item to check if it is contained in the interval.
+       ## Arguments
+        - `that`: The item to check if it is contained in the interval.
 
-       > Example
-         Checking if the interval 0.1 to 1 contains 0.33.
+       ## Examples
+       ### Checking if the interval 0.1 to 1 contains 0.33.
 
+       ```
              import Standard.Base.Data.Interval
 
              example_contains = (Interval.new 0.1 1 include_end=True) . contains 0.33
+       ```
     contains : Number -> Boolean
     contains self that = if self.start.n > self.end.n then False else
         case self.start of
@@ -123,16 +142,20 @@ type Interval
                 Bound.Exclusive e -> that < e
                 Bound.Inclusive e -> that <= e
 
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Check if this interval is empty.
 
-       > Example
-         Check if the interval from 0 to 0 is empty.
+       ## Examples
+       ### Check if the interval from 0 to 0 is empty.
 
+       ```
              import Standard.Base.Data.Interval
 
              example_is_empty = Interval.new 0 0 include_start=False . is_empty
+       ```
     is_empty : Boolean
     is_empty self = case self.start of
         Bound.Exclusive s -> case self.end of
@@ -142,20 +165,26 @@ type Interval
             Bound.Exclusive e -> s >= e
             Bound.Inclusive e -> s > e
 
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Check if this interval is not empty.
 
-       > Example
-         Check if the interval from 0 to 0.001 is not empty.
+       ## Examples
+       ### Check if the interval from 0 to 0.001 is not empty.
 
+       ```
              import Standard.Base.Data.Interval
 
              example_not_empty = Interval.new 0 0.001 . not_empty
+       ```
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Interval.
     to_display_text : Text
     to_display_text self =

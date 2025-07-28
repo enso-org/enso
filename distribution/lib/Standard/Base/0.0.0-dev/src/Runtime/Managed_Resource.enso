@@ -1,8 +1,7 @@
 ## Resource provides an API for manual management of computation resources.
-
-   These include things like file handles, network sockets, and so on. This
-   API is intended for use by library developers to provide higher-level and
-   easier to use abstractions.
+   These include things like file handles, network sockets, and so on. This API
+   is intended for use by library developers to provide higher-level and easier
+   to use abstractions.
 
 import project.Any.Any
 import project.Data.Text.Text
@@ -14,99 +13,105 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 
-## A managed resource is a special type of resource that is subject to
-   automated cleanup when it is no longer in use.
-
+## A managed resource is a special type of resource that is subject to automated
+   cleanup when it is no longer in use.
    This API is intended for use by developers to provide easy-to-use
    abstractions, and is not expected to be used by end-users.
 @Builtin_Type
 type Managed_Resource
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Acquires a resource, performs an action on it, and destroys it safely,
        even in the presence of panics.
 
-       Arguments:
-       - constructor: The computation responsible for acquiring the resource.
-       - destructor: The computation responsible for destroying the resource
-         once it is done being used.
-       - action: The computation to perform on the acquired resource.
+       ## Arguments
+        - `constructor`: The computation responsible for acquiring the resource.
+        - `destructor`: The computation responsible for destroying the resource
+          once it is done being used.
+        - `action`: The computation to perform on the acquired resource.
     bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
     bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Registers a resource with the resource manager to be cleaned up using
-       function once it is no longer in use. The optional `system_finalization_allowed`
-       flag allow the system to explicitly call `finalize` on the resource
-       when _"needed"_. The definition is intentionally vague, but
-       currently the IDE performs such a call when user requests a _"reload"_ -
-       e.g. using `Managed_Resource.register cache cleanup_fn True` is useful
-       for creating user managed caches.
+       function once it is no longer in use. The optional
+       `system_finalization_allowed` flag allow the system to explicitly call
+       `finalize` on the resource when _"needed"_. The definition is
+       intentionally vague, but currently the IDE performs such a call when user
+       requests a _"reload"_ - e.g. using `Managed_Resource.register cache
+       cleanup_fn True` is useful for creating user managed caches.
 
-       ! Multiple `Managed_Resource`s for the same resource
+       ## Arguments
+        - `resource`: The resource to register.
+        - `function`: The action to be executed on resource to clean it up when
+          it is no longer in use.
+        - `system_finalization_allowed`: is the system allowed to call `finalize`
+          on the resource when "needed"
 
-         Using the same underlying resource with multiple managed resource
-         instances is an error and will result in an `Illegal_Argument` panic.
-
-       ! Values Eligible to be `Managed_Resource`s
-
-         Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be
-         managed resources.
-
-       Arguments:
-       - resource: The resource to register.
-       - function: The action to be executed on resource to clean it up when
-         it is no longer in use.
-       - system_finalization_allowed: is the system allowed to call `finalize`
-         on the resource when "needed"
-
-       Returns:
+       ## Returns
        A `Managed_Resource` object that can be used to access the resource.
+
+       ## Remarks
+
+       ### Multiple `Managed_Resource`s for the same resource
+       Using the same underlying resource with multiple managed resource
+       instances is an error and will result in an `Illegal_Argument` panic.
+
+       ### Values Eligible to be `Managed_Resource`s
+       Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed
+       resources.
     register : Any -> (Any -> Nothing) -> Boolean -> Managed_Resource
     register resource function system_finalization_allowed=False =
         _handle_double_registration <|
             @Tail_Call register_builtin resource function system_finalization_allowed
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Forces finalization of a managed resource using the registered finalizer,
        even if the resource is still reachable.
     finalize : Nothing
     finalize self = @Builtin_Method "Managed_Resource.finalize"
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Executes the provided action on the resource managed by the managed
        resource object. The action is invoked with the managed resource only if
        it has not yet been finalized. If the resource has already been finalized
-       then `Error` with `Uninitialized_State` payload is passed into the
-       action instead of the resource.
+       then `Error` with `Uninitialized_State` payload is passed into the action
+       instead of the resource.
 
-       Arguments:
-       - action: The action that will be applied to the resource managed by
-         the `Managed_Resource` (or to `Uninitialized_State` error).
-       Returns:
+       ## Arguments
+        - `action`: The action that will be applied to the resource managed by
+          the `Managed_Resource` (or to `Uninitialized_State` error).
+
+       ## Returns
        Value returned from the `action`
     with : (Any -> Any) -> Any
     with self ~action = @Tail_Call with_builtin self action
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Takes the value held by the managed resource and unregisters the
        finalization step for this resource, effectively removing it from the
        managed resources system.
     take : Any
     take self = @Builtin_Method "Managed_Resource.take"
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns true iff the resource has been collected by the engine, false
        otherwise. If `with` throws any other error, it is propagated.
     has_been_finalized : Boolean
@@ -114,13 +119,19 @@ type Managed_Resource
         if x.is_error.not then False else
             if x.catch.is_a Uninitialized_State then True else x
 
-## PRIVATE
+## ---
+   private: true
+   ---
 register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_builtin"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Catch a double-registration panic and re-raise it as an `Illegal_Argument`.
 private _handle_double_registration ~action =
     handler caught =

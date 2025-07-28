@@ -12,36 +12,39 @@ from project.Function import const
 from project.Internal.Ordering_Helpers import assert_same_comparators
 
 ## Any is the universal top-type, with all other types being subsumed by it.
-
-   If a value of type Any is expected in a given location, _any value_ can
-   be used in that position.
+   If a value of type Any is expected in a given location, _any value_ can be
+   used in that position.
 @Builtin_Type
 type Any
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Generic conversion of an arbitrary Enso value to requested type.
        Delegates to appropriate `.from` conversion method, if it exists.
        If such method doesn't exist, `No_Such_Conversion` panic is raised.
 
-       Arguments:
-       - target_type: the requested type.
+       ## Arguments
+        - `target_type`: the requested type.
 
-       > Example
-         Following code defines conversion of a `Complex` type to a `Number`
+       ## Examples
+       ### Following code defines conversion of a `Complex` type to a `Number`
          by computing absolute distance from `0`. The code yields `5.0`:
 
+       ```
              type Complex
                  Value re:Number im:Number
 
              Number.from (that:Complex) = that.re*that.re+that.im*that.im . sqrt
 
              Complex.Value 3 4 . to Number
+       ```
 
-       > Example
-         `.from` conversion methods may have additional arguments
+       ### `.from` conversion methods may have additional arguments
          with default values. Thus the conversion from `Complex` to
          `Number` may take additional argument:
 
+       ```
              type Complex
                  Value re:Number im:Number
 
@@ -59,59 +62,76 @@ type Any
              yields_3 = Complex.Value 3 4 . to Number ignore_im=True
              yields_5 = Complex.Value 3 4 . to Number ignore_im=False
              default5 = Complex.Value 3 4 . to Number
+       ```
     to : Any -> Any ! No_Such_Conversion
     to self target_type = target_type.from self ...
 
-    ## GROUP Conversions
-       ICON text
+    ## ---
+       group: Conversions
+       icon: text
+       ---
        Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
 
-       > Example
-         Getting a textual representation of the number 7.
+       ## Examples
+       ### Getting a textual representation of the number 7.
 
+       ```
              7.to_text
+       ```
     to_text : Text
     to_text self = @Builtin_Method "Any.to_text"
 
-    ## GROUP convert
-       ICON enso_logo
+    ## ---
+       group: convert
+       icon: enso_logo
+       ---
        Convert the value to a corresponding Enso code representation.
 
-       > Example
-         Getting the Enso code of the number 7.
+       ## Examples
+       ### Getting the Enso code of the number 7.
 
+       ```
              7.pretty
-             ## Returns a Text
+       ```
+
+       Returns a Text
+
                 7
 
-       > Example
-         Getting the Enso code of the text Hello World!.
+       ### Getting the Enso code of the text Hello World!.
 
+       ```
              "Hello World!".pretty
-             ## Returns a Text
+       ```
+
+       Returns a Text
+
                 'Hello World!'
     pretty : Text
     pretty self = @Builtin_Method "Any.pretty"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generic conversion of an arbitrary Enso value to a corresponding short
        human-readable representation.
 
-       > Example
-         Getting a short human-readable textual representation of the number 7.
+       ## Examples
+       ### Getting a short human-readable textual representation of the number 7.
 
+       ```
              7.to_display_text
+       ```
     to_display_text : Text
     to_display_text self = @Builtin_Method "Any.to_display_text"
 
-    ## ALIAS equals
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [equals]
+       group: Operators
+       icon: operators
+       ---
        Checks if `self` is equal to `that`.
-
-       Arguments:
-       - that: The object to compare `self` with.
 
        Two values are considered to be equal in Enso when they obey the following
        recursive properties:
@@ -119,86 +139,105 @@ type Any
        - The value of each field in `self` is equal (by this definition) to the
          corresponding field in `that`.
 
-       ! Implementing Your Own Equality
-         Equality in Enso is defined to allow comparison of any two values
-         (universal equality), no matter if they are not directly comparable. When
-         implementing equality for your own types, keep in mind that it needs to
-         work with any Enso value as the `that` argument.
+       ## Arguments
+        - `that`: The object to compare `self` with.
 
-       ! Unicode Equality
-         The definition of equality includes Unicode canonicalization. I.e. two
-         texts are equal if they are identical after canonical decomposition. This
-         ensures that different ways of expressing the same character in the
-         underlying binary representation are considered equal.
-
-       ? Generic Equality and Performance
-         While the generic equality provided here will work for _all_ values in
-         Enso, its performance may often be suboptimal. Many types can implement
-         their own equality operations that will be more efficient than these.
-
-       > Example
-         The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH ACUTE)
+       ## Examples
+       ### The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH ACUTE)
          is canonically the same as the string 'e\u0301' (i.e. the letter `e`
          followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
 
+       ```
              ('é' == 'e\u0301') == True
+       ```
 
-       > Example
-         Checking if the variable `a` is equal to `147`.
+       ### Checking if the variable `a` is equal to `147`.
 
+       ```
              from Standard.Base import all
 
              example_equality =
                  a = 7 * 21
                  a == 147
+       ```
+
+       ## Remarks
+
+       ### Implementing Your Own Equality
+       Equality in Enso is defined to allow comparison of any two values
+       (universal equality), no matter if they are not directly comparable. When
+       implementing equality for your own types, keep in mind that it needs to
+       work with any Enso value as the `that` argument.
+
+       ### Unicode Equality
+       The definition of equality includes Unicode canonicalization. I.e. two
+       texts are equal if they are identical after canonical decomposition. This
+       ensures that different ways of expressing the same character in the
+       underlying binary representation are considered equal.
+
+       ### Generic Equality and Performance
+       While the generic equality provided here will work for _all_ values in
+       Enso, its performance may often be suboptimal. Many types can implement
+       their own equality operations that will be more efficient than these.
     == : Any -> Boolean
     == self that = @Builtin_Method "Any.=="
 
-    ## ALIAS not equals
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [not equals]
+       group: Operators
+       icon: operators
+       ---
        Checks if `self` is not equal to `that`.
 
-       Arguments:
-       - that: The object to compare `self` against.
+       ## Arguments
+        - `that`: The object to compare `self` against.
 
-       ! Implementing Your Own Inequality
-         We recommend that you do not implement your own inequality, instead relying
-         on the default definition given here. If you do, please ensure that you
-         satisfy universal equality, as described in the documentation for `Any.==`.
+       ## Examples
+       ### Checking if the variable `a` is not equal to `147`.
 
-       > Example
-         Checking if the variable `a` is not equal to `147`.
-
+       ```
              from Standard.Base import all
 
              example_inequality =
                  a = 7 * 21
                  a != 147
+       ```
+
+       ## Remarks
+
+       ### Implementing Your Own Inequality
+       We recommend that you do not implement your own inequality, instead
+       relying on the default definition given here. If you do, please ensure
+       that you satisfy universal equality, as described in the documentation for
+       `Any.==`.
     != : Any -> Boolean
     != self that = (self == that).not
 
-    ## ALIAS greater than
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
        Checks if `self` is greater than `that`.
 
-       Arguments:
-       - that: The value to compare `self` against.
-
-       To be comparable, a custom object must have an associated comparator
-       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
-       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       To be comparable, a custom object must have an associated comparator which
+       will return `Ordering.Less/Greater` for unequal values. Otherwise, this
+       will raise `Incomparable_Values` error. See `Ordering.enso` for
        information how comparators work.
 
-       > Example
-         Checking if the variable `a` is greater than `147`.
+       ## Arguments
+        - `that`: The value to compare `self` against.
 
+       ## Examples
+       ### Checking if the variable `a` is greater than `147`.
+
+       ```
              from Standard.Base import all
 
              example_greater =
                  a = 7 * 28
                  a > 147
+       ```
     > : Any -> Boolean ! Incomparable_Values
     > self that =
         assert_same_comparators self that comparator->
@@ -207,28 +246,34 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS greater than or equal
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
        Checks if `self` is greater than or equal to `that`.
 
-       Arguments:
-       - that: The value to compare `self` against.
+       ## Arguments
+        - `that`: The value to compare `self` against.
 
-       ! Implementing Greater Than or Equal
-         While it is often possible to implement a more efficient version of this
-         operation for complex types, care must be taken to ensure that your
-         implementation is semantically equivalent to the disjunction of the
-         greater than and equal to operations.
+       ## Examples
+       ### Checking if the variable `a` is greater than or equal to `147`.
 
-       > Example
-         Checking if the variable `a` is greater than or equal to `147`.
-
+       ```
              from Standard.Base import all
 
              example_greater_eq =
                  a = 6 * 21
                  a >= 147
+       ```
+
+       ## Remarks
+
+       ### Implementing Greater Than or Equal
+       While it is often possible to implement a more efficient version of this
+       operation for complex types, care must be taken to ensure that your
+       implementation is semantically equivalent to the disjunction of the
+       greater than and equal to operations.
     >= : Any -> Boolean ! Incomparable_Values
     >= self that =
         assert_same_comparators self that comparator->
@@ -238,27 +283,31 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS less than
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
        Checks if `self` is less than `that`.
 
-       Arguments:
-       - that: The value to compare `self` against.
-
-       To be comparable, a custom object must have an associated comparator
-       which will return `Ordering.Less/Greater` for unequal values. Otherwise,
-       this will raise `Incomparable_Values` error. See `Ordering.enso` for
+       To be comparable, a custom object must have an associated comparator which
+       will return `Ordering.Less/Greater` for unequal values. Otherwise, this
+       will raise `Incomparable_Values` error. See `Ordering.enso` for
        information how comparators work.
 
-       > Example
-         Checking if the variable `a` is less than `147`.
+       ## Arguments
+        - `that`: The value to compare `self` against.
 
+       ## Examples
+       ### Checking if the variable `a` is less than `147`.
+
+       ```
              from Standard.Base import all
 
              example_less =
                  a = 7 * 21
                  a < 147
+       ```
     < : Any -> Boolean ! Incomparable_Values
     < self that =
         assert_same_comparators self that comparator->
@@ -267,30 +316,36 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## ALIAS less than or equal
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
        Checks if `self` is less than or equal to `that`.
-
-       Arguments:
-       - that: The value to compare `self` against.
 
        To have `<=` defined, a type must define both `<` and `==`.
 
-       ! Implementing Less Than or Equal
-         While it is often possible to implement a more efficient version of this
-         operation for complex types, care must be taken to ensure that your
-         implementation is semantically equivalent to the disjunction of the
-         less than than and equal to operations.
+       ## Arguments
+        - `that`: The value to compare `self` against.
 
-       > Example
-         Checking if the variable `a` is less than or equal to `147`.
+       ## Examples
+       ### Checking if the variable `a` is less than or equal to `147`.
 
+       ```
              from Standard.Base import all
 
              example_less_eq =
                  a = 7 * 21
                  a < 147
+       ```
+
+       ## Remarks
+
+       ### Implementing Less Than or Equal
+       While it is often possible to implement a more efficient version of this
+       operation for complex types, care must be taken to ensure that your
+       implementation is semantically equivalent to the disjunction of the less
+       than than and equal to operations.
     <= : Any -> Boolean ! Incomparable_Values
     <= self that =
         assert_same_comparators self that comparator->
@@ -300,71 +355,87 @@ type Any
                 Nothing -> Error.throw (Incomparable_Values.Error self that)
                 _ -> False
 
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Checks if the type is an instance of `Nothing`.
+       Nothing in Enso is used as a universal value to indicate the lack of
+       presence of a value. This function is primarily useful in the IDE.
 
-       Nothing in Enso is used as a universal value to indicate the lack of presence
-       of a value. This function is primarily useful in the IDE.
+       ## Examples
+       ### Checking if the value 1 is nothing.
 
-       > Example
-         Checking if the value 1 is nothing.
-
+       ```
              1.is_nothing
+       ```
     is_nothing : Boolean
     is_nothing self = False
 
-    ## GROUP Logical
-       ICON operators
+    ## ---
+       group: Logical
+       icon: operators
+       ---
        If `self` is Nothing then returns `other`.
 
-       > Example
-         If the value "Hello" is nothing return "".
+       ## Examples
+       ### If the value "Hello" is nothing return "".
 
+       ```
              "Hello".if_nothing ""
+       ```
     if_nothing : Any -> Any
     if_nothing self ~other =
         const self other
 
-    ## GROUP Logical
-       ICON operators
-       If `self` is Nothing then returns Nothing, otherwise returns the result
-       of running the provided `action`.
+    ## ---
+       group: Logical
+       icon: operators
+       ---
+       If `self` is Nothing then returns Nothing, otherwise returns the result of
+       running the provided `action`.
 
-       > Example
-         Transform a value only if it is not nothing.
+       ## Examples
+       ### Transform a value only if it is not nothing.
 
+       ```
              my_result.if_not_nothing <| my_result + 1
+       ```
     if_not_nothing : Any -> Any
     if_not_nothing self ~action = action
 
-    ## GROUP Errors
-       ICON error
+    ## ---
+       group: Errors
+       icon: error
+       ---
        Executes the provided handler on an error, or returns the value unchanged.
 
-       Arguments:
-       - error_type: The type of error to handle. Defaults to `Any` to handle
-         all errors.
-       - handler: The function to call on this if it is an error value of a
-         matching type. By default this is identity.
+       ## Arguments
+        - `error_type`: The type of error to handle. Defaults to `Any` to handle
+          all errors.
+        - `handler`: The function to call on this if it is an error value of a
+          matching type. By default this is identity.
 
-       > Example
-         Catching an `Illegal_Argument` and returning its message.
+       ## Examples
+       ### Catching an `Illegal_Argument` and returning its message.
 
+       ```
              from Standard.Base import all
 
              example_catch =
                  error = Error.throw (Illegal_Argument.Error "My message")
                  error.catch Illegal_Argument (err -> err.message)
+       ```
 
-       > Example
-         Catching any dataflow error and turning it into a regular value.
+       ### Catching any dataflow error and turning it into a regular value.
 
+       ```
              from Standard.Base import all
 
              example_catch =
                  error = Error.throw 42
                  error.catch == 42
+       ```
     catch : Any -> (Error -> Any) -> Any
     catch self (error_type = Any) (handler = x->x) =
         self.catch_primitive error_value->
@@ -372,28 +443,32 @@ type Any
                 True -> handler error_value
                 False -> self
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
+       Executes the provided handler on a dataflow error, or executes as identity
+       on a non-error value.
 
-       Executes the provided handler on a dataflow error, or executes as
-       identity on a non-error value.
-
-       Arguments:
-       - handler: The function to call on this if it is an error value.
+       ## Arguments
+        - `handler`: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
     catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
 
-    ## ICON column_add
+    ## ---
+       icon: column_add
+       ---
        Transforms an error.
 
-       Arguments:
-       - f: The function used to transform the error.
+       If `self` is a non-error value it is returned unchanged. However, if
+       `self` is an error, the error is transformed using the provided function.
 
-       If `self` is a non-error value it is returned unchanged. However, if `self`
-       is an error, the error is transformed using the provided function.
+       ## Arguments
+        - `f`: The function used to transform the error.
 
-       > Example
-         Transforming an error value to provide more information.
+       ## Examples
+       ### Transforming an error value to provide more information.
 
+       ```
              from Standard.Base import all
              from Standard.Examples import Example_Error_Type
 
@@ -401,111 +476,141 @@ type Any
                 my_dictionary = Dictionary.empty
                 error = my_dictionary.at "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
+       ```
     map_error : (Error -> Error) -> Any
     map_error self ~f =
         const self f
 
-    ## GROUP Errors
-       ICON error
+    ## ---
+       group: Errors
+       icon: error
+       ---
        Checks if `self` is an error.
 
-       > Example
-         Checking if the provided value is an error.
+       ## Examples
+       ### Checking if the provided value is an error.
 
+       ```
              1.is_error
+       ```
     is_error : Boolean
     is_error self = False
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns the provided `other` value, unless `self` is an error.
-
-       Arguments:
-       - other: The value to return if `self` is not an error.
 
        The primary application of this function is to introduce a dataflow
        dependency between two otherwise unrelated operations. Very useful if one
        of the operations is performing a side-effect.
-
        Aside from ensuring that any dataflow errors are propagated, the result
        will also inherit any warnings attached to any of the two inputs.
 
-       > Example
-         Writing to a file and returning the file object if all went well, or an
+       ## Arguments
+        - `other`: The value to return if `self` is not an error.
+
+       ## Examples
+       ### Writing to a file and returning the file object if all went well, or an
          error if it failed.
 
+       ```
              file.write "foo" . if_not_error file
+       ```
     if_not_error : Any -> Any
     if_not_error self ~other = other
 
-    ## ICON column_add
-       Applies the provided function to `self` unless `self` is `Nothing`, which is
-       returned unchanged.
+    ## ---
+       icon: column_add
+       ---
+       Applies the provided function to `self` unless `self` is `Nothing`, which
+       is returned unchanged.
 
-       Arguments:
-       - f: The function to apply to `self` if `self` is not `Nothing`.
+       ## Arguments
+        - `f`: The function to apply to `self` if `self` is not `Nothing`.
 
-       > Example
-         Applying a function over a value 10.
+       ## Examples
+       ### Applying a function over a value 10.
 
+       ```
              10.map_nothing *2
+       ```
     map_nothing : (Any -> Any) -> Any | Nothing
     map_nothing self f = case self of
         Nothing -> Nothing
         a -> f a
 
-    ## PRIVATE
-       ADVANCED
-       GROUP Operators
+    ## ---
+       private: true
+       advanced: true
+       group: Operators
+       ---
        Applies the function on the right hand side to the argument on the left.
 
-       Arguments:
-       - function: The function to apply to `self`.
+       ## Arguments
+        - `function`: The function to apply to `self`.
 
-       ? `|>` or `.`?
-         The eagle-eyed reader will notice that the operator dot (`.`) is very
-         similar to the operator `|>`. In Enso, with the variable precedence of
-         operators, this makes perfect sense. In general, we recommend using `.`.
-         However, there are some contexts where variable precedence might be unclear
-         or confusing, or where the function being applied is not a method. In these
-         contexts we recommend using `|>`.
-
-       > Example
-         Applying multiple functions in a pipeline to compute a number and transform
+       ## Examples
+       ### Applying multiple functions in a pipeline to compute a number and transform
          it to text.
 
+       ```
              1 |> (* 2) |> (/ 100) |> .to_text
+       ```
+
+       ## Remarks
+
+       ### `|>` or `.`?
+       The eagle-eyed reader will notice that the operator dot (`.`) is very
+       similar to the operator `|>`. In Enso, with the variable precedence of
+       operators, this makes perfect sense. In general, we recommend using `.`.
+       However, there are some contexts where variable precedence might be
+       unclear or confusing, or where the function being applied is not a method.
+       In these contexts we recommend using `|>`.
     |> : (Any -> Any) -> Any
     |> self ~function = function self
 
-    ## GROUP Errors
-       ICON metadata
-       Checks if any warnings (either all or of a specified type) are attached to the value.
+    ## ---
+       group: Errors
+       icon: metadata
+       ---
+       Checks if any warnings (either all or of a specified type) are attached to
+       the value.
 
-       Arguments:
-       - warning_type: The type to check if attached to the value. Defaults to any warning.
+       ## Arguments
+        - `warning_type`: The type to check if attached to the value. Defaults to
+          any warning.
     has_warnings : Any -> Boolean
     has_warnings self warning_type=Any =
         _ = warning_type
         False
 
-    ## GROUP Errors
-       ICON warning
-       Remove the warnings (either all or of a specified type) attached to the value.
+    ## ---
+       group: Errors
+       icon: warning
+       ---
+       Remove the warnings (either all or of a specified type) attached to the
+       value.
 
-       Arguments:
-       - warning_type: The type to remove if attached to the value. Defaults to all warnings.
+       ## Arguments
+        - `warning_type`: The type to remove if attached to the value. Defaults
+          to all warnings.
     remove_warnings : Any -> Any
     remove_warnings self warning_type=Any =
         _ = warning_type
         self
 
-    ## GROUP Errors
-       ICON error
-       Throws the first matching warning (either all or of a specified type) as a data flow error.
+    ## ---
+       group: Errors
+       icon: error
+       ---
+       Throws the first matching warning (either all or of a specified type) as a
+       data flow error.
 
-       Arguments:
-       - warning_type: The type to throw if attached to the value. Defaults to all warnings.
+       ## Arguments
+        - `warning_type`: The type to throw if attached to the value. Defaults to
+          all warnings.
     throw_on_warning : Any -> Any
     throw_on_warning self warning_type=Any =
         _ = warning_type

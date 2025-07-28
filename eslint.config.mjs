@@ -9,7 +9,6 @@ import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
-import reactCompiler from 'eslint-plugin-react-compiler'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import pluginVue from 'eslint-plugin-vue'
@@ -616,27 +615,6 @@ const config = [
             syntax.message !== 'Use a `getText()` from `useText` instead of a literal string',
         ),
       ],
-    },
-  },
-  // === React Compiler Rules ===
-  {
-    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
-    ignores: [
-      '**/*.d.ts',
-      '**/*.spec.ts',
-      '**/*.stories.tsx',
-      '**/*.test.tsx',
-      '**/*.test.ts',
-      '**/utilities/*.ts',
-      '**/services/*.ts',
-      '**/assets/*',
-      '**/authentication/*',
-      '**/configuration/*',
-      '**/index.ts',
-    ],
-    plugins: { 'react-compiler': reactCompiler },
-    rules: {
-      'react-compiler/react-compiler': 'error',
     },
   },
   // === Index Files ===

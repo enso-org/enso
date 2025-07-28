@@ -42,12 +42,15 @@ type Rank_Method
     ## Equal values are assigned the next rank in order that they occur.
     Ordinal
 
-    ## GROUP Statistics
-       ICON transform4
-       Assigns a rank to each value of data, dealing with equal values according to the method.
+    ## ---
+       group: Statistics
+       icon: transform4
+       ---
+       Assigns a rank to each value of data, dealing with equal values according
+       to the method.
 
-       Arguments:
-       - data: Input data to rank.
+       ## Arguments
+        - `data`: Input data to rank.
     compute : Vector -> Vector
     compute self input =
         java_method = case self of
@@ -86,18 +89,21 @@ type Statistic
     Mean
 
     ## The variance of the values.
-       Arguments:
-       - population: specifies if data is a sample or the population.
+
+       ## Arguments
+        - `population`: specifies if data is a sample or the population.
     Variance (population:Boolean=False)
 
     ## The standard deviation of the values.
-       Arguments:
-       - population: specifies if data is a sample or the population.
+
+       ## Arguments
+        - `population`: specifies if data is a sample or the population.
     Standard_Deviation (population:Boolean=False)
 
     ## The skewness of the values.
-       Arguments:
-       - population: specifies if data is a sample or the population.
+
+       ## Arguments
+        - `population`: specifies if data is a sample or the population.
     Skew (population:Boolean=False)
 
     ## The sample kurtosis of the values.
@@ -105,37 +111,41 @@ type Statistic
 
     ## Calculate the Covariance between data and series.
 
-       Arguments:
-       - series: the series to compute the covariance with.
+       ## Arguments
+        - `series`: the series to compute the covariance with.
     Covariance (series:Vector)
 
     ## Calculate the Pearson Correlation between data and series.
 
-       Arguments:
-       - series: the series to compute the correlation with.
+       ## Arguments
+        - `series`: the series to compute the correlation with.
     Pearson (series:Vector)
 
     ## Calculate the Spearman Rank Correlation between data and series.
 
-       Arguments:
-       - series: the series to compute the correlation with.
+       ## Arguments
+        - `series`: the series to compute the correlation with.
     Spearman (series:Vector)
 
     ## Calculate the coefficient of determination between data and predicted
        series.
 
-       Arguments:
-       - predicted: the series to compute the r_squared with.
+       ## Arguments
+        - `predicted`: the series to compute the r_squared with.
     R_Squared (predicted:Vector)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Bulk widget for Statistic.
     bulk_widget display:Display=..When_Modified -> Widget =
         options = ["Count", "Minimum", "Maximum", "Sum", "Product", "Mean", "Variance", "Standard_Deviation", "Skew", "Kurtosis", "Covariance", "Pearson", "Spearman", "R_Squared"].map n-> Choice.Option n ".."+n
         items = Widget.Single_Choice options
         Widget.Vector_Editor items "..Count" display=display
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the order needed to compute a statistic for a moment based statistic.
     order : Integer | Nothing
     order self = case self of
@@ -147,7 +157,9 @@ type Statistic
         Statistic.Kurtosis -> 4
         _ -> Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_java self = case self of
         Statistic.Count -> Java_Statistic.Count
         Statistic.Minimum -> Java_Statistic.Minimum
@@ -167,22 +179,26 @@ type Statistic
         Statistic.Spearman _ -> Java_Statistic.Spearman
         Statistic.R_Squared _ -> Java_Statistic.R_Squared
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Compute a single statistic on a vector like object.
 
-       Arguments:
-       - data: Vector like object which has a `to_array` method.
-       - statistic: Statistic to calculate.
+       ## Arguments
+        - `data`: Vector like object which has a `to_array` method.
+        - `statistic`: Statistic to calculate.
     compute : Vector -> Statistic -> Any
     compute data statistic:Statistic=..Count =
         Statistic.compute_bulk data [statistic] . first
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Compute a set of statistics on a vector like object.
 
-       Arguments:
-       - data: Vector like object which has a `to_array` method.
-       - statistics: Set of statistics to calculate.
+       ## Arguments
+        - `data`: Vector like object which has a `to_array` method.
+        - `statistics`: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics:Vector=[Statistic.Count, Statistic.Sum] =
         resolved_stats = statistics.map (r-> r:Statistic)
@@ -205,22 +221,26 @@ type Statistic
                 Statistic.Spearman series -> check_if_empty counter.count <| calculate_spearman_rank data series
                 _ -> counter.compute statistic
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Compute a running statistics on a vector like object.
 
-       Arguments:
-       - data: Vector like object which has a `to_array` method.
-       - statistics: Set of statistics to calculate.
+       ## Arguments
+        - `data`: Vector like object which has a `to_array` method.
+        - `statistics`: Set of statistics to calculate.
     running : Vector -> Statistic -> Vector Any
     running data statistic:Statistic=..Sum =
         Statistic.running_bulk data [statistic] . map .first
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Compute a set running statistics on a vector like object.
 
-       Arguments:
-       - data: Vector like object which has a `to_array` method.
-       - statistics: Set of statistics to calculate.
+       ## Arguments
+        - `data`: Vector like object which has a `to_array` method.
+        - `statistics`: Set of statistics to calculate.
     running_bulk : Vector -> Vector Statistic -> Vector Any
     running_bulk data statistics=[Statistic.Count, Statistic.Sum] =
         resolved_stats = statistics.map (r-> r:Statistic)
@@ -245,31 +265,37 @@ type Statistic
 
                         result
 
-    ## ICON math
+    ## ---
+       icon: math
+       ---
        Calculate a variance-covariance matrix between the input series.
 
-       Arguments:
-       - data: The input data sets
+       ## Arguments
+        - `data`: The input data sets
     covariance_matrix : Vector Vector -> Vector Vector
     covariance_matrix data =
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .covariance)
 
-    ## ICON math
+    ## ---
+       icon: math
+       ---
        Calculate a Pearson correlation matrix between the input series.
 
-       Arguments:
-       - data: The input data sets
+       ## Arguments
+        - `data`: The input data sets
     pearson_correlation : Vector Vector -> Vector Vector
     pearson_correlation data =
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .pearsonCorrelation)
 
-    ## ICON math
+    ## ---
+       icon: math
+       ---
        Calculate a Spearman Rank correlation matrix between the input series.
 
-       Arguments:
-       - data: The input data sets
+       ## Arguments
+        - `data`: The input data sets
     spearman_correlation : Vector Vector -> Vector Vector
     spearman_correlation data =
         Panic.handle_wrapped_dataflow_error <|
@@ -282,17 +308,22 @@ type Statistic
                                     Panic.rethrow_wrapped_if_error <|
                                         calculate_spearman_rank (data.at i) (data.at j)
 
-    ## PRIVATE
-       Assigns a rank to each value of data, dealing with equal values according to the method.
+    ## ---
+       private: true
+       ---
+       Assigns a rank to each value of data, dealing with equal values according
+       to the method.
 
-       Arguments:
-       - data: Input data to rank.
-       - method: Method used to deal with equal values.
+       ## Arguments
+        - `data`: Input data to rank.
+        - `method`: Method used to deal with equal values.
     rank_data : Vector -> Rank_Method -> Vector
     rank_data input method=Rank_Method.Average =
         method.compute input
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Check if the statistics are supported for running calculations.
 check_running_support : Vector Statistic -> Any -> Any
 check_running_support statistics ~action =
@@ -307,7 +338,9 @@ check_running_support statistics ~action =
         action
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
 wrap_java_call : Any -> Any
 wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument.Error ("Can only compute correlations on numerical data sets."))
@@ -315,19 +348,25 @@ wrap_java_call ~function =
 
     handle_unsupported <| Illegal_Argument.handle_java_exception <| function
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Given two series, get a computed CorrelationStatistics object
 calculate_correlation_statistics : Vector -> Vector -> CorrelationStatistics
 calculate_correlation_statistics x_data y_data =
     wrap_java_call <| CorrelationStatistics.compute x_data y_data
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Given two series, get a compute the Spearman Rank correlation
 calculate_spearman_rank : Vector -> Vector -> Float
 calculate_spearman_rank x_data y_data =
     wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data y_data
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Given a set of series get CorrelationStatistics objects
 calculate_correlation_statistics_matrix : Vector Vector -> Vector CorrelationStatistics
 calculate_correlation_statistics_matrix data =
@@ -335,13 +374,19 @@ calculate_correlation_statistics_matrix data =
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
-## PRIVATE
+## ---
+   private: true
+   ---
 compute_fold current value = if is_valid value then current.increment value else current
 
-## PRIVATE
+## ---
+   private: true
+   ---
 check_if_empty count ~action = if count == 0 then Number.nan else action
 
-## PRIVATE
+## ---
+   private: true
+   ---
 empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
@@ -350,22 +395,32 @@ empty_value statistic = case statistic of
     Statistic.Maximum -> Error.throw (Empty_Error.Error Vector)
     _ -> Number.nan
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_valid v = case v of
     Nothing -> False
     _ : Number -> v.is_nan.not
     _ -> True
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Accumulator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new : Boolean -> Integer -> Boolean -> Accumulator
     new min_max=True moments=0 calc_product=False = Accumulator.Value 0 min_max Nothing Nothing (Vector.fill moments 0) calc_product Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value count:Integer min_max:Boolean minimum:Any maximum:Any (moments:Vector|Nothing) calc_product:Boolean product:Any
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Add a single value to the accumulator.
     increment self value = case self.count of
         0 -> Accumulator.Value 1 self.min_max value value (self.update_moments value) self.calc_product value
@@ -378,18 +433,24 @@ type Accumulator
                     _ -> Nothing
             Accumulator.Value self.count+1 self.min_max minimum maximum (self.update_moments value) self.calc_product product
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     perform_comparison current value bound =
         comp = Ordering.compare value current
         if comp == bound then value else current
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     update_moments self value = if self.moments.is_nothing then Nothing else
         case value of
             _ : Number -> self.moments.map_with_index i->v-> v + value^(i+1)
             _ -> Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compute : Statistic -> Any
     compute self statistic = if self.count == 0 then empty_value statistic else
         case statistic of
@@ -404,14 +465,18 @@ type Accumulator
             Statistic.Skew p -> self.check_moments statistic (self.skew p)
             Statistic.Kurtosis -> self.check_moments statistic (self.kurtosis)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     variance self population =
         min_points = if population then 1 else 2
         if self.count < min_points then Number.nan else
             denominator = if population then self.count else self.count-1
             (self.moments.second - self.moments.first^2 / self.count) / denominator
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     skew self population =
         if self.count < 3 then Number.nan else
             mean = self.compute (Statistic.Mean)
@@ -420,7 +485,9 @@ type Accumulator
             scale = 1.0 / (standard_deviation^3) / denominator
             ((self.moments.at 2) - 3 * mean * self.moments.second + 2 * mean * mean * self.moments.first) * scale
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     kurtosis self =
         if self.count < 4 then Number.nan else
             n = self.count
@@ -430,12 +497,16 @@ type Accumulator
             shift = 3*(n-1)*(n-1)/((n-2)*(n-3))
             ((self.moments.at 3) - 4 * mean * (self.moments.at 2) + 6 * mean * mean * self.moments.second - 3 * mean * mean * mean * self.moments.first) * scale - shift
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_moments self statistic ~action =
         if self.moments.is_nothing.not && self.moments.length >= statistic.order then action else
             Error.throw (Illegal_Argument.Error ("Can't compute " + statistic.to_text + " on this Accumulator."))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_product self =
         if is_valid self.product then self.product else
             Error.throw (Illegal_Argument.Error ("Can't compute " + Statistic.Product.to_text + " on this Accumulator."))

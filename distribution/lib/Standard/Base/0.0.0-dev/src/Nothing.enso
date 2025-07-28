@@ -6,52 +6,65 @@ from project.Function import const
 
 ## The type that has only a singleton value. Nothing in Enso is used as an
    universal value to indicate the lack of presence of a value.
-
-   It is often used alongside a value of type a to provide a Maybe or
-   Option abstraction.
+   It is often used alongside a value of type a to provide a Maybe or Option
+   abstraction.
 @Builtin_Type
 type Nothing
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Checks if the type is an instance of `Nothing`.
 
-       > Example
-         Checking if the value 1 is nothing.
+       ## Examples
+       ### Checking if the value 1 is nothing.
 
+       ```
              1.is_nothing
+       ```
     is_nothing : Boolean
     is_nothing self = True
 
-    ## GROUP Logical
-       ICON operators
+    ## ---
+       group: Logical
+       icon: operators
+       ---
        If this is Nothing then returns `function`.
 
-       > Example
-         If the value "Hello" is nothing return "".
+       ## Examples
+       ### If the value "Hello" is nothing return "".
 
+       ```
              "Hello".if_nothing ""
+       ```
     if_nothing : Any -> Any
     if_nothing self ~function = function
 
-    ## GROUP Logical
-       ICON operators
-       If `self` is Nothing then returns Nothing, otherwise returns the result
-       of running the provided `action`.
+    ## ---
+       group: Logical
+       icon: operators
+       ---
+       If `self` is Nothing then returns Nothing, otherwise returns the result of
+       running the provided `action`.
 
-       > Example
-         Transform a value only if it is not nothing.
+       ## Examples
+       ### Transform a value only if it is not nothing.
 
+       ```
              my_result.if_not_nothing <| my_result + 1
+       ```
     if_not_nothing : Any -> Any
     if_not_nothing self ~action = const Nothing action
 
-    ## ICON parse3
+    ## ---
+       icon: parse3
+       ---
        Get a value for the key of the object.
        As `Nothing` has no keys, returns `if_missing`.
 
-       Arguments:
-       - key: The key to get.
-       - if_missing: The value to return if the key is not found.
+       ## Arguments
+        - `key`: The key to get.
+        - `if_missing`: The value to return if the key is not found.
     get : Text | Integer -> Any -> Nothing
     get self (key:(Text | Integer)=0) ~if_missing=Nothing =
         _ = key

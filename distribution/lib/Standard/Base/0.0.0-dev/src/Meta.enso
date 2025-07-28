@@ -14,67 +14,75 @@ from project.Data.Boolean import Boolean, False, True
 type Type
     private Value value
 
-    ## ADVANCED
-       ICON metadata
-
+    ## ---
+       advanced: true
+       icon: metadata
+       ---
        Returns a vector of `Meta.Constructor` instances for this type.
-       Only publicly visible constructors are returned. A type with no
-       public constructors returns `[]`.
+       Only publicly visible constructors are returned. A type with no public
+       constructors returns `[]`.
     constructors self -> Vector Constructor =
         Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
+       Returns a vector of method names that can be invoked on instances of this
+       type. Only public methods are returned.
 
-       Returns a vector of method names that can be invoked
-       on instances of this type. Only public methods are returned.
-
-       ? Static Methods
-
-         To obtain list of _static methods_ on a given type
-         use `Meta.type_of`.
-
-       > Example
-         All instance methods to invoke on `Integer` as
+       ## Examples
+       ### All instance methods to invoke on `Integer` as
          `(v:Integer) v.method_name...`:
 
+       ```
              Meta.meta Integer . methods
+       ```
 
-       > Example
-         All static methods to invoke on `Integer` as
+       ### All static methods to invoke on `Integer` as
          `Integer.method_name...`:
 
+       ```
             Meta.meta (Meta.type_of Integer) . methods
+       ```
+
+       ## Remarks
+
+       ### Static Methods
+       To obtain list of _static methods_ on a given type use `Meta.type_of`.
     methods self -> Vector = Meta_Helpers.get_type_methods_builtin self.value
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns the fully qualified name of the type.
     qualified_name self -> Text =
         c = self.value
         @Tail_Call Meta_Helpers.get_qualified_type_name_builtin c
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns the short name of the type.
     name self -> Text =
         c = self.value
         @Tail_Call Meta_Helpers.get_short_type_name_builtin c
 
-    ## ADVANCED
-       ICON find
+    ## ---
+       advanced: true
+       icon: find
+       ---
+       Finds type specified by fully qualified name. Searches all the types known
+       to the system by transitive closure of import statements in executing
+       modules.
 
-       Finds type specified by fully qualified name. Searches
-       all the types known to the system by transitive closure
-       of import statements in executing modules.
-
-       Arguments:
-       - qualified_name: fully qualified name.
+       ## Arguments
+        - `qualified_name`: fully qualified name.
     find qualified_name:Text -> Type ! Not_Found =
         raw = Meta_Helpers.find_type_by_qualified_name_builtin qualified_name
         case Meta.meta raw of
@@ -84,28 +92,30 @@ type Type
 type Atom
     private Value impl
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Obtains the real atom value
     value self = self.impl
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns a vector of field values of the given atom.
-       Only values of public fields are returned. Should an atom
-       have no public fields, then `[]` is returned.
+       Only values of public fields are returned. Should an atom have no public
+       fields, then `[]` is returned.
     fields self -> Vector Any = Meta_Helpers.get_atom_fields_builtin self.value
 
-    ## ADVANCED
-       ICON metadata
-
-       Returns a constructor value of the given atom. If the atom
-       doesn't have a public constructor, then `Private_Access` error
-       is returned.
+    ## ---
+       advanced: true
+       icon: metadata
+       ---
+       Returns a constructor value of the given atom. If the atom doesn't have a
+       public constructor, then `Private_Access` error is returned.
     constructor self -> Constructor ! Private_Access =
         c = Meta_Helpers.get_atom_constructor_builtin self.impl ...
         Meta.Constructor.Value c...
@@ -113,53 +123,60 @@ type Atom
 type Constructor
     private Value impl:Real_Function
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Obtains the qualified accessor function of the constructor
     value self -> Real_Function = self.impl...
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns a vector of field names defined by a constructor.
     fields self -> Vector Text =
         Meta_Helpers.get_argument_names_builtin (self.impl...) True True True True
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns the name of a constructor.
     name self -> Text =
         Meta_Helpers.get_constructor_name_builtin (self.impl...)
 
-    ## ADVANCED
-       ICON braces
-
+    ## ---
+       advanced: true
+       icon: braces
+       ---
        Creates a new atom of the given constructor.
 
-       Arguments:
-       - fields: A vector of arguments to pass to the constructor when creating the
-         new atom.
+       ## Arguments
+        - `fields`: A vector of arguments to pass to the constructor when
+          creating the new atom.
     new self fields:Vector|Array =
         @Tail_Call Meta_Helpers.new_atom_builtin (self.impl...) fields
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns the type that this constructor is a part of.
     declaring_type self -> Type =
         Meta.meta (Meta_Helpers.get_constructor_declaring_type_builtin (self.value...))
 
 type Primitive
     private Value impl
-
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns the (primitive) value wrapped by this type
     value self = self.impl
 
@@ -167,30 +184,37 @@ type Primitive
 type Function
     private Value impl
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        The function associated with the Meta object.
     value self = self.impl
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Names of function arguments.
 
-       Arguments:
-       - pending: should pending arguments be listed? `True` by default.
-       - defaulted: should arguments with default values already provided be listed? `False` by default.
-       - preapplied: should arguments with already pre-applied values be listed? `False` by default.
-       - oversaturated: should over-saturated arguments be listed? `False` by default.
+       ## Arguments
+        - `pending`: should pending arguments be listed? `True` by default.
+        - `defaulted`: should arguments with default values already provided be
+          listed? `False` by default.
+        - `preapplied`: should arguments with already pre-applied values be
+          listed? `False` by default.
+        - `oversaturated`: should over-saturated arguments be listed? `False` by
+          default.
 
-       > Example
-         By default returns names of _pending arguments_ that still need to be supplied
+       ## Examples
+       ### By default returns names of _pending arguments_ that still need to be supplied
          in order to invoke the function.
 
+       ```
             fn = Meta.meta (\x -> x+1)
             if fn . arguments . is_empty then fn.value else
                 Error.throw "Missing "+fn.arguments.length+" arguments"
+       ```
     arguments self pending:Boolean=True defaulted:Boolean=False preapplied:Boolean=False oversaturated:Boolean=False -> Vector Text =
         Meta_Helpers.get_argument_names_builtin self.impl pending defaulted preapplied oversaturated
 
@@ -200,46 +224,51 @@ type Unresolved
 
     private Cons impl
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns the raw unresolved symbol
     value self = self.impl...
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns a new unresolved symbol with its name changed to the provided
        argument.
 
-       Arguments:
-       - new_name: The new name for the unresolved symbol.
+       ## Arguments
+        - `new_name`: The new name for the unresolved symbol.
     rename self new_name:Text -> Unresolved =
         raw = Meta_Helpers.create_unresolved_symbol_builtin new_name self.impl
         Unresolved.Symbol raw
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns the name of an unresolved symbol.
     name self -> Text = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.impl
 
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Does this symbol represents an autoscoped constructor?
     is_constructor self -> Boolean = case self of
         Unresolved.Cons _ -> True
         _ -> False
 
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Textual representation of the symbol
     to_text self -> Text = case self of
         Unresolved.Symbol _ -> "(Unresolved.Symbol "+self.name+")"
@@ -248,91 +277,101 @@ type Unresolved
 type Error
     private Value impl
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Obtains the actual value of the error
     value self = self.impl
 
 type Polyglot
     private Value impl
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Obtains the actual polyglot value
     value self = self.impl
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        Returns the language with which a polyglot value is associated.
     get_language self -> Language =
         lang_str = Meta_Helpers.get_polyglot_language_builtin self.impl
         if lang_str == "java" then Language.Java else Language.Unknown
 
-## ADVANCED
-   ICON metadata
-
+## ---
+   advanced: true
+   icon: metadata
+   ---
    Checks whether `self` represents the same underlying reference as `value`.
 
-   Arguments:
-   - value_1: The first value.
-   - value_2: The second value.
+   ## Arguments
+    - `value_1`: The first value.
+    - `value_2`: The second value.
 Any.is_same_object_as self value -> Boolean = is_same_object self value
 
-## ADVANCED
-   ICON metadata
-
+## ---
+   advanced: true
+   icon: metadata
+   ---
    Checks if `self` is an instance of `typ`.
 
-   Arguments:
-   - typ: The type to check `self` against.
+   ## Arguments
+    - `typ`: The type to check `self` against.
 Any.is_a self typ -> Boolean = Meta_Helpers.is_a_builtin self typ
 
-## ADVANCED
-   ICON metadata
-
+## ---
+   advanced: true
+   icon: metadata
+   ---
    Checks if `self` is an instance of `typ`.
 
-   Arguments:
-   - typ: The type to check `self` against.
+   ## Arguments
+    - `typ`: The type to check `self` against.
 Base_Error.is_a self typ -> Boolean = (Meta.is_same_object Any typ) || (Meta.is_same_object typ Base_Error)
 
-## PRIVATE
-
-   Constructs a new atom with a "hole". Returns an object with `value` and
-   `fill` properties. Value contains the created atom and `fill` holds a
-   function to "fill the hole" later.
-
+## ---
+   private: true
+   ---
+   Constructs a new atom with a "hole". Returns an object with `value` and `fill`
+   properties. Value contains the created atom and `fill` holds a function to
+   "fill the hole" later.
    There can be only one hole in the atom, i.e., only one field of the atom
    returned by the `value` method should be a hole. If this condition is
    violated, a Panic error with `Uninitialized_State` payload is thrown.
 
-   Arguments:
-   - factory: a function that takes the "hole" element and returns newly created atom
+   ## Arguments
+    - `factory`: a function that takes the "hole" element and returns newly
+      created atom
 
-   > Example
-     Create a Pair that has a hole in its first element.
+   ## Examples
+   ### Create a Pair that has a hole in its first element.
+   ```
          atom_with_hole = Meta.atom_with_hole (e-> Pair.Value e 2)
          atom_with_hole.value.first.to_text == "Meta.atom_with_hole"
          atom_with_hole.fill 1
          atom_with_hole.value.first.to_text == "1"
+   ```
 atom_with_hole : (Any -> Atom) -> Any
 atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
+   Returns a meta-representation of a given runtime entity. If the entity isn't
+   public (like a private constructor), then an `Private_Access` error is
+   yielded.
 
-   Returns a meta-representation of a given runtime entity. If the entity
-   isn't public (like a private constructor), then an `Private_Access` error
-   is yielded.
-
-   Arguments:
-   - value: The runtime entity to get the meta representation of.
+   ## Arguments
+    - `value`: The runtime entity to get the meta representation of.
 meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved | Error | Type | Function ! Private_Access =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     kind = if ac.is_nothing.not then 1 else
@@ -351,108 +390,123 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved | Error | 
         9 -> Function.Value value...
         _ -> Primitive.Value value
 
-## PRIVATE
-   ADVANCED
-
+## ---
+   private: true
+   advanced: true
+   ---
    Checks whether two objects are represented by the same underlying reference.
 
-   Arguments:
-   - value_1: The first value.
-   - value_2: The second value.
+   ## Arguments
+    - `value_1`: The first value.
+    - `value_2`: The second value.
 is_same_object value_1 value_2 -> Boolean = @Tail_Call Meta_Helpers.is_same_object_builtin value_1 value_2
 
-## PRIVATE
-   ADVANCED
-
+## ---
+   private: true
+   advanced: true
+   ---
    Checks if `value` is an instance of `typ`.
 
-   Arguments:
-   - value: The value to check for being an instance of `typ`.
-   - typ: The type to check `self` against.
+   ## Arguments
+    - `value`: The value to check for being an instance of `typ`.
+    - `typ`: The type to check `self` against.
 is_a value typ -> Boolean = @Tail_Call Meta_Helpers.is_a_builtin value typ
 
-## PRIVATE
-   ADVANCED
-
+## ---
+   private: true
+   advanced: true
+   ---
    Returns the type of the given value.
 
-   Arguments:
-   - value: The value to get the type of.
+   ## Arguments
+    - `value`: The value to get the type of.
 type_of : Any -> Any
 type_of value = @Tail_Call Meta_Helpers.type_of_builtin value
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
+   Given a type object, method name and a parameter name, return the associated
+   annotation if it exists.
 
-   Given a type object, method name and a parameter name, return the associated annotation if it exists.
-
-   Arguments:
-   - target: The value or type to get the attribute from.
-   - method: The symbol representing method or constructor to get the attribute for.
-   - parameter_name: The name of the parameter to get the attribute for.
+   ## Arguments
+    - `target`: The value or type to get the attribute from.
+    - `method`: The symbol representing method or constructor to get the
+      attribute for.
+    - `parameter_name`: The name of the parameter to get the attribute for.
 get_annotation : Any -> Any -> Text -> Any | Nothing
 get_annotation target method parameter_name = @Tail_Call Meta_Helpers.get_annotation_builtin target method parameter_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Represents a polyglot language.
 type Language
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        The Java language.
     Java
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        An unknown language.
     Unknown
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Checks if the provided value is an atom constructor.
 
-   Arguments:
-   - value: The value to check.
+   ## Arguments
+    - `value`: The value to check.
 is_atom_constructor ~value -> Boolean = Meta_Helpers.find_atom_constructor_builtin value . is_nothing . not
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Checks if the provided value is an atom.
 
-   Arguments:
-   - value: The value to check.
+   ## Arguments
+    - `value`: The value to check.
 is_atom value -> Boolean = 2 == Meta_Helpers.get_kind_builtin value
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Checks if the provided value is a runtime error.
 
-   Arguments:
-   - value: The value to check.
+   ## Arguments
+    - `value`: The value to check.
 is_error value -> Boolean = 5 == Meta_Helpers.get_kind_builtin value
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Checks if the provided value is a type.
 
-   Arguments:
-   - value: The value to check.
+   ## Arguments
+    - `value`: The value to check.
 is_type value -> Boolean = @Tail_Call Meta_Helpers.is_type value
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Checks if the provided value is a polyglot value.
 
-   Arguments:
-   - value: The value to check.
+   ## Arguments
+    - `value`: The value to check.
 is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
 
-## Converts any value to its `Meta.Type`. Useful for querying various
-   type properties like `.name` or `.qualified_name`.
+## Converts any value to its `Meta.Type`. Useful for querying various type
+   properties like `.name` or `.qualified_name`.
 
-   Arguments:
-   - value: the value to get the type of
+   ## Arguments
+    - `value`: the value to get the type of
 Type.from (that:Any) =
    typ = Meta_Helpers.type_of_value_or_type that
    meta = Meta.meta typ

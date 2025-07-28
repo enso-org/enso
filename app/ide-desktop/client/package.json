@@ -32,7 +32,6 @@
     "electron-dl-manager": "4.0.0"
   },
   "devDependencies": {
-    "@babel/plugin-syntax-import-attributes": "^7.26.0",
     "@electron/notarize": "2.1.0",
     "@types/mime-types": "^2.1.4",
     "@types/node": "^22.10.4",
@@ -40,7 +39,6 @@
     "@types/semver": "^7.5.8",
     "@types/tar": "^6.1.13",
     "@types/yargs": "^17.0.33",
-    "babel-plugin-react-compiler": "19.0.0-beta-6fc168f-20241025",
     "cross-env": "^7.0.3",
     "electron": "37.2.1",
     "electron-builder": "^24.13.3",
@@ -57,9 +55,7 @@
     "vite-node": "3.0.0-beta.3"
   },
   "//": [
-    "vite is required for the watch script",
-    "@babel/plugin-syntax-import-attributes is a dependency of the dashboard",
-    "babel-plugin-react-compiler is a dependency of the dashboard"
+    "vite is required for the watch script"
   ],
   "scripts": {
     "typecheck": "tsc --build",

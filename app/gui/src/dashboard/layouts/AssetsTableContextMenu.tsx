@@ -52,8 +52,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   props: AssetsTableContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  // eslint-disable-next-line react-compiler/react-compiler
-  'use no memo'
   const { backend, category, currentDirectoryId, doCopy, doCut, doPaste } = props
 
   const { getText } = useText()

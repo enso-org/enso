@@ -55,19 +55,16 @@ remove_builtin vector at = @Builtin_Method "Array_Like_Helpers.remove_builtin"
 slice : (Vector | Array) -> Integer -> Integer -> Vector
 slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Construct a Vector by mapping a function over 0..length-1.
 
-   ! Error Conditions
-
-     Errors and Warnings that arise when executing the function are wrapped in
-     `Map_Error`.
-
-     Only `MAX_MAP_WARNINGS` number of warnings are attached to result values.
-     After that, the warnings are dropped, but a count of the additional
-     warnings is attached in an `Additional_Warnings` warning.
-
-   ! Error Conditions
+   ## Errors
+   Errors and Warnings that arise when executing the function are wrapped in
+   `Map_Error`.  Only `MAX_MAP_WARNINGS` number of warnings are attached to
+   result values. After that, the warnings are dropped, but a count of the
+   additional warnings is attached in an `Additional_Warnings` warning.
 
      The result of Errors thrown when executing the function depend on `on_problems`:
      - Report_Error: The first error is thrown, and is wrapped in
@@ -81,8 +78,8 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
 vector_from_function length constructor on_problems = @Builtin_Method "Array_Like_Helpers.vector_from_function"
 
-## Performs a pair-wise operation passed in `function` on consecutive
-   elements of `self` and `that`.
+## Performs a pair-wise operation passed in `function` on consecutive elements of
+   `self` and `that`.
    See `Vector.zip` for full documentation.
 zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
     left_len = this.length
@@ -126,10 +123,11 @@ zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = F
     problem_attacher <|
         Array_Like_Helpers.vector_from_function len f on_problems
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Creates a new vector where for each range, a corresponding section of the
    source vector is added to the result.
-
    Assumes that the ranges have been already bounds-checked (for example by
    passing them through `resolve_ranges`).
 slice_ranges vector ranges =
@@ -141,7 +139,9 @@ slice_ranges vector ranges =
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
 
-## PRIVATE
+## ---
+   private: true
+   ---
    See `slice_ranges`.
 slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
@@ -170,7 +170,9 @@ sort vector order on by on_problems:Problem_Behavior =
     compare_funcs = comps.map (it-> it.compare)
     vector.sort_builtin order.to_sign comps compare_funcs by on (on_problems_to_number on_problems)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns a mapping of Problem_Behavior constructors to an integer.
    Used for sending the number to Java, rather than sending the atom.
 private on_problems_to_number on_problems:Problem_Behavior = case on_problems of
@@ -365,10 +367,11 @@ filter_with_index vector predicate =
         vector.map_with_index ix-> elem->
             if predicate ix elem then builder.append elem
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Check that all vectors have the same length and return an informative message
    if they don't.
-
    Compares all vectors to the first one and reports the first one that differs.
 check_same_length : Vector (Vector Any) -> Any -> Any ! Illegal_Argument
 check_same_length vecs ~action =
