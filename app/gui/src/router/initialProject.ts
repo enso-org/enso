@@ -57,7 +57,6 @@ export async function maybeRedirectToInitialProject(
 
   const config = injectGuiConfig()
   const auth = useAuth()
-  await auth.waitForSession()
 
   // In case of not being logged in, the redirection should be managed by ProtectedLayout.
   if (auth.session == null) return
@@ -81,10 +80,9 @@ async function shouldOpenInitialProject(
     console.error('Cannot read user home directory; will skip launching Welcome Project', err)
     return null
   }
-
   const homeContent = await Promise.all([
     localBackend?.listDirectory(homeDirQuery) ?? [],
-    remoteBackend.listDirectory(homeDirQuery, 'User Home'),
+    navigator.onLine ? remoteBackend.listDirectory(homeDirQuery, 'User Home') : [],
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
