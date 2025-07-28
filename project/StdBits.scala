@@ -178,13 +178,13 @@ object StdBits {
             nativeLibsOutputDir
           )
         ) { report =>
-          logger.info("nativeLibsReport: " + report)
+          logger.debug("nativeLibsReport: " + report)
           val reportChanged = report.modified.nonEmpty ||
             report.removed.nonEmpty ||
             report.added.nonEmpty
           val shouldCopy = !nativeLibsOutputDir.exists() || reportChanged
           if (shouldCopy) {
-            logger.info(
+            logger.debug(
               s"Copying native libraries from ${nativeLibsInputDir.getAbsolutePath} to ${nativeLibsOutputDir.getAbsolutePath}"
             )
             // Delete and recreate the output dir, just to be sure
@@ -196,7 +196,7 @@ object StdBits {
               overwrite = true
             )
           } else {
-            logger.info(
+            logger.debug(
               s"Native libraries in ${nativeLibsInputDir.getAbsolutePath} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
             )
           }

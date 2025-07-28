@@ -99,7 +99,7 @@ object JarExtractPlugin extends AutoPlugin {
         val outputsExist  = outJar.exists() && extFilesDir.exists()
         val shouldExtract = !outputsExist || report.modified.nonEmpty
         if (shouldExtract) {
-          logger.info(
+          logger.debug(
             s"[JarExtractPlugin:$modName] Extracting ${inJar.getName}"
           )
           // Ensure that both outputs are deleted before extraction
@@ -113,7 +113,7 @@ object JarExtractPlugin extends AutoPlugin {
             logger
           )
         } else {
-          logger.info(
+          logger.debug(
             s"[JarExtractPlugin:$modName] ${inJar.getName} is already extracted"
           )
         }
