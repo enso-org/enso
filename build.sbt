@@ -301,6 +301,7 @@ lazy val enso = (project in file("."))
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
+    `opencv-thin`,
     `os-environment`,
     `persistance`,
     `persistance-dsl`,
