@@ -17,18 +17,19 @@ polyglot java import org.postgresql.Driver
 type Postgres
     ## Connect to a PostgreSQL database.
 
-       Arguments:
-       - host: The hostname of the database server (defaults to localhost).
-       - port: The port of the database server (defaults to 5432).
-       - database: The database to connect to. By default, it will use the
-         database provided in `PGDATABASE` environment variable, or if that is
-         not defined, it will fall back to a default database name: `postgres`.
-       - schema: The schema to connect to. If empty, the default schema will be
-         used.
-       - credentials: The credentials to use for the connection (defaults to
-         No Authentication or the PGPass file).
-       - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Prefer`).
-       - client_cert: The client certificate to use or `Nothing` if not needed.
+       ## Arguments
+        - `host`: The hostname of the database server (defaults to localhost).
+        - `port`: The port of the database server (defaults to 5432).
+        - `database`: The database to connect to. By default, it will use the
+          database provided in `PGDATABASE` environment variable, or if that is
+          not defined, it will fall back to a default database name: `postgres`.
+        - `schema`: The schema to connect to. If empty, the default schema will
+          be used.
+        - `credentials`: The credentials to use for the connection (defaults to
+          No Authentication or the PGPass file).
+        - `use_ssl`: Whether to use SSL (defaults to `SSL_Mode.Prefer`).
+        - `client_cert`: The client certificate to use or `Nothing` if not
+          needed.
     @credentials Credentials.default_widget
     Server
         host : Text = default_postgres_host
@@ -39,18 +40,23 @@ type Postgres
         use_ssl : SSL_Mode = SSL_Mode.Prefer
         client_cert : Client_Certificate|Nothing = Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Attempt to resolve the constructor.
     resolve : Function -> Postgres | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:Postgres) _->Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Build the Connection resource.
 
-       Arguments:
-       - options: Overrides for the connection properties.
-       - allow_data_links: Whether to allow saving this connection as a data link.
+       ## Arguments
+        - `options`: Overrides for the connection properties.
+        - `allow_data_links`: Whether to allow saving this connection as a data
+          link.
     connect : Connection_Options -> Boolean -> Postgres_Connection
     connect self options (allow_data_links : Boolean = True) =
         if Driver.isRegistered.not then Driver.register
@@ -65,13 +71,17 @@ type Postgres
 
         Postgres_Connection.create self.jdbc_url properties make_new data_link_setup
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
         'jdbc:postgresql://' + self.host + ':' + self.port.to_text + (if self.database == '' then '' else '/' + self.database)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the properties for the connection.
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
@@ -98,7 +108,9 @@ type Postgres
 
         (if self.schema == '' then [] else [Pair.new 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
    connection.
 ssl_mode_to_jdbc_properties : SSL_Mode -> Vector (Pair Text Text)
@@ -113,20 +125,28 @@ ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
         if cert_file.is_nothing then [Pair.new 'sslmode' 'verify-full'] else
             [Pair.new 'sslmode' 'verify-full', Pair.new 'sslrootcert' (File.new cert_file).absolute.path]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_postgres_host = Environment.get "PGHOST" "localhost"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_postgres_port =
     hardcoded_port = 5432
     case Environment.get "PGPORT" of
         Nothing -> hardcoded_port
         port -> Integer.parse port . catch Number_Parse_Error (_->hardcoded_port)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 default_postgres_database = Environment.get "PGDATABASE" "postgres"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private create_data_link_structure details:Postgres data_link_location:Enso_File -> JS_Object =
     credentials_json = details.credentials.if_not_nothing <|
         Data_Link_Setup.save_credentials_for_data_link data_link_location details.credentials

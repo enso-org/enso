@@ -20,7 +20,7 @@ type Google_Analytics
     ## ---
        group: Standard.Base.Web
        icon: cloud_from
-       suggested: true
+       suggested: 1
        ---
        Performs Google Analytics call This method calls the Google Analytics
        Reporting v4 API.

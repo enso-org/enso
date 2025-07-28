@@ -36,6 +36,7 @@ export const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
     version: 1,
   }),
 )
+
 resetStoreOnLogout(driveLocationStore)
 
 /** Return the full drive location. */
@@ -54,7 +55,7 @@ export function getDriveLocation() {
 // eslint-disable-next-line react-refresh/only-export-components
 export function setDriveLocation(directoryId: DirectoryId | null, categoryId?: CategoryId | null) {
   driveLocationStore.setState({
-    ...(categoryId != null ? { categoryId } : {}),
+    ...(categoryId !== undefined ? { categoryId } : {}),
     directoryId,
   })
 }

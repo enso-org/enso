@@ -131,6 +131,11 @@ export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>
 export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
 export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
 
+/** Check if this path points to an asset in cloud drive. */
+export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
+  return ensoPath.startsWith('enso://')
+}
+
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -203,6 +208,8 @@ export interface User extends UserInfo {
   readonly groups?: readonly UserGroup[]
   /** Whether the user is a member of the Enso team. */
   readonly isEnsoTeamMember: boolean
+  /** Information about any pending invitation to a different organization / team. */
+  readonly invitation?: Invitation
 }
 
 /** A user group related to the current user. */
@@ -227,6 +234,8 @@ export enum ProjectState {
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
   opened = 'Opened',
+  hybridOpenInProgress = 'HybridOpenInProgress',
+  hybridOpened = 'HybridOpened',
   closed = 'Closed',
   /**
    * A frontend-specific state, representing a project that should be displayed as
@@ -261,6 +270,8 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
   [ProjectState.opened]: false,
+  [ProjectState.hybridOpenInProgress]: true,
+  [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
   [ProjectState.closing]: false,
@@ -272,7 +283,9 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
+  [ProjectState.hybridOpenInProgress]: true,
   [ProjectState.opened]: true,
+  [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
   [ProjectState.closing]: false,
@@ -289,7 +302,7 @@ export interface BaseProject {
 export interface CreatedProject extends BaseProject {
   readonly state: ProjectStateType
   readonly packageName: string
-  readonly ensoPath?: EnsoPath
+  readonly ensoPath: EnsoPath
 }
 
 /** A `Project` returned by `updateProject`. */
@@ -567,12 +580,28 @@ export interface CheckoutSession {
   readonly url: HttpsUrl
 }
 
+/** Metadata for a single payment card. */
+export interface Card {
+  readonly plan: Plan
+  readonly period: PlanBillingPeriod
+  readonly title: string
+  readonly subtitle: string
+  readonly pricing: string
+  readonly features: readonly string[]
+}
+
+/** Metadata for a payment pricing page configuration. */
+export interface PaymentsConfig {
+  readonly cards: readonly Card[]
+}
+
 /** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
   readonly plan?: Plan
   readonly trialStart?: dateTime.Rfc3339DateTime | null
   readonly trialEnd?: dateTime.Rfc3339DateTime | null
+  readonly isPaused?: boolean | null
 }
 
 /** Metadata for an organization. */
@@ -649,10 +678,14 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
-/**
- * Response from the "path/resolve" endpoint.
- */
-export interface PathResolveResponse extends Omit<Asset, 'type'> {}
+/** Response from the "path/resolve" endpoint. */
+export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
+
+/** Response from "assets/${assetId}" endpoint. */
+export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
+  Asset<RealAssetTypeId<Id>>,
+  'ensoPath'
+> | null
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
@@ -977,7 +1010,9 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  readonly ensoPath?: EnsoPath | undefined
+  // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
+  //  to retrieve directory path easily.
+  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1075,6 +1110,9 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
   HasType<Type>
 >
+
+/** A union of all {@link Asset} variants that can be retrieved from the backend. */
+export type AnyRealAsset = AnyAsset<RealAssetType>
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
@@ -1200,7 +1238,8 @@ export interface CreateUserRequestBody {
 
 /** HTTP request body for the "update user" endpoint. */
 export interface UpdateUserRequestBody {
-  readonly username: string | null
+  readonly username?: string
+  readonly organizationId?: OrganizationId
 }
 
 /** HTTP request body for the "change user group" endpoint. */
@@ -1231,6 +1270,7 @@ export interface ListInvitationsResponseBody {
 /** Invitation to join an organization. */
 export interface Invitation {
   readonly organizationId: OrganizationId
+  readonly organizationName: string
   readonly userEmail: EmailAddress
   readonly expireAt: dateTime.Rfc3339DateTime
 }
@@ -1332,8 +1372,17 @@ export interface GoogleCredentialInput {
   readonly scopes: readonly string[]
 }
 
+/** User settings for a Strava credential. */
+export interface StravaCredentialInput {
+  readonly type: 'Strava'
+  readonly scopes: readonly string[]
+}
+
 /** User settings for an arbitrary credential. */
-export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
+export type CredentialInput =
+  | SnowflakeCredentialInput
+  | GoogleCredentialInput
+  | StravaCredentialInput
 
 /** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
 export interface CredentialConfig {
@@ -1800,11 +1849,7 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<
-    Id extends RealAssetId,
-    ReturnType extends Id extends DirectoryId ? Asset<AssetType.directory> | null
-    : Asset<RealAssetTypeId<Id>>,
-  >(assetId: Id): Promise<ReturnType>
+  abstract getAssetDetails<Id extends RealAssetId>(assetId: Id): Promise<AssetDetailsResponse<Id>>
 
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
@@ -1829,6 +1874,8 @@ export default abstract class Backend {
   async getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId) {
     return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
   }
+  /** Resolve enso path to an asset */
+  abstract resolveEnsoPath(path: EnsoPath): Promise<PathResolveResponse>
   /** Resolve the data of a project asset relative to the project root directory. */
   abstract resolveProjectAssetData(
     projectId: ProjectId,
@@ -1894,6 +1941,8 @@ export default abstract class Backend {
   abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
+  /** Cancel subscription. */
+  abstract cancelSubscription(subscriptionId: SubscriptionId): Promise<void>
   /** List events in the organization's audit log. */
   abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
@@ -1916,6 +1965,8 @@ export default abstract class Backend {
    * @param returnUrl - The URL to redirect to after the customer visits the portal.
    */
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
+  /** Fetches pricing page configuration. */
+  abstract getPaymentsConfig(): Promise<PaymentsConfig>
 }
 
 /**

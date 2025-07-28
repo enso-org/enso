@@ -97,6 +97,9 @@ pub mod env {
         /// Url for signing out when used Microsoft as IdP.
         ENSO_IDE_MICROSOFT_SIGN_OUT_URL, String;
 
+        /// The client ID for the Strava OAuth integration used for Strava Credentials.
+        ENSO_IDE_STRAVA_OAUTH_CLIENT_ID, String;
+
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
     }

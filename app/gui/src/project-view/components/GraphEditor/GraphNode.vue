@@ -1,6 +1,4 @@
 <script lang="ts">
-const MAXIMUM_CLICK_LENGTH_MS = 300
-const MAXIMUM_CLICK_DISTANCE_SQ = 50
 export const NODE_CONTENT_PADDING = 4
 export const NODE_CONTENT_PADDING_PX = `${NODE_CONTENT_PADDING}px`
 const MENU_CLOSE_TIMEOUT_MS = 300
@@ -24,8 +22,8 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
-import { useDoubleClick } from '@/composables/doubleClick'
-import { usePointer, useResizeObserver } from '@/composables/events'
+import { useClickableDraggable } from '@/composables/dragging'
+import { useResizeObserver } from '@/composables/events'
 import { useProgressBackground } from '@/composables/progressBar'
 import type { ActionHandler } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
@@ -44,7 +42,7 @@ import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { ComponentInstance, computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { ComponentInstance, computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -189,14 +187,15 @@ const {
   isFocused: extended,
   typeinfo: () => expressionInfo.value?.typeInfo,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
+  hidden: toRef(props, 'edited'),
   emit,
 })
 
-watch(isVisualizationPreviewed, (newVal, oldVal) => {
-  if (!newVal) {
-    graph.nodeHovered.delete(nodeId.value)
-  } else if (newVal && !oldVal) {
+watch(isVisualizationPreviewed, (newVal) => {
+  if (newVal) {
     graph.db.moveNodeToTop(nodeId.value)
+  } else {
+    graph.nodeHovered.delete(nodeId.value)
   }
 })
 
@@ -214,46 +213,16 @@ const transform = computed(() => {
   return `translate(${x}px, ${y}px)`
 })
 
-const startEpochMs = ref(0)
-const significantMove = ref(false)
-
-const dragPointer = usePointer(
-  (pos, event, type) => {
-    if (type !== 'start') {
-      if (
-        !significantMove.value &&
-        (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
-          pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
-      ) {
-        // If this is clearly a drag (not a click), the node itself capture pointer events to
-        // prevent `click` on widgets.
-        if (event.currentTarget instanceof Element)
-          event.currentTarget.setPointerCapture?.(event.pointerId)
-        significantMove.value = true
-      }
-      const fullOffset = pos.relative
-      emit('dragging', fullOffset)
-    }
-    switch (type) {
-      case 'start':
-        startEpochMs.value = Number(new Date())
-        significantMove.value = false
-        break
-      case 'stop':
-        startEpochMs.value = 0
-        emit('draggingCommited')
-        break
-      case 'cancel':
-        startEpochMs.value = 0
-        emit('draggingCancelled')
-        break
-    }
+const { isDragged, pointerEvents } = useClickableDraggable({
+  dragMove: (fullOffset) => emit('dragging', fullOffset),
+  dragCommit: () => emit('draggingCommited'),
+  dragCancel: () => emit('draggingCancelled'),
+  click: (e: MouseEvent) => {
+    nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
+    nodeEditHandler(e)
   },
-  // Pointer is captured by `target`, to make it receive the `up` and `click` event in case this
-  // is not going to be a node drag.
-  { pointerCapturedBy: 'target' },
-)
-const isDragged = computed(() => dragPointer.dragging && significantMove.value)
+  doubleClick: () => emit('enterNode'),
+})
 watch(isDragged, () => graph.db.moveNodeToTop(nodeId.value))
 
 const isRecordingOverridden = computed({
@@ -276,18 +245,6 @@ const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.inne
 const nodeEditHandler = nodeEditBindings.handler({
   edit: () => actionHandlers['component.startEditing'].action(),
 })
-
-const handleNodeClick = useDoubleClick(
-  (e: MouseEvent) => {
-    if (!significantMove.value) {
-      nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
-      nodeEditHandler(e)
-    }
-  },
-  () => {
-    if (!significantMove.value) emit('enterNode')
-  },
-).handleClick
 
 const graphSelectionSize = computed(() => visRect.value?.size ?? nodeSize.value)
 
@@ -464,7 +421,6 @@ const nodeName = computed(() => props.node.pattern?.code())
       @click.capture="setSoleSelected"
     />
     <GraphVisualization
-      v-if="visualization"
       v-bind="visualization"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
@@ -495,8 +451,7 @@ const nodeName = computed(() => props.node.pattern?.code())
         ref="contentNode"
         :class="{ content: true, dragged: isDragged }"
         :style="contentNodeStyle"
-        v-on="dragPointer.events"
-        @click="handleNodeClick"
+        v-on="pointerEvents"
         @pointerenter="((nodeHovered = true), updateNodeHover($event))"
         @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
         @pointermove="updateNodeHover"
@@ -531,6 +486,8 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  --z-index-component-menu: 20;
+  --z-index-selection-submenu: calc(var(--z-index-component-menu) + 1);
 }
 
 .nodeBackground {
@@ -583,7 +540,7 @@ const nodeName = computed(() => props.node.pattern?.code())
 }
 
 .ComponentMenu {
-  z-index: 20;
+  z-index: var(--z-index-component-menu);
   &.partial {
     z-index: 1;
   }

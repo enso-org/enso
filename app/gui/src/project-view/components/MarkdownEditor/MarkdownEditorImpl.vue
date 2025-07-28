@@ -4,10 +4,16 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { useBlockTypeDropdown } from '@/components/MarkdownEditor/blockTypeDropdown'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
 import type { BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import {
+  insertPlaceholder,
+  replaceablePlaceholders,
+  replacePlaceholder,
+} from '@/components/MarkdownEditor/codemirror/placeholder'
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { StartedUpload, useAsyncResources } from '@/providers/asyncResources'
+import { useCurrentProjectResourceContext } from '@/providers/asyncResources/context'
 import { AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
@@ -17,13 +23,7 @@ import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
-import { useCurrentProjectResourceContext } from '../../providers/asyncResources/context'
-import {
-  insertPlaceholder,
-  replaceablePlaceholders,
-  replacePlaceholder,
-} from './codemirror/placeholder'
+import { type ComponentInstance, computed, useCssModule, useTemplateRef, watch } from 'vue'
 
 const {
   toolbar = true,
@@ -120,9 +120,19 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   scrollerTestId,
 })
 
-useLinkTitles(editorView, { readonly })
+useLinkTitles(editorView, { readonly: () => readonly })
 
 const { focused, focusHandlers } = useEditorFocus(editorView)
+watch(focused, (focused) => {
+  if (!focused && !editorView.state.selection.main.empty) {
+    editorView.dispatch({
+      selection: {
+        anchor: editorView.state.selection.main.from,
+        head: editorView.state.selection.main.from,
+      },
+    })
+  }
+})
 const editing = computed(() => !readonly && focused.value)
 
 const formatting = useMarkdownFormatting(editorView)
@@ -178,6 +188,7 @@ defineExpose({
   height: 100%;
   width: 100%;
   gap: 8px;
+  isolation: isolate;
 }
 
 .toolbar {
@@ -191,6 +202,10 @@ defineExpose({
 
 /*noinspection CssUnusedSymbol*/
 .CodeMirrorRoot {
+  /* Below popovers from the `belowToolbar` slot. */
+  z-index: -1;
+  min-height: 0;
+
   /*noinspection CssUnusedSymbol*/
   & :deep(.cm-content) {
     /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
@@ -304,9 +319,9 @@ defineExpose({
       list-style-type: circle;
     }
     list-style-position: outside;
-    text-indent: -0.3em;
+    text-indent: -0.4em;
     /*noinspection CssUnresolvedCustomProperty*/
-    margin-left: calc(var(--cm-list-depth) * 0.57em + 1em);
+    margin-left: calc(var(--cm-list-depth) * 0.57em + 1.1em);
   }
 
   :global(.cm-OrderedList-item) {

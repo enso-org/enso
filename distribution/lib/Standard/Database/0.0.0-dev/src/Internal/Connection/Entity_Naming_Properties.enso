@@ -4,21 +4,27 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 import project.Internal.JDBC_Connection.JDBC_Connection
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Entity_Naming_Properties
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Describes naming properties of database tables and columns.
 
-       Arguments:
-       - for_table_names: properties of naming database tables. Should implement
-         the `Naming_Properties` interface.
-       - for_column_names: properties of naming database columns. Should
-         implement the `Naming_Properties` interface.
-       - for_generated_column_names: properties of naming generated columns.
-         Should implement the `Naming_Properties` interface.
+       ## Arguments
+        - `for_table_names`: properties of naming database tables. Should
+          implement the `Naming_Properties` interface.
+        - `for_column_names`: properties of naming database columns. Should
+          implement the `Naming_Properties` interface.
+        - `for_generated_column_names`: properties of naming generated columns.
+          Should implement the `Naming_Properties` interface.
     Value for_table_names for_column_names for_generated_column_names
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     from_jdbc_connection : JDBC_Connection -> Encoding -> Boolean -> Entity_Naming_Properties
     from_jdbc_connection jdbc_connection encoding:Encoding=Encoding.utf_8 is_case_sensitive:Boolean=True =
         jdbc_connection.with_metadata metadata->

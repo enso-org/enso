@@ -3,9 +3,9 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { AnyAsset, AssetId, BackendType, Label, ProjectId } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
+import type { LaunchedProject } from '$/providers/container'
 import type { SortableColumn } from './columnUtils'
 import { Column } from './columnUtils'
 import {
@@ -54,7 +54,7 @@ export interface AssetColumn {
 
 /** React components for every column. */
 export const COLUMN_RENDERER: Readonly<
-  Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element>>
+  Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element | null>>
 > = {
   [Column.name]: memo(NameColumn),
   [Column.modified]: memo(ModifiedColumn),

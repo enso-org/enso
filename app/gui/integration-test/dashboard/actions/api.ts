@@ -740,7 +740,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         Tried to get: \n ${JSON.stringify(project, null, 2)}`)
       }
 
-      const name = 'example project name'
+      const name = project.title ?? 'example project name'
       return {
         organizationId: defaultOrganizationId,
         projectId: projectId,
@@ -1317,6 +1317,33 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         body: content,
         contentType: 'text/plain',
       })
+    })
+
+    await get(paths.RESOLVE_ENSO_PATH, (route, _request, _captures, params) => {
+      const path = params.get('path')
+      const userRoot = `enso://Users/${currentUser?.name}`
+      if (!path?.startsWith(userRoot)) {
+        route.fulfill({ status: HTTP_STATUS_BAD_REQUEST, json: { message: 'Invalid enso path' } })
+        return
+      }
+      const pathFromHome = path.slice(userRoot.length)
+      let currentAsset: backend.AssetId | undefined = defaultDirectoryId
+      for (const segment of pathFromHome.split('/')) {
+        if (!segment) continue
+        currentAsset = assets.find(
+          (asset) => asset.parentId === currentAsset && asset.title == segment,
+        )?.id
+        if (currentAsset == null) {
+          route.fulfill({
+            status: HTTP_STATUS_NOT_FOUND,
+            json: { message: 'Path does not resolve to any asset' },
+          })
+          return
+        }
+      }
+      const asset = assetMap.get(currentAsset)!
+      const { type: _type, ...rest } = asset
+      return rest
     })
 
     await page.route('*', async (route) => {

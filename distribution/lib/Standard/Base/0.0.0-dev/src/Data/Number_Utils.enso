@@ -3,10 +3,12 @@ import Standard.Base.Errors.Common.Mixed_Signed_And_Unsigned_Bytes
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
 
-## PRVIATE
-   Convert an array of Integers in the unsigned byte range [128..255] to the
-   signed byte range. Numbers outside this range, and non-Integers, will throw
-   Illegal_Argument.  The converted array is passed to the action, and if a
+## ---
+   private: true
+   ---
+   Convert an array of Integers in the unsigned byte range [128..255] to
+   the signed byte range. Numbers outside this range, and non-Integers, will
+   throw Illegal_Argument.  The converted array is passed to the action, and if a
    value is converted, a warning is attached to the result of the action.
 convert_unsigned_byte_array_to_signed v:Vector ~action =
     # Values [0..127] are not distinctly signed or unsigned.

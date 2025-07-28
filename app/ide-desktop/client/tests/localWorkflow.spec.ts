@@ -32,7 +32,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   const PROJECT_PATH = pathModule.join(projectsDir, projectName.replaceAll(' ', ''))
 
   // We see the node type and visualization, so the engine is running the program
-  await expect(page.locator('.node-type')).toHaveText('Table & + 3', { timeout: 30000 })
+  await expect(page.locator('.node-type')).toHaveText('Table & +3', { timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
 
@@ -64,7 +64,10 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
 
   // Enter User Defined Component
   // First wait until node is computed. Visualization may be cached, so we look at icon.
-  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
+  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute(
+    'href',
+    /#svgicon:group/,
+  )
   await page.locator('.GraphNode').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(3)
   await expect(page.locator('.NavBreadcrumb')).toHaveText([

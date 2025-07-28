@@ -174,14 +174,17 @@ interface PlaceholderOverrides {
   readonly planOverriddenToX: [planName: string]
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
+  readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
 
-  readonly annualPlanVariant: [originalPlanName: string]
-  readonly freePlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly soloPlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly teamPlanPricing: [pricePerMonth: number, billingInterval: string]
-  readonly enterprisePlanPricing: [pricePerMonth: number, billingInterval: string]
+  readonly xDaysLeftInTrial: [daysLeft: number]
+  readonly xHoursLeftInTrial: [hoursLeft: number]
+  readonly yourSubscriptionExpiresAtX: [endDate: string]
   readonly commercialUseNotice: [originalTitle: string]
+  readonly downgradedWarning: [daysLeft: number, hoursLeft: number]
+
+  readonly welcomeToTeam: [organizationName: string]
+  readonly invitationText: [organizationName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

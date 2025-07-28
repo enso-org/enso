@@ -3,7 +3,7 @@ private
 from Standard.Base import all
 
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
-from Standard.Table import Column, Value_Type, Table
+from Standard.Table import Column, Table, Value_Type
 
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table

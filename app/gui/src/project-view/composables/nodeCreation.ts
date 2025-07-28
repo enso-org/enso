@@ -101,10 +101,11 @@ export function useNodeCreation(
         }
       }
     const placedOptions = []
-    // Graph-independent placement strategies normally specify an exact position for the node, regardless of other
-    // nodes. However, when creating multiple nodes at once, the newly-created nodes should never overlap with each
-    // other; so, after determining the intended position of each graph-independent placement its position is adjusted
-    // if necessary, considering only the other uncommitted nodes already placed in the same batch.
+    // Graph-independent placement strategies normally specify an exact position for the node,
+    // regardless of other nodes. However, when creating multiple nodes at once, the newly-created
+    // nodes should never overlap with each other; so, after determining the intended position of
+    // each graph-independent placement its position is adjusted if necessary, considering only the
+    // other uncommitted nodes already placed in the same batch.
     const adjust = (pos: Vec2) => seekHorizontal(new Rect(pos, DEFAULT_NODE_SIZE), rects)
     placedOptions.push(...Array.from(independentNodesOptions, doPlace(adjust)))
     rects.push(...graphStore.visibleNodeAreas)

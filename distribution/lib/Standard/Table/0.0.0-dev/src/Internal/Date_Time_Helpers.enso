@@ -8,7 +8,9 @@ from Standard.Base.Metadata.Widget import Single_Choice
 import project.Column.Column
 import project.Value_Type.Value_Type
 
-## PRIVATE
+## ---
+   private: true
+   ---
 align_period_with_value_type value_type (period : Date_Period | Time_Period) = case value_type of
     Value_Type.Date ->
         if period.is_a Date_Period then period else
@@ -20,7 +22,9 @@ align_period_with_value_type value_type (period : Date_Period | Time_Period) = c
         ## Both kinds are allowed for `Date_Time` columns, return them as-is.
         period
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Common logic for `Column.date_part`.
 make_date_part_function column period make_unary_op naming_helper =
     Value_Type.expect_type column .is_date_or_time "date/time" <|
@@ -41,7 +45,9 @@ make_date_part_function column period make_unary_op naming_helper =
                 Time_Period.Nanosecond -> make_unary_op column "nanosecond"
             result.rename new_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_period_selector_for_column : Column -> Widget
 make_period_selector_for_column column =
     column_type = column.inferred_precise_value_type

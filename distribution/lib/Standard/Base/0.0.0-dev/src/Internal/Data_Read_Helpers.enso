@@ -24,13 +24,17 @@ from project.System.File_Format import Auto_Detect, format_types
 
 polyglot java import java.lang.Thread
 
-## PRIVATE
+## ---
+   private: true
+   ---
 looks_like_uri path:Text -> Boolean =
     (path.starts_with "http://" Case_Sensitivity.Insensitive) || (path.starts_with "https://" Case_Sensitivity.Insensitive)
 
-## PRIVATE
-   A common implementation for fetching a resource and decoding it,
-   following encountered data links.
+## ---
+   private: true
+   ---
+   A common implementation for fetching a resource and decoding it, following
+   encountered data links.
 fetch_following_data_links (uri:URI) (method:HTTP_Method = ..Get) (headers:Vector = []) format (cache_policy:Cache_Policy = ..Default) =
     fetch_and_decode =
         response = HTTP.fetch uri method headers cache_policy=cache_policy
@@ -46,7 +50,9 @@ fetch_following_data_links (uri:URI) (method:HTTP_Method = ..Get) (headers:Vecto
 
     fetch_and_decode . catch HTTP_Error (error_handler 0)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Decodes a HTTP response, handling data link access.
 decode_http_response_following_data_links response format =
     # If Raw_Response is requested, we ignore data link handling.
@@ -58,16 +64,22 @@ decode_http_response_following_data_links response format =
             False ->
                 response.decode format=format if_unsupported=response.with_materialized_body
 
-## PRIVATE
+## ---
+   private: true
+   ---
 format_widget_with_raw_response -> Widget =
     options = ([Auto_Detect, Raw_Response] + format_types).flat_map .get_dropdown_options
     Single_Choice display=Display.When_Modified values=options
 
-## PRIVATE
-   A helper method that handles the old-style invocation of `Data.fetch` and `Data.post`.
+## ---
+   private: true
+   ---
+   A helper method that handles the old-style invocation of `Data.fetch` and
+   `Data.post`.
    Before the introduction of the `format` parameter, these methods had a
    `try_auto_parse_result` parameter taking a Boolean at the same position.
-   To ensure old code relying on positional arguments still works, we have special handling for the Boolean case.
+   To ensure old code relying on positional arguments still works, we have
+   special handling for the Boolean case.
    This 'migration' will not work unfortunately if the argument was named.
 handle_legacy_format (method_name : Text) (new_argument_name : Text) format = case format of
     try_auto_parse_result : Boolean ->
