@@ -1986,7 +1986,7 @@ class RuntimeSuggestionUpdatesTest
     )
   }
 
-  it should "send suggestion updates after file modification" in {
+  it should "send suggestion updates after method arguments modification" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
