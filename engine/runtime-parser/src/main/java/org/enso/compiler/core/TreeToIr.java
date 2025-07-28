@@ -562,9 +562,8 @@ final class TreeToIr {
       if (body == null) {
         body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
       }
-      final var raw = new Expression.Binding(name, body, loc, meta());
-      final var ascribedBody = addTypeAscription(name.name(), raw, returnType, loc);
-      return ascribedBody;
+      final var ascribedBody = addTypeAscription(name.name(), body, returnType, loc);
+      return new Expression.Binding(name, ascribedBody, loc, meta());
     } else {
       final var body = translateExpression(fun.getBody());
       if (body == null) {
@@ -574,10 +573,9 @@ final class TreeToIr {
       if (isOperator && args.size() != 2) {
         return translateSyntaxError(fun, Syntax.InvalidOperator$.MODULE$);
       }
+      final var ascribedBody = addTypeAscription(name.name(), body, returnType, loc);
       final var isPrivate = fun.getPrivate() != null;
-      final var raw = new Function.Binding(name, args, body, isPrivate, loc, true, meta());
-      final var ascribedBody = addTypeAscription(name.name(), raw, returnType, loc);
-      return ascribedBody;
+      return new Function.Binding(name, args, ascribedBody, isPrivate, loc, true, meta());
     }
   }
 
