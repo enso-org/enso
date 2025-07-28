@@ -92,9 +92,7 @@ type Excel_Workbook
     private Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) internal_xls_format:Boolean
 
     ## ---
-       group: Standard.Base.Metadata
        icon: metadata
-       suggested: 7
        ---
        Is the Workbook in the old XLS format?
     xls_format : Boolean
@@ -169,7 +167,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
-       suggested: 3
+       suggested: 5
        ---
        Gets the number of sheets.
     sheet_count : Integer
@@ -178,7 +176,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
-       suggested: 4
+       suggested: 3
        ---
        Gets the names of all the sheets.
     sheet_names : Vector Text
@@ -188,7 +186,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
-       suggested: 5
+       suggested: 6
        ---
        Gets the number of named ranges.
     named_ranges_count : Integer
@@ -197,7 +195,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
-       suggested: 6
+       suggested: 4
        ---
        Gets the names of all the named ranges.
     named_ranges : Vector Text

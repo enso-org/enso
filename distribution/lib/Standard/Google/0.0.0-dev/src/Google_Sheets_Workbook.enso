@@ -116,15 +116,6 @@ type Google_Sheets_Workbook
        icon: metadata
        suggested: 3
        ---
-       Gets the number of sheets.
-    sheet_count self -> Integer = _handle_exceptions <|
-        self.java_service.getNumberOfSheets self.workbook_id
-
-    ## ---
-       group: Standard.Base.Metadata
-       icon: metadata
-       suggested: 4
-       ---
        Gets the names of all the sheets.
     sheet_names self -> Vector Text = _handle_exceptions <|
         Vector.from_polyglot_array (self.java_service.getSheetNames self.workbook_id)
@@ -132,20 +123,29 @@ type Google_Sheets_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
+       suggested: 4
+       ---
+       Gets the names of all the named ranges.
+    named_ranges self -> Vector Text = _handle_exceptions <|
+        Vector.from_polyglot_array (self.java_service.getRangeNames self.workbook_id) . sort
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
        suggested: 5
        ---
-       Gets the number of named ranges.
-    named_ranges_count self -> Integer = _handle_exceptions <|
-        self.java_service.getNumberOfNames self.workbook_id
+       Gets the number of sheets.
+    sheet_count self -> Integer = _handle_exceptions <|
+        self.java_service.getNumberOfSheets self.workbook_id
 
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
        suggested: 6
        ---
-       Gets the names of all the named ranges.
-    named_ranges self -> Vector Text = _handle_exceptions <|
-        Vector.from_polyglot_array (self.java_service.getRangeNames self.workbook_id) . sort
+       Gets the number of named ranges.
+    named_ranges_count self -> Integer = _handle_exceptions <|
+        self.java_service.getNumberOfNames self.workbook_id
 
 ## ---
    private: true
