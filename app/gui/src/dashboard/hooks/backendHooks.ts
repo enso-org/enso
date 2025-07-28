@@ -245,6 +245,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   } = options
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
   return {
+    meta: { persist: false },
     queryKey: ((): QueryKey => [
       backend.type,
       'listDirectory',
@@ -314,6 +315,7 @@ export function searchDirectoryQueryOptions(options: SearchDirectoryQueryOptions
   return {
     // Even though the default stale time is 0, we want to ensure that the query is not cached.
     staleTime: 0,
+    meta: { persist: false },
     queryKey: ((): QueryKey => [backend.type, 'searchDirectory', { ...rest, infinite }])(),
     queryFn: (
       _context,
