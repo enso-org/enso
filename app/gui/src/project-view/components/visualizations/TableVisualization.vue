@@ -1,5 +1,4 @@
 <script lang="ts">
-import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
   useTableVizToolbar,
@@ -8,11 +7,13 @@ import {
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { Icon } from '@/util/iconMetadata/iconName'
+import { svgUseHref } from '@/util/icons'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
+  ColumnMovedEvent,
   ColumnVisibleEvent,
   GetContextMenuItems,
   GetContextMenuItemsParams,
@@ -183,7 +184,7 @@ const grid = ref<
 >()
 
 const getSvgTemplate = (icon: Icon) =>
-  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${encodeURI(svgUseHref(icon))}"/> </svg>`
 
 const getContextMenuItems = (
   params: GetContextMenuItemsParams,
@@ -1119,7 +1120,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
 }
 
-const onColumnStateChange = (e: ColumnVisibleEvent) => {
+const onColumnStateChange = (e: ColumnVisibleEvent | ColumnMovedEvent) => {
   const colState = e.api.getColumnState()
   hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
   const gridColOrder = colState
@@ -1211,7 +1212,8 @@ config.setToolbar(
         :gridIdHash="tableVersionHash"
         :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
-        @columnStateChanged="onColumnStateChange"
+        @columnVisibleChanged="onColumnStateChange"
+        @columnMoved="onColumnStateChange"
       />
     </Suspense>
   </div>

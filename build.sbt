@@ -2373,13 +2373,10 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
     // Ensure that our tooling uses the right Java version for checking the code.
     Compile / javacOptions ++= Seq(
       "-source",
-      frgaalSourceLevel
-    ) ++
-    (if (Integer.parseInt(targetJdk) <= 21) {
-       Seq()
-     } else {
-       Seq("-target", "21")
-     })
+      frgaalSourceLevel,
+      "-target",
+      targetJdk
+    )
   )
 }
 
@@ -3214,6 +3211,7 @@ lazy val `runtime-compiler-dump` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      scalaModuleDependencySetting,
       Compile / internalModuleDependencies := {
         val transitiveDeps =
           (`runtime-parser` / Compile / internalModuleDependencies).value

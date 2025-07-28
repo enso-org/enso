@@ -139,16 +139,15 @@ test('Documentation reflects entered function', async ({ page }) => {
 
 test('Link in documentation is rendered and interactive', async ({ page, context }) => {
   const { docsContent } = await goToGraphAndGetDocs(page)
-  const rightDock = locate.rightDock(page)
   await expect(docsContent.locator('a')).toHaveAccessibleDescription(
     /Click to edit.*Click to open link/,
   )
 
   await expect(docsContent.locator('a')).toHaveText('https://example.com')
   await docsContent.locator('a').click()
-  await expect(rightDock.locator('.LinkEditPopup')).toBeVisible()
+  await expect(page.locator('.LinkEditPopup')).toBeVisible()
   await locate.graphEditor(page).click()
-  await expect(rightDock.locator('.LinkEditPopup')).toBeHidden()
+  await expect(page.locator('.LinkEditPopup')).toBeHidden()
   context.route('https://example.com', (route) => route.fulfill({ status: 200, body: 'YAY' }))
   const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
   await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
@@ -171,7 +170,7 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
 
   // The link exists and is being edited
   await expect(docsContent.locator('a')).toExist()
-  await expect(rightDock.locator('.LinkEditPopup')).toExist()
+  await expect(page.locator('.LinkEditPopup')).toExist()
 })
 
 test('Documentation editor: Editing with keyboard', async ({ page }) => {

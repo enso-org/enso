@@ -49,10 +49,7 @@ export function useOfflineChange(
     }
   })
 
-  // Unavoidable.
-  // eslint-disable-next-line react-compiler/react-compiler
   if (!triggeredImmediateRef.current) {
-    // eslint-disable-next-line react-compiler/react-compiler
     triggeredImmediateRef.current = true
 
     if (triggerImmediate === 'if-offline' && isOffline) {

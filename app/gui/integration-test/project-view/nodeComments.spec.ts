@@ -85,7 +85,6 @@ test('Delete comment by clearing text', async ({ page }) => {
 
 test('URL added to comment is rendered as link', async ({ page, context }) => {
   await actions.goToGraph(page)
-  const comment = locate.nodeComment(locate.graphNodeByBinding(page, 'final'))
   const commentContent = locate.nodeCommentContent(locate.graphNodeByBinding(page, 'final'))
   await expect(commentContent).toHaveText('This node can be entered')
   await expect(commentContent.locator('a')).toBeHidden()
@@ -104,10 +103,10 @@ test('URL added to comment is rendered as link', async ({ page, context }) => {
   )
   await commentContent.locator('a').click()
   await expect(commentContent).toBeFocused()
-  await expect(comment.locator('.LinkEditPopup')).toBeVisible()
+  await expect(page.locator('.LinkEditPopup')).toBeVisible()
   await page.keyboard.press(`Enter`)
   await expect(commentContent).not.toBeFocused()
-  await expect(comment.locator('.LinkEditPopup')).toBeHidden()
+  await expect(page.locator('.LinkEditPopup')).toBeHidden()
   context.route('https://example.com', (route) => route.fulfill({ status: 200, body: 'YAY' }))
   const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
   await commentContent.locator('a').click({ modifiers: ['ControlOrMeta'] })

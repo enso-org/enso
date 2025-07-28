@@ -65,13 +65,6 @@ export function useNodeVisualization({
   const isVisualizationVisible = computed(
     () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
   )
-  watch(isVisualizationVisible, (val) => {
-    // When visualization is being hidden, we don’t receive `pointerleave` event for some reason.
-    // So we need to set `visualizationHovered` to `false` manually.
-    if (!val) {
-      visualizationHovered.value = false
-    }
-  })
 
   const visRect = shallowRef<Rect>()
   const visibleVisRect = computed(
@@ -82,6 +75,7 @@ export function useNodeVisualization({
   const visualization = computed((): ComponentProps<typeof GraphVisualization> => {
     const { size: nodeSize, pos: nodePosition } = toValue(nodeRect)
     return {
+      show: isVisualizationVisible.value,
       width: visualizationWidth.value,
       nodeSize,
       scale: toValue(scale),
@@ -109,6 +103,6 @@ export function useNodeVisualization({
     isVisualizationEnabled,
     isVisualizationPreviewed,
     visRect: visibleVisRect,
-    visualization: computed(() => (isVisualizationVisible.value ? visualization.value : null)),
+    visualization,
   }
 }

@@ -17,13 +17,12 @@ public final class MethodNameValidation {
    * @return the normalized name.
    */
   public static String normalize(String name) {
-    if (name.isEmpty()) {
+    var normalizedName = toLowerSnakeCase(name);
+    if (normalizedName.isEmpty()) {
       return DEFAULT_NAME;
+    } else {
+      return normalizedName;
     }
-    if (isAllowedFirstCharacter(Character.toLowerCase(name.charAt(0)))) {
-      return toLowerSnakeCase(name);
-    }
-    return toLowerSnakeCase(DEFAULT_NAME + "_" + name);
   }
 
   /**
@@ -33,52 +32,59 @@ public final class MethodNameValidation {
   public static boolean isAllowedName(String name) {
     return !name.isEmpty()
         && isAllowedFirstCharacter(name.charAt(0))
+        && (name.charAt(0) != CHAR_UNDERSCORE || name.length() > 1)
         && name.chars().allMatch(MethodNameValidation::isAllowedNameCharacter);
   }
 
+  /**
+   * Convert the provided name to the lower snake case format removing all unsupported characters.
+   *
+   * @param name the provided name that will be converted to snake case
+   * @return the name converted to snake case
+   */
   private static String toLowerSnakeCase(String name) {
-    if (name.isEmpty()) {
-      return name;
+    if (name == null || name.isEmpty()) {
+      return "";
     }
 
-    StringBuilder result = new StringBuilder(name.length());
-    char[] chars = name.toCharArray();
-    char previous = name.charAt(0);
-    for (int i = 0; i < chars.length; i++) {
-      char current = name.charAt(i);
+    StringBuilder result = new StringBuilder();
+    boolean lastWasUpper = false;
 
-      if (current == CHAR_UNDERSCORE && previous == CHAR_UNDERSCORE) {
-        continue;
-      }
-
-      if (isLetterAscii(current) || Character.isDigit(current) || current == CHAR_UNDERSCORE) {
-        if (Character.isUpperCase(current)
-            && (Character.isLowerCase(previous) || Character.isDigit(previous))) {
-          result.append(CHAR_UNDERSCORE);
+    for (int i = 0; i < name.length(); i++) {
+      char c = name.charAt(i);
+      if (Character.isLetter(c)) {
+        if (Character.isUpperCase(c)) {
+          if (result.length() > 0 && !lastWasUpper) {
+            result.append(CHAR_UNDERSCORE);
+          }
+          result.append(Character.toLowerCase(c));
+          lastWasUpper = true;
+        } else {
+          result.append(c);
+          lastWasUpper = false;
         }
-        if (Character.isLowerCase(current) && Character.isDigit(previous)) {
-          result.append(CHAR_UNDERSCORE);
-        }
-        result.append(Character.toLowerCase(current));
-        previous = current;
-      }
-
-      if (Character.isWhitespace(current) && previous != CHAR_UNDERSCORE) {
+      } else if (Character.isDigit(c) && i == 0) {
         result.append(CHAR_UNDERSCORE);
-        previous = CHAR_UNDERSCORE;
+        result.append(c);
+        lastWasUpper = false;
+      } else if (isAllowedNameCharacter(c)) {
+        result.append(c);
+        lastWasUpper = false;
+      } else if (c == ' ') {
+        result.append(CHAR_UNDERSCORE);
+        lastWasUpper = false;
       }
     }
 
-    char lastChar = result.charAt(result.length() - 1);
-    if (lastChar == CHAR_UNDERSCORE) {
-      result.setLength(result.length() - 1);
-    }
+    // Replace multiple underscores with a single underscore
+    String intermediateResult = result.toString().replaceAll("__+", "_");
 
-    return result.toString();
+    // Remove trailing underscores
+    return intermediateResult.replaceAll("_$", "");
   }
 
   private static boolean isAllowedFirstCharacter(int c) {
-    return isLowerCaseAscii(c);
+    return isLowerCaseAscii(c) || c == CHAR_UNDERSCORE;
   }
 
   private static boolean isAllowedNameCharacter(int c) {
@@ -89,15 +95,7 @@ public final class MethodNameValidation {
     return isLowerCaseAscii(c) || Character.isDigit(c);
   }
 
-  private static boolean isLetterAscii(int c) {
-    return isLowerCaseAscii(c) || isUpperCaseAscii(c);
-  }
-
   private static boolean isLowerCaseAscii(int c) {
     return c >= CHAR_LOWERCASE_A && c <= CHAR_LOWERCASE_Z;
-  }
-
-  private static boolean isUpperCaseAscii(int c) {
-    return c >= CHAR_UPPERCASE_A && c <= CHAR_UPPERCASE_Z;
   }
 }

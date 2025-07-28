@@ -13,7 +13,7 @@ import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
 import * as backend from '#/services/Backend'
-import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
+import LocalStorage, { useLocalStorageValues } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import {
@@ -27,7 +27,6 @@ import { useFeatureFlag, useFeatureFlags, useSetFeatureFlag } from '$/providers/
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { motion } from 'framer-motion'
-import * as React from 'react'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
@@ -280,10 +279,7 @@ export function EnsoDevtools() {
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
   const localStorage = useLocalStorage()
-  const [localStorageState, setLocalStorageState] = React.useState<Partial<LocalStorageData>>({})
-
-  // Re-render when localStorage changes.
-  React.useEffect(() => localStorage.subscribeAll(setLocalStorageState), [localStorage])
+  const localStorageState = useLocalStorageValues(localStorage)
 
   const featureFlags = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
@@ -599,15 +595,13 @@ export function EnsoDevtools() {
             variant="icon"
             icon="trash"
             onPress={() => {
-              for (const key of LocalStorage.getAllKeys()) {
-                localStorage.delete(key)
-              }
+              localStorage.clearAll()
             }}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          {LocalStorage.getAllKeys().map((key) => {
+          {LocalStorage.getAllRegisteredKeys().map((key) => {
             const metadata = LocalStorage.getKeyMetadata(key)
             const title = key
               .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())

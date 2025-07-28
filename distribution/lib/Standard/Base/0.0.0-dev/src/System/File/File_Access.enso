@@ -6,14 +6,13 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 polyglot java import java.nio.file.StandardOpenOption
 
 ## Represents different options for opening file streams.
-
-   This is intended for more advanced users, wishing to obtain lower-level
-   file access. For most use cases, the default values used in the methods of
-   the `File` type should be preferred.
+   This is intended for more advanced users, wishing to obtain lower-level file
+   access. For most use cases, the default values used in the methods of the
+   `File` type should be preferred.
 type File_Access
 
-    ## If the file is opened for `Write` access then bytes will be written to
-       the end of the file rather than the beginning.
+    ## If the file is opened for `Write` access then bytes will be written to the
+       end of the file rather than the beginning.
     Append
 
     ## Create a new file if it does not exist.
@@ -25,8 +24,8 @@ type File_Access
     ## Delete the underlying file on closing the stream.
     Delete_On_Close
 
-    ## Requires that every update to the file's content be written
-       synchronously to the underlying storage device.
+    ## Requires that every update to the file's content be written synchronously
+       to the underlying storage device.
     Dsync
 
     ## Open for read access.
@@ -39,15 +38,16 @@ type File_Access
        synchronously to the underlying storage device.
     Sync
 
-    ## If the file already exists and is opened for `Write` access,
-       the original contents will be removed.
+    ## If the file already exists and is opened for `Write` access, the original
+       contents will be removed.
     Truncate_Existing
 
     ## Open file for write access.
     Write
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Convert this object into a representation understandable by the JVM.
     to_java : Text
     to_java self =
@@ -64,7 +64,9 @@ type File_Access
             File_Access.Write             -> StandardOpenOption.WRITE
         java_option.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     ensure_only_allowed_options (operation_name : Text) (allowed_options : Vector) (got_options : Vector) ~action =
         disallowed_options = got_options.filter o-> allowed_options.contains o . not
         if disallowed_options.is_empty then action else

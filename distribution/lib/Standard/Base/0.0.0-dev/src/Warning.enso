@@ -17,107 +17,131 @@ from project.Function import flip
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
 type Warning
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Attaches a new warning to the value.
     attach : Any -> Any -> Any
     attach warning value =
         origin = Runtime.get_stack_trace
         attach_with_stacktrace value warning (origin.drop (..First 1))
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Attaches a new warning to the value.
     attach_multiple : Vector Any -> Any -> Any
     attach_multiple warnings value = warnings.fold value (flip Warning.attach)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Are any warnings attached to the value?
     has_warnings : Any -> Any -> Boolean
     has_warnings value warning_type=Any =
         Warning.get_all value . any (w-> w.value.is_a warning_type)
 
-    ## PRIVATE
-       ADVANCED
-       Remove the warnings (either all or of a specified type) attached to the value.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Remove the warnings (either all or of a specified type) attached to the
+       value.
 
-       Arguments:
-       - warning_type: The type to remove if attached to the value. Defaults to all warnings.
+       ## Arguments
+        - `warning_type`: The type to remove if attached to the value. Defaults
+          to all warnings.
     remove_warnings : Any -> Any -> Any
     remove_warnings value warning_type=Any =
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
-    ## PRIVATE
-       GROUP Errors
-       ICON error
-       Throws the first matching warning (either all or of a specified type) as a data flow error.
+    ## ---
+       private: true
+       group: Errors
+       icon: error
+       ---
+       Throws the first matching warning (either all or of a specified type) as a
+       data flow error.
 
-       Arguments:
-       - warning_type: The type to throw if attached to the value. Defaults to all warnings.
+       ## Arguments
+        - `warning_type`: The type to throw if attached to the value. Defaults to
+          all warnings.
     throw_on_warning : Any -> Any -> Any
     throw_on_warning value warning_type=Any =
         warnings = Warning.get_all value
         first = warnings.find (w-> w.value.is_a warning_type) if_missing=Nothing
         if first.is_nothing then value else Error.throw first.value
 
-    ## PRIVATE
-       ADVANCED
-       Gets all the warnings attached to the given value. Warnings are returned in the
-       reverse-chronological order with respect to their attachment time.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets all the warnings attached to the given value. Warnings are returned
+       in the reverse-chronological order with respect to their attachment time.
 
-       Arguments:
-       - value: The value to get the attached warnings of.
-       - wrap_errors: If true, warnings attached to elements in array-likes are
-         wrapped in Map_Error.
+       ## Arguments
+        - `value`: The value to get the attached warnings of.
+        - `wrap_errors`: If true, warnings attached to elements in array-likes
+          are wrapped in Map_Error.
     get_all : Any -> Boolean -> Vector Warning
     get_all value wrap_errors:Boolean=False = get_all_vector value wrap_errors
 
-    ## PRIVATE
-       ADVANCED
-       Returns `True` if the maximal number of reported warnings for a value has been reached, `False` otherwise.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Returns `True` if the maximal number of reported warnings for a value has
+       been reached, `False` otherwise.
     limit_reached : Any -> Boolean
     limit_reached value = @Builtin_Method "Warning.limit_reached"
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Sets a new list of warnings for the given value. Any warnings already
+       present in `value` will be lost.
 
-       Sets a new list of warnings for the given value. Any warnings already present
-       in `value` will be lost.
-
-       Arguments:
-       - value: the value to which warnings should be set to.
-       - warnings: vector of warnings to set to the value.
+       ## Arguments
+        - `value`: the value to which warnings should be set to.
+        - `warnings`: vector of warnings to set to the value.
     set value (warnings:Vector Warning) = set_array value warnings
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns the provided value with any warnings removed from it.
 
-       Arguments:
-       - value: the value from which warnings should be removed.
+       ## Arguments
+        - `value`: the value from which warnings should be removed.
     clear : Any -> Any
     clear value = Warning.set value []
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Executes the provided function with the given argument with its warnings
        suspended.
-
        Inside of the provided function, the argument value will have no warnings
        attached. The result will inherit the warnings from the original argument
        as well as any warnings that were attached to it inside of the function.
 
-       Arguments:
-       - arg: the value to pass to the function whose warnings should be
-         suspended.
-       - function: the function to execute with the given argument.
+       ## Arguments
+        - `arg`: the value to pass to the function whose warnings should be
+          suspended.
+        - `function`: the function to execute with the given argument.
 
-       > Example
-         Detect warnings reported during a call to `bar` and raise them as
+       ## Examples
+       ### Detect warnings reported during a call to `bar` and raise them as
          errors, but also ensure that the result inherits any warnings
          originally attached to `foo`.
 
+       ```
              Warning.with_suspended foo foo->
                 result = bar foo
                 ## This will contain warnings reported during execution of
@@ -126,6 +150,7 @@ type Warning
                 inner_warnings = Warning.get_all result . map .value
                 if inner_warnings.is_empty then result else
                     Error.throw inner_warnings.first
+       ```
     with_suspended : Any -> (Any -> Any) -> Any
     with_suspended arg function =
        ## The case-of is used to ensure that warnings of `arg` will be inherited
@@ -133,47 +158,56 @@ type Warning
        case arg of
            _ -> function (Warning.clear arg)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Maps warnings attached to a value.
 
-       Arguments:
-       - mapper: the function to apply to all warnings. If it returns `Some` value,
-         the given warning is replaced with the new value. If it returns `Nothing`
-         the original warning remains unaffected.
-       - value: the value whose warnings should be modified.
+       ## Arguments
+        - `mapper`: the function to apply to all warnings. If it returns `Some`
+          value, the given warning is replaced with the new value. If it returns
+          `Nothing` the original warning remains unaffected.
+        - `value`: the value whose warnings should be modified.
 
-       > Example
-         Map all `No_Match_Found` warnings to more specific messages. Any other
+       ## Examples
+       ### Map all `No_Match_Found` warnings to more specific messages. Any other
          attached warnings are unaffected.
 
+       ```
              mapper warning = case warning of
                  Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns.Error criteria)
                  _ -> Nothing
              Warning.map_attached_warnings mapper value
+       ```
     map_attached_warnings : (Any -> Maybe Any) -> Any -> Any
     map_attached_warnings mapper value =
         map_attached_warnings_helper mapper value 1
 
-    ## PRIVATE
-       ADVANCED
-       An utility function which applies the mapping function both to any attached
-       warnings and dataflow errors.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       An utility function which applies the mapping function both to any
+       attached warnings and dataflow errors.
 
-       Arguments:
-       - mapper: the function to apply to all warnings or errors. If it returns
-         `Some` value, the given warning or error is replaced with the new value. If
-         it returns `Nothing` the original warning or error remains unaffected.
-       - value: the value whose errors or warnings should be modified.
+       ## Arguments
+        - `mapper`: the function to apply to all warnings or errors. If it
+          returns `Some` value, the given warning or error is replaced with the
+          new value. If it returns `Nothing` the original warning or error
+          remains unaffected.
+        - `value`: the value whose errors or warnings should be modified.
 
-       > Example
-         Map all `No_Match_Found` warnings or errors to more specific messages. Any
+       ## Examples
+       ### Map all `No_Match_Found` warnings or errors to more specific messages. Any
          other attached warnings or errors are unaffected.
 
+       ```
              mapper error = case error of
                  Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns.Error criteria)
                  _ -> Nothing
              Warning.map_warnings_and_errors mapper value
+       ```
     map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any
     map_warnings_and_errors mapper value =
         mapped_warnings_or_error = map_attached_warnings_helper mapper value 1
@@ -184,23 +218,27 @@ type Warning
                    original dataflow error as-is, to preserve its stacktrace.
                 Nothing -> mapped_warnings_or_error
 
-    ## PRIVATE
-       ADVANCED
-       A helper function which selects warnings matching a predicate and returns a
-       pair whose first element is the original value with the matched warnings
+    ## ---
+       private: true
+       advanced: true
+       ---
+       A helper function which selects warnings matching a predicate and returns
+       a pair whose first element is the original value with the matched warnings
        removed and the second element is the list of matched warnings.
 
-       Arguments:
-       - value: the value whose warnings are to be filtered.
-       - predicate: a predicate specifying which warnings to detach. The predicate
-         receives the warnings' payloads as its argument.
+       ## Arguments
+        - `value`: the value whose warnings are to be filtered.
+        - `predicate`: a predicate specifying which warnings to detach. The
+          predicate receives the warnings' payloads as its argument.
 
-       > Example
-         Detach warnings of a specific type.
+       ## Examples
+       ### Detach warnings of a specific type.
 
+       ```
              result = Warning.detach_selected_warnings value (_.is_a Illegal_State)
              result.first  # `value` with the matched warnings removed
              result.second # the list of matched warnings
+       ```
     detach_selected_warnings : Any -> (Any -> Boolean) -> Pair Any Vector
     detach_selected_warnings value predicate =
         warnings = Warning.get_all value
@@ -209,27 +247,30 @@ type Warning
         remaining = result.second
         Pair.new (Warning.set value remaining) matched
 
-    ## PRIVATE
-       ADVANCED
-       A helper function which gathers warnings matching some predicate and passes
-       them into a function which can aggregate them.
-
+    ## ---
+       private: true
+       advanced: true
+       ---
+       A helper function which gathers warnings matching some predicate and
+       passes them into a function which can aggregate them.
        The merger function will not be called at all if no warnings match the
        criteria.
 
-       Arguments:
-       - value: the value whose warnings will be transformed.
-       - matcher: a predicate selecting warnings to merge.
-       - merger: a function taking a list of found payloads which should return a
-         list of new warnings that should be attached. It returns a list to not
-         limit it to merging warnings into a single warning.
+       ## Arguments
+        - `value`: the value whose warnings will be transformed.
+        - `matcher`: a predicate selecting warnings to merge.
+        - `merger`: a function taking a list of found payloads which should
+          return a list of new warnings that should be attached. It returns a
+          list to not limit it to merging warnings into a single warning.
 
-       > Example
-         Merge `No_Matches_Found` warnings into a single such warning.
+       ## Examples
+       ### Merge `No_Matches_Found` warnings into a single such warning.
 
+       ```
              Warning.merge_matched_warnings value (_.is_a No_Matches_Found) warnings->
                  all_criteria = warnings.flat_map .criteria
                  [No_Matches_Found all_criteria]
+       ```
     merge_matched_warnings : Any -> (Any -> Boolean) -> (Vector -> Vector) -> Any
     merge_matched_warnings value matcher merger =
         result = Warning.detach_selected_warnings value matcher
@@ -238,57 +279,68 @@ type Warning
             new_warnings.fold result.first acc-> warning->
                 Warning.attach warning acc
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the warning value – usually its explanation or other contents.
     value : Any
     value self = @Builtin_Method "Warning.value"
 
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Metadata
+       icon: metadata
+       ---
        A stack trace for the original warning creation.
     origin : Vector Stack_Trace_Element
     origin self = @Builtin_Method "Warning.origin"
 
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Creates a new instance of the primitive warning value.
-   Arguments:
-   - payload: value to which a Warning will be associated with.
-   - origin: stacktrace representing the location where the warning is being created at.
+
+   ## Arguments
+    - `payload`: value to which a Warning will be associated with.
+    - `origin`: stacktrace representing the location where the warning is being
+      created at.
 create : Any -> Any -> Warning
 create payload origin = @Builtin_Method "Warning.create"
 
-## PRIVATE
-
-   Builtin utility function which attaches a new warning to the value
-   and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
+## ---
+   private: true
+   ---
+   Builtin utility function which attaches a new warning to the value and,
+   compared to `Warning.attach` requires an explicit stacktrace associated with
+   it.
 attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
 attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Builtin function that gets all the warnings attached to the given value.
 get_all_vector : Any -> Boolean -> Vector Warning
 get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Sets a new list of warnings for the given value. Any warnings already present
    in `value` will be lost.
 
-   Arguments:
-   - value: the value to which warnings should be set to.
-   - warnings: array of warnings to set to the value.
+   ## Arguments
+    - `value`: the value to which warnings should be set to.
+    - `warnings`: array of warnings to set to the value.
 set_array : Any -> Array Warning -> Any
 set_array value warnings = @Builtin_Method "Warning.set_array"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Maps warnings attached to a value.
-
    An internal helper function to avoid repeating the implementation.
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =

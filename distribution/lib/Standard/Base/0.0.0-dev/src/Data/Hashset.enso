@@ -12,20 +12,24 @@ from project.Data.Text.Extensions import all
 
 ## An unordered collection of unique values.
 type Hashset
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (underlying_dictionary : Dictionary Any Nothing)
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Constructs a new set from a vector.
 
-       Arguments:
-       - vector: the vector of elements to add to the set.
-       - error_on_duplicates: specifies if duplicate elements in the input
-         should result in an error. Defaults to `False`, meaning that the last
-         occurrence of each duplicated element is retained in the set. If set to
-         `True` it will raise an `Illegal_Argument` if duplicate elements are
-         encountered.
+       ## Arguments
+        - `vector`: the vector of elements to add to the set.
+        - `error_on_duplicates`: specifies if duplicate elements in the input
+          should result in an error. Defaults to `False`, meaning that the last
+          occurrence of each duplicated element is retained in the set. If set to
+          `True` it will raise an `Illegal_Argument` if duplicate elements are
+          encountered.
     from_vector : Vector Any -> Boolean -> Hashset ! Illegal_Argument
     from_vector (vector : Vector) (error_on_duplicates : Boolean = False) =
         pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, Nothing])
@@ -33,59 +37,72 @@ type Hashset
         dictionary = Dictionary.from_vector pairs error_on_duplicates=error_on_duplicates
         Hashset.Value dictionary
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Constructs an empty set.
     empty : Hashset
     empty = Hashset.Value Dictionary.empty
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Returns a vector containing all elements of this set.
     to_vector : Vector
     to_vector self = self.underlying_dictionary.keys
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the number of elements in this set.
     size : Integer
     size self = self.underlying_dictionary.size
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the number of elements in this set.
     length : Integer
     length self = self.size
 
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Checks if the set is empty.
     is_empty : Boolean
     is_empty self = self.underlying_dictionary.is_empty
 
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Checks if the set is not empty.
     not_empty : Boolean
     not_empty self = self.underlying_dictionary.not_empty
 
-    ## GROUP Logical
-       ICON preparation
+    ## ---
+       group: Logical
+       icon: preparation
+       ---
        Checks if this set contains a given value.
     contains : Any -> Boolean
     contains self value = self.underlying_dictionary.contains_key value
 
-    ## GROUP Logical
-       ICON preparation
+    ## ---
+       group: Logical
+       icon: preparation
+       ---
        Checks if this set contains a given value, treating Nothing as a
        relational NULL.
-
        If the argument is non-Nothing and exists in `value`, return true.
-
-       If the argument is non-Nothing and does not exist in `value`, return
-       false if `value` does not contain a Nothing, or Nothing if `value` does
-       contain a Nothing.
-
+       If the argument is non-Nothing and does not exist in `value`, return false
+       if `value` does not contain a Nothing, or Nothing if `value` does contain
+       a Nothing.
        If the argument is Nothing, return Nothing if `value` is non-empty, or
        false if `value` is empty.
     contains_relational : Any -> Boolean | Nothing
@@ -97,17 +114,21 @@ type Hashset
                     has_nulls = self.contains Nothing
                     if has_nulls then Nothing else False
 
-    ## ALIAS add
-       GROUP Calculations
-       ICON row_add
+    ## ---
+       aliases: [add]
+       group: Calculations
+       icon: row_add
+       ---
        Adds a value to this set.
     insert : Any -> Hashset
     insert self value =
         dictionary = self.underlying_dictionary.insert value Nothing
         Hashset.Value dictionary
 
-    ## GROUP Calculations
-       ICON union
+    ## ---
+       group: Calculations
+       icon: union
+       ---
        Creates a union of the two sets.
     union : Hashset -> Hashset
     union self (other : Hashset) =
@@ -115,8 +136,10 @@ type Hashset
         dictionary = other.to_vector.fold start_dictionary m-> el-> m.insert el Nothing
         Hashset.Value dictionary
 
-    ## GROUP Calculations
-       ICON join
+    ## ---
+       group: Calculations
+       icon: join
+       ---
        Creates an intersection of the two sets.
     intersection : Hashset -> Hashset
     intersection self (other : Hashset) =
@@ -125,11 +148,12 @@ type Hashset
             if other_dictionary.contains_key el then m.insert el Nothing else m
         Hashset.Value dictionary
 
-    ## ICON join
+    ## ---
+       icon: join
+       ---
        Computes a set difference.
-
-       Returns the set that contains all elements of this set that are not in
-       the other set.
+       Returns the set that contains all elements of this set that are not in the
+       other set.
     difference : Hashset -> Hashset
     difference self (other : Hashset) =
         other_dictionary = other.underlying_dictionary
@@ -137,18 +161,26 @@ type Hashset
             if other_dictionary.contains_key el then m else m.insert el Nothing
         Hashset.Value dictionary
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text : Text
     to_text self = self.to_vector.map .pretty . join ", " "Hashset{" "}"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Hashset_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compare x y =
         if x.size != y.size then Nothing else
             if (x.difference y).is_empty then Ordering.Equal else Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash x =
         vec = x.to_vector.sort . remove_warnings
         Ordering.hash vec
