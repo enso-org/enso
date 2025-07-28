@@ -4,8 +4,9 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Internal.Java_Problems
@@ -93,6 +94,8 @@ type Google_Sheets_Workbook
           meaning the tables are merged into a single table.
         - `on_problems`: how to handle problems during reading. Defaults to
           `Report_Warning`.
+    @sheet_names _sheet_selector_widget
+    @return make_single_choice Return_As_Table.get_dropdown_options
     read_many self sheet_names:Vector=self.sheet_names headers:Headers=..Detect_Headers return:Return_As_Table=..As_Merged_Table on_problems:Problem_Behavior=..Report_Warning =
         case return of
             Return_As_Table.With_New_Column ->
@@ -197,6 +200,13 @@ private _read_sheets workbook:Google_Sheets_Workbook (sheet_names : Vector Text)
             r.catch Any error->
                 on_problems.attach_problem_after (Pair.new address Nothing) <|
                     (No_Rows.Warning "The sheet "+address.to_display_text+" failed to load, so it is not included in the `As_Merged_Table` result of `read_many`. The error was: "+error.to_display_text)
+
+
+## Creates widget for read_many sheet selector
+private _sheet_selector_widget workbook:Google_Sheets_Workbook display:Display=Display.Always -> Widget =
+    names = workbook.sheet_names.map n-> Option n n.pretty
+    Multiple_Choice display=display values=names
+
 
 ## Creates a query widget for the `read` method.
 private _query_widget wb:Google_Sheets_Workbook display:Display=..Always -> Widget =
