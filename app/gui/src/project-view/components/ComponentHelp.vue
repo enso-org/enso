@@ -172,7 +172,7 @@ function openDocs(url: string) {
       />
     </div>
     <div v-if="rawDocumentation" class="markdownDocs">
-      <MarkdownEditor :toolbar="false" @editorReady="syncMarkdownDocumentation" />
+      <MarkdownEditor :toolbar="false" :editorReadyCallback="syncMarkdownDocumentation" />
     </div>
     <template v-else>
       <DocsTags
