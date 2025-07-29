@@ -24,7 +24,6 @@ import org.enso.compiler.core.ir.{
   Module,
   Name,
   Pattern,
-  `type`,
   Type => Tpe
 }
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -57,7 +56,6 @@ import org.enso.compiler.pass.resolve.{
   GenericAnnotations,
   GlobalNames,
   Patterns,
-  TypeNames,
   TypeSignatures
 }
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -806,62 +804,8 @@ class IrToTruffle(
   private def extractAscribedType(
     comment: String,
     t: Expression
-  ): TypeCheckValueNode = t match {
-    case u: `type`.Set.Union =>
-      val oneOf = u.operands.map(extractAscribedType(comment, _))
-      if (oneOf.contains(null)) {
-        null
-      } else {
-        val arr: Array[TypeCheckValueNode] = oneOf.toArray
-        TypeCheckValueNode.oneOf(comment, arr: _*)
-      }
-    case i: `type`.Set.Intersection =>
-      TypeCheckValueNode.allOf(
-        comment,
-        extractAscribedType(comment, i.left),
-        extractAscribedType(comment, i.right)
-      )
-    case p: Application.Prefix => extractAscribedType(comment, p.function)
-    case _: Tpe.Function =>
-      TypeCheckValueNode.single(
-        comment,
-        context.getTopScope().getBuiltins().function()
-      )
-    case typeWithError: Tpe.Error =>
-      // When checking a `a ! b` type, we ignore the error part as it is only used for documentation purposes and is not checked.
-      extractAscribedType(comment, typeWithError.typed)
-    case typeInContext: Tpe.Context =>
-      // Type contexts aren't currently really used. But we should still check the base type.
-      extractAscribedType(comment, typeInContext.typed)
-    case err: errors.Resolution =>
-      TypeCheckValueNode.fail("unresolved symbol " + err.originalName.name)
-    case t => {
-      val res = t.getMetadata(TypeNames)
-      res match {
-        case Some(
-              BindingsMap
-                .Resolution(binding @ BindingsMap.ResolvedType(_, _))
-            ) =>
-          val typeOrAny = asType(binding)
-          if (context.getBuiltins().any() == typeOrAny) {
-            null
-          } else {
-            TypeCheckValueNode.single(comment, typeOrAny)
-          }
-        case Some(
-              BindingsMap
-                .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
-            ) =>
-          TypeCheckValueNode.meta(
-            comment,
-            asScope(
-              mod.unsafeAsModule().asInstanceOf[TruffleCompilerContext.Module]
-            ).getPolyglotSymbolSupplier(symbol.name)
-          )
-        case _ => null
-      }
-    }
-  }
+  ): TypeCheckValueNode =
+    IrTruffleUtils.extractAscribedType(context, comment, t)
 
   private def checkAsTypes(
     arg: DefinitionArgument
