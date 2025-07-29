@@ -1,6 +1,6 @@
 import { createContextStore } from '@/providers'
-import { ToValue } from '@/util/reactivity'
 import { identity } from '@vueuse/core'
+import { Ref } from 'vue'
 
 /**
  * Context store that allows a component to designate an element that is a suitable DOM parent for
@@ -10,5 +10,5 @@ import { identity } from '@vueuse/core'
  */
 export const [providePopoverRoot, usePopoverRoot] = createContextStore(
   'popoverRoot',
-  identity<ToValue<HTMLElement | undefined | null>>,
+  identity<Readonly<Ref<HTMLElement | undefined | null>>>,
 )

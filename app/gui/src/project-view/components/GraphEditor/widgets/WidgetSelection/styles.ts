@@ -1,5 +1,4 @@
 import { type Opt } from '@/util/data/opt'
-import { ToValue } from '@/util/reactivity'
 import {
   autoUpdate,
   offset,
@@ -55,11 +54,7 @@ function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
 }
 
 /** Rules for positioning the dropdown. */
-function middleware(
-  isTopLevel: boolean,
-  limitWidth: boolean,
-  rootElement?: ToValue<Opt<HTMLElement>>,
-) {
+function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement?: Ref<Opt<HTMLElement>>) {
   return computed(() => [
     offset(offsetSubmenu(isTopLevel)),
     size(sizeOptions(limitWidth)),
@@ -76,7 +71,7 @@ function middleware(
 export function activityDropdownStyles(
   floatReference: Ref<Opt<HTMLElement>>,
   dropdownElement: Ref<Opt<HTMLElement>>,
-  rootElement: ToValue<Opt<HTMLElement>>,
+  rootElement: Ref<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
     placement: 'bottom-start',
@@ -90,7 +85,7 @@ export function submenuDropdownStyles(
   floatReference: Ref<Opt<HTMLElement>>,
   dropdownElement: Ref<Opt<HTMLElement>>,
   isTopLevel: boolean,
-  rootElement?: ToValue<Opt<HTMLElement>>,
+  rootElement?: Ref<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
     placement: isTopLevel ? 'bottom-start' : 'right',

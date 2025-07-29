@@ -5,7 +5,7 @@ import { useFullscreenAnimation } from '@/components/WithFullScreenMode/fullscre
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { useFullscreenRoot } from '@/providers/fullscreenRoot'
 import { providePopoverRoot, usePopoverRoot } from '@/providers/popoverRoot'
-import { computed, toValue, useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 
 export type SavedSize = Keyframe
 
@@ -57,10 +57,9 @@ const { animating } = useFullscreenAnimation({
 })
 const active = computed(() => fullscreen.value || animating.value > 0)
 
-// Fullscreen visualizations have their own popover root, but it is only active when the visualization is in fullscreen mode.
 const originalPopoverRoot = usePopoverRoot(true)
 providePopoverRoot(
-  computed(() => (active.value ? fullscreenRoot.value : toValue(originalPopoverRoot))),
+  computed(() => (active.value ? fullscreenRoot.value : originalPopoverRoot?.value)),
 )
 
 registerHandlers({
