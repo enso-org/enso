@@ -138,6 +138,7 @@ export function createGraphStore(
     nodeHovered: useAssociatedFlag({ onCleanup }),
     nodeExtended: useAssociatedFlag({ onCleanup }),
     nodeOutputVisible: useAssociatedFlag({ onCleanup }),
+    nodeOutputHovered: useAssociatedFlag({ onCleanup }),
     nodeRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
     vizRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
     nodeOutputAnimations: useAssociatedValue<NodeId, number>({ onCleanup }),

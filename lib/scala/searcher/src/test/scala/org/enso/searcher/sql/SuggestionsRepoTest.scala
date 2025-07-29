@@ -708,10 +708,12 @@ class SuggestionsRepoTest
 
     val conversion: Suggestion.Conversion =
       Suggestion.Conversion(
-        externalId    = Some(UUID.randomUUID()),
-        module        = "local.Test.Main",
-        arguments     = Seq(),
-        selfType      = "local.Test.Main.Foo",
+        externalId = Some(UUID.randomUUID()),
+        module     = "local.Test.Main",
+        arguments = Seq(
+          Suggestion.Argument("that", "local.Test.Main.Foo", false, false, None)
+        ),
+        selfType      = "local.Test.Main.Bar",
         returnType    = "local.Test.Main.Bar",
         documentation = None
       )
