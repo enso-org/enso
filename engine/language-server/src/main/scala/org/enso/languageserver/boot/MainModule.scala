@@ -330,10 +330,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Running Language Server in JVM mode")
   }
 
-  private val pythonHome = if (HostEnsoUtils.isAot) {
-    null
-  } else {
+  private val pythonHome = if (PythonHomeFinder.findPythonHome() != null) {
     PythonHomeFinder.findPythonHome().toString
+  } else {
+    null
   }
 
   private val builder = ContextFactory

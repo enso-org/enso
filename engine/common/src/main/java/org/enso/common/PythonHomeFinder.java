@@ -16,7 +16,9 @@ public final class PythonHomeFinder {
    * null.
    */
   public static Path findPythonHome() {
-    assert !HostEnsoUtils.isAot();
+    if (HostEnsoUtils.isAot()) {
+      return null;
+    }
     var modPath = getEnsoRuntimeModulePath();
     if (modPath == null) {
       return null;

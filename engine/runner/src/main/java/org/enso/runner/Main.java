@@ -778,11 +778,9 @@ public class Main {
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
 
-    String pythonHome;
-    if (HostEnsoUtils.isAot()) {
-      pythonHome = null;
-    } else {
-      pythonHome = PythonHomeFinder.findPythonHome().toString();
+    String pythonHome = null;
+    if (PythonHomeFinder.findPythonHome() instanceof Path p) {
+      pythonHome = p.toString();
     }
 
     var factory =
