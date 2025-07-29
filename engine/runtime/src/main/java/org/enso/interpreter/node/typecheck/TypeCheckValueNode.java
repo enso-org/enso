@@ -178,8 +178,9 @@ public final class TypeCheckValueNode extends Node {
    * @return node performing the check
    */
   public static TypeCheckValueNode single(String comment, Type expectedType) {
-    var typeCheckNodeImpl = SingleTypeCheckNodeGen.create(comment, expectedType);
-    return new TypeCheckValueNode(typeCheckNodeImpl, true);
+    var checkNode = SingleTypeCheckNodeGen.create(comment, expectedType);
+    var allTypes = comment == null || !comment.startsWith("the result of `");
+    return new TypeCheckValueNode(checkNode, allTypes);
   }
 
   /**

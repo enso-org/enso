@@ -46,12 +46,12 @@ add_specs suite_builder =
             v = ac_hidden_b
 
             r1 = Panic.recover Any <| extract_b_1 v
-            r2 = extract_b_2 v
+            r2 = Panic.recover Any <| extract_b_2 v
             r3 = extract_b_3 v
             r4 = Panic.recover Any <| extract_b_4 v
 
             type_name r1 . should_equal "Error"
-            type_name r2 . should_equal "B & ~A & ~C" # wrong, should be an error
+            type_name r2 . should_equal "Error"
             type_name r3 . should_equal "B & ~A & ~C"
             type_name r4 . should_equal "Error"
 
