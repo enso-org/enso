@@ -166,7 +166,10 @@ export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void
  */
 export function handleOpenFile(openedFile: string): project.ProjectInfo {
   try {
-    const title = openedFile.split(pathModule.sep).pop()?.replace('.enso-project', '')
+    const title = openedFile
+      .split(pathModule.sep)
+      .pop()
+      ?.replace(`.${BUNDLED_PROJECT_EXTENSION}`, '')
     return project.importProjectFromPath(openedFile, null, title)
   } catch (error) {
     // Since the user has explicitly asked us to open a file, in case of an error, we should
