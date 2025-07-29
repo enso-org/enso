@@ -263,6 +263,11 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   )
 
   return (
-    <ContextMenu ref={ref} aria-label={getText('assetsTableContextMenuLabel')} entries={entries} />
+    <ContextMenu
+      ref={ref}
+      aria-label={getText('assetsTableContextMenuLabel')}
+      entries={entries}
+      quickActions={['uploadFiles', 'newProject', 'newFolder', 'copy', 'cut', 'paste', 'delete']}
+    />
   )
 })

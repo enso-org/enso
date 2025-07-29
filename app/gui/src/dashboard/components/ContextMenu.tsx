@@ -1,17 +1,21 @@
 /** @file A context menu. */
 import { Pressable } from '#/components/aria'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { Button } from '#/components/Button'
 import { Popover } from '#/components/Dialog'
-import type { MenuEntryProps } from '#/components/MenuEntry'
+import { Icon } from '#/components/Icon/Icon'
+import MenuEntry, { ACTION_TO_TEXT_ID, type MenuEntryProps } from '#/components/MenuEntry'
 import { usePortalContext } from '#/components/Portal'
+import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import { isOnMacOS } from 'enso-common/src/detect'
 import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type ForwardedRef,
@@ -23,6 +27,7 @@ export interface ContextMenuProps {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label': string
   readonly entries: readonly (MenuEntryProps | false | null | undefined)[]
+  readonly quickActions?: readonly DashboardBindingKey[] | undefined
   readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
 }
 
@@ -37,9 +42,10 @@ export const ContextMenu = forwardRef(function ContextMenu(
   props: ContextMenuProps,
   ref: ForwardedRef<ContextMenuApi>,
 ) {
-  const { entries, initialPosition } = props
+  const { entries, quickActions, initialPosition } = props
 
   const inputBindings = useInputBindings()
+  const { getText } = useText()
   const root = usePortalContext()
   const popoverRef = useRef<HTMLElement>(null)
   const [isOpen, setIsOpen] = useState(initialPosition != null)
@@ -84,6 +90,21 @@ export const ContextMenu = forwardRef(function ContextMenu(
     { capture: true },
   )
 
+  const quickActionsEntries = useMemo(() => {
+    if (!quickActions) return null
+    const entriesMap = new Map<DashboardBindingKey, MenuEntryProps>(
+      entries.flatMap((entry) => {
+        if (entry == null || entry === false) return []
+        return [[entry.action, entry]]
+      }),
+    )
+    const result = quickActions.flatMap((action) => {
+      const entry = entriesMap.get(action)
+      return entry ? [entry] : []
+    })
+    return result.length > 0 ? result : null
+  }, [entries, quickActions])
+
   return (
     <Popover.Trigger>
       <Pressable>
@@ -110,14 +131,41 @@ export const ContextMenu = forwardRef(function ContextMenu(
           aria-label={props['aria-label']}
           className={twMerge(
             'relative flex flex-col rounded-default',
-            isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
+            isOnMacOS() ? 'w-[14.375rem]' : 'w-64',
           )}
         >
+          {quickActionsEntries && (
+            <div className="flex h-8 flex-wrap gap-2 overflow-clip px-2.5">
+              {quickActionsEntries.map((entry) => (
+                <div
+                  key={entry.action}
+                  className="grow"
+                  style={{ color: inputBindings.metadata[entry.action].color }}
+                >
+                  <Button
+                    variant="custom"
+                    size="medium"
+                    className="w-full rounded-lg hover:bg-hover-bg"
+                    tooltip={entry.label ?? getText(ACTION_TO_TEXT_ID[entry.action])}
+                    onPress={() => {
+                      setIsOpen(false)
+                      entry.doAction()
+                    }}
+                  >
+                    <Icon
+                      icon={entry.icon ?? inputBindings.metadata[entry.action].icon}
+                      className="size-4"
+                    />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
           {entries.flatMap((entry) => {
             if (entry == null || entry === false) {
               return []
             }
-            return [<ContextMenuEntry key={entry.action} {...entry} />]
+            return [<MenuEntry variant="context-menu" key={entry.action} {...entry} />]
           })}
         </div>
       </Popover>

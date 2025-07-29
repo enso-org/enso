@@ -373,6 +373,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       ref={ref}
       aria-label={getText('assetContextMenuLabel')}
       entries={entries}
+      quickActions={['run', 'open', 'useInNewProject', 'edit', 'copy', 'cut', 'paste', 'delete']}
       initialPosition={initialPosition}
     />
   )

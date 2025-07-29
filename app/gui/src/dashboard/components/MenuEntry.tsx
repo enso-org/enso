@@ -23,9 +23,13 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
   variants: {
     variant: {
+      default: '',
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      'context-menu': 'px-context-menu-entry-x',
+      'context-menu': 'px-3',
     },
+  },
+  defaultVariants: {
+    variant: 'default',
   },
 })
 

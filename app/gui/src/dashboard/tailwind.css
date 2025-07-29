@@ -100,15 +100,6 @@
   --spinner-medium-transition-duration: 5s;
   --spinner-slow-transition-duration: 90s;
   --cell-padding-x: 0.5rem;
-  --plus-icon-size: 1.125rem;
-  --context-menu-padding: 0.5rem;
-  --context-menu-width: 16rem;
-  --context-menu-macos-width: 14.375rem;
-  --context-menu-entry-padding-x: 0.75rem;
-  --json-schema-text-input-width: 10rem;
-  --json-schema-object-input-padding: 0.5rem;
-  --json-schema-object-key-width: 11rem;
-  --json-schema-dropdown-title-width: 3rem;
   --input-padding-x: 0.5rem;
   --multiline-input-padding: 0.5rem;
   /* The default height for an input with a large default size,
