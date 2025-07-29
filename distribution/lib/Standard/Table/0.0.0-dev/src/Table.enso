@@ -3408,6 +3408,12 @@ type Table
 
     ## ---
        aliases: [export, output, save, to_file]
+       macros:
+        - delimited: format=..Delimited
+        - csv: format=..Delimited
+        - tab_delimited: format=(..Delimited '\t')
+        - excel: format=..Workbook
+        - tableau_hyper: format=..Hyper_File
        group: Standard.Base.File
        icon: data_output
        suggested: 9
