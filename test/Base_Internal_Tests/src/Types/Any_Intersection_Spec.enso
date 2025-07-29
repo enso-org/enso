@@ -2,7 +2,7 @@ from Standard.Base import all
 from Standard.Test import all
 import Standard.Base.Internal.Meta_Helpers
 
-from project.Types.Any_Intersection import A, B, C, abc, ac_hidden_b
+from project.Types.Any_Intersection import A, B, abc, ac_hidden_b
 
 add_specs suite_builder =
     suite_builder.group "Any Intersection Tests" group_builder->
