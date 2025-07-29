@@ -160,7 +160,7 @@ type Postgres_Connection
         self.connection.tables name_like database schema types all_fields
 
     ## ---
-       aliases: [import, load, open, read]
+       aliases: [import, load, open, read, sql]
        group: Standard.Base.Input
        icon: data_input
        ---
@@ -183,7 +183,7 @@ type Postgres_Connection
     query self query:SQL_Query alias="" = self.connection.query query alias
 
     ## ---
-       aliases: [import, load, open, query]
+       aliases: [import, load, open, query, sql]
        group: Standard.Base.Input
        icon: data_input
        ---
@@ -260,6 +260,7 @@ type Postgres_Connection
 
     ## ---
        advanced: true
+       aliases: [sql]
        icon: data_input
        ---
        Executes a raw query returning a Table object, which can be used to get
@@ -282,6 +283,7 @@ type Postgres_Connection
 
     ## ---
        advanced: true
+       aliases: [sql]
        group: Standard.Base.Output
        icon: data_output
        ---
