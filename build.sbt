@@ -4889,7 +4889,7 @@ lazy val cleanPolyglotRoot = taskKey[Unit](
 )
 
 lazy val `opencv-thin` = project
-  .in(file("std-bits") / "opencv-thin")
+  .in(file("lib/java/opencv-thin"))
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
