@@ -9,9 +9,18 @@ import java.nio.file.Path;
 public final class PythonHomeFinder {
   private PythonHomeFinder() {}
 
+  /**
+   * Finds directory with unpacked GraalPy resources. It is assumed that these resources are
+   * unpacked during build. See {@code org.enso.pyextract.PythonExtract}. Can only be found if
+   * Engine runner was started with `org.enso.runtime` module on the module path. Otherwise, returns
+   * null.
+   */
   public static Path findPythonHome() {
     assert !HostEnsoUtils.isAot();
     var modPath = getEnsoRuntimeModulePath();
+    if (modPath == null) {
+      return null;
+    }
     var componentDir = modPath.getParent();
     var pyHomePath = componentDir.getParent().resolve("python-home");
     var dirExists = pyHomePath.toFile().exists() && pyHomePath.toFile().isDirectory();
@@ -22,14 +31,13 @@ public final class PythonHomeFinder {
 
   private static Path getEnsoRuntimeModulePath() {
     var conf = ModuleLayer.boot().configuration();
-    var runtimeMod =
-        conf.findModule("org.enso.runtime")
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Module org.enso.runtime not found in module boot layer."));
+    var runtimeMod = conf.findModule("org.enso.runtime");
+    if (runtimeMod.isEmpty()) {
+      return null;
+    }
     var loc =
         runtimeMod
+            .get()
             .reference()
             .location()
             .orElseThrow(
