@@ -1525,6 +1525,14 @@ type Table
         self.implementation.duplicates self.underlying columns case_sensitivity on_problems
 
     ## ---
+       macros:
+        - to_date: type=..Date
+        - to_number: type=..Float
+        - to_float: type=..Float
+        - to_integer: type=..Integer
+        - to_time: type=..Time
+        - to_datetime: type=..Date_Time
+        - to_boolean: type=..Boolean
        group: Standard.Base.Conversions
        icon: convert
        ---
@@ -1653,6 +1661,7 @@ type Table
         self.implementation.parse self.underlying columns type format error_on_missing_columns on_problems
 
     ## ---
+       aliases: [to_text, to_string, to_char]
        group: Standard.Base.Conversions
        icon: convert
        ---
@@ -2526,7 +2535,10 @@ type Table
         self.implementation.find_group_number self.underlying predicate over group_row name from step on_problems
 
     ## ---
-       aliases: [add column, expression, formula, new column, update column]
+       aliases: [add column, new column, update column]
+       macros:
+        - expression: (expr 'Nothing')
+        - formula: (expr 'Nothing')
        group: Standard.Base.Values
        icon: column_add
        suggested: 3
@@ -3396,6 +3408,12 @@ type Table
 
     ## ---
        aliases: [export, output, save, to_file]
+       macros:
+        - delimited: format=..Delimited
+        - csv: format=..Delimited
+        - tab_delimited: format=(..Delimited '\t')
+        - excel: format=..Workbook
+        - tableau_hyper: format=..Hyper_File
        group: Standard.Base.File
        icon: data_output
        suggested: 9

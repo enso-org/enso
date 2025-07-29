@@ -627,6 +627,7 @@
   "signUpOrLoginWithGoogle": "Sign up or login with Google",
   "signUpOrLoginWithApple": "Sign up or login with Apple",
   "signUpOrLoginWithGitHub": "Sign up or login with GitHub",
+  "signUpOrLoginWithMicrosoft": "Sign up or login with Microsoft",
   "orLoginWithEmail": "or login with email",
   "dontHaveAnAccount": "Don't have an account?",
   "createANewAccount": "Create a new account",
