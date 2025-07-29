@@ -167,6 +167,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
+       suggested: 5
        ---
        Gets the number of sheets.
     sheet_count : Integer
@@ -175,6 +176,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
+       suggested: 3
        ---
        Gets the names of all the sheets.
     sheet_names : Vector Text
@@ -184,6 +186,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
+       suggested: 6
        ---
        Gets the number of named ranges.
     named_ranges_count : Integer
@@ -192,6 +195,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Metadata
        icon: metadata
+       suggested: 4
        ---
        Gets the names of all the named ranges.
     named_ranges : Vector Text
@@ -263,6 +267,7 @@ type Excel_Workbook
        aliases: [get, import, load, open, range, sheet, worksheet]
        group: Standard.Base.Input
        icon: data_input
+       suggested: 1
        ---
        Read a range into a Table.
 
@@ -403,6 +408,7 @@ type Excel_Workbook
     ## ---
        group: Standard.Base.Input
        icon: data_input
+       suggested: 2
        ---
        Reads one or more sheets into a Table.
 
