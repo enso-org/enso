@@ -16,7 +16,6 @@ import { passwordSchema } from '#/pages/authentication/schemas'
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
 import type { CognitoUser } from '$/authentication/cognito'
 import { useRouter, useSession, useText } from '$/providers/react'
-import { useFeatureFlags } from '$/providers/react/featureFlags'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { isOnElectron } from 'enso-common/src/detect'
 import { useState } from 'react'
@@ -33,8 +32,6 @@ export default function Login() {
     confirmSignIn,
   } = useSession()
   const { getText } = useText()
-  const { enableSignInWithMicrosoft } = useFeatureFlags()
-
   const [initialEmail] = useQueryParam('email')
 
   const form = Form.useForm({
@@ -121,16 +118,14 @@ export default function Login() {
               >
                 {getText('signUpOrLoginWithGitHub')}
               </Button>
-              {enableSignInWithMicrosoft && (
-                <Button
-                  size="large"
-                  variant="outline"
-                  icon="microsoft_color"
-                  onPress={handleMicrosoftPress}
-                >
-                  {getText('signUpOrLoginWithMicrosoft')}
-                </Button>
-              )}
+              <Button
+                size="large"
+                variant="outline"
+                icon="microsoft_color"
+                onPress={handleMicrosoftPress}
+              >
+                {getText('signUpOrLoginWithMicrosoft')}
+              </Button>
               <Button size="large" variant="outline" icon="apple_color" onPress={handleApplePress}>
                 {getText('signUpOrLoginWithApple')}
               </Button>
