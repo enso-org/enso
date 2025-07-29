@@ -8,7 +8,6 @@ import { usePopoverRoot } from '@/providers/popoverRoot'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { shift, useFloating, type Placement } from '@floating-ui/vue'
 import { shallowRef } from 'vue'
-import { toValue } from 'vue'
 
 const open = defineModel<boolean>('open', { default: false })
 const {
@@ -53,7 +52,7 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
       class="arrow"
       :class="{ visible: alwaysShowArrow }"
     />
-    <ConditionalTeleport :target="toValue(popoverRoot)">
+    <ConditionalTeleport :target="popoverRoot">
       <SizeTransition height :duration="100">
         <div
           v-if="open"
