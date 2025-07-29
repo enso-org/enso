@@ -85,11 +85,12 @@ const actions = computed(() => findActions(query))
         <div class="scroll-container">
           <ul>
             <li v-for="(action, i) in actions" :key="i">
-              <!-- eslint-disable vue/no-v-html -->
               <button @click="trigger(action)">
                 <SvgIcon v-if="action.icon" :name="action.icon" class="icon" />
-                <span v-else class="icon-placeholder"></span>
+                <div v-else class="icon-placeholder"></div>
+                <!-- eslint-disable vue/no-v-html -->
                 <span class="entry-content" v-html="action.highlighted.name"></span>
+                <!-- eslint-enable -->
                 <div class="shortcuts">
                   <KeyboardShortcut
                     v-for="(shortcut, j) in action.shortcuts"
@@ -98,7 +99,6 @@ const actions = computed(() => findActions(query))
                   />
                 </div>
               </button>
-              <!-- eslint-enable -->
             </li>
             <li v-if="!actions.length" class="disabled">No actions found</li>
           </ul>
