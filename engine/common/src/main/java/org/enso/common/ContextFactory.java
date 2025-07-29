@@ -240,6 +240,9 @@ public final class ContextFactory {
               new File(new File(new File(new File(projectRoot), "polyglot"), "python"), "bin"),
               "graalpy");
       if (graalpy.exists()) {
+        if (inAOTMode) {
+          throw new IllegalStateException("Cannot use Python in AOT mode. Run with --jvm");
+        }
         builder.option("python.Executable", graalpy.getAbsolutePath());
       }
     }
