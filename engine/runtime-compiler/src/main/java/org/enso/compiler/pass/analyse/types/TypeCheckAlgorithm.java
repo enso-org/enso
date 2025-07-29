@@ -1,7 +1,8 @@
 package org.enso.compiler.pass.analyse.types;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.Expression;
@@ -34,7 +35,7 @@ public abstract class TypeCheckAlgorithm<R, E extends Exception> {
    * @param module the module
    * @param name name of the polyglot symbol
    */
-  protected abstract R forPolyglot(CompilerContext.Module mod, String name);
+  protected abstract R forPolyglot(CompilerContext.Module module, String name);
 
   /**
    * No special type for expression found.
@@ -92,9 +93,9 @@ public abstract class TypeCheckAlgorithm<R, E extends Exception> {
         yield forOneOf(arr);
       }
       case Set.Intersection i -> {
-        var left = extractAscribedType(i.left());
-        var right = extractAscribedType(i.right());
-        yield forAllOf(Arrays.asList(left, right));
+        var arr = new ArrayList<R>();
+        collectIntersections(i, arr);
+        yield forAllOf(arr);
       }
       case Application.Prefix p -> extractAscribedType(p.function());
       case Type.Function fn ->
@@ -139,6 +140,21 @@ public abstract class TypeCheckAlgorithm<R, E extends Exception> {
       return extractAscribedType(t);
     } catch (Exception ex) {
       throw (T) ex;
+    }
+  }
+
+  private void collectIntersections(Set.Intersection app, List<R> arr) throws E {
+    var left = app.left();
+    if (left instanceof Set.Intersection leftInter) {
+      collectIntersections(leftInter, arr);
+    } else {
+      arr.add(extractAscribedType(left));
+    }
+    var right = app.right();
+    if (right instanceof Set.Intersection rightInter) {
+      collectIntersections(rightInter, arr);
+    } else {
+      arr.add(extractAscribedType(right));
     }
   }
 }
