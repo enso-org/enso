@@ -149,7 +149,11 @@ export const ContextMenu = forwardRef(function ContextMenu(
                       size="medium"
                       className="w-full rounded-lg hover:bg-hover-bg"
                       isDisabled={!hasEntry}
-                      tooltip={entry.label ?? getText(ACTION_TO_TEXT_ID[entry.action])}
+                      tooltip={
+                        !hasEntry ? false : (
+                          (entry.label ?? getText(ACTION_TO_TEXT_ID[entry.action]))
+                        )
+                      }
                       onPress={() => {
                         setIsOpen(false)
                         entry.doAction()
