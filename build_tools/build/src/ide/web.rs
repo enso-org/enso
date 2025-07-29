@@ -94,9 +94,6 @@ pub mod env {
         /// The client ID for the Google OAuth integration used for Google Credentials.
         ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID, String;
 
-        /// Url for signing out when used Microsoft as IdP.
-        ENSO_IDE_MICROSOFT_SIGN_OUT_URL, String;
-
         /// The client ID for the Strava OAuth integration used for Strava Credentials.
         ENSO_IDE_STRAVA_OAUTH_CLIENT_ID, String;
 

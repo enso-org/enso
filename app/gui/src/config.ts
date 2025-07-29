@@ -28,7 +28,6 @@ const $config = {
   GOOGLE_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
   STRAVA_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
   MAPBOX_API_TOKEN: window.mapBoxApiToken?.() || import.meta.env.ENSO_IDE_MAPBOX_API_TOKEN,
-  MICROSOFT_SIGN_OUT_URL: import.meta.env.ENSO_IDE_MICROSOFT_SIGN_OUT_URL,
 } as const
 
 // Undefined env variables are typed as `any`, but we want them to be `string | undefined`.
