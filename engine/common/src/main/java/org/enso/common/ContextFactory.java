@@ -196,9 +196,6 @@ public final class ContextFactory {
     }
     if (pythonHome != null) {
       options.put("python.PythonHome", pythonHome);
-      var pyHomeFile = Path.of(pythonHome).toFile();
-      System.out.printf(
-          "[ContextFactory] Python home '%s' file exists: %b%n", pythonHome, pyHomeFile.exists());
     }
     var builder =
         Context.newBuilder()
