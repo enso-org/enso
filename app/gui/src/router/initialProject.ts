@@ -8,8 +8,8 @@ import { injectGuiConfig } from '@/providers/guiConfig'
 import { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
-export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started_Reading`
-export const CLOUD_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Colorado COVID.project`
+export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started`
+export const CLOUD_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting Started with Enso Analytics.project`
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
