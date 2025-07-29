@@ -367,13 +367,20 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
         ...(canAddToThisDirectory ? globalContextMenuEntries : []),
       ],
   )
+  
+  const defaultAction =
+    entries.some((entry) => entry !== false && entry?.action === 'run') ? 'run'
+    : entries.some((entry) => entry !== false && entry?.action === 'open') ? 'open'
+    : entries.some((entry) => entry !== false && entry?.action === 'useInNewProject') ?
+      'useInNewProject'
+    : 'open'
 
   return (
     <ContextMenu
       ref={ref}
       aria-label={getText('assetContextMenuLabel')}
       entries={entries}
-      quickActions={['run', 'open', 'useInNewProject', 'edit', 'copy', 'cut', 'paste', 'delete']}
+      quickActions={[defaultAction, 'copy', 'cut', 'paste', 'delete']}
       initialPosition={initialPosition}
     />
   )

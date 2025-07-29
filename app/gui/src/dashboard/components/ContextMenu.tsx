@@ -90,20 +90,16 @@ export const ContextMenu = forwardRef(function ContextMenu(
     { capture: true },
   )
 
-  const quickActionsEntries = useMemo(() => {
-    if (!quickActions) return null
-    const entriesMap = new Map<DashboardBindingKey, MenuEntryProps>(
-      entries.flatMap((entry) => {
-        if (entry == null || entry === false) return []
-        return [[entry.action, entry]]
-      }),
-    )
-    const result = quickActions.flatMap((action) => {
-      const entry = entriesMap.get(action)
-      return entry ? [entry] : []
-    })
-    return result.length > 0 ? result : null
-  }, [entries, quickActions])
+  const entriesMap = useMemo(
+    () =>
+      new Map<DashboardBindingKey, MenuEntryProps>(
+        entries.flatMap((entry) => {
+          if (entry == null || entry === false) return []
+          return [[entry.action, entry]]
+        }),
+      ),
+    [entries],
+  )
 
   return (
     <Popover.Trigger>
@@ -134,31 +130,39 @@ export const ContextMenu = forwardRef(function ContextMenu(
             isOnMacOS() ? 'w-[14.375rem]' : 'w-64',
           )}
         >
-          {quickActionsEntries && (
+          {quickActions && (
             <div className="flex h-8 flex-wrap gap-2 overflow-clip px-2.5">
-              {quickActionsEntries.map((entry) => (
-                <div
-                  key={entry.action}
-                  className="grow"
-                  style={{ color: inputBindings.metadata[entry.action].color }}
-                >
-                  <Button
-                    variant="custom"
-                    size="medium"
-                    className="w-full rounded-lg hover:bg-hover-bg"
-                    tooltip={entry.label ?? getText(ACTION_TO_TEXT_ID[entry.action])}
-                    onPress={() => {
-                      setIsOpen(false)
-                      entry.doAction()
-                    }}
+              {quickActions.map((action) => {
+                const hasEntry = entriesMap.has(action)
+                const entry = entriesMap.get(action) ?? {
+                  action,
+                  doAction: () => {},
+                }
+                return (
+                  <div
+                    key={entry.action}
+                    className="grow"
+                    style={{ color: inputBindings.metadata[entry.action].color }}
                   >
-                    <Icon
-                      icon={entry.icon ?? inputBindings.metadata[entry.action].icon}
-                      className="size-4"
-                    />
-                  </Button>
-                </div>
-              ))}
+                    <Button
+                      variant="custom"
+                      size="medium"
+                      className="w-full rounded-lg hover:bg-hover-bg"
+                      isDisabled={!hasEntry}
+                      tooltip={entry.label ?? getText(ACTION_TO_TEXT_ID[entry.action])}
+                      onPress={() => {
+                        setIsOpen(false)
+                        entry.doAction()
+                      }}
+                    >
+                      <Icon
+                        icon={entry.icon ?? inputBindings.metadata[entry.action].icon}
+                        className="size-4"
+                      />
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
           )}
           {entries.flatMap((entry) => {
