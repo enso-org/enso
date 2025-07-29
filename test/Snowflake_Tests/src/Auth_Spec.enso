@@ -24,7 +24,7 @@ with_temp_user base_connection callback =
      Panic.with_finalizer (base_connection.execute_update ('DROP USER "' + user_name + '"')) <|
          callback user_name
 
-generate_local_key_pair passphrase:Text|Nothing =
+generate_local_key_pair passphrase:Text =
     public_key_file = File.create_temporary_file "snowflake-key" ".pub"
     private_key_file = File.create_temporary_file "snowflake-key" ".p8"
     TestKeyGenerator.generateKeyPairForTest private_key_file.path public_key_file.path passphrase
@@ -37,7 +37,7 @@ make_connection_details_with_credentials credentials =
 add_specs suite_builder ~default_connection =
     suite_builder.group "[Snowflake] Key-pair authentication" group_builder->
         group_builder.specify "using local private key" <|
-            key_pair = generate_local_key_pair passphrase=Nothing
+            key_pair = generate_local_key_pair passphrase=""
             private_key_file = key_pair.first
 
             with_temp_user default_connection user_name->
