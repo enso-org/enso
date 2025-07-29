@@ -9,10 +9,6 @@ import scala.jdk.CollectionConverters.asScalaBufferConverter
   * The project has exactly one input jar, and has two outputs:
   * - thin jar with some files copied from the input jar.
   * - directory with extracted files from the input jar.
-  *
-  * `jarExtractor` sets a specific [[JarExtract.JarVisitor]] that instructs the plugin how
-  * to extract the files - which entries should be copied to the output jar, and
-  * which entries should be extracted to the directory.
   */
 object JarExtractPlugin extends AutoPlugin {
   object autoImport {
@@ -23,7 +19,7 @@ object JarExtractPlugin extends AutoPlugin {
         |otherwise this plugin will not be able to resolve it.
         |""".stripMargin
     )
-    val jarExtractor = settingKey[JarExtract.JarVisitor](
+    val jarExtractor = settingKey[JarExtractor](
       "Jar visitor that defines how to extract files from the input jar"
     )
     // Is implemented by this plugin
@@ -105,7 +101,7 @@ object JarExtractPlugin extends AutoPlugin {
           // Ensure that both outputs are deleted before extraction
           IO.delete(outJar)
           IO.delete(extFilesDir)
-          JarExtract.extract(
+          JarExtractor.extract(
             inJar.toPath,
             extFilesDir.toPath,
             outJar.toPath,

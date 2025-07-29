@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -13,9 +13,16 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
-import scala.sys.process._
-
-import Dependencies._
+import scala.sys.process.*
+import Dependencies.*
+import JarExtractor.{
+  CopyToExtractDir,
+  CopyToOutputJar,
+  LinuxX86_64,
+  MacOSArm64,
+  MacOSX86_64,
+  WindowsX86_64
+}
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
@@ -4889,7 +4896,23 @@ lazy val `opencv-thin` = project
       "org.openpnp" % "opencv" % opencvVersion
     ),
     inputJar := "org.openpnp" % "opencv" % opencvVersion,
-    jarExtractor := JarExtract.openCVExtractor
+    jarExtractor := JarExtractor(
+      "nu/pattern/opencv/linux/x86_64/*.so" -> CopyToExtractDir(
+        Some(LinuxX86_64)
+      ),
+      "nu/pattern/opencv/osx/ARMv8/*.dylib" -> CopyToExtractDir(
+        Some(MacOSArm64)
+      ),
+      "nu/pattern/opencv/osx/x86_64/*.dylib" -> CopyToExtractDir(
+        Some(MacOSX86_64)
+      ),
+      "nu/pattern/opencv/windows/x86_64/*.dll" -> CopyToExtractDir(
+        Some(WindowsX86_64)
+      ),
+      "nu/pattern/opencv/*.class" -> CopyToOutputJar,
+      "META-INF/**"               -> CopyToOutputJar,
+      "org/**"                    -> CopyToOutputJar
+    )
   )
 
 lazy val `std-image` = project
