@@ -5,6 +5,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { injectGuiConfig } from '@/providers/guiConfig'
+import { onlineManager } from '@tanstack/vue-query'
 import { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
@@ -57,6 +58,7 @@ export async function maybeRedirectToInitialProject(
 
   const config = injectGuiConfig()
   const auth = useAuth()
+  await auth.waitForSession()
 
   // In case of not being logged in, the redirection should be managed by ProtectedLayout.
   if (auth.session == null) return
@@ -82,7 +84,7 @@ async function shouldOpenInitialProject(
   }
   const homeContent = await Promise.all([
     localBackend?.listDirectory(homeDirQuery) ?? [],
-    navigator.onLine ? remoteBackend.listDirectory(homeDirQuery, 'User Home') : [],
+    onlineManager.isOnline() ? remoteBackend.listDirectory(homeDirQuery, 'User Home') : [],
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
