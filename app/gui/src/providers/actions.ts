@@ -8,6 +8,7 @@ export interface Action {
   name: string
   /** The function to execute when the action is triggered. */
   doAction: () => void
+  shortcuts: readonly string[]
   /** The icon associated with the action, if any. */
   icon: Icon | undefined
 }

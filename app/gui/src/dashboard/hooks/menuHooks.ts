@@ -34,6 +34,7 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
         {
           name: getText(actionToTextId(entry.action)),
           doAction: entry.doAction,
+          shortcuts: inputBindings.metadata[entry.action].bindings,
           // eslint-disable-next-line no-restricted-syntax
           icon: (entry.icon ?? inputBindings.metadata[entry.action].icon) as Icon | undefined,
         },
