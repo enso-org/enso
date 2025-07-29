@@ -3639,7 +3639,8 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Table | Any =
+    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = []) (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Table | Any =
+        if columns == [] then Error.throw (Missing_Argument.throw "columns")
         self.implementation.text_replace self.underlying columns term new_text case_sensitivity only_first
 
     ## ---
@@ -3688,7 +3689,8 @@ type Table
                | World |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") (remove : Vector Named_Pattern = []) -> Table | Any =
+    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = []) (remove : Vector Named_Pattern = []) -> Table | Any =
+        if columns == [] then Error.throw (Missing_Argument.throw "columns")
         self.implementation.text_cleanse self.underlying columns remove
 
     ## ---
