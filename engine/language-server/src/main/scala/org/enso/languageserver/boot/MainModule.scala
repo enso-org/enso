@@ -330,7 +330,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Running Language Server in JVM mode")
   }
 
-  private val pythonHome = PythonHomeFinder.findPythonHome()
+  private val pythonHome = if (HostEnsoUtils.isAot) {
+    null
+  } else {
+    PythonHomeFinder.findPythonHome().toString
+  }
 
   private val builder = ContextFactory
     .create()
@@ -342,7 +346,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
-    .pythonHome(pythonHome.toString)
+    .pythonHome(pythonHome)
     .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {

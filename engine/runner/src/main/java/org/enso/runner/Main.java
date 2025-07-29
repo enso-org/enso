@@ -53,6 +53,7 @@ import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -777,7 +778,13 @@ public class Main {
 
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
-    var pythonHome = PythonHomeFinder.findPythonHome();
+
+    String pythonHome;
+    if (HostEnsoUtils.isAot()) {
+      pythonHome = null;
+    } else {
+      pythonHome = PythonHomeFinder.findPythonHome().toString();
+    }
 
     var factory =
         ContextFactory.create()
@@ -786,7 +793,7 @@ public class Main {
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
-            .pythonHome(pythonHome.toString())
+            .pythonHome(pythonHome)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
