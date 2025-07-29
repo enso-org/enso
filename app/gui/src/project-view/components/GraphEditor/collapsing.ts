@@ -228,6 +228,9 @@ export function performCollapseImpl(
   collapsedBody.push(outputAst)
   const collapsedFunction = Ast.FunctionDef.new(collapsedName, info.args, collapsedBody, {
     edit,
+    // TODO[13660]: remove additional 'Documentation can be added here.' string.
+    // It is required because empty documentation with default frontmatter breaks editing until
+    // we implemented a WYSIWYG editor for the frontmatter.
     documentation: frontmatter({ icon: 'group' }) + 'Documentation can be added here.',
   })
   topLevel.insert(currentMethodLine, collapsedFunction, undefined)
