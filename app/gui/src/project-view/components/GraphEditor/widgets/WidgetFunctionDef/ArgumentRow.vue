@@ -193,7 +193,7 @@ const defaultEntries = [
     <span class="tokenText">&nbsp;=&nbsp;</span>
     <div
       ref="defaultValueRoot"
-      class="defaultValueRoot"
+      class="defaultValueRoot clickable"
       @click.stop="defaultValueDropdownInteraction.start()"
     >
       <SvgIcon
@@ -211,9 +211,14 @@ const defaultEntries = [
         :extendUpwards="false"
         @clickedEntry="defaultOnClick"
       />
-      <span class="tokenText">{{ defaultKindText }}</span>
+      <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
     </div>
-    <NodeWidget v-if="nodeDefault" v-bind="nodeDefault" class="pad-left" />
+    <NodeWidget
+      v-if="nodeDefault"
+      v-bind="nodeDefault"
+      class="pad-left"
+      data-testid="missing-default-value"
+    />
   </div>
 </template>
 
