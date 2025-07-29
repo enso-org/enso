@@ -281,6 +281,7 @@ type SQLServer_Connection
 
     ## ---
        advanced: true
+       aliases: [sql]
        group: Standard.Base.Output
        icon: data_output
        ---
