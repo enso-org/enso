@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 from Standard.Base.Data.Json import render
+from Standard.Base.Logging import all
 
 import Standard.Table.Row.Row
 from Standard.Table import Column, Table
@@ -235,10 +236,11 @@ Table.to_default_visualization_data self =
     max_size = 10
     row_count = ['number_of_rows', self.row_count]
     cols = self.columns.map c->
-        name = c.name
-        items = c.to_vector.take (..First max_size)
-        JS_Object.from_pairs [['name', name], ['data', items]]
+        name = c.name.to_json
+        items = c.to_json_data 0 max_size
+        '{"name":'+name+',"data":' + items + '}'
     JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
+    '{"number_of_rows":' + self.row_count.to_text + ',"columns":[' + (cols.join ",") + ']}'
 
 ## ---
    private: true
@@ -343,3 +345,18 @@ Table.to_lazy_visualization_data self table_cell_position text_window_position t
 truncate : Text -> Integer -> Text -> Text
 truncate message max_length=256 suffix='...' =
     if message.length > max_length then message.take max_length-suffix.length + suffix else message
+
+## ---
+   private: true
+   ---
+   If ENSO_TIME_VIZZES is set, then log the time it took to compute the function
+private time_visualization module ~name ~action =
+    level = case Environment.get "ENSO_TIME_VIZZES" of
+        Nothing -> Nothing
+        "warning" -> ..Warning
+        "info" -> ..Info
+        _ -> ..Trace
+    if level . is_nothing then action else
+        pair = Duration.time_execution action
+        module.log_message ("Execution time for " + name + ": " + pair.first.to_text) level
+        pair.second

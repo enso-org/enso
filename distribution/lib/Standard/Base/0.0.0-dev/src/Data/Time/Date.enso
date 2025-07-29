@@ -33,65 +33,73 @@ polyglot java import java.time.temporal.IsoFields
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.base.Time_Utils.AdjustOp
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Constructs a new Date from a year, month, and day.
 
-   Arguments:
-   - year: The year to represent.
-   - month: The month-of-year to represent, from 1 (January) to 12 (December).
-   - day: The day-of-month to represent, from 1 to 31. It must be valid for the
-     year and month.
-
    Recommended to use `Date.new` instead which handles potential exceptions.
+
+   ## Arguments
+    - `year`: The year to represent.
+    - `month`: The month-of-year to represent, from 1 (January) to 12 (December).
+    - `day`: The day-of-month to represent, from 1 to 31. It must be valid for
+      the year and month.
 new_builtin : Integer -> Integer -> Integer -> Date
 new_builtin year month day = @Builtin_Method "Date.new_builtin"
 
 ## This type represents a date, often viewed as year-month-day.
-
    For example, the value "2nd October 2007" can be stored in a `Date`.
-
-   This class does not store or represent a time or timezone. Instead, it
-   is a description of the date, as used for birthdays. It cannot represent
-   an instant on the time-line without additional information such as an
-   offset or timezone.
+   This class does not store or represent a time or timezone. Instead, it is a
+   description of the date, as used for birthdays. It cannot represent an instant
+   on the time-line without additional information such as an offset or timezone.
 @Builtin_Type
 type Date
-    ## ALIAS current date, now
-       GROUP DateTime
-       ICON calendar
-
+    ## ---
+       aliases: [current date, now]
+       group: DateTime
+       icon: calendar
+       ---
        Obtains the current date from the system clock in the system timezone.
 
-       > Example
-         Get the current date.
+       ## Examples
+       ### Get the current date.
 
+       ```
              example_today = Date.today
+       ```
     today : Date
     today = @Builtin_Method "Date.today"
 
-    ## GROUP Constants
-       ICON calendar
+    ## ---
+       group: Constants
+       icon: calendar
+       ---
        Constructs a new Date from a year, month, and day.
-
-       Arguments:
-       - year: The year to represent.
-       - month: The month-of-year to represent, from 1 (January) to 12 (December).
-       - day: The day-of-month to represent, from 1 to 31. It must be valid for the
-         year and month.
 
        Returns a `Time_Error` if the provided time is not valid.
 
-       > Example
-         Create a new local date at Unix epoch.
+       ## Arguments
+        - `year`: The year to represent.
+        - `month`: The month-of-year to represent, from 1 (January) to 12
+          (December).
+        - `day`: The day-of-month to represent, from 1 to 31. It must be valid
+          for the year and month.
 
+       ## Examples
+       ### Create a new local date at Unix epoch.
+
+       ```
              from Standard.Base import Date
 
              example_new = Date.new 1970
+       ```
 
-       > Example
-         Get the local date of 5th August 1986.
+       ### Get the local date of 5th August 1986.
 
+       ```
              example_new = Date.new 1986 8 5
+       ```
     @year (Widget.Numeric_Input display=Display.Always)
     @month (Widget.Numeric_Input minimum=1 maximum=12 display=Display.Always)
     @day make_day_picker
@@ -100,287 +108,326 @@ type Date
         Panic.catch JException (new_builtin year month day) caught->
             Error.throw (Time_Error.Error caught.payload.getMessage)
 
-    ## ALIAS date from text
-       GROUP Conversions
-       ICON convert
-
+    ## ---
+       aliases: [date from text]
+       group: Conversions
+       icon: convert
+       ---
        Converts text containing a date into a Date object.
-
-       Arguments:
-       - text: The text to try and parse as a date.
-       - format: A pattern describing how to parse the text,
-         or a `Date_Time_Formatter`.
 
        Returns a `Time_Error` if the provided `text` cannot be parsed using the
        provided `format`.
 
-       ? Default Date Formatting
-         Unless you provide a custom format, the text must represent a valid date
-         that can be parsed using the ISO-8601 extended local date format. The
-         format consists of:
+       ## Arguments
+        - `text`: The text to try and parse as a date.
+        - `format`: A pattern describing how to parse the text, or a
+          `Date_Time_Formatter`.
 
-         - Four digits or more for the year. Years in the range 0000 to 9999
-           will be pre-padded by zero to ensure four digits. Years outside
-           that range will have a prefixed positive or negative symbol.
-         - A dash
-         - Two digits for the month-of-year. This is pre-padded by zero to ensure
-           two digits.
-         - A dash
-         - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-           digits.
+       ## Examples
+       ### Parse the date of 23rd December 2020.
 
-       ? Pattern Syntax
-         If the pattern is provided as `Text`, it is parsed using the format
-         described below. See `Date_Time_Formatter` for more options.
-         - y: Year. The number of pattern letters determines the minimum number of
-           digits.
-           - y: The year using any number of digits.
-           - yy: The year, using at most two digits. The default range is
-             1950-2049, but this can be changed by including the end year in
-             braces e.g. `yy{2099}`.
-           - yyyy: The year, using exactly four digits.
-         - M: Month of year. The number of pattern letters determines the format:
-           - M: Any number (1-12).
-           - MM: Month number with zero padding required (01-12).
-           - MMM: Short name of the month (Jan-Dec).
-           - MMMM: Full name of the month (January-December).
-           The month names depend on the selected locale.
-         - d: Day. The number of pattern letters determines the format:
-           - d: Any number (1-31).
-           - dd: Day number with zero padding required (01-31).
-           - ddd: Short name of the day of week (Mon-Sun).
-           - dddd: Full name of the day of week (Monday-Sunday).
-           The weekday names depend on the selected locale.
-           Both day of week and day of month may be included in a single pattern -
-           in such case the day of week is used as a sanity check.
-         - Q: Quarter of year.
-           If only year and quarter are provided in the pattern, when parsing a
-           date, the result will be the first day of that quarter.
-
-       > Example
-         Parse the date of 23rd December 2020.
-
+       ```
              from Standard.Base import Date
 
              example_parse = Date.parse "2020-12-23"
+       ```
 
-       > Example
-         Recover from an error due to a wrong format.
+       ### Recover from an error due to a wrong format.
 
+       ```
              from Standard.Base import Date
              from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err = Date.parse "my birthday" . catch Time_Error _->
                  Date.new 2000 1 1
+       ```
 
-       > Example
-         Parse "1999-1-1" as Date using a custom format.
+       ### Parse "1999-1-1" as Date using a custom format.
 
+       ```
              from Standard.Base import Date
 
              example_parse = Date.parse "1999-1-1" "yyyy-M-d"
+       ```
 
-       > Example
-         Recover from the parse error.
+       ### Recover from the parse error.
 
+       ```
              from Standard.Base import Date
              from Standard.Base.Errors.Common import Time_Error
 
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"
                  date.catch Time_Error (_->Date.new 2000 1 1)
+       ```
+
+       ## Remarks
+
+       ### Default Date Formatting
+       Unless you provide a custom format, the text must represent a valid date
+       that can be parsed using the ISO-8601 extended local date format. The
+       format consists of:
+       - Four digits or more for the year. Years in the range 0000 to 9999 will
+       be pre-padded by zero to ensure four digits. Years outside that range will
+       have a prefixed positive or negative symbol.
+       - A dash  - Two digits for the month-of-year. This is pre-padded by zero
+       to ensure two digits.
+       - A dash  - Two digits for the day-of-month. This is pre-padded by zero to
+       ensure two digits.
+
+       ### Pattern Syntax
+       If the pattern is provided as `Text`, it is parsed using the format
+       described below. See `Date_Time_Formatter` for more options.
+       - y: Year. The number of pattern letters determines the minimum number of
+       digits.
+       - y: The year using any number of digits.
+       - yy: The year, using at most two digits. The default range is 1950-2049,
+       but this can be changed by including the end year in braces e.g.
+       `yy{2099}`.
+       - yyyy: The year, using exactly four digits.
+       - M: Month of year. The number of pattern letters determines the format:
+       - M: Any number (1-12).
+       - MM: Month number with zero padding required (01-12).
+       - MMM: Short name of the month (Jan-Dec).
+       - MMMM: Full name of the month (January-December).
+       The month names depend on the selected locale.
+       - d: Day. The number of pattern letters determines the format:
+       - d: Any number (1-31).
+       - dd: Day number with zero padding required (01-31).
+       - ddd: Short name of the day of week (Mon-Sun).
+       - dddd: Full name of the day of week (Monday-Sunday).
+       The weekday names depend on the selected locale.
+       Both day of week and day of month may be included in a single pattern - in
+       such case the day of week is used as a sanity check.
+       - Q: Quarter of year.
+       If only year and quarter are provided in the pattern, when parsing a date,
+       the result will be the first day of that quarter.
     @format make_date_format_selector
     parse : Text -> Date_Time_Formatter -> Date ! Time_Error
     parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
         format.parse_date text
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the year field.
 
-       > Example
-         Get the current year.
+       ## Examples
+       ### Get the current year.
 
+       ```
              from Standard.Base import Date
 
              example_year = Date.today.year
+       ```
     year : Integer
     year self = @Builtin_Method "Date.year"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the month of year field, as a number from 1 to 12.
 
-       > Example
-         Get the current month.
+       ## Examples
+       ### Get the current month.
 
+       ```
              example_month = Date.today.month
+       ```
     month : Integer
     month self = @Builtin_Method "Date.month"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the day of month field.
 
-       > Example
-         Get the current day.
+       ## Examples
+       ### Get the current day.
 
+       ```
              from Standard.Base import Date
 
              example_day = Date.today.day
+       ```
     day : Integer
     day self = @Builtin_Method "Date.day"
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Returns the number of week of year this date falls into.
-
        Produces a warning for a Date that is before epoch start.
 
-       Arguments:
-       - locale: the locale used to define the notion of weeks of year.
-         If no locale is provided, then the ISO 8601 week of year is used.
+       ## Arguments
+        - `locale`: the locale used to define the notion of weeks of year. If no
+          locale is provided, then the ISO 8601 week of year is used.
 
-       ! Locale Dependency
-         Note that this operation is locale-specific. It varies both by the
-         local definition of the first day of week and the definition of the
-         first week of year. For example, in the US, the first day of the week
-         is Sunday and week 1 is the week containing January 1. In the UK on the
-         other hand, the first day of the week is Monday, and week 1 is the week
-         containing the first Thursday of the year. Therefore it is important to
-         properly specify the `locale` argument.
+       ## Remarks
+
+       ### Locale Dependency
+       Note that this operation is locale-specific. It varies both by the local
+       definition of the first day of week and the definition of the first week
+       of year. For example, in the US, the first day of the week is Sunday and
+       week 1 is the week containing January 1. In the UK on the other hand, the
+       first day of the week is Monday, and week 1 is the week containing the
+       first Thursday of the year. Therefore it is important to properly specify
+       the `locale` argument.
     week_of_year : (Locale | Nothing) -> Integer
     week_of_year self locale=Nothing =
         ensure_in_epoch self <|
             if locale.is_nothing then Time_Utils.get_field_as_localdate self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
                 Time_Utils.week_of_year_localdate self locale.java_locale
 
-    ## GROUP DateTime
-       ICON metadata
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
        Returns if the date is in a leap year.
-
        Produces a warning for a Date that is before epoch start.
     is_leap_year : Boolean
     is_leap_year self =
         ensure_in_epoch self <|
             Time_Utils.is_leap_year self
 
-    ## GROUP DateTime
-       ICON metadata
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
        Returns the number of days in the year represented by this date.
-
        Produces a warning for a Date that is before epoch start.
     length_of_year : Integer
     length_of_year self = if self.is_leap_year then 366 else 365
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Returns the century of the date.
     century : Integer
     century self = if self.year > 0 then (self.year - 1).div 100 + 1 else
         Error.throw (Illegal_Argument.Error "Century can only be given for AD years.")
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the quarter of the year the date falls into.
     quarter : Integer
     quarter self = Time_Utils.get_field_as_localdate self IsoFields.QUARTER_OF_YEAR
 
-    ## GROUP DateTime
-       ICON metadata
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
        Returns the number of days in the month represented by this date.
-
        Produces a warning for a Date that is before epoch start.
     length_of_month : Integer
     length_of_month self =
         ensure_in_epoch self <|
             Time_Utils.length_of_month self
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Returns the day of the year.
     day_of_year : Integer
     day_of_year self = Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_YEAR
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the day of the week.
-
        Produces a warning for a Date that is before epoch start.
     day_of_week : Day_Of_Week
     day_of_week self =
         ensure_in_epoch self <|
             Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns the first date within the `Date_Period` containing self.
     start_of : Date_Period -> Date
     start_of self period=Date_Period.Month = period.adjust_start self
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns the last date within the `Date_Period` containing self.
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns the next date adding the `Date_Period` to self.
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
 
-       Arguments:
-       - period: the period to add to self.
+       ## Arguments
+        - `period`: the period to add to self.
     next : Date_Period -> Date
     next self period:Date_Period=..Day = self + period.to_period
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns the previous date subtracting the `Date_Period` from self.
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
 
-       Arguments:
-       - period: the period to add to self.
+       ## Arguments
+        - `period`: the period to add to self.
     previous : Date_Period -> Date
     previous self period:Date_Period=..Day = self - period.to_period
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Creates a `Period` between self and the provided end date.
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
 
-       Arguments:
-       - end: the end date of the interval to count workdays in.
+       ## Arguments
+        - `end`: the end date of the interval to count workdays in.
     until : Date -> Period
     until self end =
         ensure_in_epoch self <| ensure_in_epoch end <|
             Period.between self end
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Counts the days between self (inclusive) and the provided end date
        (exclusive, or inclusive if include_end_date=True).
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
 
-       Arguments:
-       - end: the end date of the interval to count workdays in.
-       - include_end_date: whether to include the end date in the count.
-         By default the end date is not included in the interval.
+       ## Arguments
+        - `end`: the end date of the interval to count workdays in.
+        - `include_end_date`: whether to include the end date in the count. By
+          default the end date is not included in the interval.
     days_until : Date -> Boolean -> Integer
     days_until self end include_end_date=False =
         if end < self then -(end.days_until self include_end_date) else
             ensure_in_epoch self <| ensure_in_epoch end <|
                 (Time_Utils.days_between self end) + if include_end_date then 1 else 0
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns a requested date part as integer.
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
     date_part : Date_Period -> Integer
@@ -392,73 +439,77 @@ type Date
             Date_Period.Week _  -> self.week_of_year locale=Nothing
             Date_Period.Day     -> self.day
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Computes a time difference between the two dates.
-
        It returns an integer expressing how many periods fit between the two
        dates.
-
        The difference will be positive if `end` is greater than `self`.
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
 
-       Arguments:
-       - end: A date to compute the difference from.
-       - period: The period to compute the difference in.
+       ## Arguments
+        - `end`: A date to compute the difference from.
+        - `period`: The period to compute the difference in.
     date_diff : Date -> Date_Period -> Integer
     date_diff self (end : Date) (period : Date_Period) = ensure_in_epoch self <|
         Time_Utils.unit_date_difference period.to_java_unit self end
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Shifts the date by a specified period.
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
 
-       Arguments:
-       - amount: An integer specifying by how many periods to shift the date.
-       - period: The period by which to shift.
+       ## Arguments
+        - `amount`: An integer specifying by how many periods to shift the date.
+        - `period`: The period by which to shift.
     date_add : Integer -> Date_Period -> Date
     date_add self (amount : Integer) (period : Date_Period) = ensure_in_epoch self <|
         Time_Utils.unit_date_add period.to_java_unit self amount
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Counts workdays between self (inclusive) and the provided end date
        (exclusive).
-
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
 
-       Arguments:
-       - end: the end date of the interval to count workdays in.
-       - holidays: dates of holidays to skip when counting workdays.
-       - include_end_date: whether to include the end date in the count.
-         By default the end date is not included in the interval.
+       ## Arguments
+        - `end`: the end date of the interval to count workdays in.
+        - `holidays`: dates of holidays to skip when counting workdays.
+        - `include_end_date`: whether to include the end date in the count. By
+          default the end date is not included in the interval.
 
-       ? Including the end date
-         To be consistent with how we usually represent intervals (in an
-         end-exclusive manner), by default the end date is not included in the
-         count. This has the nice property that for example to count the work
-         days within the next week you can do
-         `date.work_days_until (date + (Period.new days=7))` and it will look at
-         the 7 days starting from the current `date` and not 8 days. This also
-         gives us a property that
-         `date.work_days_until (date.add_work_days N) == N` for any non-negative
-         N. On the other hand, sometimes we may want the end date to be included
-         in the count, so we provide the `include_end_date` argument for that
-         purpose. Setting it to `True` should make the result consistent with
-         the `NETWORKDAYS` function in Excel and similar products.
+       ## Examples
+       ### Count the number of workdays between two dates.
 
-       > Example
-         Count the number of workdays between two dates.
-
+       ```
              from Standard.Base import Date
 
              example_workdays = Date.new 2020 1 1 . work_days_until (Date.new 2020 1 5)
+       ```
+
+       ## Remarks
+
+       ### Including the end date
+       To be consistent with how we usually represent intervals (in an
+       end-exclusive manner), by default the end date is not included in the
+       count. This has the nice property that for example to count the work days
+       within the next week you can do `date.work_days_until (date + (Period.new
+       days=7))` and it will look at the 7 days starting from the current `date`
+       and not 8 days. This also gives us a property that `date.work_days_until
+       (date.add_work_days N) == N` for any non-negative N. On the other hand,
+       sometimes we may want the end date to be included in the count, so we
+       provide the `include_end_date` argument for that purpose. Setting it to
+       `True` should make the result consistent with the `NETWORKDAYS` function
+       in Excel and similar products.
     work_days_until : Date -> Vector Date -> Boolean -> Integer
     work_days_until self end holidays=[] include_end_date=False =
         ensure_in_epoch self <|
@@ -472,50 +523,58 @@ type Date
                     fits_in_range self end holiday && (is_weekend holiday).not
                 weekdays - overlapping_holidays.distinct.length
 
-    ## ALIAS date to time
-       GROUP Conversions
-       ICON convert
-
+    ## ---
+       aliases: [date to time]
+       group: Conversions
+       icon: convert
+       ---
        Combine this date with time of day to create a point in time.
 
-       Arguments:
-       - time_of_day: The time to combine with the date to create a time.
-       - zone: The time-zone in which to create the time.
+       ## Arguments
+        - `time_of_day`: The time to combine with the date to create a time.
+        - `zone`: The time-zone in which to create the time.
 
-       > Example
-         Convert this date to midnight UTC time.
+       ## Examples
+       ### Convert this date to midnight UTC time.
 
+       ```
              from Standard.Base import Date, Time_Of_Day, Time_Zone
 
              example_to_time = Date.new 2020 2 3 . to_date_time Time_Of_Day.new Time_Zone.utc
+       ```
     @time_of_day (Time_Of_Day.default_widget include_now=False)
     @zone Time_Zone.default_widget
     to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
     to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) =
         Time_Utils.make_zoned_date_time self time_of_day zone
 
-    ## ALIAS add period
-       GROUP Operators
-       ICON time
+    ## ---
+       aliases: [add period]
+       group: Operators
+       icon: time
+       ---
        Add the specified amount of time to this instant to get another date.
 
-       Arguments:
-       - amount: The amount of time to add to this instant. It can be a
-         `Period` or `Date_Period`.
+       ## Arguments
+        - `amount`: The amount of time to add to this instant. It can be a
+          `Period` or `Date_Period`.
 
-       > Example
-         Add 6 months to a local date.
+       ## Examples
+       ### Add 6 months to a local date.
 
+       ```
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + (Period.new months=6)
+       ```
 
-       > Example
-         Add a month to a local date.
+       ### Add a month to a local date.
 
+       ```
              import Standard.Base.Data.Time.Date_Period
 
              example_add = Date.new 2020 + Date_Period.Month
+       ```
     + : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
     + self (amount : Period | Date_Period) =
         case amount of
@@ -524,104 +583,115 @@ type Date
             date_period : Date_Period ->
                 self + date_period.to_period
 
-    ## ALIAS date range
-       GROUP Input
-       ICON time
+    ## ---
+       aliases: [date range]
+       group: Input
+       icon: time
+       ---
        Creates an increasing range of dates from `self` to `end`.
 
-       Arguments:
-       - end: The end of the range.
-       - include_end: Specifies if the right end of the range should be
-         included. By default, the range is right-exclusive.
-       - step: The step of the range. It can be a `Date_Period` or `Period`.
-         By default, the step is one day.
+       ## Arguments
+        - `end`: The end of the range.
+        - `include_end`: Specifies if the right end of the range should be
+          included. By default, the range is right-exclusive.
+        - `step`: The step of the range. It can be a `Date_Period` or `Period`.
+          By default, the step is one day.
 
-       > Example
-         Create a range of dates.
+       ## Examples
+       ### Create a range of dates.
 
+       ```
              (Date.new 2021 12 05).up_to (Date.new 2021 12 10)
+       ```
 
-       > Example
-         Create a range containing dates [2021-12-05, 2021-12-06].
+       ### Create a range containing dates [2021-12-05, 2021-12-06].
 
+       ```
              (Date.new 2021 12 05).up_to (Date.new 2021 12 06) include_end=True
+       ```
     up_to : Date -> Boolean -> Date_Period|Period -> Date_Range
     up_to self end:Date include_end:Boolean=False step:Date_Period|Period=Date_Period.Day =
         effective_end = if include_end then end.next else end
         day_range = Date_Range.new_internal self effective_end increasing=True step=(Period.new days=1)
         if step == Date_Period.Day then day_range else day_range.with_step step
 
-    ## ALIAS date range
-       GROUP Input
-       ICON time
+    ## ---
+       aliases: [date range]
+       group: Input
+       icon: time
+       ---
        Creates a decreasing range of dates from `self` to `end`.
 
-       Arguments:
-       - end: The end of the range.
-       - include_end: Specifies if the right end of the range should be included. By
-         default, the range is right-exclusive.
+       ## Arguments
+        - `end`: The end of the range.
+        - `include_end`: Specifies if the right end of the range should be
+          included. By default, the range is right-exclusive.
 
-       > Example
-         Create a reverse range of dates.
+       ## Examples
+       ### Create a reverse range of dates.
 
+       ```
              (Date.new 2021 12 10).down_to (Date.new 2021 12 05)
+       ```
 
-       > Example
-         Create a range containing dates [2021-12-06, 2021-12-05].
+       ### Create a range containing dates [2021-12-06, 2021-12-05].
 
+       ```
              (Date.new 2021 12 06).down_to (Date.new 2021 12 05) include_end=True
+       ```
     down_to : Date -> Boolean -> Date_Period|Period -> Date_Range
     down_to self end:Date include_end:Boolean=False step:Date_Period|Period=Date_Period.Day =
         effective_end = if include_end then end.previous else end
         day_range = Date_Range.new_internal self effective_end increasing=False step=(Period.new days=1)
         if step == Date_Period.Day then day_range else day_range.with_step step
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Shift the date by the specified amount of business days.
-
-       For the purpose of this method, the business days are defined to be
-       Monday through Friday.
-
+       For the purpose of this method, the business days are defined to be Monday
+       through Friday.
        Produces a warning for a Date that is before epoch start. See
        `Date_Time.enso_epoch_start`.
-
        This method always returns a day which is a business day - if the shift
        amount is zero, the closest following business day is returned. For the
        purpose of calculating the shift, the holidays are treated as if we were
        starting at the next business day after them, for example counting the
        shift starting on Saturday or Sunday works as if we were counting the
        shift from Monday (for positive shifts). So shifting Sunday by zero days
-       will return Monday, but shifting it by one day will return a Tuesday
-       (so that there is the full work day - Monday) within the interval. For
-       negative shifts, shifting either Saturday or Sunday one day backwards
-       will return Friday, but shifting Monday one day backwards will return a
-       Friday. The whole logic is made consistent with `work_days_until`, so
-       that the following properties hold:
-           date.work_days_until (date.add_work_days N) == N for any N >= 0
-           (date.add_work_days N).work_days_until date == -N for any N < 0
+       will return Monday, but shifting it by one day will return a Tuesday (so
+       that there is the full work day - Monday) within the interval. For
+       negative shifts, shifting either Saturday or Sunday one day backwards will
+       return Friday, but shifting Monday one day backwards will return a Friday.
+       The whole logic is made consistent with `work_days_until`, so that the
+       following properties hold:
+       date.work_days_until (date.add_work_days N) == N for any N >= 0
+       (date.add_work_days N).work_days_until date == -N for any N < 0
 
-       Arguments:
-       - amount: The number of business days to shift the date by. If `amount`
-         is zero, the current date is returned, unless it is a weekend or a
-         holiday, in which case the next business day is returned.
-       - holidays: An optional list of dates of custom holidays that should also
-         be skipped. If it is not provided, only weekends are skipped.
+       ## Arguments
+        - `amount`: The number of business days to shift the date by. If `amount`
+          is zero, the current date is returned, unless it is a weekend or a
+          holiday, in which case the next business day is returned.
+        - `holidays`: An optional list of dates of custom holidays that should
+          also be skipped. If it is not provided, only weekends are skipped.
 
-       > Example
-         Shift the date by 5 business days.
+       ## Examples
+       ### Shift the date by 5 business days.
 
+       ```
              example_shift = Date.new 2020 2 3 . add_work_days 5
+       ```
     add_work_days : Integer -> Vector Date -> Date
     add_work_days self days=1 holidays=[] =
         ensure_in_epoch self <|
             self.internal_add_work_days days holidays
 
-    ## PRIVATE
-
-       ensure_in_epoch breaks tail call annotation and causes
-       stack overflow. That is why `add_work_days` method is split into
-       two methods.
+    ## ---
+       private: true
+       ---
+       ensure_in_epoch breaks tail call annotation and causes stack overflow.
+       That is why `add_work_days` method is split into two methods.
     internal_add_work_days : Integer -> Vector Date -> Date
     internal_add_work_days self days=1 holidays=[] =
         case days >= 0 of
@@ -700,30 +770,35 @@ type Date
                         if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
                     go end
 
-    ## ALIAS subtract period
-       GROUP Operators
-       ICON time
+    ## ---
+       aliases: [subtract period]
+       group: Operators
+       icon: time
+       ---
        Subtract the specified amount of time from this instant to get another
        date.
 
-       Arguments:
-       - amount: The amount of time to add to this instant. It can be a
-         `Period` or `Date_Period`.
+       ## Arguments
+        - `amount`: The amount of time to add to this instant. It can be a
+          `Period` or `Date_Period`.
 
-       > Example
-         Subtract 7 days from a local date.
+       ## Examples
+       ### Subtract 7 days from a local date.
 
+       ```
              from Standard.Base import Date
              import Standard.Base.Data.Time.Duration
 
              example_subtract = Date.new 2020 - (Period.new days=7)
+       ```
 
-       > Example
-         Subtract a month from a local date.
+       ### Subtract a month from a local date.
 
+       ```
              import Standard.Base.Data.Time.Date_Period
 
              example_add = Date.new 2020 - Date_Period.Month
+       ```
     - : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
     - self amount:(Period | Date_Period) =
         case amount of
@@ -733,118 +808,144 @@ type Date
             date_period : Date_Period ->
                 self - date_period.to_period
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Date.
     to_display_text : Text
     to_display_text self =
         self.format "yyyy-MM-dd"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a JS_Object representing this Date.
 
-       > Example
-         Convert the current date to a JS_Object.
+       ## Examples
+       ### Convert the current date to a JS_Object.
 
+       ```
              example_to_json = Date.today.to_js_object
+       ```
     to_js_object : JS_Object
     to_js_object self =
         type_pair = ["type", "Date"]
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["day", self.day], ["month", self.month], ["year", self.year]]
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Format this date using the provided format specifier.
 
-       Arguments:
-       - format: A pattern describing how to format the text,
-         or a `Date_Time_Formatter`.
+       ## Arguments
+        - `format`: A pattern describing how to format the text, or a
+          `Date_Time_Formatter`.
 
-       ? Pattern Syntax
-         If the pattern is provided as `Text`, it is parsed using the format
-         described below. See `Date_Time_Formatter` for more options.
-         - y: Year. The number of pattern letters determines the minimum number of
-           digits.
-           - y: The year using any number of digits.
-           - yy: The year, using at most two digits. The default range is
-             1950-2049, but this can be changed by including the end year in
-             braces e.g. `yy{2099}`.
-           - yyyy: The year, using exactly four digits.
-         - M: Month of year. The number of pattern letters determines the format:
-           - M: Any number (1-12).
-           - MM: Month number with zero padding required (01-12).
-           - MMM: Short name of the month (Jan-Dec).
-           - MMMM: Full name of the month (January-December).
-           The month names depend on the selected locale.
-         - d: Day. The number of pattern letters determines the format:
-           - d: Any number (1-31).
-           - dd: Day number with zero padding required (01-31).
-           - ddd: Short name of the day of week (Mon-Sun).
-           - dddd: Full name of the day of week (Monday-Sunday).
-           The weekday names depend on the selected locale.
-           Both day of week and day of month may be included in a single pattern -
-           in such case the day of week is used as a sanity check.
-         - Q: Quarter of year.
-           If only year and quarter are provided in the pattern, when parsing a
-           date, the result will be the first day of that quarter.
+       ## Examples
+       ### Format "2020-06-02" as "2 Jun 2020"
 
-       > Example
-         Format "2020-06-02" as "2 Jun 2020"
-
+       ```
              from Standard.Base import Date
 
              example_format = Date.new 2020 6 2 . format "d MMMM yyyy"
+       ```
 
-       > Example
-         Format "2020-06-02" as "2 Jun 20"
+       ### Format "2020-06-02" as "2 Jun 20"
 
+       ```
              example_format = Date.new 2020 6 2 . format "d MMMM yy"
+       ```
 
-       > Example
-         Format "2020-06-02" as "Tuesday, 02 Jun 2020"
+       ### Format "2020-06-02" as "Tuesday, 02 Jun 2020"
 
+       ```
              example_format = Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
+       ```
 
-       > Example
-         Format "2020-06-02" as "Tue Jun 2"
+       ### Format "2020-06-02" as "Tue Jun 2"
 
+       ```
              example_format = Date.new 2020 6 2 . format "EEE MMM d"
+       ```
 
-       > Example
-         Format "2020-06-02" as "2020AD"
+       ### Format "2020-06-02" as "2020AD"
 
+       ```
              example_format = Date.new 2020 6 2 . format "yyyyGG"
+       ```
 
-       > Example
-         Format "2020-06-21" with French locale as "21. juin 2020"
+       ### Format "2020-06-21" with French locale as "21. juin 2020"
 
+       ```
              example_format = Date.new 2020 6 21 . format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr"))
+       ```
+
+       ## Remarks
+
+       ### Pattern Syntax
+       If the pattern is provided as `Text`, it is parsed using the format
+       described below. See `Date_Time_Formatter` for more options.
+       - y: Year. The number of pattern letters determines the minimum number of
+       digits.
+       - y: The year using any number of digits.
+       - yy: The year, using at most two digits. The default range is 1950-2049,
+       but this can be changed by including the end year in braces e.g.
+       `yy{2099}`.
+       - yyyy: The year, using exactly four digits.
+       - M: Month of year. The number of pattern letters determines the format:
+       - M: Any number (1-12).
+       - MM: Month number with zero padding required (01-12).
+       - MMM: Short name of the month (Jan-Dec).
+       - MMMM: Full name of the month (January-December).
+       The month names depend on the selected locale.
+       - d: Day. The number of pattern letters determines the format:
+       - d: Any number (1-31).
+       - dd: Day number with zero padding required (01-31).
+       - ddd: Short name of the day of week (Mon-Sun).
+       - dddd: Full name of the day of week (Monday-Sunday).
+       The weekday names depend on the selected locale.
+       Both day of week and day of month may be included in a single pattern - in
+       such case the day of week is used as a sanity check.
+       - Q: Quarter of year.
+       If only year and quarter are provided in the pattern, when parsing a date,
+       the result will be the first day of that quarter.
     @format make_date_format_selector
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
         format.format_date self
 
-    ## PRIVATE
-       GROUP convert
-       ICON enso_logo
+    ## ---
+       private: true
+       group: convert
+       icon: enso_logo
+       ---
        Convert the value to a corresponding Enso code representation.
 
-       > Example
-         Getting the Enso code of the date 29-October-2024.
+       ## Examples
+       ### Getting the Enso code of the date 29-October-2024.
 
+       ```
              (Date.new 2024 10 29).pretty
-             ## Returns a Text
+       ```
+       Returns a Text
+
                 Date.new 2024 10 29
     pretty : Text
     pretty self = "Date.new " + self.year.to_text + " " + self.month.to_text + " " + self.day.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the default drop down option for Date.
     default_widget (include_today:Boolean=False) display:Display=..When_Modified -> Widget =
         options = [Option "<Fixed Date>" "Date.new"] + (if include_today then [Option "<Today>" "Date.today"] else [])
         Widget.Single_Choice values=options display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
 week_days_between start end =
     ## We split the interval into 3 periods: the first week (containing the
        starting point), the last week (containing the end point), and the full
@@ -871,21 +972,29 @@ week_days_between start end =
             last_week_days = (Time_Utils.days_between start_of_last_week end).min 5
             full_weeks_between * 5 + first_week_days + last_week_days
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_weekend date =
     dow = date.day_of_week
     (dow == Day_Of_Week.Saturday) || (dow == Day_Of_Week.Sunday)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 fits_in_range start end date =
     (start <= date) && (date < end)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Date.from (that:JS_Object) =
     if that.get "type" == "Date" && ["year", "month", "day"].all that.contains_key then Date.new (that.get "year") (that.get "month") (that.get "day") else
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date.from.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private make_day_picker value cache =
     _ = value
     year = cache.if_not_nothing <| cache "year"

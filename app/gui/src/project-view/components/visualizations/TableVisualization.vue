@@ -1,5 +1,4 @@
 <script lang="ts">
-import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
   useTableVizToolbar,
@@ -8,11 +7,13 @@ import {
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { Icon } from '@/util/iconMetadata/iconName'
+import { svgUseHref } from '@/util/icons'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
+  ColumnMovedEvent,
   ColumnVisibleEvent,
   GetContextMenuItems,
   GetContextMenuItemsParams,
@@ -183,7 +184,7 @@ const grid = ref<
 >()
 
 const getSvgTemplate = (icon: Icon) =>
-  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${encodeURI(svgUseHref(icon))}"/> </svg>`
 
 const getContextMenuItems = (
   params: GetContextMenuItemsParams,
@@ -437,8 +438,6 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   }
 }
 
-const attepmtedCalls = ref(0)
-
 function createServer() {
   return {
     getSetFilterValues: async (
@@ -468,15 +467,24 @@ function createServer() {
         `${columnIndex}`,
         //column indexes that require a filter
         filterColumnIndexList as string[] | 'Nothing',
-        //column actions i.e Greater Than, Between...
+        //column actions i.e. Greater Than, Between...
         filterActions as string[] | 'Nothing',
         //values to filter on
         valueList as string[] | 'Nothing',
       )
-      const response = await config.executeExpression(expressionFunction)
-      return {
-        success: true,
-        data: response.value.distinct_vals,
+
+      try {
+        const response = await config.executeExpression(expressionFunction, 2000)
+        return {
+          success: true,
+          data: response.value.distinct_vals,
+        }
+      } catch (error) {
+        console.warn('Error loading filterValues for column.', error)
+        return {
+          success: false,
+          data: [],
+        }
       }
     },
     getData: async (request: IServerSideGetRowsRequest) => {
@@ -509,21 +517,16 @@ function createServer() {
         valueList as string[] | 'Nothing',
       )
 
-      const response = await config.executeExpression(expressionFunction)
-      if (response.ok) {
+      try {
+        const response = await config.executeExpression(expressionFunction)
         filteredRowCount.value = response.value.row_count
         return {
           success: true,
           data: response.value.rows,
           rowCount: response.value.row_count,
         }
-      } else {
-        if (attepmtedCalls.value < 3) {
-          grid.value?.gridApi?.refreshServerSide({ purge: true })
-          attepmtedCalls.value++
-          return
-        }
-        console.error('Error loading rows:', response.error)
+      } catch (error) {
+        console.warn('Error loading rows for table.', error)
         return {
           success: false,
           data: null,
@@ -1117,7 +1120,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
 }
 
-const onColumnStateChange = (e: ColumnVisibleEvent) => {
+const onColumnStateChange = (e: ColumnVisibleEvent | ColumnMovedEvent) => {
   const colState = e.api.getColumnState()
   hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
   const gridColOrder = colState
@@ -1209,7 +1212,8 @@ config.setToolbar(
         :gridIdHash="tableVersionHash"
         :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
-        @columnStateChanged="onColumnStateChange"
+        @columnVisibleChanged="onColumnStateChange"
+        @columnMoved="onColumnStateChange"
       />
     </Suspense>
   </div>

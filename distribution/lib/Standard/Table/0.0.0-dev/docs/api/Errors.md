@@ -142,6 +142,7 @@
     - Error cause:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)=
     - to_display_text self -> Standard.Base.Any.Any
 - type No_Rows
+    - Warning message:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Data.Text.Text
 - type No_Such_Column
     - Error column_name:Standard.Base.Any.Any

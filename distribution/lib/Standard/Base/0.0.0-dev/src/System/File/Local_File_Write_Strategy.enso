@@ -11,25 +11,32 @@ import project.System.File.File_Access.File_Access
 from project.Data.Boolean import True
 from project.System.File.Generic.File_Write_Strategy import default_append, default_overwrite, default_raise_error, File_Write_Strategy
 
-## PRIVATE
+## ---
+   private: true
+   ---
 instance =
     File_Write_Strategy.Value default_overwrite default_append default_raise_error moving_backup create_dry_run_file write_with_local_file copy_local_from_local
 
-## PRIVATE
+## ---
+   private: true
+   ---
 create_dry_run_file file copy_original =
     file.create_dry_run_file copy_original
 
-## PRIVATE
+## ---
+   private: true
+   ---
 copy_local_from_local (source : File) (destination : File) = source.copy_to destination
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A `Backup` strategy that does the following:
    1. If the file does not exist, we write to it.
    2. If the file exists, write to a temporary file.
-     i. If the write fails, do nothing more. The original file is kept intact.
-     ii. If the write succeeds, we move the original file to a backup location,
-         and then move the temporary new file to the target location.
-
+   i. If the write fails, do nothing more. The original file is kept intact.
+   ii. If the write succeeds, we move the original file to a backup location, and
+   then move the temporary new file to the target location.
    This strategy assumes that the `move` operation on a single filesystem is
    cheap (it is a rename), and is optimized for that case.
 moving_backup file action = recover_io_and_not_found <|
@@ -49,7 +56,9 @@ moving_backup file action = recover_io_and_not_found <|
             action output_stream . catch Any dataflow_error->
                 Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 write_file_backing_up_old_one file action = recover_io_and_not_found <|
     parent = file.parent
     bak_file = parent / (file.name+".bak")
@@ -114,27 +123,37 @@ write_file_backing_up_old_one file action = recover_io_and_not_found <|
         if file.is_writable.not then File_Error.access_denied file else
             go 0
 
-## PRIVATE
+## ---
+   private: true
+   ---
 write_with_local_file file existing_file_behavior action =
     _ = [file, existing_file_behavior, action]
     Panic.throw (Illegal_State.Error "`write_requiring_local_file` should not be used with local files, instead the file should be written directly. This is a bug in an implementation of a write strategy.")
 
 type Internal_Write_Operation_Panicked
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Panic (cause : Caught_Panic)
 
 type Internal_Write_Operation_Errored
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error (cause : Any)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 catch_already_exists handler =
     panic_handler caught_panic = case caught_panic.payload of
         File_Error.Already_Exists _ -> handler caught_panic
         _ -> Panic.throw caught_panic
     Panic.catch File_Error handler=panic_handler
 
-## PRIVATE
+## ---
+   private: true
+   ---
 recover_io_and_not_found ~action =
     panic_handler caught_panic = case caught_panic.payload of
         File_Error.IO_Error _ _ -> caught_panic.convert_to_dataflow_error

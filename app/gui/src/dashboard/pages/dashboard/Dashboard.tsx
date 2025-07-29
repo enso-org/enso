@@ -6,7 +6,7 @@ import Page from '#/components/Page'
 import { usePaywall } from '#/hooks/billing'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
-import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
+import { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/Backend'
@@ -23,24 +23,17 @@ import { useLaunchedProjects } from '$/providers/react/container'
 import { usePrefetchQuery } from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
-import type { DashboardProps } from './types'
+
+/** Dashboard properties */
+export interface DashboardProps {
+  readonly projectToOpen?:
+    | { readonly asset: backendModule.ProjectAsset; readonly backend: backendModule.BackendType }
+    | undefined
+}
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
 const AppContainerInner = vueComponent(AppContainerInnerVue).default
-
-/** The component that contains the entire UI. */
-export default function Dashboard(props: DashboardProps) {
-  return (
-    /* Ideally `DriveProvider` would be in `Drive.tsx`, but it currently must be all the way out here
-     * due to modals being in `TheModal`. */
-    <DriveProvider>
-      <CategoriesProvider>
-        <DashboardInner {...props} />
-      </CategoriesProvider>
-    </DriveProvider>
-  )
-}
 
 /** Extract proper path from `file://` URL. */
 function fileURLToPath(url: string): string | null {
@@ -62,7 +55,7 @@ function fileURLToPath(url: string): string | null {
 }
 
 /** The component that contains the entire UI. */
-function DashboardInner(props: DashboardProps) {
+export function Dashboard(props: DashboardProps) {
   const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
@@ -167,20 +160,22 @@ function DashboardInner(props: DashboardProps) {
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   return (
-    <Page hideInfoBar>
-      <div
-        className="flex min-h-full flex-col text-xs text-primary"
-        onContextMenu={(event) => {
-          event.preventDefault()
-          modalProvider.unsetModal()
-        }}
-      >
-        <AppContainerInner
-          onCloseProject={closeProject}
-          onCloseAllProjects={closeAllProjects}
-          isFeatureUnderPaywall={isFeatureUnderPaywall}
-        />
-      </div>
-    </Page>
+    <CategoriesProvider>
+      <Page hideInfoBar>
+        <div
+          className="flex min-h-full flex-col text-xs text-primary"
+          onContextMenu={(event) => {
+            event.preventDefault()
+            modalProvider.unsetModal()
+          }}
+        >
+          <AppContainerInner
+            onCloseProject={closeProject}
+            onCloseAllProjects={closeAllProjects}
+            isFeatureUnderPaywall={isFeatureUnderPaywall}
+          />
+        </div>
+      </Page>
+    </CategoriesProvider>
   )
 }

@@ -1,7 +1,7 @@
 import { test, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
-import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
+import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 // For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
 const EDGE_PARTS = 2
@@ -11,16 +11,16 @@ const SPLIT_EDGE_PARTS = EDGE_PARTS + 1
 test('Existence of edges between nodes', async ({ page }) => {
   await actions.goToGraph(page)
 
-  await expect(await edgesFromNodeWithBinding(page, 'aggregated')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'filtered')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'data')).toHaveCount(4 * EDGE_PARTS)
-  await expect(await edgesFromNodeWithBinding(page, 'list')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'final')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'selected')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'prod')).toHaveCount(EDGE_PARTS)
-  await expect(await edgesFromNodeWithBinding(page, 'sum')).toHaveCount(EDGE_PARTS)
-  await expect(await edgesFromNodeWithBinding(page, 'ten')).toHaveCount(EDGE_PARTS)
-  await expect(await edgesFromNodeWithBinding(page, 'five')).toHaveCount(EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'aggregated')).toHaveCount(0)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'filtered')).toHaveCount(0)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'data')).toHaveCount(4 * EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'list')).toHaveCount(0)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'final')).toHaveCount(0)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'selected')).toHaveCount(0)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'ten')).toHaveCount(EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'five')).toHaveCount(EDGE_PARTS)
 
   await expect(await edgesToNodeWithBinding(page, 'selected')).toHaveCount(EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'aggregated')).toHaveCount(EDGE_PARTS)
@@ -47,7 +47,7 @@ async function initGraph(page: Page) {
 test('Hover behaviour of edges', async ({ page }) => {
   await initGraph(page)
 
-  const edgeElements = await edgesFromNodeWithBinding(page, 'ten')
+  const edgeElements = await connectedEdgesFromNodeWithBinding(page, 'ten')
   await expect(edgeElements).toHaveCount(EDGE_PARTS)
 
   const targetEdge = edgeElements.and(page.locator('.io'))
@@ -60,7 +60,7 @@ test('Hover behaviour of edges', async ({ page }) => {
   })
 
   // Expect an extra edge for the split rendering.
-  const hoveredEdgeElements = await edgesFromNodeWithBinding(page, 'ten')
+  const hoveredEdgeElements = await connectedEdgesFromNodeWithBinding(page, 'ten')
   await expect(hoveredEdgeElements).toHaveCount(SPLIT_EDGE_PARTS)
 
   // Expect the top edge part to be dimmed

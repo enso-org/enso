@@ -102,7 +102,9 @@ export project.Data.Text.Extensions.tokenize
 export project.Data.Text.Extensions.trim
 export project.Data.Text.Extensions.utf_8
 export project.Data.Text.Extensions.words
+export project.Data.Text.Line_Ending_Style.Custom_Line_Ending
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
+export project.Data.Text.Line_Ending_Style.No_Line_Ending
 export project.Data.Text.Location.Location
 export project.Data.Text.Matching_Mode.Matching_Mode
 export project.Data.Text.Normalization.Normalization

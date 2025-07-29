@@ -99,6 +99,11 @@ public class Text_Utils {
     return str.codePoints().toArray();
   }
 
+  /** Returns true if all characters are ASCII, i.e. < 128. */
+  public static boolean is_ascii(String str) {
+    return str.isEmpty() || str.codePoints().allMatch(c -> c < 128);
+  }
+
   /**
    * Splits the string on each occurrence of UTF-8 vertical whitespace, returning the resulting
    * substrings in an array.

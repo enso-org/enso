@@ -528,8 +528,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   >(
     handlers: Partial<
       // This MUST be `void` to allow implicit returns.
-      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-      Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
+      Record<
+        BindingKey | typeof DEFAULT_HANDLER,
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        (event: Event, matchingBindings: Set<BindingKey>) => boolean | void
+      >
     >,
     stopAndPrevent = true,
   ): ((event: Event, stopAndPrevent?: boolean) => boolean) => {
@@ -543,11 +546,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
               PointerButtonFlags(event.buttons)
             : buttonToPointerButtonFlags(event.button)
           ]?.[eventModifierFlags]
-      let handle = handlers[DEFAULT_HANDLER]
       const isTextInputFocused = eventModule.isElementTextInput(document.activeElement)
       const isTextInputEvent =
         'key' in event && (eventModule.isTextInputEvent(event) || event.key === 'Enter')
       const shouldIgnoreEvent = isTextInputFocused && isTextInputEvent
+      let handle = shouldIgnoreEvent ? null : handlers[DEFAULT_HANDLER]
       if (matchingBindings != null && !shouldIgnoreEvent) {
         for (const bindingNameRaw in handlers) {
           // This is SAFE, because `handlers` is an object with identical keys to `T`,
@@ -562,7 +565,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       }
       if (handle == null) {
         return false
-      } else if (handle(event) === false) {
+      } else if (handle(event, matchingBindings ?? new Set()) === false) {
         return false
       } else {
         if (innerStopAndPrevent) {
@@ -592,8 +595,11 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     eventName: EventName,
     handlers: Partial<
       // This MUST be `void` to allow implicit returns.
-      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-      Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
+      Record<
+        BindingKey | typeof DEFAULT_HANDLER,
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        (event: Event, matchingBindings: Set<BindingKey>) => boolean | void
+      >
     >,
     stopAndPrevent = true,
   ) => {

@@ -1,11 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Errors.Common import Type_Error
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Numeric_Input, Vector_Editor
 
 import project.Column.Column
 import project.Data_Formatter.Data_Formatter
@@ -42,6 +46,8 @@ type Fixed_Width_Format
         - `row_limit`: The maximum number of rows to read from the file.
         - `on_invalid_rows`: Specifies how to handle rows that are not short
           enough to cover the columns specified in the layout.
+        - line_endings: Sets the line ending style to use. Line endings
+          are detected from file contents. Defaults to `Infer`.
         - `on_empty_field`: Specifies whether to convert an empty field to
           `Nothing` or the empty string.
         - `value_formatter`: formatter to parse text values into numbers, dates,
@@ -70,7 +76,8 @@ type Fixed_Width_Format
        `Keep_Invalid_Rows`: short lines are added to the table. Columns that are
        missing entirely take on the empty string, and columns that are partially
        covered by the input data take on the partial value.
-    Fixed_Width (layout:(Infer_Layout | Fixed_Width_Layout)=Fixed_Width_Layout.missing_layout_argument) (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (on_empty_field:On_Empty_Field=..As_Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
+    @layout _make_fixed_width_layout_widget
+    Fixed_Width (layout:(Infer_Layout | Fixed_Width_Layout | Vector | Table | Column)=Fixed_Width_Layout.missing_layout_argument) (encoding:Encoding=Encoding.ascii) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (line_endings : Line_Ending_Style | Infer | Custom_Line_Ending | No_Line_Ending = Infer) (on_empty_field:On_Empty_Field=..As_Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
     ## ---
        private: true
@@ -360,3 +367,7 @@ Fixed_Width_Layout.from (that : Function) =
     if is_unapplied_table_input then
         Error.throw (Illegal_Argument.Error "Table has not been populated. A fixed-width column specification must have columns called 'start', 'width', and (optionally) 'name'.")
     Panic.throw (Type_Error.Error Fixed_Width_Layout that "Expected to get a Fixed_Width_Layout or a Table describing it.")
+
+_make_fixed_width_layout_widget display:Display=..When_Modified -> Widget =
+    prepopulated_table = "Table.input [['names', ['column a']], ['starts', ['0']], ['widths', ['10']]]"
+    make_single_choice [["Infer (left justified)", "..Left"], ["Infer (right justified)", "..Right"], ["Table", prepopulated_table ]] display=display

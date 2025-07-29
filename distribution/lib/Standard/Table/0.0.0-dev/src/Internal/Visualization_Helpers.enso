@@ -64,7 +64,15 @@ type Visualization_Helpers
        Used for determining which filters should be used.
     check_distinct_values : Boolean
     check_distinct_values self  =
-        (self.count_distinct_values.if_nothing 0) < 100
+        (self.count_distinct_values.if_nothing 1000) < 100
+
+    ## ---
+       private: true
+       ---
+       Gets the JSON representation of distinct values.
+    distinct_values : Text | Nothing
+    distinct_values self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.DISTINCT_JSON Nothing
 
     ## ---
        private: true
