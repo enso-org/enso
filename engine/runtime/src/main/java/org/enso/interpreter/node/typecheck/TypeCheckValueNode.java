@@ -129,16 +129,23 @@ public final class TypeCheckValueNode extends Node {
       }
     }
     var arr = toArray(collect);
+    var allTypes = comment == null || !comment.startsWith("the result of `");
     if (allowThru) {
       return switch (arr.length) {
         case 0 -> null;
-        default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, allowThru, arr), true);
+        default -> {
+          var checkNode = new AllOfTypesCheckNode(comment, allowThru, arr);
+          yield new TypeCheckValueNode(checkNode, allTypes);
+        }
       };
     } else {
       return switch (arr.length) {
         case 0 -> null;
         case 1 -> new TypeCheckValueNode(arr[0], true);
-        default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, allowThru, arr), true);
+        default -> {
+          var checkNode = new AllOfTypesCheckNode(comment, allowThru, arr);
+          yield new TypeCheckValueNode(checkNode, allTypes);
+        }
       };
     }
   }
