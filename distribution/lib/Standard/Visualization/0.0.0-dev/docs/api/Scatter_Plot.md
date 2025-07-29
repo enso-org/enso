@@ -20,18 +20,14 @@
     - lookup_in self table:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
     - recognized_names -> Standard.Base.Any.Any
-- axis_field -> Standard.Base.Any.Any
 - bound_data bounds:Standard.Base.Any.Any data:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- data_field -> Standard.Base.Any.Any
 - get_axes_field number_of_numeric:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- get_x_value_type table:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- index_name -> Standard.Base.Any.Any
 - json_from_table table:Standard.Base.Any.Any bounds:Standard.Base.Any.Any limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - json_from_vector vec:Standard.Base.Any.Any bounds:Standard.Base.Any.Any limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- label_field -> Standard.Base.Any.Any
 - limit_data limit:Standard.Base.Any.Any data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- numeric_columns table:Standard.Table.Table.Table -> (Standard.Base.Data.Vector.Vector Standard.Table.Column.Column)
 - process_to_json_text value:Standard.Base.Any.Any bounds:Standard.Base.Any.Any= limit:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- x_column table:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Table.Table.axes self all_fields:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- Standard.Table.Table.Table.numeric_column_count self -> Standard.Base.Any.Any
 - Standard.Table.Table.Table.point_data self all_fields:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Vector.Vector.point_data self -> Standard.Base.Any.Any
