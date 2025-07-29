@@ -581,6 +581,19 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     }
   }
 
+  const defineHandlers = <
+    Handlers extends Partial<
+      // This MUST be `void` to allow implicit returns.
+      Record<
+        BindingKey | typeof DEFAULT_HANDLER,
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        (event: Event, matchingBindings: Set<BindingKey>) => boolean | void
+      >
+    >,
+  >(
+    handlers: Handlers,
+  ) => handlers
+
   const attach = <
     EventName extends string,
     Event extends
@@ -642,6 +655,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   const result = {
     /** Return an event handler that handles a native keyboard, mouse or pointer event. */
     handler,
+    defineHandlers,
     /**
      * Attach an event listener to an {@link EventTarget} and return a function to detach the
      * listener.

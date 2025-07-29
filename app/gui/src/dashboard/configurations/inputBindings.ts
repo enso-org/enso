@@ -1,4 +1,5 @@
 /** @file Shortcuts for the dashboard application. */
+import { SETTINGS_TAB_DATA } from '#/layouts/Settings/data'
 import * as inputBindings from '#/utilities/inputBindings'
 import * as detect from 'enso-common/src/detect'
 
@@ -69,8 +70,19 @@ export const BINDINGS = inputBindings.defineBindings({
     rebindable: true,
     icon: 'arrow_right',
   },
-  upgradePlan: { bindings: [], rebindable: true, icon: 'data_upload' },
-  aboutThisApp: { bindings: ['Mod+/'], rebindable: true, icon: 'enso_logo' },
+  upgradePlan: { bindings: [], icon: 'data_upload' },
+  aboutThisApp: { bindings: ['Mod+/'], icon: 'enso_logo' },
   toggleEnsoDevtools: { bindings: [], rebindable: false, icon: 'enso_logo' },
+  goToAccountSettings: { bindings: [], icon: SETTINGS_TAB_DATA.account.icon },
+  goToOrganizationSettings: { bindings: [], icon: SETTINGS_TAB_DATA.organization.icon },
+  goToLocalSettings: { bindings: [], icon: SETTINGS_TAB_DATA.local.icon },
+  goToBillingAndPlansSettings: { bindings: [], icon: SETTINGS_TAB_DATA['billing-and-plans'].icon },
+  goToMembersSettings: { bindings: [], icon: SETTINGS_TAB_DATA.members.icon },
+  goToUserGroupsSettings: { bindings: [], icon: SETTINGS_TAB_DATA['user-groups'].icon },
+  goToKeyboardShortcutsSettings: {
+    bindings: [],
+    icon: SETTINGS_TAB_DATA['keyboard-shortcuts'].icon,
+  },
+  goToActivityLogSettings: { bindings: [], icon: SETTINGS_TAB_DATA['activity-log'].icon },
   copyId: { bindings: [], rebindable: false, icon: 'copy_as_path', color: 'rgb(73 159 75)' },
 })

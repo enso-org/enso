@@ -21,6 +21,7 @@ import {
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useBindGlobalActions } from '#/hooks/menuHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
@@ -108,25 +109,33 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     ]) => await newProjectRaw({ templateName, templateId }, currentDirectoryId),
   })
 
-  const attachEventListeners = useEventCallback(() =>
-    inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(isCloud ?
-        {
-          newFolder: () => {
-            void newFolder(currentDirectoryId)
-          },
-        }
-      : {}),
-      newProject: () => {
-        void newProjectMutation([null, null])
-      },
-      uploadFiles: () => {
-        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
-      },
-    }),
+  const inputBindingHandlers = React.useMemo(
+    () =>
+      inputBindings.defineHandlers({
+        ...(isCloud ?
+          {
+            newFolder: () => {
+              void newFolder(currentDirectoryId)
+            },
+          }
+        : {}),
+        newProject: () => {
+          void newProjectMutation([null, null])
+        },
+        uploadFiles: () => {
+          void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
+        },
+      }),
+    [currentDirectoryId, inputBindings, isCloud, newFolder, newProjectMutation, uploadFiles],
   )
 
-  React.useEffect(() => attachEventListeners(), [attachEventListeners])
+  useBindGlobalActions(inputBindingHandlers)
+
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', inputBindingHandlers),
+    [inputBindingHandlers, inputBindings],
+  )
 
   const newProject = useEventCallback(async () => {
     await newProjectMutation([null, null])

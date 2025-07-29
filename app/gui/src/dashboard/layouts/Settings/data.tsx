@@ -1,11 +1,9 @@
 /** @file Metadata for rendering each settings section. */
-import ComputerIcon from '#/assets/computer.svg'
 import { Button } from '#/components/Button'
 import type { TSchema } from '#/components/Form'
 import type { ComboBoxProps } from '#/components/Inputs/ComboBox'
 import { actionToTextId } from '#/components/MenuEntry'
 import { Text } from '#/components/Text'
-import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
@@ -25,6 +23,7 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import type { GetText } from '$/providers/text'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { getLocalTimeZone, now } from '@internationalized/date'
 import type { QueryClient } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
@@ -319,7 +318,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.local]: {
     nameId: 'localSettingsTab',
     settingsTab: SettingsTabType.local,
-    icon: ComputerIcon,
+    icon: 'system',
     visible: ({ localBackend }) => localBackend != null,
     sections: [
       {
@@ -618,7 +617,7 @@ export interface SettingsSectionData {
 export interface SettingsTabData {
   readonly nameId: TextId & `${string}SettingsTab`
   readonly settingsTab: SettingsTabType
-  readonly icon: SvgUseIcon | (string & {})
+  readonly icon: Icon
   readonly visible?: (context: SettingsContext) => boolean
   readonly organizationOnly?: true
   /**
