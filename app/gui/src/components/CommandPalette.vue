@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { unsetModal } from '#/providers/ModalProvider'
 import * as objects from '#/utilities/object'
 import { useActionsStore } from '$/providers/actions'
 import { useEvent } from '@/composables/events'
@@ -29,6 +30,7 @@ const actionHandlers = registerHandlers({
 watchEffect(() => {
   if (!input.value) return
   if (visible.value) {
+    unsetModal()
     input.value.focus()
   } else {
     input.value.blur()
@@ -55,15 +57,12 @@ const actions = computed(() => findActions(query.value))
     <motion.div
       v-if="visible"
       class="CommandPalette"
+      :initial="{ opacity: 0, y: '-100px' }"
+      :animate="{ opacity: 1, y: '0' }"
       :exit="{ opacity: 0, y: '-100px' }"
       @click.stop="visible = false"
     >
-      <motion.div
-        class="container"
-        :initial="{ x: '-50%', y: 'calc(-50% - 100px)' }"
-        :animate="{ x: '-50%', y: '-50%' }"
-        @click.stop
-      >
+      <div class="container" @click.stop>
         <input ref="input" v-model="query" type="text" placeholder="Search actions..." />
         <div class="scroll-container">
           <ul>
@@ -78,7 +77,7 @@ const actions = computed(() => findActions(query.value))
             <li v-if="!actions.length" class="disabled">No actions found</li>
           </ul>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   </AnimatePresence>
 </template>
@@ -89,18 +88,28 @@ const actions = computed(() => findActions(query.value))
   top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% + 100px);
-  background: rgba(0, 0, 0, 0.25);
+  height: 100%;
   z-index: 2;
   cursor: pointer;
   font-size: 14px;
   color: rgba(0, 0, 0, 0.9);
+  max-height: 100vh;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    top: -100px;
+    height: calc(100% + 200px);
+    background: rgba(0, 0, 0, 0.25);
+  }
 }
 
 .container {
   position: absolute;
   top: 50%;
   left: 50%;
+  transform: translate(-50%, -50%);
   background-color: var(--color-app-bg);
   border-radius: var(--radius-default);
   backdrop-filter: blur(8px);
