@@ -14,6 +14,9 @@ public final class PythonHomeFinder {
     var modPath = getEnsoRuntimeModulePath();
     var componentDir = modPath.getParent();
     var pyHomePath = componentDir.getParent().resolve("python-home");
+    var dirExists = pyHomePath.toFile().exists() && pyHomePath.toFile().isDirectory();
+    assert dirExists
+        : "Python home directory " + pyHomePath + " does not exist or is not a directory.";
     return pyHomePath;
   }
 
@@ -31,9 +34,7 @@ public final class PythonHomeFinder {
             .location()
             .orElseThrow(
                 () ->
-                    new IllegalStateException(
-                        "Module org.enso.runtime does not have a location."));
+                    new IllegalStateException("Module org.enso.runtime does not have a location."));
     return Path.of(loc);
   }
-
 }
