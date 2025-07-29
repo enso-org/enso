@@ -6,9 +6,10 @@
 import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
+import { getFileName } from '#/utilities/fileInfo'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
+import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import { getFileName } from '../../utilities/fileInfo'
 import {
   MissingComponentAction,
   PROJECT_MANAGER_LOADING_FAILED_EVENT,
@@ -221,7 +222,11 @@ export class ProjectManager {
     if (state?.state === backend.ProjectState.opened) {
       this.internalProjects.set(params.projectId, {
         state: state.state,
-        data: { ...state.data, projectName: params.name },
+        data: {
+          ...state.data,
+          projectName: params.name,
+          projectNormalizedName: normalizeName(params.name),
+        },
       })
     }
     // Update `internalDirectories` by listing the project's parent directory, because the new
@@ -382,14 +387,7 @@ export class ProjectManager {
 
   /** Move a file or directory. */
   async moveFile(from: Path, to: Path) {
-    await this.runStandaloneCommand(
-      null,
-      'filesystem-move-from',
-      'json',
-      from,
-      '--filesystem-move-to',
-      to,
-    )
+    await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
   }
 
   /** Delete a file or directory. */

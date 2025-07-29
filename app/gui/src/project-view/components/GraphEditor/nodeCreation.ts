@@ -1,4 +1,5 @@
 import type { Pattern } from '@/util/ast/match'
+import type { Vec2 } from '@/util/data/vec2'
 
 interface AllNodeCreationOptions {
   /**
@@ -14,4 +15,5 @@ interface AllNodeCreationOptions {
 type SupportedNodeContentConfigurations =
   | { commit: false; content: undefined }
   | { commit: true; content: Pattern }
-export type NodeCreationOptions = AllNodeCreationOptions & SupportedNodeContentConfigurations
+export type NodeCreationOptions = AllNodeCreationOptions &
+  SupportedNodeContentConfigurations & { position?: Vec2 }

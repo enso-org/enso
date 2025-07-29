@@ -26,13 +26,8 @@ export function usePaste(category: Category) {
 
   return (options: PasteActionOptions) => {
     const { newParentId, pasteData, fromCategory, toCategory, method } = options
-
     const dropOperation = dropOperationBetweenCategories(fromCategory, toCategory, newParentId)
-
-    if (dropOperation === 'cancel') {
-      return
-    }
-
+    if (dropOperation === 'cancel') return
     return transferBetweenCategories(
       fromCategory,
       toCategory,

@@ -3,122 +3,155 @@ import project.Data.Vector.Vector
 import project.Nothing.Nothing
 
 ## A function is any type that represents a not-yet evaluated computation.
-
-   Methods are represented as functions with dynamic dispatch semantics on
-   the this argument.
+   Methods are represented as functions with dynamic dispatch semantics on the
+   this argument.
 @Builtin_Type
 type Function
 
-    ## ADVANCED
-       GROUP Operators
-       ICON operators
+    ## ---
+       advanced: true
+       group: Operators
+       icon: operators
+       ---
        Applies the function `self` to the provided argument.
 
-       Arguments:
-       - argument: The argument to apply `self` to.
+       ## Arguments
+        - `argument`: The argument to apply `self` to.
 
-       ? Piping Blocks to Functions
-         This construction is particularly useful for passing a block as an argument
-         to a function. This means that you can compute more sophisticated values
-         in-line, as shown in the example below.
+       ## Examples
+       ### Applying a function to a block.
 
-       > Example
-         Applying a function to a block.
-
+       ```
              (x -> x + 1) <|
                 y = 1 ^ 3
                 3 + y
+       ```
+
+       ## Remarks
+
+       ### Piping Blocks to Functions
+       This construction is particularly useful for passing a block as an
+       argument to a function. This means that you can compute more sophisticated
+       values in-line, as shown in the example below.
     <| : Any -> Any
     <| self ~argument = @Builtin_Method "Function.<|"
 
-    ## ADVANCED
-       GROUP Operators
-       ICON operators
+    ## ---
+       advanced: true
+       group: Operators
+       icon: operators
+       ---
        Composes two functions together, for `f << g` creating the function
        composition `f ∘ g` (equivalent to `x -> f (g x)`).
 
-       Arguments:
-       - that: The function to compose with `self`.
+       ## Arguments
+        - `that`: The function to compose with `self`.
 
-       > Example
-         Multiply by 2 and then add 1 as a function applied to 2.
+       ## Examples
+       ### Multiply by 2 and then add 1 as a function applied to 2.
 
+       ```
              (+1 << *2) 2
+       ```
     << : (Any -> Any) -> (Any -> Any)
     << self ~that = x -> self (that x)
 
-    ## ADVANCED
-       GROUP Operators
-       ICON operators
+    ## ---
+       advanced: true
+       group: Operators
+       icon: operators
+       ---
        Composes two functions together in the forward direction, for `f >> g`
-       creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
+       creating the function composition `g ∘ f` (equivalent to `x -> g (f
+       (x))`).
 
-       Arguments:
-       - that: The function to compose with `self`.
+       ## Arguments
+        - `that`: The function to compose with `self`.
 
-       > Example
-         Add one and then multiply by two as a function applied to 2.
+       ## Examples
+       ### Add one and then multiply by two as a function applied to 2.
 
+       ```
              (+1 >> *2) 2
+       ```
     >> : (Any -> Any) -> (Any -> Any)
     >> self ~that = x -> that (self x)
 
-## ICON braces
+## ---
+   icon: braces
+   ---
    An identity function which returns the provided argument.
 
-   Arguments:
-   - x: the value to return.
+   ## Arguments
+    - `x`: the value to return.
 
-   > Example
-     Create a function always returning the provided argument and apply it to 5.
+   ## Examples
+   ### Create a function always returning the provided argument and apply it to 5.
 
+   ```
          five = Function.identity 5
+   ```
 identity : Any -> Any
 identity x = x
 
-## ICON braces
-   Flips the first two arguments of a function. Returns function that
-   takes two arguments, but in opposite order.
+## ---
+   icon: braces
+   ---
+   Flips the first two arguments of a function. Returns function that takes two
+   arguments, but in opposite order.
 
-   Arguments:
-   - f function that takes two arguments
+   ## Arguments
+    - `f`: function that takes two arguments
 
-   > Example
-     Create a function that concatenates two strings in reverse order and print the result.
+   ## Examples
+   ### Create a function that concatenates two strings in reverse order and print the result.
 
+   ```
        # Prints 'helloworld'
        IO.println <| Function.flip (+) "world" "hello"
+   ```
 flip : (Any -> Any -> Any) -> (Any -> Any -> Any)
 flip f = (x -> y -> f y x)
 
-## ICON braces
-   Creates a function which drops its input and returns the provided value instead.
+## ---
+   icon: braces
+   ---
+   Creates a function which drops its input and returns the provided value
+   instead.
    The expression const a is the same as \_ -> a.
 
-   Arguments:
-   - x constant value to return
+   ## Arguments
+    - `x`: constant value to return
 
-   > Example
-
+   ## Examples
+   ### 
+   ```
        IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
+   ```
 const : Any -> Any -> Any
 const x ~f =
     black_hole ~_ = Nothing
     black_hole f
     x
 
-## ICON braces
-   Converts a single-argument function accepting a pair of elements into a multi-argument one.
+## ---
+   icon: braces
+   ---
+   Converts a single-argument function accepting a pair of elements into a
+   multi-argument one.
 
-   Arguments:
-   - f function accepting pair of values
+   ## Arguments
+    - `f`: function accepting pair of values
 curry : (Vector Any -> Any) -> (Any -> Any -> Any)
 curry f = x -> y -> f [x, y]
 
-## ICON braces
-   Converts a multi-argument function into a single-argument one accepting a pair of elements.
+## ---
+   icon: braces
+   ---
+   Converts a multi-argument function into a single-argument one accepting a pair
+   of elements.
 
-   Arguments:
-   - f function accepting multiple arguments
+   ## Arguments
+    - `f`: function accepting multiple arguments
 uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
 uncurry f = (pair -> f pair.first pair.second)

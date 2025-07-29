@@ -208,6 +208,8 @@ export interface User extends UserInfo {
   readonly groups?: readonly UserGroup[]
   /** Whether the user is a member of the Enso team. */
   readonly isEnsoTeamMember: boolean
+  /** Information about any pending invitation to a different organization / team. */
+  readonly invitation?: Invitation
 }
 
 /** A user group related to the current user. */
@@ -1236,7 +1238,8 @@ export interface CreateUserRequestBody {
 
 /** HTTP request body for the "update user" endpoint. */
 export interface UpdateUserRequestBody {
-  readonly username: string | null
+  readonly username?: string
+  readonly organizationId?: OrganizationId
 }
 
 /** HTTP request body for the "change user group" endpoint. */
@@ -1267,6 +1270,7 @@ export interface ListInvitationsResponseBody {
 /** Invitation to join an organization. */
 export interface Invitation {
   readonly organizationId: OrganizationId
+  readonly organizationName: string
   readonly userEmail: EmailAddress
   readonly expireAt: dateTime.Rfc3339DateTime
 }
@@ -1368,8 +1372,17 @@ export interface GoogleCredentialInput {
   readonly scopes: readonly string[]
 }
 
+/** User settings for a Strava credential. */
+export interface StravaCredentialInput {
+  readonly type: 'Strava'
+  readonly scopes: readonly string[]
+}
+
 /** User settings for an arbitrary credential. */
-export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
+export type CredentialInput =
+  | SnowflakeCredentialInput
+  | GoogleCredentialInput
+  | StravaCredentialInput
 
 /** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
 export interface CredentialConfig {

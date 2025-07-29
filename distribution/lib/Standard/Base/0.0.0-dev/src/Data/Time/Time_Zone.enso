@@ -15,99 +15,117 @@ polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import org.enso.base.Time_Utils
 
-## PRIVATE
-   Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
-   from the UTC zone.
-
-   Arguments:
-   - hours: The timezone offset in hours from UTC, from -18 to +18.
-   - minutes: The timezone offset in minutes from the nearest hour, from 0 to
-     ±59. The sign must match that of the hours argument.
-   - seconds: The timezone offset in seconds from the nearest minute, from 0 to
-     ±59. The sign must match that of the minutes argument.
+## ---
+   private: true
+   ---
+   Obtains an instance of `Time_Zone` using an offset in hours, minutes and
+   seconds from the UTC zone.
 
    Recommended to use `Time_Zone.new` instead which provides defaults.
+
+   ## Arguments
+    - `hours`: The timezone offset in hours from UTC, from -18 to +18.
+    - `minutes`: The timezone offset in minutes from the nearest hour, from 0 to
+      ±59. The sign must match that of the hours argument.
+    - `seconds`: The timezone offset in seconds from the nearest minute, from 0
+      to ±59. The sign must match that of the minutes argument.
 new_builtin : Integer -> Integer -> Integer -> Time_Zone
 new_builtin hours minutes seconds = @Builtin_Method "Time_Zone.new_builtin"
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    This method parses the ID producing a `Time_Zone`.
 
-   Arguments:
-   - text: The text representing a zone identifier.
+   Recommended to use `Time_Zone.parse` instead which handles potential
+   exceptions.
 
-   Recommended to use `Time_Zone.parse` instead which handles potential exceptions.
+   ## Arguments
+    - `text`: The text representing a zone identifier.
 parse_builtin : Text -> Time_Zone
 parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
 
 ## A type representing a time zone.
 
-   Arguments:
-   - internal_zone_id: The identifier for the internal zone of the
-     representation.
-
    A time zone can be eiter offset-based like "-06:00" or id-based like
    "Europe/Paris".
+
+   ## Arguments
+    - `internal_zone_id`: The identifier for the internal zone of the
+      representation.
 @Builtin_Type
 type Time_Zone
-    ## ICON time
+    ## ---
+       icon: time
+       ---
        The system default timezone.
 
-       > Example
-         Get the system default timezone.
+       ## Examples
+       ### Get the system default timezone.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_system = Time_Zone.system
+       ```
     system : Time_Zone
     system = @Builtin_Method "Time_Zone.system"
 
-    ## ALIAS current time zone
-       ICON time
-
+    ## ---
+       aliases: [current time zone]
+       icon: time
+       ---
        The system's local timezone.
 
-       > Example
-         Get the system's local timezone.
+       ## Examples
+       ### Get the system's local timezone.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_local = Time_Zone.local
+       ```
     local : Time_Zone
     local = Time_Zone.system
 
-    ## ALIAS utc time zone
-       ICON time
-
+    ## ---
+       aliases: [utc time zone]
+       icon: time
+       ---
        The UTC timezone.
 
-       > Example
-         Get the UTC timezone.
+       ## Examples
+       ### Get the UTC timezone.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_utc = Time_Zone.utc
+       ```
     utc : Time_Zone
     utc = Time_Zone.parse "UTC"
 
-    ## ICON time
-       Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
-       from the UTC zone.
+    ## ---
+       icon: time
+       ---
+       Obtains an instance of `Time_Zone` using an offset in hours, minutes and
+       seconds from the UTC zone.
 
-       Arguments:
-       - hours: The timezone offset in hours from UTC, from -18 to +18.
-       - minutes: The timezone offset in minutes from the nearest hour, from 0 to
-         ±59. The sign must match that of the hours argument.
-       - seconds: The timezone offset in seconds from the nearest minute, from 0 to
-         ±59. The sign must match that of the minutes argument.
+       ## Arguments
+        - `hours`: The timezone offset in hours from UTC, from -18 to +18.
+        - `minutes`: The timezone offset in minutes from the nearest hour, from 0
+          to ±59. The sign must match that of the hours argument.
+        - `seconds`: The timezone offset in seconds from the nearest minute, from
+          0 to ±59. The sign must match that of the minutes argument.
 
-       > Example
-         Get time zone 1 hour 1 minute and 50 seconds from UTC.
+       ## Examples
+       ### Get time zone 1 hour 1 minute and 50 seconds from UTC.
 
+       ```
              from Standard.Base.Time.Time_Zone import Time_Zone
 
              example_new = Time_Zone.new 1 1 50
+       ```
     @hours (Widget.Numeric_Input minimum=-18 maximum=18 display=Display.Always)
     @minutes (Widget.Numeric_Input minimum=-59 maximum=59 display=Display.When_Modified)
     @seconds (Widget.Numeric_Input minimum=-59 maximum=59 display=Display.When_Modified)
@@ -115,108 +133,135 @@ type Time_Zone
     new (hours:Integer = 0) (minutes:Integer = 0) (seconds:Integer = 0) =
         new_builtin hours minutes seconds
 
-    ## ALIAS time zone from text
-       GROUP Conversions
-       ICON convert
-
+    ## ---
+       aliases: [time zone from text]
+       group: Conversions
+       icon: convert
+       ---
        This method parses the ID producing a `Time_Zone`.
 
-       Arguments:
-       - id: The text representing a zone identifier.
+       ## Arguments
+        - `id`: The text representing a zone identifier.
 
-       > Example
-         Get Central European Time.
+       ## Examples
+       ### Get Central European Time.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_parse = Time_Zone.parse "CET"
+       ```
 
-       > Example
-         Get Moscow time.
+       ### Get Moscow time.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_parse = Time_Zone.parse "Europe/Moscow"
+       ```
 
-       > Example
-         Get time zone -06:00.
+       ### Get time zone -06:00.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_parse = Time_Zone.parse "-06:00"
+       ```
 
-       > Example
-         Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+       ### Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_parse = Time_Zone.parse "+03:02:01"
+       ```
     @id (make_single_choice Time_Zone.zone_names Display.Always)
     parse : Text -> Time_Zone ! Time_Error
     parse id:Text =
         Panic.catch JException handler=(catch -> Error.throw (Time_Error.Error catch.payload.getMessage)) <|
             parse_builtin id
 
-    ## GROUP DateTime
-       ICON metadata
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
        Get the unique timezone ID.
 
-       > Example
-         Get the unique identifier for your system's current timezone.
+       ## Examples
+       ### Get the unique identifier for your system's current timezone.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_zone_id = Time_Zone.system.zone_id
+       ```
     zone_id : Text
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
 
-    ## GROUP DateTime
-       ICON metadata
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
        Get the offset in seconds at given date time.
-       Arguments:
-       - at: The date to compute offset at.
+
+       ## Arguments
+        - `at`: The date to compute offset at.
     offset : Date_Time -> Integer
     offset self at = @Builtin_Method "Time_Zone.offset"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a JavaScript Object representing this Time_Zone.
 
-       > Example
-         Convert your system's current timezone to a JS_Object.
+       ## Examples
+       ### Convert your system's current timezone to a JS_Object.
 
+       ```
              from Standard.Base import Time_Zone
 
              example_to_json = Time_Zone.system.to_js_object
+       ```
     to_js_object : JS_Object
     to_js_object self =
         type_pair = ["type", "Time_Zone"]
         cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Time_Zone.
     to_display_text : Text
     to_display_text self = self.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the default drop down option for Time_Zone.
     default_widget display:Display=..When_Modified -> Widget =
         options = [Option "System" "Time_Zone.system", Option "Local" "Time_Zone.local", Option "UTC" "Time_Zone.utc", Option "Named" "(Time_Zone.parse 'UTC')", Option "custom" "(Time_Zone.new 1 0 0)"]
         Widget.Single_Choice values=options display=display
 
-    ## ICON time
+    ## ---
+       icon: time
+       ---
        Gets a list of all the time zone names that are predefined.
     zone_names : Vector Text
     zone_names = Time_Utils.getZoneNames
 
-    ## PRIVATE
-       GROUP convert
-       ICON enso_logo
+    ## ---
+       private: true
+       group: convert
+       icon: enso_logo
+       ---
        Convert the value to a corresponding Enso code representation.
     pretty : Text
     pretty self = "Time_Zone.parse " + self.zone_id.pretty
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Time_Zone.from (that:JS_Object) =
     if that.get "type" == "Time_Zone" && ["id"].all that.contains_key then Time_Zone.parse (that.get "id") else
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Zone.from.")

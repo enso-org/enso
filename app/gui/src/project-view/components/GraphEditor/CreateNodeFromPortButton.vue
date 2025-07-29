@@ -1,21 +1,94 @@
 <script setup lang="ts">
-import { AstId } from 'ydoc-shared/ast'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { usePointer } from '@/composables/events'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
+import type { NodeId } from '@/stores/graph'
+import { Vec2 } from '@/util/data/vec2'
+import { computed, shallowRef } from 'vue'
+import type { AstId } from 'ydoc-shared/ast'
 
-const props = defineProps<{ portId: AstId }>()
+const hovered = defineModel<boolean>('hovered', { default: false })
+
+const { portId, nodeId } = defineProps<{ portId: AstId; nodeId: NodeId }>()
+
+const emit = defineEmits<{
+  newNodeClick: [portId: AstId, position: Vec2]
+}>()
+
+const { graph } = useCurrentProject().storesRefs
+const graphNavigator = injectGraphNavigator()
+
+const nodeRect = computed(() => graph.value?.nodeRects.get(nodeId))
+
+const NODE_RADIUS = 16
+const RADIUS = 10
+const DISPLAY_OFFSET = new Vec2(NODE_RADIUS - RADIUS, NODE_RADIUS - RADIUS)
+
+const OUTPUT_PORT_MAX_WIDTH = 4
+const NODE_VERTICAL_GAP = 5
+const progress = computed(() => graph.value?.nodeOutputAnimations.get(nodeId) ?? 0)
+
+// Offset from the bottom left of the source node, when not being dragged or animated.
+const RESTING_OFFSET = new Vec2(0, 40 + OUTPUT_PORT_MAX_WIDTH + NODE_VERTICAL_GAP)
+
+const referencePoint = computed(
+  () => new Vec2(nodeRect.value?.left ?? 0, nodeRect.value?.bottom ?? 0),
+)
+const restingPosition = computed(() => referencePoint.value.add(RESTING_OFFSET))
+const basePosition = computed(() =>
+  referencePoint.value.add(Vec2.ElementwiseProduct(RESTING_OFFSET, new Vec2(1, progress.value))),
+)
+const dragOffset = shallowRef(Vec2.Zero)
+
+const position = computed(() => basePosition.value.add(dragOffset.value))
+
+const { events } = usePointer((pos, _event, type) => {
+  const sceneOffset = pos.relative.scale(1 / graphNavigator.scale)
+  // We don't distinguish clicks from drags, but snap drags that end near the starting position.
+  dragOffset.value = sceneOffset.lengthSquared() > RADIUS * RADIUS ? sceneOffset : Vec2.Zero
+  if (type === 'stop') {
+    emit('newNodeClick', portId, position.value)
+    dragOffset.value = Vec2.Zero
+  }
+})
+
+graph.value?.showCreateNodeButtonEdge(portId, {
+  // Here we use the position at animation completion, rather than the currently-displayed position;
+  // when displaying on hover, the edge length will be animated by the GraphEdge
+  // `animateFromSourceHover`, which is more efficient since animates by length without recomputing
+  // layout.
+  position: computed(() =>
+    restingPosition.value.add(dragOffset.value).add(new Vec2(NODE_RADIUS, NODE_RADIUS - RADIUS)),
+  ),
+  hovered,
+})
+
+function translate(offset: Vec2) {
+  return `translate(${offset.x}px, ${offset.y}px)`
+}
 </script>
 
 <template>
-  <g class="CreateNodeFromPortButton">
-    <rect :class="{ connection: true }" fill="currentColor"></rect>
-    <g :class="{ plusIcon: true }">
-      <mask :id="`${props.portId}_add_node_clip_path`">
-        <rect class="maskBackground"></rect>
-        <rect class="plusV"></rect>
-        <rect class="plusH"></rect>
-      </mask>
-      <circle :mask="`url(#${props.portId}_add_node_clip_path)`" fill="currentColor"></circle>
-    </g>
-    <rect class="hoverArea"></rect>
+  <g
+    class="CreateNodeFromPortButton clickable"
+    :style="{
+      transform: translate(position.add(DISPLAY_OFFSET)),
+    }"
+    :class="{ hovered }"
+    v-on="events"
+    @pointerenter="hovered = true"
+    @pointerleave="hovered = false"
+  >
+    <mask :id="`${portId}_add_node_clip_path`">
+      <rect class="maskBackground"></rect>
+      <rect class="plusV"></rect>
+      <rect class="plusH"></rect>
+    </mask>
+    <circle
+      :mask="`url(#${portId}_add_node_clip_path)`"
+      fill="currentColor"
+      class="plusButtonCircle"
+    ></circle>
   </g>
 </template>
 
@@ -24,84 +97,43 @@ const props = defineProps<{ portId: AstId }>()
   --radius: 10px;
   --maskSize: calc(var(--radius) * 2);
   --strokeWidth: 2px;
-  --leftOffset: 16px;
-  --topOffset: 40px;
-  --color-dimmed: color-mix(in oklab, var(--color-node-primary) 60%, white 40%);
-  --color: var(--color-node-primary);
+  position: absolute;
+  top: 0;
+  left: 0;
   pointer-events: all;
-}
-
-.connection {
-  --width: 4px;
-  --direct-hover-offset: calc(
-    var(--output-port-hovered-extra-width) * var(--direct-hover-animation)
-  );
-  --output-port-overlap-anim: calc(var(--hover-animation) * var(--output-port-overlap));
-  width: var(--width);
-  height: calc((var(--topOffset) - var(--direct-hover-offset) + 2px) * var(--hover-animation));
-  transform: translate(
-    calc(var(--port-clip-start) * (100% + 1px) + var(--leftOffset) - var(--width) / 2),
-    calc(var(--node-size-y) + var(--direct-hover-offset) - var(--output-port-overlap-anim))
-  );
-  cursor: pointer;
-  color: var(--color-dimmed);
+  color: color-mix(in oklab, var(--color-node-primary) 60%, white 40%);
+  &.hovered {
+    color: var(--color-node-primary);
+  }
   transition: color 0.2s ease;
 }
 
-.hovered * {
-  color: var(--color);
+.maskBackground {
+  fill: white;
+  width: var(--maskSize);
+  height: var(--maskSize);
 }
 
-.plusIcon {
-  transform: translate(
-    calc(var(--port-clip-start) * (100% + 1px) + var(--leftOffset) - var(--radius)),
-    calc(
-      var(--node-size-y) + var(--output-port-max-width) + var(--node-vertical-gap) +
-        var(--topOffset)
-    )
-  );
-  color: var(--color-dimmed);
-  cursor: pointer;
-  & .maskBackground {
-    fill: white;
-    width: var(--maskSize);
-    height: var(--maskSize);
-  }
-  & .plusV {
-    x: calc(var(--maskSize) / 2 - var(--strokeWidth) / 2);
-    y: calc(var(--radius) / 2);
-    width: var(--strokeWidth);
-    height: var(--radius);
-    fill: black;
-  }
-  & .plusH {
-    x: calc(var(--radius) / 2);
-    y: calc(var(--maskSize) / 2 - var(--strokeWidth) / 2);
-    width: var(--radius);
-    height: var(--strokeWidth);
-    fill: black;
-  }
-  & circle {
-    cx: var(--radius);
-    cy: var(--radius);
-    r: calc(var(--radius) * var(--hover-animation));
-    transition: color 0.2s ease;
-  }
+.plusV {
+  x: calc(var(--maskSize) / 2 - var(--strokeWidth) / 2);
+  y: calc(var(--radius) / 2);
+  width: var(--strokeWidth);
+  height: var(--radius);
+  fill: black;
 }
 
-.hoverArea {
-  --margin: 4px;
-  --width: calc(var(--radius) * 2 + var(--margin) * 2);
-  fill: transparent;
-  width: var(--width);
-  height: calc(
-    var(--node-vertical-gap) + var(--output-port-max-width) + var(--margin) * 2 + var(--topOffset) +
-      var(--radius)
-  );
-  transform: translate(
-    calc(var(--port-clip-start) * (100% + 1px) + var(--leftOffset) - var(--width) / 2),
-    calc(var(--node-size-y) + var(--output-port-max-width))
-  );
-  cursor: pointer;
+.plusH {
+  x: calc(var(--radius) / 2);
+  y: calc(var(--maskSize) / 2 - var(--strokeWidth) / 2);
+  width: var(--radius);
+  height: var(--strokeWidth);
+  fill: black;
+}
+
+.plusButtonCircle {
+  cx: var(--radius);
+  cy: var(--radius);
+  /*noinspection CssUnresolvedCustomProperty*/
+  r: calc(var(--radius) * var(--hover-animation));
 }
 </style>

@@ -54,53 +54,58 @@ LocalStorage.registerKey('launchedProjects', {
 export type TabId = 'drive' | 'settings' | EnsoPath
 
 export type ContainerData = ReturnType<typeof useContainerData>
-export const [provideContainerData, useContainerData] = createContextStore('gui-container', () => {
-  const router = useRouter()
-  const route = useRoute()
-  const localStorage = LocalStorage.getInstance()
+export const [provideContainerData, useContainerData] = createContextStore(
+  'gui-container',
+  (fallbackTab: TabId = 'drive') => {
+    const router = useRouter()
+    const route = useRoute()
+    const localStorage = LocalStorage.getInstance()
 
-  const openedProjects = computed(
-    () =>
-      localStorage.get('launchedProjects')?.map((lp) => ({
-        ...lp,
-        shown: computed(() => tab.value === lp.ensoPath),
-      })) ?? [],
-  )
-
-  const isValidTab = (name: string | undefined): name is TabId =>
-    name === 'drive' ||
-    name === 'settings' ||
-    openedProjects.value.find((p) => p.ensoPath === name) != null
-
-  const tab = computed<TabId>({
-    get: () => {
-      const name = normalizeRouteParamToString(route.params.path)
-      return isValidTab(name) ? name : 'drive'
-    },
-    set: (page) => {
-      router.push({ params: { path: page.split('/') }, query: route.query })
-    },
-  })
-
-  const addLaunchedProject = (project: LaunchedProject) => {
-    updateLaunchedProjects((current) => [...current, project])
-  }
-  const removeLaunchedProject = (projectId: LaunchedProjectId) => {
-    updateLaunchedProjects((current) =>
-      current.filter(({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId),
+    const openedProjects = computed(
+      () =>
+        localStorage.get('launchedProjects')?.map((lp) => ({
+          ...lp,
+          shown: computed(() => tab.value === lp.ensoPath),
+        })) ?? [],
     )
-  }
-  const updateLaunchedProjects = (
-    update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[],
-  ) => {
-    localStorage.set('launchedProjects', update(localStorage.get('launchedProjects') ?? []))
-  }
 
-  return proxyRefs({
-    openedProjects,
-    tab,
-    addLaunchedProject,
-    removeLaunchedProject,
-    updateLaunchedProjects,
-  })
-})
+    const isValidTab = (name: string | undefined): name is TabId =>
+      name === 'drive' ||
+      name === 'settings' ||
+      openedProjects.value.find((p) => p.ensoPath === name) != null
+
+    const tab = computed<TabId>({
+      get: () => {
+        const name = normalizeRouteParamToString(route.params.path)
+        return isValidTab(name) ? name : fallbackTab
+      },
+      set: (page) => {
+        router.push({ params: { path: page.split('/') }, query: route.query })
+      },
+    })
+
+    const addLaunchedProject = (project: LaunchedProject) => {
+      updateLaunchedProjects((current) => [...current, project])
+    }
+    const removeLaunchedProject = (projectId: LaunchedProjectId) => {
+      updateLaunchedProjects((current) =>
+        current.filter(
+          ({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId,
+        ),
+      )
+    }
+    const updateLaunchedProjects = (
+      update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[],
+    ) => {
+      localStorage.set('launchedProjects', update(localStorage.get('launchedProjects') ?? []))
+    }
+
+    return proxyRefs({
+      openedProjects,
+      tab,
+      addLaunchedProject,
+      removeLaunchedProject,
+      updateLaunchedProjects,
+    })
+  },
+)

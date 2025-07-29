@@ -73,8 +73,6 @@ export function useMonitorDependencies(
       console.groupEnd()
     }
   }
-  // Unavoidable. The ref must be updated only after logging is complete.
-  // eslint-disable-next-line react-compiler/react-compiler
   oldDependenciesRef.current = dependencies
 }
 /* eslint-enable no-restricted-properties */
@@ -88,7 +86,6 @@ export function useDebugEffect(
 ) {
   useMonitorDependencies(dependencies, description, dependencyDescriptions)
   // Unavoidable as this is a wrapped hook.
-  // eslint-disable-next-line react-compiler/react-compiler
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(effect, dependencies)
 }
@@ -102,7 +99,6 @@ export function useDebugMemo<T>(
 ) {
   useMonitorDependencies(dependencies, description, dependencyDescriptions)
   // Unavoidable as this is a wrapped hook.
-  // eslint-disable-next-line react-compiler/react-compiler
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo<T>(factory, dependencies)
 }
@@ -116,7 +112,6 @@ export function useDebugCallback<T extends (...args: never[]) => unknown>(
 ) {
   useMonitorDependencies(dependencies, description, dependencyDescriptions)
   // Unavoidable as this is a wrapped hook.
-  // eslint-disable-next-line react-compiler/react-compiler
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback<T>(callback, dependencies)
 }

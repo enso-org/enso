@@ -22,30 +22,16 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
   props: SettingsInputProps<T>,
 ) {
   const { context, data } = props
-  const {
-    name,
-    nameId,
-    autoComplete,
-    hidden: hiddenRaw,
-    editable,
-    descriptionId,
-    comboBoxProps,
-    type = 'text',
-  } = data
+  const { name, nameId, autoComplete, hidden: hiddenRaw, editable, descriptionId } = data
   const { getText } = useText()
 
   const isEditable = typeof editable === 'function' ? editable(context) : (editable ?? true)
   const hidden = typeof hiddenRaw === 'function' ? hiddenRaw(context) : (hiddenRaw ?? false)
 
-  switch (type) {
+  switch (data.type) {
     case 'comboBox': {
       const extraProps =
-        typeof comboBoxProps === 'function' ? comboBoxProps(context) : comboBoxProps
-      if (!extraProps) {
-        // eslint-disable-next-line no-restricted-properties
-        console.error('Settings inputs of type `comboBox` MUST be passed `comboBoxProps`.')
-        return null
-      }
+        typeof data.comboBoxProps === 'function' ? data.comboBoxProps(context) : data.comboBoxProps
       return (
         <ComboBox
           name={name}
@@ -59,8 +45,9 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
     }
     case 'email':
     case 'password':
-    case 'text': {
-      const Input = INPUT_TYPE_MAP[type]
+    case 'text':
+    case undefined: {
+      const Input = INPUT_TYPE_MAP[data.type ?? 'text']
 
       return (
         <Input

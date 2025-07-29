@@ -1,5 +1,5 @@
 import { textEditorsBindings } from '@/bindings'
-import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
+import type CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
 import {

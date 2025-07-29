@@ -98,38 +98,29 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   const onDrop = useEventCallback(async (event: aria.DropEvent) => {
     unsetModal()
-
-    if (event.dropOperation === 'cancel') {
-      return
-    }
-
-    const payloadSchema = ASSETS_DATA_TRANSFER_PAYLOAD
-
+    if (event.dropOperation === 'cancel') return
     const payloads = await Promise.all(
       event.items
         .filter((item) => item.kind === 'text')
         .map(async (item) => {
           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-          const parsedPayload = payloadSchema.safeParse(JSON.parse(text))
-
+          const parsedPayload = ASSETS_DATA_TRANSFER_PAYLOAD.safeParse(JSON.parse(text))
           return parsedPayload.success ? parsedPayload.data : null
         }),
-    )
+    ).then((items) => items.filter((payload) => payload != null))
     const firstItem = payloads[0]?.items[0]
 
     const transfer = async () => {
       await Promise.all(
-        payloads
-          .filter((payload) => payload != null)
-          .map((payload) =>
-            transferBetweenCategories(
-              payload.category,
-              category,
-              payload.items,
-              null,
-              event.dropOperation,
-            ),
+        payloads.map((payload) =>
+          transferBetweenCategories(
+            payload.category,
+            category,
+            payload.items,
+            null,
+            event.dropOperation,
           ),
+        ),
       )
     }
 
@@ -142,7 +133,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
               getText('deleteSelectedAssetActionText', firstItem.title)
             : getText(
                 'deleteSelectedAssetsActionText',
-                payloads.flatMap((payload) => payload?.items ?? []).length,
+                payloads.flatMap(({ items }) => items).length,
               )
           }
           onConfirm={transfer}
@@ -166,8 +157,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         return 'cancel'
       }}
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
-      onDrop={onDrop}
-      {...dragDelayProps}
+      {...aria.mergeProps<aria.DropZoneProps>()({ onDrop }, dragDelayProps)}
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
