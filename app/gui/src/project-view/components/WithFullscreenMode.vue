@@ -4,6 +4,7 @@
 import { useFullscreenAnimation } from '@/components/WithFullScreenMode/fullscreenAnimation'
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { useFullscreenRoot } from '@/providers/fullscreenRoot'
+import { providePopoverRoot, usePopoverRoot } from '@/providers/popoverRoot'
 import { computed, useTemplateRef } from 'vue'
 
 export type SavedSize = Keyframe
@@ -55,6 +56,11 @@ const { animating } = useFullscreenAnimation({
   fullscreen,
 })
 const active = computed(() => fullscreen.value || animating.value > 0)
+
+const originalPopoverRoot = usePopoverRoot(true)
+providePopoverRoot(
+  computed(() => (active.value ? fullscreenRoot.value : originalPopoverRoot?.value)),
+)
 
 registerHandlers({
   'panel.fullscreen': {
