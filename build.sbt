@@ -310,6 +310,7 @@ lazy val enso = (project in file("."))
     `process-utils`,
     `profiling-utils`,
     `project-manager`,
+    `python-extract`,
     `refactoring-utils`,
     runtime,
     `runtime-and-langs`,
@@ -717,6 +718,48 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     )
   )
   .dependsOn(editions)
+
+lazy val extractPythonResources = taskKey[Seq[File]](
+  "Extract python resources from the python-resource.jar"
+)
+// Project that extracts python-resources during build time.
+lazy val `python-extract` = project
+  .in(file("lib/java/python-extract"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "org.graalvm.python" % "python-language"  % graalMavenPackagesVersion,
+      "org.graalvm.python" % "python-resources" % graalMavenPackagesVersion
+    ),
+    Compile / run / mainClass := Some("org.enso.pyextract.PythonExtract"),
+    Compile / run / fork := true,
+    extractPythonResources := {
+      val outDir          = target.value / "python-resources"
+      val pyResourcesGlob = (target.value / "python-resources" / "**").toGlob
+      val logger          = streams.value.log
+      val outs            = FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1)
+      val main            = (Compile / run / mainClass).value
+      val classPath       = (Compile / fullClasspath).value
+      val args = Seq(
+        outDir.getPath
+      )
+      val javaRunner = (Compile / run / runner).value
+      if (outs.isEmpty) {
+        javaRunner.run(
+          main.get,
+          classPath.files,
+          args,
+          logger
+        )
+      }
+      FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1.toFile)
+    },
+    clean := {
+      val _      = clean.value
+      val outDir = target.value / "python-resources"
+      IO.delete(outDir)
+    }
+  )
 
 lazy val `akka-native` = project
   .in(file("lib/scala/akka-native"))
@@ -5665,19 +5708,32 @@ ThisBuild / createStdLibsIndexes := {
   createStdLibsIndexes.result.value
 }
 
+lazy val pythonHome = settingKey[File](
+  "Output directory for extracted GraalPy resources."
+)
+
+ThisBuild / pythonHome := {
+  val engineDir = engineDistributionRoot.value
+  engineDir / "python-home"
+}
+
 lazy val createEnginePackageNoIndex =
   taskKey[Unit]("Creates the engine distribution package")
 createEnginePackageNoIndex := {
   updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value
-  val root          = engineDistributionRoot.value
-  val log           = streams.value.log
-  val cacheFactory  = streams.value.cacheStoreFactory
+  val modulesToCopy   = componentModulesPaths.value
+  val root            = engineDistributionRoot.value
+  val pythonResources = (`python-extract` / extractPythonResources).value
+  val pyHome          = (ThisBuild / pythonHome).value
+  val log             = streams.value.log
+  val cacheFactory    = streams.value.cacheStoreFactory
   DistributionPackage.createEnginePackage(
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
     jarModulesToCopy    = modulesToCopy,
+    pythonResources     = pythonResources,
+    pythonHome          = pyHome,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
