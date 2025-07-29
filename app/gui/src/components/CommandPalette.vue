@@ -68,6 +68,7 @@ const actions = computed(() => findActions(query))
       :animate="{ opacity: 1, y: '0' }"
       :exit="{ opacity: 0, y: '-100px' }"
       @click.stop="visible = false"
+      @keydown.enter.stop
     >
       <div class="container" @click.stop>
         <input
