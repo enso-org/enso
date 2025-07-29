@@ -801,19 +801,14 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
-  private def extractAscribedType(
-    comment: String,
-    t: Expression
-  ): TypeCheckValueNode =
-    IrTruffleUtils.extractAscribedType(context, comment, t)
-
   private def checkAsTypes(
     arg: DefinitionArgument
   ): TypeCheckValueNode = {
     val comment = "`" + arg.name.name + "`"
     arg.ascribedType
       .map { t =>
-        TypeCheckValueNode.allTypes(false, extractAscribedType(comment, t))
+        val checkNode = IrTruffleUtils.extractAscribedType(context, comment, t)
+        TypeCheckValueNode.allTypes(false, checkNode)
       }
       .getOrElse(null)
   }
@@ -1182,7 +1177,11 @@ class IrToTruffle(
           processCase(caseExpr, subjectToInstrumentation)
         case asc: Tpe.Ascription =>
           val checkNode =
-            extractAscribedType(asc.comment.orNull, asc.signature)
+            IrTruffleUtils.extractAscribedTypeAll(
+              context,
+              asc.comment.orNull,
+              asc.signature
+            )
           if (checkNode != null) {
             val body = run(asc.typed, binding, subjectToInstrumentation)
             TypeCheckValueNode.wrap(body, checkNode)
@@ -1211,7 +1210,19 @@ class IrToTruffle(
             ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
             val checkNode =
-              extractAscribedType(tpe.comment.orNull, tpe.signature)
+              if (tpe.comment.isDefined) {
+                IrTruffleUtils.extractAscribedType(
+                  context,
+                  tpe.comment.orNull,
+                  tpe.signature
+                )
+              } else {
+                IrTruffleUtils.extractAscribedTypeAll(
+                  context,
+                  null,
+                  tpe.signature
+                )
+              }
             if (checkNode != null) {
               runtimeExpression =
                 TypeCheckValueNode.wrap(runtimeExpression, checkNode)

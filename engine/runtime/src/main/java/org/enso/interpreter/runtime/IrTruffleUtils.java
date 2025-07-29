@@ -9,30 +9,41 @@ import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
 
 final class IrTruffleUtils {
   static TypeCheckValueNode extractAscribedType(EnsoContext ctx, String comment, Expression t) {
-    return new CreateTypeCheckNodes(ctx, comment).extractAscribedType(t);
+    return new CreateTypeCheckNodes(ctx, false, comment).extractAscribedType(t);
+  }
+
+  static TypeCheckValueNode extractAscribedTypeAll(EnsoContext ctx, String comment, Expression t) {
+    var checkNode = new CreateTypeCheckNodes(ctx, true, comment).extractAscribedType(t);
+    return TypeCheckValueNode.allTypes(true, checkNode);
   }
 
   private static class CreateTypeCheckNodes
       extends org.enso.compiler.pass.analyse.types.TypeCheckAlgorithm<
           TypeCheckValueNode, CompilerError> {
     private final EnsoContext ctx;
+    private final boolean allTypes;
     private final String comment;
 
-    private CreateTypeCheckNodes(EnsoContext ctx, String comment) {
+    private CreateTypeCheckNodes(EnsoContext ctx, boolean allTypes, String comment) {
       this.ctx = ctx;
+      this.allTypes = allTypes;
       this.comment = comment;
+      assert !allTypes || comment == null : "allTypes " + allTypes + " with: " + comment;
     }
 
     @Override
     protected TypeCheckValueNode forName(CompilerContext.Module module, String name) {
       var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
       var typ = m.getScope().getType(name, true);
-
       if (typ == ctx.getBuiltins().any()) {
-        return null;
-      } else {
-        return TypeCheckValueNode.single(comment, typ);
+        if (allTypes) {
+          return TypeCheckValueNode.allOf(comment, new TypeCheckValueNode[1]);
+        } else {
+          // no check for Any unless need to discover all types
+          return null;
+        }
       }
+      return TypeCheckValueNode.single(comment, typ);
     }
 
     @Override

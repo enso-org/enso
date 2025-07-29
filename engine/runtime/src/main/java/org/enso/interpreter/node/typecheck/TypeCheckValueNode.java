@@ -131,13 +131,8 @@ public final class TypeCheckValueNode extends Node {
     var arr = toArray(collect);
     var allTypes = comment == null || !comment.startsWith("the result of `");
     if (allowThru) {
-      return switch (arr.length) {
-        case 0 -> null;
-        default -> {
-          var checkNode = new AllOfTypesCheckNode(comment, allowThru, arr);
-          yield new TypeCheckValueNode(checkNode, allTypes);
-        }
-      };
+      var checkNode = new AllOfTypesCheckNode(comment, allowThru, arr);
+      return new TypeCheckValueNode(checkNode, allTypes);
     } else {
       return switch (arr.length) {
         case 0 -> null;

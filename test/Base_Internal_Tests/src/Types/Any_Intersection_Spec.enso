@@ -133,7 +133,7 @@ add_specs suite_builder =
 
             type_name r1 . should_equal "A & C & ~B"
             type_name r2 . should_equal "A & C & ~B"
-            type_name r3 . should_equal "A & C & ~B" # wrong, should unhide to "A & C & B"
+            type_name r3 . should_equal "A & C & B"
             type_name r4 . should_equal "A & C & ~B"
 
 main filter=Nothing =

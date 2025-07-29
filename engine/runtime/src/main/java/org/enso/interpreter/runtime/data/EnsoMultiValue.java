@@ -129,7 +129,7 @@ public final class EnsoMultiValue extends EnsoObject {
     @NeverDefault
     @TruffleBoundary
     public final EnsoMultiValue renewMulti(
-        EnsoMultiValue original, Type[] dispatchTypes, boolean allowThru) {
+        EnsoMultiValue original, Type[] dispatchTypes, boolean allowThru, boolean allTypesThru) {
       var allTypes = original.allTypes(true, AllTypesWith.getUncached());
       var allValues = original.values.clone();
       var extraCount = 0;
@@ -154,7 +154,8 @@ public final class EnsoMultiValue extends EnsoObject {
       assert extraCount == dispatchTypes.length : "All types found";
       assert dispatchTypesCount >= extraCount;
       assert dispatchTypesCount <= allTypes.length;
-      var newDispatchTypesCount = allowThru ? dispatchTypesCount : extraCount;
+      var newDispatchTypesCount =
+          allowThru ? (allTypesThru ? allTypes.length : dispatchTypesCount) : extraCount;
       var dt = executeTypes(allTypes, 0, newDispatchTypesCount);
       var et = executeTypes(allTypes, newDispatchTypesCount, allTypes.length);
       assert !dt.hasIntersectionWith(et)
