@@ -423,9 +423,20 @@ lazy val componentModulesPaths =
       "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
       "com.ibm.icu"            % "icu4j"                        % icuVersion
     )
+  val modsToExclude = Seq(
+    "org.graalvm.python" % "python-resources" % Dependencies.graalMavenPackagesVersion
+  )
+  val reducedThirdPartyModIds = thirdPartyModIds.filterNot { modId =>
+    modsToExclude.exists { excludedMod =>
+      modId.organization == excludedMod.organization &&
+      modId.name == excludedMod.name &&
+      modId.revision == excludedMod.revision
+    }
+  }
+
   val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
-    thirdPartyModIds,
+    reducedThirdPartyModIds,
     log,
     projName = moduleName.value,
     scalaBinaryVersion.value,
