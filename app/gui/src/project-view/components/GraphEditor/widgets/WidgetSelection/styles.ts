@@ -8,7 +8,7 @@ import {
   type OffsetOptions,
   type SizeOptions,
 } from '@floating-ui/vue'
-import { computed, toValue, type Ref } from 'vue'
+import { computed, type Ref } from 'vue'
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
@@ -59,10 +59,7 @@ function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement?: Ref<
     offset(offsetSubmenu(isTopLevel)),
     size(sizeOptions(limitWidth)),
     // Try to keep the dropdown within node's bounds.
-    shift(() => {
-      const root = toValue(rootElement)
-      return root && isTopLevel ? { boundary: root } : {}
-    }),
+    shift(() => (rootElement?.value && isTopLevel ? { boundary: rootElement.value } : {})),
     shift(), // Always keep within screen bounds, overriding node bounds.
   ])
 }
