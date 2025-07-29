@@ -7,6 +7,7 @@ import { isIdentifier, moduleMethodNames } from '@/util/ast/abstract'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
+import { frontmatter } from '../ComponentHelp/metadata'
 
 // === Types ===
 
@@ -227,7 +228,7 @@ export function performCollapseImpl(
   collapsedBody.push(outputAst)
   const collapsedFunction = Ast.FunctionDef.new(collapsedName, info.args, collapsedBody, {
     edit,
-    documentation: 'ICON group',
+    documentation: frontmatter({ icon: 'group' }) + 'Documentation can be added here.',
   })
   topLevel.insert(currentMethodLine, collapsedFunction, undefined)
 
