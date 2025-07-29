@@ -132,9 +132,10 @@ class RuntimeInstrumentTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER_BUILTIN),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -181,9 +182,10 @@ class RuntimeInstrumentTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, mainBody, ConstantsGen.TEXT_BUILTIN),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -236,7 +238,7 @@ class RuntimeInstrumentTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -244,6 +246,7 @@ class RuntimeInstrumentTest
         fooTypeName,
         Api.MethodCall(Api.MethodPointer(moduleName, fooTypeName, "from"))
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }

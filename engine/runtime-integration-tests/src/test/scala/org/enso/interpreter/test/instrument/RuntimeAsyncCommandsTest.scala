@@ -641,7 +641,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // recompute
-    val responses = context.receiveN(
+    val responses = context.receiveNIgnoreExpressionUpdates(
       3
     )
     responses should contain theSameElementsAs Seq(
