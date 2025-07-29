@@ -1,3 +1,5 @@
+import { unsafeEntries } from '#/utilities/object'
+import { useActionsStore } from '$/providers/actions'
 import {
   appBindings,
   appContainerBindings,
@@ -15,7 +17,7 @@ import { Icon } from '@/util/iconMetadata/iconName'
 import { type ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
 import { identity } from '@vueuse/core'
-import { type Ref, ref } from 'vue'
+import { computed, onUnmounted, type Ref, ref, toValue } from 'vue'
 import { type ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
@@ -426,6 +428,23 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
     } as (typeof newActions)[typeof action]
   }
   provideActions(newActions)
+
+  const { bindGlobalActions } = useActionsStore()
+  const newActionsRef = computed(() =>
+    unsafeEntries(handlers).flatMap(([, handler]) => {
+      if (handler?.description == null) return []
+      return [
+        {
+          name: toValue(handler.description),
+          doAction: () => handler.action(undefined),
+          icon: toValue(handler.icon),
+        },
+      ]
+    }),
+  )
+  const unbindGlobalActions = bindGlobalActions(newActionsRef)
+  onUnmounted(unbindGlobalActions)
+
   return newActions as Actions & Handlers
 }
 

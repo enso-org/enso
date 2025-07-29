@@ -2,6 +2,7 @@
 import { unsetModal } from '#/providers/ModalProvider'
 import * as objects from '#/utilities/object'
 import { useActionsStore, type Action } from '$/providers/actions'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import { AnimatePresence, motion } from 'motion-v'
@@ -80,7 +81,11 @@ const actions = computed(() => findActions(query))
           <ul>
             <li v-for="(action, i) in actions" :key="i">
               <!-- eslint-disable vue/no-v-html -->
-              <button @click="trigger(action)" v-html="action.highlighted.name"></button>
+              <button @click="trigger(action)">
+                <SvgIcon v-if="action.icon" :name="action.icon" class="icon" />
+                <span v-else class="icon-placeholder"></span>
+                <span v-html="action.highlighted.name"></span>
+              </button>
               <!-- eslint-enable -->
             </li>
             <li v-if="!actions.length" class="disabled">No actions found</li>
@@ -101,7 +106,7 @@ const actions = computed(() => findActions(query))
   z-index: 2;
   cursor: pointer;
   font-size: 14px;
-  color: rgba(0, 0, 0, 0.9);
+  color: var(--color-text);
   max-height: 100vh;
 
   &::before {
@@ -110,7 +115,7 @@ const actions = computed(() => findActions(query))
     inset: 0;
     top: -100px;
     height: calc(100% + 200px);
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--color-dim);
   }
 }
 
@@ -143,6 +148,22 @@ input {
   margin: 0 -1em;
   padding: 0 2em 0.5em 2em;
   border-bottom: 0.1px solid rgb(0 0 0 / 0.2);
+}
+
+button {
+  display: flex;
+  gap: 0.75em;
+  align-items: center;
+}
+
+.icon,
+.icon-placeholder {
+  display: inline-block;
+  color: var(--color-text);
+}
+
+.icon-placeholder {
+  width: 1em;
 }
 
 li {

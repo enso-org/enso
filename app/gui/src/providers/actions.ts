@@ -1,3 +1,4 @@
+import { Icon } from '@/util/iconMetadata/iconName'
 import { createGlobalState } from '@vueuse/core'
 import { go } from 'fuzzysort'
 import { MaybeRef, ref, Ref, toValue } from 'vue'
@@ -7,6 +8,8 @@ export interface Action {
   name: string
   /** The function to execute when the action is triggered. */
   doAction: () => void
+  /** The icon associated with the action, if any. */
+  icon: Icon | undefined
 }
 
 export interface ActionWithHighlight extends Action {

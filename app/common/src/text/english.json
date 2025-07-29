@@ -821,7 +821,7 @@
   "rootFolderColumnName": "Root folder",
   "pathColumnName": "Location",
   "hideDevtools": "Hide Devtools",
-  "ensoDevtoolsShortcut": "Enso Devtools",
+  "toggleEnsoDevtoolsShortcut": "Toggle Enso Devtools",
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",
   "openShortcut": "Open",

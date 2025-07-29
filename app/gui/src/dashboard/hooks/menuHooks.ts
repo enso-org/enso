@@ -6,6 +6,7 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import type { Action } from '$/providers/actions'
 import { useActionsStore, useText } from '$/providers/react'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { useEffect, useRef, useState } from 'react'
 import { ref } from 'vue'
 
@@ -15,6 +16,7 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
   const bindingFocusScope = useBindingFocusScope()
   const { getText } = useText()
   const { bindGlobalActions } = useActionsStore()
+
   const entriesByActionRef = useRef<Partial<Record<DashboardBindingKey, MenuEntryProps>>>({})
   const [actionsRef] = useState(() => ref<Action[]>([]))
 
@@ -32,10 +34,12 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
         {
           name: getText(actionToTextId(entry.action)),
           doAction: entry.doAction,
+          // eslint-disable-next-line no-restricted-syntax
+          icon: (entry.icon ?? inputBindings.metadata[entry.action].icon) as Icon | undefined,
         },
       ]
     })
-  }, [actionsRef, bindGlobalActions, entries, getText])
+  }, [actionsRef, bindGlobalActions, entries, getText, inputBindings.metadata])
 
   useEffect(() => bindGlobalActions(actionsRef), [actionsRef, bindGlobalActions])
 

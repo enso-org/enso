@@ -71,6 +71,6 @@ export const BINDINGS = inputBindings.defineBindings({
   },
   upgradePlan: { bindings: [], rebindable: true, icon: 'data_upload' },
   aboutThisApp: { bindings: ['Mod+/'], rebindable: true, icon: 'enso_logo' },
-  ensoDevtools: { bindings: [], rebindable: false, icon: 'enso_logo' },
+  toggleEnsoDevtools: { bindings: [], rebindable: false, icon: 'enso_logo' },
   copyId: { bindings: [], rebindable: false, icon: 'copy_as_path', color: 'rgb(73 159 75)' },
 })
