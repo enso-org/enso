@@ -1,5 +1,6 @@
 import { createGlobalState } from '@vueuse/core'
 import { go } from 'fuzzysort'
+import { MaybeRef, ref, Ref, toValue } from 'vue'
 
 export interface Action {
   /** The name of the action. */
@@ -22,32 +23,30 @@ export type ActionsNamespace = Record<string, Action>
 /** The interface exposed by {@link createActionsStore}. */
 export interface ActionsStore extends ReturnType<typeof createActionsStore> {}
 
-function createActionsStore() {
-  const actions = new Set<ActionsNamespace>()
+type ActionsNamespaceRef = Ref<Action[] | ActionsNamespace>
 
-  const bindGlobalActions = (newActions: Action[] | ActionsNamespace) => {
-    const newActionsNamespace = (() => {
-      if (Array.isArray(newActions)) {
-        const namespace: ActionsNamespace = {}
-        for (const action of newActions) {
-          namespace[action.name] = action
-        }
-        return namespace
-      }
-      return newActions
-    })()
-    actions.add(newActionsNamespace)
+function createActionsStore() {
+  const actions = ref(new Set<ActionsNamespaceRef>())
+
+  const bindGlobalActions = (newActionsNamespace: ActionsNamespaceRef) => {
+    actions.value.add(newActionsNamespace)
 
     return () => {
-      actions.delete(newActionsNamespace)
+      actions.value.delete(newActionsNamespace)
     }
   }
 
-  const findActions = (query: string): readonly ActionWithHighlight[] => {
+  const findActions = (query: MaybeRef<string>): readonly ActionWithHighlight[] => {
+    const queryValue = toValue(query)
     const matches = go(
-      query,
-      [...actions].flatMap((namespace) => Object.values(namespace)),
-      { keys: ['name'], all: true },
+      queryValue,
+      [...actions.value].flatMap((ref) =>
+        Array.isArray(ref.value) ? ref.value : Object.values(ref.value),
+      ),
+      {
+        keys: ['name'],
+        all: true,
+      },
     )
     return matches.map((match) => ({
       ...match.obj,

@@ -4,8 +4,10 @@ import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useBindingFocusScope } from '#/providers/BindingFocusScopeProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
+import type { Action } from '$/providers/actions'
 import { useActionsStore, useText } from '$/providers/react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { ref } from 'vue'
 
 /** A hook to provide an input handler. */
 export function useMenuEntries(entries: readonly (MenuEntryProps | false | null | undefined)[]) {
@@ -14,6 +16,7 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
   const { getText } = useText()
   const { bindGlobalActions } = useActionsStore()
   const entriesByActionRef = useRef<Partial<Record<DashboardBindingKey, MenuEntryProps>>>({})
+  const [actionsRef] = useState(() => ref<Action[]>([]))
 
   useEffect(() => {
     for (const entry of entries) {
@@ -22,21 +25,19 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
     }
   })
 
-  useEffect(
-    () =>
-      bindGlobalActions(
-        entries.flatMap((entry) => {
-          if (entry == null || entry === false || entry.isDisabled === true) return []
-          return [
-            {
-              name: getText(actionToTextId(entry.action)),
-              doAction: entry.doAction,
-            },
-          ]
-        }),
-      ),
-    [bindGlobalActions, entries, getText],
-  )
+  useEffect(() => {
+    actionsRef.value = entries.flatMap((entry) => {
+      if (entry == null || entry === false || entry.isDisabled === true) return []
+      return [
+        {
+          name: getText(actionToTextId(entry.action)),
+          doAction: entry.doAction,
+        },
+      ]
+    })
+  }, [actionsRef, bindGlobalActions, entries, getText])
+
+  useEffect(() => bindGlobalActions(actionsRef), [actionsRef, bindGlobalActions])
 
   useEffect(
     () =>
