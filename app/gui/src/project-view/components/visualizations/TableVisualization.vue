@@ -833,35 +833,43 @@ function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
 }
 
 watchEffect(() => {
+  try {
+    refresh()
+  } catch (error) {
+    console.warn('Error refreshing table.', error)
+  }
+})
+
+const DEFAULT_DATA = {
+  type: typeof props.data,
+  json: props.data,
+  // eslint-disable-next-line camelcase
+  all_rows_count: 1,
+  data: undefined,
+  header: undefined,
+  // eslint-disable-next-line camelcase
+  value_type: undefined,
+  // eslint-disable-next-line camelcase
+  has_index_col: false,
+  links: undefined,
+  // eslint-disable-next-line camelcase
+  get_child_node_action: '',
+  // eslint-disable-next-line camelcase
+  get_child_node_link_name: undefined,
+  // eslint-disable-next-line camelcase
+  child_label: undefined,
+  // eslint-disable-next-line camelcase
+  visualization_header: undefined,
+  // eslint-disable-next-line camelcase
+  is_using_server_sort_and_filter: undefined,
+  // eslint-disable-next-line camelcase
+  requires_number_format: undefined,
+}
+
+// Update state computed from the input `data`.
+function refresh() {
   // If the user switches from one visualization type to another, we can receive the raw object.
-  const data_ =
-    typeof props.data === 'object' ?
-      props.data
-    : {
-        type: typeof props.data,
-        json: props.data,
-        // eslint-disable-next-line camelcase
-        all_rows_count: 1,
-        data: undefined,
-        header: undefined,
-        // eslint-disable-next-line camelcase
-        value_type: undefined,
-        // eslint-disable-next-line camelcase
-        has_index_col: false,
-        links: undefined,
-        // eslint-disable-next-line camelcase
-        get_child_node_action: '',
-        // eslint-disable-next-line camelcase
-        get_child_node_link_name: undefined,
-        // eslint-disable-next-line camelcase
-        child_label: undefined,
-        // eslint-disable-next-line camelcase
-        visualization_header: undefined,
-        // eslint-disable-next-line camelcase
-        is_using_server_sort_and_filter: undefined,
-        // eslint-disable-next-line camelcase
-        requires_number_format: undefined,
-      }
+  const data_ = typeof props.data === 'object' ? props.data : DEFAULT_DATA
   if (isError(data_)) {
     columnDefs.value = [
       {
@@ -1013,7 +1021,7 @@ watchEffect(() => {
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   defaultColDef.value.filter = !isTruncated.value
   defaultColDef.value.sortable = !isTruncated.value
-})
+}
 
 const colTypeMap = computed(() => {
   const colMap: Map<string, string> = new Map()
