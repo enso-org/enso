@@ -4176,7 +4176,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion,
       "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion,
       "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion,
-      "org.slf4j"            % "slf4j-nop"                % slf4jVersion
+      "org.slf4j"            % "slf4j-nop"                % slf4jVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion % "provided"
     ),
     commands += WithDebugCommand.withDebug
   )
