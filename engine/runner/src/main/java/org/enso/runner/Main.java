@@ -32,6 +32,7 @@ import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
+import org.enso.common.PythonHomeFinder;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
@@ -776,6 +777,7 @@ public class Main {
 
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
+    var pythonHome = PythonHomeFinder.findPythonHome();
 
     var factory =
         ContextFactory.create()
@@ -784,6 +786,7 @@ public class Main {
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
+            .pythonHome(pythonHome.toString())
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)

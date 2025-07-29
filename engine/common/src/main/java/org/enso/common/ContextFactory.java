@@ -3,6 +3,7 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Handler;
@@ -51,6 +52,7 @@ public final class ContextFactory {
   private boolean enableAutoParallelism;
   private String executionEnvironment;
   private String checkForWarnings;
+  private String pythonHome;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = new HashMap<>();
   private String runtimerServerKey;
@@ -168,6 +170,11 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory pythonHome(String pythonHome) {
+    this.pythonHome = pythonHome;
+    return this;
+  }
+
   public ContextFactory enableDebugServer(boolean b) {
     this.enableDebugServer = b;
     return this;
@@ -186,6 +193,12 @@ public final class ContextFactory {
         engineOptions = new java.util.HashMap<>();
         engineOptions.put(runtimerServerKey, "true");
       }
+    }
+    if (pythonHome != null) {
+      options.put("python.PythonHome", pythonHome);
+      var pyHomeFile = Path.of(pythonHome).toFile();
+      System.out.printf(
+          "[ContextFactory] Python home '%s' file exists: %b%n", pythonHome, pyHomeFile.exists());
     }
     var builder =
         Context.newBuilder()
