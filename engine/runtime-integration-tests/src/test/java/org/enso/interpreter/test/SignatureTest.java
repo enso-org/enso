@@ -1570,7 +1570,7 @@ public class SignatureTest {
   public void intersectionWithAnyDoesNotRevealHidden() {
     var code =
         """
-        from Standard.Base import Any
+        from Standard.Base import Any, Panic
 
         type A
             A_Ctor a
@@ -1589,14 +1589,22 @@ public class SignatureTest {
             B.B_Ctor v
         just_a_visible v -> A = both v
 
-        a_with x -> A & Any = x
-        b_with x -> B & Any = x
+        a_with x -> A & Any =
+          x
+        a_unhide x -> A & Any =
+          x:(A & Any)
+        b_with x -> B & Any =
+          x
+        b_unhide x -> B & Any =
+          x:(B & Any)
 
         private tripple value =
             v = just_a_visible value
-            a = a_with v
-            b = b_with v
-            [v, a, b]
+            a = Panic.recover Any <| a_with v
+            au = Panic.recover Any <| a_unhide v
+            b = Panic.recover Any <| b_with v
+            bu = Panic.recover Any <| b_unhide v
+            [v, a, b, au, bu]
 
         main = tripple
         """;
@@ -1607,11 +1615,13 @@ public class SignatureTest {
 
     var res = tripple.execute(42);
     assertTrue("It an array", res.hasArrayElements());
-    assertEquals(3, res.getArraySize());
+    assertEquals(5, res.getArraySize());
 
     var v = res.getArrayElement(0);
     var a = res.getArrayElement(1);
     var b = res.getArrayElement(2);
+    var au = res.getArrayElement(3);
+    var bu = res.getArrayElement(4);
 
     assertEquals("YesA", v.invokeMember("i_am_a").asString());
     try {
@@ -1632,8 +1642,13 @@ public class SignatureTest {
       assertContains("i_am_b", ex.getMessage());
     }
 
-    assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
-    assertEquals("B is unhidden", "YesB", b.invokeMember("i_am_b").asString());
+    assertEquals("YesA", au.invokeMember("i_am_a").asString());
+    assertEquals("Explicit x:(A & Any) reveals also hidden B", "YesB", au.invokeMember("i_am_b").asString());
+
+    assertTrue("Cannot reveal hidden B by -> check", b.isException());
+
+    assertEquals("B & Any keeps also A", "YesA", bu.invokeMember("i_am_a").asString());
+    assertEquals("B is unhidden", "YesB", bu.invokeMember("i_am_b").asString());
   }
 
   @Test
