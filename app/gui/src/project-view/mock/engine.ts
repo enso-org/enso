@@ -34,13 +34,12 @@ const standardBase = 'Standard.Base' as QualifiedName
 
 function placeholderGroups(): LibraryComponentGroup[] {
   return [
-    { color: '#4D9A29', name: 'Input', library: standardBase, exports: [] },
+    { color: '#4D9A29', name: 'File', library: standardBase, exports: [] },
     { color: '#B37923', name: 'Web', library: standardBase, exports: [] },
-    { color: '#9735B9', name: 'Parse', library: standardBase, exports: [] },
-    { color: '#4D9A29', name: 'Select', library: standardBase, exports: [] },
-    { color: '#B37923', name: 'Join', library: standardBase, exports: [] },
-    { color: '#9735B9', name: 'Transform', library: standardBase, exports: [] },
-    { color: '#4D9A29', name: 'Output', library: standardBase, exports: [] },
+    { color: '#9735B9', name: 'DateTime', library: standardBase, exports: [] },
+    { color: '#4D9A29', name: 'Metadata', library: standardBase, exports: [] },
+    { color: '#B37923', name: 'Constants', library: standardBase, exports: [] },
+    { color: '#9735B9', name: 'Conversions', library: standardBase, exports: [] },
   ]
 }
 
