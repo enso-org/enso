@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.enso.common.CompilationStage;
 import org.enso.compiler.common.MethodResolutionAlgorithm;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -33,7 +34,7 @@ public final class ModuleScope extends EnsoObject {
    * First key is target type, second key is source type. The value is the conversion function from
    * source to target.
    */
-  private final Map<Type, Map<Type, Function>> conversions;
+  private final Map<Type, Map<Type, Supplier<Function>>> conversions;
 
   private final Set<ImportExportScope> imports;
   private final Set<ImportExportScope> exports;
@@ -50,7 +51,7 @@ public final class ModuleScope extends EnsoObject {
       Map<String, Supplier<TruffleObject>> polyglotSymbols,
       Map<String, Type> types,
       Map<Type, Map<String, Supplier<Function>>> methods,
-      Map<Type, Map<Type, Function>> conversions,
+      Map<Type, Map<Type, Supplier<Function>>> conversions,
       Set<ImportExportScope> imports,
       Set<ImportExportScope> exports) {
     this.module = module;
@@ -90,13 +91,13 @@ public final class ModuleScope extends EnsoObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    return methodResolutionAlgorithm.lookupMethodDefinition(this, type, name);
+    assert getModule().getCompilationStage().isAtLeast(CompilationStage.AFTER_CODEGEN);
+    return RuntimeMethodResolution.INSTANCE.lookupMethodDefinition(this, type, name);
   }
-
-  private final RuntimeMethodResolution methodResolutionAlgorithm = new RuntimeMethodResolution();
 
   private static final class RuntimeMethodResolution
       extends MethodResolutionAlgorithm<Function, Type, ImportExportScope, ModuleScope> {
+    private static final RuntimeMethodResolution INSTANCE = new RuntimeMethodResolution();
 
     @Override
     protected Collection<ImportExportScope> getImportsFromModuleScope(ModuleScope moduleScope) {
@@ -181,15 +182,16 @@ public final class ModuleScope extends EnsoObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupConversionDefinition(Type source, Type target) {
-    return methodResolutionAlgorithm.lookupConversionDefinition(this, source, target);
+    assert getModule().getCompilationStage().isAtLeast(CompilationStage.AFTER_CODEGEN);
+    return RuntimeMethodResolution.INSTANCE.lookupConversionDefinition(this, source, target);
   }
 
   Function getExportedMethod(Type type, String name) {
-    return methodResolutionAlgorithm.getExportedMethod(this, type, name);
+    return RuntimeMethodResolution.INSTANCE.getExportedMethod(this, type, name);
   }
 
   Function getExportedConversion(Type target, Type source) {
-    return methodResolutionAlgorithm.getExportedConversion(this, target, source);
+    return RuntimeMethodResolution.INSTANCE.getExportedConversion(this, target, source);
   }
 
   public List<Type> getAllTypes(String name) {
@@ -263,8 +265,8 @@ public final class ModuleScope extends EnsoObject {
     if (conversionsOnType == null) {
       return null;
     }
-
-    return conversionsOnType.get(source);
+    var supply = conversionsOnType.get(source);
+    return supply == null ? null : supply.get();
   }
 
   /**
@@ -283,6 +285,7 @@ public final class ModuleScope extends EnsoObject {
   public List<Function> getConversions() {
     return conversions.values().stream()
         .flatMap(e -> e.values().stream())
+        .map(s -> s.get())
         .collect(Collectors.toList());
   }
 
@@ -332,7 +335,7 @@ public final class ModuleScope extends EnsoObject {
     private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
     private final Map<String, Type> types;
     private final Map<Type, Map<String, Supplier<Function>>> methods;
-    private final Map<Type, Map<Type, Function>> conversions;
+    private final Map<Type, Map<Type, Supplier<Function>>> conversions;
     private final Set<ImportExportScope> imports;
     private final Set<ImportExportScope> exports;
 
@@ -364,7 +367,7 @@ public final class ModuleScope extends EnsoObject {
         Map<String, Supplier<TruffleObject>> polyglotSymbols,
         Map<String, Type> types,
         Map<Type, Map<String, Supplier<Function>>> methods,
-        Map<Type, Map<Type, Function>> conversions,
+        Map<Type, Map<Type, Supplier<Function>>> conversions,
         Set<ImportExportScope> imports,
         Set<ImportExportScope> exports) {
       this.module = module;
@@ -442,12 +445,16 @@ public final class ModuleScope extends EnsoObject {
      * @param function the {@link Function} associated with this definition
      */
     public void registerConversionMethod(Type toType, Type fromType, Function function) {
+      registerConversionMethod(toType, fromType, () -> function);
+    }
+
+    public void registerConversionMethod(Type toType, Type fromType, Supplier<Function> supply) {
       assert moduleScope == null;
       var sourceMap = conversions.computeIfAbsent(toType, k -> new LinkedHashMap<>());
       if (sourceMap.containsKey(fromType)) {
         throw new RedefinedConversionException(toType.getName(), fromType.getName());
       } else {
-        sourceMap.put(fromType, function);
+        sourceMap.put(fromType, CachingSupplier.wrap(supply));
       }
     }
 
@@ -537,6 +544,13 @@ public final class ModuleScope extends EnsoObject {
       return associatedType;
     }
 
+    public Type getType(String name, boolean ignoreAssociatedType) {
+      if (!ignoreAssociatedType && associatedType.getName().equals(name)) {
+        return associatedType;
+      }
+      return types.get(name);
+    }
+
     public static ModuleScope.Builder fromCompilerModuleScopeBuilder(
         CompilerContext.ModuleScopeBuilder scopeBuilder) {
       return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
@@ -552,8 +566,7 @@ public final class ModuleScope extends EnsoObject {
       if (moduleScope != null) {
         return moduleScope;
       } else {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        return createModuleScope();
+        throw CompilerDirectives.shouldNotReachHere("build() first!");
       }
     }
 

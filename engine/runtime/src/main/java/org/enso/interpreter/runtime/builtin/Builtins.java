@@ -149,7 +149,6 @@ public final class Builtins {
     } else {
       builtinMethodNodes = registerBuiltinMethodsLazily(scopeBuilder, language);
     }
-
     ordering = getBuiltinType(Ordering.class);
     comparable = getBuiltinType(Comparable.class);
     defaultComparator = getBuiltinType(DefaultComparator.class);
@@ -250,26 +249,24 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
-              .ifPresentOrElse(
-                  constr -> {
-                    Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(builtinMethodNodes, constr.getName());
-                    atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
+          var constr = scope.getType(builtinMethodOwner, true);
+          if (constr != null) {
+            Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
+                getOrUpdate(builtinMethodNodes, constr.getName());
+            atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
 
-                    Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
-                        getOrUpdate(builtinMetaMethods, constr.getName());
-                    atomNodesMeta.put(builtinMethodName, meta);
-                  },
-                  () -> {
-                    Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(builtinMethodNodes, builtinMethodOwner);
-                    atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
+            Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
+                getOrUpdate(builtinMetaMethods, constr.getName());
+            atomNodesMeta.put(builtinMethodName, meta);
+          } else {
+            Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
+                getOrUpdate(builtinMethodNodes, builtinMethodOwner);
+            atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
 
-                    Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
-                        getOrUpdate(builtinMetaMethods, builtinMethodOwner);
-                    atomNodesMeta.put(builtinMethodName, meta);
-                  });
+            Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
+                getOrUpdate(builtinMetaMethods, builtinMethodOwner);
+            atomNodesMeta.put(builtinMethodName, meta);
+          }
         });
 
     for (Builtin builtin : builtins.values()) {

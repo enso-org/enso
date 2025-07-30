@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
@@ -103,22 +104,26 @@ public final class Type extends EnsoObject {
 
   private void generateQualifiedAccessor(EnsoLanguage lang) {
     assert lang != null;
-    var node = new ConstantNode(lang, getDefinitionScope(), this);
-    var schemaBldr =
-        FunctionSchema.newBuilder()
-            .argumentDefinitions(
-                new ArgumentDefinition(
-                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (isProjectPrivate()) {
-      schemaBldr.projectPrivate();
-    }
-    var function = new Function(node.getCallTarget(), null, schemaBldr.build());
-    definitionScope.registerMethod(
-        definitionScope.asModuleScope().getAssociatedType(), this.name, function);
+    Supplier<Function> futureFunction =
+        () -> {
+          var node = new ConstantNode(lang, getDefinitionScope(), this);
+          var schemaBldr =
+              FunctionSchema.newBuilder()
+                  .argumentDefinitions(
+                      new ArgumentDefinition(
+                          0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+          if (isProjectPrivate()) {
+            schemaBldr.projectPrivate();
+          }
+          var function = new Function(node.getCallTarget(), null, schemaBldr.build());
+          return function;
+        };
+    var assType = definitionScope.getAssociatedType();
+    definitionScope.registerMethod(assType, this.name, futureFunction);
   }
 
   public QualifiedName getQualifiedName() {
-    if (this == this.getDefinitionScope().getAssociatedType()) {
+    if (this == definitionScope.getAssociatedType()) {
       return definitionScope.getModule().getName();
     } else {
       return definitionScope.getModule().getName().createChild(getName());
@@ -261,7 +266,7 @@ public final class Type extends EnsoObject {
                       schemaBldr.projectPrivate();
                     }
                     var funcSchema = schemaBldr.build();
-                    return new Function(node.getCallTarget(), null, funcSchema);
+                    return new Function(node.get().getCallTarget(), null, funcSchema);
                   });
           definitionScope.registerMethod(this, name, functionSupplier);
         });
