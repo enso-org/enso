@@ -32,7 +32,7 @@ export const dataLoader: DataLoader<DashboardProps> = {
       to.params.path instanceof Array ? to.params.path.join('/') : to.params.path,
     )
 
-    if (path == null) return Ok({})
+    if (!path) return Ok({})
     const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
     if (backend == null) return Ok({})
     const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)

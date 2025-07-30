@@ -31,7 +31,7 @@ import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
 import org.enso.compiler.docs.{DocsGenerate, DocsVisit}
-import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumper}
+import org.enso.compiler.dump.service.IRDumper
 import org.enso.compiler.pass.lint.unusedimports.UnusedImportsRemover
 import org.enso.compiler.phase.exports.{
   ExportCycleException,
@@ -304,8 +304,7 @@ class Compiler(
           moduleIrDumpers.get(module) match {
             case Some(existing) => Some(existing)
             case None =>
-              val dumper =
-                IRDumpFactoryService.DEFAULT.create(module.getName.toString)
+              val dumper = IRDumper.create(module.getName.toString)
               moduleIrDumpers = moduleIrDumpers.updated(module, dumper)
               Some(dumper)
           }
@@ -387,11 +386,17 @@ class Compiler(
           isGeneratingDocs = generateDocs
         )
         val compilerOutput =
-          runGlobalTypingPasses(
-            module.getIr(),
-            moduleContext,
-            irDumper = getOrCreateDumper(module)
-          )
+          try {
+            runGlobalTypingPasses(
+              module.getIr(),
+              moduleContext,
+              irDumper = getOrCreateDumper(module)
+            )
+          } catch {
+            case err: CompilerError =>
+              err.attachInfo("At " + moduleContext.getName())
+              throw err
+          }
 
         context.updateModule(
           module,
