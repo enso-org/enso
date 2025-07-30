@@ -1985,4 +1985,396 @@ class RuntimeSuggestionUpdatesTest
       context.executionComplete(contextId)
     )
   }
+
+  it should "send suggestion updates after method arguments modification" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = Main.foo 3
+        |    IO.println x
+        |
+        |foo a = a + a
+        |""".stripMargin.linesIterator.mkString("\n")
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module  = moduleName,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                moduleName,
+                ListSet(
+                  ExportedSymbol.Method(moduleName, "main"),
+                  ExportedSymbol.Method(moduleName, "foo")
+                )
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Module(
+                    moduleName,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    moduleName,
+                    "main",
+                    List(),
+                    "Enso_Test.Test.Main",
+                    ConstantsGen.ANY,
+                    true,
+                    None,
+                    Seq()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "x",
+                        ConstantsGen.ANY,
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(4, 16)
+                        ),
+                        None
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument(
+                        "a",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    moduleName,
+                    ConstantsGen.ANY,
+                    true,
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("6")
+
+    // Add one argument
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(6, 5), model.Position(6, 13)),
+              " b = a + b"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module  = moduleName,
+          actions = Vector(),
+          exports = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument(
+                        "a",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    moduleName,
+                    ConstantsGen.ANY,
+                    true,
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Modify(
+                    None,
+                    Some(
+                      Seq(
+                        Api.SuggestionArgumentAction.Add(
+                          1,
+                          Suggestion.Argument(
+                            "b",
+                            ConstantsGen.ANY,
+                            false,
+                            false,
+                            None,
+                            None
+                          )
+                        )
+                      )
+                    ),
+                    None,
+                    None,
+                    None,
+                    None
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut.head should startWith("Main.foo")
+
+    // Modify second argument
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(6, 5), model.Position(6, 15)),
+              " c = a + c"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module  = moduleName,
+          actions = Vector(),
+          exports = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument(
+                        "a",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      ),
+                      Suggestion.Argument(
+                        "b",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    moduleName,
+                    ConstantsGen.ANY,
+                    true,
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Modify(
+                    None,
+                    Some(
+                      Seq(
+                        Api.SuggestionArgumentAction.Modify(
+                          1,
+                          Some("c"),
+                          None,
+                          None,
+                          None,
+                          None
+                        )
+                      )
+                    ),
+                    None,
+                    None,
+                    None,
+                    None
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut.head should startWith("Main.foo")
+
+    // Remove second argument
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(6, 5), model.Position(6, 15)),
+              " = a + a"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module  = moduleName,
+          actions = Vector(),
+          exports = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument(
+                        "a",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      ),
+                      Suggestion.Argument(
+                        "c",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    moduleName,
+                    ConstantsGen.ANY,
+                    true,
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Modify(
+                    None,
+                    Some(Seq(Api.SuggestionArgumentAction.Remove(1))),
+                    None,
+                    None,
+                    None,
+                    None
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("6")
+  }
 }

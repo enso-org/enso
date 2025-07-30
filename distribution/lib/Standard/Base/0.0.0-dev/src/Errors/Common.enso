@@ -623,6 +623,7 @@ type Out_Of_Memory
 
 ## Indicates that an expression cannot be evaluated because somewhere within it,
    a function does not have all required arguments provided.
+@Builtin_Type
 type Missing_Argument
     ## ---
        private: true
@@ -650,7 +651,8 @@ type Missing_Argument
         function_name = function_frame.name
         call_location = caller_frame.source_location
 
-        error = if message_override.is_nothing then Missing_Argument.Error argument_name function_name call_location else
+        # FIXME: Default arguments do not appear to be applied to constructors of builtin types
+        error = if message_override.is_nothing then Missing_Argument.Error argument_name function_name call_location ("Provide a value for the argument `" + argument_name + "`.") else
             Missing_Argument.Error argument_name function_name call_location message_override
         Error.throw error
 

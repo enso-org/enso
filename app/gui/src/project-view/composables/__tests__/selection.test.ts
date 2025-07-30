@@ -7,7 +7,7 @@ import { isPointer, pointerButtonToEventInfo, type BindingInfo } from '@/util/sh
 import { appWithSetup } from '@/util/testing'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { useKeyboard } from '../keyboard'
+import { useGlobalKeyboard } from '../keyboard'
 import { useNavigator } from '../navigator'
 
 function selectionWithMockData() {
@@ -22,7 +22,7 @@ function selectionWithMockData() {
   mockDom.style.height = '300px'
   vi.spyOn(mockDom, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 500, 300))
 
-  const navigator = useNavigator(ref(mockDom), useKeyboard())
+  const navigator = useNavigator(ref(mockDom), useGlobalKeyboard())
 
   const selection = useSelection(navigator, rects)
   selection.setSelection(new Set([1, 2]))

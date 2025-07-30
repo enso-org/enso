@@ -4,7 +4,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { withSetup } from '@/util/testing'
 import { describe, expect, test, vi } from 'vitest'
 import { ref } from 'vue'
-import { useKeyboard } from '../keyboard'
+import { useGlobalKeyboard } from '../keyboard'
 
 describe('useNavigator', () => {
   function makeTestNavigator() {
@@ -12,7 +12,7 @@ describe('useNavigator', () => {
       const node = document.createElement('div')
       vi.spyOn(node, 'getBoundingClientRect').mockReturnValue(new DOMRect(150, 150, 800, 400))
       const viewportNode = ref(node)
-      const keyboard = useKeyboard()
+      const keyboard = useGlobalKeyboard()
       return useNavigator(viewportNode, keyboard)
     })
   }

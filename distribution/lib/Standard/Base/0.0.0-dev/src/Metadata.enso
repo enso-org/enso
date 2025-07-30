@@ -20,12 +20,29 @@ type Display
     ## Parameter is only shown on the expanded view.
     Expanded_Only
 
+    ## ---
+       private: true
+       ---
+       In-lined JSON representation of the Display.
+    to_json self = case self of
+        Display.Always -> '{"constructor":"Always"}'
+        Display.When_Modified -> '{"constructor":"When_Modified"}'
+        Display.Expanded_Only -> '{"constructor":"Expanded_Only"}'
+
 type File_Action
     ## The File or Folder is for reading from.
     Open
 
     ## The File or Folder is for writing to.
     Save
+
+    ## ---
+       private: true
+       ---
+       In-lined JSON representation of the Display.
+    to_json self = case self of
+        File_Action.Open -> '{"constructor":"Open"}'
+        File_Action.Save -> '{"constructor":"Save"}'
 
 type Choice
     ## Describes an entry in a Single_Choice or Multiple_Choice widget.
@@ -39,6 +56,15 @@ type Choice
         - `icon`: The icon to display for the entry. By default, no icon is used.
     Option label:Text value:(Text | Vector Choice)=label parameters:(Vector (Pair Text Widget))=[] icon:Text=""
 
+    ## ---
+       private: true
+       ---
+       In-lined JSON representation of the Choice.
+    to_json self -> Text =
+        parameter_json = if self.parameters.length == 0 then '[]' else
+            '[' + ((self.parameters.map p-> '[' + p.first.to_json + ',' + p.second.to_json + ']').join ',') + ']'
+        '{"label":' + self.label.to_json + ',"value":' + self.value.to_json + ',"parameters":' + parameter_json + ',"icon":' + self.icon.to_json + '}'
+
 type File_Type
     ## Describes a file type.
 
@@ -47,7 +73,7 @@ type File_Type
         - `extensions`: A list of extensions for the file type. Extensions do not
           include the dot, the only supported glob pattern is '*' (all files).
         - `icon`: The icon to display for the file type.
-    Option label:Text extensions:(Vector Text | Vector File_Type)=[label] icon:Text=""
+    Option label:Text extensions:(Vector Text)=[label] icon:Text=""
 
 type Widget
     ## Describes a single value widget (dropdown).
@@ -80,7 +106,14 @@ type Widget
     Boolean_Input label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
 
     ## Describe a numeric parameter.
-    Numeric_Input label:(Nothing | Text)=Nothing display:Display=Display.When_Modified minimum:Integer|Nothing=Nothing maximum:Integer|Nothing=Nothing step:Number=1 decimal_places:Integer=0 allow_outside:Boolean=True
+    Numeric_Input
+        label:(Nothing | Text)=Nothing
+        display:Display=Display.When_Modified
+        minimum:Integer|Nothing=Nothing
+        maximum:Integer|Nothing=Nothing
+        step:Number=1
+        decimal_places:Integer=0
+        allow_outside:Boolean=True
 
     ## Describes a text widget.
     Text_Input
@@ -97,12 +130,39 @@ type Widget
     File_Browse 
         existing_only:Boolean=True 
         label:(Nothing | Text)=Nothing 
-        display:Display=Display.When_Modified 
-        action:File_Action=File_Action.Open 
+        display:Display=..When_Modified
+        action:File_Action=..Open
         file_types:(Vector File_Type)=[File_Type.Option "All Files" ["*"]]
 
     ## Describes a secret chooser.
     Secret_Browse display:Display=..When_Modified
+
+    ## ---
+       private: true
+       ---
+       Inlined JSON representation specifically paired with `app/gui/src/project-view/providers/widgetRegistry/configuration.ts`.
+    to_json self -> Text = case self of
+        Widget.Single_Choice values label display _ ->
+            values_json = if values.length == 0 then '[]' else '[' + (values.map v-> v.to_json).join ',' + ']'
+            '{"constructor":"Single_Choice","values":' + values_json + (if label.is_nothing then ',"label":null' else ',"label":' + label.to_json) + ',"display":' + display.to_json + '}'
+        Widget.Vector_Editor item_editor item_default _ display ->
+            '{"constructor":"Vector_Editor","item_editor":' + item_editor.to_json + (if item_default.is_nothing then ',"item_default":"_"' else ',"item_default":' + item_default.to_json) + ',"display":' + display.to_json + '}'
+        Widget.Multiple_Choice values label display _ ->
+            values_json = if values.length == 0 then '[]' else '[' + (values.map v-> v.to_json).join ',' + ']'
+            '{"constructor":"Multiple_Choice","values":' + values_json + (if label.is_nothing then ',"label":null' else ',"label":' + label.to_json) + ',"display":' + display.to_json + '}'
+        Widget.Boolean_Input _ display ->
+            '{"constructor":"Boolean_Input","display":' + display.to_json + '}'
+        Widget.Numeric_Input _ display minimum maximum _ _ _ ->
+            '{"constructor":"Numeric_Input","display":' + display.to_json + (if minimum.is_nothing then '' else ',"minimum":' + minimum.to_json) + (if maximum.is_nothing then '' else ',"maximum":' + maximum.to_json) + '}'
+        Widget.Text_Input _ display _ _ syntax ->
+            '{"constructor":"Text_Input"' + ',"display":' + display.to_json + (if syntax.is_nothing then '' else ',"syntax":' + syntax.to_json) + '}'
+        Widget.Folder_Browse _ display ->
+            '{"constructor":"Folder_Browse","display":' + display.to_json + '}'
+        Widget.File_Browse existing_only _ display _ file_types ->
+            '{"constructor":"File_Browse","existing_only":' + (if existing_only then "true" else "false") + ',"display":' + display.to_json + ',"file_types":' + file_types.to_json + '}'
+        Widget.Secret_Browse display ->
+            '{"constructor":"Secret_Browse","display":' + display.to_json + '}'
+        _ -> self.to_js_object.to_json
 
     ## ---
        private: true

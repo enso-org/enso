@@ -1,7 +1,6 @@
 package org.enso.searcher.memory
 
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.Suggestion.ExternalID
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{
   SuggestionAction,
@@ -16,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
     extends SuggestionsRepo[Future] {
-  private[this] var db: mutable.Map[Long, Suggestion] = null
+  private[this] var db: mutable.Map[Long, Suggestion] = _
   @volatile private[this] var version: Long           = 0
   @volatile private[this] var index: Long             = 0
 
@@ -51,17 +50,6 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
       db.synchronized {
         (version, db.toSeq.map(v => SuggestionEntry(v._1, v._2)))
       }
-    }
-  }
-
-  /** Select the suggestion by id.
-    *
-    * @param id the id of a suggestion
-    * @return return the suggestion
-    */
-  override def select(id: Long): Future[Option[Suggestion]] = Future {
-    db.synchronized {
-      db.get(id)
     }
   }
 
@@ -148,7 +136,10 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
             if (
               externalId.nonEmpty || arguments.nonEmpty || returnType.nonEmpty || documentation.nonEmpty || scope.nonEmpty || reexport.nonEmpty
             ) {
-              val suggestionInDb = db.find(_._2 == update.suggestion)
+              val suggestionInDb = db.find { case (_, suggestion) =>
+                SuggestionRowUniqueIndex(suggestion) ==
+                SuggestionRowUniqueIndex(update.suggestion)
+              }
               suggestionInDb match {
                 case None =>
                   QueryResult(Seq(), update)
@@ -159,9 +150,7 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
                     documentation,
                     scope
                   )
-                  if (updatedSuggestion != suggestionInDb) {
-                    versionIncrement()
-                  }
+                  versionIncrement()
                   db.put(suggestionIdx, updatedSuggestion)
                   QueryResult(Seq(suggestionIdx), update)
               }
@@ -169,12 +158,17 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
               QueryResult(Seq(), update)
             }
           case SuggestionAction.Remove() =>
-            val sugestionKey = db.find(_._2 == update.suggestion).map(_._1)
-            sugestionKey.foreach { key =>
+            val suggestionKey = db
+              .find { case (_, suggestion) =>
+                SuggestionRowUniqueIndex(suggestion) ==
+                SuggestionRowUniqueIndex(update.suggestion)
+              }
+              .map(_._1)
+            suggestionKey.foreach { key =>
               db.remove(key)
               versionIncrement()
             }
-            QueryResult(sugestionKey.toSeq, update)
+            QueryResult(suggestionKey.toSeq, update)
         }
       )
       result
@@ -230,22 +224,6 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
     }
   }
 
-  /** Remove the suggestion.
-    *
-    * @param suggestion the suggestion to remove
-    * @return the id of removed suggestion
-    */
-  override def remove(suggestion: Suggestion): Future[Option[Long]] = Future {
-    db.synchronized {
-      val suggestionKey = db.find(_._2 == suggestion).map(_._1)
-      suggestionKey.foreach { id =>
-        db.remove(id)
-        versionIncrement()
-      }
-      suggestionKey
-    }
-  }
-
   /** Remove suggestions by module names.
     *
     * @param modules the list of module names
@@ -268,38 +246,6 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
         (version, suggestions.map(_._1).toSeq)
       }
     }
-
-  /** Update the suggestion.
-    *
-    * @param suggestion    the key suggestion
-    * @param externalId    the external id to update
-    * @param returnType    the return type to update
-    * @param documentation the documentation string to update
-    * @param scope         the scope to update
-    */
-  override def update(
-    suggestion: Suggestion,
-    externalId: Option[Option[ExternalID]],
-    returnType: Option[String],
-    documentation: Option[Option[String]],
-    scope: Option[Suggestion.Scope]
-  ): Future[(Long, Option[Long])] = Future {
-    db.synchronized {
-      val suggestionEntry = db.find(_._2 == suggestion)
-      val result = suggestionEntry.flatMap { case (idx, oldSuggestion) =>
-        val updated =
-          oldSuggestion.update(externalId, returnType, documentation, scope)
-        if (updated != oldSuggestion) {
-          db.put(idx, updated)
-          Some(idx)
-        } else {
-          None
-        }
-      }
-      condVersionIncrement(result.nonEmpty)
-      (version, suggestionEntry.map(_._1))
-    }
-  }
 
   private def versionIncrement(): Unit = {
     version += 1
