@@ -254,9 +254,11 @@ type Table
     @columns_to_keep Columns_To_Keep.default_widget
     from_union (tables : Vector Table) columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & In_Memory_Table & Any ! No_Output_Columns | Illegal_Argument =
         all_tables = (tables.map t-> t:Table)
-        if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
+        raw = if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
             if all_tables.length == 1 then all_tables.first else
                 Union.make_union all_tables columns_to_keep match_columns on_problems
+        # explicitly uncover hidden types
+        raw:(Table & In_Memory_Table & Any)
 
     ## ---
        private: true
