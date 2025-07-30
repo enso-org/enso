@@ -224,7 +224,7 @@ public final class TypeCheckValueNode extends Node {
       msg = check.getComment();
     }
     var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
-    throw new PanicException(err, this);
+    return new PanicException(err, this);
   }
 
   private static AbstractTypeCheckNode[] toArray(List<AbstractTypeCheckNode> list) {

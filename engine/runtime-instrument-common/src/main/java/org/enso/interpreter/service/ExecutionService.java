@@ -48,6 +48,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
@@ -204,10 +205,11 @@ public final class ExecutionService {
                   service ->
                       service.bind(
                           module, call.getFunction().getCallTarget(), callbacks, this.timer));
-
           try {
+            var rootNode = execute.getCallTarget().getRootNode();
             var callFn =
-                Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
+                Function.fullyApplied(
+                    execute.getCallTarget(), substituteMissingArguments(call, rootNode));
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -283,12 +285,17 @@ public final class ExecutionService {
    * @return a function call with the updated arguments
    */
   private FunctionCallInstrumentationNode.FunctionCall substituteMissingArguments(
-      FunctionCallInstrumentationNode.FunctionCall functionCall) {
+      FunctionCallInstrumentationNode.FunctionCall functionCall, RootNode where) {
     var arguments = functionCall.getArguments().clone();
     var argumentInfos = functionCall.getFunction().getSchema().getArgumentInfos();
+    var errorBuiltins = context.getBuiltins().error();
     for (var i = 0; i < arguments.length; i++) {
       if (arguments[i] == null && !argumentInfos[i].hasDefaultValue()) {
-        arguments[i] = context.getBuiltins().nothing();
+        arguments[i] =
+            DataflowError.withDefaultTrace(
+                errorBuiltins.makeMissingArgument(
+                    argumentInfos[i].getName(), functionCall.getFunction().getName()),
+                where);
       }
     }
 

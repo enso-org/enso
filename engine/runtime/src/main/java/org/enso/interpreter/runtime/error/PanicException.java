@@ -310,7 +310,8 @@ public final class PanicException extends AbstractTruffleException {
 
   @ExportMessage
   boolean hasSourceLocation() {
-    return getLocation().getEncapsulatingSourceSection() != null;
+    var location = getLocation();
+    return location != null && location.getEncapsulatingSourceSection() != null;
   }
 
   @ExportMessage(name = "getSourceLocation")
