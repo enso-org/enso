@@ -177,7 +177,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
     category.type === 'trash' ?
       !ownsThisAsset ? []
       : [
-          copyIdEntry,
+          pasteMenuEntry,
           {
             action: 'undelete',
             label: getText('restoreFromTrashShortcut'),
@@ -204,11 +204,10 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               )
             },
           },
-          pasteMenuEntry,
+          copyIdEntry,
         ]
     : !canManageThisAsset ? []
     : [
-        copyIdEntry,
         (asset.type === backendModule.AssetType.datalink ||
           asset.type === backendModule.AssetType.file) && {
           action: 'useInNewProject',
@@ -237,14 +236,6 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               void openProjectNatively(asset, backend.type)
             },
           },
-        !isCloud &&
-          encodedEnsoPath != null &&
-          systemApi && {
-            action: 'openInFileBrowser',
-            doAction: () => {
-              systemApi.showItemInFolder(encodedEnsoPath)
-            },
-          },
         asset.type === backendModule.AssetType.project &&
           canExecute &&
           isRunningProject &&
@@ -259,6 +250,12 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               })
             },
           },
+        isCloud && {
+          action: 'label',
+          doAction: () => {
+            setModal(<ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />)
+          },
+        },
         isUploadableAsset(asset) &&
           !isCloud &&
           localBackend != null && {
@@ -280,6 +277,23 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               void uploadFileToLocal([asset])
             },
           },
+        { action: 'copy', doAction: doCopy },
+        !isRunningProject && !isOtherUserUsingProject && { action: 'cut', doAction: doCut },
+        pasteMenuEntry,
+        (isCloud ?
+          asset.type !== backendModule.AssetType.directory
+        : asset.type === backendModule.AssetType.project) && {
+          isDisabled: asset.type === backendModule.AssetType.secret,
+          action: 'download',
+          doAction: () => {
+            void downloadAssetsMutation({
+              ids: [{ id: asset.id, title: asset.title }],
+              targetDirectoryId:
+                !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
+              shouldUnpackProject: false,
+            })
+          },
+        },
         canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject && {
@@ -307,6 +321,13 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               })
             },
           },
+        asset.type === backendModule.AssetType.project && {
+          action: 'duplicate',
+          doAction: () => {
+            void copyAssetsMutation([[asset.id], asset.parentId])
+          },
+        },
+        ...(canAddToThisDirectory ? globalContextMenuEntries : []),
         ownsThisAsset &&
           !isRunningProject &&
           !isOtherUserUsingProject && {
@@ -329,42 +350,21 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               )
             },
           },
-        isCloud && {
-          action: 'label',
-          doAction: () => {
-            setModal(<ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />)
+        !isCloud &&
+          encodedEnsoPath != null &&
+          systemApi && {
+            action: 'openInFileBrowser',
+            doAction: () => {
+              systemApi.showItemInFolder(encodedEnsoPath)
+            },
           },
-        },
-        asset.type === backendModule.AssetType.project && {
-          action: 'duplicate',
-          doAction: () => {
-            void copyAssetsMutation([[asset.id], asset.parentId])
-          },
-        },
-        { action: 'copy', doAction: doCopy },
         encodedEnsoPath != null && {
           action: 'copyAsPath',
           doAction: () => {
             void copyMutation.mutateAsync(encodedEnsoPath)
           },
         },
-        !isRunningProject && !isOtherUserUsingProject && { action: 'cut', doAction: doCut },
-        (isCloud ?
-          asset.type !== backendModule.AssetType.directory
-        : asset.type === backendModule.AssetType.project) && {
-          isDisabled: asset.type === backendModule.AssetType.secret,
-          action: 'download',
-          doAction: () => {
-            void downloadAssetsMutation({
-              ids: [{ id: asset.id, title: asset.title }],
-              targetDirectoryId:
-                !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
-              shouldUnpackProject: false,
-            })
-          },
-        },
-        pasteMenuEntry,
-        ...(canAddToThisDirectory ? globalContextMenuEntries : []),
+        copyIdEntry,
       ],
   )
 
