@@ -294,9 +294,10 @@ export default class LocalBackend extends Backend {
     // eslint-disable-next-line no-restricted-syntax
     const from = query.from as backend.AssetId | null
     const index = from == null ? 0 : result.findIndex((asset) => asset.id === from) + 1
+    const last = result.at(-1)
     return {
       assets: result.slice(index, query.pageSize != null ? index + query.pageSize : undefined),
-      paginationToken: result[0] ? backend.PaginationToken(String(result[0].id)) : null,
+      paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
     }
   }
 
@@ -320,9 +321,10 @@ export default class LocalBackend extends Backend {
     // eslint-disable-next-line no-restricted-syntax
     const from = query.from as backend.AssetId | null
     const index = from == null ? 0 : assets.findIndex((asset) => asset.id === from) + 1
+    const last = assets.at(-1)
     return {
       assets: assets.slice(index, query.pageSize != null ? index + query.pageSize : undefined),
-      paginationToken: assets[0] ? backend.PaginationToken(String(assets[0].id)) : null,
+      paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
     }
   }
 
