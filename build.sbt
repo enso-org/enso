@@ -308,7 +308,7 @@ lazy val enso = (project in file("."))
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
-    `opencv-thin`,
+    `opencv-wrapper`,
     `os-environment`,
     `persistance`,
     `persistance-dsl`,
@@ -4888,8 +4888,8 @@ lazy val cleanPolyglotRoot = taskKey[Unit](
   "Helper task that prepares polyglot directory of a stdlib component"
 )
 
-lazy val `opencv-thin` = project
-  .in(file("lib/java/opencv-thin"))
+lazy val `opencv-wrapper` = project
+  .in(file("lib/java/opencv-wrapper"))
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
@@ -4947,8 +4947,8 @@ lazy val `std-image` = project
           unmanagedClasspath = (Compile / unmanagedJars).value,
           polyglotLibDir     = Some(`image-native-libs`),
           extractedNativeLibsDir =
-            Some((`opencv-thin` / extractedFilesDir).value),
-          extraJars = Seq((`opencv-thin` / thinJarOutput).value)
+            Some((`opencv-wrapper` / extractedFilesDir).value),
+          extraJars = Seq((`opencv-wrapper` / thinJarOutput).value)
         )
       prev
     },
