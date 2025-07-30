@@ -8814,7 +8814,7 @@ snapshots:
   '@fast-check/vitest@0.2.1(vitest@3.2.4)':
     dependencies:
       fast-check: 3.23.2
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.10.4)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.17.11)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
 
   '@floating-ui/core@1.6.8':
     dependencies:
