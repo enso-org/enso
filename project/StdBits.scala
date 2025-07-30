@@ -32,7 +32,7 @@ object StdBits {
     * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
     * @param polyglotLibDir `polyglot/lib` directory for extracted native libraries.
-    * @param extractedNativeLibsDir Directory where all the extracted native libraries are present.
+    * @param extractedNativeLibsDirs Directories where all the extracted native libraries are present.
     *                               If specified, `polyglotLibDir` must also be specified.
     * @param extraJars Additional JARs that will be copied into `destination` directory.
     *
@@ -51,11 +51,11 @@ object StdBits {
     ignoreDependencyIncludeTransitive: Option[String]   = None,
     ignoreUnmanagedDependency: Option[File => Boolean]  = None,
     polyglotLibDir: Option[File]                        = None,
-    extractedNativeLibsDir: Option[File]                = None,
+    extractedNativeLibsDirs: Seq[File]                = Seq.empty,
     extraJars: Seq[File]                                = Seq.empty,
     previousRun: Option[AnalysisOfExtractedNativeLibs]  = None
   ): Unit = {
-    if (extractedNativeLibsDir.nonEmpty) {
+    if (extractedNativeLibsDirs.nonEmpty) {
       require(
         polyglotLibDir.isDefined,
         "If extracted native libraries dir is provided, polyglotLibDir must be defined."
@@ -166,41 +166,35 @@ object StdBits {
     }
 
     // Copy native libs into `polyglotLibDir` if necessary.
-    extractedNativeLibsDir match {
-      case None => ()
-      case Some(nativeLibsInputDir) =>
-        val nativeLibsStore =
-          cacheStoreFactory.make("std-bits-native-libs")
-        val nativeLibsOutputDir = polyglotLibDir.get
-        Tracked.diffInputs(nativeLibsStore, FileInfo.hash)(
-          Set(
-            nativeLibsInputDir,
-            nativeLibsOutputDir
+    val nativeLibsStore =
+      cacheStoreFactory.make("std-bits-native-libs")
+    val nativeLibsOutputDir = polyglotLibDir.get
+    Tracked.diffInputs(nativeLibsStore, FileInfo.hash)(
+      Set(nativeLibsOutputDir) ++ extractedNativeLibsDirs.toSet
+    ) { report =>
+      logger.debug("nativeLibsReport: " + report)
+      val reportChanged = report.modified.nonEmpty ||
+        report.removed.nonEmpty ||
+        report.added.nonEmpty
+      val shouldCopy = !nativeLibsOutputDir.exists() || reportChanged
+      if (shouldCopy) {
+        // Delete and recreate the output dir, just to be sure
+        IO.delete(nativeLibsOutputDir)
+        IO.createDirectory(nativeLibsOutputDir)
+        for (nativeLibsInputDir <- extractedNativeLibsDirs) {
+          logger.info(
+            s"Copying native libraries from ${nativeLibsInputDir.getAbsolutePath} to ${nativeLibsOutputDir.getAbsolutePath}"
           )
-        ) { report =>
-          logger.debug("nativeLibsReport: " + report)
-          val reportChanged = report.modified.nonEmpty ||
-            report.removed.nonEmpty ||
-            report.added.nonEmpty
-          val shouldCopy = !nativeLibsOutputDir.exists() || reportChanged
-          if (shouldCopy) {
-            logger.debug(
-              s"Copying native libraries from ${nativeLibsInputDir.getAbsolutePath} to ${nativeLibsOutputDir.getAbsolutePath}"
-            )
-            // Delete and recreate the output dir, just to be sure
-            IO.delete(nativeLibsOutputDir)
-            IO.createDirectory(nativeLibsOutputDir)
-            IO.copyDirectory(
-              nativeLibsInputDir,
-              nativeLibsOutputDir,
-              overwrite = true
-            )
-          } else {
-            logger.debug(
-              s"Native libraries in ${nativeLibsInputDir.getAbsolutePath} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
-            )
-          }
+          IO.copyDirectory(
+            nativeLibsInputDir,
+            nativeLibsOutputDir,
+          )
         }
+      } else {
+        logger.info(
+          s"Native libraries from ${extractedNativeLibsDirs} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
+        )
+      }
     }
   }
 
