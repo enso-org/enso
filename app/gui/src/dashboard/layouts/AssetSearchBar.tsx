@@ -77,22 +77,6 @@ export function useSetSuggestions() {
 /** Tags (`name:`, `modified:`, etc.) */
 function Tags(props: InternalTagsProps) {
   const { isCloud, querySource, query, setQuery } = props
-  const [isShiftPressed, setIsShiftPressed] = React.useState(false)
-
-  React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      setIsShiftPressed(event.shiftKey)
-    }
-    const onKeyUp = (event: KeyboardEvent) => {
-      setIsShiftPressed(event.shiftKey)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    document.addEventListener('keyup', onKeyUp)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      document.removeEventListener('keyup', onKeyUp)
-    }
-  }, [])
 
   return (
     <div
@@ -101,7 +85,7 @@ function Tags(props: InternalTagsProps) {
     >
       {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap((entry) => {
         const [key, tag] = entry
-        return tag == null || isShiftPressed !== tag.startsWith('-') ?
+        return tag == null ?
             []
           : [
               <FocusRing key={key}>

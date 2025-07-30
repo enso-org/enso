@@ -79,7 +79,6 @@ import {
   type AnyAsset,
 } from '#/services/Backend'
 import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend/ids'
-import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
@@ -388,19 +387,15 @@ function AssetsTable(props: AssetsTableProps) {
   )
 
   useEffect(() => {
-    const nodeToSuggestion = (
-      node: AnyAsset,
-      key: AssetQueryKey = 'names',
-    ): assetSearchBar.Suggestion => ({
-      key: node.id,
-      render: () => `${key === 'names' ? '' : '-:'}${node.title}`,
-      addToQuery: (oldQuery) => oldQuery.add(key, [node.title]),
-      deleteFromQuery: (oldQuery) => oldQuery.delete(key, [node.title]),
-    })
-
-    const allVisible = () => {
-      return assets.map((node) => nodeToSuggestion(node, 'names'))
-    }
+    const allVisible = () =>
+      assets.map(
+        (node: AnyAsset): assetSearchBar.Suggestion => ({
+          key: node.id,
+          render: () => node.title,
+          addToQuery: (oldQuery) => oldQuery.add('names', [node.title]),
+          deleteFromQuery: (oldQuery) => oldQuery.delete('names', [node.title]),
+        }),
+      )
 
     const terms = AssetQuery.terms(query.query)
     const term = terms.find((otherTerm) => otherTerm.values.length === 0) ?? terms[terms.length - 1]

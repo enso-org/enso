@@ -1606,6 +1606,7 @@ export function doesAssetMatchQuery(query: SearchDirectoryRequestParams) {
   const titleLower = query.title?.toLowerCase()
   const extensionLower = query.extension?.toLowerCase()
   const queryLower = query.query?.toLowerCase().split(/\s+/)
+
   return (asset: AnyAsset) => {
     if (typeLower != null && String(asset.type) !== typeLower) {
       return false

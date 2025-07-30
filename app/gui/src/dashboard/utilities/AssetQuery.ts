@@ -44,8 +44,8 @@ export default class AssetQuery {
     ['types', 'type'],
     ['extensions', 'extension'],
     ['descriptions', 'description'],
-    ['modifieds', 'modified'],
-    ['labels', 'label'],
+    // ['modifieds', 'modified'],
+    // ['labels', 'label'],
     ['owners', 'owner'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
   /** The subset of {@link AssetQuery.tagNames} that are applicable for the Local Backend. */
@@ -54,7 +54,7 @@ export default class AssetQuery {
     ['names', 'name'],
     ['types', 'type'],
     ['extensions', 'extension'],
-    ['modifieds', 'modified'],
+    // ['modifieds', 'modified'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
   readonly query
