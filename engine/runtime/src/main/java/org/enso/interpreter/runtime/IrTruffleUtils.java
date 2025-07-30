@@ -3,20 +3,24 @@ package org.enso.interpreter.runtime;
 import java.util.Collection;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.CompilerError;
-import org.enso.compiler.core.ir.*;
+import org.enso.compiler.core.ir.AscriptionReason;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.errors.Resolution;
 import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
 
 final class IrTruffleUtils {
-  static TypeCheckValueNode extractAscribedType(EnsoContext ctx, String comment, Expression t) {
+  static TypeCheckValueNode extractAscribedType(
+      EnsoContext ctx, AscriptionReason comment, Expression t) {
     return new CreateTypeCheckNodes(ctx, false, comment).extractAscribedType(t);
   }
 
-  static TypeCheckValueNode extractAscribedTypeAll(EnsoContext ctx, String comment, Expression t) {
-    var checkNode = new CreateTypeCheckNodes(ctx, true, comment).extractAscribedType(t);
-    return TypeCheckValueNode.allTypes(true, checkNode);
-  }
-
+  /*
+    static TypeCheckValueNode extractAscribedTypeAll(EnsoContext ctx, AscriptionReason comment, Expression t) {
+      var checkNode = new CreateTypeCheckNodes(ctx, true, comment).extractAscribedType(t);
+      return TypeCheckValueNode.allTypes(true, checkNode);
+    }
+  */
   private static class CreateTypeCheckNodes
       extends org.enso.compiler.pass.analyse.types.TypeCheckAlgorithm<
           TypeCheckValueNode, CompilerError> {
@@ -24,11 +28,10 @@ final class IrTruffleUtils {
     private final boolean allTypes;
     private final String comment;
 
-    private CreateTypeCheckNodes(EnsoContext ctx, boolean allTypes, String comment) {
+    private CreateTypeCheckNodes(EnsoContext ctx, boolean allTypes, AscriptionReason reason) {
       this.ctx = ctx;
-      this.allTypes = allTypes;
-      this.comment = comment;
-      assert !allTypes || comment == null : "allTypes " + allTypes + " with: " + comment;
+      this.allTypes = reason.isAllTypes();
+      this.comment = reason.comment();
     }
 
     @Override

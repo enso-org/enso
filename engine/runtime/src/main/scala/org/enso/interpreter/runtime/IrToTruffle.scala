@@ -14,6 +14,7 @@ import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
+  AscriptionReason,
   CallArgument,
   DefinitionArgument,
   Empty,
@@ -804,10 +805,10 @@ class IrToTruffle(
   private def checkAsTypes(
     arg: DefinitionArgument
   ): TypeCheckValueNode = {
-    val comment = "`" + arg.name.name + "`"
     arg.ascribedType
       .map { t =>
-        val checkNode = IrTruffleUtils.extractAscribedType(context, comment, t)
+        val reason    = AscriptionReason.forParameter(arg.name.name)
+        val checkNode = IrTruffleUtils.extractAscribedType(context, reason, t)
         TypeCheckValueNode.allTypes(false, checkNode)
       }
       .getOrElse(null)
@@ -1177,9 +1178,9 @@ class IrToTruffle(
           processCase(caseExpr, subjectToInstrumentation)
         case asc: Tpe.Ascription =>
           val checkNode =
-            IrTruffleUtils.extractAscribedTypeAll(
+            IrTruffleUtils.extractAscribedType(
               context,
-              asc.comment.orNull,
+              asc.reason,
               asc.signature
             )
           if (checkNode != null) {
@@ -1210,19 +1211,11 @@ class IrToTruffle(
             ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
             val checkNode =
-              if (tpe.comment.isDefined) {
-                IrTruffleUtils.extractAscribedType(
-                  context,
-                  tpe.comment.orNull,
-                  tpe.signature
-                )
-              } else {
-                IrTruffleUtils.extractAscribedTypeAll(
-                  context,
-                  null,
-                  tpe.signature
-                )
-              }
+              IrTruffleUtils.extractAscribedType(
+                context,
+                tpe.reason,
+                tpe.signature
+              )
             if (checkNode != null) {
               runtimeExpression =
                 TypeCheckValueNode.wrap(runtimeExpression, checkNode)

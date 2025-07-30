@@ -1643,7 +1643,8 @@ public class SignatureTest {
     }
 
     assertEquals("YesA", au.invokeMember("i_am_a").asString());
-    assertEquals("Explicit x:(A & Any) reveals also hidden B", "YesB", au.invokeMember("i_am_b").asString());
+    assertEquals(
+        "Explicit x:(A & Any) reveals also hidden B", "YesB", au.invokeMember("i_am_b").asString());
 
     assertTrue("Cannot reveal hidden B by -> check", b.isException());
 
