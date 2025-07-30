@@ -12,6 +12,7 @@ import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import False, True
+from project.Data.Json import JS_Object
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
@@ -119,6 +120,13 @@ type Type_Error
        Render the error as text.
     to_text : Text
     to_text self = self.to_display_text
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Type_Error"], ["expected", self.expected], ["actual", self.actual], ["comment", self.comment]]
 
 @Builtin_Type
 type Compile_Error
@@ -449,6 +457,13 @@ type Private_Access
     to_display_text : Text
     to_display_text self =
         self.msg.if_nothing self.default_to_text
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Private_Access"], ["this_project_name", self.this_project_name], ["target_project_name", self.target_project_name], ["target_method_name", self.target_method_name], ["msg", self.msg]]
 
     private default_to_text self =
         this_proj = if self.this_project_name.is_nothing then "unknown project" else "project '"+self.this_project_name+"'"
@@ -811,6 +826,13 @@ type Length_Mismatch
     to_display_text : Text
     to_display_text self =
         "The Vector lengths do not match: "+self.left_length.to_text+" does not equal "+self.right_length.to_text+"."
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Length_Mismatch"], ["left_length", self.left_length], ["right_length", self.right_length]]
 
 type Mixed_Signed_And_Unsigned_Bytes
     ## ---

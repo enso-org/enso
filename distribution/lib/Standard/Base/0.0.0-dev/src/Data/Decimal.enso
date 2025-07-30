@@ -12,6 +12,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Json import JS_Object
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
@@ -1341,6 +1342,13 @@ type Decimal
        locale.
     to_display_text : Text
     to_display_text self -> Text = self.big_decimal.toString
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Decimal"], ["value", self.to_text]]
 
     ## ---
        private: true

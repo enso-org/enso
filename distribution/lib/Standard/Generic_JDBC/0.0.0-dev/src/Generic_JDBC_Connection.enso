@@ -93,6 +93,12 @@ type Generic_JDBC_Connection
         self.jdbc_connection.with_metadata metadata->
             metadata.getDatabaseProductName + " (" + metadata.getDatabaseProductVersion + ")"
 
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Generic_JDBC_Connection"], ["driver", self.driver]]
 
     ## ---
        aliases: [catalog schema database]
