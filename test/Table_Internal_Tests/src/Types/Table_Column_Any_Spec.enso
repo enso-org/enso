@@ -34,6 +34,6 @@ add_specs suite_builder =
             assert_type_name abs_column  "Column & Numeric_Column & ~In_Memory_Column & ~Integer"
             assert_type_name range_off_column  "Range"
 
-            as_int_plus v -> Integer & Any = v
+            as_int_plus v = v:(Integer & Any)
 
             assert_type_name (as_int_plus column1) "Integer & In_Memory_Column & Numeric_Column & Column"
