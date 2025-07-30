@@ -26,12 +26,12 @@ final class IrTruffleUtils {
           TypeCheckValueNode, CompilerError> {
     private final EnsoContext ctx;
     private final boolean allTypes;
-    private final String comment;
+    private final AscriptionReason comment;
 
     private CreateTypeCheckNodes(EnsoContext ctx, boolean allTypes, AscriptionReason reason) {
       this.ctx = ctx;
       this.allTypes = reason.isAllTypes();
-      this.comment = reason.comment();
+      this.comment = reason;
     }
 
     @Override

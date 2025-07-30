@@ -263,7 +263,10 @@ class IrToTruffle(
                 conversion.methodName.name,
                 fn.arguments,
                 fn.body,
-                TypeCheckValueNode.single("conversion", toType),
+                TypeCheckValueNode.single(
+                  AscriptionReason.forFunctionResult("conversion"),
+                  toType
+                ),
                 None,
                 true
               )

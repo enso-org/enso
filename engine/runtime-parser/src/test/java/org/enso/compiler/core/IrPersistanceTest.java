@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.enso.compiler.core.ir.AscriptionReason;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
@@ -21,7 +20,6 @@ import org.enso.persist.Persistance;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;

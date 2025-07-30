@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-
 import org.enso.persist.Persistable;
 
 /**
@@ -23,7 +22,7 @@ public final class AscriptionReason {
   }
 
   private AscriptionReason(int type, Object... args) {
-    this((byte)type, Arrays.asList(args));
+    this((byte) type, Arrays.asList(args));
     assert this.type == type;
   }
 
@@ -91,31 +90,29 @@ public final class AscriptionReason {
     };
   }
 
-    @Override
-    public int hashCode() {
-        int hash = 5;
-        hash = 97 * hash + Objects.hashCode(this.args);
-        hash = 97 * hash + this.type;
-        return hash;
+  @Override
+  public int hashCode() {
+    int hash = 5;
+    hash = 97 * hash + Objects.hashCode(this.args);
+    hash = 97 * hash + this.type;
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final AscriptionReason other = (AscriptionReason) obj;
-        if (this.type != other.type) {
-            return false;
-        }
-        return Objects.equals(this.args, other.args);
+    if (obj == null) {
+      return false;
     }
-
-
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    final AscriptionReason other = (AscriptionReason) obj;
+    if (this.type != other.type) {
+      return false;
+    }
+    return Objects.equals(this.args, other.args);
+  }
 }
