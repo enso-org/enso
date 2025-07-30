@@ -2445,7 +2445,7 @@ lazy val `runtime-language-arrow` =
       ),
       javaModuleName := "org.enso.interpreter.arrow",
       Compile / moduleDependencies ++= GraalVM.modules,
-      Test / moduleDependencies += projectID.value,
+      Test / internalModuleDependencies += (Compile / exportedModule).value,
       Test / patchModules := {
         val testClassesDir = (Test / productDirectories).value.head
         Map(javaModuleName.value -> Seq(testClassesDir))
