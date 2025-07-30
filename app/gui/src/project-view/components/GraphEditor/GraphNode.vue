@@ -100,7 +100,7 @@ providePopoverRoot(rootNode)
 const { visibleMessage, hiddenMessage } = useNodeMessage({
   projectStore,
   graphDb: graph.db,
-  passEvents: () => outputHovered.value,
+  passEvents: () => outputVisible.value,
   expand: () => nodeHovered.value || selected.value,
   nodeId,
 })
@@ -168,7 +168,8 @@ function ensureSelected() {
   }
 }
 
-const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value))
+const outputVisible = computed(() => graph.nodeOutputVisible.get(nodeId.value))
+const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value))
 
 const scale = computed(() => navigator?.scale ?? 1)
 const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))

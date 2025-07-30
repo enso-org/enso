@@ -3,18 +3,11 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import Breadcrumbs, {
   type Item as Breadcrumb,
 } from '@/components/ComponentHelp/DocsBreadcrumbs.vue'
-import DocsExamples from '@/components/ComponentHelp/DocsExamples.vue'
 import DocsHeader from '@/components/ComponentHelp/DocsHeader.vue'
 import DocsList from '@/components/ComponentHelp/DocsList.vue'
-import DocsSynopsis from '@/components/ComponentHelp/DocsSynopsis.vue'
-import DocsTags from '@/components/ComponentHelp/DocsTags.vue'
 import { HistoryStack } from '@/components/ComponentHelp/history'
-import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/ComponentHelp/ir'
-import {
-  lookupDocumentation,
-  lookupRawDocumentation,
-  placeholder,
-} from '@/components/ComponentHelp/ir'
+import type { Docs, FunctionDocs, TypeDocs } from '@/components/ComponentHelp/ir'
+import { lookupDocumentation, placeholder } from '@/components/ComponentHelp/ir'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
@@ -22,10 +15,9 @@ import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
-import { Ok } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
-import { qnSegments, qnSlice } from '@/util/qualifiedName'
+import { qnFromSegments, qnSegments, QualifiedName } from '@/util/qualifiedName'
 import { EditorView } from '@codemirror/view'
 import { computed, watch } from 'vue'
 
@@ -43,25 +35,19 @@ const documentation = computed<Docs>(() => {
     : placeholder('No suggestion selected.')
 })
 
-const rawDocumentation = computed(() => {
-  const entry = props.selectedEntry
-  return entry && db.value ? lookupRawDocumentation(db.value.entries, entry) : undefined
-})
-
 function syncMarkdownDocumentation(view: EditorView) {
   watch(
-    rawDocumentation,
-    (text) =>
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text ?? '' } }),
+    documentation,
+    (docs) => {
+      if (docs.kind !== 'Placeholder') {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: docs.documentation },
+        })
+      }
+    },
     { immediate: true },
   )
 }
-
-const sections = computed<Sections>(() => {
-  const docs: Docs = documentation.value
-  const fallback = { tags: [], synopsis: [], examples: [] }
-  return docs.kind === 'Placeholder' ? fallback : docs.sections
-})
 
 const methods = computed<FunctionDocs[]>(() => {
   const docs = documentation.value
@@ -115,6 +101,7 @@ watch(
       historyStack.reset(entry)
     }
   },
+  { immediate: true },
 )
 
 // Update displayed documentation page when the user uses breadcrumbs.
@@ -135,13 +122,12 @@ const breadcrumbs = computed<Breadcrumb[]>(() => {
 
 function handleBreadcrumbClick(index: number) {
   if (name.value) {
-    const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
-    if (pathSlice.ok) {
-      const projectPathSlice = name.value.withPath(pathSlice.value)
-      const id = db.value?.entries.findByProjectPath(projectPathSlice)
-      if (id != null) {
-        historyStack.record(id)
-      }
+    const pathSegments = name.value.path ? qnSegments(name.value.path).slice(0, index) : []
+    const path = pathSegments.length > 0 ? qnFromSegments(pathSegments) : ('Main' as QualifiedName)
+    const projectPathSlice = name.value.withPath(path)
+    const id = db.value?.entries.findByProjectPath(projectPathSlice)
+    if (id != null) {
+      historyStack.record(id)
     }
   }
 }
@@ -154,16 +140,18 @@ function openDocs(url: string) {
 <template>
   <div class="ComponentHelp scrollable" :style="style" @wheel.stop.passive>
     <div v-if="!isPlaceholder" class="topBar">
-      <Breadcrumbs
-        :breadcrumbs="breadcrumbs"
-        :color="color"
-        :icon="icon"
-        :canGoForward="historyStack.canGoForward()"
-        :canGoBackward="historyStack.canGoBackward()"
-        @click="(index) => handleBreadcrumbClick(index)"
-        @forward="historyStack.forward()"
-        @backward="historyStack.backward()"
-      />
+      <div class="breadcrumbsWrapper">
+        <Breadcrumbs
+          :breadcrumbs="breadcrumbs"
+          :color="color"
+          :icon="icon"
+          :canGoForward="historyStack.canGoForward()"
+          :canGoBackward="historyStack.canGoBackward()"
+          @click="(index) => handleBreadcrumbClick(index)"
+          @forward="historyStack.forward()"
+          @backward="historyStack.backward()"
+        />
+      </div>
       <SvgButton
         v-if="documentationUrl"
         name="open"
@@ -171,20 +159,18 @@ function openDocs(url: string) {
         @activate="openDocs(documentationUrl)"
       />
     </div>
-    <div v-if="rawDocumentation" class="markdownDocs">
-      <MarkdownEditor :toolbar="false" @editorReady="syncMarkdownDocumentation" />
-    </div>
+    <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
     <template v-else>
-      <DocsTags
-        v-if="sections.tags.length > 0"
-        class="tags"
-        :tags="sections.tags"
-        :groupColor="color"
-      />
+      <div class="markdownDocs">
+        <span v-if="documentation.documentation.length == 0">No documentation available.</span>
+        <MarkdownEditor
+          v-else
+          :content="documentation.documentation"
+          :toolbar="false"
+          @editorReady="syncMarkdownDocumentation"
+        />
+      </div>
       <div class="sections">
-        <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
-        <span v-if="sections.synopsis.length == 0">No documentation available.</span>
-        <DocsSynopsis :sections="sections.synopsis" />
         <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
         <DocsList
           :items="{ kind: 'Types', items: types }"
@@ -200,8 +186,6 @@ function openDocs(url: string) {
           :items="{ kind: 'Methods', items: methods }"
           @linkClicked="historyStack.record($event)"
         />
-        <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
-        <DocsExamples :examples="sections.examples" />
       </div>
     </template>
   </div>
@@ -213,16 +197,10 @@ function openDocs(url: string) {
   --enso-docs-methods-header-color: #1f71d3;
   --enso-docs-method-name-color: #1f71d3;
   --enso-docs-types-header-color: #1f71d3;
-  --enso-docs-examples-header-color: #6da85e;
-  --enso-docs-important-background-color: #edefe7;
-  --enso-docs-info-background-color: #e6f1f8;
-  --enso-docs-example-background-color: #e6f1f8;
   --enso-docs-background-color: var(--background-color);
   --enso-docs-text-color: rbga(0, 0, 0, 0.6);
-  --enso-docs-tag-background-color: #dcd8d8;
-  --enso-docs-code-background-color: #dddcde;
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 160%;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
@@ -256,5 +234,16 @@ function openDocs(url: string) {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+}
+
+.breadcrumbsWrapper {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topBar .SvgButton {
+  flex: 0 0 auto;
 }
 </style>

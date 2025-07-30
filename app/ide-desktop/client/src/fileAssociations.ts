@@ -166,7 +166,11 @@ export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void
  */
 export function handleOpenFile(openedFile: string): project.ProjectInfo {
   try {
-    return project.importProjectFromPath(openedFile)
+    const title = openedFile
+      .split(pathModule.sep)
+      .pop()
+      ?.replace(`.${BUNDLED_PROJECT_EXTENSION}`, '')
+    return project.importProjectFromPath(openedFile, null, title)
   } catch (error) {
     // Since the user has explicitly asked us to open a file, in case of an error, we should
     // display a message box with the error details.
