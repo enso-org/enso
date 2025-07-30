@@ -120,7 +120,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   scrollerTestId,
 })
 
-useLinkTitles(editorView, { readonly })
+useLinkTitles(editorView, { readonly: () => readonly })
 
 const { focused, focusHandlers } = useEditorFocus(editorView)
 watch(focused, (focused) => {

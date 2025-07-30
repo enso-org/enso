@@ -125,30 +125,109 @@ test('Component help', async ({ page }) => {
   await expect(locate.rightDock(page)).toHaveText(/Reads a file into Enso/)
 })
 
-test('Documentation reflects entered function', async ({ page }) => {
-  const { docsContent } = await goToGraphAndGetDocs(page)
+test.describe('User-defined component documentation', () => {
+  async function enterUdc(page: Page) {
+    await mockUserDefinedFunctionInfo(page, 'final', 'func1')
+    await locate.graphNodeByBinding(page, 'final').dblclick()
+    await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
+  }
 
-  // Enter the User Defined Function function
-  await mockUserDefinedFunctionInfo(page, 'final', 'func1')
-  await locate.graphNodeByBinding(page, 'final').dblclick()
-  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
+  test('Entering function', async ({ page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+    await enterUdc(page)
+    await expect(docsContent).toHaveText('A User Defined Function')
+  })
 
-  // Editor should contain function's docs
-  await expect(docsContent).toHaveText('A User Defined Function')
+  class FunctionSignatureEditor {
+    private constructor(private readonly locator: Locator) {}
+
+    static async new(within: Locator): Promise<FunctionSignatureEditor> {
+      const locator = within.locator('.FunctionSignatureEditor')
+      await locator.waitFor()
+      return new FunctionSignatureEditor(locator)
+    }
+
+    async expectArguments(count: number): Promise<FunctionSignatureEditorArgument[]> {
+      const argLocators = this.locator.locator('.FunctionDefArguments').locator('.ArgumentRow')
+      await expect(argLocators).toHaveCount(count)
+      const args = await argLocators.all()
+      expect(args.length).toBe(count)
+      return args.map(
+        (locator) => new FunctionSignatureEditorArgument(locator, { popoverRoot: this.locator }),
+      )
+    }
+  }
+
+  type MissingBehaviour = 'required' | 'optional' | 'default'
+
+  class FunctionSignatureEditorArgument {
+    public readonly defaultValue: Locator
+    private readonly popoverRoot: Locator
+    private readonly missingBehaviour: Locator
+    constructor(
+      private readonly locator: Locator,
+      { popoverRoot }: { popoverRoot: Locator },
+    ) {
+      this.defaultValue = this.locator.getByTestId('missing-default-value')
+      this.popoverRoot = popoverRoot
+      this.missingBehaviour = locator.getByTestId('missing-behaviour')
+    }
+
+    /** Check that the current missing-argument behaviour is as specified. */
+    expectMissingBehaviour(behaviour: MissingBehaviour): Promise<void> {
+      return expect(this.missingBehaviour).toHaveText(behaviour)
+    }
+
+    /**
+     * Use the dropdown to select a behaviour when the argument is omitted. Verifies that the new
+     * behaviour has been set before returning.
+     */
+    async setMissingBehaviour(behaviour: MissingBehaviour): Promise<void> {
+      await this.missingBehaviour.click()
+      const dropdown = this.popoverRoot.locator('.DropdownWidget')
+      await expect(dropdown).toExist()
+      const items = dropdown.locator('.item')
+      const item = items.getByText(behaviour)
+      await item.click()
+      await this.expectMissingBehaviour(behaviour)
+      await expect(dropdown).not.toBeVisible()
+      await this.expectMissingBehaviour(behaviour)
+    }
+  }
+
+  test('Changing argument default', async ({ page }) => {
+    await goToGraphAndGetDocs(page)
+    await enterUdc(page)
+    const fse = await FunctionSignatureEditor.new(locate.rightDock(page))
+    const [arg] = await fse.expectArguments(1)
+    await arg!.expectMissingBehaviour('optional')
+    await expect(arg!.defaultValue).not.toBeVisible()
+    await arg!.setMissingBehaviour('required')
+    await expect(arg!.defaultValue).not.toBeVisible()
+    await arg!.setMissingBehaviour('optional')
+    await expect(arg!.defaultValue).not.toBeVisible()
+    await arg!.setMissingBehaviour('default')
+    await expect(arg!.defaultValue).toBeVisible()
+
+    // Regression test for #13627: Ensure missing-behaviour can be changed when the default value
+    // widget is focused.
+    await arg!.defaultValue.locator('.WidgetEnsoExpression').click()
+    await expect(arg!.defaultValue.locator('.WidgetEnsoExpression .cm-content')).toBeFocused()
+    await arg!.setMissingBehaviour('optional')
+  })
 })
 
 test('Link in documentation is rendered and interactive', async ({ page, context }) => {
   const { docsContent } = await goToGraphAndGetDocs(page)
-  const rightDock = locate.rightDock(page)
   await expect(docsContent.locator('a')).toHaveAccessibleDescription(
     /Click to edit.*Click to open link/,
   )
 
   await expect(docsContent.locator('a')).toHaveText('https://example.com')
   await docsContent.locator('a').click()
-  await expect(rightDock.locator('.LinkEditPopup')).toBeVisible()
+  await expect(page.locator('.LinkEditPopup')).toBeVisible()
   await locate.graphEditor(page).click()
-  await expect(rightDock.locator('.LinkEditPopup')).toBeHidden()
+  await expect(page.locator('.LinkEditPopup')).toBeHidden()
   context.route('https://example.com', (route) => route.fulfill({ status: 200, body: 'YAY' }))
   const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
   await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
@@ -171,7 +250,7 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
 
   // The link exists and is being edited
   await expect(docsContent.locator('a')).toExist()
-  await expect(rightDock.locator('.LinkEditPopup')).toExist()
+  await expect(page.locator('.LinkEditPopup')).toExist()
 })
 
 test('Documentation editor: Editing with keyboard', async ({ page }) => {

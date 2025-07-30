@@ -111,7 +111,7 @@ export class SnapGrid {
  *
  * The `offset` is always based of the nodes' initial positions.
  */
-export function useDragging() {
+export function useNodesDragging() {
   const graphStore = useGraphStore()
   const selection = injectGraphSelection(true)
 
@@ -188,7 +188,6 @@ export function useDragging() {
 
     /** Cancel drag and reset nodes' positions */
     cancelDragging(): void {
-      console.log('cancelDragging')
       this.stopPositionUpdate()
       offset.value = Vec2.Zero
       snapXTarget.value = 0

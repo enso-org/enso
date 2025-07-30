@@ -8,11 +8,13 @@ import * as appUtils from '$/appUtils'
 import * as cognitoModule from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
+import { useText } from '$/providers/text'
 import { parseEnsoDeeplink } from '@/util/url'
 import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as detect from 'enso-common/src/detect'
+import * as toastify from 'react-toastify'
 import { useRouter } from 'vue-router'
 
 /**
@@ -235,22 +237,36 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
         } else {
           // Signing in.
           void (async () => {
-            // Temporarily override the `history` object so that Amplify doesn't try to call
-            // `history.replaceState` (which doesn't work in the renderer process because of
-            // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
-            // work with a custom URL protocol in Electron.
-            // `history.replaceState` is only being saved here to be restored later.
-            // It will never be called without a bound `this`.
-            const replaceState = history.replaceState
-            history.replaceState = () => false
-            try {
-              // `_handleAuthResponse` is a private method without typings.
-              await amplify.Auth['_handleAuthResponse'](urlString)
+            // Try to find `error_description` and `error` in search params. This means something went wrong e.g
+            // missing user email address while using microsoft account.
+            const queryParams = new URLSearchParams(deeplink.search)
+            const error = queryParams.get('error')
+            const errorDescription = queryParams.get('error_description')
+            const text = useText()
+            if (error && errorDescription) {
+              if (errorDescription?.includes('Missing required user email value')) {
+                toastify.toast.error(text.getText('missingEmailError'))
+              } else {
+                toastify.toast.error(text.getText('registrationError'))
+              }
+            } else {
+              // Temporarily override the `history` object so that Amplify doesn't try to call
+              // `history.replaceState` (which doesn't work in the renderer process because of
+              // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
+              // work with a custom URL protocol in Electron.
+              // `history.replaceState` is only being saved here to be restored later.
+              // It will never be called without a bound `this`.
+              const replaceState = history.replaceState
+              history.replaceState = () => false
+              try {
+                // `_handleAuthResponse` is a private method without typings.
+                await amplify.Auth['_handleAuthResponse'](urlString)
 
-              navigate(appUtils.DASHBOARD_PATH)
-            } finally {
-              // Restore the original `history.replaceState` function.
-              history.replaceState = replaceState
+                navigate(appUtils.DASHBOARD_PATH)
+              } finally {
+                // Restore the original `history.replaceState` function.
+                history.replaceState = replaceState
+              }
             }
           })()
         }

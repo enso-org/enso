@@ -4,6 +4,7 @@ import Standard.Base.Data.Vector.Builder
 from Standard.Table import Column, Table, Value_Type
 
 import project.Helpers
+from project.Helpers import time_visualization
 
 ## ---
    private: true
@@ -317,7 +318,7 @@ json_from_vector vec bounds limit =
    ## Arguments
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
-process_to_json_text value bounds=Nothing limit=Nothing =
+process_to_json_text value bounds=Nothing limit=Nothing = time_visualization Scatter_Plot ("process_to_json_text: " + value.to_display_text) <|
     json = case value of
         _ : Table  -> json_from_table  value bounds limit
         _ : Vector -> json_from_vector value bounds limit

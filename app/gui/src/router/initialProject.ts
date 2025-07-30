@@ -5,6 +5,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { injectGuiConfig } from '@/providers/guiConfig'
+import { onlineManager } from '@tanstack/vue-query'
 import { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
@@ -81,10 +82,9 @@ async function shouldOpenInitialProject(
     console.error('Cannot read user home directory; will skip launching Welcome Project', err)
     return null
   }
-
   const homeContent = await Promise.all([
     localBackend?.listDirectory(homeDirQuery) ?? [],
-    remoteBackend.listDirectory(homeDirQuery, 'User Home'),
+    onlineManager.isOnline() ? remoteBackend.listDirectory(homeDirQuery, 'User Home') : [],
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent

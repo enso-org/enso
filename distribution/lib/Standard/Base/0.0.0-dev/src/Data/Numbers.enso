@@ -28,297 +28,363 @@ polyglot java import java.text.ParseException
 polyglot java import org.enso.polyglot.common_utils.Core_Math_Utils
 
 ## The root type of the Enso numeric hierarchy.
-
-   If a Number is expected, then the program can provide either a Float or
-   an Integer in its place.
+   If a Number is expected, then the program can provide either a Float or an
+   Integer in its place.
 @Builtin_Type
 type Number
-    ## ALIAS add, plus
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [add, plus]
+       group: Operators
+       icon: math
+       ---
        Adds two arbitrary numbers.
 
-       Arguments:
-       - that: The number to add to this.
+       Addition in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
 
-       Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
+       ## Arguments
+        - `that`: The number to add to this.
 
-       > Example
-         Adding 10 and 15.
+       ## Examples
+       ### Adding 10 and 15.
 
+       ```
              10 + 15
+       ```
     + : Number -> Number
     + self that:Number -> Number = integer_plus self that
 
-    ## ALIAS minus, subtract
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [minus, subtract]
+       group: Operators
+       icon: math
+       ---
        Subtract an arbitrary number from this.
 
-       Arguments:
-       - that: The number to subtract from this.
+       ## Arguments
+        - `that`: The number to subtract from this.
 
-       > Example
-         Subtract 5 from 2.
+       ## Examples
+       ### Subtract 5 from 2.
 
+       ```
              2 - 5
+       ```
     - : Number -> Number
     - self that = integer_minus self that
 
-    ## ALIAS multiply, product, times
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [multiply, product, times]
+       group: Operators
+       icon: math
+       ---
        Multiply two arbitrary numbers.
-
-       Arguments:
-       - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
        need not convert between Integer and Float manually.
 
-       > Example
-         Multiplying 3 by 5.
+       ## Arguments
+        - `that`: The number to multiply this by.
 
+       ## Examples
+       ### Multiplying 3 by 5.
+
+       ```
              3 * 5
+       ```
     * : Number -> Number
     * self that = integer_times self that
 
-    ## ALIAS divide
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [divide]
+       group: Operators
+       icon: math
+       ---
        Divides an this by an arbitrary number.
 
-       Arguments:
-       - that: The number to divide this by.
+       Division in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
 
-       Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
+       ## Arguments
+        - `that`: The number to divide this by.
 
-       > Example
-         Dividing 10 by 4 to get 2.5.
+       ## Examples
+       ### Dividing 10 by 4 to get 2.5.
 
+       ```
              10 / 4
+       ```
     / : Number -> Number
     / self that = integer_divide self that
 
-    ## ALIAS power
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [power]
+       group: Operators
+       icon: math
+       ---
        Compute the result of raising this to the power that.
 
-       Arguments:
-       - that: The exponent.
+       ## Arguments
+        - `that`: The exponent.
 
-       > Example
-         Computing 2 cubed.
+       ## Examples
+       ### Computing 2 cubed.
 
+       ```
              2^3
+       ```
     ^ : Number -> Number
     ^ self that = integer_pow self that
 
-    ## ALIAS inverse sine
-       GROUP Trigonometry
-       ICON math
+    ## ---
+       aliases: [inverse sine]
+       group: Trigonometry
+       icon: math
+       ---
+       Computes the inverse of the sine function Selects a value in the -pi/2
+       through pi/2 range.
 
-       Computes the inverse of the sine function
+       ## Examples
+       ### Calculate the inverse sine of 1.
 
-       Selects a value in the -pi/2 through pi/2 range.
-
-       > Example
-         Calculate the inverse sine of 1.
-
+       ```
              1.asin
+       ```
     asin : Float
     asin self = Math.asin self.to_float
 
-    ## ALIAS inverse cosine
-       GROUP Trigonometry
-       ICON math
-
+    ## ---
+       aliases: [inverse cosine]
+       group: Trigonometry
+       icon: math
+       ---
        Computes the inverse of the cosine function.
-
        Selects a value in the -pi/2 through pi/2 range.
 
-       > Example
-         Calculate the inverse cosine of 1.
+       ## Examples
+       ### Calculate the inverse cosine of 1.
 
+       ```
              1.acos
+       ```
     acos : Float
     acos self = Math.acos self.to_float
 
-    ## ALIAS inverse tangent
-       GROUP Trigonometry
-       ICON math
-
+    ## ---
+       aliases: [inverse tangent]
+       group: Trigonometry
+       icon: math
+       ---
        Computes the inverse of the tangent function.
-
        Selects a value in the -pi/2 through pi/2 range.
 
-       > Example
-         Calculate the inverse tangent of 1.
+       ## Examples
+       ### Calculate the inverse tangent of 1.
 
+       ```
              1.atan
+       ```
     atan : Float
     atan self = Math.atan self.to_float
 
-    ## GROUP Trigonometry
-       ICON math
-       Computes the argument (angle) in the conversion from cartesian
-       to polar coordinates, taking `self` as the x coordinate.
-
-       Arguments:
-       - y: The y coordinate.
+    ## ---
+       group: Trigonometry
+       icon: math
+       ---
+       Computes the argument (angle) in the conversion from cartesian to polar
+       coordinates, taking `self` as the x coordinate.
 
        The returned angle is in the -pi through pi range.
 
-       > Example
-         Convert the coordinates 1 and 2 to polar form.
+       ## Arguments
+        - `y`: The y coordinate.
 
+       ## Examples
+       ### Convert the coordinates 1 and 2 to polar form.
+
+       ```
              1.atan_2 2
+       ```
     atan_2 : Number -> Float
     atan_2 self y = Math.atan2 self.to_float y.to_float
 
-    ## ALIAS sine
-       GROUP Trigonometry
-       ICON math
-
+    ## ---
+       aliases: [sine]
+       group: Trigonometry
+       icon: math
+       ---
        Computes the sine function.
 
-       > Example
-         Calculate the sine of 2.
+       ## Examples
+       ### Calculate the sine of 2.
 
+       ```
              2.sin
+       ```
     sin : Float
     sin self = Math.sin self.to_float
 
-    ## ALIAS cosine
-       GROUP Trigonometry
-       ICON math
-
+    ## ---
+       aliases: [cosine]
+       group: Trigonometry
+       icon: math
+       ---
        Computes the cosine function.
 
-       > Example
-         Calculate the cosine of 2.
+       ## Examples
+       ### Calculate the cosine of 2.
 
+       ```
              2.cos
+       ```
     cos : Float
     cos self = Math.cos self.to_float
 
-    ## ALIAS tangent
-       GROUP Trigonometry
-       ICON math
-
+    ## ---
+       aliases: [tangent]
+       group: Trigonometry
+       icon: math
+       ---
        Computes the tangent function.
 
-       > Example
-         Calculate the tangent of 2.
+       ## Examples
+       ### Calculate the tangent of 2.
 
+       ```
              2.tan
+       ```
     tan : Float
     tan self = Math.tan self.to_float
 
-    ## GROUP Trigonometry
-       ICON math
+    ## ---
+       group: Trigonometry
+       icon: math
+       ---
        Computes the hyperbolic sine function.
 
-       > Example
-         Calculate the hyperbolic sine of 1.
+       ## Examples
+       ### Calculate the hyperbolic sine of 1.
 
+       ```
              1.sinh
+       ```
     sinh : Float
     sinh self = Math.sinh self.to_float
 
-    ## GROUP Trigonometry
-       ICON math
+    ## ---
+       group: Trigonometry
+       icon: math
+       ---
        Computes the hyperbolic cosine function.
 
-       > Example
-         Calcualte the hyperbolic cosine of 1.
+       ## Examples
+       ### Calculate the hyperbolic cosine of 1.
 
+       ```
              1.cosh
+       ```
     cosh : Float
     cosh self = Math.cosh self.to_float
 
-    ## GROUP Trigonometry
-       ICON math
+    ## ---
+       group: Trigonometry
+       icon: math
+       ---
        Computes the hyperbolic tangent function.
 
-       > Example
-         Calculate the hyperbolic tangent of 1.
+       ## Examples
+       ### Calculate the hyperbolic tangent of 1.
 
+       ```
              1.tanh
+       ```
     tanh : Float
     tanh self = Math.tanh self.to_float
 
-    ## ALIAS exponential
-       GROUP Math
-       ICON math
+    ## ---
+       aliases: [exponential]
+       group: Math
+       icon: math
+       ---
+       Computes the exponential function, raising Euler's number `r` to the power
+       of `self`.
 
-       Computes the exponential function, raising Euler's number `r` to the power of
-       `self`.
+       ## Examples
+       ### Calculate e to the 4th power.
 
-       > Example
-         Calculate e to the 4th power.
-
+       ```
              4.exp
+       ```
     exp : Float
     exp self = Math.exp self.to_float
 
-    ## ALIAS natural logarithm
-       GROUP Math
-       ICON math
-
+    ## ---
+       aliases: [natural logarithm]
+       group: Math
+       icon: math
+       ---
        Computes the natural logarithm function.
 
-       > Example
-         Calculate the natural logarithm of 2.
+       ## Examples
+       ### Calculate the natural logarithm of 2.
 
+       ```
              2.ln
+       ```
     ln : Float
     ln self = Math.log self.to_float
 
-    ## ALIAS square root
-       GROUP Math
-       ICON math
-
+    ## ---
+       aliases: [square root]
+       group: Math
+       icon: math
+       ---
        Computes the square root of `self`.
 
-       > Example
-         Calculate the square root of 8.
+       ## Examples
+       ### Calculate the square root of 8.
 
+       ```
              8.sqrt
+       ```
     sqrt : Float
     sqrt self = Math.sqrt self.to_float
 
-    ## ALIAS logarithm
-       GROUP Math
-       ICON math
-
+    ## ---
+       aliases: [logarithm]
+       group: Math
+       icon: math
+       ---
        Computes the `base`-log of `self`.
 
-       Arguments:
-       - base: The base for the logarithm.
+       ## Arguments
+        - `base`: The base for the logarithm.
 
-       > Example
-         Calculate log 2 of 4.
+       ## Examples
+       ### Calculate log 2 of 4.
 
+       ```
              4.log 2
+       ```
     log : Number -> Float
     log self base = self.ln / base.ln
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Converts a numeric value to a string, using the Java DecimalFormat
        formatter.
 
-       Arguments:
-       - format: The java-style formatting specifier.
+       ## Arguments
+        - `format`: The java-style formatting specifier.
 
-       > Example
-         Convert the value 5000 to a string.
+       ## Examples
+       ### Convert the value 5000 to a string.
 
+       ```
              5000.format "#,##0"
+       ```
     @format make_number_format_selector
     @locale Locale.default_widget
     format : Text -> Locale -> Text
@@ -327,82 +393,106 @@ type Number
         formatter = DecimalFormat.new format symbols
         formatter.format self
 
-    ## GROUP Logical
-       ICON operators
+    ## ---
+       group: Logical
+       icon: operators
+       ---
        Checks equality of numbers, using an `epsilon` value.
 
-       ! Error Conditions
-         If either of the arguments is `Number.nan`, an `Incomparable_Values` error is raised.
+       ## Arguments
+        - `that`: The number to check equality against.
+        - `epsilon`: The value by which `self` and `that` can be separated by
+          before counting as not equal.
 
-       Arguments:
-       - that: The number to check equality against.
-       - epsilon: The value by which `self` and `that` can be separated by before
-         counting as not equal.
+       ## Examples
+       ### Check if 1 is equal to 1.0000001 within 0.001.
 
-       > Example
-         Check if 1 is equal to 1.0000001 within 0.001.
-
+       ```
              1.equals 1.0000001 epsilon=0.001
+       ```
+
+       ## Errors
+       If either of the arguments is `Number.nan`, an `Incomparable_Values` error
+       is raised.
     equals self that:Number epsilon=0.0:Number -> Boolean ! Incomparable_Values =
         (self == that) || ((self - that).abs <= epsilon)
 
-    ## GROUP Math
-       ICON transform4
+    ## ---
+       group: Math
+       icon: transform4
+       ---
        Returns the smaller value of `self` and `that`.
 
-       Arguments:
-       - that: The number to compare `self` against.
+       ## Arguments
+        - `that`: The number to compare `self` against.
 
-       ? Math.min or Number.min
-         While we provide the min method on `Number`, we find it more intuitive to
-         write `Math.min a b` rather than `a.min b`. To that end, we recommend using
-         the first style.
+       ## Examples
+       ### Find the minimum of 2 and 5.
 
-       > Example
-         Find the minimum of 2 and 5.
-
+       ```
              2.min 5
+       ```
+
+       ## Remarks
+
+       ### Math.min or Number.min
+       While we provide the min method on `Number`, we find it more intuitive to
+       write `Math.min a b` rather than `a.min b`. To that end, we recommend
+       using the first style.
     min : Number -> Number
     min self that = if self < that then self else that
 
-    ## GROUP Math
-       ICON transform4
+    ## ---
+       group: Math
+       icon: transform4
+       ---
        Returns the larger value of `self` and `that`.
 
-       Arguments:
-       - that: The number to compare `self` against.
+       ## Arguments
+        - `that`: The number to compare `self` against.
 
-       ? Math.max or Number.max
-         While we provide the max method on `Number`, we find it more intuitive to
-         write `Math.max a b` rather than `a.max b`. To that end, we recommend using
-         the first style.
+       ## Examples
+       ### Find the maximum of 2 and 5.
 
-       > Example
-         Find the maximum of 2 and 5.
-
+       ```
              2.max 5
+       ```
+
+       ## Remarks
+
+       ### Math.max or Number.max
+       While we provide the max method on `Number`, we find it more intuitive to
+       write `Math.max a b` rather than `a.max b`. To that end, we recommend
+       using the first style.
     max : Number -> Number
     max self that = if self > that then self else that
 
-    ## ICON math
+    ## ---
+       icon: math
+       ---
        A constant holding the floating-point positive infinity.
     positive_infinity : Float
     positive_infinity = Double.POSITIVE_INFINITY
 
-    ## ICON math
+    ## ---
+       icon: math
+       ---
        A constant holding the floating-point negative infinity.
     negative_infinity : Float
     negative_infinity = Double.NEGATIVE_INFINITY
 
-    ## ICON math
+    ## ---
+       icon: math
+       ---
        A constant holding the floating-point Not-a-Number value.
     nan : Float
     nan = Double.NaN
 
-    ## GROUP Math
-       ICON metadata
+    ## ---
+       group: Math
+       icon: metadata
+       ---
        Checks if the given number is the floating-point Not-a-Number value.
-
        This is needed, because the NaN value will return `False` even when being
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
@@ -410,24 +500,30 @@ type Number
         _ : Float -> Double.isNaN self
         _ -> False
 
-    ## GROUP Math
-       ICON metadata
+    ## ---
+       group: Math
+       icon: metadata
+       ---
        Checks if the given number is infinite.
     is_infinite : Boolean
     is_infinite self = case self of
         _ : Float -> Double.isInfinite self
         _ -> False
 
-    ## GROUP Math
-       ICON metadata
+    ## ---
+       group: Math
+       icon: metadata
+       ---
        Checks if the given number is finite, i.e. not infinite nor NaN.
     is_finite : Boolean
     is_finite self = case self of
         _ : Float -> (Double.isInfinite self).not && (Double.isNaN self).not
         _ -> True
 
-    ## GROUP Math
-       ICON math
+    ## ---
+       group: Math
+       icon: math
+       ---
        Returns the sign of the number.
     signum : Integer
     signum self =
@@ -437,363 +533,440 @@ type Number
 
 ## Float is the type of float numbers in Enso.
 
-   ? Representation
-     Enso's float numbers are represented as IEEE754 double-precision
-     floating point numbers.
+   ## Remarks
+
+   ### Representation
+   Enso's float numbers are represented as IEEE754 double-precision floating
+   point numbers.
 @Builtin_Type
 type Float
-    ## ALIAS add, plus
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [add, plus]
+       group: Operators
+       icon: math
+       ---
        Adds a float and an arbitrary number.
 
-       Arguments:
-       - that: The number to add to this.
+       Addition in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
 
-       Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
+       ## Arguments
+        - `that`: The number to add to this.
 
-       > Example
-         Adding 10.1 and 15.
+       ## Examples
+       ### Adding 10.1 and 15.
 
+       ```
              10.1 + 15
+       ```
     + self that:Number -> Number = float_plus self that
 
-    ## ALIAS minus, subtract
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [minus, subtract]
+       group: Operators
+       icon: math
+       ---
        Subtract an arbitrary number from this.
 
-       Arguments:
-       - that: The number to subtract from this.
+       ## Arguments
+        - `that`: The number to subtract from this.
 
-       > Example
-         Subtract 5 from 2.78.
+       ## Examples
+       ### Subtract 5 from 2.78.
 
+       ```
              2.78 - 5
+       ```
     - self that:Number -> Number = float_minus self that
 
-    ## ALIAS multiply, product, times
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [multiply, product, times]
+       group: Operators
+       icon: math
+       ---
        Multiply a float by an arbitrary number.
-
-       Arguments:
-       - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
        need not convert between Integer and Float manually.
 
-       > Example
-         Multiplying 3 by 5.27.
+       ## Arguments
+        - `that`: The number to multiply this by.
 
+       ## Examples
+       ### Multiplying 3 by 5.27.
+
+       ```
              5.27 * 3
+       ```
     * self that:Number -> Number = float_times self that
 
-    ## ALIAS divide
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [divide]
+       group: Operators
+       icon: math
+       ---
        Divides a float by an arbitrary number.
 
-       Arguments:
-       - that: The number to divide this by.
+       Division in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
 
-       Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
+       ## Arguments
+        - `that`: The number to divide this by.
 
-       > Example
-         Dividing 10 by 4.5.
+       ## Examples
+       ### Dividing 10 by 4.5.
 
+       ```
              10 / 4.5
+       ```
     / self that:Number -> Number = float_divide self that
 
-    ## ALIAS modulo, modulus
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [modulo, modulus]
+       group: Operators
+       icon: math
+       ---
        Computes the remainder when dividing this by that.
 
-       Arguments:
-       - that: The number to divide this by.
+       Modulus in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
 
-       Modulus in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
+       ## Arguments
+        - `that`: The number to divide this by.
 
-       ? Negative Arguments
+       ## Examples
+       ### Computing the remainder when dividing 3.5 by 2.
 
-         When the first argument to `%` is negative, the result will also be
-         negative.
-
-       > Example
-         Computing the remainder when dividing 3.5 by 2.
-
+       ```
              3.5 % 2 == 1.5
+       ```
 
-       > Example
-         Computing the fractional part of a number.
+       ### Computing the fractional part of a number.
 
+       ```
              10.5 % 1.0 == 0.5
+       ```
 
-       > Example
-         Computing the remainder of a negative number.
+       ### Computing the remainder of a negative number.
 
+       ```
              -5 % 3 == -2
+       ```
+
+       ## Remarks
+
+       ### Negative Arguments
+       When the first argument to `%` is negative, the result will also be
+       negative.
     % self that:Number -> Number ! Arithmetic_Error = float_mod self that
 
-    ## ALIAS power
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [power]
+       group: Operators
+       icon: math
+       ---
        Compute the result of raising this to the power that.
 
-       Arguments:
-       - that: The exponent.
+       ## Arguments
+        - `that`: The exponent.
 
-       > Example
-         Computing 2.2 cubed.
+       ## Examples
+       ### Computing 2.2 cubed.
 
+       ```
              2.2^3
+       ```
     ^ self that:Number -> Number = float_pow self that
 
-    ## ALIAS greater than
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is greater than that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10 is greater than 7.3.
+       ## Examples
+       ### Checking if 10 is greater than 7.3.
 
+       ```
              10 > 7.3
+       ```
     > self that:Number -> Boolean = float_greater self that
 
-    ## ALIAS greater than or equal
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is greater than or equal to that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10 is greater than or equal to 7.3.
+       ## Examples
+       ### Checking if 10 is greater than or equal to 7.3.
 
+       ```
              10 >= 7.3
+       ```
     >= self that:Number -> Boolean = float_greater_equal self that
 
-    ## ALIAS less than
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is less than that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10 is less than 7.3.
+       ## Examples
+       ### Checking if 10 is less than 7.3.
 
+       ```
              10 < 7.3
+       ```
     < self that:Number -> Boolean = float_less self that
 
-    ## ALIAS less than or equal
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is less than or equal to that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10.4 is less than or equal to 7.
+       ## Examples
+       ### Checking if 10.4 is less than or equal to 7.
 
+       ```
              10.4 <= 7
+       ```
     <= self that:Number -> Boolean = float_less_equal self that
 
-    ## GROUP Math
-       ICON math
+    ## ---
+       group: Math
+       icon: math
+       ---
        Computes the absolute value of this.
-
        The absolute value of a positive number is itself, while the absolute
        value of a negative number is that number multiplied by -1.
 
-       > Example
-         Computing the absolute value of -10.63.
+       ## Examples
+       ### Computing the absolute value of -10.63.
 
+       ```
             -10.63.abs
+       ```
     abs self -> Float = float_abs self
 
-    ## GROUP Rounding
-       ICON math
+    ## ---
+       group: Rounding
+       icon: math
+       ---
        Computes the nearest integer equal to or above this number.
-
        This method provides a means of converting a Float to an Integer.
 
-       > Example
-         Computing the ceiling of 4.736 (which is 5).
+       ## Examples
+       ### Computing the ceiling of 4.736 (which is 5).
 
+       ```
              4.736.ceil
+       ```
     ceil self -> Integer = float_ceil self
 
-    ## GROUP Rounding
-       ICON math
+    ## ---
+       group: Rounding
+       icon: math
+       ---
        Computes the nearest integer equal to or below this number.
-
        This method provides a means of converting a Float to an Integer.
 
-       > Example
-         Computing the floor of 4.323 (which is 4).
+       ## Examples
+       ### Computing the floor of 4.323 (which is 4).
 
+       ```
              4.323.floor
+       ```
     floor self -> Integer = float_floor self
 
-    ## ALIAS int
-       GROUP Rounding
-       ICON math
-
+    ## ---
+       aliases: [int]
+       group: Rounding
+       icon: math
+       ---
        Truncate a floating-point number to an integer by dropping the fractional
        part. This is equivalent to "round-toward-zero".
     truncate self -> Integer = float_truncate_builtin self
 
-    ## GROUP Rounding
-       ICON math
+    ## ---
+       group: Rounding
+       icon: math
+       ---
        Round to a specified number of decimal places.
-
        By default, rounding uses "symmetric round-half-up", also known as
-       "half-up." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even", also
-       known as "banker's rounding".
-
-       If `decimal_places` > 0, `round` returns a `Float`; otherwise, it
-       returns an `Integer`.
-
+       "half-up." If rounding_mode=Rounding_Mode.Bankers, then it uses
+       "round-half-even", also known as "banker's rounding".
+       If `decimal_places` > 0, `round` returns a `Float`; otherwise, it returns
+       an `Integer`.
        If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
        thrown.
 
-       Arguments:
-       - decimal_places: The number of decimal places to round to. Can be
-         negative, which results in rounding to positive integer powers of 10.
-         Must be between -15 and 15 (inclusive).
-       - rounding_mode: specifies how to break ties for the least significant
-         digit.
+       ## Arguments
+        - `decimal_places`: The number of decimal places to round to. Can be
+          negative, which results in rounding to positive integer powers of 10.
+          Must be between -15 and 15 (inclusive).
+        - `rounding_mode`: specifies how to break ties for the least significant
+          digit.
 
-       ! Error Conditions
+       ## Examples
+       ### Round to the nearest integer.
 
-         If `self` is outside the range -99999999999999..99999999999999
-         (inclusive), an `Illegal_Argument` error is thrown.
-
-         If `decimal_places` is outside the range -15..15 (inclusive), an
-         `Illegal_Argument` error is thrown.
-
-       ? Negative decimal place counts
-         Rounding to `n` digits can be thought of as "rounding to the nearest
-         multiple of 10^(-n)". For negative decimal counts, this results in
-         rounding to the nearest positive integer power of 10.
-
-       > Example
-         Round to the nearest integer.
-
+       ```
             3.3 . round == 3
+       ```
 
-       > Example
-         Round to two decimal places.
+       ### Round to two decimal places.
 
+       ```
             3.1415 . round 2 == 3.14
+       ```
 
-       > Example
-         Round to the nearest hundred.
+       ### Round to the nearest hundred.
 
+       ```
             1234.0 . round -2 == 1200
+       ```
 
-       > Example
-         Use Banker's Rounding.
+       ### Use Banker's Rounding.
 
+       ```
             2.5 . round rounding_mode=Rounding_Mode.Bankers == 2
+       ```
+
+       ## Errors
+       If `self` is outside the range -99999999999999..99999999999999
+       (inclusive), an `Illegal_Argument` error is thrown.  If `decimal_places`
+       is outside the range -15..15 (inclusive), an `Illegal_Argument` error is
+       thrown.
+
+       ## Remarks
+
+       ### Negative decimal place counts
+       Rounding to `n` digits can be thought of as "rounding to the nearest
+       multiple of 10^(-n)". For negative decimal counts, this results in
+       rounding to the nearest positive integer power of 10.
     round : Integer -> Rounding_Mode -> Integer | Float ! Illegal_Argument
     round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Integer | Float ! Illegal_Argument =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
             round_float_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
 
-    ## GROUP Operators
-       ICON operators
+    ## ---
+       group: Operators
+       icon: operators
+       ---
        Compute the negation of this.
 
-       > Example
-         Negate 5.1 to get -5.1.
+       ## Examples
+       ### Negate 5.1 to get -5.1.
 
+       ```
              5.1.negate
+       ```
     negate self -> Float = float_negate self
 
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Convert this to a float.
-
        This is a no-op on floats, but is provided for completeness of the Enso
        Number API.
 
-       > Example
-         Convert 5.0 to a float to get 5.0.
+       ## Examples
+       ### Convert 5.0 to a float to get 5.0.
 
+       ```
              5.0.to_float
+       ```
     to_float self -> Float = self
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Convert this to a `Decimal`.
 
-       > Example
-         Convert 12.3 to a Decimal.
+       ## Examples
+       ### Convert 12.3 to a Decimal.
 
+       ```
              12.3 . to_decimal
              # => Decimal.new "12.3"
+       ```
     to_decimal : Decimal
     to_decimal self -> Decimal = Decimal.from_float self
 
-    ## ALIAS from text
-       GROUP Conversions
-       ICON convert
-
+    ## ---
+       aliases: [from text]
+       group: Conversions
+       icon: convert
+       ---
        Parses a string into a `Float`, returning a `Number_Parse_Error` if the
        text does not represent a valid `Float`.
 
-       Arguments:
-       - text: The text to parse into a `Float`.
-       - locale: The locale that specifies the format to use when parsing.
-       - format: The Java-style format to use to parse the string.
+       ## Arguments
+        - `text`: The text to parse into a `Float`.
+        - `locale`: The locale that specifies the format to use when parsing.
+        - `format`: The Java-style format to use to parse the string.
 
-       ! Error Conditions
+       ## Examples
+       ### Parse a `Float` with no locale specifier.
 
-         - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
-         - If `format` is incorrectly formatted (or uses digit separators that
-           differ from the ones specified by the locale), an `Illegal_Argument`
-           is thrown.
-
-       > Example
-         Parse a `Float` with no locale specifier.
-
+       ```
              Float.parse "123456789.87654"
              # => 123456789.87654
+       ```
 
-       > Example
-         Parse a `Float` with the default locale.
+       ### Parse a `Float` with the default locale.
 
+       ```
              Float.parse "123,456,789.87654" locale=Locale.default
              # => 123456789.87654
+       ```
 
-       > Example
-         Parse a `Float` with the US locale.
+       ### Parse a `Float` with the US locale.
 
+       ```
              Float.parse "123,456,789.87654" locale=Locale.us
              # => 123456789.87654
+       ```
 
-       > Example
-         Parse a `Float` with the Italy locale.
+       ### Parse a `Float` with the Italy locale.
 
+       ```
              Float.parse "123.456.789,87654" locale=Locale.italy
              # => 123456789.87654
-       > Example
-         Parse a `Float` with an explicit negative number format.
+       ```
 
+       ### Parse a `Float` with an explicit negative number format.
+
+       ```
              Float.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
              # => -123456789.654
+       ```
+
+       ## Errors
+        - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+        - If `format` is incorrectly formatted (or uses digit separators that
+          differ from the ones specified by the locale), an `Illegal_Argument` is
+          thrown.
     parse : Text -> Locale | Nothing -> Text | Nothing -> Float ! Number_Parse_Error | Illegal_Argument
     parse text:Text (locale : Locale | Nothing = Nothing) (format : Text | Nothing = Nothing) -> Float ! Number_Parse_Error | Illegal_Argument =
         case locale.is_nothing && format.is_nothing of
@@ -810,307 +983,368 @@ type Float
                     Panic.catch ParseException (decimal_format.parse text) _->
                         Error.throw (Number_Parse_Error.Error text)
 
-    ## ICON input_number
-
+    ## ---
+       icon: input_number
+       ---
        Maximum representable positive value, from the underlying Java double
        type.
-
        The absolute-value-largest representable negative value is `-max_value`.
     max_value = Double.MAX_VALUE
 
-    ## ICON input_number
-
+    ## ---
+       icon: input_number
+       ---
        Minimum representable positive value, from the underlying Java double
        type.
     min_value = Double.MIN_VALUE
 
-## Integer is the type of integral numbers in Enso. They are of unbounded
-   size and can grow as large as necessary.
+## Integer is the type of integral numbers in Enso. They are of unbounded size
+   and can grow as large as necessary.
 
-   ? Representation
-     For certain operations (such as bitwise logic), the underlying
-     representation of the number matters. Enso Integers are represented as
-     signed 2's complement numbers.
+   ## Remarks
 
-   ? Performance
-     Integers that fit into 64 bits are represented in memory as 64 bits.
-     This means that operations on them achieve excellent performance. Once
-     the integer grows beyond being able to fit in 64 bits, performance will
-     degrade.
+   ### Representation
+   For certain operations (such as bitwise logic), the underlying representation
+   of the number matters. Enso Integers are represented as signed 2's complement
+   numbers.
+
+   ### Performance
+   Integers that fit into 64 bits are represented in memory as 64 bits.
+   This means that operations on them achieve excellent performance. Once the
+   integer grows beyond being able to fit in 64 bits, performance will degrade.
 @Builtin_Type
 type Integer
-    ## ALIAS add, plus
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [add, plus]
+       group: Operators
+       icon: math
+       ---
        Adds an integer and an arbitrary number.
 
-       Arguments:
-       - that: The number to add to this.
+       Addition in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
 
-       Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
+       ## Arguments
+        - `that`: The number to add to this.
 
-       > Example
-         Adding 10 and 15.
+       ## Examples
+       ### Adding 10 and 15.
 
+       ```
              10 + 15
+       ```
     + self that:Integer -> Integer = integer_plus self that
 
-    ## ALIAS minus, subtract
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [minus, subtract]
+       group: Operators
+       icon: math
+       ---
        Subtract an arbitrary number from this.
 
-       Arguments:
-       - that: The number to subtract from this.
+       ## Arguments
+        - `that`: The number to subtract from this.
 
-       > Example
-         Subtract 5 from 2.
+       ## Examples
+       ### Subtract 5 from 2.
 
+       ```
              2 - 5
+       ```
     - self that:Integer -> Integer = integer_minus self that
 
-    ## ALIAS multiply, product, times
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [multiply, product, times]
+       group: Operators
+       icon: math
+       ---
        Multiply an integer by an arbitrary number.
-
-       Arguments:
-       - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
        need not convert between Integer and Float manually.
 
-       > Example
-         Multiplying 3 by 5.
+       ## Arguments
+        - `that`: The number to multiply this by.
 
+       ## Examples
+       ### Multiplying 3 by 5.
+
+       ```
              3 * 5
+       ```
     * self that:Integer -> Integer = integer_times self that
 
-    ## ALIAS divide
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [divide]
+       group: Operators
+       icon: math
+       ---
        Divides an integer by an arbitrary number.
 
-       Arguments:
-       - that: The number to divide this by.
+       Division in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
 
-       Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
+       ## Arguments
+        - `that`: The number to divide this by.
 
-       > Example
-         Dividing 10 by 4 to get 2.5.
+       ## Examples
+       ### Dividing 10 by 4 to get 2.5.
 
+       ```
              10 / 4
+       ```
     / self that:Integer -> Number = integer_divide self that
 
-    ## ALIAS modulo, modulus
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [modulo, modulus]
+       group: Operators
+       icon: math
+       ---
        Computes the remainder when dividing this by that.
 
-       Arguments:
-       - that: The number to divide this by.
-
-       Modulus in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Float manually.
-
+       Modulus in Enso will undergo automatic conversions such that you need not
+       convert between Integer and Float manually.
        Returns an error if the shift amount exceeds 2^32.
 
-       ? Negative Arguments
+       ## Arguments
+        - `that`: The number to divide this by.
 
-         When the first argument to `%` is negative, the result will also be
-         negative.
+       ## Examples
+       ### Computing the remainder when dividing 10 by 3 (which is 1).
 
-       > Example
-         Computing the remainder when dividing 10 by 3 (which is 1).
-
+       ```
              10 % 3
+       ```
 
-       > Example
-         Computing the remainder of a negative number.
+       ### Computing the remainder of a negative number.
 
+       ```
              -5 % 3 == -2
+       ```
+
+       ## Remarks
+
+       ### Negative Arguments
+       When the first argument to `%` is negative, the result will also be
+       negative.
     % self that:Integer -> Integer ! Arithmetic_Error = integer_mod self that
 
-    ## ALIAS power
-       GROUP Operators
-       ICON math
+    ## ---
+       aliases: [power]
+       group: Operators
+       icon: math
+       ---
        Compute the result of raising this to the power that.
 
-       Arguments:
-       - that: The exponent.
+       ## Arguments
+        - `that`: The exponent.
 
-       > Example
-         Computing 2 cubed.
+       ## Examples
+       ### Computing 2 cubed.
 
+       ```
              2^3
+       ```
     ^ self that:Integer -> Number = integer_pow self that
 
-    ## ALIAS greater than
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is greater than that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10 is greater than 7.
+       ## Examples
+       ### Checking if 10 is greater than 7.
 
+       ```
              10 > 7
+       ```
     > self that:Number -> Boolean = integer_greater self that
 
-    ## ALIAS greater than or equal
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is greater than or equal to that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10 is greater than or equal to 7.
+       ## Examples
+       ### Checking if 10 is greater than or equal to 7.
 
+       ```
              10 >= 7
+       ```
     >= self that:Number -> Boolean = integer_greater_equal self that
 
-    ## ALIAS less than
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is less than that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10 is less than 7.
+       ## Examples
+       ### Checking if 10 is less than 7.
 
+       ```
              10 < 7
+       ```
     < self that:Number -> Boolean = integer_less self that
 
-    ## ALIAS less than or equal
-       GROUP Operators
-       ICON operators
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
        Checks if this is less than or equal to that.
 
-       Arguments:
-       - that: The number to compare this against.
+       ## Arguments
+        - `that`: The number to compare this against.
 
-       > Example
-         Checking if 10 is less than or equal to 7.
+       ## Examples
+       ### Checking if 10 is less than or equal to 7.
 
+       ```
              10 <= 7
+       ```
     <= self that:Number -> Boolean = integer_less_equal self that
 
-    ## GROUP Math
-       ICON math
+    ## ---
+       group: Math
+       icon: math
+       ---
        Computes the absolute value of this.
-
        The absolute value of a positive number is itself, while the absolute
        value of a negative number is that number multiplied by -1.
 
-       > Example
-         Computing the absolute value of -10.
+       ## Examples
+       ### Computing the absolute value of -10.
 
+       ```
             -10.abs
+       ```
     abs self -> Integer = integer_abs self
 
-    ## GROUP Rounding
-       ICON math
+    ## ---
+       group: Rounding
+       icon: math
+       ---
        Computes the nearest integer above this integer.
-
        This is a no-op on integers but is provided for completeness of the Enso
        number API.
 
-       > Example
-         Computing the ceiling of 4.
+       ## Examples
+       ### Computing the ceiling of 4.
 
+       ```
              4.ceil
+       ```
     ceil self -> Integer = integer_ceil self
 
-    ## GROUP Math
-       ICON math
+    ## ---
+       group: Math
+       icon: math
+       ---
        Computes the integer division of this by that.
 
-       Arguments:
-       - that: The number to divide this by.
-
        Integer division rounds down to the nearest integer.
-
        Returns an error if `that` is zero.
 
-       > Example
-         Dividing 10 by 3 to get 3.
+       ## Arguments
+        - `that`: The number to divide this by.
 
+       ## Examples
+       ### Dividing 10 by 3 to get 3.
+
+       ```
              10.div 3
+       ```
     div self that:Integer -> Integer ! Arithmetic_Error = integer_div self that
 
-    ## GROUP Rounding
-       ICON math
+    ## ---
+       group: Rounding
+       icon: math
+       ---
        Computes the nearest integer below this integer.
-
        This is a no-op on integers but is provided for completeness of the Enso
        number API.
 
-       > Example
-         Computing the floor of 4.
+       ## Examples
+       ### Computing the floor of 4.
 
+       ```
              4.floor
+       ```
     floor self -> Integer = integer_floor self
 
-    ## ALIAS int
-       GROUP Rounding
-       ICON math
-
+    ## ---
+       aliases: [int]
+       group: Rounding
+       icon: math
+       ---
        Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
        compatibility with `Float.truncate`.
     truncate self -> Integer = self
 
-    ## GROUP Rounding
-       ICON math
+    ## ---
+       group: Rounding
+       icon: math
+       ---
        Round to a specified number of decimal places.
-
        For integers, rounding to 0 or more decimal places simply returns the
        argument. For negative decimal places, see below.
-
        By default, rounding uses "symmetric round-half-up", also known as
-       "half-up." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even", also
-       known as "banker's rounding".
+       "half-up." If rounding_mode=Rounding_Mode.Bankers, then it uses
+       "round-half-even", also known as "banker's rounding".
 
-       Arguments:
-       - decimal_places: The number of decimal places to round to. Can be
-         negative, which results in rounding to positive integer powers of 10.
-         Must be between -15 and 15 (inclusive).
-       - rounding_mode: specifies how to break ties for the least significant
-         digit.
+       ## Arguments
+        - `decimal_places`: The number of decimal places to round to. Can be
+          negative, which results in rounding to positive integer powers of 10.
+          Must be between -15 and 15 (inclusive).
+        - `rounding_mode`: specifies how to break ties for the least significant
+          digit.
 
-       ! Error Conditions
-         If `self` is outside the range -99999999999999..99999999999999
-         (inclusive), an `Illegal_Argument` error is thrown.
+       ## Examples
+       ### Round an integer (returns the value unchanged).
 
-         If `decimal_places` is outside the range -15..15 (inclusive), an
-         `Illegal_Argument` error is thrown.
-
-       ? Negative decimal place counts
-         Rounding to `n` digits can be thought of as "rounding to the nearest
-         multiple of 10^(-n)". For negative decimal counts, this results in
-         rounding to the nearest positive integer power of 10.
-
-       > Example
-         Round an integer (returns the value unchanged).
-
+       ```
             3 . round == 3
+       ```
 
-       > Example
-         Round to the nearest thousand.
+       ### Round to the nearest thousand.
 
+       ```
             2511 . round -3 == 3000
+       ```
 
-       > Example
-         Round to the nearest hundred, using Banker's Rounding.
+       ### Round to the nearest hundred, using Banker's Rounding.
 
+       ```
             12250 . round -2 rounding_mode=Rounding_Mode.Bankers == 12200
+       ```
+
+       ## Errors
+       If `self` is outside the range -99999999999999..99999999999999
+       (inclusive), an `Illegal_Argument` error is thrown.  If `decimal_places`
+       is outside the range -15..15 (inclusive), an `Illegal_Argument` error is
+       thrown.
+
+       ## Remarks
+
+       ### Negative decimal place counts
+       Rounding to `n` digits can be thought of as "rounding to the nearest
+       multiple of 10^(-n)". For negative decimal counts, this results in
+       rounding to the nearest positive integer power of 10.
     round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Integer ! Illegal_Argument =
         ## We reject values outside the range of `long` here, so we don't also
            do this check in the Java.
@@ -1119,221 +1353,274 @@ type Integer
             Panic.catch Unsupported_Argument_Types handler=report_unsupported
                 round_integer_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
 
-    ## GROUP Operators
-       ICON operators
+    ## ---
+       group: Operators
+       icon: operators
+       ---
        Compute the negation of this.
 
-       > Example
-         Negate 5 to get -5.
+       ## Examples
+       ### Negate 5 to get -5.
 
+       ```
              5.negate
+       ```
     negate self -> Integer = integer_negate self
 
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Convert this to a float.
 
-       > Example
-         Convert 5 to a float to get 5.0.
+       ## Examples
+       ### Convert 5 to a float to get 5.0.
 
+       ```
              5.to_float
+       ```
     to_float self -> Float = integer_to_float self
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Convert this to a `Decimal`.
 
-       > Example
-         Convert 12 to a Decimal.
+       ## Examples
+       ### Convert 12 to a Decimal.
 
+       ```
              12 . to_decimal
              # => Decimal.new "12"
+       ```
     to_decimal : Decimal
     to_decimal self -> Decimal = Decimal.from_integer self
 
-    ## GROUP Bitwise
-       ICON math
-       Computes the bitwise and (conjunction) operation between this and
-       that.
+    ## ---
+       group: Bitwise
+       icon: math
+       ---
+       Computes the bitwise and (conjunction) operation between this and that.
 
-       Arguments:
-       - that: The number to compute the bitwise conjunction with.
+       Bitwise and computes the logical conjunction of the corresponding pairs of
+       bits in the operands.
 
-       Bitwise and computes the logical conjunction of the corresponding pairs
-       of bits in the operands.
+       ## Arguments
+        - `that`: The number to compute the bitwise conjunction with.
 
-       > Example
-         Computing the bitwise conjunction of 0b01101101 and 0b11110000.
+       ## Examples
+       ### Computing the bitwise conjunction of 0b01101101 and 0b11110000.
 
+       ```
              0b01101101.bit_and 0b11110000
+       ```
     bit_and self that:Integer -> Integer = integer_bit_and self that
 
-    ## GROUP Bitwise
-       ICON math
+    ## ---
+       group: Bitwise
+       icon: math
+       ---
        Computes the bitewise compliment of this.
-
        The bitwise compliment negates the value of each bit in the operand.
 
-       > Example
-         Bitwise negation of 0b0110.
+       ## Examples
+       ### Bitwise negation of 0b0110.
 
+       ```
              0b0110.bit_not
+       ```
     bit_not self -> Integer = integer_bit_not self
 
-    ## GROUP Bitwise
-       ICON math
-       Computes the bitwise or (disjunction) operation between this and
-       that.
-
-       Arguments:
-       - that: The number to compute the bitwise disjunction with.
+    ## ---
+       group: Bitwise
+       icon: math
+       ---
+       Computes the bitwise or (disjunction) operation between this and that.
 
        Bitwise or computes the logical disjunction of the pairs of corresponding
        bits in the operands.
 
-       > Example
-         Computing the bitwise disjunction of 0b01101101 and 0b11110000.
+       ## Arguments
+        - `that`: The number to compute the bitwise disjunction with.
 
+       ## Examples
+       ### Computing the bitwise disjunction of 0b01101101 and 0b11110000.
+
+       ```
              0b01101101.bit_or 0b11110000
+       ```
     bit_or self that:Integer -> Integer = integer_bit_or self that
 
-    ## GROUP Bitwise
-       ICON math
+    ## ---
+       group: Bitwise
+       icon: math
+       ---
        Computes the bitwise exclusive or between this and that.
-
-       Arguments:
-       - that: The number to compute the bitwise exclusive or with.
 
        Bitwise exclusive or computes the exclusive or of the pairs of
        corresponding bits in the operands.
 
-       > Example
-         Computing the bitwise exclusive or of 0b01101101 and 0b11110000.
+       ## Arguments
+        - `that`: The number to compute the bitwise exclusive or with.
 
+       ## Examples
+       ### Computing the bitwise exclusive or of 0b01101101 and 0b11110000.
+
+       ```
              0b01101101.bit_xor 0b11110000
+       ```
     bit_xor self that:Integer -> Integer = integer_bit_xor self that
 
-    ## GROUP Bitwise
-       ICON math
+    ## ---
+       group: Bitwise
+       icon: math
+       ---
        Shifts the bits of this by the amount that.
-
-       Left-shifts fill the new bits with zeroes, while right-shifts perform
-       sign extension.
-
+       Left-shifts fill the new bits with zeroes, while right-shifts perform sign
+       extension.
        Returns an error if the shift amount exceeds 2^32.
 
-       Arguments:
-       - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a left-shift, while negative numbers perform a
-         right-shift.
+       ## Arguments
+        - `that`: The number of bits by which the shift should be performed.
+          Positive numbers perform a left-shift, while negative numbers perform a
+          right-shift.
 
+       ## Examples
+       ### Shift the bits of the number 1 left by four bits.
 
-       > Example
-         Shift the bits of the number 1 left by four bits.
-
+       ```
              1.bit_shift 4
+       ```
     bit_shift self that:Integer -> Integer ! Arithmetic_Error = integer_bit_shift self that
 
-    ## GROUP Bitwise
-       ICON math
+    ## ---
+       group: Bitwise
+       icon: math
+       ---
        Performs a bitwise left-shift on the number.
-
-       Left-shifts fill the new bits with zeroes, while right-shifts perform
-       sign extension.
-
+       Left-shifts fill the new bits with zeroes, while right-shifts perform sign
+       extension.
        Returns an error if the shift amount exceeds 2^32.
 
-       Arguments:
-       - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a left-shift, while negative numbers perform a
-         right-shift.
+       ## Arguments
+        - `that`: The number of bits by which the shift should be performed.
+          Positive numbers perform a left-shift, while negative numbers perform a
+          right-shift.
 
-       > Example
-         Shift the bits of the number 1 left by four bits.
+       ## Examples
+       ### Shift the bits of the number 1 left by four bits.
 
+       ```
              1.bit_shift_l 4
+       ```
     bit_shift_l self that:Integer -> Integer ! Arithmetic_Error = self.bit_shift that
 
-    ## GROUP Bitwise
-       ICON math
+    ## ---
+       group: Bitwise
+       icon: math
+       ---
        Performs a bitwise right-shift on the number.
-
-       Left-shifts fill the new bits with zeroes, while right-shifts perform
-       sign extension.
-
+       Left-shifts fill the new bits with zeroes, while right-shifts perform sign
+       extension.
        Returns an error if the shift amount exceeds 2^32.
 
-       Arguments:
-       - that: The number of bits by which the shift should be performed.
-         Positive numbers perform a right-shift, while negative numbers perform
-         a left-shift.
+       ## Arguments
+        - `that`: The number of bits by which the shift should be performed.
+          Positive numbers perform a right-shift, while negative numbers perform
+          a left-shift.
 
-       > Example
-         Shift the bits of the number 1 right by four bits.
+       ## Examples
+       ### Shift the bits of the number 1 right by four bits.
 
+       ```
              1.bit_shift_r 4
+       ```
     bit_shift_r self that:Integer -> Integer ! Arithmetic_Error = integer_bit_shift_r self that
 
-    ## ALIAS from text
-       GROUP Conversions
-       ICON convert
+    ## ---
+       aliases: [from text]
+       group: Conversions
+       icon: convert
+       ---
+       Parses a textual representation of an integer into an integer number,
+       returning a `Number_Parse_Error` if the text does not represent a valid
+       integer.
 
-       Parses a textual representation of an integer into an integer number, returning
-       a `Number_Parse_Error` if the text does not represent a valid integer.
+       ## Arguments
+        - `text`: The text to parse into a integer.
+        - `radix`: The number base to use for parsing (defaults to 10). `radix`
+          must be between 2 and 36 (inclusive) -- see
+          https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
 
-       Arguments:
-       - text: The text to parse into a integer.
-       - radix: The number base to use for parsing (defaults to 10). `radix`
-         must be between 2 and 36 (inclusive) -- see https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
+       ## Examples
+       ### Parse the text "20220216" into an integer number.
 
-       > Example
-         Parse the text "20220216" into an integer number.
-
+       ```
             Integer.parse "20220216"
+       ```
     parse text:Text (radix:Integer = 10) -> Integer ! Number_Parse_Error = integer_parse text radix
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     fits_in_long self -> Boolean =
         self >= Long.MIN_VALUE && self <= Long.MAX_VALUE
 
 ## A syntax error when parsing a double.
 @Builtin_Type
 type Number_Parse_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Pretty print the syntax error.
     to_display_text : Text
     to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Float.from (that:Integer) = (1.0 * that):Float
 
 ## A wrapper type that ensures that a function may only take positive integers.
 type Positive_Integer
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        This constructor should not be used by user code as it can be used to
        break the invariants. Instead, this type should only be created by `new`
        or conversions.
     Value (integer : Integer)
 
-    ## PRIVATE
-       ADVANCED
-       Constructor to create a `Positive_Integer` from an `Integer` - checking
-       if it satisfies the condition. User code should prefer the
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Constructor to create a `Positive_Integer` from an `Integer` - checking if
+       it satisfies the condition. User code should prefer the
        `Positive_Integer.from` conversion.
     new (integer : Integer) =
         if integer > 0 then Positive_Integer.Value integer else
             Error.throw (Illegal_Argument.Error "Expected a positive integer, but got "+integer.to_display_text)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Allows to create a `Positive_Integer` from an `Integer`.
    It will throw `Illegal_Argument` if the provided integer is not positive.
 Positive_Integer.from (that : Integer) = Positive_Integer.new that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Integer.from (that : Positive_Integer) = that.integer
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that:Positive_Integer) = Comparable.new that Positive_Integer_Comparator
