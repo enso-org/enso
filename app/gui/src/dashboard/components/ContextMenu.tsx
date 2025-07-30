@@ -84,6 +84,21 @@ export const ContextMenu = forwardRef(function ContextMenu(
     { capture: true },
   )
 
+  useEventListener(
+    'contextmenu',
+    (event) => {
+      if (
+        event.target instanceof Element &&
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target)
+      ) {
+        setIsOpen(false)
+      }
+    },
+    document,
+    { capture: true },
+  )
+
   return (
     <Popover.Trigger>
       <Pressable>
