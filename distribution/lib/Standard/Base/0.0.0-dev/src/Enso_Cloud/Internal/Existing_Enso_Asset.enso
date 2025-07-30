@@ -157,7 +157,7 @@ type Asset_Metadata
     ## ---
        private: true
        ---
-    Value modified_at:Date_Time description:Text|Nothing labels:Vector credential_metadata:Credential_Secret_Metadata|Nothing
+    Value id:Text|Nothing modified_at:Date_Time description:Text|Nothing labels:Vector credential_metadata:Credential_Secret_Metadata|Nothing
 
     ## ---
        private: true
@@ -168,6 +168,7 @@ type Asset_Metadata
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
         description = get_optional_field "description" json expected_type=Text
         labels = get_optional_field "labels" json expected_type=Vector if_missing=[]
+        metadata_id = get_optional_field "metadataId" json expected_type=Text
 
         credential_metadata_field = get_optional_field "credentialMetadata" json expected_type=JS_Object
         credential_metadata = credential_metadata_field.if_not_nothing <|
@@ -178,7 +179,7 @@ type Asset_Metadata
                 Date_Time.parse expiration_date_text Date_Time_Formatter.iso_offset_date_time
                     . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
             Credential_Secret_Metadata.Value service_name state expiration_date
-        Asset_Metadata.Value modified_at description labels credential_metadata
+        Asset_Metadata.Value metadata_id modified_at description labels credential_metadata
 
 ## ---
    private: true
@@ -230,9 +231,9 @@ type Asset_Cache
    Returns the cached reference or fetches it from the cloud.
 fetch_asset_reference (file : Enso_File) (want_metadata : Boolean) -> Existing_Enso_Asset ! File_Error = file.if_not_error <|
     case file.enso_path.to_text of
-        "enso://" -> Existing_Enso_Asset.Value "" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso root directory." [] Nothing)
-        "enso://Users" -> Existing_Enso_Asset.Value "Users" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso User home directories." [] Nothing)
-        "enso://Teams" -> Existing_Enso_Asset.Value "Teams" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso Team home directories." [] Nothing)
+        "enso://" -> Existing_Enso_Asset.Value "" "" Enso_Asset_Type.Directory (Asset_Metadata.Value Nothing (Date_Time.new 2024 1 1) "Enso root directory." [] Nothing)
+        "enso://Users" -> Existing_Enso_Asset.Value "Users" "" Enso_Asset_Type.Directory (Asset_Metadata.Value Nothing (Date_Time.new 2024 1 1) "Enso User home directories." [] Nothing)
+        "enso://Teams" -> Existing_Enso_Asset.Value "Teams" "" Enso_Asset_Type.Directory (Asset_Metadata.Value Nothing (Date_Time.new 2024 1 1) "Enso Team home directories." [] Nothing)
         path ->
             on_not_found =
                 Error.throw (File_Error.Not_Found file)

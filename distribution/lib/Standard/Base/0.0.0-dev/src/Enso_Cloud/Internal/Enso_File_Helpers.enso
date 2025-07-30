@@ -1,6 +1,7 @@
 private
 
 import project.Any.Any
+import project.Data.Boolean.Boolean.True
 import project.Data.Color.Color
 import project.Data.Dictionary.Dictionary
 import project.Data.Hashset.Hashset
@@ -184,8 +185,9 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
    private: true
    ---
 update_asset_description (asset : Enso_File) (description : Text) =
-    existing_asset = Existing_Enso_Asset.get_asset_reference_for asset
-    payload = JS_Object.from_pairs [["description", description]]
+    existing_asset = Existing_Enso_Asset.get_asset_reference_for file=asset want_metadata=True
+    pairs = if existing_asset.metadata.id.is_nothing then [["description", description]] else [["description", description], ["metadataId", existing_asset.metadata.id]]
+    payload = JS_Object.from_pairs pairs
     Asset_Cache.invalidate asset
     Utils.http_request HTTP_Method.Patch existing_asset.asset_uri payload
 
