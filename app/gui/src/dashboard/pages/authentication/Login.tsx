@@ -23,10 +23,15 @@ import { useState } from 'react'
 /** A form for users to log in. */
 export default function Login() {
   const { router } = useRouter()
-  const { signInWithApple, signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } =
-    useSession()
+  const {
+    signInWithMicrosoft,
+    signInWithApple,
+    signInWithGoogle,
+    signInWithGitHub,
+    signInWithPassword,
+    confirmSignIn,
+  } = useSession()
   const { getText } = useText()
-
   const [initialEmail] = useQueryParam('email')
 
   const form = Form.useForm({
@@ -59,6 +64,10 @@ export default function Login() {
   const { nextStep, stepperState, previousStep } = Stepper.useStepperState({
     steps: 2,
     defaultStep: 0,
+  })
+
+  const handleMicrosoftPress = useEventCallback(async () => {
+    await signInWithMicrosoft()
   })
 
   const handleApplePress = useEventCallback(async () => {
@@ -108,6 +117,14 @@ export default function Login() {
                 onPress={handleGitHubPress}
               >
                 {getText('signUpOrLoginWithGitHub')}
+              </Button>
+              <Button
+                size="large"
+                variant="outline"
+                icon="microsoft_color"
+                onPress={handleMicrosoftPress}
+              >
+                {getText('signUpOrLoginWithMicrosoft')}
               </Button>
               <Button size="large" variant="outline" icon="apple_color" onPress={handleApplePress}>
                 {getText('signUpOrLoginWithApple')}

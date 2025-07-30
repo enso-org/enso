@@ -11,6 +11,7 @@ import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
 import { Err } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
+import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
@@ -182,6 +183,7 @@ export function createSessionStore(
   const signInWithApple = useSignIn(() => authService.signInWithApple(), 'Apple')
   const signInWithGoogle = useSignIn(() => authService.signInWithGoogle(), 'Google')
   const signInWithGitHub = useSignIn(() => authService.signInWithGitHub(), 'GitHub')
+  const signInWithMicrosoft = useSignIn(() => authService.signInWithMicrosoft(), 'Microsoft')
 
   const confirmSignIn = async (
     user: cognito.CognitoUser,
@@ -324,12 +326,13 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    waitForSession: session.suspense,
+    waitForSession: () => waitForData(session),
     isLoggingOut,
     confirmSignUp,
     signInWithPassword,
     signInWithGitHub,
     signInWithGoogle,
+    signInWithMicrosoft,
     signInWithApple,
     confirmSignIn,
     forgotPassword,

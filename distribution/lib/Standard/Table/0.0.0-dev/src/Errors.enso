@@ -1138,7 +1138,7 @@ type No_Rows
        private: true
        ---
        The message should be used to provide additional context.
-    private Warning message:Text
+    Warning message:Text
 
     ## ---
        private: true

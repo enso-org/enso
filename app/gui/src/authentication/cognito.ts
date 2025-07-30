@@ -51,6 +51,13 @@ import * as service from '$/authentication/service'
  * constant defined in the AWS Amplify library.
  */
 const GITHUB_PROVIDER = 'Github'
+/**
+ * String used to identify the Microsoft federated identity provider in AWS Amplify.
+ *
+ * This provider alone requires a string because it is not a standard provider, and thus has no
+ * constant defined in the AWS Amplify library.
+ */
+const MICROSOFT_PROVIDER = 'Microsoft'
 /** One second, in milliseconds. */
 const SEC_MS = 1_000
 
@@ -206,6 +213,7 @@ export interface ISessionProvider {
   readonly signInWithApple: () => Promise<void>
   readonly signInWithGoogle: () => Promise<void>
   readonly signInWithGitHub: () => Promise<void>
+  readonly signInWithMicrosoft: () => Promise<void>
   readonly signInWithPassword: (
     username: string,
     password: string,
@@ -368,6 +376,19 @@ export class Cognito implements ISessionProvider {
   async signInWithGitHub() {
     await amplify.Auth.federatedSignIn({
       customProvider: GITHUB_PROVIDER,
+    })
+  }
+
+  /**
+   * Sign in via the Microsoft federated identity provider.
+   *
+   * This function will open the Microsoft authentication page in the user's browser. The user will
+   * be asked to log in to their Microsoft account, and then to grant access to the application.
+   * After the user has granted access, the browser will be redirected to the application.
+   */
+  async signInWithMicrosoft() {
+    await amplify.Auth.federatedSignIn({
+      customProvider: MICROSOFT_PROVIDER,
     })
   }
 

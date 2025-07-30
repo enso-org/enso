@@ -23,13 +23,6 @@ trait SuggestionsRepo[F[_]] {
     */
   def getAll: F[(Long, Seq[SuggestionEntry])]
 
-  /** Select the suggestion by id.
-    *
-    * @param id the id of a suggestion
-    * @return return the suggestion
-    */
-  def select(id: Long): F[Option[Suggestion]]
-
   /** Insert the suggestion.
     *
     * @param suggestion the suggestion to insert
@@ -71,35 +64,12 @@ trait SuggestionsRepo[F[_]] {
     actions: Seq[ExportsUpdate]
   ): F[Seq[QueryResult[ExportsUpdate]]]
 
-  /** Remove the suggestion.
-    *
-    * @param suggestion the suggestion to remove
-    * @return the id of removed suggestion
-    */
-  def remove(suggestion: Suggestion): F[Option[Long]]
-
   /** Remove suggestions by module names.
     *
     * @param modules the list of module names
     * @return the current database version and a list of removed suggestion ids
     */
   def removeModules(modules: Seq[String]): F[(Long, Seq[Long])]
-
-  /** Update the suggestion.
-    *
-    * @param suggestion the key suggestion
-    * @param externalId the external id to update
-    * @param returnType the return type to update
-    * @param documentation the documentation string to update
-    * @param scope the scope to update
-    */
-  def update(
-    suggestion: Suggestion,
-    externalId: Option[Option[Suggestion.ExternalID]],
-    returnType: Option[String],
-    documentation: Option[Option[String]],
-    scope: Option[Suggestion.Scope]
-  ): F[(Long, Option[Long])]
 
   /** Cleans the repo resetting the version. */
   def clean: F[Unit]
