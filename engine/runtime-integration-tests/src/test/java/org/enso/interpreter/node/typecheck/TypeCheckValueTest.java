@@ -40,9 +40,13 @@ public class TypeCheckValueTest {
   private static CallTarget allOfIntegerAndText() {
     var call = new CallTarget[1];
     var builtins = ctxRule.ensoContext().getBuiltins();
-    var intNode = TypeCheckValueNode.single(AscriptionReason.forParameter("int"), builtins.number().getInteger());
-    var textNode = TypeCheckValueNode.single(AscriptionReason.forParameter("text"), builtins.text());
-    var bothNode = TypeCheckValueNode.allOf(AscriptionReason.forParameter("int&text"), intNode, textNode);
+    var intNode =
+        TypeCheckValueNode.single(
+            AscriptionReason.forParameter("int"), builtins.number().getInteger());
+    var textNode =
+        TypeCheckValueNode.single(AscriptionReason.forParameter("text"), builtins.text());
+    var bothNode =
+        TypeCheckValueNode.allOf(AscriptionReason.forParameter("int&text"), intNode, textNode);
     var root =
         new TestRootNode(
             (frame) -> {
