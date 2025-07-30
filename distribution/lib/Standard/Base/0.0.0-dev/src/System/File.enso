@@ -48,12 +48,6 @@ polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.base.file_system.File_Utils
 
-## ---
-   private: true
-   ---
-file_types : Vector
-file_types = Vector.from_polyglot_array (FileSystemSPI.get_types False)
-
 ## Represents a file or folder on the filesystem.
 @Builtin_Type
 type File
