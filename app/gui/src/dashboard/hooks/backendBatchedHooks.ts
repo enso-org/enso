@@ -265,7 +265,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
           backend
             .updateAsset(
               id,
-              { description: null, parentDirectoryId: parentId, title: null },
+              { description: null, parentDirectoryId: parentId, title: null, metadataId: null },
               '(unknown)',
             )
             .catch((error) => {
@@ -304,6 +304,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
                 parentDirectoryId: parentId,
                 description: null,
                 title: resolution.newName,
+                metadataId: null,
               },
               resolution.newName,
             ),

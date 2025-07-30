@@ -3,7 +3,7 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, AssetId, BackendType, Label, ProjectId } from '#/services/Backend'
+import type { AnyAsset, BackendType, Label, ProjectId } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { LaunchedProject } from '$/providers/container'
 import type { SortableColumn } from './columnUtils'
@@ -31,7 +31,6 @@ export interface AssetColumnProps {
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
   readonly labels: readonly Label[]
-  readonly renameAsset: (assetId: AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: ProjectId) => Promise<void>
 }

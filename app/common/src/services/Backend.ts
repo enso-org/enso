@@ -11,6 +11,10 @@ import * as uniqueString from '../utilities/uniqueString'
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
 
+/** A KSUID.*/
+export type KSUID = newtype.Newtype<string, 'KSUID'>
+export const KSUID = newtype.newtypeConstructor<KSUID>()
+
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
@@ -79,6 +83,10 @@ export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 export const AssetId = newtype.newtypeConstructor<AssetId>()
+
+/** Unique identifier for metadata. */
+export type MetadataId = newtype.Newtype<`metadata-${KSUID}`, 'MetadataId'>
+export const MetadataId = newtype.newtypeConstructor<MetadataId>()
 
 /** Unique identifier for a subscription. */
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
@@ -682,10 +690,9 @@ export interface CreateCustomerPortalSessionResponse {
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
-  Asset<RealAssetTypeId<Id>>,
-  'ensoPath'
-> | null
+export type AssetDetailsResponse<Id extends RealAssetId> =
+  | (Omit<Asset<RealAssetTypeId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+  | null
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
@@ -1303,6 +1310,7 @@ export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
   readonly title: string | null
+  readonly metadataId: MetadataId | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
