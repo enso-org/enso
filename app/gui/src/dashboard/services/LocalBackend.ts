@@ -294,9 +294,10 @@ export default class LocalBackend extends Backend {
     // eslint-disable-next-line no-restricted-syntax
     const from = query.from as backend.AssetId | null
     const index = from == null ? 0 : result.findIndex((asset) => asset.id === from) + 1
-    const last = result.at(-1)
+    const assets = result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
+    const last = assets.at(-1)
     return {
-      assets: result.slice(index, query.pageSize != null ? index + query.pageSize : undefined),
+      assets,
       paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
     }
   }
@@ -316,14 +317,18 @@ export default class LocalBackend extends Backend {
       pageSize: null,
       recursive: true,
     })
-    const assets = result.assets.filter(backend.doesAssetMatchQuery(query))
+    const fullAssetList = result.assets.filter(backend.doesAssetMatchQuery(query))
     // This is SAFE as the only `PaginationToken`s returned from this class are created from `AssetId`s.
     // eslint-disable-next-line no-restricted-syntax
     const from = query.from as backend.AssetId | null
-    const index = from == null ? 0 : assets.findIndex((asset) => asset.id === from) + 1
+    const index = from == null ? 0 : fullAssetList.findIndex((asset) => asset.id === from) + 1
+    const assets = fullAssetList.slice(
+      index,
+      query.pageSize != null ? index + query.pageSize : undefined,
+    )
     const last = assets.at(-1)
     return {
-      assets: assets.slice(index, query.pageSize != null ? index + query.pageSize : undefined),
+      assets,
       paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
     }
   }
