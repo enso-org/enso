@@ -2,7 +2,6 @@
 import type { SvgUseIcon } from '#/components/types'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
-import type * as text from 'enso-common/src/text'
 
 /** Column type. */
 export enum Column {
@@ -34,16 +33,6 @@ export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> 
   [Column.accessedData]: 'accessed_data',
   [Column.path]: 'folder',
 }
-
-export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
-  [Column.name]: 'nameColumnShow',
-  [Column.modified]: 'modifiedColumnShow',
-  [Column.sharedWith]: 'sharedWithColumnShow',
-  [Column.labels]: 'labelsColumnShow',
-  [Column.accessedByProjects]: 'accessedByProjectsColumnShow',
-  [Column.accessedData]: 'accessedDataColumnShow',
-  [Column.path]: 'pathColumnShow',
-} satisfies { [C in Column]: `${C}ColumnShow` }
 
 const COLUMN_CSS_CLASSES =
   'text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'

@@ -159,7 +159,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
     showDeveloperIds && {
       action: 'copyId',
       color: 'accent',
-      label: getText('copyAllIdsShortcut'),
       doAction: () => {
         copyMutation.mutate(selectedAssets.map((asset) => asset.id).join('\n'))
       },
@@ -169,7 +168,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   const pasteAllMenuEntry = defineMenuEntry(
     hasPasteData && {
       action: 'paste',
-      label: getText('pasteAllShortcut'),
       doAction: () => {
         const selected = selectedAssets[0]
         if (selected?.type === backendModule.AssetType.directory) {
@@ -190,7 +188,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
           copyIdsMenuEntry,
           {
             action: 'undelete',
-            label: getText('restoreAllFromTrashShortcut'),
+            label: getText('restoreFromTrashShortcut'),
             doAction: () => {
               restoreAssetsMutation.mutate({
                 ids: selectedAssets.map((asset) => asset.id),
@@ -200,7 +198,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
           },
           {
             action: 'delete',
-            label: getText('deleteAllForeverShortcut'),
+            label: getText('deleteForeverShortcut'),
             doAction: () => {
               const asset = selectedAssets[0]
               const soleAssetName = asset?.title ?? '(unknown)'
@@ -229,7 +227,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
         copyIdsMenuEntry,
         selectedAssets.length !== 0 && {
           action: 'delete',
-          label: isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut'),
+          label: isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut'),
           doAction: doDeleteAll,
         },
         selectedAssets.length !== 0 &&
@@ -237,7 +235,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
             isUnderPaywall: !canUploadToCloud,
             action: 'uploadToCloud',
             feature: 'uploadToCloud',
-            label: getText('uploadAllToCloudShortcut'),
             doAction: () => {
               void uploadFilesToCloudCallback()
             },
@@ -245,16 +242,13 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
         selectedAssets.length !== 0 &&
           canDownloadAllProjectsToLocal && {
             action: 'downloadToLocal',
-            label: getText('downloadAllToLocalShortcut'),
             doAction: () => {
               void downloadFilesToLocalCallback()
             },
           },
-        selectedAssets.length !== 0 &&
-          isCloud && { action: 'copy', label: getText('copyAllShortcut'), doAction: doCopy },
+        selectedAssets.length !== 0 && isCloud && { action: 'copy', doAction: doCopy },
         selectedAssets.length !== 0 && {
           action: 'cut',
-          label: getText('cutAllShortcut'),
           doAction: doCut,
         },
         pasteAllMenuEntry,

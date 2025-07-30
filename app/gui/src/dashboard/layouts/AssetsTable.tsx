@@ -42,7 +42,6 @@ import {
   Column,
   COLUMN_CSS_CLASS,
   COLUMN_ICONS,
-  COLUMN_SHOW_TEXT_ID,
   DEFAULT_ENABLED_COLUMNS,
   getColumnList,
 } from '#/pages/dashboard/components/column/columnUtils'
@@ -389,7 +388,7 @@ function AssetsTable(props: AssetsTableProps) {
   useEffect(() => {
     const allVisible = () =>
       assets.map(
-        (node: AnyAsset): assetSearchBar.Suggestion => ({
+        (node): assetSearchBar.Suggestion => ({
           key: node.id,
           render: () => node.title,
           addToQuery: (oldQuery) => oldQuery.add('names', [node.title]),
@@ -1385,7 +1384,7 @@ const HiddenColumn = memo(function HiddenColumn(props: HiddenColumnProps) {
       variant="icon"
       key={column}
       icon={COLUMN_ICONS[column]}
-      aria-label={getText(COLUMN_SHOW_TEXT_ID[column])}
+      aria-label={getText(`${column}ColumnName`)}
       onPress={onPress}
       className="opacity-50"
     />
