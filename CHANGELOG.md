@@ -37,6 +37,7 @@
 - [Project and Setting tab may be now closed with shortcut][13498][13604]. On
   Windows/Linux <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>;
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
+- [Allow selecting target type for Any.to method][13685].
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -66,6 +67,7 @@
 [13479]: https://github.com/enso-org/enso/pull/13479
 [13498]: https://github.com/enso-org/enso/pull/13498
 [13604]: https://github.com/enso-org/enso/pull/13604
+[13685]: https://github.com/enso-org/enso/pull/13685
 
 #### Enso Standard Library
 
