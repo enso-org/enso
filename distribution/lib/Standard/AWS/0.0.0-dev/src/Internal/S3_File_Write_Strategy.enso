@@ -3,6 +3,8 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.System.File.File_System_SPI
+
 from Standard.Base.System.File.Generic.File_Write_Strategy import default_append, default_overwrite, default_raise_error, File_Write_Strategy, generic_remote_write_with_local_file
 
 import project.Errors.S3_Error
@@ -85,3 +87,7 @@ recover_errors ~action =
     Panic.catch S3_Error handler=(.convert_to_dataflow_error) <|
         Panic.catch File_Error handler=(.convert_to_dataflow_error) <|
             action
+
+type S3_FS_Impl
+
+File_System_SPI.from (_:S3_FS_Impl) = File_System_SPI.new "s3" S3_File

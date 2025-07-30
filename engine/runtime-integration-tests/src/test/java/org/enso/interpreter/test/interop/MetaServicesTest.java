@@ -1,21 +1,25 @@
 package org.enso.interpreter.test.interop;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
-import org.enso.interpreter.node.callable.InteropApplicationNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.state.State;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class MetaServicesTest {
-  @ClassRule public static ContextUtils ctx = ContextUtils.createDefault();
+  @ClassRule
+  public static ContextUtils ctx =
+      ContextUtils.newBuilder()
+          .withModifiedContext(
+              (b) -> {
+                return b.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true");
+              })
+          .build();
 
   @Test
   public void loadFileSystemServices() throws Exception {
@@ -25,49 +29,28 @@ public class MetaServicesTest {
                 "enso",
                 """
     import Standard.Base.System.File.File_System_SPI
-    import Standard.Base.Meta
-    import Standard.Base.Enso_Cloud.Enso_File_System_Impl
-
-    data =
-        Meta.lookup_services File_System_SPI
+    import Standard.Base.Internal.Meta_Helpers
+    spis =
+        Meta_Helpers.lookup_services File_System_SPI
     """,
                 "services.enso")
             .uri(uri)
             .buildLiteral();
 
-    var mod = ctx.eval(src);
-    var ensoCtx = ctx.ensoContext();
+    var arr = ctx.evalModule(src, "spis");
 
-    for (var p : ensoCtx.getPackageRepository().getLoadedPackagesJava()) {
-      p.getConfig()
-          .services()
-          .foreach(
-              pw -> {
-                var spiType = findType(pw.provides(), ensoCtx);
-                var implType = findType(pw.with(), ensoCtx);
-                var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
-                var state = State.create(ensoCtx);
-                var node = InteropApplicationNode.getUncached();
-                var fn = conversion.resolveFor(ensoCtx, spiType, implType);
-                var conv = node.execute(fn, state, new Object[] {spiType, implType});
-                assertNotNull("Some value found", conv);
-                var fsImpl = ctx.asValue(conv);
-                assertNotNull("Some implementation found", fsImpl);
-                assertEquals("Protocol", "enso", fsImpl.getMember("protocol").asString());
-                assertEquals(
-                    "Type",
-                    "Standard.Base.Enso_Cloud.Enso_File",
-                    fsImpl.getMember("typ").getMetaQualifiedName());
-                return null;
-              });
+    assertTrue("Got SPIs", arr.hasArrayElements());
+    var len = arr.getArraySize();
+    for (var i = 0L; i < len; i++) {
+      var p = arr.getArrayElement(i);
+      System.err.println("found " + p);
+      if (p.getMember("protocol").asString().equals("enso")) {
+        var type = p.getMember("typ");
+        assertTrue("It is a type", type.isMetaObject());
+        assertEquals("Enso_File", type.getMetaSimpleName());
+        return;
+      }
     }
-  }
-
-  private Type findType(String name, EnsoContext ensoCtx) {
-    var moduleName = name.replaceFirst("\\.[^\\.]*$", "");
-    var typeName = name.substring(moduleName.length() + 1);
-    var module = ensoCtx.getTopScope().getModule(moduleName).get();
-    var implType = module.getScope().getType(typeName, true);
-    return implType;
+    fail("Not found `enso` file protocol among: " + arr);
   }
 }

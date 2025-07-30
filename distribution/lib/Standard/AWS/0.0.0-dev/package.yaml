@@ -8,3 +8,7 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+
+services:
+  - provides: Standard.Base.System.File.File_System_SPI
+    with: Standard.AWS.Internal.S3_File_Write_Strategy.S3_FS_Impl

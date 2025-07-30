@@ -17,7 +17,7 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Path_Helpers
-import project.Meta
+import project.Internal.Meta_Helpers
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
@@ -1137,6 +1137,16 @@ private handle_invalid_path ~path ~action =
     Panic.catch InvalidPathException action caught_panic->
         Error.throw (Illegal_Argument.Error "The path "+path.to_display_text+" is invalid: "+caught_panic.payload.getMessage)
 
+## Interface for service providers willing to extend file system capabilities.
+   Register your implementation by adding following into your `package.yaml`:
+   ```yaml
+   services:
+   - provides: Standard.Base.System.File.File_System_SPI
+     with: <<fully qualified name of your implementation module>>
+   ```
+   In your module then define conversion of its associated type singleton
+   into `File_System_SPI` via its `new` static method.
+
 type File_System_SPI
     private Entry protocol:Text typ
 
@@ -1147,4 +1157,4 @@ type File_System_SPI
         if vec . not_empty then vec.first else Nothing
 
     private get_types _:Boolean =
-        Meta.lookup_services File_System_SPI
+        Meta_Helpers.lookup_services File_System_SPI
