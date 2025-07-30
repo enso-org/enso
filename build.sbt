@@ -1151,6 +1151,85 @@ lazy val `jna-wrapper` = project
     }
   )
 
+lazy val `jna-wrapper-extracted` = project
+  .in(file("lib/java/jna-wrapper-extracted"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "net.java.dev.jna" % "jna" % jnaVersion
+    ),
+    inputJar := "net.java.dev.jna" % "jna" % jnaVersion,
+    jarExtractor := JarExtractor(
+      "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxX86_64),
+      "com/sun/jna/win32-x86-64/jnidispatch.dll" -> PolyglotLib(WindowsX86_64),
+      "com/sun/jna/darwin-x86-64/libjnidispatch.jnilib" -> PolyglotLib(MacOSX86_64),
+      "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(MacOSArm64),
+      "com/**/*.class" -> CopyToOutputJar
+    )
+  )
+
+lazy val `netty-tc-native-wrapper` = project
+  .in(file("lib/java/tc-native-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final",
+    ),
+    // We have to explicitly select correct jar based on the current platform.
+    inputJarResolved := {
+      val tcNativeJars = JPMSUtils.filterModulesFromUpdate(
+        updateReport = (Compile / update).value,
+        modules = Seq(
+          "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
+        ),
+        log                = streams.value.log,
+        projName           = moduleName.value,
+        scalaBinaryVersion = scalaBinaryVersion.value,
+        shouldContainAll   = true
+      )
+      // tcNativeJar has name like:
+      // "netty-tcnative-boringssl-static-2.0.70.Final-linux-x86_64.jar"
+      // It contains just a single native library
+      def isExpectedTcNativeJarName(name: String): Boolean = {
+        name.contains(Platform.arch().replace("aarch64", "aarch_64")) &&
+          name.contains(Platform.osName())
+      }
+      val tcNativeJar = tcNativeJars.filter { jar =>
+        isExpectedTcNativeJarName(jar.getName)
+      }
+      if (tcNativeJar.size != 1) {
+        throw new IllegalStateException(
+          s"Expected exactly one tc native jar for ${Platform.osName()}-${Platform.arch()}, but found: ${tcNativeJar.mkString(", ")}"
+        )
+      }
+      tcNativeJar.head
+    },
+    jarExtractor := JarExtractor(
+      "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(MacOSArm64),
+      "META-INF/native/libnetty_tcnative_osx_x86_64.jnilib" -> PolyglotLib(MacOSX86_64),
+      "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(WindowsX86_64),
+      "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(LinuxX86_64),
+      "META-INF/license/*" -> CopyToOutputJar,
+      "META-INF/maven/**" -> CopyToOutputJar,
+      "META-INF/versions/**" -> CopyToOutputJar,
+    )
+  )
+
+// Native libs only for Linux.
+// For other platforms, the output directory should be empty.
+lazy val `netty-epoll-native-wrapper` = project
+  .in(file("lib/java/epoll-native-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final"
+    ),
+    inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
+    jarExtractor := JarExtractor(
+      "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxX86_64),
+    )
+  )
+
 lazy val `poi-wrapper` = project
   .in(file("lib/java/poi-wrapper"))
   .settings(
@@ -4938,8 +5017,8 @@ lazy val `std-image` = project
           cacheStoreFactory  = cacheStoreFactory,
           unmanagedClasspath = (Compile / unmanagedJars).value,
           polyglotLibDir     = Some(`image-native-libs`),
-          extractedNativeLibsDir =
-            Some((`opencv-wrapper` / extractedFilesDir).value),
+          extractedNativeLibsDirs =
+            Seq((`opencv-wrapper` / extractedFilesDir).value),
           extraJars = Seq((`opencv-wrapper` / thinJarOutput).value)
         )
       prev
@@ -5321,11 +5400,9 @@ lazy val `std-microsoft` = project
       "com.azure.resourcemanager" % "azure-resourcemanager"   % azureResourceVersion,
       "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
     ),
-    extractNativeLibs := Def.task {
-      import sbt.util.CacheImplicits._
+    Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
-      val prev              = extractNativeLibs.previous
       StdBits
         .copyDependencies(
           `std-microsoft-polyglot-root`,
@@ -5340,69 +5417,31 @@ lazy val `std-microsoft` = project
 
             (fileName.startsWith("netty-resolver-dns-classes-macos") && StdBits
               .plainOsName() != "macos") ||
-            (fileName.startsWith("netty-tcnative-boringssl-static")) ||
-            (fileName.startsWith("netty-transport-native-epoll")) ||
-            nameCheck &&
-            StdBits
-              .allSupportedOs()
-              .exists(osName => fileName.contains(osName)) && {
-              val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
-              val thisPlatform  = StdBits.currentPlatformSuffix()
-              !sanitizedName.contains(thisPlatform)
-            }
+              (fileName.startsWith("netty-tcnative-boringssl-static")) ||
+              (fileName.startsWith("netty-transport-native-epoll")) ||
+              nameCheck &&
+                StdBits
+                  .allSupportedOs()
+                  .exists(osName => fileName.contains(osName)) && {
+                val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
+                val thisPlatform  = StdBits.currentPlatformSuffix()
+                !sanitizedName.contains(thisPlatform)
+              }
           }),
           logger            = logger,
-          cacheStoreFactory = cacheStoreFactory,
-          previousRun       = prev
+          polyglotLibDir = Some(`std-microsoft-native-libs`),
+          extractedNativeLibsDirs = Seq(
+            (`jna-wrapper-extracted` / extractedFilesDir).value,
+            (`netty-tc-native-wrapper` / extractedFilesDir).value
+          ),
+          extraJars = Seq(
+            (`jna-wrapper-extracted` / thinJarOutput).value,
+            (`netty-tc-native-wrapper` / thinJarOutput).value
+          ),
+          cacheStoreFactory = cacheStoreFactory
         )
-      val jnaJar = (`jna-wrapper` / Compile / exportedModuleBin).value
-      val tcnativeJars = JPMSUtils.filterModulesFromUpdate(
-        updateReport = (Compile / update).value,
-        modules = Seq(
-          "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
-        ),
-        log                = logger,
-        projName           = moduleName.value,
-        scalaBinaryVersion = scalaBinaryVersion.value,
-        shouldContainAll   = true
-      )
-      StdBits
-        .extractNativeLibsFromMicrosoft(
-          microsoftPolyglotRoot = `std-microsoft-polyglot-root`,
-          microsoftNativeLibs   = `std-microsoft-native-libs`,
-          jnaJar                = jnaJar,
-          tcNativeJars          = tcnativeJars,
-          updateReport          = (Compile / update).value,
-          scalaBinaryVersion    = scalaBinaryVersion.value,
-          logger                = streams.value.log,
-          moduleName            = moduleName.value,
-          cacheStoreFactory     = cacheStoreFactory,
-          previousRun           = prev
-        )
-    }.value,
-    cleanPolyglotRoot := Def.task {
-      import sbt.util.CacheImplicits._
-      val forceClean = extractNativeLibs.previous.isEmpty
-      val logger     = streams.value.log
-      StdBits.ensureDirExistsAndIsClean(
-        `std-microsoft-polyglot-root`.toPath,
-        logger,
-        forceClean
-      )
-      StdBits.ensureDirExistsAndIsClean(
-        `std-microsoft-native-libs`.toPath,
-        logger,
-        forceClean
-      )
-    }.value,
-    Compile / packageBin := Def
-      .task {
-        val result = (Compile / packageBin).value
-        extractNativeLibs.value
-        result
-      }
-      .dependsOn(cleanPolyglotRoot)
-      .value,
+      `std-microsoft-polyglot-root` / "java" / "std-microsoft.jar"
+    },
     clean := Def.task {
       val _ = clean.value
       IO.delete(`std-microsoft-polyglot-root`)

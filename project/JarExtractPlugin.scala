@@ -29,11 +29,11 @@ object JarExtractPlugin extends AutoPlugin {
     val extractedFilesDir = taskKey[File](
       "Directory where extracted files will be put"
     )
+    val inputJarResolved = taskKey[File](
+      "Resolved input jar file from the module ID"
+    )
   }
 
-  private lazy val inputJarResolved = taskKey[File](
-    "Resolved input jar file from the module ID"
-  )
   private lazy val extract = taskKey[Unit](
     "Extract files from the input jar using the defined jar visitor"
   )
