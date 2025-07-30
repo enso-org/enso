@@ -159,13 +159,19 @@ object DistributionPackage {
       cacheFactory.make("module jars")
     )
 
-    for (pyResource <- pythonResources) {
-      copyDirectoryIncremental(
-        pyResource,
-        pythonHome,
-        cacheFactory.make("engine-python-resources")
+    // pythonResources contain everything - both files and directories.
+    // It should be enough to just recursively copy the first `python-home` directory.
+    val pyResource = pythonResources.head
+    if (pyResource.getName != "python-home") {
+      throw new AssertionError(
+        s"Expected the first python resource to be 'python-home', but got '${pyResource.getName}'"
       )
     }
+    copyDirectoryIncremental(
+      source      = pyResource,
+      destination = pythonHome,
+      cache       = cacheFactory.make("engine-python-home")
+    )
 
     val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
     copyFilesIncremental(
