@@ -641,12 +641,14 @@ class RuntimeAsyncCommandsTest
     )
 
     // recompute
-    val responses = context.receiveNIgnoreExpressionUpdates(
-      3
+    val responses = context.receiveN(
+      5
     )
     responses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.out.awaitOnText(exact = true, "finished\nstarted?\nfinished?")
