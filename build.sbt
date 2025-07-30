@@ -4901,7 +4901,7 @@ lazy val `opencv-wrapper` = project
       "nu/pattern/opencv/osx/ARMv8/*.dylib"    -> PolyglotLib(MacOSArm64),
       "nu/pattern/opencv/osx/x86_64/*.dylib"   -> PolyglotLib(MacOSX86_64),
       "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(WindowsX86_64),
-      "nu/pattern/opencv/*.class"              -> CopyToOutputJar,
+      "nu/pattern/*.class"                     -> CopyToOutputJar,
       "META-INF/**"                            -> CopyToOutputJar,
       "org/**"                                 -> CopyToOutputJar
     )
