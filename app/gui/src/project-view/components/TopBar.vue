@@ -15,8 +15,10 @@ const selection = injectGraphSelection()
 
 <template>
   <div class="TopBar">
-    <ExtendedMenu :actions="menuActions" />
-    <NavBreadcrumbs v-model:projectNameEdited="projectNameEdited" />
+    <div class="alwaysVisibleElements">
+      <ExtendedMenu :actions="menuActions" />
+      <NavBreadcrumbs v-model:projectNameEdited="projectNameEdited" />
+    </div>
     <ControlGroup>
       <ActionButton class="redButton" action="graph.refreshExecution" />
       <ActionButton class="redButton" action="graph.recomputeAll" />
@@ -52,6 +54,21 @@ const selection = injectGraphSelection()
     pointer-events: all;
     min-height: 32px;
   }
+  height: 32px;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.alwaysVisibleElements {
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+  > * {
+    pointer-events: all;
+    min-height: 32px;
+  }
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .redButton:active {
