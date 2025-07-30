@@ -39,6 +39,7 @@
     - to_display_text self -> Standard.Base.Data.Text.Text
     - to_float self -> Standard.Base.Data.Numbers.Float
     - to_integer self -> Standard.Base.Data.Numbers.Integer
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Data.Text.Text
     - to_text_without_scientific_notation self -> Standard.Base.Data.Text.Text
     - truncate self -> Standard.Base.Data.Numbers.Integer

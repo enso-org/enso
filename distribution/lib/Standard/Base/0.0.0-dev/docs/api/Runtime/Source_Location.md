@@ -8,4 +8,5 @@
     - start_column self -> Standard.Base.Any.Any
     - start_line self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
