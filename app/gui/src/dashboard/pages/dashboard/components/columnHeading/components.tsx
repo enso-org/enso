@@ -23,7 +23,7 @@ export function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) 
       <Button
         variant="icon"
         icon="accessed_by_projects"
-        aria-label={getText('accessedByProjectsColumnHide')}
+        aria-label={getText('accessedByProjectsColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -48,7 +48,7 @@ export function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="accessed_data"
-        aria-label={getText('accessedDataColumnHide')}
+        aria-label={getText('accessedDataColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -74,7 +74,7 @@ export function LabelsColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="tag"
-        aria-label={getText('labelsColumnHide')}
+        aria-label={getText('labelsColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -217,7 +217,7 @@ export function PathColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="folder"
-        aria-label={getText('pathColumnHide')}
+        aria-label={getText('pathColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -243,7 +243,7 @@ export function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="people"
-        aria-label={getText('sharedWithColumnHide')}
+        aria-label={getText('sharedWithColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
