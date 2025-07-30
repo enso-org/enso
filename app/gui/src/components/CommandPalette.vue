@@ -4,18 +4,20 @@ import { unsetModal } from '#/providers/ModalProvider'
 import * as objects from '#/utilities/object'
 import { useActionsStore, type Action } from '$/providers/actions'
 import { useContainerData } from '$/providers/container'
+import { commandPaletteBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
+import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { reactComponent } from '@/util/react'
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref, watchEffect } from 'vue'
-import { commandPaletteBindings } from '../project-view/bindings'
 
 const KeyboardShortcut = reactComponent(KeyboardShortcutReact)
 
 const { findActions } = useActionsStore()
 const containerData = useContainerData()
+const interaction = injectInteractionHandler()
 
 const visible = ref(false)
 const query = ref('')
@@ -28,11 +30,6 @@ const actionHandlers = registerHandlers({
       visible.value = true
     },
   },
-  'commandPalette.close': {
-    action: () => {
-      visible.value = false
-    },
-  },
 })
 
 watchEffect(() => {
@@ -40,6 +37,14 @@ watchEffect(() => {
   if (visible.value) {
     unsetModal()
     input.value.focus()
+    interaction.setCurrent({
+      cancel() {
+        visible.value = false
+      },
+      end() {
+        visible.value = false
+      },
+    })
   } else {
     input.value.blur()
     query.value = ''

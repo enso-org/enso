@@ -93,7 +93,6 @@ export const gridBindings = defineKeybinds('grid', {
 
 export const commandPaletteBindings = defineKeybinds('command-palette', {
   'commandPalette.open': ['Mod+K'],
-  'commandPalette.close': ['Escape'],
 })
 
 // === Mouse bindings ===

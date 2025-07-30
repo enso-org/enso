@@ -280,11 +280,6 @@ const displayableActions = {
     description: 'Open Command Palette',
     shortcut: commandPaletteBindings.bindings['commandPalette.open'],
   },
-  'commandPalette.close': {
-    icon: 'close',
-    description: 'Close Command Palette',
-    shortcut: commandPaletteBindings.bindings['commandPalette.close'],
-  },
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {
