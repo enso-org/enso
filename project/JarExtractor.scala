@@ -45,12 +45,21 @@ object JarExtractor {
 
   case object CopyToOutputJar extends Command
 
-  /** @param arch If specified, will be copied only iff the architecture is
-    *        the same as the current platform. If not specified, will be copied
-    *        to the root of the extracted files directory.
+  /** A command that instructs the extractor that the current jar entry is
+    * a native library that should be copied to a `polyglot/lib` directory
+    * and a valid target directory hierarchy should be created.
+    *
+    * For example, if the entry is `foo.so` and the `arch` parameter is
+    * [[LinuxX86_64]], the entry will be copied to `amd64/linux/foo.so`.
+    *
+    * The entry will be copied only if the architecture matches the current
+    * platform's architecture.
+    *
+    * @param arch If specified, will be copied only iff the architecture is
+    *        the same as the current platform.
     */
-  case class CopyToExtractDir(
-    arch: Option[NativeLibArch] = None
+  case class PolyglotLib(
+    arch: NativeLibArch
   ) extends Command
 
   /** Traverses all the entries in the input JAR file and extracts files
@@ -59,19 +68,19 @@ object JarExtractor {
     * output JAR is created at `outputJarFile`.
     *
     * @param jarFile Input Jar file. Is not modified.
-    * @param extractedFilesDir Destination directory for extracted files.
+    * @param polyglotLibDir Destination directory for extracted native libraries.
     * @param outputJarFile Destination of the thin output jar
     */
   def extract(
     jarFile: Path,
-    extractedFilesDir: Path,
+    polyglotLibDir: Path,
     outputJarFile: Path,
     extractor: JarExtractor,
     logger: Logger
   ): Unit = {
     require(
-      !extractedFilesDir.toFile.exists,
-      s"Extracted files directory ${extractedFilesDir.toAbsolutePath} already exists."
+      !polyglotLibDir.toFile.exists,
+      s"Polyglot lib directory ${polyglotLibDir.toAbsolutePath} already exists."
     )
     require(
       !outputJarFile.toFile.exists,
@@ -92,15 +101,11 @@ object JarExtractor {
                 command match {
                   case CopyToOutputJar =>
                     copyEntry(outputJar, inputJar, entry, logger)
-                  case CopyToExtractDir(archOpt) =>
-                    val destPath = archOpt match {
-                      case None => extractedFilesDir.resolve(entryName)
-                      case Some(arch) =>
-                        extractedFilesDir
-                          .resolve(arch.path)
-                          .resolve(entryPath.getFileName)
-                    }
-                    if (archMatchesCurPlatform(archOpt)) {
+                  case PolyglotLib(arch) =>
+                    val destPath = polyglotLibDir
+                      .resolve(arch.path)
+                      .resolve(entryPath.getFileName)
+                    if (archMatchesCurPlatform(arch)) {
                       copyEntry(destPath, inputJar, entry, logger)
                     }
                 }
@@ -120,16 +125,15 @@ object JarExtractor {
   }
 
   private def archMatchesCurPlatform(
-    arch: Option[NativeLibArch]
+    arch: NativeLibArch
   ): Boolean = {
     val osName = Platform.osName()
     (arch, Platform.osName(), Platform.arch()) match {
-      case (None, _, _)                               => true // No specific arch required
-      case (Some(LinuxX86_64), "linux", "x86_64")     => true
-      case (Some(WindowsX86_64), "windows", "x86_64") => true
-      case (Some(MacOSX86_64), "osx", "x86_64")       => true
-      case (Some(MacOSArm64), "osx", "aarch64")       => true
-      case _                                          => false
+      case (LinuxX86_64, "linux", "x86_64")     => true
+      case (WindowsX86_64, "windows", "x86_64") => true
+      case (MacOSX86_64, "osx", "x86_64")       => true
+      case (MacOSArm64, "osx", "aarch64")       => true
+      case _                                    => false
     }
   }
 

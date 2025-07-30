@@ -16,11 +16,11 @@ import src.main.scala.licenses.{
 import scala.sys.process.*
 import Dependencies.*
 import JarExtractor.{
-  CopyToExtractDir,
   CopyToOutputJar,
   LinuxX86_64,
   MacOSArm64,
   MacOSX86_64,
+  PolyglotLib,
   WindowsX86_64
 }
 
@@ -4897,21 +4897,13 @@ lazy val `opencv-wrapper` = project
     ),
     inputJar := "org.openpnp" % "opencv" % opencvVersion,
     jarExtractor := JarExtractor(
-      "nu/pattern/opencv/linux/x86_64/*.so" -> CopyToExtractDir(
-        Some(LinuxX86_64)
-      ),
-      "nu/pattern/opencv/osx/ARMv8/*.dylib" -> CopyToExtractDir(
-        Some(MacOSArm64)
-      ),
-      "nu/pattern/opencv/osx/x86_64/*.dylib" -> CopyToExtractDir(
-        Some(MacOSX86_64)
-      ),
-      "nu/pattern/opencv/windows/x86_64/*.dll" -> CopyToExtractDir(
-        Some(WindowsX86_64)
-      ),
-      "nu/pattern/opencv/*.class" -> CopyToOutputJar,
-      "META-INF/**"               -> CopyToOutputJar,
-      "org/**"                    -> CopyToOutputJar
+      "nu/pattern/opencv/linux/x86_64/*.so"    -> PolyglotLib(LinuxX86_64),
+      "nu/pattern/opencv/osx/ARMv8/*.dylib"    -> PolyglotLib(MacOSArm64),
+      "nu/pattern/opencv/osx/x86_64/*.dylib"   -> PolyglotLib(MacOSX86_64),
+      "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(WindowsX86_64),
+      "nu/pattern/opencv/*.class"              -> CopyToOutputJar,
+      "META-INF/**"                            -> CopyToOutputJar,
+      "org/**"                                 -> CopyToOutputJar
     )
   )
 
