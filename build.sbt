@@ -4929,7 +4929,7 @@ lazy val `std-image` = project
       StdBits
         .copyDependencies(
           `image-polyglot-root`,
-          Seq("std-image.jar", "opencv.jar"),
+          Seq("std-image.jar"),
           ignoreScalaLibrary = true,
           ignoreDependenciesByModuleID =
             Some(Seq("org.openpnp" % "opencv" % opencvVersion)),
