@@ -1161,9 +1161,13 @@ lazy val `jna-wrapper-extracted` = project
     inputJar := "net.java.dev.jna" % "jna" % jnaVersion,
     jarExtractor := JarExtractor(
       "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxX86_64),
-      "com/sun/jna/win32-x86-64/jnidispatch.dll" -> PolyglotLib(WindowsX86_64),
-      "com/sun/jna/darwin-x86-64/libjnidispatch.jnilib" -> PolyglotLib(MacOSX86_64),
-      "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(MacOSArm64),
+      "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsX86_64),
+      "com/sun/jna/darwin-x86-64/libjnidispatch.jnilib" -> PolyglotLib(
+        MacOSX86_64
+      ),
+      "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
+        MacOSArm64
+      ),
       "com/**/*.class" -> CopyToOutputJar
     )
   )
@@ -1173,7 +1177,7 @@ lazy val `netty-tc-native-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final",
+      "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
     ),
     // We have to explicitly select correct jar based on the current platform.
     inputJarResolved := {
@@ -1192,26 +1196,35 @@ lazy val `netty-tc-native-wrapper` = project
       // It contains just a single native library
       def isExpectedTcNativeJarName(name: String): Boolean = {
         name.contains(Platform.arch().replace("aarch64", "aarch_64")) &&
-          name.contains(Platform.osName())
+        name.contains(Platform.osName())
       }
       val tcNativeJar = tcNativeJars.filter { jar =>
         isExpectedTcNativeJarName(jar.getName)
       }
       if (tcNativeJar.size != 1) {
         throw new IllegalStateException(
-          s"Expected exactly one tc native jar for ${Platform.osName()}-${Platform.arch()}, but found: ${tcNativeJar.mkString(", ")}"
+          s"Expected exactly one tc native jar for ${Platform.osName()}-${Platform
+            .arch()}, but found: ${tcNativeJar.mkString(", ")}"
         )
       }
       tcNativeJar.head
     },
     jarExtractor := JarExtractor(
-      "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(MacOSArm64),
-      "META-INF/native/libnetty_tcnative_osx_x86_64.jnilib" -> PolyglotLib(MacOSX86_64),
-      "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(WindowsX86_64),
-      "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(LinuxX86_64),
-      "META-INF/license/*" -> CopyToOutputJar,
-      "META-INF/maven/**" -> CopyToOutputJar,
-      "META-INF/versions/**" -> CopyToOutputJar,
+      "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
+        MacOSArm64
+      ),
+      "META-INF/native/libnetty_tcnative_osx_x86_64.jnilib" -> PolyglotLib(
+        MacOSX86_64
+      ),
+      "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
+        WindowsX86_64
+      ),
+      "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(
+        LinuxX86_64
+      ),
+      "META-INF/license/*"   -> CopyToOutputJar,
+      "META-INF/maven/**"    -> CopyToOutputJar,
+      "META-INF/versions/**" -> CopyToOutputJar
     )
   )
 
@@ -1226,7 +1239,7 @@ lazy val `netty-epoll-native-wrapper` = project
     ),
     inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
     jarExtractor := JarExtractor(
-      "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxX86_64),
+      "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxX86_64)
     )
   )
 
@@ -5417,18 +5430,18 @@ lazy val `std-microsoft` = project
 
             (fileName.startsWith("netty-resolver-dns-classes-macos") && StdBits
               .plainOsName() != "macos") ||
-              (fileName.startsWith("netty-tcnative-boringssl-static")) ||
-              (fileName.startsWith("netty-transport-native-epoll")) ||
-              nameCheck &&
-                StdBits
-                  .allSupportedOs()
-                  .exists(osName => fileName.contains(osName)) && {
-                val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
-                val thisPlatform  = StdBits.currentPlatformSuffix()
-                !sanitizedName.contains(thisPlatform)
-              }
+            (fileName.startsWith("netty-tcnative-boringssl-static")) ||
+            (fileName.startsWith("netty-transport-native-epoll")) ||
+            nameCheck &&
+            StdBits
+              .allSupportedOs()
+              .exists(osName => fileName.contains(osName)) && {
+              val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
+              val thisPlatform  = StdBits.currentPlatformSuffix()
+              !sanitizedName.contains(thisPlatform)
+            }
           }),
-          logger            = logger,
+          logger         = logger,
           polyglotLibDir = Some(`std-microsoft-native-libs`),
           extractedNativeLibsDirs = Seq(
             (`jna-wrapper-extracted` / extractedFilesDir).value,

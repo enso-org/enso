@@ -51,7 +51,7 @@ object StdBits {
     ignoreDependencyIncludeTransitive: Option[String]   = None,
     ignoreUnmanagedDependency: Option[File => Boolean]  = None,
     polyglotLibDir: Option[File]                        = None,
-    extractedNativeLibsDirs: Seq[File]                = Seq.empty,
+    extractedNativeLibsDirs: Seq[File]                  = Seq.empty,
     extraJars: Seq[File]                                = Seq.empty,
     previousRun: Option[AnalysisOfExtractedNativeLibs]  = None
   ): Unit = {
@@ -187,7 +187,7 @@ object StdBits {
           )
           IO.copyDirectory(
             nativeLibsInputDir,
-            nativeLibsOutputDir,
+            nativeLibsOutputDir
           )
         }
       } else {
