@@ -55,7 +55,6 @@ add_specs suite_builder ~default_connection =
 
             table = with_temp_user default_connection user_name->
                 default_connection.execute_update (generate_alter_user_query user_name key_pair.second.read_text) . should_succeed
-                IO.println private_key_file
                 key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=private_key_file passphrase=passphrase
                 new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
                 Panic.with_finalizer new_connection.close <|
@@ -92,7 +91,6 @@ add_specs suite_builder ~default_connection =
 
             table = with_temp_user default_connection user_name->
                 default_connection.execute_update (generate_alter_user_query user_name key_pair.second.read_text) . should_succeed
-                IO.println private_key_file
                 key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=private_key_file passphrase=secret
                 new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
                 Panic.with_finalizer new_connection.close <|
