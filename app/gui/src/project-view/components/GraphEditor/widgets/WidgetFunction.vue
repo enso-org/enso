@@ -263,5 +263,5 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <NodeWidget :input="innerInput" :onUpdate="handleArgUpdate" />
+  <NodeWidget :input="innerInput" :updateCallback="handleArgUpdate" />
 </template>
