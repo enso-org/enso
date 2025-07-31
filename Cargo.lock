@@ -1308,19 +1308,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-doc-parser"
-version = "0.1.0"
-dependencies = [
- "enso-metamodel",
- "enso-metamodel-lexpr",
- "enso-parser",
- "enso-prelude",
- "enso-reflect",
- "lexpr",
- "serde",
-]
-
-[[package]]
 name = "enso-formatter"
 version = "0.1.0"
 dependencies = [
@@ -3408,7 +3395,6 @@ name = "rust-ffi"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
- "enso-doc-parser",
  "enso-parser",
  "serde_json",
  "wasm-bindgen",

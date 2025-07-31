@@ -9,11 +9,11 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 
-from Standard.Table import Table
-from Standard.Table.Match_Columns import Match_Columns
-from Standard.Table.In_Memory_Table import to_java_table
-from Standard.Table.Errors import Unmatched_Columns
 import Standard.Table.In_Memory_Table.In_Memory_Table
+from Standard.Table import Table
+from Standard.Table.Errors import Unmatched_Columns
+from Standard.Table.In_Memory_Table import to_java_table
+from Standard.Table.Match_Columns import Match_Columns
 
 import project.Hyper_Errors
 import project.Hyper_File.Hyper_File
@@ -26,47 +26,61 @@ polyglot java import org.enso.tableau.HyperFormat
 type Tableau_Format
     ## Read the file to a `Hyper_File` object.
 
-       Arguments:
-       - schema: The schema to read or `*` for all schemas.
+       ## Arguments
+        - `schema`: The schema to read or `*` for all schemas.
     Hyper_File (schema:Text='*')
 
     ## Read a specific table from the file.
 
-       Arguments:
-       - schema: The schema to read.
-       - table: The name of the table to read.
+       ## Arguments
+        - `schema`: The schema to read.
+        - `table`: The name of the table to read.
     Hyper_Table schema:Text='Extract' table:Text='Extract'
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Tableau_Format | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:Tableau_Format) _->Nothing
 
-    ## PRIVATE
-       ADVANCED
-       If the File_Format supports reading from the file, return a configured instance.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
     for_read : File_Format_Metadata -> Tableau_Format | Nothing
     for_read file:File_Format_Metadata =
         case file.guess_extension of
             ".hyper" -> Tableau_Format.Hyper_File
             _ -> Nothing
 
-    ## PRIVATE
-       If this File_Format should be used for writing to that file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
     for_file_write : Writable_File -> Tableau_Format | Nothing
     for_file_write file:Writable_File =
         Tableau_Format.for_read file
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "Tableau Hyper" "..Hyper_File", Option "Tableau Hyper Table" "..Hyper_Table"]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_name_patterns -> Vector File_Name_Pattern =
         [File_Name_Pattern.Value "Tableau Hyper" ["*.hyper"]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
@@ -83,15 +97,19 @@ type Tableau_Format
                     Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Tableau_Format.Hyper_Table", "Table", result.row_count, result.column_count]
                     result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
         _ = [stream, metadata]
         Error.throw (Illegal_Argument.Error "Cannot connect to a Hyper file backed by a stream. Save it to a local file first.")
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Implements the `Table.write` for this `File_Format`.
     write_table self file:Writable_File table:Table on_existing_file match_columns:Match_Columns on_problems:Problem_Behavior =
         _check_supported_types table

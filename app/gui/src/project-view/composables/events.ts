@@ -6,11 +6,13 @@ import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
+import { proxyRefs } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
 import {
   computed,
+  onMounted,
   onScopeDispose,
-  proxyRefs,
+  onUnmounted,
   ref,
   shallowRef,
   toValue,
@@ -122,23 +124,6 @@ export function useEventConditional(
       onCleanup(() => target.removeEventListener(event, handler, options))
     }
   })
-}
-
-/** Whether any element currently has keyboard focus. */
-export function keyboardBusy(): boolean {
-  return (
-    document.activeElement !== document.body &&
-    document.activeElement instanceof HTMLElement &&
-    isEditable(document.activeElement)
-  )
-}
-
-function isEditable(element: HTMLElement) {
-  return (
-    element.isContentEditable ||
-    element instanceof HTMLInputElement ||
-    element instanceof HTMLTextAreaElement
-  )
 }
 
 /** Whether focused element is within given element's subtree. */
@@ -673,4 +658,16 @@ export function useStateBeforePointerdown<T>(
      */
     stateBeforeClick,
   }
+}
+
+/** Calls the provide function on mount, and calls the function's return value on unmount. */
+export function useMounted(hook: () => (() => void) | undefined) {
+  let unmountedHook: (() => void) | undefined = undefined
+  onMounted(() => {
+    unmountedHook = hook()
+  })
+  onUnmounted(() => {
+    unmountedHook?.()
+    unmountedHook = undefined
+  })
 }

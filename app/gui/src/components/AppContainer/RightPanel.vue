@@ -8,7 +8,8 @@ import {
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
-import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
+import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
+import DescriptionEditor from '@/components/DescriptionEditor.vue'
 import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -18,7 +19,6 @@ import { Rect } from '@/util/data/rect'
 import type { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
-import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()
@@ -26,6 +26,8 @@ const data = useRightPanelData()
 // Not a  part of RightPanelTabInfo, because it would create cyclic imports.
 const component = computed(() => {
   switch (data.displayedTab) {
+    case 'description':
+      return DescriptionEditor
     case 'settings':
       return AssetProperties
     case 'versions':
@@ -37,15 +39,13 @@ const component = computed(() => {
     case 'documentation':
       return DocumentationEditor
     case 'help':
-      return ComponentDocumentation
+      return ComponentHelpPanel
     default:
       return undefined
   }
 })
 
-const visibleTabs = computed(() => [
-  ...filter(data.allTabs.entries(), ([, info]) => info.hidden?.value !== true),
-])
+const visibleTabs = computed(() => [...data.allTabs.entries()])
 
 function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)
@@ -113,12 +113,11 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 }
 
 .content {
-  background-color: rgb(254, 253, 252);
   display: flex;
   justify-content: stretch;
   min-width: 312px;
   width: 400px;
-  padding: 1.25rem 1rem;
+  overflow: auto;
 }
 
 /* React panels rely on being inside columned flex. */
@@ -127,6 +126,8 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: rgb(254, 253, 252);
+  padding: 1.25rem 1rem;
 }
 
 .rightBar {

@@ -3,13 +3,11 @@ import {
   argsWidgetConfigurationSchema,
   functionCallConfiguration,
 } from '@/providers/widgetRegistry/configuration'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
-import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import { type ProjectNameStore } from '@/stores/projectNames'
 import { entryIsAnnotatable } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { type AstId, type Identifier } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   getAccessOprSubject,
@@ -25,10 +23,10 @@ import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 export const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
-export const GET_WIDGETS_METHOD = 'get_widget_json' as Identifier
+export const GET_WIDGETS_METHOD = 'get_widget_json' as Ast.Identifier
 export const WIDGETS_ENSO_PATH = ProjectPath.create(
   'Standard.Visualization' as QualifiedName,
-  'Widgets' as Identifier,
+  'Widgets' as Ast.Identifier,
 )
 
 /**
@@ -37,10 +35,7 @@ export const WIDGETS_ENSO_PATH = ProjectPath.create(
  */
 export function useWidgetFunctionCallInfo(
   input: ToValue<WidgetInput & { value: Ast.Expression }>,
-  graphDb: {
-    getMethodCallInfo(id: AstId): MethodCallInfo | undefined
-    getExpressionInfo(id: AstId): ExpressionInfo | undefined
-  },
+  graphDb: GraphDb,
   project: {
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
     moduleProjectPath: Result<ProjectPath> | undefined
@@ -50,20 +45,22 @@ export function useWidgetFunctionCallInfo(
   const methodCallInfo = computed(() => getMethodCallInfoRecursively(toValue(input).value, graphDb))
   const interpreted = computed(() => interpretCall(toValue(input).value))
 
-  const subjectInfo = computed(() => {
-    const analyzed = interpreted.value
-    if (analyzed.kind !== 'prefix') return
-    const subject = getAccessOprSubject(analyzed.func)
-    if (!subject) return
-    return graphDb.getExpressionInfo(subject.id)
-  })
+  const appFunc = computed(() =>
+    interpreted.value.kind === 'prefix' ? interpreted.value.func : undefined,
+  )
+
+  const appFuncIsNodeUsage = computed(() => graphDb.isNodeUsage(appFunc.value?.id))
+
+  const subjectInfo = computed(() =>
+    graphDb.getExpressionInfo(getAccessOprSubject(appFunc.value)?.id),
+  )
 
   const selfArgumentPreapplied = computed(() => {
     const info = methodCallInfo.value
     const funcType = info?.methodCall.methodPointer.definedOnType
     return (
       funcType != null &&
-      !subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Identifier))
+      !subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Ast.Identifier))
     )
   })
 
@@ -146,7 +143,7 @@ export function useWidgetFunctionCallInfo(
     const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
     return (
       funcType != null &&
-      subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Identifier))
+      subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Ast.Identifier))
     )
   })
 
@@ -199,6 +196,17 @@ export function useWidgetFunctionCallInfo(
         ) ?
           noArgsCall.methodCall.notAppliedArguments
         : undefined,
+      /**
+       * If a node doesn't fully apply a function, and that node is referenced elsewhere, multiple
+       * {@link MethodCallInfo}s will result. We would not want to display the same placeholders in
+       * multiple places. We give priority to the source node, assuming the function is intended to
+       * be fully-applied, and suppress placeholders at the use site. However, we still construct an
+       * {@link ArgumentApplication}, so that if arguments *are* provided at the use site they will
+       * be displayed with full information. Note that reverse-inhibition is not implemented: In
+       * this case, the late-applied arguments will still have placeholders at the definition site,
+       * and fulfilling those placeholders would break the calls at use sites.
+       */
+      suppressPlaceholders: appFuncIsNodeUsage.value,
     })
   })
 

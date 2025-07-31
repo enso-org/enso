@@ -126,11 +126,19 @@ object DistributionPackage {
     )
   }
 
+  /** @param distributionRoot Root directory for the engine build distribution. Will be populated.
+    * @param jarModulesToCopy Modular Jar archives that will be copied into the `component` directory.
+    * @param pythonResources Directories with extracted resources from GraalPy
+    * @param pythonHome Target directory for `pythonResources`
+    * @param targetDir Directory with built rust-parser native library.
+    */
   def createEnginePackage(
     distributionRoot: File,
     cacheFactory: CacheStoreFactory,
     log: Logger,
     jarModulesToCopy: Seq[File],
+    pythonResources: Seq[File],
+    pythonHome: File,
     graalVersion: String,
     javaVersion: String,
     ensoVersion: String,
@@ -149,6 +157,20 @@ object DistributionPackage {
       jarModulesToCopy,
       distributionRoot / "component",
       cacheFactory.make("module jars")
+    )
+
+    // pythonResources contain everything - both files and directories.
+    // It should be enough to just recursively copy the first `python-home` directory.
+    val pyResource = pythonResources.head
+    if (pyResource.getName != "python-home") {
+      throw new AssertionError(
+        s"Expected the first python resource to be 'python-home', but got '${pyResource.getName}'"
+      )
+    }
+    copyDirectoryIncremental(
+      source      = pyResource,
+      destination = pythonHome,
+      cache       = cacheFactory.make("engine-python-home")
     )
 
     val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
@@ -273,7 +295,7 @@ object DistributionPackage {
           val runningProcess = Process(
             command,
             Some(path.getAbsoluteFile.getParentFile),
-            "JAVA_TOOL_OPTIONS" -> "-Dorg.jline.terminal.dumb=true"
+            "NO_COLOR" -> "true"
           ).run
           // Poor man's solution to stuck index generation
           val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
@@ -327,12 +349,17 @@ object DistributionPackage {
     }
   }
 
-  private def reduceArgs(
+  /** Helper method to execute project manager and enso using similar technique.
+    */
+  private def adjustArgsAndStart(
+    log: Logger,
     args: java.util.List[String],
     jvmOptName: String,
-    envToFill: java.util.Map[String, String]
-  ): Unit = {
-    var atEnv = args.indexOf("--env")
+    pb: java.lang.ProcessBuilder,
+    appendJvmOpts: String = "-ea"
+  ): java.lang.Process = {
+    val envToFill: java.util.Map[String, String] = pb.environment()
+    var atEnv                                    = args.indexOf("--env")
     while (atEnv >= 0) {
       var keyAndValue = args.get(atEnv + 1).split("=")
       envToFill.put(keyAndValue(0), keyAndValue(1))
@@ -343,20 +370,39 @@ object DistributionPackage {
 
     var prevValue = System.getenv(jvmOptName)
     if (prevValue == null) {
-      prevValue = "-ea";
+      prevValue = appendJvmOpts;
     } else {
-      prevValue = prevValue + " -ea"
+      prevValue = prevValue + " " + appendJvmOpts
     }
 
     val at = args.indexOf("--debug")
     if (at >= 0) {
       args.set(at, "--jvm=" + System.getProperty("java.home"))
-      val newValue =
+      val newValue = if (prevValue == "") {
+        WithDebugCommand.DEBUG_OPTION
+      } else {
         prevValue + " " + WithDebugCommand.DEBUG_OPTION
+      }
       envToFill.put(jvmOptName, newValue)
     } else {
       envToFill.put(jvmOptName, prevValue)
     }
+
+    pb.command(args)
+    pb.inheritIO()
+    log.info(
+      s"Executing ${args.stream.collect(java.util.stream.Collectors.joining(" "))}"
+    )
+    envToFill
+      .entrySet()
+      .forEach(entry => {
+        val name = entry.getKey
+        if (name.startsWith("ENSO_") || name == jvmOptName) {
+          log.info(s"  with ${name}=${entry.getValue}")
+        }
+      })
+    val process = pb.start()
+    process
   }
 
   def runEnginePackage(
@@ -380,14 +426,10 @@ object DistributionPackage {
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    reduceArgs(all, "JAVA_TOOL_OPTIONS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
-    pb.command(all)
-    pb.inheritIO()
-    log.info(s"Executing ${all.asScala.mkString(" ")}")
-    val p        = pb.start()
+    val p        = adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb)
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)
@@ -474,13 +516,11 @@ object DistributionPackage {
       all.add(projectManagerJar.getPath())
     }
     all.addAll(args.asJava)
-    pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
     pb.environment().put("ENSO_OPENSEARCH_APPENDER_ENABLED", "false")
-    reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
-    pb.inheritIO()
-    val p        = pb.start()
+    val p =
+      adjustArgsAndStart(log, all, "ENSO_JVM_OPTS", pb, appendJvmOpts = "")
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)

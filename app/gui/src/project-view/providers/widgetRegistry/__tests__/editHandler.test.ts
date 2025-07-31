@@ -1,10 +1,10 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
+import { proxyRefs } from '@/util/reactivity'
 import { expect, test, vi, type Mock } from 'vitest'
-import { proxyRefs } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
-import { newWidgetInstanceId, WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
+import { WidgetEditHandler, WidgetInstanceId, type WidgetEditHooks } from '../editHandler'
 
 type HandlerMap = Map<
   string,
@@ -27,9 +27,8 @@ function editHandlerTree(
     }
     const portId = id as PortId
     const interaction = createInteraction(portId)
-    const instanceId = newWidgetInstanceId()
     const handler = WidgetEditHandler.NewRaw(
-      () => instanceId,
+      () => 'widget-instance-id' as WidgetInstanceId,
       () => portId,
       () => (parent ? handlers.get(parent)?.handler : undefined),
       interaction,

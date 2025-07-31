@@ -1,0 +1,111 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Data.Index_Sub_Range import drop_helper, take_helper
+
+from Standard.Table import Column, Set_Mode, Table
+
+import project.DB_Table.DB_Table
+from project.Errors import Unsupported_Database_Operation
+
+## ---
+   private: true
+   ---
+type Take_Drop
+    ## ---
+       private: true
+       ---
+    Take
+
+    ## ---
+       private: true
+       ---
+    Drop
+
+## ---
+   private: true
+   ---
+   Apply `take` or `drop` to a table, returning the specified by the selector.
+take_drop_helper : Take_Drop -> Table & DB_Table -> (Index_Sub_Range | Range | Integer) -> Table & DB_Table
+take_drop_helper take_drop:Take_Drop table selector:(Index_Sub_Range | Range | Integer) =
+    check_supported selector <|
+        length = table.row_count
+        ranges = cleanup_ranges (collect_ranges take_drop length selector)
+
+        if ranges.is_empty then table.remove_all_rows else
+            # Filter on row column. Add the row column at the start, remove it at the end.
+            row_column_name = table.make_temp_column_name
+            table_with_row_number = table.add_row_number name=row_column_name from=0
+
+            subqueries = ranges.map on_problems=No_Wrap.Value range->
+                generate_subquery table_with_row_number:(Table & DB_Table) row_column_name range
+            combined = subqueries.reduce (a-> b-> a.union b)
+            combined.remove_columns row_column_name
+
+## ---
+   private: true
+   ---
+   Turn the selector into a vector of ranges
+collect_ranges : Take_Drop -> Integer -> (Index_Sub_Range | Range | Integer) -> Vector Range
+collect_ranges take_drop length selector:(Index_Sub_Range | Range | Integer) =
+    at _ = Panic.throw (Illegal_State.Error "Impossible: at called in Database take/drop. This is a bug in the Database library.")
+    single_slice s e = [Range.new s e]
+    slice_ranges selectors =
+        slice_range selector = case selector of
+            i : Integer -> Range.new i i+1
+            r : Range -> r
+        selectors.map slice_range
+    helper = case take_drop of
+        Take_Drop.Take -> take_helper
+        Take_Drop.Drop -> drop_helper
+    helper length at single_slice slice_ranges selector
+
+## ---
+   private: true
+   ---
+   Throw Unsupported_Database_Operation for selectors that are not supported by
+   database backends.
+check_supported : (Index_Sub_Range | Range | Integer) -> Any -> Any | Unsupported_Database_Operation
+check_supported selector:(Index_Sub_Range | Range | Integer) ~cont =
+    err =
+        Error.throw (Unsupported_Database_Operation.Error selector.to_display_text)
+
+    case selector of
+        Index_Sub_Range.While _ -> err
+        Index_Sub_Range.Sample _ _ -> err
+        _ -> cont
+
+## ---
+   private: true
+   ---
+   Remove empty ranges.
+cleanup_ranges : Vector Range -> Vector Range
+cleanup_ranges ranges:(Vector Range) =
+    ranges.filter (range-> range.end > range.start)
+
+## ---
+   private: true
+   ---
+   Filter a table with a single range. Returns only those rows whose row column
+   fall within the range.
+generate_subquery : Table & DB_Table -> Text -> Range -> Table & DB_Table
+generate_subquery (table : Table & DB_Table) row_column_name range =
+    case range.step of
+        1 ->
+            filter_condition = Filter_Condition.Between range.start range.end-1
+            table.filter row_column_name filter_condition
+        _ ->
+            _filter_on_predicate_column table ((((table.at row_column_name - range.start) % range.step) == 0) && (table.at row_column_name < range.end))
+
+private _filter_on_predicate_column (this_table : Table & DB_Table) predicate_column =
+    _with_temporary_column this_table predicate_column name-> table->
+        table.filter name Filter_Condition.Is_True
+
+private _with_temporary_column (this_table : Table & DB_Table) new_column:Column f:(Text -> Table & DB_Table -> Table & DB_Table) -> Table & DB_Table =
+    new_column_name = this_table.make_temp_column_name
+    with_new_column = this_table.set new_column new_column_name set_mode=Set_Mode.Add
+    modified_table = f new_column_name with_new_column
+    modified_table.remove_columns new_column_name

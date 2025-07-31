@@ -16,8 +16,9 @@ import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
+import { proxyRefs } from '@/util/reactivity'
 import { filter } from 'enso-common/src/utilities/data/iter'
-import { computed, markRaw, proxyRefs, readonly, ref } from 'vue'
+import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
@@ -37,7 +38,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     [entry.definitionPath.key(), id],
   ])
   readonly childIdToParentId = new ReactiveIndex(this, (id, entry) => {
-    const parentAndChild = entry.definitionPath.splitAtName()
+    const parentAndChild = entry.definitionPath.normalized().splitAtName()
     if (parentAndChild) {
       const [parentPath] = parentAndChild
       const parents = this.pathToId.lookup(parentPath.key())

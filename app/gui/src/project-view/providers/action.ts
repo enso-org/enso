@@ -1,10 +1,10 @@
 import {
+  appBindings,
+  appContainerBindings,
   componentBrowserBindings,
   documentationEditorFormatBindings,
   graphBindings,
   nodeEditBindings,
-  panelsBindings,
-  undoBindings,
   visualizationBindings,
 } from '@/bindings'
 import { createContextStore } from '@/providers'
@@ -47,7 +47,7 @@ const displayableActions = {
 
   'components.collapse': {
     icon: 'group',
-    description: 'Group Selected Components',
+    description: 'Create User Defined Component from Selected Components',
     shortcut: graphBindings.bindings['components.collapse'],
   },
   'components.copy': {
@@ -70,7 +70,7 @@ const displayableActions = {
 
   'component.enterNode': {
     icon: 'open',
-    description: 'Open Grouped Components',
+    description: 'Open User Defined Component',
   },
   'component.startEditing': {
     icon: 'edit',
@@ -138,12 +138,12 @@ const displayableActions = {
   'graph.toggleCodeEditor': {
     icon: 'bottom_panel',
     description: 'Code Editor',
-    shortcut: panelsBindings.bindings['graph.toggleCodeEditor'],
+    shortcut: graphBindings.bindings['graph.toggleCodeEditor'],
   },
   'graph.toggleDocumentationEditor': {
     icon: 'right_panel',
     description: 'Documentation Editor',
-    shortcut: panelsBindings.bindings['graph.toggleDocumentationEditor'],
+    shortcut: graphBindings.bindings['graph.toggleDocumentationEditor'],
   },
   'graph.renameProject': {
     icon: 'edit',
@@ -160,12 +160,12 @@ const displayableActions = {
   'graph.undo': {
     icon: 'undo',
     description: 'Undo',
-    shortcut: undoBindings.bindings['graph.undo'],
+    shortcut: graphBindings.bindings['graph.undo'],
   },
   'graph.redo': {
     icon: 'redo',
     description: 'Redo',
-    shortcut: undoBindings.bindings['graph.redo'],
+    shortcut: graphBindings.bindings['graph.redo'],
   },
   'graph.fitAll': {
     icon: 'show_all',
@@ -264,17 +264,6 @@ const displayableActions = {
     description: 'Insert image',
   },
 
-  // === Visualizations ===
-
-  'visualization.hide': {
-    icon: 'eye',
-    description: 'Hide visualization',
-  },
-  'visualization.show': {
-    icon: 'eye',
-    description: 'Show visualization',
-  },
-
   // === Fullscreen ===
 
   'panel.fullscreen': {
@@ -285,6 +274,16 @@ const displayableActions = {
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {
+  // === App ===
+
+  'app.cancel': {},
+  'app.close': {
+    shortcut: appBindings.bindings['app.close'],
+  },
+  'app.closeTab': {
+    shortcut: appContainerBindings.bindings['app.closeTab'],
+  },
+
   // === Component Browser ===
 
   'componentBrowser.acceptInput': {
@@ -352,10 +351,6 @@ const undisplayableActions = {
   'textEditor.deleteBack': {},
   'textEditor.deleteForward': {},
   'textEditor.newline': {},
-
-  // === Interactions ===
-
-  'interaction.cancel': {},
 }
 export type UndisplayableActionName = keyof typeof undisplayableActions
 
@@ -368,7 +363,7 @@ export type UndisplayableActionName = keyof typeof undisplayableActions
 export type ActionName = DisplayableActionName | UndisplayableActionName
 type DisplayableActions = Record<DisplayableActionName, DisplayableAction>
 type UndisplayableActions = Record<UndisplayableActionName, Action>
-type Actions = DisplayableActions & UndisplayableActions
+export type Actions = DisplayableActions & UndisplayableActions
 
 const [provideActions, injectActions] = createContextStore('Actions', identity<Actions>)
 

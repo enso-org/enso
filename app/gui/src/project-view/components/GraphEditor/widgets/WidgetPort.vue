@@ -15,13 +15,12 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { cachedGetter } from '@/util/reactivity'
+import { cachedGetter, proxyRefs } from '@/util/reactivity'
 import {
   computed,
   nextTick,
   onMounted,
   onUpdated,
-  proxyRefs,
   shallowRef,
   toRef,
   watch,
@@ -86,7 +85,7 @@ watchEffect(
     const externalId = tree.externalId
     if (!graph.db.isNodeId(externalId)) return
     const id = portId.value
-    const instance = new PortViewInstance(portRect, externalId, props.onUpdate)
+    const instance = new PortViewInstance(portRect, externalId, props.updateCallback)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },

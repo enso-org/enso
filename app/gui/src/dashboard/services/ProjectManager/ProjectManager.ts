@@ -6,12 +6,13 @@
 import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
+import { getFileName } from '#/utilities/fileInfo'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
+import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import { getFileName } from '../../utilities/fileInfo'
 import {
   MissingComponentAction,
-  ProjectManagerEvents,
+  PROJECT_MANAGER_LOADING_FAILED_EVENT,
   type CloseProjectParams,
   type CreateProject,
   type CreateProjectParams,
@@ -108,7 +109,7 @@ export class ProjectManager {
           event.preventDefault()
           justErrored = true
           if (Number(new Date()) - firstConnectionStartMs > MAXIMUM_DELAY_MS) {
-            document.dispatchEvent(new Event(ProjectManagerEvents.loadingFailed))
+            document.dispatchEvent(new Event(PROJECT_MANAGER_LOADING_FAILED_EVENT))
             reject(new Error())
           } else {
             const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
@@ -202,19 +203,12 @@ export class ProjectManager {
   }
 
   /**
-   * Return the content of the `Main.enso` file of a project.
+   * Return the content of a file of the project.
    */
-  async getFileContent(projectId: UUID) {
+  async getFileContent(projectId: UUID, projectPath: string) {
     const path = this.internalProjectPaths.get(projectId)
-
     invariant(path, `Unknown project path for project '${projectId}'.`)
-
-    return await this.runStandaloneCommand<string>(
-      null,
-      'filesystem-read-path',
-      'text',
-      path + '/src/Main.enso',
-    )
+    return await this.runStandaloneCommand(null, 'filesystem-read-path', path + '/' + projectPath)
   }
 
   /** Rename a project. */
@@ -228,7 +222,11 @@ export class ProjectManager {
     if (state?.state === backend.ProjectState.opened) {
       this.internalProjects.set(params.projectId, {
         state: state.state,
-        data: { ...state.data, projectName: params.name },
+        data: {
+          ...state.data,
+          projectName: params.name,
+          projectNormalizedName: normalizeName(params.name),
+        },
       })
     }
     // Update `internalDirectories` by listing the project's parent directory, because the new
@@ -293,10 +291,9 @@ export class ProjectManager {
     interface ResponseBody {
       readonly exists: boolean
     }
-    const response = await this.runStandaloneCommand<ResponseBody>(
+    const response = await this.runStandaloneCommandJson<ResponseBody>(
       null,
       'filesystem-exists',
-      'json',
       parentId ?? this.rootDirectory,
     )
     return response.exists
@@ -309,10 +306,9 @@ export class ProjectManager {
       readonly entries: FileSystemEntry[]
     }
     parentPath ??= this.rootDirectory
-    const response = await this.runStandaloneCommand<ResponseBody>(
+    const response = await this.runStandaloneCommandJson<ResponseBody>(
       null,
       'filesystem-list',
-      'json',
       parentPath,
     )
     const result = response.entries
@@ -342,7 +338,7 @@ export class ProjectManager {
 
   /** Create a directory. */
   async createDirectory(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-create-directory', 'json', path)
+    await this.runStandaloneCommandJson(null, 'filesystem-create-directory', path)
     this.internalDirectories.set(path, [])
     const directoryPath = getDirectoryAndName(path).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
@@ -367,7 +363,7 @@ export class ProjectManager {
 
   /** Create a file. */
   async createFile(path: Path, file: Blob) {
-    await this.runStandaloneCommand(file, 'filesystem-write-path', 'json', path)
+    await this.runStandaloneCommandJson(file, 'filesystem-write-path', path)
     const directoryPath = getDirectoryAndName(path).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
     if (siblings) {
@@ -391,19 +387,12 @@ export class ProjectManager {
 
   /** Move a file or directory. */
   async moveFile(from: Path, to: Path) {
-    await this.runStandaloneCommand(
-      null,
-      'filesystem-move-from',
-      'json',
-      from,
-      '--filesystem-move-to',
-      to,
-    )
+    await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
   }
 
   /** Delete a file or directory. */
   async deleteFile(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-delete', 'json', path)
+    await this.runStandaloneCommandJson(null, 'filesystem-delete', path)
     const children = this.internalDirectories.get(path)
     // Assume a directory needs to be loaded for its children to be loaded.
     if (children) {
@@ -467,34 +456,31 @@ export class ProjectManager {
   }
 
   /** Run the Project Manager binary with the given command-line arguments. */
-  private async runStandaloneCommand<T = void>(
+  private async runStandaloneCommand(
     body: BodyInit | null,
     name: string,
-    responseType: 'json' | 'text',
+    ...cliArguments: string[]
+  ): Promise<Response> {
+    const searchParams = new URLSearchParams({
+      ['cli-arguments']: JSON.stringify([`--${name}`, ...cliArguments]),
+    })
+    return await fetch(`/api/run-project-manager-command?${searchParams}`, { method: 'POST', body })
+  }
+
+  /** Run the Project Manager binary with the given command-line arguments, expecting JSON data of given type T. */
+  private async runStandaloneCommandJson<T = void>(
+    body: BodyInit | null,
+    name: string,
     ...cliArguments: string[]
   ): Promise<T> {
-    const searchParams = new URLSearchParams({
-      // The names come from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
-    }).toString()
-    const response = await fetch(`/api/run-project-manager-command?${searchParams}`, {
-      method: 'POST',
-      body,
-    })
-    if (responseType === 'json') {
-      // There is no way to avoid this as `JSON.parse` returns `any`.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const json: JSONRPCResponse<never> = await response.json()
-      if ('result' in json) {
-        return json.result
-      } else {
-        throw new Error(json.error.message)
-      }
+    const response = await this.runStandaloneCommand(body, name, ...cliArguments)
+    // There is no way to avoid this as `JSON.parse` returns `any`.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const json: JSONRPCResponse<never> = await response.json()
+    if ('result' in json) {
+      return json.result
     } else {
-      // This is safe, because the response is expected to be text.
-      // eslint-disable-next-line no-restricted-syntax
-      return (await response.text()) as T
+      throw new Error(json.error.message)
     }
   }
 }

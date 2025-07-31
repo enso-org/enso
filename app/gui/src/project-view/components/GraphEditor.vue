@@ -6,8 +6,9 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
+import { useContainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
-import { graphBindings, panelsBindings, undoBindings } from '@/bindings'
+import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
@@ -28,7 +29,7 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, unrefElement, useEvent } from '@/composables/events'
+import { unrefElement, useEvent } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
@@ -61,10 +62,10 @@ import { set } from 'lib0'
 import {
   computed,
   onMounted,
-  onUnmounted,
   ref,
   toRaw,
   toRef,
+  toValue,
   useTemplateRef,
   watch,
   watchEffect,
@@ -72,12 +73,13 @@ import {
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
+const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
-const _visualizationStore = provideVisualizationStore(projectStore)
+provideVisualizationStore(projectStore)
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -87,9 +89,6 @@ onMounted(() => {
   if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
-})
-onUnmounted(() => {
-  projectStore.disposeYDocsProvider()
 })
 
 // === Navigator ===
@@ -243,11 +242,11 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
-    enabled: graphStore.undoManager.canUndo,
+    enabled: () => graphStore.undoManager.canUndo,
     action: () => graphStore.undoManager.undo(),
   },
   'graph.redo': {
-    enabled: graphStore.undoManager.canRedo,
+    enabled: () => graphStore.undoManager.canRedo,
     action: () => graphStore.undoManager.redo(),
   },
   'graph.fitAll': {
@@ -332,19 +331,14 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-// See also https://github.com/enso-org/enso/issues/10414
 useEvent(
   window,
   'keydown',
-  (event) =>
-    panelsHandler(event) ||
-    (!keyboardBusy() && undoBindingsHandler(event)) ||
-    (!keyboardBusy() && graphBindingsHandler(event)) ||
-    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
+  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
 )
 
 function tryGetSelectionDocUrl() {
-  const selected = nodeSelection.tryGetSoleSelection()
+  const selected = nodeSelection.tryGetSingleSelectedNode()
   if (!selected.ok) return selected
   const suggestion = graphStore.db.getNodeMainSuggestion(selected.value)
   const documentation = suggestion && suggestionDocumentationUrl(suggestion)
@@ -365,21 +359,14 @@ const { handleClick } = useDoubleClick(
 
 // === Keyboard/Mouse bindings ===
 
-const undoBindingsHandler = undoBindings.handler(
-  objects.mapEntries(undoBindings.bindings, (actionName) => actionHandlers[actionName].action),
-)
-
 const graphBindingsHandler = graphBindings.handler(
-  objects.mapEntries(
-    graphBindings.bindings,
-    (actionName) => () => void actionHandlers[actionName].action(),
-  ),
-)
-
-// === Code Editor ===
-
-const panelsHandler = panelsBindings.handler(
-  objects.mapEntries(panelsBindings.bindings, (actionName) => actionHandlers[actionName].action),
+  objects.mapEntries(graphBindings.bindings, (actionName) => {
+    const actionDef = actionHandlers[actionName]
+    return () => {
+      if (toValue(actionDef.enabled) === false) return false
+      void actionDef.action()
+    }
+  }),
 )
 
 // === Documentation Editor ===
@@ -387,7 +374,7 @@ const panelsHandler = panelsBindings.handler(
 const overrideDisplayedDocs = ref<SuggestionId>()
 const aiMode = ref<boolean>(false)
 const docsForSelection = computed(() => {
-  const selected = nodeSelection.tryGetSoleSelection()
+  const selected = nodeSelection.tryGetSingleSelectedNode()
   if (!selected.ok) return Err('Select a single component to display help')
   const suggestionId = graphStore.db.nodeMainSuggestionId.lookup(selected.value)
   if (suggestionId == null) return Err('No documentation available for selected component')
@@ -399,14 +386,14 @@ const displayedDocs = computed(() =>
 
 watchEffect(() => {
   const projectId = projectStore.id
-  rightPanel.setContext(projectId, {
+  rightPanel.setContext(containerData.tab, {
     item: projectId,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
 })
 
 function toggleRightDockHelpPanel() {
-  rightPanel.tab = 'help'
+  rightPanel.setTab('help')
 }
 
 // === Component Browser ===
@@ -475,7 +462,7 @@ watch(
   },
 )
 
-const root = ref<HTMLElement>()
+const root = useTemplateRef<HTMLElement>('root')
 
 // === Node Creation ===
 
@@ -511,12 +498,20 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
-      placement: { type: 'source', node: sourceNode },
+      placement:
+        options.position ?
+          { type: 'fixed', position: options.position }
+        : { type: 'source', node: sourceNode },
       expression: options.content!.instantiateCopied([sourcePortAst]).code(),
     })),
   )
-  if (toEdit.length)
-    createWithComponentBrowser({ placement: { type: 'source', node: sourceNode }, sourcePort })
+  if (toEdit.length) {
+    const placement: PlacementStrategy =
+      toEdit[0]?.position ?
+        { type: 'fixed', position: toEdit[0].position }
+      : { type: 'source', node: sourceNode }
+    createWithComponentBrowser({ placement, sourcePort })
+  }
 }
 
 function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
@@ -545,7 +540,9 @@ function collapseNodes(nodes: Node[]) {
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)
     if (!info.ok) {
-      toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
+      toasts.userActionFailed.show(
+        `Unable to create User Defined Component: ${info.error.payload}.`,
+      )
       return
     }
     const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
@@ -554,7 +551,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const topLevel = graphStore.moduleRoot
     if (!topLevel) {
-      bail('BUG: no top level, collapsing not possible.')
+      bail('BUG: no top level, creating User Defined Component not possible.')
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
@@ -576,7 +573,7 @@ function collapseNodes(nodes: Node[]) {
       }
     })
   } catch (err) {
-    console.error('Error while collapsing, this is not normal.', err)
+    console.error('Error while creating User Defined Component, this is not normal.', err)
   }
 }
 
@@ -638,6 +635,7 @@ const contextMenuActions: DisplayableActionName[] = [
 
 <template>
   <div
+    ref="root"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent

@@ -14,7 +14,8 @@ import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { ProjectPath } from '@/util/projectPath'
-import { computed, nextTick, onUnmounted, proxyRefs, ref, toRef, watch, watchEffect } from 'vue'
+import { proxyRefs } from '@/util/reactivity'
+import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /**
@@ -27,6 +28,7 @@ const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150
 
 const props = defineProps<{
+  show: boolean
   currentType?: Opt<VisualizationIdentifier>
   isFullscreenAllowed: boolean
   isResizable: boolean
@@ -37,7 +39,9 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
+  /** @deprecated use typeinfo instead */
   typename?: ProjectPath | undefined
+  typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
@@ -69,6 +73,7 @@ const {
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
   typename: toRef(props, 'typename'),
+  typeinfo: toRef(props, 'typeinfo'),
 })
 
 // ===========
@@ -90,7 +95,7 @@ const actionHandlers = registerHandlers({
   'visualization.exitFullscreen': {
     action: () => (isFullscreen.value = false),
   },
-  'visualization.hide': {
+  'component.toggleVisualization': {
     available: () => !isFullscreen.value,
     action: () => emit('update:enabled', false),
   },
@@ -209,6 +214,7 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 
 <script lang="ts">
 import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================
@@ -227,11 +233,12 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 
 <template>
   <div
+    v-if="props.show"
     class="GraphVisualization"
     :style="style"
     :class="{ isFocused }"
-    @pointerenter="emit('update:hovered', false)"
-    @pointerleave="emit('update:hovered', true)"
+    @pointerenter="emit('update:hovered', true)"
+    @pointerleave="emit('update:hovered', false)"
   >
     <WithFullscreenMode
       v-model="isFullscreen"
@@ -249,9 +256,11 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
         <VisualizationToolbar
           :currentVis="currentVisualization"
           :showControls="!isPreview"
+          :isFocused="isFocused"
           :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"
+          :typeinfo="typeinfo"
           :class="{ overlay: toolbarOverlay }"
           @update:currentVis="emit('update:id', $event)"
         />

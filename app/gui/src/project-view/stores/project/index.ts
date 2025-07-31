@@ -17,13 +17,14 @@ import { type MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
-import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import { wait } from 'lib0/promise'
 import {
   computed,
   markRaw,
   onScopeDispose,
-  proxyRefs,
   ref,
   shallowRef,
   watch,
@@ -108,7 +109,7 @@ export interface ProjectProps {
 export function createProjectStore(
   props: {
     projectId: ProjectId
-    renameProject: (newName: string) => void
+    renameProject: (newName: string) => Promise<void>
     engine: LsUrls
   },
   projectNames: ProjectNameStore,
@@ -156,7 +157,10 @@ export function createProjectStore(
       doc,
       awareness.internal,
     )
-    onCleanup(disposeYDocsProvider)
+    onCleanup(() => {
+      yDocsProvider?.dispose()
+      yDocsProvider = undefined
+    })
   })
 
   const projectModel = new DistributedProject(doc)
@@ -324,6 +328,86 @@ export function createProjectStore(
     })
   }
 
+  // Maximum number of in-progress expressions.
+  const MAX_IN_PROGRESS = 5
+
+  const inProgress = ref(0)
+  const queueLength = ref(0)
+
+  function queuedExecuteExpression(
+    expressionId: ExternalId,
+    expression: string,
+    timeoutMs: number = 5000,
+  ): Promise<Result<any> | null> {
+    if (inProgress.value > MAX_IN_PROGRESS) {
+      if (timeoutMs < 0) {
+        return Promise.reject(Err(`queuedExecuteExpression: Execution timed out.`))
+      }
+
+      queueLength.value += 1
+      const pause = queueLength.value * 250
+      return new Promise((resolve) => setTimeout(resolve, pause)).then(() => {
+        queueLength.value -= 1
+        return queuedExecuteExpression(expressionId, expression, timeoutMs - pause)
+      })
+    }
+
+    inProgress.value += 1
+    return new Promise<Result<any> | null>((resolve, reject) => {
+      const visualizationId = crypto.randomUUID() as Uuid
+      let state = 1
+
+      const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
+        if (uuid !== visualizationId) {
+          return
+        }
+
+        inProgress.value -= state
+        state = 0 // Prevent further updates from this handler.
+        dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+        executionContext.off('visualizationEvaluationFailed', errorHandler)
+        const dataStr = Ok(visData.dataString())
+        const parsed = parseVisualizationData(dataStr)
+        resolve(parsed)
+      }
+      const errorHandler = (
+        uuid: Uuid,
+        _expressionId: ExpressionId,
+        message: string,
+        _diagnostic: Diagnostic | undefined,
+      ) => {
+        if (uuid !== visualizationId) {
+          return
+        }
+
+        inProgress.value -= state
+        state = 0 // Prevent further updates from this handler.
+        dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+        executionContext.off('visualizationEvaluationFailed', errorHandler)
+        reject(Err(message))
+      }
+
+      wait((timeoutMs < 1000 ? 1000 : timeoutMs) + 100).then(() => {
+        if (state === 1) {
+          inProgress.value -= 1
+          state = 0 // Prevent further updates from this handler.
+          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+          executionContext.off('visualizationEvaluationFailed', errorHandler)
+          reject(Err(`executeExpression: Execution timed out.`))
+        }
+      })
+
+      dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+      executionContext.on('visualizationEvaluationFailed', errorHandler)
+      lsRpcConnection.executeExpression(
+        executionContext.id,
+        visualizationId,
+        expressionId,
+        expression,
+      )
+    })
+  }
+
   function parseVisualizationData(data: Result<string | null> | null): Result<any> | null {
     if (!data?.ok) return data
     if (data.value == null) return null
@@ -338,11 +422,6 @@ export function createProjectStore(
 
   const { executionMode } = setupSettings(projectModel)
 
-  function disposeYDocsProvider() {
-    yDocsProvider?.dispose()
-    yDocsProvider = undefined
-  }
-
   const recordMode = computed({
     get() {
       return executionMode.value === 'live'
@@ -356,16 +435,13 @@ export function createProjectStore(
     executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
   })
 
-  function renameProject(newDisplayedName: string) {
+  async function renameProject(newDisplayedName: string) {
     try {
-      renameProjectBackend(newDisplayedName)
-      if (isIdentifier(newDisplayedName)) {
-        projectNames.onProjectRenameRequested(newDisplayedName)
-      } else {
-        console.error(`Renaming project: Not a valid identifier: ${newDisplayedName}`)
-      }
+      projectNames.onProjectRenameRequested(newDisplayedName)
+      await renameProjectBackend(newDisplayedName)
       return Ok()
     } catch (err) {
+      projectNames.onProjectRenameFailed()
       return Err(err)
     }
   }
@@ -401,7 +477,7 @@ export function createProjectStore(
     recordMode,
     dataflowErrors,
     executeExpression,
-    disposeYDocsProvider,
+    queuedExecuteExpression,
     renameProject,
   })
 }

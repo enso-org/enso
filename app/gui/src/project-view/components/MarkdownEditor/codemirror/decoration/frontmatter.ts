@@ -1,4 +1,4 @@
-import { DocumentationMetadata, parseMetadata } from '@/components/DocumentationPanel/metadata'
+import { DocumentationMetadata, parseMetadata } from '@/components/ComponentHelp/metadata'
 import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import FrontMatter from '@/components/MarkdownEditor/FrontMatter.vue'
 import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'
@@ -27,9 +27,6 @@ export function decorateFrontMatter(
       nodeRange(nodeRef),
       Decoration.replace({
         widget,
-        // Ensure the cursor is drawn relative to the content before the widget.
-        // If it is drawn relative to the widget, it will be hidden when the widget is hidden (i.e. during editing).
-        side: 1,
         block: true,
       }),
     )

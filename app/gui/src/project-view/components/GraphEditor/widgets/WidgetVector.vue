@@ -19,11 +19,11 @@ function doEdit(editFn: (ast: Ast.MutableVector) => void) {
   if (props.input.value instanceof Ast.Vector) {
     const edit = graph.startEdit()
     editFn(edit.getVersion(props.input.value))
-    props.onUpdate({ edit, directInteraction: true })
+    props.updateCallback({ edit, directInteraction: true })
   } else {
     const value = Ast.Vector.new(MutableModule.Transient(), [])
     editFn(value)
-    props.onUpdate({
+    props.updateCallback({
       portUpdate: { value, origin: props.input.portId },
       directInteraction: true,
     })
@@ -70,7 +70,7 @@ const value = computed({
     // Getting/setting an Array is incompatible with ideal synchronization anyway;
     // `DraggableList` needs to operate on the `Ast.Vector` for edits to be merged as `Y.Array` operations.
     const newAst = Ast.Vector.build(value, (element, tempModule) => tempModule.copy(element))
-    props.onUpdate({
+    props.updateCallback({
       portUpdate: { value: newAst, origin: props.input.portId },
       directInteraction: true,
     })

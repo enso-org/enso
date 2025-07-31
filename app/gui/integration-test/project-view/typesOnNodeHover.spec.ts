@@ -1,4 +1,4 @@
-import { test, type Locator, type Page } from '@playwright/test'
+import { test, type Locator, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
@@ -19,7 +19,6 @@ async function assertTypeLabelOnNode(
   await locate.toggleVisualizationButton(node).click({ force: true })
   const targetLabel = node.locator('.node-type').first()
   await expect(targetLabel).toHaveText(type.short)
-  await expect(targetLabel).toHaveAttribute('title', type.full)
   await locate.toggleVisualizationButton(node).click({ force: true })
   await actions.deselectNodes(page)
 }

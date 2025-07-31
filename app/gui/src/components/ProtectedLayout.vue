@@ -4,15 +4,18 @@
  * if user lost privileges to see them. Also makes sure user will agree with Terms of Service and
  * privacy policy.
  */
-import { EnsoDevtools as EnsoDevToolsReact } from '#/components/Devtools'
+import {
+  EnsoDevtools as EnsoDevToolsReact,
+  ReactQueryDevtools as ReactQueryDevtoolsReact,
+} from '#/components/Devtools'
 import {
   AgreementsModal as AgreementsModalReact,
   type AgreementsModalProps,
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
-import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH, SETUP_PATH } from '$/appUtils'
+import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
 import { useUserAgreements } from '$/composables/userAgreements'
-import { AuthStore, useAuth, UserSessionType } from '$/providers/auth'
+import { AuthStore, useAuth } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
 import type { DataLoader } from '$/router'
@@ -25,7 +28,7 @@ import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    access?: 'guest' | 'anyLoggedIn' | UserSessionType | 'deleted'
+    access?: 'guest' | 'anyLoggedIn' | 'deleted'
   }
 }
 
@@ -47,17 +50,14 @@ function routeAllowed(route: RouteLocation, auth: AuthStore) {
     case 'deleted':
       return auth.isUserSoftDeleted()
     default:
-      return route.meta.access === auth.session?.type && !auth.isUserMarkedForDeletion()
+      return !auth.isUserMarkedForDeletion()
   }
 }
 
 function redirect(auth: AuthStore, localStorage: LocalStorage) {
   if (auth.session == null || auth.isUserDeleted()) return { path: LOGIN_PATH }
   if (auth.isUserSoftDeleted()) return { path: RESTORE_USER_PATH }
-  if (auth.session.type === UserSessionType.partial) return { path: SETUP_PATH }
-  if (auth.session.type === UserSessionType.full)
-    return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
-  return undefined
+  return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
 }
 
 function requireUserAgreements(route: RouteLocation) {
@@ -72,9 +72,12 @@ function requireUserAgreements(route: RouteLocation) {
 }
 
 let scope: EffectScope | undefined
-export const dataLoader: DataLoader<{
+
+type Props = {
   agreementsModalProps: AgreementsModalProps | undefined
-}> = {
+}
+
+export const dataLoader: DataLoader<Props> = {
   async beforeRouteEnter(to) {
     const queryClient = vueQuery.useQueryClient()
     const localStorage = LocalStorage.getInstance()
@@ -116,9 +119,7 @@ export const dataLoader: DataLoader<{
 </script>
 
 <script setup lang="ts">
-const props = defineProps<{
-  agreementsModalProps: AgreementsModalProps | undefined
-}>()
+const props = defineProps<Props>()
 
 const session = useSession()
 const auth = useAuth()
@@ -127,6 +128,7 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const text = useText()
 const EnsoDevtools = reactComponent(EnsoDevToolsReact)
+const ReactQueryDevtools = reactComponent(ReactQueryDevtoolsReact)
 
 const allowed = computed(() => routeAllowed(route, auth))
 watch(
@@ -150,7 +152,7 @@ watchPostEffect(() => {
 })
 
 const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
-const displayDevTools = computed(() => auth.session?.type === UserSessionType.full)
+const displayDevTools = computed(() => auth.session != null)
 
 const shouldDisplayAgreementsModal = computed(
   () =>
@@ -162,11 +164,7 @@ const shouldDisplayAgreementsModal = computed(
   <div v-if="auth.session == null" data-testid="before-auth-layout" aria-hidden>
     <!-- This div is used as a flag to indicate that the user is not logged in. -->
   </div>
-  <div
-    v-if="auth.session?.type === UserSessionType.full"
-    data-testid="after-auth-layout"
-    aria-hidden
-  >
+  <div v-else data-testid="after-auth-layout" aria-hidden>
     <!--This div is used as a flag to indicate that the dashboard has been loaded and the user is
     authenticated. -->
   </div>
@@ -185,7 +183,8 @@ const shouldDisplayAgreementsModal = computed(
     v-if="allowed && agreementsModalProps && shouldDisplayAgreementsModal"
     v-bind="agreementsModalProps"
   />
-  <RouterView v-else-if="allowed" />
+  <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
 
   <EnsoDevtools v-if="displayDevTools" />
+  <ReactQueryDevtools v-if="displayDevTools" />
 </template>

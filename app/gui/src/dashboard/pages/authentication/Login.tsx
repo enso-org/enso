@@ -1,5 +1,4 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import LockIcon from '#/assets/lock.svg'
@@ -24,9 +23,15 @@ import { useState } from 'react'
 /** A form for users to log in. */
 export default function Login() {
   const { router } = useRouter()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
+  const {
+    signInWithMicrosoft,
+    signInWithApple,
+    signInWithGoogle,
+    signInWithGitHub,
+    signInWithPassword,
+    confirmSignIn,
+  } = useSession()
   const { getText } = useText()
-
   const [initialEmail] = useQueryParam('email')
 
   const form = Form.useForm({
@@ -40,21 +45,13 @@ export default function Login() {
       }),
     defaultValues: { email: initialEmail ?? '' },
     onSubmit: async ({ email, password }) => {
-      const res = await signInWithPassword(email, password)
+      const { user, challenge } = await signInWithPassword(email, password)
 
-      switch (res.challenge) {
-        case 'SMS_MFA':
-        case 'SOFTWARE_TOKEN_MFA':
-          setUser(res.user)
-          nextStep()
-          break
-        case 'NO_CHALLENGE':
-        case 'CUSTOM_CHALLENGE':
-        case 'MFA_SETUP':
-        case 'NEW_PASSWORD_REQUIRED':
-        case 'SELECT_MFA_TYPE':
-        default:
-          await router.push(DASHBOARD_PATH)
+      if (challenge) {
+        setUser(user)
+        nextStep()
+      } else {
+        await router.push(DASHBOARD_PATH)
       }
     },
   })
@@ -67,6 +64,14 @@ export default function Login() {
   const { nextStep, stepperState, previousStep } = Stepper.useStepperState({
     steps: 2,
     defaultStep: 0,
+  })
+
+  const handleMicrosoftPress = useEventCallback(async () => {
+    await signInWithMicrosoft()
+  })
+
+  const handleApplePress = useEventCallback(async () => {
+    await signInWithApple()
   })
 
   const handleGooglePress = useEventCallback(async () => {
@@ -112,6 +117,17 @@ export default function Login() {
                 onPress={handleGitHubPress}
               >
                 {getText('signUpOrLoginWithGitHub')}
+              </Button>
+              <Button
+                size="large"
+                variant="outline"
+                icon="microsoft_color"
+                onPress={handleMicrosoftPress}
+              >
+                {getText('signUpOrLoginWithMicrosoft')}
+              </Button>
+              <Button size="large" variant="outline" icon="apple_color" onPress={handleApplePress}>
+                {getText('signUpOrLoginWithApple')}
               </Button>
 
               <Form form={form} gap="medium">

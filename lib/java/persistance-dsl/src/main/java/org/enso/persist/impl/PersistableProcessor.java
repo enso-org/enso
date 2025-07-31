@@ -161,6 +161,7 @@ public class PersistableProcessor extends AbstractProcessor {
       return true;
     }
     var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
+    var shallInline = "true".equals(readAnnoValue(anno, "allowInlining"));
     var richerConstructor =
         new Comparator<Object>() {
           @Override
@@ -182,13 +183,13 @@ public class PersistableProcessor extends AbstractProcessor {
             .collect(Collectors.toList());
 
     ExecutableElement cons;
-    Element singleton;
+    List<Element> singletonFields;
     if (constructors.isEmpty()) {
-      var singletonFields =
+      singletonFields =
           typeElem.getEnclosedElements().stream()
               .filter(
                   e ->
-                      e.getKind() == ElementKind.FIELD
+                      e.getKind().isField()
                           && e.getModifiers().contains(Modifier.STATIC)
                           && isVisibleFrom(e, orig))
               .filter(e -> tu.isSameType(e.asType(), typeElem.asType()))
@@ -200,11 +201,10 @@ public class PersistableProcessor extends AbstractProcessor {
                 Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
         return false;
       }
-      singleton = singletonFields.get(0);
       cons = null;
     } else {
       cons = (ExecutableElement) constructors.get(0);
-      singleton = null;
+      singletonFields = null;
       if (constructors.size() > 1) {
         var snd = (ExecutableElement) constructors.get(1);
         if (richerConstructor.compare(cons, snd) == 0) {
@@ -260,7 +260,7 @@ public class PersistableProcessor extends AbstractProcessor {
               continue;
             }
             var name = findFqn(elem);
-            if (canInline && shouldInline(elem)) {
+            if (canInline && shouldInline(elem, shallInline)) {
               w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readInline(")
@@ -278,6 +278,9 @@ public class PersistableProcessor extends AbstractProcessor {
               case BOOLEAN -> w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readBoolean();\n");
+              case BYTE -> w.append("    var ")
+                  .append(v.getSimpleName())
+                  .append(" = in.readByte();\n");
               case INT -> w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readInt();\n");
@@ -302,11 +305,29 @@ public class PersistableProcessor extends AbstractProcessor {
         w.append("\n");
         w.append("    );\n");
       } else {
-        w.append("    return ")
-            .append(typeElemName)
-            .append(".")
-            .append(singleton.getSimpleName())
-            .append(";\n");
+        if (singletonFields.size() == 1) {
+          var singleton = singletonFields.get(0);
+          w.append("    return ")
+              .append(typeElemName)
+              .append(".")
+              .append(singleton.getSimpleName())
+              .append(";\n");
+        } else {
+          w.append("    return switch (in.readByte()) {\n");
+          for (var i = 0; i < singletonFields.size(); i++) {
+            var singleton = singletonFields.get(i);
+            w.append(
+                "      case "
+                    + i
+                    + " -> "
+                    + typeElemName
+                    + "."
+                    + singleton.getSimpleName()
+                    + ";\n");
+          }
+          w.append("      default -> throw new IOException();\n");
+          w.append("    };\n");
+        }
       }
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
@@ -325,7 +346,7 @@ public class PersistableProcessor extends AbstractProcessor {
               continue;
             }
             var name = findFqn(elem);
-            if (canInline && shouldInline(elem)) {
+            if (canInline && shouldInline(elem, shallInline)) {
               w.append("    out.writeInline(")
                   .append(name)
                   .append(".class, obj.")
@@ -339,6 +360,9 @@ public class PersistableProcessor extends AbstractProcessor {
               case BOOLEAN -> w.append("    out.writeBoolean(obj.")
                   .append(v.getSimpleName())
                   .append("());\n");
+              case BYTE -> w.append("    out.writeByte(obj.")
+                  .append(v.getSimpleName())
+                  .append("());\n");
               case INT -> w.append("    out.writeInt(obj.")
                   .append(v.getSimpleName())
                   .append("());\n");
@@ -349,6 +373,22 @@ public class PersistableProcessor extends AbstractProcessor {
                   .getMessager()
                   .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
             }
+        }
+      } else {
+        if (singletonFields.size() > 1) {
+          w.append("    var index = -1;\n");
+          for (var i = 0; i < singletonFields.size(); i++) {
+            var singleton = singletonFields.get(i);
+            w.append(
+                "    if (obj == "
+                    + typeElemName
+                    + "."
+                    + singleton.getSimpleName()
+                    + ") index = "
+                    + i
+                    + ";\n");
+          }
+          w.append("    out.write(index);\n");
         }
       }
       w.append("  }\n");
@@ -429,11 +469,11 @@ public class PersistableProcessor extends AbstractProcessor {
     return cnt;
   }
 
-  private boolean shouldInline(TypeElement elem) {
+  private boolean shouldInline(TypeElement elem, boolean shallInline) {
     var inline =
         switch (findFqn(elem)) {
               case "scala.collection.immutable.Seq" -> true;
-              default -> false;
+              default -> shallInline;
             }
             || !elem.getKind().isInterface();
     return inline;

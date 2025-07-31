@@ -14,6 +14,7 @@ import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
+import { isUuid } from 'ydoc-shared/yjsModel'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
@@ -26,12 +27,23 @@ export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
-  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}` as const)
+  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}`)
 }
 
 /** Create a {@link backend.ProjectId} from a UUID. */
 export function newProjectId(uuid: projectManager.UUID, path: projectManager.Path) {
   return backend.ProjectId(`${PROJECT_ID_PREFIX}${uuid}-${path}`)
+}
+
+/** Check if given {@link backend.ProjectId} represents a local project. */
+export function isLocalProjectId(projectId: backend.ProjectId): boolean {
+  // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
+  const uuidLength = 36
+  return (
+    projectId.startsWith(PROJECT_ID_PREFIX) &&
+    projectId[PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
+    isUuid(projectId.substring(PROJECT_ID_PREFIX.length, PROJECT_ID_PREFIX.length + uuidLength))
+  )
 }
 
 /** Create a {@link backend.FileId} from a path. */
@@ -165,13 +177,13 @@ export default class LocalBackend extends Backend {
    */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
-  ): Promise<readonly backend.AnyAsset[]> {
+  ): Promise<readonly backend.AnyRealAsset[]> {
     const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
     // Catch the case where the directory does not exist.
-    let result: backend.AnyAsset[] = []
+    let result: backend.AnyRealAsset[] = []
     try {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
@@ -222,7 +234,6 @@ export default class LocalBackend extends Backend {
             parentsPath: backend.ParentsPath(parentsPath),
             virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
             ensoPath,
-            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
           } satisfies Partial<backend.DirectoryAsset>
 
           switch (entry.type) {
@@ -292,22 +303,22 @@ export default class LocalBackend extends Backend {
     body: backend.CreateProjectRequestBody,
   ): Promise<backend.CreatedProject> {
     const projectsDirectory =
-      body.parentDirectoryId == null ? null : extractTypeAndId(body.parentDirectoryId).id
+      body.parentDirectoryId == null ?
+        this.projectManager.rootDirectory
+      : extractTypeAndId(body.parentDirectoryId).id
     const project = await this.projectManager.createProject({
       name: projectManager.ProjectName(body.projectName),
       ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
       missingComponentAction: projectManager.MissingComponentAction.install,
-      ...(projectsDirectory == null ? {} : { projectsDirectory }),
+      projectsDirectory,
     })
     return {
       name: project.projectName,
       organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(
-        project.projectId,
-        projectsDirectory ?? this.projectManager.rootDirectory,
-      ),
+      projectId: newProjectId(project.projectId, projectsDirectory),
       packageName: project.projectName,
       state: { type: backend.ProjectState.closed, volumeId: '' },
+      ensoPath: backend.EnsoPath(`${projectsDirectory}/${project.projectNormalizedName}`),
     }
   }
 
@@ -342,13 +353,9 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async getAssetDetails<
-    Id extends backend.RealAssetId,
-    Type extends backend.RealAssetTypeId<Id>,
-    ReturnType extends Id extends backend.DirectoryId ?
-      backend.Asset<backend.AssetType.directory> | null
-    : backend.Asset<Type>,
-  >(assetId: Id): Promise<ReturnType> {
+  override getAssetDetails<Id extends backend.RealAssetId>(
+    assetId: Id,
+  ): Promise<backend.AssetDetailsResponse<Id>> {
     const extracted = extractTypeAndId(assetId)
 
     const parentPath = extracted.directory
@@ -359,30 +366,11 @@ export default class LocalBackend extends Backend {
       return null as never
     }
 
-    const directoryContents = await this.listDirectory({
-      parentId: newDirectoryId(parentPath),
-      filterBy: null,
-      labels: null,
-      recentProjects: false,
-      rootPath: this.rootPath(),
-    })
-
-    const entry = directoryContents.find((content) => content.id === assetId)
-
-    if (entry == null) {
-      if (backend.isDirectoryId(assetId)) {
-        throw new backend.DirectoryDoesNotExistError()
-      }
-
-      throw new backend.AssetDoesNotExistError()
-    }
-
-    // eslint-disable-next-line no-restricted-syntax
-    return entry as never
+    return this.findAsset(parentPath, 'id', assetId)
   }
 
   /**
-   * Close the project identified by the given project ID.
+   * Returns information about the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails.
    */
   override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
@@ -390,12 +378,15 @@ export default class LocalBackend extends Backend {
     const state = this.projectManager.projects.get(id)
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directory)
-      const project = entries
-        .flatMap((entry) => (entry.type === 'ProjectEntry' ? [entry.metadata] : []))
-        .find((metadata) => metadata.id === id)
-      if (project == null) {
+      const entry = entries
+        .flatMap((e) => (e.type === 'ProjectEntry' ? [[e.metadata, e.path] as const] : []))
+        .find(([metadata]) => metadata.id === id)
+      if (entry == null) {
         throw new Error(`Could not get details of project.`)
       } else {
+        const [project, path] = entry
+        const ensoPathRaw = normalizePath(path)
+        const ensoPath = backend.EnsoPath(ensoPathRaw)
         return {
           name: project.name,
           jsonAddress: null,
@@ -405,6 +396,7 @@ export default class LocalBackend extends Backend {
           packageName: project.name,
           projectId,
           state: { type: backend.ProjectState.closed, volumeId: '' },
+          ensoPath,
         }
       }
     } else {
@@ -421,6 +413,7 @@ export default class LocalBackend extends Backend {
           type: backend.ProjectState.opened,
           volumeId: '',
         },
+        ensoPath: backend.EnsoPath(`${directory}/${cachedProject.projectNormalizedName}`),
       }
     }
   }
@@ -504,6 +497,7 @@ export default class LocalBackend extends Backend {
       packageName: project.projectNormalizedName,
       organizationId: backend.OrganizationId('organization-'),
       state: { type: backend.ProjectState.closed, volumeId: '' },
+      ensoPath: backend.EnsoPath(`${typeAndId.directory}/${project.projectNormalizedName}`),
     }
   }
 
@@ -652,6 +646,11 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Do nothing. This function should never need to be called. */
+  override getPaymentsConfig() {
+    return this.invalidOperation()
+  }
+
   /** Create a directory. */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,
@@ -733,26 +732,17 @@ export default class LocalBackend extends Backend {
     } else {
       const title = backend.stripProjectExtension(body.fileName)
       let id: string
-      if (
-        'backendApi' in window &&
-        // This non-standard property is defined in Electron.
-        'path' in file &&
-        typeof file.path === 'string' &&
-        file.path !== ''
-      ) {
-        const projectInfo = await window.backendApi.importProjectFromPath(
-          file.path,
-          parentPath,
-          title,
-        )
+      const path = window.systemApi?.getFilePath(file)
+      if ('backendApi' in window && path != null) {
+        const projectInfo = await window.backendApi.importProjectFromPath(path, parentPath, title)
         id = projectInfo.id
       } else {
         const searchParams = new URLSearchParams({
           directory: parentPath,
           name: title,
         }).toString()
-        const path = `/api/upload-project?${searchParams}`
-        const response = await fetch(path, { method: 'POST', body: file })
+        const url = `/api/upload-project?${searchParams}`
+        const response = await fetch(url, { method: 'POST', body: file })
         id = await response.text()
       }
       const projectId = newProjectId(projectManager.UUID(id), parentPath)
@@ -814,6 +804,21 @@ export default class LocalBackend extends Backend {
       parentId: newDirectoryId(folderPath),
       title: body.title,
     }
+  }
+
+  /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
+  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    // eslint-disable-next-line no-restricted-syntax
+    const { directoryPath } = getDirectoryAndName(projectManager.Path(path as string))
+    return this.findAsset(directoryPath, 'ensoPath', path)
+  }
+
+  /** Resolve the data of a project asset relative to the project root directory. */
+  override async resolveProjectAssetData(
+    projectId: backend.ProjectId,
+    relativePath: string,
+  ): Promise<Response> {
+    return await this.projectManager.getFileContent(extractTypeAndId(projectId).id, relativePath)
   }
 
   /** Download an asset. */
@@ -896,24 +901,6 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /**
-   * Get the content of a file.
-   *
-   * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
-   */
-  override getFileContent(projectId: backend.ProjectId) {
-    return this.projectManager.getFileContent(extractTypeAndId(projectId).id)
-  }
-
-  /**
-   * Resolve the path of a project asset relative to the project `src` directory.
-   */
-  override resolveProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
-    const projectPath = this.getProjectPath(projectId)
-
-    return Promise.resolve(`enso://${projectPath}/src/${relativePath.replace('./', '')}`)
-  }
-
   /** Invalid operation. */
   override createDatalink() {
     return this.invalidOperation()
@@ -988,6 +975,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override cancelSubscription() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override deleteUserGroup() {
     return this.invalidOperation()
   }
@@ -995,11 +987,6 @@ export default class LocalBackend extends Backend {
   /** Return an empty array. */
   override listUserGroups() {
     return Promise.resolve([])
-  }
-
-  /** Invalid operation. */
-  override getCheckoutSession() {
-    return this.invalidOperation()
   }
 
   /** Invalid operation. */
@@ -1040,6 +1027,34 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override createCustomerPortalSession() {
     return this.invalidOperation()
+  }
+
+  /** Find asset details using directory listing. */
+  private async findAsset<Key extends keyof backend.AnyAsset>(
+    directory: projectManager.Path,
+    key: Key,
+    value: backend.AnyAsset[Key],
+  ) {
+    const directoryContents = await this.listDirectory({
+      parentId: newDirectoryId(directory),
+      filterBy: null,
+      labels: null,
+      recentProjects: false,
+      rootPath: this.rootPath(),
+    })
+
+    const entry = directoryContents.find((content) => content[key] === value)
+
+    if (entry == null) {
+      if (backend.isDirectoryId(value)) {
+        throw new backend.DirectoryDoesNotExistError()
+      }
+
+      throw new backend.AssetDoesNotExistError()
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    return entry as never
   }
 }
 

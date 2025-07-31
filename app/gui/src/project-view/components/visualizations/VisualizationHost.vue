@@ -21,6 +21,7 @@ const props = defineProps<{
     toolbarOverflow?: boolean
     executeExpression: (
       expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+      timeoutMs?: number,
     ) => any
   }
 }>()
@@ -56,8 +57,10 @@ provideVisualizationConfig({
   setToolbar: (items) => emit('updateToolbar', items),
   setToolbarOverlay: (overlay) => emit('updateToolbarOverlay', overlay),
   createNodes: (...nodes) => emit('createNodes', nodes),
-  executeExpression: (expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>) =>
-    props.params.executeExpression(expressionFunction),
+  executeExpression: (
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+    timeoutMs?: number,
+  ) => props.params.executeExpression(expressionFunction, timeoutMs),
 })
 
 initializeActions()
@@ -88,13 +91,13 @@ initializeActions()
 
 /* Base style for visualizations. */
 :host {
-  --color-text: rgb(118 118 118);
   --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
     BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
     'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'DejaVu Sans Mono', /* System monospace font stack */ ui-monospace, Menlo, Monaco,
     'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
     'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  --color-text: rgba(0, 0, 0, 0.9);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-weight: 500;

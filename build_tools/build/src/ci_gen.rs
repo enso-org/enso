@@ -161,6 +161,10 @@ pub mod secret {
     // === OAuth Integrations ===
     /// The client ID for the Google OAuth integration used for Google Credentials.
     pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Strava OAuth integration used for Strava Credentials.
+    pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -268,7 +272,7 @@ pub fn cleaning_step(
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
     let mut ret = run("git-clean").with_name(name);
-    ret.r#if = CleaningCondition::format_conjunction(conditions);
+    ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }
 
@@ -921,9 +925,16 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     let engine_launcher = engine::EngineLauncher::TestNative;
     let build_engine_distribution_id =
         workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
-    workflow.add_dependent(target, job::SnowflakeTests { graal_edition, engine_launcher }, &[
-        &build_engine_distribution_id,
-    ]);
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: false },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: true },
+        &[&build_engine_distribution_id],
+    );
     workflow.add_dependent(
         target,
         job::StandardLibraryTests {
@@ -945,9 +956,10 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Base",
         "Database",
         "Generic_JDBC",
-        "Google_Api",
+        "Google",
         "Image",
         "Microsoft",
+        "Saas",
         "Snowflake",
         "Table",
         "Tableau",

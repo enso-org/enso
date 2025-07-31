@@ -1,10 +1,10 @@
 import type GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { type RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
-import { injectKeyboard } from '@/providers/keyboard'
+import { injectBubblingKeyboard } from '@/providers/keyboard'
+import type { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
-import { type ProjectPath } from '@/util/projectPath'
 import { type ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 import { type ComponentProps } from 'vue-component-type-helpers'
@@ -25,8 +25,9 @@ interface NodeVisualizationOptions {
   nodeRect: ToValue<Rect>
   scale: ToValue<number>
   isFocused: ToValue<boolean>
-  typename: ToValue<Opt<ProjectPath>>
+  typeinfo: ToValue<Opt<TypeInfo>>
   dataSource: ToValue<Opt<VisualizationDataSource | RawDataSource>>
+  hidden: ToValue<boolean>
   emit: Emit
 }
 
@@ -37,11 +38,12 @@ export function useNodeVisualization({
   nodeRect,
   scale,
   isFocused,
-  typename,
+  typeinfo,
   dataSource,
+  hidden,
   emit,
 }: NodeVisualizationOptions) {
-  const keyboard = injectKeyboard()
+  const keyboard = injectBubblingKeyboard()
   const metadata = computed(() => toValue(vis))
   const visualizationWidth = computed<number | null>({
     get: () => metadata.value?.width ?? null,
@@ -63,27 +65,25 @@ export function useNodeVisualization({
   const isVisualizationVisible = computed(
     () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
   )
-  watch(isVisualizationVisible, (val) => {
-    // When visualization is being hidden, we don’t receive `pointerleave` event for some reason.
-    // So we need to set `visualizationHovered` to `false` manually.
-    if (!val) {
-      visualizationHovered.value = false
-    }
-  })
 
   const visRect = shallowRef<Rect>()
-  watch(visRect, (rect) => emit('update:visualizationRect', rect))
+  const visibleVisRect = computed(
+    (): Opt<Rect> => (isVisualizationVisible.value && !toValue(hidden) ? visRect.value : null),
+  )
+  watch(visibleVisRect, (rect) => emit('update:visualizationRect', rect ?? undefined))
 
   const visualization = computed((): ComponentProps<typeof GraphVisualization> => {
     const { size: nodeSize, pos: nodePosition } = toValue(nodeRect)
     return {
+      show: isVisualizationVisible.value,
       width: visualizationWidth.value,
       nodeSize,
       scale: toValue(scale),
       nodePosition,
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
-      typename: toValue(typename) ?? undefined,
+      typename: toValue(typeinfo)?.primaryType ?? undefined,
+      typeinfo: toValue(typeinfo) ?? undefined,
       height: visualizationHeight.value,
       isFocused: toValue(isFocused),
       isPreview: isVisualizationPreviewed.value,
@@ -102,7 +102,7 @@ export function useNodeVisualization({
     visualizationWidth,
     isVisualizationEnabled,
     isVisualizationPreviewed,
-    visRect: computed((): Opt<Rect> => (isVisualizationVisible.value ? visRect.value : null)),
-    visualization: computed(() => (isVisualizationVisible.value ? visualization.value : null)),
+    visRect: visibleVisRect,
+    visualization,
   }
 }

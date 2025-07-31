@@ -2,7 +2,7 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
-import InfoMenu from '#/layouts/InfoMenu'
+import { InfoMenu } from '#/layouts/InfoMenu'
 import { useText } from '$/providers/react'
 import { memo } from 'react'
 
@@ -26,10 +26,6 @@ function InfoBar() {
         </Button>
         <InfoMenu />
       </Dialog.Trigger>
-      {/* Required for shortcuts to work. */}
-      <div className="hidden">
-        <InfoMenu hidden />
-      </div>
     </div>
   )
 }

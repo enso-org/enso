@@ -1,4 +1,5 @@
 /** @file A table row for an arbitrary asset. */
+import type { ContextMenuApi } from '#/components/ContextMenu'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,
@@ -10,7 +11,7 @@ import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import AssetContextMenu from '#/layouts/AssetContextMenu'
+import { AssetContextMenu } from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -18,13 +19,12 @@ import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUt
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
+  setDriveLocation,
   useDriveStore,
-  useSetCurrentDirectoryId,
   useSetDragTargetAssetId,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
-import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
@@ -38,6 +38,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
+import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useRightPanelData } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
@@ -81,7 +82,6 @@ export interface AssetRowProps {
   readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
-  readonly tableRootRef: React.MutableRefObject<HTMLElement | null> | undefined
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
@@ -155,12 +155,16 @@ export function RealAssetRow(props: RealAssetRowProps) {
     renameAsset,
     closeProject,
     openProject,
-    tableRootRef,
   } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
+  const contextMenuRef = React.useRef<ContextMenuApi>(null)
   const [isNavigating, startNavigation] = useTransition()
 
+  const [initialContextMenuPosition, setInitialContextMenuPosition] = React.useState<Pick<
+    MouseEvent,
+    'pageX' | 'pageY'
+  > | null>(null)
   const driveStore = useDriveStore()
   const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
@@ -181,7 +185,16 @@ export function RealAssetRow(props: RealAssetRowProps) {
     { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
+  React.useEffect(() => {
+    // If `initialContextMenuPosition` is not null, that means the context menu is being opened
+    // during this render. Set the position to `null` since it the position is no longer needed.
+    // If it is not set to `null`, then the next time the row is focused, the context menu will be
+    // open by default.
+    if (initialContextMenuPosition != null) {
+      setInitialContextMenuPosition(null)
+    }
+  }, [initialContextMenuPosition])
+
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
@@ -264,13 +277,11 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }
   }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
-  const setDirectoryId = useSetCurrentDirectoryId()
-
   const dragDelayProps = useDragDelayAction(
     item.type === backendModule.AssetType.directory ?
       () => {
         startNavigation(() => {
-          setDirectoryId(item.id)
+          setDriveLocation(item.id, category.id)
         })
       }
     : undefined,
@@ -335,7 +346,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             onDoubleClick={() => {
               if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
-                  setCurrentDirectoryId(item.id)
+                  setDriveLocation(item.id, category.id)
                 })
               }
             }}
@@ -381,24 +392,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               if (!isSelected) {
                 select(item)
+                setInitialContextMenuPosition(event)
+              } else {
+                contextMenuRef.current?.open(event)
               }
-
-              setModal(
-                <AssetContextMenu
-                  rootRef={tableRootRef}
-                  innerProps={innerProps}
-                  currentDirectoryId={currentDirectoryId}
-                  triggerRef={rootRef}
-                  event={event}
-                  eventTarget={
-                    event.target instanceof HTMLElement ? event.target : event.currentTarget
-                  }
-                  doCopy={doCopy}
-                  doCut={doCut}
-                  doPaste={doPaste}
-                  rightPanel={rightPanel}
-                />,
-              )
             }}
             onDragStart={(event) => {
               if (rowState.isEditingName) {
@@ -444,6 +441,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               event.stopPropagation()
 
               setIsDraggedOver(false)
+              dragDelayProps.onDrop(event)
               props.onDrop(event, item)
             }}
           >
@@ -473,21 +471,16 @@ export function RealAssetRow(props: RealAssetRowProps) {
           </tr>
 
           {isSoleSelected && (
-            // This is a copy of the context menu, since the context menu registers keyboard
-            // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
-            // the entire context menu (once for the keyboard actions, once for the JSX).
             <AssetContextMenu
-              hidden
-              rootRef={tableRootRef}
+              ref={contextMenuRef}
               innerProps={innerProps}
               currentDirectoryId={currentDirectoryId}
               triggerRef={rootRef}
-              event={{ pageX: 0, pageY: 0 }}
-              eventTarget={null}
               doCopy={doCopy}
               doCut={doCut}
               doPaste={doPaste}
               rightPanel={rightPanel}
+              initialPosition={initialContextMenuPosition}
             />
           )}
         </>

@@ -101,7 +101,7 @@ object GraalVM {
     // With maximal size relaxed by 30 MB.
     private val windowsX64Release = NativeImageSize(200, 470)
     private val linuxX64Release   = NativeImageSize(200, 490)
-    private val macX64Release     = NativeImageSize(200, 426)
+    private val macX64Release     = NativeImageSize(200, 457)
     private val macARM64Release   = NativeImageSize(200, 473)
     private val testNISize        = NativeImageSize(100, 592)
   }

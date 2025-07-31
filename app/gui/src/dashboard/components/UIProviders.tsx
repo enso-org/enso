@@ -16,18 +16,7 @@ const DEFAULT_TRANSITION_OPTIONS: Spring = {
   velocity: 0,
 }
 
-/**
- * A context containing the root elements for the application.
- */
-interface RootContextType {
-  readonly portalRoot: HTMLElement
-  readonly appRoot: HTMLElement
-}
-
-const RootContext = React.createContext<RootContextType>({
-  portalRoot: document.body,
-  appRoot: document.body,
-})
+const RootContext = React.createContext<HTMLElement>(document.body)
 
 /** Props for a {@link UIProviders}. */
 export interface UIProvidersProps extends Readonly<React.PropsWithChildren> {
@@ -41,7 +30,7 @@ export default function UIProviders(props: UIProvidersProps) {
   const { portalRoot, appRoot, locale, children } = props
 
   return (
-    <RootContext.Provider value={{ portalRoot, appRoot }}>
+    <RootContext.Provider value={appRoot}>
       <MotionConfig reducedMotion="user" transition={DEFAULT_TRANSITION_OPTIONS}>
         <PortalProvider value={portalRoot}>
           <DialogStackProvider>
@@ -53,10 +42,8 @@ export default function UIProviders(props: UIProvidersProps) {
   )
 }
 
-/**
- * A hook to get the root elements for the application.
- */
+/** A hook to get the root element for the application. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useRootContext() {
+export function useAppRoot() {
   return React.useContext(RootContext)
 }

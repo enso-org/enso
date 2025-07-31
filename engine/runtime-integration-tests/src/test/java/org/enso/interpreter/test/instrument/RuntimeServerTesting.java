@@ -82,9 +82,10 @@ final class RuntimeServerTesting {
                 new Runtime$Api$StackItem$ExplicitCall(
                     new Runtime$Api$MethodPointer(moduleName, moduleName, "main"),
                     Option.empty(),
-                    ScalaConversions.<String>nil().toVector()))));
-    var reply = context.receiveN(5, 60);
-    assertEquals("Five messages", 5, reply.size());
+                    ScalaConversions.<String>nil().toVector()),
+                true)));
+    var reply = context.receiveNIgnoreStdLib(4, 60);
+    assertEquals("Five messages", 4, reply.size());
     assertEquals(
         "Output should be correct for " + reply + " messages",
         List.of("42", "42", "True"),

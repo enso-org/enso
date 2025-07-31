@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMat
 import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
 import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
 import org.enso.interpreter.node.expression.builtin.error.MapError;
+import org.enso.interpreter.node.expression.builtin.error.MissingArgument;
 import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
 import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
 import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
@@ -63,6 +64,7 @@ public final class Error {
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
   private final NoSuchArgument noSuchArgument;
+  private final MissingArgument missingArgument;
   private final PrivateAccess privateAccessError;
   private final InvalidConversionTarget invalidConversionTarget;
   private final NoSuchField noSuchField;
@@ -103,6 +105,7 @@ public final class Error {
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
     noSuchArgument = builtins.getBuiltinType(NoSuchArgument.class);
+    missingArgument = builtins.getBuiltinType(MissingArgument.class);
     privateAccessError = builtins.getBuiltinType(PrivateAccess.class);
     invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
     noSuchField = builtins.getBuiltinType(NoSuchField.class);
@@ -339,6 +342,22 @@ public final class Error {
    */
   public Atom makeNoSuchArgument(String argumentName) {
     return noSuchArgument.newInstance(Text.create(argumentName));
+  }
+
+  /**
+   * Constructs an error that indicates that a function call was missing an argument for the
+   * parameter.
+   *
+   * @param argumentName name of the missing argument
+   * @param functionName name of function missing the argument
+   * @return a missing argument error
+   */
+  public Atom makeMissingArgument(String argumentName, String functionName) {
+    return missingArgument.newInstance(
+        Text.create(argumentName),
+        Text.create(functionName),
+        context.getNothing(),
+        Text.create("Missing argument for " + argumentName));
   }
 
   /**

@@ -1,14 +1,21 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
-import { type Page, expect } from '@playwright/test'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
+import { type Page, expect } from 'playwright/test'
 import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
 
 const startTimestamp = Date.now()
 let screenshotIndex = 0
 async function _doScreenshot(page: Page): Promise<void> {
   page.screenshot({ path: `test-traces/screenshots/${startTimestamp}/${screenshotIndex++}.png` })
+}
+
+async function writeToFocusedComponentBrowser(page: Page, content: string): Promise<void> {
+  await expect(page.locator('.ComponentBrowser')).toBeVisible()
+  const input = page.getByTestId('component-editor-content')
+  await expect(input).toBeFocused()
+  await input.fill(content)
 }
 
 test('Local Workflow', async ({ page, app, projectsDir }) => {
@@ -25,18 +32,15 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   const PROJECT_PATH = pathModule.join(projectsDir, projectName.replaceAll(' ', ''))
 
   // We see the node type and visualization, so the engine is running the program
-  await expect(page.locator('.node-type')).toHaveText('Table', { timeout: 30000 })
+  await expect(page.locator('.node-type')).toHaveText('Table & +3', { timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
   await page.keyboard.press('Enter')
-  await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  await page.keyboard.insertText('count')
-  const entry = page.locator('.ComponentEntry', {
-    hasText: 'column_count',
-  })
+  await writeToFocusedComponentBrowser(page, 'count')
+  const entry = page.locator('.ComponentEntry', { hasText: 'column_count' })
   await expect(entry).toBeVisible()
   await await entry.click()
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
@@ -46,24 +50,29 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(addedNode.locator('.TableVisualization')).toBeVisible()
   await expect(addedNode.locator('.TableVisualization')).toContainText('1')
 
-  // Select and collapse nodes
+  // Select nodes and create User Defined Component nodes
   await page.keyboard.press(`${CONTROL_KEY}+A`)
-  await page.getByRole('button', { name: 'Group Selected Components' }).click()
+  await page
+    .getByRole('button', { name: 'Create User Defined Component from Selected Components' })
+    .click()
   await expect(page.locator('.GraphNode')).toHaveCount(1)
-  await expect(page.locator('.GraphNode')).toHaveText(/Main.collapsed/)
+  await expect(page.locator('.GraphNode')).toHaveText(/Main.user_defined_component/)
   await page.locator('.GraphNode').click()
   await page.getByRole('button', { name: 'Visualization' }).click()
   await expect(page.locator('.TableVisualization')).toBeVisible()
   await expect(page.locator('.TableVisualization')).toContainText('1')
 
-  // Enter collapsed function
+  // Enter User Defined Component
   // First wait until node is computed. Visualization may be cached, so we look at icon.
   await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
   await page.locator('.GraphNode').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(3)
-  await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
+  await expect(page.locator('.NavBreadcrumb')).toHaveText([
+    'New Project 1',
+    'user_defined_component',
+  ])
 
-  // Rename collapsed function
+  // Rename User Defined component
   await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
@@ -81,17 +90,16 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   // Create new text literal node.
   await page.keyboard.press('Escape') // deselect.
   await page.getByTestId('add-component-button').click()
-  await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const input = page.getByTestId('component-editor-content')
-  await input.fill(`'${TEXT_TO_WRITE}'`)
+  await writeToFocusedComponentBrowser(page, `'${TEXT_TO_WRITE}'`)
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
 
   // Create write node
   await page.keyboard.press('Enter')
-  await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const code = `write (enso_project.root / '${OUTPUT_FILE}') on_existing_file=..Append`
-  await input.fill(code)
+  await writeToFocusedComponentBrowser(
+    page,
+    `write (enso_project.root / '${OUTPUT_FILE}') on_existing_file=..Append`,
+  )
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(3)
 
@@ -130,7 +138,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   // (the panel is opened in previous steps)
   await page.locator('.DocumentationEditor').click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
-  const docImageElement = page.locator('.DocumentationEditor').getByAltText('Image')
+  const docImageElement = page.locator('.DocumentationEditor').getByTestId('doc-img')
   await expect(docImageElement).toBeVisible()
   await expect(docImageElement).toHaveJSProperty('width', 3)
 

@@ -1,4 +1,5 @@
 import { textEditorsCommonBindings, textEditorsMultilineBindings } from '@/bindings'
+import { modKey } from '@/composables/events'
 import * as commands from '@codemirror/commands'
 import { insertNewlineKeepIndent } from '@codemirror/commands'
 import { type Extension, Prec } from '@codemirror/state'
@@ -43,11 +44,36 @@ export function handlerToKeyBinding(
 function bindCommands<T extends string>(
   bindings: Record<T, Command>,
 ): Record<T, (event: CmKeyboardEvent) => boolean> {
-  return objects.mapEntries(
-    bindings,
-    (_binding, command) => (event: CmKeyboardEvent) => command(event.codemirrorView),
-  )
+  return objects.mapEntries(bindings, (_binding, command) => (event: CmKeyboardEvent) => {
+    command(event.codemirrorView)
+    // Some commands return `false` if not applicable to the current state; this allows falling
+    // back to a lower-priority command, but we don't allow conditionally bubbling the event out
+    // of the editor.
+    return true
+  })
 }
+
+function isNormalPrintableKey(event: KeyboardEvent) {
+  // This condition matches most printable characters, but not Enter or Tab.
+  return event.key.length === 1 && !modKey(event) && !event.altKey
+}
+
+function isModifierKey(key: string) {
+  // This condition matches modifier keys that may be used as part of text editing and should be
+  // stopped from propagating to ancestors.
+  return ['Control', 'Alt', 'Meta', 'Shift'].includes(key)
+}
+
+const stopNormalKeys: KeyBinding[] = [
+  {
+    any: (_view, event: KeyboardEvent) => {
+      // Stop propagation of typical keys that will result in a character being inserted into the
+      // editor, and modifier keys occurring alone.
+      if (isNormalPrintableKey(event) || isModifierKey(event.key)) event.stopImmediatePropagation()
+      return false
+    },
+  },
+]
 
 /** Key bindings applicable to all CodeMirror instances. */
 const baseKeymap: KeyBinding[] = [
@@ -308,6 +334,7 @@ const standardBindings: Record<LineMode, KeyBinding[]> = {
 function makeBindingsExt(lineMode: LineMode, extras?: Extension[]): Extension {
   return [
     Prec.lowest(keymap.of(baseKeymap)),
+    Prec.lowest(keymap.of(stopNormalKeys)),
     Prec.low(keymap.of(standardBindings[lineMode])),
     ...(extras ?? []),
   ]

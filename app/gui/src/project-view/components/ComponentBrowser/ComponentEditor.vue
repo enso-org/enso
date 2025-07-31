@@ -37,7 +37,7 @@ onUserAction(
       selection: Range.unsafeFromBounds(selection.from, selection.to),
     }),
 )
-watch(content, ({ text, selection }) => setText(text, selection))
+watch(content, ({ text, selection }) => setText(text, selection), { immediate: true })
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'
@@ -76,11 +76,20 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <template v-if="props.mode.mode === 'componentBrowsing'">
-      <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
-      <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
-    </template>
-    <CodeMirrorRoot ref="editorRoot" />
+    <div class="componentEditorContent">
+      <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
+      <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
+        <ComponentEditorLabel
+          testId="component-editor-label"
+          :typeInfo="
+            props.mode.filter.selfArg?.type === 'known' ?
+              props.mode.filter.selfArg.typeInfo
+            : undefined
+          "
+          :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -114,7 +123,18 @@ const rootStyle = computed(() => {
   }
 }
 
-.selfArgInfoArrow {
-  margin: 0 -4px;
+.componentEditorContent {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+}
+
+.componentEditorInput {
+  flex-grow: 1;
+}
+
+.componentEditorLabel {
+  margin: 0 4px;
 }
 </style>

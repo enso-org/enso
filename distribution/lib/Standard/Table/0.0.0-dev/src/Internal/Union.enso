@@ -1,10 +1,12 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
 import project.In_Memory_Column.In_Memory_Column
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Java_Problems
 import project.Internal.Match_Columns_Helpers
 import project.Internal.Problem_Builder.Problem_Builder
@@ -17,9 +19,10 @@ import project.Value_Type.Value_Type
 from project.Column import make_storage_builder_for_type
 
 ## The implementation of common logic that is used by `Table.from_union`.
-   The caller should ensure that `tables` contains only `Table` instances or `Nothing`.
-   Each `Nothing` is replaced by a single all-nothing row, not introducing any new columns. 
-   The `tables` vector must contain at least one non-nothing entry.
+   The caller should ensure that `tables` contains only `Table` instances or
+   `Nothing`.
+   Each `Nothing` is replaced by a single all-nothing row, not introducing any
+   new columns.  The `tables` vector must contain at least one non-nothing entry.
 make_union (tables : Vector) (columns_to_keep : Columns_To_Keep) (match_columns : Match_Columns) (on_problems : Problem_Behavior) =
     problem_builder = Problem_Builder.new
     matched_column_sets = Match_Columns_Helpers.match_columns tables match_columns columns_to_keep problem_builder
@@ -38,6 +41,8 @@ make_union (tables : Vector) (columns_to_keep : Columns_To_Keep) (match_columns 
 
 ## A helper that efficiently concatenates storages of in-memory columns.
 private _concat_columns column_set tables result_type result_row_count needs_cast on_problems =
+    tables.map t->
+        _check_table_in_memory t
     Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
         storage_builder = _make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
         column_set.column_indices.zip tables i-> parent_table->
@@ -55,9 +60,12 @@ private _concat_columns column_set tables result_type result_row_count needs_cas
 
 ## Creates a storage builder suitable for building a column for the provided
    column type.
-
-   If a value type is not supported, its closest match is selected and
-   an `Inexact_Type_Coercion` problem is reported.
+   If a value type is not supported, its closest match is selected and an
+   `Inexact_Type_Coercion` problem is reported.
 private _make_storage_builder_for_type value_type on_problems initial_size java_problem_aggregator =
     closest_storage_type = Storage.from_value_type value_type on_problems
     Storage.make_builder closest_storage_type initial_size java_problem_aggregator
+
+private _check_table_in_memory t = case t of
+    _ : In_Memory_Table -> Nothing
+    _ -> Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")

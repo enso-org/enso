@@ -19,7 +19,7 @@ export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
 declare const brandWidgetId: unique symbol
 /** Uniquely identifies a widget type. */
-export type WidgetTypeId = string & { [brandWidgetId]: true }
+export type WidgetTypeId = string & { [brandWidgetId]: never }
 
 export namespace WidgetInput {
   /** Returns widget-input data for the given AST tree or token. */
@@ -316,7 +316,7 @@ export function widgetProps<T extends WidgetInput>(def: WidgetDefinition<T>) {
       type: String as unknown as PropType<WidgetTypeId>,
       default: def.widgetTypeId,
     },
-    onUpdate: { type: Function as PropType<UpdateHandler>, required: true },
+    updateCallback: { type: Function as PropType<UpdateHandler>, required: true },
   } as const
 }
 

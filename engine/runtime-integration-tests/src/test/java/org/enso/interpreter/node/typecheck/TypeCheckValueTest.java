@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.CallTarget;
+import org.enso.compiler.core.ir.AscriptionReason;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -39,14 +40,18 @@ public class TypeCheckValueTest {
   private static CallTarget allOfIntegerAndText() {
     var call = new CallTarget[1];
     var builtins = ctxRule.ensoContext().getBuiltins();
-    var intNode = TypeCheckValueNode.single("int", builtins.number().getInteger());
-    var textNode = TypeCheckValueNode.single("text", builtins.text());
-    var bothNode = TypeCheckValueNode.allOf("int&text", intNode, textNode);
+    var intNode =
+        TypeCheckValueNode.single(
+            AscriptionReason.forParameter("int"), builtins.number().getInteger());
+    var textNode =
+        TypeCheckValueNode.single(AscriptionReason.forParameter("text"), builtins.text());
+    var bothNode =
+        TypeCheckValueNode.allOf(AscriptionReason.forParameter("int&text"), intNode, textNode);
     var root =
         new TestRootNode(
             (frame) -> {
               var arg = frame.getArguments()[0];
-              var res = bothNode.handleCheckOrConversion(frame, arg, null);
+              var res = bothNode.handleCheckOrConversion(frame, arg);
               return res;
             });
     root.insertChildren(bothNode);

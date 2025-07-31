@@ -144,8 +144,9 @@ class RuntimeRecomputeTest
         Api.RecomputeContextRequest(contextId, None, None, Seq())
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -200,7 +201,7 @@ class RuntimeRecomputeTest
         )
       )
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.pending(
         contextId,
@@ -213,6 +214,7 @@ class RuntimeRecomputeTest
       context.Main.Update.mainX(contextId, typeChanged = false),
       context.Main.Update.mainY(contextId, typeChanged = false),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -269,10 +271,11 @@ class RuntimeRecomputeTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.pending(contextId, context.Main.idMainZ),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -330,7 +333,7 @@ class RuntimeRecomputeTest
         )
       )
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.pending(
         contextId,
@@ -343,11 +346,207 @@ class RuntimeRecomputeTest
       context.Main.Update.mainX(contextId, typeChanged = false),
       context.Main.Update.mainY(contextId, typeChanged = false),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
+  }
+
+  it should "recompute all expressions once" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    val metadata = new Metadata
+    val idOut    = metadata.addItem(104, 17, "aa")
+    val idIn     = metadata.addItem(131, 16, "ab")
+
+    val code =
+      """from Standard.Base import all
+        |from Standard.Base.Runtime.Context import Input, Output
+        |
+        |main =
+        |    out = Output.is_enabled
+        |    in = Input.is_enabled
+        |    IO.println out
+        |    IO.println in
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+
+    // Create a new file
+    val mainFile = context.writeMain(contents)
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.consumeOut shouldEqual List()
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, moduleName, "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        idIn,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("False", "False")
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All()),
+          Some(Api.ExecutionEnvironment.Live()),
+          Seq()
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        ),
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        idIn,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        ),
+        typeChanged = false
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("True", "True")
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All()),
+          None, //Some(Api.ExecutionEnvironment.Live()),
+          Seq(
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        ),
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        idIn,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        ),
+        typeChanged = false
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("False", "False")
   }
 
   it should "recompute expression with expression configs" in {
@@ -516,6 +715,227 @@ class RuntimeRecomputeTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("True", "True")
+  }
+
+  it should "recompute expression with expression configs in one-off execution" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    val metadata = new Metadata
+    val idOut    = metadata.addItem(240, 19, "aa")
+    val idIn     = metadata.addItem(269, 20, "ab")
+    val idX      = metadata.addItem(240, 1, "ac")
+
+    val code =
+      """from Standard.Base import all
+        |from Standard.Base.Runtime.Context import Input, Output
+        |
+        |type Test
+        |
+        |    Value
+        |
+        |    test_enabled self is_out =
+        |        if is_out then Output.is_enabled else Input.is_enabled
+        |
+        |main =
+        |    x = Test.Value
+        |    out = x.test_enabled True
+        |    in = x.test_enabled False
+        |    IO.println out
+        |    IO.println in
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+
+    // Create a new file
+    val mainFile = context.writeMain(contents)
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.consumeOut shouldEqual List()
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, moduleName, "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(
+      5,
+      timeoutSeconds = 10
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idX,
+        "Enso_Test.Test.Main.Test"
+      ),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.Test",
+              "test_enabled"
+            ),
+            Vector()
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        idIn,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.Test",
+              "test_enabled"
+            ),
+            Vector()
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("False", "False")
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.Expressions(Vector(idIn))),
+          None,
+          Seq(
+            Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.Test",
+              "test_enabled"
+            ),
+            Vector()
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        idIn,
+        ConstantsGen.BOOLEAN,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.Test",
+              "test_enabled"
+            ),
+            Vector()
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("True", "False")
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All()),
+          None,
+          Seq()
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idX,
+        "Enso_Test.Test.Main.Test",
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        fromCache   = false,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.Test",
+              "test_enabled"
+            ),
+            Vector()
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        idIn,
+        ConstantsGen.BOOLEAN,
+        fromCache   = false,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.Test",
+              "test_enabled"
+            ),
+            Vector()
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("False", "False")
   }
 
   it should "recompute recursive method call with expression configs" in {

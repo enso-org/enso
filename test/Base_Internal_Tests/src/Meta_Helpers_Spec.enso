@@ -1,0 +1,45 @@
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Internal.Meta_Helpers
+
+type A
+    a = "a"
+type B
+    B v
+
+    b self = "b"
+
+type C
+    C v
+
+    c self = "c"
+
+B.from (that:A) = B.B that
+C.from (that:B) = C.C that
+
+type X
+    x = "x"
+
+X.from (_:A) = X
+
+add_specs suite_builder =
+    suite_builder.group "Meta_Helpers Tests" group_builder->
+        type_name = Meta_Helpers.simple_type_name_builtin
+
+        group_builder.specify "Obtaining type names via Meta_Helpers" <|
+            a = A
+            type_name a . should_equal "A"
+            abx = a : (A & B & X)
+            type_name abx . should_equal "A & B & X"
+
+            hidden_1 = abx : B
+            type_name hidden_1 . should_equal "B & ~A & ~X"
+
+            hidden_2 = abx : (X & B)
+            type_name hidden_2 . should_equal "X & B & ~A"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

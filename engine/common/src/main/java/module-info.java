@@ -1,13 +1,10 @@
-import org.enso.common.PolyglotSymbolResolver;
+import org.enso.common.ContextLoggingConfigurator;
 
 module org.enso.engine.common {
   requires org.graalvm.nativeimage;
   requires org.graalvm.polyglot;
-  requires org.enso.logging.utils;
-  requires org.enso.logging.config;
-  requires org.slf4j;
 
   exports org.enso.common;
 
-  uses PolyglotSymbolResolver;
+  uses ContextLoggingConfigurator;
 }

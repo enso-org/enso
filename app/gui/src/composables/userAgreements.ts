@@ -1,6 +1,7 @@
 import LocalStorage from '#/utilities/LocalStorage'
+import { proxyRefs } from '@/util/reactivity'
 import * as vueQuery from '@tanstack/vue-query'
-import { computed, effectScope, proxyRefs } from 'vue'
+import { computed, effectScope } from 'vue'
 import * as z from 'zod'
 
 declare module '#/utilities/LocalStorage' {

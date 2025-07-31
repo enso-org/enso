@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
+import org.enso.compiler.core.ir.AscriptionReason;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Diagnostic;
@@ -531,13 +532,13 @@ final class TreeToIr {
     var isMethod = name instanceof Tree.Ident ident && ident.getToken().isOperatorLexically();
     var fnName = translateExpression(name, isMethod);
     var fnType = translateType(sig.getType());
-    return new Type.Ascription(fnName, fnType, Option.empty(), getIdentifiedLocation(sig), meta());
+    return new Type.Ascription(fnName, fnType, AscriptionReason.empty(), getIdentifiedLocation(sig), meta());
   }
 
   private Definition translateMethodTypeSignature(TypeSignature sig) throws SyntaxException {
     var methodReference = translateMethodReference(sig.getName(), true);
     var signature = translateType(sig.getType());
-    return new Type.Ascription(methodReference, signature, Option.empty(), getIdentifiedLocation(sig), meta());
+    return new Type.Ascription(methodReference, signature, AscriptionReason.empty(), getIdentifiedLocation(sig), meta());
   }
 
   private Expression translateFunction(Tree.Function fun) {
@@ -602,8 +603,7 @@ final class TreeToIr {
       return body;
     }
 
-    String comment = "the result of `" + functionName + "`";
-    return new Type.Ascription(body, type, Option.apply(comment), loc, meta());
+    return new Type.Ascription(body, type, AscriptionReason.forFunctionResult(functionName), loc, meta());
   }
 
 
@@ -1373,7 +1373,7 @@ final class TreeToIr {
   Expression translateTypeAnnotated(Tree.TypeAnnotated anno) {
     var type = translateType(anno.getType());
     var expr = translateExpression(anno.getExpression());
-    return new Type.Ascription(expr, type, Option.empty(), getIdentifiedLocation(anno), meta());
+    return new Type.Ascription(expr, type, AscriptionReason.empty(), getIdentifiedLocation(anno), meta());
   }
 
   /**

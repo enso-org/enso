@@ -58,7 +58,7 @@ public abstract class RemoteAppender
           "Failed to parse credentials from '{}'. Will not send " + kind(), credentialsFile);
       return null;
     }
-    logger.debug("Credentials read from '{}': {}", credentialsFile, credentials);
+    logger.debug("Read credentials from '{}'", credentialsFile);
     return credentials;
   }
 

@@ -32,11 +32,13 @@ import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
+import org.enso.common.PythonHomeFinder;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
+import org.enso.logger.Converter;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -344,8 +346,9 @@ public class Main {
             .argName("log-level")
             .longOpt(LOG_LEVEL)
             .desc(
-                "Sets the runtime log level. Possible values are: OFF, ERROR, "
-                    + "WARNING, INFO, DEBUG and TRACE. Default: INFO.")
+                "Sets the runtime log level. Possible values are: "
+                    + getPossibleLogLevels()
+                    + ". Default: info.")
             .build();
     var loggerConnectOption =
         cliOptionBuilder()
@@ -682,7 +685,7 @@ public class Main {
                 .projectRoot(projectPath)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(shouldUseIrCaches)
                 .disablePrivateCheck(disablePrivateCheck)
@@ -775,13 +778,19 @@ public class Main {
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
 
+    String pythonHome = null;
+    if (PythonHomeFinder.findPythonHome() instanceof Path p) {
+      pythonHome = p.toString();
+    }
+
     var factory =
         ContextFactory.create()
             .projectRoot(projectRoot)
-            .logLevel(logLevel)
+            .logLevel(Converter.toJavaLevel(logLevel))
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
+            .pythonHome(pythonHome)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
@@ -868,7 +877,7 @@ public class Main {
                 .projectRoot(path)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
                 .build());
@@ -1014,7 +1023,7 @@ public class Main {
                 .projectRoot(projectRoot)
                 .messageTransport(replTransport())
                 .enableDebugServer(true)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .executionEnvironment("live")
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
@@ -1064,14 +1073,16 @@ public class Main {
     var found =
         Stream.of(Level.values()).filter(x -> name.equals(x.name().toLowerCase())).findFirst();
     if (found.isEmpty()) {
-      var possible =
-          Stream.of(Level.values())
-              .map(x -> x.toString().toLowerCase())
-              .collect(Collectors.joining(", "));
-      throw exitFail("Invalid log level. Possible values are " + possible + ".");
+      throw exitFail("Invalid log level. Possible values are " + getPossibleLogLevels() + ".");
     } else {
       return found.get();
     }
+  }
+
+  private static String getPossibleLogLevels() {
+    return Stream.of(Level.values())
+        .map(x -> x.toString().toLowerCase())
+        .collect(Collectors.joining(", "));
   }
 
   /** Parses an URI that specifies the logging service connection. */
@@ -1400,36 +1411,38 @@ public class Main {
    * Checks if JVM mode should be enabled in a project defined by arguments, based on a project's
    * config file, if any.
    *
+   * @param cwd current working directory or {@code null}
    * @param line parsed command line arguments
    * @return true, if project should be launched in JVM mode, false otherwise
    */
-  private boolean isJvmModeEnabled(CommandLine line) {
-    var target = line.getOptionValue(RUN_OPTION);
-    if (target == null) {
-      return false;
-    }
-
-    var f = new File(target);
-    // Guess project's root directory
-    File configFile = null;
-    while (configFile == null && f != null) {
-      var testFile = f.toPath().resolve(org.enso.pkg.Config.ensoPackageConfigName());
-      if (testFile.toFile().exists()) {
-        configFile = testFile.toFile();
-      } else {
-        f = f.getParentFile();
-      }
-    }
-    if (configFile == null) {
-      return false;
-    } else {
-      try (FileReader fileReader = new FileReader(configFile)) {
-        return org.enso.pkg.Config.fromYaml(fileReader)
-            .map(c -> c.jvm().getOrElse(() -> false))
-            .getOrElse(() -> false);
-      } catch (IOException e) {
+  private boolean isJvmModeEnabled(String cwd, CommandLine line) {
+    try {
+      var projectPath = line.getOptionValue(IN_PROJECT_OPTION);
+      var path = line.getOptionValue(RUN_OPTION);
+      if (path == null) {
         return false;
       }
+
+      var fileAndProject = Utils.findFileAndProject(cwd, path, projectPath);
+      if (fileAndProject._3() == null) {
+        return false;
+      } else {
+        var configFile =
+            new File(fileAndProject._3())
+                .toPath()
+                .resolve(org.enso.pkg.Config.ensoPackageConfigName());
+        if (!configFile.toFile().exists()) {
+          return false;
+        } else {
+          try (var fileReader = new FileReader(configFile.toFile())) {
+            return org.enso.pkg.Config.fromYaml(fileReader)
+                .map(c -> c.jvm().getOrElse(() -> false))
+                .getOrElse(() -> false);
+          }
+        }
+      }
+    } catch (IOException e) {
+      return false;
     }
   }
 
@@ -1529,8 +1542,13 @@ public class Main {
     }
 
     var logMasking = new boolean[1];
-    var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
+      }
+    }
+    var logLevel = setupLogging(line, logMasking);
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
     var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
@@ -1539,7 +1557,7 @@ public class Main {
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     var hasJVMOption = line.hasOption(JVM_OPTION);
-    var jvmInProjectEnforced = isJvmModeEnabled(line);
+    var jvmInProjectEnforced = isJvmModeEnabled(originalCwdOrNull, line);
     if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
@@ -1547,41 +1565,29 @@ public class Main {
         jvm = current;
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
-      if (!shouldLaunchJvm) {
-        if (hasJVMOption) {
-          stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
-        }
-      } else {
-        if (jvm == null) {
-          var javaExe = JavaFinder.findJavaExecutable();
-          if (javaExe == null) {
-            // Try your best if `jvm` mode enabled in a project
-            if (!jvmInProjectEnforced) {
-              throw exitFail("Cannot find java executable");
-            }
-          } else {
-            launchJvm(originalCwdOrNull, line, props, component, javaExe);
-          }
-        } else {
-          var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
+      if (shouldLaunchJvm) {
+        var javaExecutable =
+            jvm != null
+                ? new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile()
+                : JavaFinder.findJavaExecutable();
+        if (javaExecutable != null) {
           launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
+          return;
         }
       }
     }
-
-    if (props != null) {
-      for (var e : props.entrySet()) {
-        System.setProperty(e.getKey(), e.getValue());
-      }
-    }
-
-    if (System.getProperty("java.home") == null) {
-      assert HostEnsoUtils.isAot() : "Otherwise java.home would be defined";
-      var exe = JavaFinder.findJavaExecutable();
-      if (exe != null) {
-        var path = exe.getParentFile().getParentFile().getAbsolutePath();
-        System.setProperty("java.home", path);
-        LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+    if (HostEnsoUtils.isAot()) {
+      if (jvmInProjectEnforced) {
+        throw exitFail("Cannot find java executable to run in JVM mode");
+      } else {
+        if (System.getProperty("java.home") == null) {
+          var exe = JavaFinder.findJavaExecutable();
+          if (exe != null) {
+            var path = exe.getParentFile().getParentFile().getAbsolutePath();
+            System.setProperty("java.home", path);
+            LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+          }
+        }
       }
     }
     handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);

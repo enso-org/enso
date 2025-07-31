@@ -5,10 +5,9 @@ import type { PageCallback } from './BaseActions'
 import EditorPageActions from './EditorPageActions'
 
 /** Actions for the context menu. */
-interface ContextMenuActions<T extends BaseActions<Context>, Context> {
+export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly open: () => T
   readonly rename: () => T
-  readonly snapshot: () => T
   readonly exportToCloud: () => T
   readonly exportAllToCloud: () => T
   readonly exportToLocal: () => T
@@ -48,13 +47,6 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
         page
           .getByRole('button', { name: TEXT.renameShortcut })
           .getByText(TEXT.renameShortcut)
-          .click(),
-      ),
-    snapshot: () =>
-      step('Snapshot (context menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.snapshotShortcut })
-          .getByText(TEXT.snapshotShortcut)
           .click(),
       ),
     exportToCloud: () =>

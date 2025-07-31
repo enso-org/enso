@@ -32,6 +32,10 @@ export const SCROLLER_STYLES = tv({
         shadowStart: 'from-background/80',
         shadowEnd: 'from-background/80',
       },
+      white: {
+        shadowStart: 'from-white',
+        shadowEnd: 'from-white',
+      },
     },
     orientation: {
       horizontal: {
@@ -154,7 +158,7 @@ export function Scroller(props: ScrollerProps) {
     variants = SCROLLER_STYLES,
     orientation = 'horizontal',
     showShadows = true,
-    testId = 'scroller',
+    testId,
     onScroll,
     background = 'primary',
     ...rest

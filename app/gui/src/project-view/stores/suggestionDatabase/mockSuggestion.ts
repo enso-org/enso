@@ -1,3 +1,4 @@
+import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import {
   type MethodSuggestionEntry,
@@ -127,10 +128,7 @@ interface DocOptions {
   group?: string
 }
 function makeDocumentation({ aliases, group }: DocOptions): string {
-  const lines = []
-  if (aliases?.length) lines.push(`ALIAS ${aliases.join(', ')}`)
-  if (group) lines.push(`GROUP ${group}`)
-  return lines.join('\n')
+  return frontmatter({ aliases, group })
 }
 
 /** Mock a module method suggestion entry. */

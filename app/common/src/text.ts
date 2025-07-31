@@ -107,12 +107,10 @@ interface PlaceholderOverrides {
   readonly deleteUserGroupBackendError: [userGroupName: string]
   readonly listVersionsBackendError: [versionType: string]
   readonly createCheckoutSessionBackendError: [plan: string]
-  readonly getCheckoutSessionBackendError: [checkoutSessionId: string]
   readonly getDefaultVersionBackendError: [versionType: string]
   readonly logEventBackendError: [eventType: string]
 
   readonly subscribeSuccessSubtitle: [plan: string]
-  readonly assetsDropFilesDescription: [count: number]
 
   readonly paywallAvailabilityLevel: [plan: string]
   readonly paywallScreenDescription: [plan: string]
@@ -138,7 +136,6 @@ interface PlaceholderOverrides {
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
-  readonly groupNameSettingsInputDescription: [howLong: number]
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
@@ -176,7 +173,18 @@ interface PlaceholderOverrides {
   readonly managingUserGroupX: [groupName: string]
   readonly planOverriddenToX: [planName: string]
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
-  readonly assetsTableBackgroundRefreshIntervalOverridenToXMs: [ms: number]
+  readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
+  readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
+  readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
+
+  readonly xDaysLeftInTrial: [daysLeft: number]
+  readonly xHoursLeftInTrial: [hoursLeft: number]
+  readonly yourSubscriptionExpiresAtX: [endDate: string]
+  readonly commercialUseNotice: [originalTitle: string]
+  readonly downgradedWarning: [daysLeft: number, hoursLeft: number]
+
+  readonly welcomeToTeam: [organizationName: string]
+  readonly invitationText: [organizationName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

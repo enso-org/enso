@@ -327,7 +327,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
       <aria.Label
         data-testid="asset-search-bar"
         ref={rootRef}
-        className="group z-1 flex grow items-center gap-asset-search-bar rounded-full border-0.5 border-primary/20 py-[3.5px] pl-2 pr-1.5 text-primary"
+        className="group z-1 flex grow items-center gap-asset-search-bar rounded-full border-0.5 border-primary/50 py-[3.5px] pl-2 pr-1.5 text-primary"
         onFocus={() => {
           setAreSuggestionsVisible(true)
         }}
@@ -357,7 +357,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
 
         <Icon
           icon="find"
-          className="absolute left-2.5 top-[50%] z-1 -mt-[1px] -translate-y-1/2 text-primary/40"
+          className="absolute left-2.5 top-[50%] z-1 -mt-[1px] -translate-y-1/2 text-primary"
         />
 
         <AssetSearchBarInput

@@ -1,15 +1,18 @@
 import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
 
-export const undoBindings = defineKeybinds('undo', {
-  'graph.undo': ['Mod+Z'],
-  // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
-  'graph.redo': isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
+// Some debug shortcuts are also defined in electron
+// (Look for `registerShortcuts` method).
+
+export const appBindings = defineKeybinds('app', {
+  'app.cancel': ['Escape'],
+  'app.close': ['Mod+Q'],
 })
 
-export const panelsBindings = defineKeybinds('panels', {
-  'graph.toggleCodeEditor': ['Mod+`'],
-  'graph.toggleDocumentationEditor': ['Mod+D'],
+export const appContainerBindings = defineKeybinds('app-container', {
+  'app.closeTab':
+    // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
+    ['Mod+W', 'Mod+Alt+W', ...(!isMacLike ? ['Mod+F4' as const] : [])],
 })
 
 export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
@@ -23,10 +26,10 @@ export const documentationEditorFormatBindings = defineKeybinds('documentation-e
 })
 
 export const textEditorsCommonBindings = defineKeybinds('text-editors-common-bindings', {
-  'textEditor.moveLeft': ['ArrowLeft'],
-  'textEditor.moveRight': ['ArrowRight'],
-  'textEditor.deleteBack': ['Backspace'],
-  'textEditor.deleteForward': ['Delete'],
+  'textEditor.moveLeft': [{ key: 'ArrowLeft', allowRepeat: true }],
+  'textEditor.moveRight': [{ key: 'ArrowRight', allowRepeat: true }],
+  'textEditor.deleteBack': [{ key: 'Backspace', allowRepeat: true }],
+  'textEditor.deleteForward': [{ key: 'Delete', allowRepeat: true }],
   'textEditor.cut': ['Mod+X'],
   'textEditor.copy': ['Mod+C'],
   'textEditor.paste': ['Mod+V'],
@@ -38,13 +41,9 @@ export const textEditorsMultilineBindings = defineKeybinds('text-editors-multili
 })
 
 export const listBindings = defineKeybinds('list', {
-  'list.moveUp': ['ArrowUp'],
-  'list.moveDown': ['ArrowDown'],
+  'list.moveUp': [{ key: 'ArrowUp', allowRepeat: true }],
+  'list.moveDown': [{ key: 'ArrowDown', allowRepeat: true }],
   'list.accept': ['Enter'],
-})
-
-export const interactionBindings = defineKeybinds('current-interaction', {
-  'interaction.cancel': ['Escape'],
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
@@ -58,6 +57,11 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {
+  'graph.toggleCodeEditor': ['Mod+`'],
+  'graph.toggleDocumentationEditor': ['Mod+D'],
+  'graph.undo': ['Mod+Z'],
+  // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
+  'graph.redo': isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
   'graph.openComponentBrowser': ['Enter'],
   'graph.toggleVisualization': ['Space'],
   'components.deleteSelected': ['Delete', 'Backspace'],

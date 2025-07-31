@@ -4,44 +4,58 @@ import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import False, True
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    Represents a source location in Enso code. Contains information about the
    source file and code position within it.
 type Source_Location
     private Value prim_location
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Pretty prints the location.
     to_text : Text
     to_text self =
         '(Source_Location ' + self.formatted_coordinates + ')'
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the 1-based line index of the start of this code range.
     start_line : Integer
     start_line self = self.prim_location.getStartLine
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the 1-based line index of the end of this code range.
     end_line : Integer
     end_line self = self.prim_location.getEndLine
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the 1-based column index of the start of this code range.
     start_column : Integer
     start_column self = self.prim_location.getStartColumn
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the 1-based column index of the end of this code range.
     end_column : Integer
     end_column self = self.prim_location.getEndColumn
 
-    ## ICON text
+    ## ---
+       icon: text
+       ---
        Returns a pretty-printed location (file and line info).
     formatted_coordinates : Text
     formatted_coordinates self =
@@ -63,8 +77,10 @@ type Source_Location
                 _ -> file.path
             formatted_file + ":" + indices
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Return the source file corresponding to this location.
     file : File | Nothing
     file self =
@@ -72,6 +88,8 @@ type Source_Location
         path = if source.is_nothing then Nothing else source.getPath
         if path.is_nothing then Nothing else File.new path
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = self.formatted_coordinates

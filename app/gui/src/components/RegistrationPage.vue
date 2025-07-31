@@ -8,16 +8,19 @@ import { useQueryClient } from '@tanstack/vue-query'
 
 const Registration = reactComponent(RegistrationReact)
 
-export const dataLoader: DataLoader<{ userAgreedFn: () => void }> = {
-  beforeRouteEnter() {
+type Props = { userAgreedFn: () => void }
+
+export const dataLoader: DataLoader<Props> = {
+  async beforeRouteEnter() {
     const queryClient = useQueryClient()
-    return useUserAgreements(queryClient).then(({ userAgreed }) => Ok({ userAgreedFn: userAgreed }))
+    const { userAgreed } = await useUserAgreements(queryClient)
+    return Ok({ userAgreedFn: userAgreed })
   },
 }
 </script>
 
 <script setup lang="ts">
-defineProps<{ userAgreedFn: () => void }>()
+defineProps<Props>()
 </script>
 
 <template>

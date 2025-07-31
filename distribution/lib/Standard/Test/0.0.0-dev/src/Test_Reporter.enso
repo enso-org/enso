@@ -17,7 +17,9 @@ polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.StringBuilder
 polyglot java import java.lang.System as Java_System
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Write the JUnit XML header.
 wrap_junit_testsuites : Suite_Config -> (StringBuilder|Nothing) -> Any -> Nothing
 wrap_junit_testsuites config builder ~action =
@@ -90,15 +92,19 @@ print_single_result (group_name : Text) (test_result : Test_Result) (config : Su
             IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
             IO.println ("        Reason: " + reason)
 
-## PRIVATE
-   Reports an error message to show up as a note in GitHub Actions,
-   only if running in the GitHub Actions environment.
+## ---
+   private: true
+   ---
+   Reports an error message to show up as a note in GitHub Actions, only if
+   running in the GitHub Actions environment.
 report_github_error_message (~title : Text) (~message : Text) =
     is_enabled = Environment.get "GITHUB_ACTIONS" == "true"
     if is_enabled then
         IO.println (generate_github_error_annotation title message)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Generates a GitHub Actions annotation for a failing test.
 generate_github_error_annotation (title : Text) (message : Text) =
     sanitize_message txt = txt.replace '%' '%25' . replace '\n' '%0A' . replace '::' '%3A%3A'
@@ -131,11 +137,11 @@ generate_github_error_annotation (title : Text) (message : Text) =
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
 
-   Arguments:
-   - test_results: Vector of `Test_Result`. Can be empty. Can contain results from multiple
-                   groups.
-   - builder: StringBuilder or Nothing. If StringBuilder, then a jUnit XML format is appended to
-              that StringBuilder.
+   ## Arguments
+    - `test_results`: Vector of `Test_Result`. Can be empty. Can contain results
+      from multiple groups.
+    - `builder`: StringBuilder or Nothing. If StringBuilder, then a jUnit XML
+      format is appended to that StringBuilder.
 print_report : Vector Test_Result -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
 print_report (test_results : Vector Test_Result) (config : Suite_Config) (builder : (StringBuilder | Nothing)) =
     distinct_group_names = test_results.map (_.group_name) . distinct
@@ -164,8 +170,8 @@ print_pending_group group config builder =
 
 ## Prints report for test_results from a single group.
 
-   Arguments:
-   - test_results: Test test_results from a single group
+   ## Arguments
+    - `test_results`: Test test_results from a single group
 print_group_report : Text -> Vector Test_Result -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 print_group_report group_name test_results config builder =
     distinct_groups = test_results.distinct (res-> res.group_name)
@@ -216,17 +222,23 @@ print_group_report group_name test_results config builder =
         test_results.each result->
             print_single_result group_name result config
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Escape Text for XML
 escape_xml : Text -> Boolean -> Text
 escape_xml input inside_attribute=False =
     escaped = input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
     if inside_attribute then escaped.replace '\n' '&#10;' else escaped
 
-## PRIVATE
+## ---
+   private: true
+   ---
 progress_width = 70
 
-## PRIVATE
+## ---
+   private: true
+   ---
 print_progress current_progress total_count status_text =
     total_count_as_text = total_count.to_text
     counter_width = total_count_as_text.length
@@ -241,40 +253,60 @@ print_progress current_progress total_count status_text =
     IO.print truncated_line
     IO.print '\r'
 
-## PRIVATE
+## ---
+   private: true
+   ---
 clear_progress =
     IO.print '\r'
     IO.print (' ' * progress_width)
     IO.print '\r'
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Ignore_Progress_Reporter
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     report_progress self (status_text : Text) (increment : Integer = 1) =
         _ = [increment, status_text]
         Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     clear = Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Command_Line_Progress_Reporter
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value current_progress total_count
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     make total_expected =
         Command_Line_Progress_Reporter.Value (Ref.new 0) total_expected
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     report_progress self (status_text : Text) (increment : Integer = 1) =
         self.current_progress.modify (+increment)
         print_progress self.current_progress.get self.total_count status_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     clear self = clear_progress
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if the current process is running in an interactive terminal session.
 is_terminal_interactive -> Boolean =
     console = Java_System.console

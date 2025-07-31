@@ -1,5 +1,5 @@
-import { expect, type Locator, type Page } from '@playwright/test'
 import assert from 'assert'
+import { expect, type Locator, type Page } from 'playwright/test'
 
 // ================
 // === Locators ===
@@ -13,7 +13,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 
 /** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Show/Hide visualization')
+  return page.getByLabel(/(Show|Hide|Show\/Hide) visualization.*/).first()
 }
 
 /** Visualization Selector button */
@@ -85,6 +85,7 @@ export const componentMenu = componentLocator('.ComponentMenu')
 export const componentMenuMoreEntries = testIdLocator('component-menu-more-entries')
 export const addNewNodeButton = testIdLocator('add-component-button')
 export const componentBrowser = componentLocator('.ComponentBrowser')
+export const componentBrowserInput = testIdLocator('component-editor-content')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
 export const nodeComment = componentLocator('.GraphNodeComment')
 export const nodeCommentContent = testIdLocator('graph-node-comment-content')
@@ -157,9 +158,10 @@ export function visualisationNodeType(page: Page) {
 
 // === Edge locators ===
 
-/** All edges going from a node with given binding. */
-export async function edgesFromNodeWithBinding(page: Page, binding: string) {
-  return edgesFromNode(page, graphNodeByBinding(page, binding).first())
+/** All edges going from a node with given binding that are connected to another node. */
+export async function connectedEdgesFromNodeWithBinding(page: Page, binding: string) {
+  const fromNode = await edgesFromNode(page, graphNodeByBinding(page, binding).first())
+  return fromNode.and(page.locator('[data-target-node-id]'))
 }
 
 /** All edges going from a node. */
@@ -200,7 +202,10 @@ export async function outputPortCoordinates(page: Page, node: Locator) {
 /** Returns a locator for the create node from port button. */
 export async function createNodeFromPortButton(page: Page, node: Locator) {
   const nodeId = await node.getAttribute('data-node-id')
-  return page.locator(
-    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton .plusIcon`,
+  const button = page.locator(
+    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton`,
   )
+  // Ensure the animation is complete.
+  await button.elementHandle().then((el) => el!.waitForElementState('stable'))
+  return button
 }

@@ -4,10 +4,10 @@ import type * as queryCore from '@tanstack/query-core'
 
 import type Backend from './services/Backend'
 import * as backendModule from './services/Backend'
-import * as object from './utilities/data/object'
+import { type ExtractKeys, type MethodOf, omit } from './utilities/data/object'
 
 /** The properties of the Backend type that are methods. */
-export type BackendMethods = object.ExtractKeys<Backend, object.MethodOf<Backend>>
+export type BackendMethods = ExtractKeys<Backend, MethodOf<Backend>>
 
 /** Ensure that the given type contains only names of backend methods. */
 type DefineBackendMethods<T extends BackendMethods> = T
@@ -19,6 +19,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'changeUserGroup'
   | 'closeProject'
   | 'copyAsset'
+  | 'cancelSubscription'
   | 'createCheckoutSession'
   | 'createCredential'
   | 'createDatalink'
@@ -73,7 +74,7 @@ export const INVALIDATION_MAP: Partial<
 > = {
   createUser: ['usersMe'],
   updateUser: [INVALIDATE_ALL_QUERIES],
-  deleteUser: ['usersMe'],
+  deleteUser: ['usersMe', 'listUsers', 'listUserGroups', 'listDirectory', 'getAssetDetails'],
   restoreUser: ['usersMe'],
   uploadUserPicture: ['usersMe'],
   updateOrganization: ['getOrganization'],
@@ -116,7 +117,7 @@ type BackendQueryNormalizers = {
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: (query) => [query.parentId, object.omit(query, 'parentId')],
+  listDirectory: (query) => [query.parentId, omit(query, 'parentId')],
   getFileDetails: (fileId) => [fileId],
 }
 

@@ -2,56 +2,62 @@ from Standard.Base import all
 
 from project.Internal.Vector_Builder.Vector_Builder import Append, Leaf
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    An efficient builder for concatenating vectors.
-
    It builds a tree-like structure, thus making concatenation of vectors a
    constant time operation. Finally when the vector is built, its resulting size
-   is known in advance and the tree is traversed in order to create the
-   resulting vector without resizing it.
+   is known in advance and the tree is traversed in order to create the resulting
+   vector without resizing it.
 type Vector_Builder
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A leaf in the vector builder.
 
-       Arguments:
-       - vec: The vector at the leaf.
+       ## Arguments
+        - `vec`: The vector at the leaf.
     Leaf vec
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A node that appends the two child nodes.
 
-       Arguments:
-       - left: The left subtree.
-       - right: The right subtree.
-       - len: The length of the vectors across the subtrees.
+       ## Arguments
+        - `left`: The left subtree.
+        - `right`: The right subtree.
+        - `len`: The length of the vectors across the subtrees.
     Append left right len
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Number of elements inside of the to-be-built vector.
     length : Integer
     length self = case self of
         Leaf vec -> vec.length
         Append _ _ len -> len
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Checks if this builder contains any elements.
     is_empty : Boolean
     is_empty self = self.length == 0
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Checks if this builder is not empty.
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Materializes the actual vector from this builder.
     build : Vector Any
     build self =
@@ -67,15 +73,16 @@ type Vector_Builder
                             @Tail_Call go (List.Cons l (List.Cons r rest))
             go (List.Cons self List.Nil)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Concatenates another builder or vector to this.
-
-       Arguments:
-       - other: The other vector to concatenate with `self`.
 
        It returns a new builder that will yield a vector that is a concatenation
        of `self` and the argument.
+
+       ## Arguments
+        - `other`: The other vector to concatenate with `self`.
     ++ : Vector_Builder Any | Vector Any -> Vector_Builder Any
     ++ self other = if other.is_empty then self else
         len = self.length + other.length
@@ -84,17 +91,19 @@ type Vector_Builder
             Append _ _ _ -> Append self other len
             _ : Vector -> Append self (Leaf other) len
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Creates an empty vector builder.
     empty : Vector_Builder Any
     empty = Leaf []
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Creates a vector builder from a vector.
 
-       Arguments:
-       - vec: The vector to create a vector builder from.
+       ## Arguments
+        - `vec`: The vector to create a vector builder from.
     from_vector : Vector Any -> Vector_Builder Any
     from_vector vec = Leaf vec

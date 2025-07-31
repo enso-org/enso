@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test'
+import { type Page } from 'playwright/test'
 import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
@@ -40,7 +40,7 @@ export async function expectNodePositionsInitialized(page: Page, yPos: number) {
   )
 }
 
-/** Exit the currently opened graph (of collapsed function). */
+/** Exit the currently opened graph (of User Defined Component). */
 export async function exitFunction(page: Page, x = 300, y = 300) {
   await locate.graphEditor(page).dblclick({ position: { x, y } })
 }
@@ -115,12 +115,12 @@ export async function createTableNode(page: Page) {
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(1)
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Table.input')
   await page.keyboard.press('Enter')
-  const node = locate.graphNodeByBinding(page, 'table1')
+  const node = locate.graphNodeByBinding(page, 'any1')
   await expect(node).toHaveCount(1)
   await expect(node).toBeVisible()
   await mockMethodCallInfo(
     page,
-    { binding: 'table1', expr: 'Table.input' },
+    { binding: 'any1', expr: 'Table.input' },
     {
       methodPointer: {
         module: 'Standard.Table.Table',

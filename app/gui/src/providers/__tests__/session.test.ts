@@ -46,11 +46,11 @@ class MockAuthService implements ISessionProvider {
       })),
     ),
   )
-  getMFAPreference = vi.fn(() =>
-    Promise.resolve(Result.wrap<MfaType, AmplifyError>(() => 'NOMFA' as const)),
-  )
+  getMFAPreference = vi.fn(() => Promise.resolve(Result.wrap<MfaType, AmplifyError>(() => 'NOMFA')))
   signInWithGitHub = vi.fn(() => Promise.resolve())
   signInWithGoogle = vi.fn(() => Promise.resolve())
+  signInWithMicrosoft = vi.fn(() => Promise.resolve())
+  signInWithApple = vi.fn(() => Promise.resolve())
   signOut = vi.fn(() => Promise.resolve())
   signUp = vi.fn(() => Promise.resolve(Result.wrap<undefined, SignUpError>(() => {})))
   updateMFAPreference = vi.fn()
@@ -75,7 +75,7 @@ describe('SessionProvider', () => {
       await nextTick()
       expect(authService.userSession).toBeCalled()
       await expect.poll(() => session.session?.email).toBe('test@test.com')
-    })[0])
+    }))
 
   it('Should set the access token on the HTTP client', () =>
     withSetup(async () => {
@@ -83,12 +83,12 @@ describe('SessionProvider', () => {
       httpClient.setSessionToken = vi.fn()
       createSessionStore(authService, registerAuthEventListener, httpClient)
       await expect.poll(() => httpClient.setSessionToken).toBeCalledWith('accessToken')
-    })[0])
+    }))
 
   it('Should call registerAuthEventListener when the session is updated', () =>
     withSetup(async () => {
       createSessionStore(authService, registerAuthEventListener, new HttpClient())
       await nextTick()
       expect(registerAuthEventListener).toBeCalled()
-    })[0])
+    }))
 })

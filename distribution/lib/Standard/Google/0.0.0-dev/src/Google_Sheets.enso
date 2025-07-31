@@ -1,0 +1,15 @@
+from Standard.Base import all
+
+import project.Google_Sheets_Workbook.Google_Sheets_Workbook
+
+## Access to Google Sheets functionality in Enso.
+type Google_Sheets
+    ## ---
+       aliases: [load, open]
+       group: Standard.Base.Web
+       icon: cloud_from
+       suggested: 10
+       ---
+       Reads a Google Sheet into Enso.
+    read workbook_id:Text=(Missing_Argument.throw "workbook_id")  credential:Enso_Secret=(Missing_Argument.throw "credentials") -> Google_Sheets_Workbook =
+        Google_Sheets_Workbook.new workbook_id credential
