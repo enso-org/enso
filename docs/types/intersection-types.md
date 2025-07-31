@@ -232,7 +232,7 @@ basic language constructs are designed to handle them properly. Namely:
       _ -> ...
   ```
   in the first branch, the `a` has visible type `A` but the full type is still
-  `a : A & (hidden B)` - the `B` part is hidden, but not removed.
+  `a : A & ~B` - the `B` part is hidden, but not removed.
 - dispatching a method on one of the types, e.g. calling `x.method_defined_on_A`
   will pass the value `x` as `self` to the body of `method_defined_on_A`, the
   `self` will have a visible type `A`, but the full type is still
