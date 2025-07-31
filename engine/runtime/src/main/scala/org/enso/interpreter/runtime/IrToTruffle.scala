@@ -1061,10 +1061,12 @@ class IrToTruffle(
                         s"Source type should be defined in module ${module.getName}"
                       )
                       val conversionFun =
-                        actualScope.lookupConversionDefinition(
-                          sourceTp,
-                          targetTp
-                        )
+                        actualScope
+                          .asModuleScope()
+                          .lookupConversionDefinition(
+                            sourceTp,
+                            targetTp
+                          )
                       org.enso.common.Asserts.assertInJvm(
                         conversionFun != null,
                         s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
@@ -2540,9 +2542,9 @@ class IrToTruffle(
       }
   }
 
-  private def asScope(module: CompilerContext.Module): ModuleScope = {
+  private def asScope(module: CompilerContext.Module): ModuleScope.Builder = {
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScope()
+    m.getScopeBuilder()
   }
 
   private def asType(
@@ -2557,8 +2559,9 @@ class IrToTruffle(
   private def asAssociatedType(
     module: CompilerContext.Module
   ): Type = {
-    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScope().getAssociatedType()
+    val m  = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
+    val sb = m.getScopeBuilder()
+    sb.getAssociatedType()
   }
 
   private def scopeAssociatedType =

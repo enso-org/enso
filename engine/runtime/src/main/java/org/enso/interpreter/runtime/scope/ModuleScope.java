@@ -223,8 +223,13 @@ public final class ModuleScope extends EnsoObject {
    * @return a method for the given type
    */
   public Function getMethodForType(Type tpe, String name) {
+    return findMethodForType(tpe, methods, name);
+  }
+
+  private static Function findMethodForType(
+      Type tpe, final Map<Type, Map<String, Supplier<Function>>> m, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
-    var allTpeMethods = methods.get(tpeKey);
+    var allTpeMethods = m.get(tpeKey);
     if (allTpeMethods == null) {
       return null;
     }
@@ -297,7 +302,12 @@ public final class ModuleScope extends EnsoObject {
    * @return non-{@code null} supplier of a polyglot symbol imported into this scope
    */
   public Supplier<TruffleObject> getPolyglotSymbolSupplier(String symbolName) {
-    var supplier = polyglotSymbols.get(symbolName);
+    return findPolyglotSymbolSupplier(polyglotSymbols, symbolName);
+  }
+
+  private static Supplier<TruffleObject> findPolyglotSymbolSupplier(
+      final Map<String, Supplier<TruffleObject>> ps, String symbolName) {
+    var supplier = ps.get(symbolName);
     if (supplier != null) {
       return supplier;
     }
@@ -549,6 +559,14 @@ public final class ModuleScope extends EnsoObject {
         return associatedType;
       }
       return types.get(name);
+    }
+
+    public Supplier<TruffleObject> getPolyglotSymbolSupplier(String symbolName) {
+      return findPolyglotSymbolSupplier(polyglotSymbols, symbolName);
+    }
+
+    public Function getMethodForType(Type tpe, String name) {
+      return findMethodForType(tpe, methods, name);
     }
 
     public static ModuleScope.Builder fromCompilerModuleScopeBuilder(
