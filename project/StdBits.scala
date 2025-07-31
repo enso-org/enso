@@ -165,12 +165,35 @@ object StdBits {
         }
     }
 
-    // Copy native libs into `polyglotLibDir` if necessary.
+    polyglotLibDir match {
+      case None => ()
+      case Some(destDir) =>
+        copyNativeLibs(
+          destDir,
+          extractedNativeLibsDirs,
+          cacheStoreFactory,
+          logger
+        )
+    }
+  }
+
+  /**
+   * Copies native libraries from the specified source directories to the
+   * destination directory, ensuring that the destination is up-to-date.
+   * @param polyglotLibDir Destination directory.
+   * @param extractedNativeLibDirs Source directories with all the extracted native libraries.
+   */
+  private def copyNativeLibs(
+    polyglotLibDir: File,
+    extractedNativeLibDirs: Seq[File],
+    cacheStoreFactory: CacheStoreFactory,
+    logger: ManagedLogger,
+  ): Unit = {
     val nativeLibsStore =
       cacheStoreFactory.make("std-bits-native-libs")
-    val nativeLibsOutputDir = polyglotLibDir.get
+    val nativeLibsOutputDir = polyglotLibDir
     Tracked.diffInputs(nativeLibsStore, FileInfo.hash)(
-      Set(nativeLibsOutputDir) ++ extractedNativeLibsDirs.toSet
+      Set(nativeLibsOutputDir) ++ extractedNativeLibDirs.toSet
     ) { report =>
       logger.debug("nativeLibsReport: " + report)
       val reportChanged = report.modified.nonEmpty ||
@@ -181,7 +204,8 @@ object StdBits {
         // Delete and recreate the output dir, just to be sure
         IO.delete(nativeLibsOutputDir)
         IO.createDirectory(nativeLibsOutputDir)
-        for (nativeLibsInputDir <- extractedNativeLibsDirs) {
+        for (nativeLibsInputDir <- extractedNativeLibDirs) {
+          // TODO: Use debug instead of info
           logger.info(
             s"Copying native libraries from ${nativeLibsInputDir.getAbsolutePath} to ${nativeLibsOutputDir.getAbsolutePath}"
           )
@@ -192,7 +216,7 @@ object StdBits {
         }
       } else {
         logger.info(
-          s"Native libraries from ${extractedNativeLibsDirs} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
+          s"Native libraries from ${extractedNativeLibDirs} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
         )
       }
     }
