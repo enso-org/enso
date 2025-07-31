@@ -244,7 +244,7 @@ basic language constructs are designed to handle them properly. Namely:
   - calling `A.from x` will return a value of type `A & ~B` - the `B`
     part is still there (only hidden), because no actual conversion code had to
     be run - the type was simply extracted from the intersection type.
-  - similarly, calling `B.from x` will return a value of type `B & (hidden A)` -
+  - similarly, calling `B.from x` will return a value of type `B & ~A` -
     the `A` part is still there (only hidden), because no actual conversion code
     had to be run.
 It is important to ensure these operations do not remove a part of the intersection type.
