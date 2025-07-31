@@ -9,7 +9,7 @@ import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { encoding } from 'lib0'
 import { computed, reactive, readonly, type Ref, ref, toValue } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { type TabId } from './container'
+import { isProjectTab, type TabId } from './container'
 import { type TextStore, useText } from './text'
 
 /** Information about content of "Help" panel. */
@@ -121,10 +121,9 @@ function useRightPanelTabs(
       'help',
       {
         icon: 'help',
-        enabled: computed(() => {
-          const tab = toValue(currentTab)
-          return tab !== 'drive' && tab !== 'settings' ? Ok() : Err('Exclusive to Project view')
-        }),
+        enabled: computed(() =>
+          isProjectTab(toValue(currentTab)) ? Ok() : Err('Exclusive to Project view'),
+        ),
         title: 'Component help',
       },
     ],
@@ -162,8 +161,7 @@ function useRightPanel(
         tab.value = state.tab
         width.value = state.width
       } else {
-        const contTab = toValue(containerTab)
-        tab.value = contTab === 'drive' || contTab === 'settings' ? undefined : 'documentation'
+        tab.value = isProjectTab(toValue(containerTab)) ? 'documentation' : undefined
         width.value = undefined
       }
     },

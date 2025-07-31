@@ -53,6 +53,18 @@ LocalStorage.registerKey('launchedProjects', {
 /** Tab identifier, equal to the path of the view's URL. */
 export type TabId = 'drive' | 'settings' | EnsoPath
 
+/** Check if given {@link TabId} refers to a project tab. */
+export function isProjectTab(tab: TabId): tab is EnsoPath {
+  switch (tab) {
+    case 'drive':
+    case 'settings':
+      return false
+    default:
+      DEV: tab satisfies EnsoPath
+      return true
+  }
+}
+
 export type ContainerData = ReturnType<typeof useContainerData>
 export const [provideContainerData, useContainerData] = createContextStore(
   'gui-container',
