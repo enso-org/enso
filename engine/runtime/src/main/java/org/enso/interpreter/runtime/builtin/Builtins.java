@@ -143,12 +143,7 @@ public final class Builtins {
             .collect(
                 Collectors.toMap(
                     v -> v.getType().getName(), java.util.function.Function.identity()));
-    if (TruffleOptions.AOT) {
-      builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scopeBuilder);
-      registerBuiltinMethods(scopeBuilder, language);
-    } else {
-      builtinMethodNodes = registerBuiltinMethodsLazily(scopeBuilder, language);
-    }
+    builtinMethodNodes = registerBuiltinMethodsLazily(scopeBuilder, language);
     ordering = getBuiltinType(Ordering.class);
     comparable = getBuiltinType(Comparable.class);
     defaultComparator = getBuiltinType(DefaultComparator.class);
@@ -402,39 +397,6 @@ public final class Builtins {
       b.initialize(language, scope, builtins);
     }
     return builtins;
-  }
-
-  /**
-   * Returns a map of Builtin methods associated with their owner.
-   *
-   * @param classes a map of (already loaded) builtin methods
-   * @param scope Builtins scope
-   * @return A map of builtin method nodes per builtin type name
-   */
-  private Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> readBuiltinMethodsMetadata(
-      Map<String, LoadedBuiltinMethod> classes, ModuleScope.Builder scope) {
-
-    Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> methodNodes = new HashMap<>();
-    classes.forEach(
-        (fullBuiltinName, builtin) -> {
-          String[] builtinName = fullBuiltinName.split("\\.");
-          if (builtinName.length != 2) {
-            throw new CompilerError("Invalid builtin metadata for " + fullBuiltinName);
-          }
-          String builtinMethodOwner = builtinName[0];
-          String builtinMethodName = builtinName[1];
-          var constr = scope.asModuleScope().getType(builtinMethodOwner, true);
-          if (constr != null) {
-            Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                getOrUpdate(methodNodes, constr.getName());
-            atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
-          } else {
-            Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                getOrUpdate(methodNodes, builtinMethodOwner);
-            atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
-          }
-        });
-    return methodNodes;
   }
 
   /**
