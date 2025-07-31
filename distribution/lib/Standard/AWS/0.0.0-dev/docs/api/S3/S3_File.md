@@ -27,6 +27,7 @@
     - resolve_single_part self part:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - size self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - uri self -> Standard.Base.Data.Text.Text
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any

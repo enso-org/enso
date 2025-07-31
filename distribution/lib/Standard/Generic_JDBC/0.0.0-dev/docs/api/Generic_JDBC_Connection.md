@@ -15,6 +15,7 @@
     - schemas self -> Standard.Base.Data.Vector.Vector
     - table_types self -> Standard.Base.Any.Any
     - tables self name_like:Standard.Base.Data.Text.Text= database:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= schema:Standard.Base.Data.Text.Text= table_types:Standard.Base.Data.Vector.Vector= -> Standard.Table.Table.Table
+    - to_js_object self -> Standard.Base.Any.Any
 - type Generic_JDBC_Details
     - Value url:Standard.Base.Data.Text.Text
     - connect self options:Standard.Base.Any.Any -> Standard.Base.Any.Any
