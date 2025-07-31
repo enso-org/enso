@@ -18,6 +18,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Path_Helpers
 import project.Internal.Meta_Helpers
+import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
