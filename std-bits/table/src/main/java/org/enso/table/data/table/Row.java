@@ -1,9 +1,8 @@
 package org.enso.table.data.table;
 
-import org.enso.table.data.column.operation.JsonOperation;
-
 import java.util.Arrays;
 import java.util.function.Function;
+import org.enso.table.data.column.operation.JsonOperation;
 
 public class Row {
   private final Table table;
