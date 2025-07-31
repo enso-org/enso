@@ -14,4 +14,4 @@ test('Welcome project opens', ({ page }) =>
       })
     },
     goToCloudFirst: false,
-  }).expectProjectEditorOpened('Colorado COVID'))
+  }).expectProjectEditorOpened('Getting Started with Enso Analytics'))
