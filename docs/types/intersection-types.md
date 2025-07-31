@@ -211,7 +211,7 @@ check.
 
 ## Preserving identity of refined types
 
-Intersection types are used to refine a value giving it additional
+Intersection types are often used to refine a value with additional
 functionality. For example, a value `table : Table & DB_Table` represents a
 table coming from a database that has both the base `Table` methods that all
 tables share but also database-specific methods from `DB_Table`. Either part of
