@@ -3,17 +3,29 @@ package org.enso.interpreter.caches;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
+import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class HelloWorldCacheTest {
+  @Rule public TemporaryFolder tmpDir = new TemporaryFolder();
 
   @Test
   public void loadingHelloWorldTwiceUsesCaching() throws Exception {
@@ -37,6 +49,111 @@ public class HelloWorldCacheTest {
             containsString("Deserializing module"),
             containsString("Hello_World"),
             containsString("from IR file: true")));
+  }
+
+  @Test
+  public void whenRunningWithDisablePrivateCheck_NoCachesAreWritten() throws Exception {
+    var libDir = tmpDir.newFolder("Lib").toPath();
+    var projDir = tmpDir.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Priv_Mod"),
+                """
+                private
+                priv_func x = x
+                """),
+            new SourceModule(QualifiedName.fromString("Main"), "# Intentionally empty")),
+        libDir);
+    var libCacheDir = libDir.resolve(".enso");
+
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        import local.Lib.Priv_Mod
+        main =
+            Priv_Mod.priv_func 42
+        """,
+        projDir);
+    var projCacheDir = projDir.resolve(".enso");
+    try (var ctx = ctxInProj(projDir, true).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
+      try {
+        polyCtx.getTopScope().compile(true);
+      } catch (PolyglotException e) {
+        throw new AssertionError("Compilation should succeed", e);
+      }
+      assertThat("No IR cache for Lib was created", libCacheDir.toFile().exists(), is(false));
+      assertThat("No IR cache for Proj was created", projCacheDir.toFile().exists(), is(false));
+    }
+  }
+
+  @Test
+  public void runningAfterPrivateCheckWasDisabled_ShouldFail() throws Exception {
+    var libDir = tmpDir.newFolder("Lib").toPath();
+    var projDir = tmpDir.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Priv_Mod"),
+                """
+            private
+            priv_func x = x
+            """),
+            new SourceModule(QualifiedName.fromString("Main"), "# Intentionally empty")),
+        libDir);
+
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        import local.Lib.Priv_Mod
+        main =
+            Priv_Mod.priv_func 42
+        """,
+        projDir);
+    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
+
+    // First run with private check DISABLED
+    try (var privateCheckDisabledCtx = ctxInProj(projDir, true).build()) {
+      var polyCtx = new PolyglotContext(privateCheckDisabledCtx.context());
+      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
+      var assocMainModType = mainMod.getAssociatedType();
+      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
+      var res = mainMethod.execute();
+      assertThat("Eval with private check disabled is OK", res.asInt(), is(42));
+    }
+
+    // Second run with private check ENABLED - should fail with Private_Access error
+    try (var privateCheckEnabledCtx = ctxInProj(projDir, false).build()) {
+      var polyCtx = new PolyglotContext(privateCheckEnabledCtx.context());
+      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
+      var assocMainModType = mainMod.getAssociatedType();
+      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
+      try {
+        mainMethod.execute();
+        fail("Should throw Private_Access panic: " + privateCheckEnabledCtx.getOut());
+      } catch (PolyglotException e) {
+        assertThat(
+            "Eval with private check enabled fails",
+            e.getMessage(),
+            containsString("Private_Access"));
+      }
+    }
+  }
+
+  private static ContextUtils.Builder ctxInProj(Path projRoot, boolean disablePrivateCheck) {
+    return ContextUtils.newBuilder()
+        .withModifiedContext(
+            bldr ->
+                bldr.option(
+                        RuntimeOptions.DISABLE_PRIVATE_CHECK,
+                        disablePrivateCheck ? "true" : "false")
+                    .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                    .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
+                    .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
+        .withProjectRoot(projRoot);
   }
 
   private static String executeOnce(File src) throws Exception {
