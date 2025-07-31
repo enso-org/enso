@@ -1,8 +1,9 @@
 import { Ok, Result } from '@/util/data/result'
+import { normalizeName } from '@/util/nameValidation'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
-import { computed, readonly, ref, toRef, toValue } from 'vue'
+import { computed, ref, toValue } from 'vue'
 import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
 
 export type ProjectNameStore = ReturnType<typeof createProjectNameStore>
@@ -26,11 +27,13 @@ export function createProjectNameStore({
     return (toValue(projectNamespace) ?? 'local') as Identifier
   })
   const synchronizedName = ref(projectInitialName as Identifier)
-  const pendingName = ref<Identifier>()
+  const pendingName = ref<string>()
+
+  const displayedName = computed(() => pendingName.value ?? toValue(projectDisplayedName))
 
   const inboundProject = computed(() => qnJoin(ns.value, synchronizedName.value))
   const outboundProject = computed(() =>
-    pendingName.value ? qnJoin(ns.value, pendingName.value) : inboundProject.value,
+    pendingName.value ? qnJoin(ns.value, normalizeName(pendingName.value)) : inboundProject.value,
   )
 
   /**
@@ -85,8 +88,11 @@ export function createProjectNameStore({
     parseProjectPathRaw,
     printProjectPath,
     serializeProjectPathForBackend,
-    onProjectRenameRequested: (newName: Identifier) => {
+    onProjectRenameRequested: (newName: string) => {
       pendingName.value = newName
+    },
+    onProjectRenameFailed: () => {
+      pendingName.value = undefined
     },
     onProjectRenamed: (oldName: string, newName: string) => {
       if ((oldName as Identifier) === synchronizedName.value) {
@@ -94,7 +100,7 @@ export function createProjectNameStore({
         pendingName.value = undefined
       }
     },
-    displayName: readonly(toRef(projectDisplayedName)),
+    displayName: displayedName,
   }
 }
 

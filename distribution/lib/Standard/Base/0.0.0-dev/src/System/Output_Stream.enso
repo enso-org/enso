@@ -20,12 +20,15 @@ polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import org.enso.base.Stream_Utils
 polyglot java import org.enso.base.Stream_Utils.OutputStreamLike
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An output stream, allowing for interactive writing of contents.
 type Output_Stream
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        Given a Java OutputStream, wraps as a Managed_Resource and returns a new
        Output_Stream.
     new : Java_Output_Stream -> Any -> Output_Stream
@@ -33,18 +36,19 @@ type Output_Stream
         resource = Managed_Resource.register java_stream close_stream
         Output_Stream.Value resource error_handler
 
-    ## PRIVATE
-       ADVANCED
-       Runs a given action with an output stream that writes to an in-memory
-       byte array.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Runs a given action with an output stream that writes to an in-memory byte
+       array.
        This method can be used when the data will fit in memory and there is no
        reason to use a backing file.
-
        The method returns a pair of values: the byte array that was written to
        and the return value of the `action` is discarded.
 
-       Arguments:
-       - action: A callback to run with the in-memory output stream.
+       ## Arguments
+        - `action`: A callback to run with the in-memory output stream.
     with_memory_stream (action : Output_Stream -> Any) -> Pair Vector Any =
         java_stream = ByteArrayOutputStream.new
         output_stream = Output_Stream.new java_stream (File_Error.handle_java_exceptions Nothing)
@@ -53,21 +57,25 @@ type Output_Stream
             bytes = Vector.from_polyglot_array java_stream.toByteArray
             Pair.new bytes action_result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An output stream, allowing for interactive writing of contents.
 
-       Arguments:
-       - stream_resource: The internal resource that represents the underlying
-         stream.
-       - error_handler: An error handler for IOExceptions thrown when writing.
+       ## Arguments
+        - `stream_resource`: The internal resource that represents the underlying
+          stream.
+        - `error_handler`: An error handler for IOExceptions thrown when writing.
     private Value stream_resource error_handler
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Writes a vector of bytes in this stream at the current position.
 
-       Arguments:
-       - contents: A vector of bytes to write.
+       ## Arguments
+        - `contents`: A vector of bytes to write.
     write_bytes : Vector Integer -> Nothing
     write_bytes self contents = self.stream_resource . with raw_stream->
         java_stream = Stream_Utils.asOutputStream raw_stream
@@ -77,12 +85,14 @@ type Output_Stream
                 java_stream.flush
                 Nothing
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Writes an Input_Stream into this stream at the current position.
 
-       Arguments:
-       - input_stream: An Input_Stream to write to this stream.
+       ## Arguments
+        - `input_stream`: An Input_Stream to write to this stream.
     write_stream : Input_Stream -> Nothing
     write_stream self input_stream:Input_Stream =
         self.stream_resource . with raw_stream->
@@ -93,34 +103,38 @@ type Output_Stream
                     java_output_stream.flush
                     Nothing
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Closes this stream.
-
        Even though Streams are closed automatically upon garbage collection, it
-       is still advised to close streams manually if they are not used within
-       a bracket pattern.
+       is still advised to close streams manually if they are not used within a
+       bracket pattern.
     close : Nothing
     close self = self.stream_resource . finalize
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Exposes operations on the underlying Java output stream.
-
        Useful when integrating with polyglot functions requiring an
        `OutputStream` as an argument.
 
-       Arguments:
-       - f: Applies a function over the internal java stream.
+       ## Arguments
+        - `f`: Applies a function over the internal java stream.
     with_java_stream : (Java_Output_Stream -> Any) -> Any
     with_java_stream self f = self.stream_resource . with raw_stream->
          java_stream = Stream_Utils.asOutputStream raw_stream
          f java_stream
 
-    ## PRIVATE
-       ADVANCED
-       Runs an action with a `ReportingStreamEncoder` encoding data to the
-       output stream with the specified encoding.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Runs an action with a `ReportingStreamEncoder` encoding data to the output
+       stream with the specified encoding.
     with_stream_encoder : Encoding -> Problem_Behavior -> (ReportingStreamEncoder -> Any) -> Any
     with_stream_encoder self encoding:Encoding on_problems:Problem_Behavior action = self.with_java_stream java_stream->
         ## We ignore any warnings raised by the `bytes` method, because if the

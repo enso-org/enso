@@ -1,33 +1,31 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
+import {
+  type ArgumentDefaultKind,
+  createDefaultExpressionOfKind,
+  getArgumentDefaultKind,
+} from '@/components/GraphEditor/widgets/WidgetFunctionDef/argumentAst'
+import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
+import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { PortId, syntheticPortId } from '@/providers/portInfo'
 import {
   rewritePortValueUpdate,
-  UpdateHandler,
+  type UpdateHandler,
   WidgetInput,
-  WidgetUpdate,
+  type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
-import { unwrapGroups } from '@/util/ast/abstract'
-import { endOnClick, targetIsOutside } from '@/util/autoBlur'
-import { mapOrUndefined, Opt } from '@/util/data/opt'
+import { mapOrUndefined, type Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
 import { computed, useTemplateRef } from 'vue'
-import { ComponentProps } from 'vue-component-type-helpers'
-import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
-import { EnsoExpression } from '../WidgetEnsoExpression.vue'
-import SelectionSubmenu from '../WidgetSelection/SelectionSubmenu.vue'
-import { EnsoTypeExpression } from '../WidgetTypeExpression.vue'
-import {
-  ArgumentDefaultKind,
-  createDefaultExpressionOfKind,
-  getArgumentDefaultKind,
-} from './argumentAst'
+import type { ComponentProps } from 'vue-component-type-helpers'
+import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 
 const { definition, onUpdate, portIdBase } = defineProps<{
   root: Opt<HTMLElement>
@@ -111,8 +109,10 @@ function resolveType(typeExpr: Ast.Ast) {
 }
 
 const nodeDefaultPortId = computed(() => syntheticPortId(portIdBase, 'defaultExpr'))
-const nodeDefault = computed((): WidgetProps => {
-  let expr = unwrapGroups(definition.defaultValue?.expression?.node)
+const nodeDefault = computed((): WidgetProps | undefined => {
+  if (defaultKind.value !== 'explicit') return
+
+  let expr = Ast.unwrapGroups(definition.defaultValue?.expression?.node)
   if (expr instanceof Ast.Group || expr instanceof Ast.Invalid) expr = undefined
   const syntheticId = nodeDefaultPortId.value
   const expectedType = mapOrUndefined(definition.type?.type?.node, resolveType)
@@ -120,7 +120,6 @@ const nodeDefault = computed((): WidgetProps => {
     input: {
       ...WidgetInput.FromAstOrPlaceholder(expr, () => syntheticId),
       expectedType,
-      editHandler: defaultValueDropdownInteraction.value,
       [EnsoExpression]: {
         weakMatch: true,
       },
@@ -141,25 +140,27 @@ const nodeDefault = computed((): WidgetProps => {
 
 const submenuRef = useTemplateRef('submenuRef')
 const defaultValueRoot = useTemplateRef<HTMLElement>('defaultValueRoot')
-function isOutsideDropdown(event: Event) {
-  return submenuRef.value?.isTargetOutside(event) ?? false
-}
-
-function isOutsideWidget(event: Event) {
-  return targetIsOutside(event, defaultValueRoot.value)
-}
 
 // Close the dropdown when clicking outside of it, but also end parent interaction when clicking outside of both.
 const defaultValueDropdownInteraction = WidgetEditHandler.NewNested(
   nodeDefaultPortId,
   () => undefined,
-  endOnClick((event) => isOutsideDropdown(event) && !isOutsideWidget(event), {
-    end() {},
-    cancel() {},
-  }),
+  {
+    pointerdown: (ev) => {
+      if (submenuRef.value?.isTargetOutside(ev)) defaultValueDropdownInteraction.value.end()
+    },
+  },
 )
 
 const defaultKind = computed(() => getArgumentDefaultKind(definition))
+const defaultKindText = computed(
+  (): string =>
+    ({
+      required: 'required',
+      optional: 'optional',
+      explicit: 'default',
+    })[defaultKind.value],
+)
 
 function defaultOnClick(entry: (typeof defaultEntries)[number]) {
   if (entry.value !== defaultKind.value) {
@@ -192,7 +193,7 @@ const defaultEntries = [
     <span class="tokenText">&nbsp;=&nbsp;</span>
     <div
       ref="defaultValueRoot"
-      class="defaultValueRoot"
+      class="defaultValueRoot clickable"
       @click.stop="defaultValueDropdownInteraction.start()"
     >
       <SvgIcon
@@ -210,17 +211,14 @@ const defaultEntries = [
         :extendUpwards="false"
         @clickedEntry="defaultOnClick"
       />
-      <template v-if="defaultKind == 'optional'">
-        <span class="tokenText">optional</span>
-      </template>
-      <template v-else-if="defaultKind == 'required'">
-        <span class="tokenText">required</span>
-      </template>
-      <template v-else>
-        <span class="tokenText pad-right">default</span>
-        <NodeWidget v-bind="nodeDefault" />
-      </template>
+      <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
     </div>
+    <NodeWidget
+      v-if="nodeDefault"
+      v-bind="nodeDefault"
+      class="pad-left"
+      data-testid="missing-default-value"
+    />
   </div>
 </template>
 
@@ -233,8 +231,8 @@ const defaultEntries = [
   overflow-x: clip;
 }
 
-.pad-right {
-  margin-right: 4px;
+.pad-left {
+  margin-left: 4px;
 }
 
 .defaultValueRoot {
@@ -243,7 +241,7 @@ const defaultEntries = [
 
 svg.dropdownArrow {
   position: absolute;
-  bottom: -8px;
+  bottom: -10px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
   transform-origin: center;

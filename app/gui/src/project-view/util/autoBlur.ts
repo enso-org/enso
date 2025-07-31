@@ -2,7 +2,7 @@ import { unrefElement, useEvent } from '@/composables/events'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { ToValue } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
-import { onUnmounted, toValue, watchEffect, type Ref } from 'vue'
+import { onUnmounted, toValue, watchEffect } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /**
@@ -50,9 +50,11 @@ export function registerAutoBlurHandler() {
   )
 }
 
-/** Returns true if the target of the event is outside the DOM subtree of the given `area` element. */
-export function targetIsOutside(e: Event, area: Opt<Element>): boolean {
-  return isNodeOutside(e.target, area)
+/**
+ * Returns true if the target of the event is outside the DOM subtree of the given `area` element.
+ */
+export function targetIsOutside(e: Event, area: Opt<Element | VueInstance>): boolean {
+  return isNodeOutside(e.target, unrefElement(area))
 }
 
 /** Returns true if the `element` argument is a node outside the DOM subtree of the given `area`. */
@@ -61,23 +63,19 @@ export function isNodeOutside(element: any, area: Opt<Node>): boolean {
 }
 
 /**
- * Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
- *  occurs outside the given `area` element.
- *
- * See also {@link cancelOnClickOutside}.
+ * Returns a new interaction based on the given `interaction`. The new interaction will be ended if
+ * a pointerdown event occurs outside the given `area` element.
  */
 export function endOnClickOutside(
-  area: Ref<Opt<Element | VueInstance>>,
+  area: ToValue<Opt<Element | VueInstance>>,
   interaction: Interaction,
 ): Interaction {
   return endOnClick(isClickOutside(area), interaction)
 }
 
 /**
- * Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
- *  occurs such as a `condition` returns `true`.
- *
- * See also {@link cancelOnClickOutside}.
+ * Returns a new interaction based on the given `interaction`. The new interaction will be ended if
+ * a pointerdown event occurs such as a `condition` returns `true`.
  */
 export function endOnClick(
   condition: (e: PointerEvent) => boolean,
@@ -87,39 +85,10 @@ export function endOnClick(
   return handleClick(condition, interaction, handler.end.bind(handler))
 }
 
-/**
- * Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
- *  occurs such as a `condition` returns `true`.
- *
- * See also {@link cancelOnClickOutside}.
- */
-export function cancelOnClick(
-  condition: (e: PointerEvent) => boolean,
-  interaction: Interaction,
-): Interaction {
-  const handler = injectInteractionHandler()
-  return handleClick(condition, interaction, handler.cancel.bind(handler))
+function isClickOutside(area: ToValue<Opt<Element | VueInstance>>) {
+  return (e: PointerEvent) => targetIsOutside(e, toValue(area))
 }
 
-/**
- * Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
- *  occurs outside the given `area` element.
- *
- * See also {@link endOnClickOutside}.
- */
-export function cancelOnClickOutside(
-  area: Ref<Opt<Element | VueInstance>>,
-  interaction: Interaction,
-) {
-  const handler = injectInteractionHandler()
-  return handleClick(isClickOutside(area), interaction, handler.cancel.bind(handler))
-}
-
-function isClickOutside(area: Ref<Opt<Element | VueInstance>>) {
-  return (e: PointerEvent) => targetIsOutside(e, unrefElement(area))
-}
-
-/** Common part of {@link cancelOnClickOutside} and {@link endOnClickOutside}. */
 function handleClick(
   condition: (e: PointerEvent) => boolean,
   interaction: Interaction,

@@ -25,71 +25,83 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
 
-## PRIVATE
+## ---
+   private: true
+   ---
+   Obtains an instance of `Time_Of_Day` from an hour, minute, second and
+   nanosecond.
 
-   Obtains an instance of `Time_Of_Day` from an hour, minute, second
-   and nanosecond.
+   Recommended to use `Time_Of_Day.new` instead which handles potential
+   exceptions.
 
-   Arguments:
-   - hour: The hour-of-day to represent, from 0 to 23.
-   - minute: The minute-of-hour to represent, from 0 to 59.
-   - second: The second-of-minute to represent, from 0 to 59.
-   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
-
-   Recommended to use `Time_Of_Day.new` instead which handles potential exceptions.
+   ## Arguments
+    - `hour`: The hour-of-day to represent, from 0 to 23.
+    - `minute`: The minute-of-hour to represent, from 0 to 59.
+    - `second`: The second-of-minute to represent, from 0 to 59.
+    - `nanosecond`: The nano-of-second to represent, from 0 to 999,999,999.
 new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
 new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_builtin"
 
-## PRIVATE
-
-   This type is a date-time object that represents a time, often viewed
-   as hour-minute-second.
-
+## ---
+   private: true
+   ---
+   This type is a date-time object that represents a time, often viewed as
+   hour-minute-second.
    Time is represented to nanosecond precision. For example, the value
    "13:45.30.123456789" can be stored in a `Time_Of_Day`.
 @Builtin_Type
 type Time_Of_Day
-    ## GROUP DateTime
-       ICON time2
+    ## ---
+       group: DateTime
+       icon: time2
+       ---
        Obtains the current time from the system clock in the default time-zone.
 
-       > Example
-         Get the current time in the default time zone.
+       ## Examples
+       ### Get the current time in the default time zone.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_now = Time_Of_Day.now
+       ```
     now : Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
-    ## GROUP Constants
-       ICON time2
-       Obtains an instance of `Time_Of_Day` from an hour, minute, second
-       and nanosecond.
-
-       Arguments:
-       - hour: The hour-of-day to represent, from 0 to 23.
-       - minute: The minute-of-hour to represent, from 0 to 59.
-       - second: The second-of-minute to represent, from 0 to 59.
-       - millisecond: the millisecond-of-second to represent, from 0 to 999.
-       - microsecond: the microsecond-of-second to represent, from 0 to 999,999.
-       - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
+    ## ---
+       group: Constants
+       icon: time2
+       ---
+       Obtains an instance of `Time_Of_Day` from an hour, minute, second and
+       nanosecond.
 
        Returns a `Time_Error` if the provided time is not a valid time.
 
-       > Example
-         Create a new local time at Unix epoch.
+       ## Arguments
+        - `hour`: The hour-of-day to represent, from 0 to 23.
+        - `minute`: The minute-of-hour to represent, from 0 to 59.
+        - `second`: The second-of-minute to represent, from 0 to 59.
+        - `millisecond`: the millisecond-of-second to represent, from 0 to 999.
+        - `microsecond`: the microsecond-of-second to represent, from 0 to
+          999,999.
+        - `nanosecond`: The nano-of-second to represent, from 0 to 999,999,999.
 
+       ## Examples
+       ### Create a new local time at Unix epoch.
+
+       ```
              from Standard.Base import Time_Of_Day
 
              example_epoch = Time_Of_Day.new
+       ```
 
-       > Example
-         Get the local time at 9:30.
+       ### Get the local time at 9:30.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_epoch = Time_Of_Day.new hour=9 minute=30
+       ```
     @hour (Widget.Numeric_Input minimum=0 maximum=23 display=Display.Always)
     @minute (Widget.Numeric_Input minimum=0 maximum=59 display=Display.Always)
     @second (Widget.Numeric_Input minimum=0 maximum=59 display=Display.When_Modified)
@@ -102,215 +114,258 @@ type Time_Of_Day
         Panic.catch JException (new_builtin hour minute second total_nanoseconds) caught_panic->
             Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Obtains an instance of `Time_Of_Day` from a text such as "10:15".
-
-       Arguments:
-       - text: The text to parse as a time of day.
-       - format: A pattern describing how to parse the text,
-         or a `Date_Time_Formatter`.
 
        Returns a `Time_Error` if the provided text cannot be parsed using the
        default format.
 
-       ? Default Time Format
-         Unless you provide a custom format, the text must represent a valid
-         time and is parsed using the ISO-8601 extended local time format.
-         The format consists of:
+       ## Arguments
+        - `text`: The text to parse as a time of day.
+        - `format`: A pattern describing how to parse the text, or a
+          `Date_Time_Formatter`.
 
-         - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
-           digits.
-         - A colon
-         - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
-           two digits.
-         - If the second-of-minute is not available then the format is complete.
-         - A colon
-         - Two digits for the second-of-minute. This is pre-padded by zero to ensure
-           two digits.
-         - If the nano-of-second is zero or not available then the format is
-           complete.
-         - A decimal point
-         - One to nine digits for the nano-of-second. As many digits will be output
-           as required.
+       ## Examples
+       ### Get the time 15:05:30.
 
-       ? Pattern Syntax
-         If the pattern is provided as `Text`, it is parsed using the format
-         described below. See `Date_Time_Formatter` for more options.
-         - H: 24h hour of day (0-23).
-         - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
-           between AM and PM.
-         - m: Minute of hour.
-         - s: Second of minute.
-         - f: Fractional part of the second. The number of pattern letters
-           determines the number of digits. If one letter is used, any number of
-           digits will be accepted.
-         - a: AM/PM marker.
-
-       > Example
-         Get the time 15:05:30.
-
+       ```
              from Standard.Base import Time_Of_Day
 
              example_parse = Time_Of_Day.parse "15:05:30"
+       ```
 
-       > Example
-         Recover from the parse error.
+       ### Recover from the parse error.
 
+       ```
              from Standard.Base import Time_Of_Day
              from Standard.Base.Errors.Common import Time_Error
 
              example_parse = Time_Of_Day.parse "half twelve" . catch Time_Error _->
                  Time_Of_Day.new
+       ```
 
-       > Example
-         Parse "04:30:20" as Time_Of_Day.
+       ### Parse "04:30:20" as Time_Of_Day.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_parse = Time_Of_Day.parse "04:30:20" "HH:mm:ss"
+       ```
 
-       > Example
-         Parse "4:30AM" as Time_Of_Day
+       ### Parse "4:30AM" as Time_Of_Day
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
+       ```
+
+       ## Remarks
+
+       ### Default Time Format
+       Unless you provide a custom format, the text must represent a valid time
+       and is parsed using the ISO-8601 extended local time format.
+       The format consists of:
+       - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+       digits.
+       - A colon  - Two digits for the minute-of-hour. This is pre-padded by zero
+       to ensure two digits.
+       - If the second-of-minute is not available then the format is complete.
+       - A colon  - Two digits for the second-of-minute. This is pre-padded by
+       zero to ensure two digits.
+       - If the nano-of-second is zero or not available then the format is
+       complete.
+       - A decimal point  - One to nine digits for the nano-of-second. As many
+       digits will be output as required.
+
+       ### Pattern Syntax
+       If the pattern is provided as `Text`, it is parsed using the format
+       described below. See `Date_Time_Formatter` for more options.
+       - H: 24h hour of day (0-23).
+       - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+       between AM and PM.
+       - m: Minute of hour.
+       - s: Second of minute.
+       - f: Fractional part of the second. The number of pattern letters
+       determines the number of digits. If one letter is used, any number of
+       digits will be accepted.
+       - a: AM/PM marker.
     @format make_time_format_selector
     parse : Text -> Date_Time_Formatter -> Time_Of_Day ! Time_Error
     parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.iso_time =
         format.parse_time text
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the hour portion of the time of day.
 
-       > Example
-         Get the current hour.
+       ## Examples
+       ### Get the current hour.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_hour = Time_Of_Day.now.hour
+       ```
     hour : Integer
     hour self = @Builtin_Method "Time_Of_Day.hour"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the minute portion of the time of day.
 
-       > Example
-         Get the current minute.
+       ## Examples
+       ### Get the current minute.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_minute = Time_Of_Day.now.minute
+       ```
     minute : Integer
     minute self = @Builtin_Method "Time_Of_Day.minute"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the second portion of the time of day.
 
-       > Example
-         Get the current second.
+       ## Examples
+       ### Get the current second.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_second = Time_Of_Day.now.second
+       ```
     second : Integer
     second self = @Builtin_Method "Time_Of_Day.second"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the millisecond portion of the time of day.
 
-       > Example
-         Get the current millisecond.
+       ## Examples
+       ### Get the current millisecond.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_millisecond = Time_Of_Day.now.millisecond
+       ```
     millisecond : Integer
     millisecond self = @Builtin_Method "Time_Of_Day.millisecond"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the microsecond portion of the time of day.
 
-       > Example
-         Get the current microsecond.
+       ## Examples
+       ### Get the current microsecond.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_microsecond = Time_Of_Day.now.microsecond
+       ```
     microsecond : Integer
     microsecond self = @Builtin_Method "Time_Of_Day.microsecond"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the nanosecond portion of the time of day.
 
-       Arguments:
-       - include_milliseconds: Specifies if the whole fractional part of the
-         second should be returned as nanoseconds. Defaults to `False`, meaning
-         it will only return the nanosecond part in the range 0-999.
+       ## Arguments
+        - `include_milliseconds`: Specifies if the whole fractional part of the
+          second should be returned as nanoseconds. Defaults to `False`, meaning
+          it will only return the nanosecond part in the range 0-999.
 
-       > Example
-         Get the current nanosecond.
+       ## Examples
+       ### Get the current nanosecond.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_nanosecond = Time_Of_Day.now.nanosecond
+       ```
     nanosecond : Boolean -> Integer
     nanosecond self include_milliseconds=False =
         self.nanosecond_builtin include_milliseconds
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns the first time within the `Time_Period` containing self.
     start_of : Time_Period -> Time_Of_Day
     start_of self period=Time_Period.Hour = period.adjust_start self
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns the last time within the `Time_Period` containing self.
     end_of : Time_Period -> Time_Of_Day
     end_of self period=Time_Period.Hour = period.adjust_end self
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
 
-       > Example
-         Convert the current time into elapsed seconds in the day.
+       ## Examples
+       ### Convert the current time into elapsed seconds in the day.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_to_seconds = Time_Of_Day.now.to_seconds
+       ```
     to_seconds : Integer
     to_seconds self = @Builtin_Method "Time_Of_Day.to_seconds"
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Combine this time of day with a date to create a point in time.
 
-       Arguments:
-       - date: The date on which this time should occur.
-       - zone: The time-zone in which the time is specified.
+       ## Arguments
+        - `date`: The date on which this time should occur.
+        - `zone`: The time-zone in which the time is specified.
 
-       > Example
-         Convert local time to 1st January 2020 12:30 at system timezone.
+       ## Examples
+       ### Convert local time to 1st January 2020 12:30 at system timezone.
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
+       ```
     to_date_time : Date -> Time_Zone -> Date_Time
     to_date_time self date (zone=Time_Zone.system) =
         Time_Utils.make_zoned_date_time date self zone
 
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Returns a requested time part as integer.
     date_part : Time_Period -> Integer
     date_part self (period : Time_Period) =
@@ -322,55 +377,62 @@ type Time_Of_Day
             Time_Period.Microsecond -> self.microsecond
             Time_Period.Nanosecond  -> self.nanosecond
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Computes a time difference between the two times of day.
-
        It returns an integer expressing how many periods fit between the two
        times of day.
-
        The difference will be positive if `end` is greater than `self`.
 
-       Arguments:
-       - end: A time of day to compute the difference from.
-       - period: The period to compute the difference in.
+       ## Arguments
+        - `end`: A time of day to compute the difference from.
+        - `period`: The period to compute the difference in.
     date_diff : Time_Of_Day -> Time_Period -> Integer
     date_diff self (end : Time_Of_Day) (period : Time_Period) =
         Time_Utils.unit_time_difference period.to_java_unit self end
 
-    ## GROUP DateTime
-       ICON time
+    ## ---
+       group: DateTime
+       icon: time
+       ---
        Shifts the time of day by a specified period.
 
-       Arguments:
-       - amount: An integer specifying by how many periods to shift the time.
-       - period: The period by which to shift.
+       ## Arguments
+        - `amount`: An integer specifying by how many periods to shift the time.
+        - `period`: The period by which to shift.
     date_add : Integer -> Time_Period -> Time_Of_Day
     date_add self (amount : Integer) (period : Time_Period) =
         Time_Utils.unit_time_add period.to_java_unit self amount
 
-    ## ALIAS add duration
-       GROUP Operators
-       ICON time
+    ## ---
+       aliases: [add duration]
+       group: Operators
+       icon: time
+       ---
        Add the specified amount of time to this instant to get a new instant.
 
-       Arguments:
-       - amount: The amount of time to add to this instant. It can be a
-         `Duration` or `Time_Period`.
+       ## Arguments
+        - `amount`: The amount of time to add to this instant. It can be a
+          `Duration` or `Time_Period`.
 
-       > Example
-         Add a `Duration` to a `Time_Of_Day`.
+       ## Examples
+       ### Add a `Duration` to a `Time_Of_Day`.
 
+       ```
              from Standard.Base import Time_Of_Day, Duration
 
              example_plus = Time_Of_Day.new + (Duration.new seconds=3)
+       ```
 
-       > Example
-         Add a `Time_Period` to a `Time_Of_Day`.
+       ### Add a `Time_Period` to a `Time_Of_Day`.
 
+       ```
              from Standard.Base import Time_Of_Day, Time_Period
 
              example_plus = Time_Of_Day.new + Time_Period.Hour
+       ```
     + : Duration | Time_Period -> Time_Of_Day ! Time_Error
     + self (amount : Duration | Time_Period) =
         case amount of
@@ -378,29 +440,34 @@ type Time_Of_Day
             time_period : Time_Period ->
                 self + time_period.to_duration
 
-    ## ALIAS subtract duration
-       GROUP Operators
-       ICON time
+    ## ---
+       aliases: [subtract duration]
+       group: Operators
+       icon: time
+       ---
        Subtract the  specified amount of time from this instant to get a new
        instant.
 
-       Arguments:
-       - amount: The amount of time to add to this instant. It can be a
-         `Duration` or `Time_Period`.
+       ## Arguments
+        - `amount`: The amount of time to add to this instant. It can be a
+          `Duration` or `Time_Period`.
 
-       > Example
-         Subtract 12 hours from a local time.
+       ## Examples
+       ### Subtract 12 hours from a local time.
 
+       ```
              from Standard.Base import Time_Of_Day, Duration
 
              example_minus = Time_Of_Day.now - (Duration.new hours=12)
+       ```
 
-       > Example
-         Subtract a `Time_Period` from a `Time_Of_Day`.
+       ### Subtract a `Time_Period` from a `Time_Of_Day`.
 
+       ```
              from Standard.Base import Time_Of_Day, Time_Period
 
              example_plus = Time_Of_Day.new - Time_Period.Hour
+       ```
     - : Duration | Time_Period -> Time_Of_Day ! Time_Error
     - self amount:(Duration | Time_Period) =
         case amount of
@@ -408,96 +475,117 @@ type Time_Of_Day
             time_period : Time_Period ->
                 self - time_period.to_duration
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a JavaScript Object representing this Time_Of_Day.
 
-       > Example
-         Convert the current time to a JS_Object.
+       ## Examples
+       ### Convert the current time to a JS_Object.
 
+       ```
              example_to_json = Time_Of_Day.now.to_js_object
+       ```
     to_js_object : JS_Object
     to_js_object self =
         type_pair = ["type", "Time_Of_Day"]
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Time_Of_Day.
     to_display_text : Text
     to_display_text self =
         if self.nanosecond include_milliseconds=True == 0 then self.format "HH:mm:ss" else
             self.format "HH:mm:ss.ffffff"
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Format this time of day using the provided formatter pattern.
 
-       Arguments:
-       - format: A pattern describing how to format the text,
-         or a `Date_Time_Formatter`.
+       ## Arguments
+        - `format`: A pattern describing how to format the text, or a
+          `Date_Time_Formatter`.
 
-       ? Pattern Syntax
-         If the pattern is provided as `Text`, it is parsed using the format
-         described below. See `Date_Time_Formatter` for more options.
-         - H: 24h hour of day (0-23).
-         - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
-           between AM and PM.
-         - m: Minute of hour.
-         - s: Second of minute.
-         - f: Fractional part of the second. The number of pattern letters
-           determines the number of digits. If one letter is used, any number of
-           digits will be accepted.
-         - a: AM/PM marker.
+       ## Examples
+       ### Format "16:21:10" as "16:21:00.1234"
 
-       > Example
-         Format "16:21:10" as "16:21:00.1234"
-
+       ```
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "HH:mm:ss.SSSS"
+       ```
 
-       > Example
-         Format "16:21:10" as "16:21:00.123456789"
+       ### Format "16:21:10" as "16:21:00.123456789"
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "HH:mm:ss.n"
+       ```
 
-       > Example
-         Format "16:21:10" as "4:21pm"
+       ### Format "16:21:10" as "4:21pm"
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "h:mma"
+       ```
 
-       > Example
-         Format "16:21:10" as "04:21:10pm"
+       ### Format "16:21:10" as "04:21:10pm"
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "hh:mm:ssa"
+       ```
 
-       > Example
-         Format "16:21:10" as "hour:4"
+       ### Format "16:21:10" as "hour:4"
 
+       ```
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
+       ```
+
+       ## Remarks
+
+       ### Pattern Syntax
+       If the pattern is provided as `Text`, it is parsed using the format
+       described below. See `Date_Time_Formatter` for more options.
+       - H: 24h hour of day (0-23).
+       - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+       between AM and PM.
+       - m: Minute of hour.
+       - s: Second of minute.
+       - f: Fractional part of the second. The number of pattern letters
+       determines the number of digits. If one letter is used, any number of
+       digits will be accepted.
+       - a: AM/PM marker.
     @format make_time_format_selector
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_time self
 
-    ## PRIVATE
-       GROUP convert
-       ICON enso_logo
+    ## ---
+       private: true
+       group: convert
+       icon: enso_logo
+       ---
        Convert the value to a corresponding Enso code representation.
 
-       > Example
-         Getting the Enso code of the time 12:34:00.5
+       ## Examples
+       ### Getting the Enso code of the time 12:34:00.5
 
+       ```
              (Time_Of_Day.new 12 34 0 500).pretty
-             ## Returns a Text
+       ```
+       Returns a Text
+
                 Time_Of_Day.new 12 34 millisecond=500
     pretty : Text
     pretty self =
@@ -511,13 +599,17 @@ type Time_Of_Day
             if self.nanosecond != 0 then builder.append ((if builder.length!=6 then " nanosecond=" else " ") + self.nanosecond.to_text)
         parts.join ""
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the default drop down option for Time_Of_Day.
     default_widget (include_now:Boolean=False) display:Display=..When_Modified -> Widget =
         options = [Option "<Fixed Time>" "Time_Of_Day.new"] + (if include_now then [Option "<Now>" "Time_Of_Day.now"] else [])
         Widget.Single_Choice values=options display=display
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Time_Of_Day.from (that:JS_Object) =
     ## Must have hour and minute but second and nanosecond are optional
     case that.get "type" == "Time_Of_Day" && ["hour", "minute"].all that.contains_key of

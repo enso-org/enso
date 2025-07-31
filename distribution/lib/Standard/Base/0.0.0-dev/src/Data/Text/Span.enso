@@ -17,74 +17,94 @@ type Span
 
     ## A representation of a span of characters in Enso's `Text` type.
 
-       Arguments:
-       - range: The range of characters over which the span exists. The range is
-         assumed to have `step` equal to 1.
-       - parent: The text over which the span exists.
+       ## Arguments
+        - `range`: The range of characters over which the span exists. The range
+          is assumed to have `step` equal to 1.
+        - `parent`: The text over which the span exists.
 
-       ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+       ## Examples
+       ### Creating a span over the first three characters of the text "hello!".
 
-       > Example
-         Creating a span over the first three characters of the text "hello!".
-
+       ```
              import Standard.Base.Data.Text.Span
 
              example_span =
                  text = "Hello!"
                  range = 0.up_to 3
                  Span.Value range text
+       ```
+
+       ## Remarks
+
+       ### What is a Character?
+       A character is defined as an Extended Grapheme Cluster, see Unicode
+       Standard Annex 29. This is the smallest unit that still has semantic
+       meaning in most text-processing applications.
     Value (range : Range) (parent : Text)
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        The index of the first character included in the span.
 
-       ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+       ## Remarks
+
+       ### What is a Character?
+       A character is defined as an Extended Grapheme Cluster, see Unicode
+       Standard Annex 29. This is the smallest unit that still has semantic
+       meaning in most text-processing applications.
     start : Integer
     start self = self.range.start
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        The index of the first character after `start` that is _not_ included in
        the span.
 
-       ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+       ## Remarks
+
+       ### What is a Character?
+       A character is defined as an Extended Grapheme Cluster, see Unicode
+       Standard Annex 29. This is the smallest unit that still has semantic
+       meaning in most text-processing applications.
     end : Integer
     end self = self.range.end
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        The length of the span in extended grapheme clusters.
 
-       ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+       ## Remarks
+
+       ### What is a Character?
+       A character is defined as an Extended Grapheme Cluster, see Unicode
+       Standard Annex 29. This is the smallest unit that still has semantic
+       meaning in most text-processing applications.
     length : Integer
     length self = self.range.length
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the part of the text that this span covers.
     text : Text
     text self = self.to_utf_16_span.text
 
-    ## ADVANCED
-       ICON convert
-       Converts the span of extended grapheme clusters to a corresponding span
-       of UTF-16 code units.
+    ## ---
+       advanced: true
+       icon: convert
+       ---
+       Converts the span of extended grapheme clusters to a corresponding span of
+       UTF-16 code units.
 
-       > Example
-         Find the span of code units corresponding to the span of extended grapheme clusters.
+       ## Examples
+       ### Find the span of code units corresponding to the span of extended grapheme clusters.
 
          text = 'ae\u{301}fz'
          (Span.Value (Range 1 3) text).to_utf_16_span == (Utf_16_Span.Value (Range 1 4) text)
@@ -92,7 +112,9 @@ type Span
     to_utf_16_span self =
         Utf_16_Span.Value (range_to_char_indices self.parent self.range) self.parent
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Span.
     to_display_text : Text
     to_display_text self = self.text
@@ -101,59 +123,70 @@ type Span
 type Utf_16_Span
     ## A representation of a span of UTF-16 code units in Enso's `Text` type.
 
-       Arguments:
-       - range: The range of code units over which the span exists. The range is
-         assumed to have `step` equal to 1.
-       - parent: The text over which the span exists.
+       ## Arguments
+        - `range`: The range of code units over which the span exists. The range
+          is assumed to have `step` equal to 1.
+        - `parent`: The text over which the span exists.
 
-       > Example
-         Creating a span over the first three code units of the text 'a\u{301}bc'.
+       ## Examples
+       ### Creating a span over the first three code units of the text 'a\u{301}bc'.
 
+       ```
              import Standard.Base.Data.Text.Span
 
              example_span =
                  text = 'a\u{301}bc'
                  Span.Utf_16_Span.Value (Range 0 3) text
+       ```
     Value (range : Range) (parent : Text)
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        The index of the first code unit included in the span.
     start : Integer
     start self = self.range.start
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        The index of the first code unit after `start` that is _not_ included in
        the span.
     end : Integer
     end self = self.range.end
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        The length of the span in UTF-16 code units.
     length : Integer
     length self = self.range.length
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Returns the part of the text that this span covers.
     text : Text
     text self = Text_Utils.substring self.parent self.start self.end
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Returns a span of extended grapheme clusters which is the closest
        approximation of this span of code units.
+       The resulting span is extended in such a way that every code unit that was
+       contained by the original span is also contained in a new span. Since some
+       grapheme clusters consist of multiple code units, after the span was
+       extended it may also contain code units which were not contained inside of
+       the original span.
 
-       The resulting span is extended in such a way that every code unit that
-       was contained by the original span is also contained in a new span. Since
-       some grapheme clusters consist of multiple code units, after the span was
-       extended it may also contain code units which were not contained inside
-       of the original span.
-
-       > Example
-         Convert a codepoint span to graphemes and back.
+       ## Examples
+       ### Convert a codepoint span to graphemes and back.
 
          text = 'a\u{301}e\u{302}o\u{303}'
          span = Utf_16_Span.Value (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o].
@@ -178,12 +211,16 @@ type Utf_16_Span
                     grapheme_end = grapheme_last + 1
                     Span.Value (grapheme_first.up_to grapheme_end) self.parent
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Span.
     to_display_text : Text
     to_display_text self = self.text
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Utility function taking a range pointing at grapheme clusters and converting
    to a range on the underlying code units.
 range_to_char_indices : Text -> Range -> Range ! (Index_Out_Of_Bounds | Illegal_Argument)

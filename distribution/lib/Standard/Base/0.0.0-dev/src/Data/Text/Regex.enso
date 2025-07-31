@@ -33,22 +33,23 @@ polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
 
 type Regex
-    ## ICON text
+    ## ---
+       icon: text
+       ---
        Compile the provided `expression` into a `Regex` that can be used for
        matching.
+       For details on Enso's Regex syntax, see the [Help
+       Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
-       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+       ## Arguments
+        - `expression`: The text representing the regular expression that you
+          want to compile. Must be non-empty.
+        - `case_insensitive`: Enables or disables case-insensitive matching. Case
+          insensitive matching behaves as if it normalises the case of all input
+          text before matching on it.
 
-       Arguments:
-       - expression: The text representing the regular expression that you want to
-         compile. Must be non-empty.
-       - case_insensitive: Enables or disables case-insensitive matching. Case
-         insensitive matching behaves as if it normalises the case of all input
-         text before matching on it.
-
-       ! Error Conditions
-
-       - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+       ## Errors
+        - If an empty regex is used, `find` throws an `Illegal_Argument` error.
     compile : (Regex | Text) -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
     compile expression:(Regex | Text) case_insensitive:Boolean=False = case expression of
         _ : Regex -> if case_insensitive == expression.case_insensitive then expression else
@@ -62,50 +63,59 @@ type Regex
 
                 Regex.Value case_insensitive internal_regex_object
 
-    ## PRIVATE
-
-       internal_regex_object : RegexObject (Truffle)
-       (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
+    ## ---
+       private: true
+       ---
+       internal_regex_object : RegexObject (Truffle) (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (case_insensitive : Boolean) (internal_regex_object : Any)
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Gets the original pattern used to create this `Regex`.
     pattern : Text
     pattern self = self.internal_regex_object.pattern
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs [["type", "Regex"], ["case_insensitive", self.case_insensitive], ["pattern", self.pattern]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides a human-readable representation of the `Regex`.
     to_display_text : Text
     to_display_text self = "Regex /" + self.pattern + "/" + (if self.case_insensitive then "i" else "")
 
-    ## GROUP Text
-       ICON preparation
+    ## ---
+       group: Text
+       icon: preparation
+       ---
        Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.
 
-       Arguments:
-       - input: The text to check for matching.
+       ## Arguments
+        - `input`: The text to check for matching.
     matches : Text -> Boolean | Type_Error
     matches self (input : Text) =
         m = self.internal_regex_object.exec input 0
         m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
-    ## GROUP Text
-       ICON find
+    ## ---
+       group: Text
+       icon: find
+       ---
        Tries to match the provided `input` against the pattern `self`.
-
        Returns a `Match` containing the matched text and its match groups, or
        `Nothing` if the match failed.
 
-       Arguments:
-       - input: The text to match the pattern described by `self` against.
+       ## Arguments
+        - `input`: The text to match the pattern described by `self` against.
     match : Text -> Match | Nothing ! Type_Error
     match self (input : Text) =
         it = Match_Iterator.new self input
@@ -113,15 +123,16 @@ type Regex
             Match_Iterator_Value.Next _ match _ -> match
             Match_Iterator_Value.Last _ -> Nothing
 
-    ## GROUP Text
-       ICON find
+    ## ---
+       group: Text
+       icon: find
+       ---
        Tries to match the provided `input` against the pattern `self`.
+       Returns a `Vector Match` object, each containing the matched text and its
+       match groups.
 
-       Returns a `Vector Match` object, each containing the matched text
-       and its match groups.
-
-       Arguments:
-       - input: The text to match the pattern described by `self` against.
+       ## Arguments
+        - `input`: The text to match the pattern described by `self` against.
     match_all : Text -> Vector Match ! Type_Error | Illegal_Argument
     match_all self (input : Text) =
         pattern_is_empty = self.pattern == ''
@@ -135,66 +146,73 @@ type Regex
                     Match_Iterator_Value.Last _ -> Nothing
                 go it
 
-    ## ALIAS match
-       GROUP Selections
-       ICON find
+    ## ---
+       aliases: [match]
+       group: Selections
+       icon: find
+       ---
        Tries to match the provided `input` against the pattern `self`.
-
        Returns a `Text` containing the matched text, or `Nothing` if the match
        failed.
 
-       Arguments:
-       - input: The text to match the pattern described by `self` against.
+       ## Arguments
+        - `input`: The text to match the pattern described by `self` against.
     find : Text -> Text | Nothing | Type_Error
     find self (input : Text) =
        match_to_group_maybe <| self.match input
 
-    ## ALIAS matches
-       GROUP Selections
-       ICON find
+    ## ---
+       aliases: [matches]
+       group: Selections
+       icon: find
+       ---
        Tries to match the provided `input` against the pattern `self`.
-
        Returns a `Vector Text`, each containing the matched text.
        If the pattern does not match, an empty `Vector` is returned.
 
-       Arguments:
-       - input: The text to match the pattern described by `self` against.
+       ## Arguments
+        - `input`: The text to match the pattern described by `self` against.
     find_all : Text -> Vector Text ! Type_Error
     find_all self (input : Text) =
        self.match_all input . map match_to_group_maybe
 
-    ## ALIAS parse, tokenize
-       GROUP Conversions
-       ICON split
+    ## ---
+       aliases: [parse, tokenize]
+       group: Conversions
+       icon: split
+       ---
        Splits the `input` text based on the pattern described by `self`.
-
        This method will _always_ return a vector. If no splits take place, the
        vector will contain a single element (equal to the original string).
 
-       Arguments:
-       - input: The text to split based on the pattern described by `self`.
-       - only_first: If true, only split at the first occurrence.
+       ## Arguments
+        - `input`: The text to split based on the pattern described by `self`.
+        - `only_first`: If true, only split at the first occurrence.
 
-       > Example
-         Split on the first instance of the pattern.
+       ## Examples
+       ### Split on the first instance of the pattern.
+       ```
              pattern = Regex.compile "cd"
              input = "abcdefcdghij"
              texts = pattern.split input only_first=True
              texts . should_equal ["ab", "efcdghij"]
+       ```
 
-       > Example
-         Split on the all instances of the pattern in the input.
+       ### Split on the all instances of the pattern in the input.
+       ```
             pattern = Regex.compile "a"
             input = "bacadaeaf"
             texts = pattern.split input
             texts . should_equal ["b", "c", "d", "e", "f"]
+       ```
 
-       > Example
-         Returns the original text if there are no matches.
+       ### Returns the original text if there are no matches.
+       ```
              pattern = Regex.compile "aa"
              input = "abcdefghij"
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
+       ```
     split : Text -> Boolean -> Vector Text ! Type_Error
     split self (input : Text) (only_first : Boolean = False) =
         Vector.build builder->
@@ -208,93 +226,104 @@ type Regex
                     builder.append filler.text
             go it.next
 
-    ## ALIAS parse, split
-       GROUP Conversions
-       ICON split
+    ## ---
+       aliases: [parse, split]
+       group: Conversions
+       icon: split
+       ---
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
-       together; otherwise the whole match is returned. Non-participating
-       groups are omitted.
+       together; otherwise the whole match is returned. Non-participating groups
+       are omitted.
 
-       Arguments:
-       - input: The text to tokenize.
+       ## Arguments
+        - `input`: The text to tokenize.
 
-       > Example
-         Split to blocks of 3 characters.
+       ## Examples
+       ### Split to blocks of 3 characters.
 
+       ```
              Regex.compile '...' . tokenize 'ABCDEF' == ['ABC','DEF']
+       ```
 
-       > Example
-         Split to blocks of 3 characters taking first and third letters.
+       ### Split to blocks of 3 characters taking first and third letters.
 
+       ```
              Regex.compile '(.).(.)' . tokenize 'ABCDEF' == ['AC','DF']
+       ```
 
-       > Example
-         Split a text on any white space.
+       ### Split a text on any white space.
 
+       ```
              Regex.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
                  == ['Hello','Big','Wide','World','Goodbye!']
+       ```
     tokenize : Text -> Vector Text
     tokenize self input:Text =
         self.match_all input . map (build_tokenization_output_from_match self _)
 
-    ## GROUP Text
-       ICON text
+    ## ---
+       group: Text
+       icon: text
+       ---
        Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
-
        If this method performs no replacements it will return the `input` text
        unchanged.
-
        The replacement string can contain references to groups matched by the
        regex. The following syntaxes are supported:
-           $0: the entire match string
-           $&: the entire match string
-           $n: the nth group
-           $&lt;foo&gt;: Named group `foo`
+       $0: the entire match string $&: the entire match string $n: the nth group
+       $&lt;foo&gt;: Named group `foo`
 
-       Arguments:
-       - input: The text in which to perform the replacement(s).
-       - replacement: The literal text with which to replace any matches.
-       - only_first: If True, only replace the first match.
+       ## Arguments
+        - `input`: The text in which to perform the replacement(s).
+        - `replacement`: The literal text with which to replace any matches.
+        - `only_first`: If True, only replace the first match.
 
-       > Example
-         Replace letters in the text "aa".
+       ## Examples
+       ### Replace letters in the text "aa".
 
+       ```
              pattern = Regex.compile 'aa'
              pattern.replace 'aaa' 'b' == 'ba'
+       ```
 
-       > Example
-         Replace all occurrences of letters 'l' and 'o' with '#'.
+       ### Replace all occurrences of letters 'l' and 'o' with '#'.
 
+       ```
               pattern = Regex.compile '[lo]'
               pattern.replace 'Hello World!' '#' == 'He### W#r#d!'
+       ```
 
-       > Example
-         Replace the first occurrence of letter 'l' with '#'.
+       ### Replace the first occurrence of letter 'l' with '#'.
 
+       ```
              pattern = Regex.compile 'l'
              pattern.replace 'Hello World!' '#' only_first=True == 'He#lo World!'
+       ```
 
-       > Example
-         Replace texts in quotes with parentheses.
+       ### Replace texts in quotes with parentheses.
 
+       ```
               pattern = Regex.compile '"(.*?)"'
               pattern.replace '"abc" foo "bar" baz' '($1)' == '(abc) foo (bar) baz'
+       ```
 
-       > Example
-         Replace a literal string with a replacement value.
+       ### Replace a literal string with a replacement value.
 
+       ```
              pattern = Regex.compile "aa"
              input = "aa ab aa ac ad aa aa ax"s
              match = pattern.replace input "xyz"
              match == "xyz ab xyz ac ad xyz xyz ax"
+       ```
 
-       > Example
-         Replace each word with the same word surrounded by `[]`.
+       ### Replace each word with the same word surrounded by `[]`.
 
+       ```
              pattern = Regex.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
+       ```
     replace : Text -> Text -> Boolean -> Text | Type_Error
     replace self (input : Text) (replacement : Text) (only_first : Boolean = False) =
         it = Match_Iterator.new self input
@@ -313,36 +342,29 @@ type Regex
                             current + filler.text
                     go it.next ""
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Look up a match group name or number, and check that it is valid.
 
-       Arguments:
-       - id: The name or number of the group that was asked for.
+       ## Arguments
+        - `id`: The name or number of the group that was asked for.
 
-       Returns:
+       ## Returns
        A group number.
-
-       A group number is invalid if it is outside the range of groups
-       that were in the original pattern.
-
+       A group number is invalid if it is outside the range of groups that were
+       in the original pattern.
        A group name is invalid if it was not defined in the original pattern.
-
-       A group name is an alias for a group number; if a name is passed to
-       this method, it returns the corresponding group number.
-
+       A group name is an alias for a group number; if a name is passed to this
+       method, it returns the corresponding group number.
        If a group number is passed to `lookup_group` and it is valid, it will
        simply return the group number.
-
        Note that it is possible for a group to "not participate in the match",
-       for example with a disjunction. In the example below, the "(d)" group
-       does not participate -- it neither matches nor fails.
-
-            "ab((c)|(d))".find "abc"
-
-       In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Regex.lookup_group 3) will return 3. If the caller tries to get group 3,
-       Match.group will return Nothing.
+       for example with a disjunction. In the example below, the "(d)" group does
+       not participate -- it neither matches nor fails.
+       "ab((c)|(d))".find "abc" In this case, the group id for "(d)", which is 3,
+       is a valid group id and (Regex.lookup_group 3) will return 3. If the
+       caller tries to get group 3, Match.group will return Nothing.
     lookup_group : Integer | Text -> Integer ! No_Such_Group
     lookup_group self id =
         case id of
@@ -365,31 +387,38 @@ type Regex
                     _ : Integer -> n
                     Nothing -> Error.throw (No_Such_Group.Error name)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Return a lazy iterator over matches against a string.
 
-       Arguments:
-       - text: the string to match against.
+       ## Arguments
+        - `text`: the string to match against.
     iterator : Text -> Match_Iterator
     iterator self input = Match_Iterator.new self input
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Return the number of groups in the underlying RegexObject.
        Note, the count includes group 0 (the whole match) as well.
     group_count : Integer
     group_count self = self.internal_regex_object.groupCount
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Return a vector of all named group names.
     named_groups : Vector Text
     named_groups self =
         dictionary = polyglot_map_to_dictionary self.internal_regex_object.groups
         dictionary.keys
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Return a Dictionary from group number to group name. Only includes named
        groups.
     group_nums_to_names : Dictionary Integer Text
@@ -397,26 +426,31 @@ type Regex
         dictionary = polyglot_map_to_dictionary self.internal_regex_object.groups
         dictionary.transform k-> v-> [v.at 0, k]
 
-    ## ICON text
+    ## ---
+       icon: text
+       ---
        Escape the special characters in `expression` such that the result is a
        valid literal pattern for the original string.
 
-       Arguments:
-       - expression: The expression to escape metacharacters in.
+       ## Arguments
+        - `expression`: The expression to escape metacharacters in.
 
-       > Example
-         Turn a Text into a regex that matches that string exactly.
+       ## Examples
+       ### Turn a Text into a regex that matches that string exactly.
 
+       ```
              example_escape =
                  literal_string = "\!\.|abcde"
                  Regex.escape literal_string
+       ```
     escape : Text -> Text
     escape expression = Regex_Utils.regexQuote expression
 
-    ## PRIVATE
-
-       Recompile the underlying regex string; used to change the
-       case-sensitivity of a compiled Regex.
+    ## ---
+       private: true
+       ---
+       Recompile the underlying regex string; used to change the case-sensitivity
+       of a compiled Regex.
     recompile : Case_Sensitivity -> Regex ! Regex_Syntax_Error | Illegal_Argument
     recompile self case_sensitivity:Case_Sensitivity = case case_sensitivity of
         Case_Sensitivity.Default -> self
@@ -428,8 +462,8 @@ type Regex
 
     ## Create a Regex from a glob string
 
-       Arguments:
-       - expression: The glob string to compile into a regex.
+       ## Arguments
+        - `expression`: The glob string to compile into a regex.
     from_glob : Text -> Regex
     from_glob expression:Text -> Regex =
         to_escape = Hashset.from_vector ["/", "$", "^", "+", ".", "(", ")", "=", "|", "\"]
@@ -453,7 +487,9 @@ type Regex
         pattern = step "" 0 False
         Regex.compile pattern
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Convert the polyglot map to a Dictionary.
 polyglot_map_to_dictionary : Any -> Dictionary Any Any
 polyglot_map_to_dictionary map =
@@ -462,19 +498,25 @@ polyglot_map_to_dictionary map =
     pairs = keys.map key-> [key, Polyglot.get_member map key]
     Dictionary.from_vector pairs
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Get the named group from the polyglot map.
 read_group_map : Any -> Text -> Integer | Nothing
 read_group_map polyglot_map name =
     dictionary = polyglot_map_to_dictionary polyglot_map
     dictionary.get name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 match_to_group_maybe : Match | Nothing -> Text | Nothing
 match_to_group_maybe match =
     if match.is_nothing then Nothing else match.text 0
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Build an output string from a Match resulting from `tokenize`.
    See `tokenize`.
 build_tokenization_output_from_match : Regex -> Match -> Text
@@ -496,13 +538,17 @@ build_tokenization_output_from_match pattern match =
 ## An error that is emitted when there is no such group in the match for the
    provided `id`.
 
-   Arguments:
-   - id: The identifier of the group that was asked for but does not exist.
+   ## Arguments
+    - `id`: The identifier of the group that was asked for but does not exist.
 type No_Such_Group
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error (id : Text | Integer)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides a human-readable representation of the `No_Such_Group`.
     to_display_text : Text
     to_display_text self = case self.id of
@@ -511,24 +557,29 @@ type No_Such_Group
 
 ## A syntax error reported by the Truffle regex compiler.
 type Regex_Syntax_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
 
-       Arguments:
-       - message: A description of the erroneous syntax.
+       ## Arguments
+        - `message`: A description of the erroneous syntax.
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides a human-readable representation of the `Regex_Syntax_Error`.
     to_display_text : Text
     to_display_text self = "Regex Syntax Error:" + self.message
 
-## ICON text
+## ---
+   icon: text
+   ---
    Shorthand to create a regular expression from a Text value.
-
    If an empty regex is used, throws an Illegal_Argument error.
 
-   Arguments:
-   - expression: The text representing the regular expression that you want to
-     compile. Must be non-empty.
+   ## Arguments
+    - `expression`: The text representing the regular expression that you want to
+      compile. Must be non-empty.
 regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument
 regex expression:Text = Regex.compile expression

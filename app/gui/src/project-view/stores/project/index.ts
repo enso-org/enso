@@ -17,7 +17,7 @@ import { type MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
-import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { wait } from 'lib0/promise'
@@ -109,7 +109,7 @@ export interface ProjectProps {
 export function createProjectStore(
   props: {
     projectId: ProjectId
-    renameProject: (newName: string) => void
+    renameProject: (newName: string) => Promise<void>
     engine: LsUrls
   },
   projectNames: ProjectNameStore,
@@ -435,16 +435,13 @@ export function createProjectStore(
     executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
   })
 
-  function renameProject(newDisplayedName: string) {
+  async function renameProject(newDisplayedName: string) {
     try {
-      renameProjectBackend(newDisplayedName)
-      if (isIdentifier(newDisplayedName)) {
-        projectNames.onProjectRenameRequested(newDisplayedName)
-      } else {
-        console.error(`Renaming project: Not a valid identifier: ${newDisplayedName}`)
-      }
+      projectNames.onProjectRenameRequested(newDisplayedName)
+      await renameProjectBackend(newDisplayedName)
       return Ok()
     } catch (err) {
+      projectNames.onProjectRenameFailed()
       return Err(err)
     }
   }

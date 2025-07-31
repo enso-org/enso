@@ -409,10 +409,10 @@ export class Server {
     } else {
       const url = requestUrl.split('?')[0] ?? ''
 
-      // if it's a path inside the IDE, we need to serve index.html
-      const hasExtension = path.extname(url) !== ''
-
-      const resource = hasExtension ? requestUrl : '/index.html'
+      // if it's a path of directory or project, it should be handled by application (index.html)
+      // otherwise it's a path to some asset.
+      const extension = path.extname(url)
+      const resource = extension !== '' && extension !== '.project' ? requestUrl : '/index.html'
 
       // `preload.mjs` must be specialcased here as it is loaded by electron from the root,
       // in contrast to all assets loaded by the window, which are loaded from `assets/` via

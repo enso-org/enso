@@ -18,6 +18,8 @@
 - [Add keyboard shortcuts for formatting documentation][13134]
 - [New right-side panel][13135], unified between tabs.
 - [Allow selecting expected types for arguments of grouped components.][13161]
+- [Component documentation now uses Markdown instead of a custom Markdown-like
+  format][13203]
 - [Methods for ‘intersection’ types are now visible in Component
   Browser.][13266]
 - [Allow marking grouped component arguments as required or providing a default
@@ -34,6 +36,9 @@
 - [Graph is not moved when showing/resizing side panels.][13557]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
 - ["Welcome Project" is automatically opened for new users][13479]
+- [Project and Setting tab may be now closed with shortcut][13498][13604]. On
+  Windows/Linux <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>;
+  on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -49,6 +54,7 @@
 [13134]: https://github.com/enso-org/enso/pull/13134
 [13135]: https://github.com/enso-org/enso/pull/13135
 [13161]: https://github.com/enso-org/enso/pull/13161
+[13203]: https://github.com/enso-org/enso/pull/13203
 [13266]: https://github.com/enso-org/enso/pull/13266
 [13254]: https://github.com/enso-org/enso/pull/13254
 [13347]: https://github.com/enso-org/enso/pull/13347
@@ -61,6 +67,8 @@
 [13557]: https://github.com/enso-org/enso/pull/13557
 [13522]: https://github.com/enso-org/enso/pull/13522
 [13479]: https://github.com/enso-org/enso/pull/13479
+[13498]: https://github.com/enso-org/enso/pull/13498
+[13604]: https://github.com/enso-org/enso/pull/13604
 
 #### Enso Standard Library
 

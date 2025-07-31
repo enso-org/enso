@@ -1525,6 +1525,14 @@ type Table
         self.implementation.duplicates self.underlying columns case_sensitivity on_problems
 
     ## ---
+       macros:
+        - to_date: type=..Date
+        - to_number: type=..Float
+        - to_float: type=..Float
+        - to_integer: type=..Integer
+        - to_time: type=..Time
+        - to_datetime: type=..Date_Time
+        - to_boolean: type=..Boolean
        group: Standard.Base.Conversions
        icon: convert
        ---
@@ -1653,6 +1661,7 @@ type Table
         self.implementation.parse self.underlying columns type format error_on_missing_columns on_problems
 
     ## ---
+       aliases: [to_text, to_string, to_char]
        group: Standard.Base.Conversions
        icon: convert
        ---
@@ -2526,7 +2535,10 @@ type Table
         self.implementation.find_group_number self.underlying predicate over group_row name from step on_problems
 
     ## ---
-       aliases: [add column, expression, formula, new column, update column]
+       aliases: [add column, new column, update column]
+       macros:
+        - expression: (expr 'Nothing')
+        - formula: (expr 'Nothing')
        group: Standard.Base.Values
        icon: column_add
        suggested: 3
@@ -3396,6 +3408,12 @@ type Table
 
     ## ---
        aliases: [export, output, save, to_file]
+       macros:
+        - delimited: format=..Delimited
+        - csv: format=..Delimited
+        - tab_delimited: format=(..Delimited '\t')
+        - excel: format=..Workbook
+        - tableau_hyper: format=..Hyper_File
        group: Standard.Base.File
        icon: data_output
        suggested: 9
@@ -3562,7 +3580,8 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default make_fill_nothing_default_widget
     fill_nothing self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table | Any =
-        self.implementation.fill_nothing self.underlying columns default
+        columns.if_not_error <|
+            self.implementation.fill_nothing self.underlying columns default
 
     ## ---
        aliases: [fill empty, if_empty]
@@ -3590,7 +3609,8 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default (self-> Widget_Helpers.make_fill_default_value_selector (self.select_columns (..By_Type ..Char)) value_types=Value_Type.Char add_nothing=True)
     fill_empty self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table | Any =
-        self.implementation.fill_empty self.underlying columns default
+        columns.if_not_error <|
+            self.implementation.fill_empty self.underlying columns default
 
     ## ---
        aliases: [regex, substitute]
@@ -3640,7 +3660,8 @@ type Table
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Table | Any =
-        self.implementation.text_replace self.underlying columns term new_text case_sensitivity only_first
+        columns.if_not_error <|
+            self.implementation.text_replace self.underlying columns term new_text case_sensitivity only_first
 
     ## ---
        group: Standard.Base.Text
@@ -3688,8 +3709,9 @@ type Table
                | World |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") (remove : Vector Named_Pattern = []) -> Table | Any =
-        self.implementation.text_cleanse self.underlying columns remove
+    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = (Missing_Argument.throw "columns")) (remove : Vector Named_Pattern = []) -> Table | Any =
+        columns.if_not_error <|
+            self.implementation.text_cleanse self.underlying columns remove
 
     ## ---
        aliases:

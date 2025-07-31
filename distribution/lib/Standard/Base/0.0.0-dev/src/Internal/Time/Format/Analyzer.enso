@@ -9,17 +9,23 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Time.Format.Parser import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Analyzer
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
 
-       Arguments:
-       - nodes: The raw list of nodes as returned from the parser.
-       - flattened: The list of nodes after flattening the optional sections and
-         removing literals - so it just contains raw patterns.
+       ## Arguments
+        - `nodes`: The raw list of nodes as returned from the parser.
+        - `flattened`: The list of nodes after flattening the optional sections
+          and removing literals - so it just contains raw patterns.
     Value (nodes : Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns)) ~flattened
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new nodes =
         get_pattern_nodes node = case node of
             Common_Nodes.Optional_Section inner -> inner.flat_map get_pattern_nodes
@@ -28,8 +34,11 @@ type Analyzer
 
         Analyzer.Value nodes (nodes.flat_map get_pattern_nodes)
 
-    ## PRIVATE
-       Checks if the given node is contained as one of the nodes, ignoring the optional ones.
+    ## ---
+       private: true
+       ---
+       Checks if the given node is contained as one of the nodes, ignoring the
+       optional ones.
     has_required : Any -> Boolean
     has_required self constructor =
         meta_ctor = Meta.meta constructor
@@ -41,8 +50,11 @@ type Analyzer
                     atom.constructor == meta_ctor
                 _ -> False
 
-    ## PRIVATE
-       Runs basic validations that can happen on construction of the formatter, regardless of the context.
+    ## ---
+       private: true
+       ---
+       Runs basic validations that can happen on construction of the formatter,
+       regardless of the context.
     validate_after_parsing self ~continuation =
         problems = Vector.build problem_builder->
             self.check_possible_m_mismatches problem_builder
@@ -50,7 +62,9 @@ type Analyzer
             self.check_24h_and_am_pm_collision problem_builder
         Problem_Behavior.Report_Warning.attach_problems_after continuation problems
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares a list of warnings that are only reported when parsing using the
        formatter.
     get_parsing_only_warnings : Vector
@@ -59,7 +73,9 @@ type Analyzer
             self.check_missing_am_pm_in_hour_parse problem_builder
             self.check_missing_year_in_date_parse problem_builder
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_possible_m_mismatches self problem_builder =
         pattern_nodes = self.flattened
         pattern_nodes.each_with_index ix-> value-> case value of
@@ -79,7 +95,9 @@ type Analyzer
 
             _ -> Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_possible_seconds_aliasing self problem_builder =
         pattern_nodes = self.flattened
         seconds = pattern_nodes.filter node-> case node of
@@ -88,38 +106,50 @@ type Analyzer
         if seconds.length == 2 then
             problem_builder.append (Suspicious_Date_Time_Format.Warning "Two Second patterns have been detected ('s'/'S'). Our simple format treats seconds in a case-insensitive way. If you want to indicate a fraction of a second, use 'f' instead. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     has_24h : Boolean
     has_24h self =
         self.flattened.any node-> case node of
             Time_Patterns.Hour _ is24h -> is24h
             _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     has_12h : Boolean
     has_12h self =
         self.flattened.any node-> case node of
             Time_Patterns.Hour _ is24h -> is24h.not
             _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     has_am_pm : Boolean
     has_am_pm self =
         self.flattened.any node-> case node of
             Time_Patterns.AM_PM -> True
             _ -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_24h_and_am_pm_collision self problem_builder =
         if self.has_24h && self.has_am_pm && self.has_12h.not then
             problem_builder.append (Suspicious_Date_Time_Format.Warning "A 24-hour pattern 'H' is used with an AM/PM pattern. Did you mean 'h' for 12-hour format? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_missing_am_pm_in_hour_parse self problem_builder =
         if self.has_12h && self.has_am_pm.not then
             problem_builder.append (Suspicious_Date_Time_Format.Warning "A 12-hour pattern 'h' is used without an AM/PM pattern. Without it, the 12-hour pattern is ambiguous - the hours will default to AM. Did you mean 'H' for 24-hour format? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     has_day_and_month_but_not_year : Boolean
     has_day_and_month_but_not_year self =
         has_month = self.has_required Standard_Date_Patterns.Month
@@ -127,7 +157,9 @@ type Analyzer
         has_year = self.has_required Standard_Date_Patterns.Year
         has_month && has_day && has_year.not
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_missing_year_in_date_parse self problem_builder =
         if self.has_day_and_month_but_not_year then
             problem_builder.append (Suspicious_Date_Time_Format.Warning "A date pattern with a day and month but without a year has been detected. The year will default to the current year - note that the results may change over time. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
