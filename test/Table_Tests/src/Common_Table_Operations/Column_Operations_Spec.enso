@@ -689,6 +689,12 @@ add_column_operation_specs suite_builder setup =
                 False ->
                     t1.at "txt" . to_vector . should_equal ["aXc", "Yef", "ghZ"]
 
+        group_builder.specify "should throw missing argument error" <|
+            t = table_builder [["txt", ["abc", "def", "ghi"]], ["term", ["b", "d", "i"]], ["new", ["X", "Y", "Z"]]]
+            t1 = t.text_replace
+            t1.should_fail_with Missing_Argument
+            t1.catch.to_display_text . should_equal "Provide a value for the argument `columns`."
+
     suite_builder.group prefix+"(Column_Operations_Spec) Column Comparisons" group_builder->
         table_builder = build_sorted_table table_builder=setup.light_table_builder
 

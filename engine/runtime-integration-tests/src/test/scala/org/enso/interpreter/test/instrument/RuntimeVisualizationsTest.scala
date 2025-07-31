@@ -1994,7 +1994,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(8)
+      val attachVisualizationResponses = context.receiveN(7)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
@@ -4248,7 +4248,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val afterIdMapUpdate = context.receiveN(3)
+      val afterIdMapUpdate = context.receiveNIgnorePendingExpressionUpdates(3)
 
       // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
       afterIdMapUpdate should contain allOf (

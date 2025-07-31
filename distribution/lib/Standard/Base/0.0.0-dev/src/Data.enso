@@ -37,7 +37,13 @@ from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vect
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ---
-   aliases: [csv, delimited, excel, hyper, load, open, tableau]
+   aliases: [load, open]
+   macros:
+    - delimited: format=..Delimited
+    - csv: format=..Delimited
+    - tab_delimited: format=(..Delimited '\t')
+    - excel: format=..Workbook
+    - tableau_hyper: format=..Hyper_File
    group: File
    icon: data_input
    suggested: 1

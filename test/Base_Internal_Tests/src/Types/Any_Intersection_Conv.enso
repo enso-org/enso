@@ -1,0 +1,11 @@
+private
+
+from project.Types.Any_Intersection import all
+
+B.from (that:A) = B.B that
+C.from (that:A) = C.C that
+
+abc = A:A&B&C
+ac_hidden_b =
+    v = abc
+    v:A&C

@@ -38,7 +38,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     [entry.definitionPath.key(), id],
   ])
   readonly childIdToParentId = new ReactiveIndex(this, (id, entry) => {
-    const parentAndChild = entry.definitionPath.splitAtName()
+    const parentAndChild = entry.definitionPath.normalized().splitAtName()
     if (parentAndChild) {
       const [parentPath] = parentAndChild
       const parents = this.pathToId.lookup(parentPath.key())
