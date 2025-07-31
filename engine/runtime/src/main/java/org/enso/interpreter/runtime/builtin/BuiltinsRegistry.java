@@ -22,7 +22,7 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /**
@@ -51,7 +51,7 @@ final class BuiltinsRegistry {
   private final Map<Class<? extends Builtin>, Builtin> builtins;
   private final Map<String, Builtin> builtinsByName;
 
-  BuiltinsRegistry(EnsoLanguage language, ModuleScope.Builder scopeBuilder) {
+  BuiltinsRegistry(EnsoLanguage language, ModuleScopeBuilder scopeBuilder) {
     builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scopeBuilder);
     builtinMethodNodes = registerBuiltinMethodsLazily(scopeBuilder, language);
     builtinsByName =
@@ -124,7 +124,7 @@ final class BuiltinsRegistry {
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
    */
-  private void registerBuiltinMethods(ModuleScope.Builder scope, EnsoLanguage language) {
+  private void registerBuiltinMethods(ModuleScopeBuilder scope, EnsoLanguage language) {
     for (Builtin builtin : builtins.values()) {
       var type = builtin.getType();
       Map<String, Supplier<LoadedBuiltinMethod>> methods = builtinMethodNodes.get(type.getName());
@@ -201,7 +201,7 @@ final class BuiltinsRegistry {
   private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
       List<Constructor<? extends Builtin>> constrs,
       EnsoLanguage language,
-      ModuleScope.Builder scope) {
+      ModuleScopeBuilder scope) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
 
     for (var constr : constrs) {
@@ -275,7 +275,7 @@ final class BuiltinsRegistry {
    * @return map from types to builtin methods
    */
   private Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> registerBuiltinMethodsLazily(
-      ModuleScope.Builder scope, EnsoLanguage language) {
+      ModuleScopeBuilder scope, EnsoLanguage language) {
     Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> builtinMethodNodes = new HashMap<>();
     Map<String, Map<String, LoadedBuiltinMetaMethod>> builtinMetaMethods = new HashMap<>();
     loadedBuiltinMethodsMeta.forEach(

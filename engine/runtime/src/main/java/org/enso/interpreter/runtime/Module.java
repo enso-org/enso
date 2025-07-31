@@ -46,6 +46,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -58,7 +59,7 @@ import org.slf4j.LoggerFactory;
 public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
-  private ModuleScope.Builder scopeBuilder;
+  private ModuleScopeBuilder scopeBuilder;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
@@ -92,7 +93,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.scopeBuilder = new ModuleScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -111,7 +112,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.scopeBuilder = new ModuleScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -131,7 +132,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.scopeBuilder = new ModuleScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -152,7 +153,7 @@ public final class Module extends EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.scopeBuilder = new ModuleScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -511,12 +512,12 @@ public final class Module extends EnsoObject {
     return scopeBuilder.asModuleScope();
   }
 
-  public ModuleScope.Builder getScopeBuilder() {
+  public ModuleScopeBuilder getScopeBuilder() {
     return scopeBuilder;
   }
 
-  public ModuleScope.Builder newScopeBuilder() {
-    this.scopeBuilder = new ModuleScope.Builder(this);
+  public ModuleScopeBuilder newScopeBuilder() {
+    this.scopeBuilder = new ModuleScopeBuilder(this);
     return this.scopeBuilder;
   }
 

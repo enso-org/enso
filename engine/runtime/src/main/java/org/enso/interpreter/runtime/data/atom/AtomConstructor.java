@@ -34,6 +34,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
@@ -198,7 +199,7 @@ public final class AtomConstructor extends EnsoObject {
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
-      EnsoLanguage language, ModuleScope.Builder scopeBuilder, ArgumentDefinition... args) {
+      EnsoLanguage language, ModuleScopeBuilder scopeBuilder, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     String[] fieldNames = new String[args.length];
     for (int i = 0; i < args.length; i++) {
@@ -224,7 +225,7 @@ public final class AtomConstructor extends EnsoObject {
    */
   public AtomConstructor initializeFields(
       EnsoLanguage language,
-      ModuleScope.Builder scopeBuilder,
+      ModuleScopeBuilder scopeBuilder,
       Supplier<InitializationBuilder> initializationBuilderSupplier,
       String[] fieldNames) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -278,7 +279,7 @@ public final class AtomConstructor extends EnsoObject {
       EnsoLanguage language,
       SourceSection section,
       LocalScope localScope,
-      ModuleScope.Builder scopeBuilder,
+      ModuleScopeBuilder scopeBuilder,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
@@ -300,7 +301,7 @@ public final class AtomConstructor extends EnsoObject {
   }
 
   private Supplier<Function> generateQualifiedAccessor(
-      EnsoLanguage lang, ModuleScope.Builder scopeBuilder) {
+      EnsoLanguage lang, ModuleScopeBuilder scopeBuilder) {
     Supplier<Function> futureFunction =
         () -> {
           var node = new QualifiedAccessorNode(lang, this, getDefinitionScope());

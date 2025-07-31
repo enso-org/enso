@@ -97,7 +97,8 @@ import org.enso.interpreter.runtime.callable.{
   Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.scope.{ImportExportScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.ImportExportScope
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
@@ -125,7 +126,7 @@ import scala.jdk.OptionConverters._
 class IrToTruffle(
   val context: EnsoContext,
   val source: Source,
-  val scopeBuilder: ModuleScope.Builder,
+  val scopeBuilder: ModuleScopeBuilder,
   val compilerConfig: CompilerConfig
 ) {
 
@@ -2542,7 +2543,7 @@ class IrToTruffle(
       }
   }
 
-  private def asScope(module: CompilerContext.Module): ModuleScope.Builder = {
+  private def asScope(module: CompilerContext.Module): ModuleScopeBuilder = {
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
     m.getScopeBuilder()
   }
