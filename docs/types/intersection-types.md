@@ -218,7 +218,7 @@ tables share but also database-specific methods from `DB_Table`. Either part of
 this compound type may get _hidden_ when passing around various methods (e.g.
 `table:Table` will hide the `DB_Table` part), but the value itself still retains
 its identity as a `Table & DB_Table` and can be uncovered via a cast or a case
-expression.
+expression during runtime.
 
 To ensure intersection types properly propagate thru the Enso program the 
 basic language constructs are designed to handle them properly. Namely:
