@@ -176,20 +176,14 @@ public class HelloWorldCacheTest {
       assertThat("Eval with private check disabled is OK", res.asInt(), is(42));
     }
 
-    // Second run with private check ENABLED - should fail with Private_Access error
+    // Second run with private check ENABLED - should fail to compile
     try (var privateCheckEnabledCtx = ctxInProj(projDir, false).build()) {
       var polyCtx = new PolyglotContext(privateCheckEnabledCtx.context());
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var assocMainModType = mainMod.getAssociatedType();
-      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
       try {
-        mainMethod.execute();
-        fail("Should throw Private_Access panic: " + privateCheckEnabledCtx.getOut());
+        polyCtx.getTopScope().compile(true);
+        fail("Should result in compilation error");
       } catch (PolyglotException e) {
-        assertThat(
-            "Eval with private check enabled fails",
-            e.getMessage(),
-            containsString("Private_Access"));
+        assertThat(e.getMessage(), containsString("Cannot import private module"));
       }
     }
   }
