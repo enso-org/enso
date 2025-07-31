@@ -19,12 +19,12 @@ export function reactComponent<Props extends object>(
   options?: Opt<magicOptions>,
 ): DefineComponent<Props> {
   const vueComponent = applyPureReactInVue(component, options)
-  const doUnmount = vueComponent.beforeUnmount
+  const cleanup = vueComponent.beforeUnmount
   vueComponent.beforeUnmount = () => {
     // Veaury's `beforeUnmount` hook fails with an exception if it is called when the `mounted` hook
     // was not called. Check for a property set by the `mounted` hook and skip the cleanup if
     // mounting did not occur.
-    if ('__veauryLast__' in vueComponent) doUnmount()
+    if ('__veauryLast__' in vueComponent) cleanup()
   }
   return vueComponent
 }
