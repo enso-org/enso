@@ -29,7 +29,7 @@ syncRef(editing, useFocusDelayed(textEditorContent).focused)
       ref="textEditor"
       :extensions="syncExt"
       contentTestId="graph-node-comment-content"
-      @editorReady="connectSync"
+      :editorReadyCallback="connectSync"
     />
   </div>
 </template>

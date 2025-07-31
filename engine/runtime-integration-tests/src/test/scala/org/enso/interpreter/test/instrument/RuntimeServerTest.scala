@@ -216,10 +216,11 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.Main.Update.mainZ(contextId, fromCache = true),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -282,7 +283,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -303,6 +304,7 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -317,7 +319,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
         .update(
@@ -326,6 +328,7 @@ class RuntimeServerTest
           ConstantsGen.ERROR_BUILTIN,
           payload = Api.ExpressionUpdate.Payload.DataflowError(Nil)
         ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -417,7 +420,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -431,6 +434,7 @@ class RuntimeServerTest
           ConstantsGen.ERROR,
           payload = Api.ExpressionUpdate.Payload.DataflowError(Nil)
         ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -573,8 +577,9 @@ class RuntimeServerTest
         Api.PushContextRequest(contextId, Api.StackItem.LocalCall(idMainFoo))
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1")
@@ -765,7 +770,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -791,6 +796,7 @@ class RuntimeServerTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "C")
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -848,7 +854,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -858,6 +864,7 @@ class RuntimeServerTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -915,7 +922,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -925,6 +932,7 @@ class RuntimeServerTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -987,7 +995,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1013,6 +1021,7 @@ class RuntimeServerTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "C")
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -1070,13 +1079,14 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
         idA,
         "Enso_Test.Test.Main.Xyz"
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -1097,7 +1107,7 @@ class RuntimeServerTest
       )
     )
 
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idA),
       TestMessages.update(
         contextId,
@@ -1107,6 +1117,7 @@ class RuntimeServerTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -1127,13 +1138,14 @@ class RuntimeServerTest
       )
     )
 
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idA),
       TestMessages.update(
         contextId,
         idA,
         "Enso_Test.Test.Main.Xyz"
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -1410,7 +1422,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1453,6 +1465,7 @@ class RuntimeServerTest
         s"$moduleName.T",
         Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "A"))
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -1515,7 +1528,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1536,6 +1549,7 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
@@ -3270,19 +3284,20 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, fooX, fooRes, mainFoo, mainRes),
       TestMessages
         .update(contextId, fooX, ConstantsGen.INTEGER, typeChanged = false),
       TestMessages
         .update(contextId, fooRes, ConstantsGen.INTEGER, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("5")
 
     // pop the foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages
         .update(
@@ -3308,6 +3323,7 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = false
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("5")
@@ -3428,7 +3444,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, mainFoo, mainRes),
       TestMessages.update(
         contextId,
@@ -3453,6 +3469,7 @@ class RuntimeServerTest
         ),
         typeChanged = false
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("6")
@@ -3508,10 +3525,11 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -3618,7 +3636,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idResult, idPrintln, idMain),
       TestMessages.update(contextId, idResult, ConstantsGen.TEXT),
       TestMessages.update(
@@ -3638,6 +3656,7 @@ class RuntimeServerTest
       ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hi")
@@ -3753,7 +3772,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idMain, idMainA, idMainP),
       TestMessages.update(
         contextId,
@@ -3778,6 +3797,7 @@ class RuntimeServerTest
       ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
@@ -3798,8 +3818,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) shouldEqual Seq(
+    context.receiveN(6) shouldEqual Seq(
       TestMessages.pending(contextId, idMain, idMainA, idMainP),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       TestMessages.update(
         contextId,
         idMainA,
@@ -3845,7 +3866,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idMain, idMainA, idMainP),
       TestMessages.update(
         contextId,
@@ -3872,6 +3893,7 @@ class RuntimeServerTest
       ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
@@ -3892,7 +3914,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idMain, idMainA, idMainP),
       TestMessages.update(
         contextId,
@@ -3919,6 +3941,7 @@ class RuntimeServerTest
       ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("7")
@@ -3939,7 +3962,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idMain, idMainA, idMainP),
       TestMessages.update(
         contextId,
@@ -3964,6 +3987,7 @@ class RuntimeServerTest
       ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("hie!")
@@ -3984,7 +4008,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idMain, idMainA, idMainP),
       TestMessages.update(
         contextId,
@@ -4010,6 +4034,7 @@ class RuntimeServerTest
       ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello!")
@@ -4114,14 +4139,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
     // pop call1
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -4159,6 +4185,7 @@ class RuntimeServerTest
         ConstantsGen.NOTHING,
         typeChanged = false
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -4172,14 +4199,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
     // pop call2
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -4217,6 +4245,7 @@ class RuntimeServerTest
         fromCache   = true,
         typeChanged = true
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -4230,14 +4259,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
     // pop call3
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -4276,6 +4306,7 @@ class RuntimeServerTest
         fromCache   = true,
         typeChanged = true
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -4394,9 +4425,10 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, s"$moduleName.My_Type"),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -4466,7 +4498,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(1) shouldEqual Seq(
+    context.receiveN(2) shouldEqual Seq(
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a modified!")
@@ -4562,7 +4595,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(1) shouldEqual Seq(
+    context.receiveNIgnoreStdLib(1) shouldEqual Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a modified!")
@@ -4608,9 +4641,10 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.INTEGER_BUILTIN),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -4630,7 +4664,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) shouldEqual Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, idMain),
       TestMessages.update(
         contextId,
@@ -4638,6 +4672,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER_BUILTIN,
         typeChanged = false
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -4690,21 +4725,23 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.Main.Update.mainZ(contextId, fromCache = true),
       TestMessages
         .update(contextId, idMain, ConstantsGen.INTEGER, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -4801,7 +4838,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a modified!")
@@ -5262,8 +5300,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
@@ -5413,8 +5452,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
@@ -6353,8 +6393,9 @@ class RuntimeServerTest
         Api.RecomputeContextRequest(contextId, None, None, Seq())
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -6411,7 +6452,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "My Foo"))
     )
-    val renameProjectResponses = context.receiveN(6)
+    val renameProjectResponses = context.receiveN(7)
     renameProjectResponses should contain allOf (
       Api.Response(requestId, Api.ProjectRenamed("Test", "MyFoo", "My Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
@@ -6426,6 +6467,7 @@ class RuntimeServerTest
         typeChanged = true
       ),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     renameProjectResponses.collect {
@@ -6446,8 +6488,9 @@ class RuntimeServerTest
         Api.RecomputeContextRequest(contextId, None, None, Seq())
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -6463,7 +6506,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.pending(
         contextId,
@@ -6485,6 +6528,7 @@ class RuntimeServerTest
         typeChanged = false
       ),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -6532,7 +6576,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "My Foo"))
     )
-    val renameProjectResponses = context.receiveN(6)
+    val renameProjectResponses = context.receiveN(7)
     renameProjectResponses should contain allOf (
       Api.Response(requestId, Api.ProjectRenamed("Test", "MyFoo", "My Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
@@ -6547,6 +6591,7 @@ class RuntimeServerTest
         typeChanged = true
       ),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     renameProjectResponses.collect {
@@ -6574,7 +6619,7 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -6587,6 +6632,7 @@ class RuntimeServerTest
         typeChanged = true
       ),
       context.Main.Update.mainZ(contextId, fromCache = true),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -6962,7 +7008,7 @@ class RuntimeServerTest
         Api.PushContextRequest(contextId, Api.StackItem.LocalCall(y))
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -6978,12 +7024,13 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
     // pop inc call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -6999,6 +7046,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         typeChanged = false
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -7009,7 +7057,7 @@ class RuntimeServerTest
         Api.PushContextRequest(contextId, Api.StackItem.LocalCall(y))
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -7025,6 +7073,7 @@ class RuntimeServerTest
           )
         )
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
@@ -7050,7 +7099,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, `inc_res`, `y_inc`, y, res),
       TestMessages.update(
         contextId,
@@ -7067,12 +7116,13 @@ class RuntimeServerTest
         ),
         typeChanged = false
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
 
     // pop inc call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -7100,6 +7150,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         typeChanged = false
       ),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -7404,8 +7455,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) shouldEqual Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.TEXT),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -7797,9 +7849,9 @@ class RuntimeServerTest
         )
       )
     )
-    val afterIdMapUpdate = context.receiveN(6)
+    val afterIdMapUpdate = context.receiveNIgnoreStdLib(6)
 
-    afterIdMapUpdate shouldEqual Seq(
+    afterIdMapUpdate should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         idS,

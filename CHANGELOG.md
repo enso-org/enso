@@ -1,3 +1,11 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [Open type check `Type&Any` lets all visible types thru][13225]
+
+[13225]: https://github.com/enso-org/enso/pull/13225
+
 # Next Release
 
 #### Enso IDE

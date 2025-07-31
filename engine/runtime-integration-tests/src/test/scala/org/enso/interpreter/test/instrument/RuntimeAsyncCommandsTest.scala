@@ -642,11 +642,13 @@ class RuntimeAsyncCommandsTest
 
     // recompute
     val responses = context.receiveN(
-      3
+      5
     )
     responses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.out.awaitOnText(exact = true, "finished\nstarted?\nfinished?")
@@ -930,7 +932,7 @@ class RuntimeAsyncCommandsTest
           ) =>
         data
     }
-    repliesData.map(new String(_)) shouldEqual List("42", "85")
+    repliesData.map(new String(_)).sorted shouldEqual List("42", "85")
   }
 
 }

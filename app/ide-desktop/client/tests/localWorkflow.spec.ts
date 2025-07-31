@@ -64,10 +64,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
 
   // Enter User Defined Component
   // First wait until node is computed. Visualization may be cached, so we look at icon.
-  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute(
-    'href',
-    /#svgicon:group/,
-  )
+  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
   await page.locator('.GraphNode').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(3)
   await expect(page.locator('.NavBreadcrumb')).toHaveText([
