@@ -1151,98 +1151,6 @@ lazy val `jna-wrapper` = project
     }
   )
 
-lazy val `jna-wrapper-extracted` = project
-  .in(file("lib/java/jna-wrapper-extracted"))
-  .enablePlugins(JarExtractPlugin)
-  .settings(
-    libraryDependencies ++= Seq(
-      "net.java.dev.jna" % "jna" % jnaVersion
-    ),
-    inputJar := "net.java.dev.jna" % "jna" % jnaVersion,
-    jarExtractor := JarExtractor(
-      "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxX86_64),
-      "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsX86_64),
-      "com/sun/jna/darwin-x86-64/libjnidispatch.jnilib" -> PolyglotLib(
-        MacOSX86_64
-      ),
-      "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "com/**/*.class" -> CopyToOutputJar
-    )
-  )
-
-lazy val `netty-tc-native-wrapper` = project
-  .in(file("lib/java/tc-native-wrapper"))
-  .enablePlugins(JarExtractPlugin)
-  .settings(
-    libraryDependencies ++= Seq(
-      "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
-    ),
-    // We have to explicitly select correct jar based on the current platform.
-    inputJarResolved := {
-      val tcNativeJars = JPMSUtils.filterModulesFromUpdate(
-        updateReport = (Compile / update).value,
-        modules = Seq(
-          "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
-        ),
-        log                = streams.value.log,
-        projName           = moduleName.value,
-        scalaBinaryVersion = scalaBinaryVersion.value,
-        shouldContainAll   = true
-      )
-      // tcNativeJar has name like:
-      // "netty-tcnative-boringssl-static-2.0.70.Final-linux-x86_64.jar"
-      // It contains just a single native library
-      def isExpectedTcNativeJarName(name: String): Boolean = {
-        name.contains(Platform.arch().replace("aarch64", "aarch_64")) &&
-        name.contains(Platform.osName())
-      }
-      val tcNativeJar = tcNativeJars.filter { jar =>
-        isExpectedTcNativeJarName(jar.getName)
-      }
-      if (tcNativeJar.size != 1) {
-        throw new IllegalStateException(
-          s"Expected exactly one tc native jar for ${Platform.osName()}-${Platform
-            .arch()}, but found: ${tcNativeJar.mkString(", ")}"
-        )
-      }
-      tcNativeJar.head
-    },
-    jarExtractor := JarExtractor(
-      "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "META-INF/native/libnetty_tcnative_osx_x86_64.jnilib" -> PolyglotLib(
-        MacOSX86_64
-      ),
-      "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
-        WindowsX86_64
-      ),
-      "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(
-        LinuxX86_64
-      ),
-      "META-INF/license/*"   -> CopyToOutputJar,
-      "META-INF/maven/**"    -> CopyToOutputJar,
-      "META-INF/versions/**" -> CopyToOutputJar
-    )
-  )
-
-// Native libs only for Linux.
-// For other platforms, the output directory should be empty.
-lazy val `netty-epoll-native-wrapper` = project
-  .in(file("lib/java/epoll-native-wrapper"))
-  .enablePlugins(JarExtractPlugin)
-  .settings(
-    libraryDependencies ++= Seq(
-      "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final"
-    ),
-    inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
-    jarExtractor := JarExtractor(
-      "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxX86_64)
-    )
-  )
-
 lazy val `poi-wrapper` = project
   .in(file("lib/java/poi-wrapper"))
   .settings(
@@ -4996,6 +4904,98 @@ lazy val `opencv-wrapper` = project
       "nu/pattern/*.class"                     -> CopyToOutputJar,
       "META-INF/**"                            -> CopyToOutputJar,
       "org/**"                                 -> CopyToOutputJar
+    )
+  )
+
+lazy val `jna-wrapper-extracted` = project
+  .in(file("lib/java/jna-wrapper-extracted"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "net.java.dev.jna" % "jna" % jnaVersion
+    ),
+    inputJar := "net.java.dev.jna" % "jna" % jnaVersion,
+    jarExtractor := JarExtractor(
+      "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxX86_64),
+      "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsX86_64),
+      "com/sun/jna/darwin-x86-64/libjnidispatch.jnilib" -> PolyglotLib(
+        MacOSX86_64
+      ),
+      "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
+        MacOSArm64
+      ),
+      "com/**/*.class" -> CopyToOutputJar
+    )
+  )
+
+lazy val `netty-tc-native-wrapper` = project
+  .in(file("lib/java/tc-native-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
+    ),
+    // We have to explicitly select correct jar based on the current platform.
+    inputJarResolved := {
+      val tcNativeJars = JPMSUtils.filterModulesFromUpdate(
+        updateReport = (Compile / update).value,
+        modules = Seq(
+          "io.netty" % "netty-tcnative-boringssl-static" % "2.0.70.Final"
+        ),
+        log                = streams.value.log,
+        projName           = moduleName.value,
+        scalaBinaryVersion = scalaBinaryVersion.value,
+        shouldContainAll   = true
+      )
+      // tcNativeJar has name like:
+      // "netty-tcnative-boringssl-static-2.0.70.Final-linux-x86_64.jar"
+      // It contains just a single native library
+      def isExpectedTcNativeJarName(name: String): Boolean = {
+        name.contains(Platform.arch().replace("aarch64", "aarch_64")) &&
+          name.contains(Platform.osName())
+      }
+      val tcNativeJar = tcNativeJars.filter { jar =>
+        isExpectedTcNativeJarName(jar.getName)
+      }
+      if (tcNativeJar.size != 1) {
+        throw new IllegalStateException(
+          s"Expected exactly one tc native jar for ${Platform.osName()}-${Platform
+            .arch()}, but found: ${tcNativeJar.mkString(", ")}"
+        )
+      }
+      tcNativeJar.head
+    },
+    jarExtractor := JarExtractor(
+      "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
+        MacOSArm64
+      ),
+      "META-INF/native/libnetty_tcnative_osx_x86_64.jnilib" -> PolyglotLib(
+        MacOSX86_64
+      ),
+      "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
+        WindowsX86_64
+      ),
+      "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(
+        LinuxX86_64
+      ),
+      "META-INF/license/*"   -> CopyToOutputJar,
+      "META-INF/maven/**"    -> CopyToOutputJar,
+      "META-INF/versions/**" -> CopyToOutputJar
+    )
+  )
+
+// Native libs only for Linux.
+// For other platforms, the output directory should be empty.
+lazy val `netty-epoll-native-wrapper` = project
+  .in(file("lib/java/epoll-native-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final"
+    ),
+    inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
+    jarExtractor := JarExtractor(
+      "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxX86_64)
     )
   )
 
