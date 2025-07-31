@@ -205,8 +205,7 @@ object StdBits {
         IO.delete(nativeLibsOutputDir)
         IO.createDirectory(nativeLibsOutputDir)
         for (nativeLibsInputDir <- extractedNativeLibDirs) {
-          // TODO: Use debug instead of info
-          logger.info(
+          logger.debug(
             s"Copying native libraries from ${nativeLibsInputDir.getAbsolutePath} to ${nativeLibsOutputDir.getAbsolutePath}"
           )
           IO.copyDirectory(
@@ -215,7 +214,7 @@ object StdBits {
           )
         }
       } else {
-        logger.info(
+        logger.debug(
           s"Native libraries from ${extractedNativeLibDirs} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
         )
       }
