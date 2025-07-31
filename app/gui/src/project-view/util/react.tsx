@@ -20,13 +20,15 @@ export function reactComponent<Props extends object>(
 ): DefineComponent<Props> {
   const vueComponent = applyPureReactInVue(component, options)
   const cleanup = vueComponent.beforeUnmount
-  vueComponent.beforeUnmount = () => {
-    // Veaury's `beforeUnmount` hook fails with an exception if it is called when the `mounted` hook
-    // was not called. Check for a property set by the `mounted` hook and skip the cleanup if
-    // mounting did not occur.
-    if ('__veauryLast__' in vueComponent) cleanup()
+  return {
+    ...vueComponent,
+    beforeUnmount() {
+      // Veaury's `beforeUnmount` hook fails with an exception if it is called when the `mounted`
+      // hook was not called. Check for a property set by the `mounted` hook and skip the cleanup if
+      // mounting did not occur
+      if (this.__veauryLast__) cleanup.call(this)
+    },
   }
-  return vueComponent
 }
 
 /** Creates a Vue component wrapping a React component inside {@link Suspense} element. */
