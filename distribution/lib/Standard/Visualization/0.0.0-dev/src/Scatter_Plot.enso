@@ -1,7 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Vector.Builder
 
-from Standard.Table import Column, Table, Value_Type
+from Standard.Table import Column, Table
 
 import project.Helpers
 from project.Helpers import time_visualization
@@ -33,7 +32,7 @@ json_from_table table bounds limit =
         col_color = table.select_columns [col_x.name, "color", "colour"] case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore . get 1
         col_row_number = table.select_columns [col_x.name, "row_number"] case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore . get 1
         base_table = table.select_columns [col_x.name, "shape", "label", "size"] case_sensitivity=..Insensitive error_on_missing_columns=False reorder=True on_problems=..Ignore
-        with_color = if Nothing==col_color then base_table else base_table.set col_color
+        with_color = if Nothing==col_color then base_table else base_table.set col_color "color"
         core_table = if Nothing==col_row_number then with_color.add_row_number "row_number" else with_color.set col_row_number
 
         ## Find the data columns
@@ -81,7 +80,7 @@ json_from_vector vec bounds limit =
         bounded.take (..Sample limit seed=15975382)
 
     ## Create JSON
-    data_json = limited.map_with_index i-> elem-> '{"x":' + i.to_text + ',"y":' + elem.to_json + ',"label":' + i.to_text + '}'
+    data_json = limited.map_with_index i-> elem-> '{"x":' + i.to_text + ',"y":' + elem.to_json + ',"row_number":' + i.to_text + '}'
     '{"data": [' + (data_json.join ',') + '],"axis":null,"is_multi_series":false,"get_row_method":"at","x_value_type":"Integer","error_message":null}'
 
 ## ---
