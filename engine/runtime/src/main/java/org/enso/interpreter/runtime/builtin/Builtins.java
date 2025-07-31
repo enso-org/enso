@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.builtin;
 import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
 import java.util.Optional;
+import org.enso.common.MethodNames;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
@@ -38,17 +39,6 @@ import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public final class Builtins {
-  public static final String PACKAGE_NAME = "Builtins";
-  public static final String NAMESPACE = "Standard";
-  public static final String MODULE_NAME = NAMESPACE + "." + PACKAGE_NAME + ".Main";
-
-  /** Container for method names needed outside this class. */
-  public static class MethodNames {
-    public static class Debug {
-      public static final String EVAL = "eval";
-    }
-  }
-
   private final EnsoContext context;
   private final BuiltinsRegistry builtins;
 
@@ -98,7 +88,7 @@ public final class Builtins {
   public Builtins(EnsoContext context) {
     this.context = context;
     EnsoLanguage language = context.getLanguage();
-    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
+    module = Module.empty(QualifiedName.fromString(MethodNames.Builtins.MODULE_NAME), null);
     module.compileScope(context); // Dummy compilation for an empty module
     ModuleScope.Builder scopeBuilder = module.newScopeBuilder();
 

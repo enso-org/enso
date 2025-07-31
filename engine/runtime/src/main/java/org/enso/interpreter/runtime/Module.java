@@ -166,7 +166,7 @@ public final class Module extends EnsoObject {
   }
 
   private void ensureConsistentName(QualifiedName name, Package<TruffleFile> pkg) {
-    if (name.toString().equals(Builtins.MODULE_NAME)) {
+    if (name.toString().equals(MethodNames.Builtins.MODULE_NAME)) {
       return;
     }
     if (pkg != null && name.isSimple()) {
@@ -694,7 +694,7 @@ public final class Module extends EnsoObject {
       BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
-                  builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
+                  builtins.debug(), MethodNames.Builtins.EVAL, context.getLanguage())
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.empty(), scope);
       return callOptimiserNode.executeDispatch(
