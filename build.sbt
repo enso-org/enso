@@ -5414,6 +5414,7 @@ lazy val `std-microsoft` = project
       "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
     ),
     Compile / packageBin := {
+      val result            = (Compile / packageBin).value
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
       StdBits
@@ -5430,16 +5431,16 @@ lazy val `std-microsoft` = project
 
             (fileName.startsWith("netty-resolver-dns-classes-macos") && StdBits
               .plainOsName() != "macos") ||
-            (fileName.startsWith("netty-tcnative-boringssl-static")) ||
-            (fileName.startsWith("netty-transport-native-epoll")) ||
-            nameCheck &&
-            StdBits
-              .allSupportedOs()
-              .exists(osName => fileName.contains(osName)) && {
-              val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
-              val thisPlatform  = StdBits.currentPlatformSuffix()
-              !sanitizedName.contains(thisPlatform)
-            }
+              (fileName.startsWith("netty-tcnative-boringssl-static")) ||
+              (fileName.startsWith("netty-transport-native-epoll")) ||
+              nameCheck &&
+                StdBits
+                  .allSupportedOs()
+                  .exists(osName => fileName.contains(osName)) && {
+                val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
+                val thisPlatform  = StdBits.currentPlatformSuffix()
+                !sanitizedName.contains(thisPlatform)
+              }
           }),
           logger         = logger,
           polyglotLibDir = Some(`std-microsoft-native-libs`),
@@ -5453,7 +5454,7 @@ lazy val `std-microsoft` = project
           ),
           cacheStoreFactory = cacheStoreFactory
         )
-      `std-microsoft-polyglot-root` / "java" / "std-microsoft.jar"
+      result
     },
     clean := Def.task {
       val _ = clean.value
