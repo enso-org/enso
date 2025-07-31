@@ -90,6 +90,55 @@ public class HelloWorldCacheTest {
   }
 
   @Test
+  public void whenRunningWithDisablePrivateCheck_CachesAreRead() throws Exception {
+    var libDir = tmpDir.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib", """
+            lib_method =
+                42
+            """, libDir);
+    var libCacheDir = libDir.resolve(".enso");
+
+    var projDir = tmpDir.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+            from local.Lib import lib_method
+            main =
+                lib_method
+            """,
+        projDir);
+    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
+
+    try (var ctx = ctxInProj(projDir, false).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
+      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
+      var assocMainModType = mainMod.getAssociatedType();
+      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
+      var res = mainMethod.execute();
+      assertThat("Evaluation is OK", res.asInt(), is(42));
+      assertThat("IR cache for Lib was created", libCacheDir.toFile().exists(), is(true));
+    }
+
+    try (var ctx =
+        ctxInProj(projDir, true)
+            .withModifiedContext(
+                bldr -> bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName()))
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
+      polyCtx.getTopScope().compile(true);
+      var output = ctx.getOut();
+      assertThat(
+          "Lib IR cache was read",
+          output,
+          allOf(
+              containsString("Deserializing module"),
+              containsString("Lib"),
+              containsString("from IR file: true")));
+    }
+  }
+
+  @Test
   public void runningAfterPrivateCheckWasDisabled_ShouldFail() throws Exception {
     var libDir = tmpDir.newFolder("Lib").toPath();
     var projDir = tmpDir.newFolder("Proj").toPath();
