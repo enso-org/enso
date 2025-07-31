@@ -54,7 +54,7 @@ public final class LookupServicesNode extends Node {
           .foreach(
               pw -> {
                 var spiTypeName = pw.provides();
-                if (spiTypeName == null || !spiTypeName.equals(fqn.getQualifiedName().toString())) {
+                if (spiTypeName == null || !spiTypeName.equals(fqn.getQualifiedName())) {
                   return null;
                 }
 
