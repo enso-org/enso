@@ -236,7 +236,7 @@ basic language constructs are designed to handle them properly. Namely:
 - dispatching a method on one of the types, e.g. calling `x.method_defined_on_A`
   will pass the value `x` as `self` to the body of `method_defined_on_A`, the
   `self` will have a visible type `A`, but the full type is still
-  `self : A & (hidden B)` - so the `self` value can be casted if needed.
+  `self : A & ~B` - so the `self` value can be cast if needed.
 - normally, calling conversions will 'start over' and the value returned from
   one will not have an intersection type anymore. However, as long as possible,
   even conversions should try to use existing (even if hidden) parts of the type
