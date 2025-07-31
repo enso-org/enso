@@ -337,8 +337,6 @@ const isActive = ref(true)
 onActivated(() => (isActive.value = true))
 onDeactivated(() => (isActive.value = false))
 
-watchEffect(() => console.debug('isActive', isActive.value))
-
 useEventConditional(
   window,
   'keydown',

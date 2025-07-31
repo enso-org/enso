@@ -122,7 +122,6 @@ export function useEventConditional(
     condition,
     (conditionMet, _, onCleanup) => {
       if (conditionMet) {
-        console.debug('Attaching event handler', target, event)
         target.addEventListener(event, handler, options)
         onCleanup(() => target.removeEventListener(event, handler, options))
       }
