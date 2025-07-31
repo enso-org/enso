@@ -66,7 +66,7 @@ const makeSetPathUpdate = useSetPath({
 })
 
 function setPath(type: 'file' | 'secret', path: string) {
-  props.onUpdate(makeSetPathUpdate(type, path))
+  props.updateCallback(makeSetPathUpdate(type, path))
 }
 
 const write = computed(() => typeInfo.value.write)

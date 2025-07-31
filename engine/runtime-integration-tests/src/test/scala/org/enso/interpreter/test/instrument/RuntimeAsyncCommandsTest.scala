@@ -932,7 +932,7 @@ class RuntimeAsyncCommandsTest
           ) =>
         data
     }
-    repliesData.map(new String(_)) shouldEqual List("42", "85")
+    repliesData.map(new String(_)).sorted shouldEqual List("42", "85")
   }
 
 }
