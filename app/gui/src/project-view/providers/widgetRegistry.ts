@@ -316,7 +316,7 @@ export function widgetProps<T extends WidgetInput>(def: WidgetDefinition<T>) {
       type: String as unknown as PropType<WidgetTypeId>,
       default: def.widgetTypeId,
     },
-    onUpdate: { type: Function as PropType<UpdateHandler>, required: true },
+    updateCallback: { type: Function as PropType<UpdateHandler>, required: true },
   } as const
 }
 
