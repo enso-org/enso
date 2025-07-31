@@ -244,9 +244,9 @@ public final class EnsoContext {
     }
   }
 
-    private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
-        return environment.getInternalLanguages().get("epb");
-    }
+  private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
+      return environment.getInternalLanguages().get("epb");
+  }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
   private void checkWorkingDirectory(Optional<TruffleFile> maybeProjectRoot) {
