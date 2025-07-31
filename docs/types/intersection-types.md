@@ -220,19 +220,8 @@ this compound type may get _hidden_ when passing around various methods (e.g.
 its identity as a `Table & DB_Table` and can be uncovered via a cast or a case
 expression.
 
-It is important to ensure that various operations do not accidentally remove a
-part of the intersection type as then the value completely loses its part of
-functionality. If the `DB_Table` part is not hidden, but completely removed, the
-table can no longer be casted to `DB_Table` and used as such. This is confusing
-for users, as a database table cannot suddenly stop being a database table just
-by passing it around (including method calls) or casting.
-
-Consider a multi value `x : A & B`. We indicate hidden types as `(hidden T)` -
-they are not visible in the actual type, but can be uncovered via casts or
-reflection.
-
-To ensure the above properties, the interpreter ensures that the following
-operations only hide the intersection type, but do not remove it:
+To ensure intersection types properly propagate thru the Enso program the 
+basic language constructs are designed to handle them properly. Namely:
 
 - casting `x : A` will hide the `B` part, so the actual type is
   `x : A & (hidden B)`.
