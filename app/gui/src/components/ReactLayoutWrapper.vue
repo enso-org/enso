@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="P">
-import { PropsWithChildren } from 'react'
-import { applyPureReactInVue } from 'veaury'
+import { reactComponent as vueReactComponent } from '@/util/react'
+import type { PropsWithChildren } from 'react'
 import { computed } from 'vue'
 
 const { reactComponent, layoutProps } = defineProps<{
@@ -8,7 +8,7 @@ const { reactComponent, layoutProps } = defineProps<{
   layoutProps?: P
 }>()
 
-const vueLayout = computed(() => applyPureReactInVue(reactComponent))
+const vueLayout = computed(() => vueReactComponent(reactComponent) as any)
 </script>
 
 <template>
