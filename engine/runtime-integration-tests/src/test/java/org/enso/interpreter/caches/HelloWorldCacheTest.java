@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -90,7 +91,7 @@ public class HelloWorldCacheTest {
   }
 
   @Test
-  public void whenRunningWithDisablePrivateCheck_CachesAreRead() throws Exception {
+  public void whenRunningWithDisablePrivateCheck_NoCachesAreRead() throws Exception {
     var libDir = tmpDir.newFolder("Lib").toPath();
     ProjectUtils.createProject(
         "Lib", """
@@ -129,12 +130,13 @@ public class HelloWorldCacheTest {
       polyCtx.getTopScope().compile(true);
       var output = ctx.getOut();
       assertThat(
-          "Lib IR cache was read",
+          "Lib IR cache was not read",
           output,
-          allOf(
-              containsString("Deserializing module"),
-              containsString("Lib"),
-              containsString("from IR file: true")));
+          not(
+              allOf(
+                  containsString("Deserializing module"),
+                  containsString("Lib"),
+                  containsString("from IR file: true"))));
     }
   }
 
