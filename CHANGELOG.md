@@ -2,8 +2,10 @@
 
 #### Enso Language & Runtime
 
+- [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 
+[11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 
 # Next Release
