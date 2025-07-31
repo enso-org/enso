@@ -154,6 +154,7 @@ public final class Type extends EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
+    definitionScope.build();
     return definitionScope.asModuleScope();
   }
 
