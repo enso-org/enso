@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { textEditorsBindings } from '@/bindings'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
-import { toRef, useTemplateRef } from 'vue'
+import { computed, toRef, useTemplateRef } from 'vue'
 
 const props = defineProps<{
   referenceElement: HTMLElement
@@ -17,14 +17,31 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
   middleware: [flip()],
   whileElementsMounted: autoUpdate,
 })
+
+function showOpenProjectModal() {
+}
+
 </script>
 
 <template>
   <teleport to="#floatingLayer">
     <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
-      <a class="link" :href="href" target="_blank" rel="noopener,noreferrer">Follow link</a> ({{
-        textEditorsBindings.bindings.openLink.humanReadable
-      }})
+      <a
+        v-if="href.startsWith('enso:')"
+        class="link"
+        :href="href"
+        target="_blank"
+        rel="noopener,noreferrer"
+        >Follow link</a
+      >
+      <a
+        v-else
+        class="link"
+        @click="showOpenProjectModal"
+        >Follow link</a
+      >
+      ({{ textEditorsBindings.bindings.openLink.humanReadable }})
+    </div>
     </div>
   </teleport>
 </template>
