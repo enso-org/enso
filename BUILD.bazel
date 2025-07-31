@@ -25,18 +25,12 @@ write_source_files(
 ### Engine distribution ###
 ###########################
 
-ENV = {
-    "JAVA_HOME": "$(JAVABASE)",
-    "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
-    "LC_ALL": "C.UTF-8",
-    "SBT_SERVER_FORCESTART": "1",
-}
-
+# This is a test rule just to check if sbt was installed correctly.
+# Without addditional configuration, it will fail to start, but at least we run sbt.
 run_sbt(
-    name = "sbt_test",
+    name = "sbt_version",
     srcs = [],
     args = ["--version"],
-    env = ENV,
-    out_dir = "sbt_test",
+    out_dir = "sbt_version",
     visibility = ["//visibility:public"],
 )

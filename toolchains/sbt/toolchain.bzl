@@ -32,15 +32,3 @@ sbt_toolchain = rule(
         "sbt_binary": attr.string(mandatory = True),
     },
 )
-
-def _resolve_toolchain_impl(ctx):
-    toolchain_info = ctx.toolchains["@//toolchains/sbt:toolchain_type"]
-    return [
-        toolchain_info,
-        toolchain_info.template_variables,
-    ]
-
-resolve_toolchain = rule(
-    toolchains = ["@//toolchains/sbt:toolchain_type"],
-    implementation = _resolve_toolchain_impl,
-)
