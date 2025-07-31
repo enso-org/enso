@@ -12,7 +12,6 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Json import JS_Object
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
