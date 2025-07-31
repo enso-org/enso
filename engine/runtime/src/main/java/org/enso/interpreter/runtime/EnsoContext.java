@@ -141,9 +141,15 @@ public final class EnsoContext {
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
-    this.isIrCachingDisabled =
+    var irCacheDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
+    if (isPrivateCheckDisabled && !irCacheDisabled) {
+      logger.log(Level.INFO, "privateCheckDisabled implies disabled IR caching, but you have not set it explicitly. Disabling IR caching.");
+      this.isIrCachingDisabled = true;
+    } else {
+      this.isIrCachingDisabled = irCacheDisabled;
+    }
     this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     {
         var classLoading = getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
