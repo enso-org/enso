@@ -423,18 +423,16 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
-              .ifPresentOrElse(
-                  constr -> {
-                    Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(methodNodes, constr.getName());
-                    atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
-                  },
-                  () -> {
-                    Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
-                        getOrUpdate(methodNodes, builtinMethodOwner);
-                    atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
-                  });
+          var constr = scope.asModuleScope().getType(builtinMethodOwner, true);
+          if (constr != null) {
+            Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
+                getOrUpdate(methodNodes, constr.getName());
+            atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
+          } else {
+            Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
+                getOrUpdate(methodNodes, builtinMethodOwner);
+            atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
+          }
         });
     return methodNodes;
   }
@@ -841,12 +839,15 @@ public final class Builtins {
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
     Optional<BuiltinFunction> toFunction(EnsoLanguage language, boolean isStaticInstance) {
       try {
-        return Optional.ofNullable((Function) meth.invoke(null, language, isStaticInstance))
-            .map(f -> new BuiltinFunction(f, isAutoRegister));
+        var f = (Function) meth.invoke(null, language, isStaticInstance);
+        if (f != null) {
+          var bf = new BuiltinFunction(f, isAutoRegister);
+          return Optional.of(bf);
+        }
       } catch (Exception e) {
         e.printStackTrace();
-        return Optional.empty();
       }
+      return Optional.empty();
     }
   }
 }
