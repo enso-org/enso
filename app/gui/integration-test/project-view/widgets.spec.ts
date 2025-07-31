@@ -446,6 +446,8 @@ test('File Browser widget', async ({ page }) => {
 
 test('Manage aggregates in `aggregate` node', async ({ page }) => {
   await actions.goToGraph(page)
+  // Hide docpanel to not obscure long node.
+  await page.getByRole('tab', { name: 'Documentation' }).click()
   await mockMethodCallInfo(page, 'aggregated', {
     methodPointer: {
       module: 'Standard.Table.Table',
