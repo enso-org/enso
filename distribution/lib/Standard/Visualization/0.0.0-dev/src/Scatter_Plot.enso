@@ -58,7 +58,7 @@ json_from_table table bounds limit =
             axes_json = '{' + ((filtered.map p-> p.second.to_json + ':{"label":' + p.first.to_json + '}') . join ',') + '}'
 
             ## Create the data JSON
-            data_json = limited.rename_columns name_map . to_json
+            data_json = "[" + (limited.rename_columns name_map . rows . map .to_json_data . join ',') + "]"
 
             ## Render structure
             '{"data":' + data_json + ',"axis":' + axes_json + ',"is_multi_series":' + (data_columns.length > 1).to_json + ',"get_row_method":"get_row","x_value_type":"' + x_value_type.to_name + '","error_message":null}'
