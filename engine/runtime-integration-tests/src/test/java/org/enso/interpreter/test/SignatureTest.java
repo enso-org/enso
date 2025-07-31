@@ -9,6 +9,10 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
@@ -1504,6 +1508,290 @@ public class SignatureTest {
     var res = ctxRule.evalModule(code);
     assertEquals(res.getMetaObject().getMetaSimpleName(), "A");
     assertEquals("One call", "extension_method called", ctxRule.getOut().trim());
+  }
+
+  @Test
+  public void intersectionWithAny() {
+    var code =
+        """
+        from Standard.Base import Any
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+
+
+        A.from that:B =
+            A.A_Ctor that
+
+        both v -> A & B =
+            B.B_Ctor v
+
+        a_with x -> A & Any = x
+        b_with x -> B & Any = x
+
+        private tripple value =
+            v = both value
+            a = a_with v
+            b = b_with v
+            [v, a, b]
+
+        main = tripple
+        """;
+
+    ctxRule.resetOut();
+    var tripple = ctxRule.evalModule(code);
+    assertTrue("Executable", tripple.canExecute());
+
+    var res = tripple.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(3, res.getArraySize());
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+
+    assertEquals("YesA", v.invokeMember("i_am_a").asString());
+    assertEquals("YesB", v.invokeMember("i_am_b").asString());
+
+    assertEquals("YesA", a.invokeMember("i_am_a").asString());
+    assertEquals("A & Any keeps also B", "YesB", a.invokeMember("i_am_b").asString());
+
+    assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
+    assertEquals("YesB", b.invokeMember("i_am_b").asString());
+  }
+
+  @Test
+  public void intersectionWithAnyDoesNotRevealHidden() {
+    var code =
+        """
+        from Standard.Base import Any, Panic
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+
+
+        A.from that:B =
+            A.A_Ctor that
+
+        both v -> A & B =
+            B.B_Ctor v
+        just_a_visible v -> A = both v
+
+        a_with x -> A & Any =
+          x
+        a_unhide x -> A & Any =
+          x:(A & Any)
+        b_with x -> B & Any =
+          x
+        b_unhide x -> B & Any =
+          x:(B & Any)
+
+        private tripple value =
+            v = just_a_visible value
+            a = Panic.recover Any <| a_with v
+            au = Panic.recover Any <| a_unhide v
+            b = Panic.recover Any <| b_with v
+            bu = Panic.recover Any <| b_unhide v
+            [v, a, b, au, bu]
+
+        main = tripple
+        """;
+
+    ctxRule.resetOut();
+    var tripple = ctxRule.evalModule(code);
+    assertTrue("Executable", tripple.canExecute());
+
+    var res = tripple.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(5, res.getArraySize());
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+    var au = res.getArrayElement(3);
+    var bu = res.getArrayElement(4);
+
+    assertEquals("YesA", v.invokeMember("i_am_a").asString());
+    try {
+      var r = v.invokeMember("i_am_b");
+      fail("Unexpected return value " + r);
+    } catch (UnsupportedOperationException ex) {
+      assertContains("non-existent member key", ex.getMessage());
+      assertContains("i_am_b", ex.getMessage());
+    }
+
+    assertEquals("YesA", a.invokeMember("i_am_a").asString());
+    try {
+      // b was hidden and remains hidden
+      var r = a.invokeMember("i_am_b");
+      fail("Unexpected return value " + r);
+    } catch (UnsupportedOperationException ex) {
+      assertContains("non-existent member key", ex.getMessage());
+      assertContains("i_am_b", ex.getMessage());
+    }
+
+    assertEquals("YesA", au.invokeMember("i_am_a").asString());
+    assertEquals(
+        "Explicit x:(A & Any) reveals also hidden B", "YesB", au.invokeMember("i_am_b").asString());
+
+    assertTrue("Cannot reveal hidden B by -> check", b.isException());
+
+    assertEquals("B & Any keeps also A", "YesA", bu.invokeMember("i_am_a").asString());
+    assertEquals("B is unhidden", "YesB", bu.invokeMember("i_am_b").asString());
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyFirst() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var any = Stream.of("Any");
+          var stream = list.stream();
+          var both = Stream.concat(any, stream);
+          return both.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyAtTheEnd() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream();
+          var any = Stream.of("Any");
+          var both = Stream.concat(stream, any);
+          return both.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyEveryEven() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream().flatMap(t -> Stream.of(t, "Any"));
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyInMiddle() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var arr = new ArrayList<>(list);
+          arr.add(list.size() / 2, "Any");
+          var stream = arr.stream();
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyEveryOdd() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream().flatMap(t -> Stream.of("Any", t));
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  private void intersetionWithAnyKeepsOrder(Function<List<String>, String> spiceWithAny) {
+    var begin =
+        """
+        from Standard.Base import Any
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+            id self = self.i_am_a
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+            id self = self.i_am_b
+        type C
+            C_Ctor b
+
+            i_am_c self = "YesC"
+            id self = self.i_am_c
+
+        A.from that:B =
+            A.A_Ctor that
+        C.from that:B =
+            C.C_Ctor that
+
+        all_of v -> C & B & A =
+            B.B_Ctor v
+        """;
+
+    var middle =
+        "a_with x -> "
+            + spiceWithAny.apply(List.of("A"))
+            + " = x\n"
+            + "b_with x -> "
+            + spiceWithAny.apply(List.of("B"))
+            + " = x\n"
+            + "ab_with x -> "
+            + spiceWithAny.apply(List.of("A", "B"))
+            + " = x\n"
+            + "ba_with x -> "
+            + spiceWithAny.apply(List.of("B", "A"))
+            + " = x\n"
+            + "";
+
+    var end =
+        """
+        private all value =
+            v = all_of value
+            a = a_with v
+            b = b_with v
+            ab = ab_with v
+            ba = ba_with v
+
+            [v, a, b, ab, ba]
+
+        main = all
+        """;
+
+    ctxRule.resetOut();
+    var code = begin + middle + end;
+    var all = ctxRule.evalModule(code);
+    assertTrue("Executable", all.canExecute());
+
+    var res = all.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(5, res.getArraySize());
+
+    for (var i = 0; i < res.getArraySize(); i++) {
+      var at = res.getArrayElement(i);
+
+      assertEquals("Can call A at " + i, "YesA", at.invokeMember("i_am_a").asString());
+      assertEquals("Can call B at " + i, "YesB", at.invokeMember("i_am_b").asString());
+      assertEquals("Can call C at " + i, "YesC", at.invokeMember("i_am_c").asString());
+    }
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+    var ab = res.getArrayElement(3);
+    var ba = res.getArrayElement(4);
+
+    assertEquals("Call overloaded method selects first C", "YesC", v.invokeMember("id").asString());
+    assertEquals("Call overloaded method selects first A", "YesA", a.invokeMember("id").asString());
+    assertEquals("Call overloaded method selects first B", "YesB", b.invokeMember("id").asString());
+    assertEquals(
+        "Call overloaded method selects first A", "YesA", ab.invokeMember("id").asString());
+    assertEquals(
+        "Call overloaded method selects first B", "YesB", ba.invokeMember("id").asString());
   }
 
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
