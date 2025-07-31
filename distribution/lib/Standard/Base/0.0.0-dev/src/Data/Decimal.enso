@@ -1346,13 +1346,6 @@ type Decimal
     ## ---
        private: true
        ---
-    to_js_object : JS_Object
-    to_js_object self =
-        JS_Object.from_pairs [["type", "Decimal"], ["value", self.to_text]]
-
-    ## ---
-       private: true
-       ---
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
     to_text_without_scientific_notation : Text
