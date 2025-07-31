@@ -4,6 +4,7 @@ import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
+import MountGuard from '@/components/MountGuard.vue'
 import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
 import { useYTextSync } from '@/util/codemirror'
@@ -101,14 +102,11 @@ const { syncExt, connectSync } = useYTextSync(editorContent)
         />
       </template>
     </MarkdownEditor>
-    <!-- Specifying `<ResultComponent ... centered /> does not work with React components
-      `="true"` must be there-->
-    <ResultComponent
-      v-else
-      status="info"
-      :title="currentMethodAst.error.message('')"
-      :centered="true"
-    />
+    <MountGuard v-else>
+      <!-- Specifying `<ResultComponent ... centered /> does not work with React components
+        `="true"` must be there-->
+      <ResultComponent status="info" :title="currentMethodAst.error.message('')" :centered="true" />
+    </MountGuard>
   </div>
 </template>
 
