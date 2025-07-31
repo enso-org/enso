@@ -22,7 +22,7 @@ type X
 
 X.from (_:A) = X
 
-add_spec suite_builder =
+add_specs suite_builder =
     suite_builder.group "Meta_Helpers Tests" group_builder->
         type_name = Meta_Helpers.simple_type_name_builtin
 
@@ -40,6 +40,6 @@ add_spec suite_builder =
 
 main filter=Nothing =
     suite = Test.build suite_builder->
-        add_spec suite_builder
+        add_specs suite_builder
     suite.run_with_filter filter
 

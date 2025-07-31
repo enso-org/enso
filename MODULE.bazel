@@ -76,7 +76,6 @@ crate.from_cargo(
         "//:lib/rust/macro-utils/Cargo.toml",
         "//:lib/rust/metamodel/Cargo.toml",
         "//:lib/rust/parser/debug/Cargo.toml",
-        "//:lib/rust/parser/doc-parser/Cargo.toml",
         "//:lib/rust/parser/generate-java/Cargo.toml",
         "//:lib/rust/parser/jni/Cargo.toml",
         "//:lib/rust/parser/schema/Cargo.toml",

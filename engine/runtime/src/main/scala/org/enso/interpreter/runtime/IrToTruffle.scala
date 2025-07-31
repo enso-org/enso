@@ -14,6 +14,7 @@ import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
+  AscriptionReason,
   CallArgument,
   DefinitionArgument,
   Empty,
@@ -24,7 +25,6 @@ import org.enso.compiler.core.ir.{
   Module,
   Name,
   Pattern,
-  `type`,
   Type => Tpe
 }
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -57,7 +57,6 @@ import org.enso.compiler.pass.resolve.{
   GenericAnnotations,
   GlobalNames,
   Patterns,
-  TypeNames,
   TypeSignatures
 }
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -264,7 +263,10 @@ class IrToTruffle(
                 conversion.methodName.name,
                 fn.arguments,
                 fn.body,
-                TypeCheckValueNode.single("conversion", toType),
+                TypeCheckValueNode.single(
+                  AscriptionReason.forFunctionResult("conversion"),
+                  toType
+                ),
                 None,
                 true
               )
@@ -803,73 +805,14 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
-  private def extractAscribedType(
-    comment: String,
-    t: Expression
-  ): TypeCheckValueNode = t match {
-    case u: `type`.Set.Union =>
-      val oneOf = u.operands.map(extractAscribedType(comment, _))
-      if (oneOf.contains(null)) {
-        null
-      } else {
-        val arr: Array[TypeCheckValueNode] = oneOf.toArray
-        TypeCheckValueNode.oneOf(comment, arr: _*)
-      }
-    case i: `type`.Set.Intersection =>
-      TypeCheckValueNode.allOf(
-        comment,
-        extractAscribedType(comment, i.left),
-        extractAscribedType(comment, i.right)
-      )
-    case p: Application.Prefix => extractAscribedType(comment, p.function)
-    case _: Tpe.Function =>
-      TypeCheckValueNode.single(
-        comment,
-        context.getTopScope().getBuiltins().function()
-      )
-    case typeWithError: Tpe.Error =>
-      // When checking a `a ! b` type, we ignore the error part as it is only used for documentation purposes and is not checked.
-      extractAscribedType(comment, typeWithError.typed)
-    case typeInContext: Tpe.Context =>
-      // Type contexts aren't currently really used. But we should still check the base type.
-      extractAscribedType(comment, typeInContext.typed)
-    case err: errors.Resolution =>
-      TypeCheckValueNode.fail("unresolved symbol " + err.originalName.name)
-    case t => {
-      val res = t.getMetadata(TypeNames)
-      res match {
-        case Some(
-              BindingsMap
-                .Resolution(binding @ BindingsMap.ResolvedType(_, _))
-            ) =>
-          val typeOrAny = asType(binding)
-          if (context.getBuiltins().any() == typeOrAny) {
-            null
-          } else {
-            TypeCheckValueNode.single(comment, typeOrAny)
-          }
-        case Some(
-              BindingsMap
-                .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
-            ) =>
-          TypeCheckValueNode.meta(
-            comment,
-            asScope(
-              mod.unsafeAsModule().asInstanceOf[TruffleCompilerContext.Module]
-            ).getPolyglotSymbolSupplier(symbol.name)
-          )
-        case _ => null
-      }
-    }
-  }
-
   private def checkAsTypes(
     arg: DefinitionArgument
   ): TypeCheckValueNode = {
-    val comment = "`" + arg.name.name + "`"
     arg.ascribedType
       .map { t =>
-        TypeCheckValueNode.allTypes(false, extractAscribedType(comment, t))
+        val reason    = AscriptionReason.forParameter(arg.name.name)
+        val checkNode = IrTruffleUtils.extractAscribedType(context, reason, t)
+        TypeCheckValueNode.allTypes(false, checkNode)
       }
       .getOrElse(null)
   }
@@ -1238,7 +1181,11 @@ class IrToTruffle(
           processCase(caseExpr, subjectToInstrumentation)
         case asc: Tpe.Ascription =>
           val checkNode =
-            extractAscribedType(asc.comment.orNull, asc.signature)
+            IrTruffleUtils.extractAscribedType(
+              context,
+              asc.reason,
+              asc.signature
+            )
           if (checkNode != null) {
             val body = run(asc.typed, binding, subjectToInstrumentation)
             TypeCheckValueNode.wrap(body, checkNode)
@@ -1267,7 +1214,11 @@ class IrToTruffle(
             ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
             val checkNode =
-              extractAscribedType(tpe.comment.orNull, tpe.signature)
+              IrTruffleUtils.extractAscribedType(
+                context,
+                tpe.reason,
+                tpe.signature
+              )
             if (checkNode != null) {
               runtimeExpression =
                 TypeCheckValueNode.wrap(runtimeExpression, checkNode)

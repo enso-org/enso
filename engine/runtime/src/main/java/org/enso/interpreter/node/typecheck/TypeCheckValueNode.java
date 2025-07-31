@@ -4,11 +4,13 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.enso.compiler.core.ir.AscriptionReason;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -106,27 +108,42 @@ public final class TypeCheckValueNode extends Node {
    * @param checks existing type checks
    * @return node the composed check or {@code null} if no check is needed
    */
-  public static TypeCheckValueNode allOf(String comment, TypeCheckValueNode... checks) {
+  public static TypeCheckValueNode allOf(AscriptionReason comment, TypeCheckValueNode... checks) {
     if (checks == null) {
       return null;
     }
-    var list = Arrays.asList(checks);
-    var flatten =
-        list.stream()
-            .filter(n -> n != null)
-            .map(n -> n.check)
-            .flatMap(
-                n ->
-                    n instanceof AllOfTypesCheckNode all
-                        ? Arrays.asList(all.getChecks()).stream()
-                        : Stream.of(n))
-            .toList();
-    var arr = toArray(flatten);
-    return switch (arr.length) {
-      case 0 -> null;
-      case 1 -> new TypeCheckValueNode(arr[0], true);
-      default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, arr), true);
-    };
+    var collect = new ArrayList<AbstractTypeCheckNode>();
+    var allowThru = false;
+    for (var ch : Arrays.asList(checks)) {
+      if (ch == null) {
+        allowThru = true;
+      } else {
+        switch (ch.check) {
+          case AllOfTypesCheckNode all -> {
+            if (all.allowThru) {
+              allowThru = true;
+            }
+            collect.addAll(Arrays.asList(all.getChecks()));
+          }
+          case AbstractTypeCheckNode n -> collect.add(n);
+        }
+      }
+    }
+    var arr = toArray(collect);
+    var allTypes = comment.isAllTypes();
+    if (allowThru) {
+      var checkNode = new AllOfTypesCheckNode(comment.comment(), allowThru, arr);
+      return new TypeCheckValueNode(checkNode, allTypes);
+    } else {
+      return switch (arr.length) {
+        case 0 -> null;
+        case 1 -> new TypeCheckValueNode(arr[0], true);
+        default -> {
+          var checkNode = new AllOfTypesCheckNode(comment.comment(), allowThru, arr);
+          yield new TypeCheckValueNode(checkNode, allTypes);
+        }
+      };
+    }
   }
 
   /**
@@ -136,7 +153,7 @@ public final class TypeCheckValueNode extends Node {
    * @param checks existing type checks
    * @return node the composed check or {@code null} if no check is needed
    */
-  public static TypeCheckValueNode oneOf(String comment, TypeCheckValueNode... checks) {
+  public static TypeCheckValueNode oneOf(AscriptionReason comment, TypeCheckValueNode... checks) {
     if (checks == null) {
       return null;
     }
@@ -147,7 +164,8 @@ public final class TypeCheckValueNode extends Node {
       default -> {
         var abstractTypeCheckList = list.stream().map(n -> n.check).toList();
         var abstractTypeCheckArr = toArray(abstractTypeCheckList);
-        yield new TypeCheckValueNode(new OneOfTypesCheckNode(comment, abstractTypeCheckArr), true);
+        yield new TypeCheckValueNode(
+            new OneOfTypesCheckNode(comment.comment(), abstractTypeCheckArr), comment.isAllTypes());
       }
     };
   }
@@ -163,9 +181,10 @@ public final class TypeCheckValueNode extends Node {
    * @param expectedType the type to check for - it shouldn't be {@code Any}
    * @return node performing the check
    */
-  public static TypeCheckValueNode single(String comment, Type expectedType) {
-    var typeCheckNodeImpl = SingleTypeCheckNodeGen.create(comment, expectedType);
-    return new TypeCheckValueNode(typeCheckNodeImpl, true);
+  public static TypeCheckValueNode single(AscriptionReason comment, Type expectedType) {
+    var checkNode = SingleTypeCheckNodeGen.create(comment.comment(), expectedType);
+    var allTypes = comment.isAllTypes();
+    return new TypeCheckValueNode(checkNode, allTypes);
   }
 
   /**
@@ -176,10 +195,10 @@ public final class TypeCheckValueNode extends Node {
    * @return node performing the check
    */
   public static TypeCheckValueNode meta(
-      String comment, Supplier<? extends Object> metaObjectSupplier) {
+      AscriptionReason comment, Supplier<? extends Object> metaObjectSupplier) {
     var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
-    var typeCheckNodeImpl = new MetaTypeCheckNode(comment, cachingSupplier);
-    return new TypeCheckValueNode(typeCheckNodeImpl, true);
+    var typeCheckNodeImpl = new MetaTypeCheckNode(comment.comment(), cachingSupplier);
+    return new TypeCheckValueNode(typeCheckNodeImpl, comment.isAllTypes());
   }
 
   /**

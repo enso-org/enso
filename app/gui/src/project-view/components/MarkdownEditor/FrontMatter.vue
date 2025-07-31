@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { DocumentationMetadata } from '@/components/ComponentHelp/metadata'
 import DocsTag from '@/components/MarkdownEditor/DocsTag.vue'
-import { computed, ref, watch } from 'vue'
+import { useResizeObserver } from '@/composables/events'
+import { computed, ref, useTemplateRef } from 'vue'
 
 const { metadata } = defineProps<{
   metadata: DocumentationMetadata
@@ -11,107 +12,107 @@ interface Tag {
   label: string
   value?: string
   class?: string
-  style?: { [key: string]: string | number | undefined }
+}
+
+function simple(value: string | undefined, label: string): Tag[] {
+  if (value == null) return []
+  return [{ label, value }]
+}
+
+function labelOnly(
+  value: any | undefined,
+  label: string | ((s: string) => string),
+  className?: string | true,
+): Tag[] {
+  if (value == null) return []
+  if (typeof label === 'function') label = label(value)
+  return [
+    {
+      label,
+      ...(className === true ? { class: label }
+      : className != null ? { class: className }
+      : {}),
+    },
+  ]
+}
+
+function groupLabel(group: string): string {
+  return group.toLowerCase().replace('standard.base.', '')
 }
 
 const tags = computed<Tag[]>(() => {
   return [
-    ...(metadata.group ?
-      [
-        {
-          label: metadata.group.toLowerCase().replace('standard.base.', ''),
-          style: {
-            'background-color': 'var(--enso-docs-group-color, #5f5e5e)',
-            color: '#fff',
-          },
-        },
-      ]
-    : []),
-    ...(metadata.unstable ?
-      [
-        {
-          label: 'unstable',
-          style: {
-            'background-color': '#e85252',
-            color: '#fff',
-          },
-        },
-      ]
-    : []),
-    ...(metadata.advanced ?
-      [
-        {
-          label: 'advanced',
-          style: {
-            'background-color': '#e89d51',
-            color: '#fff',
-          },
-        },
-      ]
-    : []),
-    ...(metadata.deprecated ?
-      [
-        {
-          label: 'deprecated',
-          style: {
-            'background-color': '#e89d51',
-            color: '#fff',
-          },
-        },
-      ]
-    : []),
-    ...(metadata.private ? [{ label: 'private' }] : []),
-    ...(metadata.aliases ?? []).map((value) => ({ label: value })),
-    ...(metadata.macros ?? []).map(({ description }) => ({
-      label: description,
-    })),
-    ...(metadata.added ? [{ label: 'added', value: metadata.added }] : []),
-    ...(metadata.modified ? [{ label: 'modified', value: metadata.modified }] : []),
-    ...(metadata.removed ? [{ label: 'removed', value: metadata.removed }] : []),
-    ...(metadata.upcoming ? [{ label: 'upcoming', value: metadata.upcoming }] : []),
+    ...labelOnly(metadata.group, groupLabel, 'group'),
+    ...labelOnly(metadata.unstable, 'unstable', true),
+    ...labelOnly(metadata.advanced, 'advanced', true),
+    ...labelOnly(metadata.deprecated, 'deprecated', true),
+    ...labelOnly(metadata.private, 'private'),
+    ...(metadata.aliases ?? []).map((label) => ({ label })),
+    ...(metadata.macros ?? []).map(({ description: label }) => ({ label })),
+    ...simple(metadata.added, 'added'),
+    ...simple(metadata.modified, 'modified'),
+    ...simple(metadata.removed, 'removed'),
+    ...simple(metadata.upcoming, 'upcoming'),
   ]
 })
 
 // === Show/hide excess tags. ===
+const showAll = ref(false)
 
-const containerRef = ref<HTMLDivElement>()
-const parentOffset = computed(() => containerRef.value?.offsetTop ?? 0)
+/** A height of one line of tags. */
+const LINE_HEIGHT = 24
 
-const hiddenTags = ref(0)
-const tagWasHidden = () => (hiddenTags.value += 1)
-const someTagsAreHidden = computed(() => hiddenTags.value > 0)
-
-const showAllTags = ref(false)
-const showEllipsis = computed(() => someTagsAreHidden.value && !showAllTags.value)
-watch(
-  () => tags,
-  () => {
-    showAllTags.value = false
-    hiddenTags.value = 0
-  },
-)
+const containerRef = useTemplateRef('containerRef')
+const size = useResizeObserver(containerRef)
+const hasOverflow = computed(() => {
+  if (containerRef.value == null) return false
+  const _track = size.value
+  return containerRef.value.scrollHeight > LINE_HEIGHT
+})
 </script>
 
 <template>
-  <div v-if="tags.length > 0" ref="containerRef" class="Tags">
-    <template v-for="(tag, i) in tags" :key="i">
-      <DocsTag
-        class="Tag"
-        v-bind="tag"
-        :parentOffset="parentOffset"
-        :forceShow="showAllTags"
-        @hidden="tagWasHidden"
-      />
-    </template>
-    <button v-if="showEllipsis" class="Tag button" @click="() => (showAllTags = true)">…</button>
+  <div v-if="tags.length > 0" class="FrontMatter" :style="{ '--line-height': `${LINE_HEIGHT}px` }">
+    <div ref="containerRef" :class="{ Tags: true, showAll }">
+      <template v-for="(tag, i) in tags" :key="i">
+        <DocsTag v-bind="tag" />
+      </template>
+    </div>
+    <button v-if="hasOverflow" class="ellipsisButton" @click="() => (showAll = !showAll)">…</button>
   </div>
 </template>
 
 <style scoped>
+.FrontMatter {
+  display: flex;
+  gap: 2px;
+  align-items: end;
+}
+
 .Tags {
   display: flex;
+  flex-shrink: 1;
   flex-flow: row wrap;
+  overflow: hidden;
+  max-height: var(--line-height);
   align-items: start;
   gap: 2px;
+  position: relative;
+  transition: max-height ease-in-out 0.2s;
+
+  &.showAll {
+    flex-wrap: wrap;
+    overflow: visible;
+    max-height: 500px;
+  }
+}
+
+.ellipsisButton {
+  flex: 0 0 auto;
+  height: var(--line-height);
+  color: rgba(0, 0, 0, 0.6);
+  background-color: #dcd8d8;
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 </style>

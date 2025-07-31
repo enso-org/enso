@@ -106,7 +106,7 @@ type Table
         - If column names are not distinct, an error is returned.
         - If any columns have an inconsistent number of records, an error is
           returned.
-    new (columns : Vector (Vector | Column)) -> Table & In_Memory_Table | Any =
+    new (columns : Vector (Vector | Column)) -> Table & In_Memory_Table & Any =
         In_Memory_Table.new columns
 
     ## ---
@@ -137,7 +137,7 @@ type Table
                  Table.from_rows header [row_1, row_2, row_3]
        ```
     @header (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='"Column"')
-    from_rows header:Vector rows:Vector -> Table & In_Memory_Table | Any =
+    from_rows header:Vector rows:Vector -> Table & In_Memory_Table & Any =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
 
@@ -166,7 +166,7 @@ type Table
           is repeated, an error is thrown.  ? Consistent Row Count All columns
           must have the same number of rows. If a column has a different number
           of entries, an error is thrown.
-    input (columns : Vector (Vector | Column)) -> Table & In_Memory_Table | Any =
+    input (columns : Vector (Vector | Column)) -> Table & In_Memory_Table & Any =
         throw_bad_column = Error.throw (Illegal_Argument.Error "Each column must be represented as a Vector of column name (Text), data (vector like elements) and optionally a type (Value_Type), or an existing column.")
         resolved_columns = columns.map c-> case c of
             _ : Column -> c
@@ -252,11 +252,13 @@ type Table
        appear in the input.
     @tables (Widget.Vector_Editor item_default='_' display=Display.Always)
     @columns_to_keep Columns_To_Keep.default_widget
-    from_union (tables : Vector Table) columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & In_Memory_Table | Any ! No_Output_Columns | Illegal_Argument =
+    from_union (tables : Vector Table) columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & In_Memory_Table & Any ! No_Output_Columns | Illegal_Argument =
         all_tables = (tables.map t-> t:Table)
-        if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
+        raw = if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
             if all_tables.length == 1 then all_tables.first else
                 Union.make_union all_tables columns_to_keep match_columns on_problems
+        # explicitly uncover hidden types
+        raw:(Table & In_Memory_Table & Any)
 
     ## ---
        private: true
@@ -629,7 +631,7 @@ type Table
        length or being fixed or variable length. Similarly, `..Integer` will
        match any integer column, regardless of its size.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    select_columns self (columns : Vector | Text | Integer | Regex | By_Type = [self.columns.first.name]) reorder:Boolean=False case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Output_Columns | Missing_Input_Columns =
+    select_columns self (columns : Vector | Text | Integer | Regex | By_Type = [self.columns.first.name]) reorder:Boolean=False case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns =
         self.implementation.select_columns self.underlying columns reorder case_sensitivity error_on_missing_columns on_problems
 
     ## ---
@@ -647,7 +649,7 @@ type Table
           be selected. If `False`, columns with related types will also be
           selected (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    select_columns_by_type self (types : Vector Value_Type) strict:Boolean=False -> Table | Any =
+    select_columns_by_type self (types : Vector Value_Type) strict:Boolean=False -> Table & Any =
         self.implementation.select_columns_by_type self.underlying types strict
 
     ## ---
@@ -750,7 +752,7 @@ type Table
        length or being fixed or variable length. Similarly, `..Integer` will
        match any integer column, regardless of its size.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    remove_columns self (columns : Vector | Text | Integer | Regex | By_Type = [self.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Output_Columns | Missing_Input_Columns =
+    remove_columns self (columns : Vector | Text | Integer | Regex | By_Type = [self.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns =
         self.implementation.remove_columns self.underlying columns case_sensitivity error_on_missing_columns on_problems
 
     ## ---
@@ -822,7 +824,7 @@ type Table
 
        ### What is a blank value?
        Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    select_blank_columns self when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table | Any ! No_Output_Columns =
+    select_blank_columns self when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table & Any ! No_Output_Columns =
         self.implementation.select_blank_columns self.underlying when treat_nans_as_blank
 
     ## ---
@@ -873,7 +875,7 @@ type Table
 
        ### What is a blank value?
        Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    remove_blank_columns self when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table | Any ! No_Output_Columns =
+    remove_blank_columns self when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table & Any ! No_Output_Columns =
         self.implementation.remove_blank_columns self.underlying when treat_nans_as_blank
 
     ## ---
@@ -972,7 +974,7 @@ type Table
           setting, unless `error_on_missing_columns` is set to `True`, in which
           case it is raised as an error.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    reorder_columns self (columns : Vector | Text | Integer | Regex | By_Type = [self.columns.first.name]) position:Position=..Before_Other_Columns case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Missing_Input_Columns =
+    reorder_columns self (columns : Vector | Text | Integer | Regex | By_Type = [self.columns.first.name]) position:Position=..Before_Other_Columns case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Missing_Input_Columns =
         self.implementation.reorder_columns self.underlying columns position case_sensitivity error_on_missing_columns on_problems
 
     ## ---
@@ -1035,7 +1037,7 @@ type Table
        The text ordering method uses Unicode normalization to ensure that the
        text is sorted correctly. This means that text that looks the same but is
        represented differently will be sorted in the same way.
-    sort_columns self order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default -> Table | Any =
+    sort_columns self order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default -> Table & Any =
         self.implementation.sort_columns self.underlying order text_ordering
 
     ## ---
@@ -1167,7 +1169,7 @@ type Table
        renaming. Marked groups can be used in the new name by using `$1`, `$2`,
        etc.
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns self (column_map : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector = Missing_Argument.throw "column_map") case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names =
+    rename_columns self (column_map : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector = Missing_Argument.throw "column_map") case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names =
         self.implementation.rename_columns self.underlying column_map case_sensitivity error_on_missing_columns on_problems
 
     ## ---
@@ -1203,7 +1205,7 @@ type Table
           `Invalid_Column_Names`.
         - If any of the new names clash either with existing names or each other,
           a `Duplicate_Output_Column_Names`.
-    use_first_row_as_names self on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    use_first_row_as_names self on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.use_first_row_as_names self.underlying on_problems
 
     ## ---
@@ -1310,7 +1312,7 @@ type Table
         - A new table with the group_by columns as well as any aggregate columns.
     @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
-    aggregate self (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (columns : Vector Aggregate_Column = []) error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings =
+    aggregate self (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (columns : Vector Aggregate_Column = []) error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings =
         self.implementation.aggregate self.underlying group_by columns error_on_missing_columns on_problems
 
     ## ---
@@ -1407,7 +1409,7 @@ type Table
        ### Missing Values
        Missing (`Nothing`) values are sorted as less than any other object.
     @columns Widget_Helpers.make_order_by_selector
-    sort self (columns : Vector Sort_Column | Sort_Column = Missing_Argument.throw "columns") text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
+    sort self (columns : Vector Sort_Column | Sort_Column = Missing_Argument.throw "columns") text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
         self.implementation.sort self.underlying columns text_ordering error_on_missing_columns on_problems
 
     ## ---
@@ -1417,7 +1419,7 @@ type Table
        ---
        Deprecated - use `Table.sort` instead.
     @columns Widget_Helpers.make_order_by_selector
-    order_by self (columns : Vector (Text | Sort_Column) | Text = [self.columns.first.name]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
+    order_by self (columns : Vector (Text | Sort_Column) | Text = [self.columns.first.name]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
         self.implementation.order_by self.underlying columns text_ordering error_on_missing_columns on_problems
 
     ## ---
@@ -1489,7 +1491,7 @@ type Table
           `Floating_Point_Equality` is reported according to the `on_problems`
           setting.
     @columns Widget_Helpers.make_column_name_multi_selector
-    distinct self (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = self.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
+    distinct self (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = self.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
         self.implementation.distinct self.underlying columns case_sensitivity on_problems
 
     ## ---
@@ -1521,7 +1523,7 @@ type Table
           `Floating_Point_Equality` is reported according to the `on_problems`
           setting.
     @columns Widget_Helpers.make_column_name_multi_selector
-    duplicates self (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = self.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
+    duplicates self (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = self.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
         self.implementation.duplicates self.underlying columns case_sensitivity on_problems
 
     ## ---
@@ -1657,7 +1659,7 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @type Widget_Helpers.parse_type_selector
     @format Widget_Helpers.make_format_chooser_for_parse
-    parse self (columns : Vector (Text | Integer | Regex) | Text | Integer | Regex = self.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    parse self (columns : Vector (Text | Integer | Regex) | Text | Integer | Regex = self.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.parse self.underlying columns type format error_on_missing_columns on_problems
 
     ## ---
@@ -1760,7 +1762,7 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
     @format Widget_Helpers.make_format_chooser_for_selection
-    format self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Date_Time_Format_Parse_Error | Illegal_Argument =
+    format self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument =
         self.implementation.format self.underlying columns format locale error_on_missing_columns on_problems
 
     ## ---
@@ -1824,7 +1826,7 @@ type Table
        Due to this, a Mixed column containing values `[2, "3"]` will actually be
        converted into `[2, Nothing]` when casting to Integer type.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
+    cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         self.implementation.cast self.underlying columns value_type error_on_missing_columns on_problems
 
     ## ---
@@ -1875,7 +1877,7 @@ type Table
        are no longer than 255 characters, the column will get a max length of
        255. Otherwise, the column size limit will stay unchanged.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    auto_cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = self.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    auto_cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = self.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.auto_cast self.underlying columns shrink_types error_on_missing_columns on_problems
 
     ## ---
@@ -1953,7 +1955,7 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
-    split_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    split_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.split_to_columns self.underlying column delimiter column_count on_problems
 
     ## ---
@@ -1973,7 +1975,7 @@ type Table
         - `delimiter`: The term or terms used to split the text.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
-    split_to_rows self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> Table | Any =
+    split_to_rows self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> Table & Any =
         self.implementation.split_to_rows self.underlying column delimiter
 
     ## ---
@@ -2004,7 +2006,7 @@ type Table
         - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
           be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
-    tokenize_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    tokenize_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.tokenize_to_columns self.underlying column pattern case_sensitivity column_count on_problems
 
     ## ---
@@ -2033,7 +2035,7 @@ type Table
           values. Equivalent to converting a tokenization output of [] to
           [Nothing].
     @column Widget_Helpers.make_column_name_selector
-    tokenize_to_rows self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> Table | Any =
+    tokenize_to_rows self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> Table & Any =
         self.implementation.tokenize_to_rows self.underlying column pattern case_sensitivity at_least_one_row
 
     ## ---
@@ -2067,7 +2069,7 @@ type Table
        suffixing strategy.
     @column Widget_Helpers.make_column_name_selector
     @pattern Widget.Text_Input
-    parse_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> Table | Any =
+    parse_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> Table & Any =
         self.implementation.parse_to_columns self.underlying column pattern case_sensitivity parse_values on_problems
 
     ## ---
@@ -2084,7 +2086,7 @@ type Table
           is used.
     @column Widget_Helpers.make_column_name_selector
     @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
-    expand_column self (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> Table | Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+    expand_column self (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> Table & Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         self.implementation.expand_column self.underlying column fields prefix
 
     ## ---
@@ -2122,7 +2124,7 @@ type Table
          table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
          # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
     @column Widget_Helpers.make_column_name_selector
-    expand_to_rows self (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> Table | Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+    expand_to_rows self (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> Table & Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         self.implementation.expand_to_rows self.underlying column at_least_one_row
 
     ## ---
@@ -2245,7 +2247,7 @@ type Table
        `Is_Not_Nothing` condition (or `Is_Nothing` to filter out non-`Nothing`).
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
-    filter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
+    filter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
         self.implementation.filter self.underlying column filter on_problems
 
     ## ---
@@ -2284,7 +2286,7 @@ type Table
           `Arithmetic_Error`.
         - If more than 10 rows encounter computation issues, an
           `Additional_Warnings`.
-    filter_by_expression self expression:Text on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Such_Column | Invalid_Value_Type | Expression_Error =
+    filter_by_expression self expression:Text on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Such_Column | Invalid_Value_Type | Expression_Error =
         self.implementation.filter_by_expression self.underlying expression on_problems
 
     ## ---
@@ -2323,7 +2325,7 @@ type Table
        For the purposes of the `Index_Sub_Range.While` predicate a single
        "element" of the table is represented by the `Row` type.
     @range (self-> Index_Sub_Range.default_widget self.row_count)
-    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Table | Any =
+    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Table & Any =
         self.implementation.take self.underlying range
 
     ## ---
@@ -2359,7 +2361,7 @@ type Table
        Database backends support all range types except `While` and `Sample`
        In-memory tables support all range types.
     @range (self-> Index_Sub_Range.default_widget self.row_count)
-    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Table | Any =
+    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Table & Any =
         self.implementation.drop self.underlying range
 
     ## ---
@@ -2409,7 +2411,7 @@ type Table
     @from (Widget.Numeric_Input display=..Always)
     @group_by (Widget_Helpers.make_column_name_multi_selector display=..When_Modified)
     @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
-    add_row_number self name:Text="Row" from:Integer=0 step:Integer=1 (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    add_row_number self name:Text="Row" from:Integer=0 step:Integer=1 (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.add_row_number self.underlying name from step group_by order_by on_problems
 
     ## ---
@@ -2506,7 +2508,7 @@ type Table
     @grouping_method (Widget_Helpers.make_grouping_method_selector display=..Always)
     @name (Widget.Text_Input display=..Always)
     @from (Widget.Numeric_Input display=..Always)
-    add_group_number self (grouping_method : Grouping_Method = Missing_Argument.throw "grouping_method") name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    add_group_number self (grouping_method : Grouping_Method = Missing_Argument.throw "grouping_method") name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.add_group_number self.underlying grouping_method name from step on_problems
 
     ## ---
@@ -2531,7 +2533,7 @@ type Table
         - `from`: The starting value for the enumeration. Defaults to 0.
         - `step`: The amount to increment the enumeration by. Defaults to 1.
     @over (t-> make_single_choice ([Option "<Row>" "..Row"] + t.column_names) display=..When_Modified)
-    find_group_number self (predicate=Missing_Argument.throw "predicate") (over:Predicate_Over = ..Row) group_row:Group_Row=..First name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    find_group_number self (predicate=Missing_Argument.throw "predicate") (over:Predicate_Over = ..Row) group_row:Group_Row=..First name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.find_group_number self.underlying predicate over group_row name from step on_problems
 
     ## ---
@@ -2585,7 +2587,7 @@ type Table
         - If more than 10 rows encounter computation issues, an
           `Additional_Warnings`.
     @value Simple_Expression.default_widget
-    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         self.implementation.set self.underlying value as set_mode on_problems
 
     ## ---
@@ -2852,7 +2854,7 @@ type Table
        `table.join other on=[..Equals "A" "A", ..Equals "B" "B"]`
     @on Widget_Helpers.make_join_condition_selector
     @join_kind Join_Kind.default_widget
-    join self (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals self.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    join self (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals self.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.join self.underlying right join_kind on right_prefix on_problems
 
     ## ---
@@ -2893,7 +2895,7 @@ type Table
        This applies only if the order of the rows was specified (for example, by
        sorting the table; in-memory tables will keep the memory layout order
        while for database tables the order may be unspecified).
-    cross_join self (right : Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    cross_join self (right : Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.cross_join self.underlying right right_row_limit right_prefix on_problems
 
     ## ---
@@ -2955,7 +2957,7 @@ type Table
        In the Database backend, there are no guarantees related to ordering of
        results.
     @key_columns Widget_Helpers.make_column_name_multi_selector
-    merge self (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+    merge self (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         self.implementation.merge self.underlying lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ---
@@ -3041,7 +3043,7 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @from_column Widget.Text_Input
     @to_column Widget.Text_Input
-    replace self (lookup_table : Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Text | Integer | Regex | By_Type | Vector (Text | Integer | Regex | By_Type) = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+    replace self (lookup_table : Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Text | Integer | Regex | By_Type | Vector (Text | Integer | Regex | By_Type) = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         self.implementation.replace self.underlying lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ---
@@ -3095,7 +3097,7 @@ type Table
        ### Row Ordering For Database Tables
        The ordering of rows in the resulting table is not specified.
     @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
-    zip self (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    zip self (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.zip self.underlying right keep_unmatched right_prefix on_problems
 
     ## ---
@@ -3172,7 +3174,7 @@ type Table
        appear in the input.
     @tables (Widget.Vector_Editor item_default='_' display=Display.Always)
     @columns_to_keep Columns_To_Keep.default_widget
-    union self (tables : Table | Vector = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    union self (tables : Table | Vector = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.union self.underlying tables columns_to_keep match_columns on_problems
 
     ## ---
@@ -3200,7 +3202,7 @@ type Table
 
        ### Blank values
        Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    filter_blank_rows self when:Blank_Selector=..Any_Cell treat_nans_as_blank:Boolean=False -> Table | Any =
+    filter_blank_rows self when:Blank_Selector=..Any_Cell treat_nans_as_blank:Boolean=False -> Table & Any =
         self.implementation.filter_blank_rows self.underlying when treat_nans_as_blank
 
     ## ---
@@ -3234,7 +3236,7 @@ type Table
        ## Arguments
         - `max_rows`: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = self.implementation.default_max_rows) -> Table | Any =
+    read self (max_rows : Rows_To_Read = self.implementation.default_max_rows) -> Table & Any =
         self.implementation.read self.underlying max_rows
 
     ## ---
@@ -3254,7 +3256,7 @@ type Table
 
              example_info = Examples.inventory_table.column_info
        ```
-    column_info self -> Table | Any =
+    column_info self -> Table & Any =
         self.implementation.column_info self.underlying
 
     ## ---
@@ -3313,7 +3315,7 @@ type Table
           `Duplicate_Output_Column_Names` is reported according to the
           `on_problems` setting.
     @key_columns Widget_Helpers.make_column_name_multi_selector
-    transpose self (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
+    transpose self (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
         self.implementation.transpose self.underlying key_columns attribute_column_name value_column_name error_on_missing_columns on_problems
 
     ## ---
@@ -3377,7 +3379,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @names Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
-    cross_tab self (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> Table | Any ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
+    cross_tab self (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
         self.implementation.cross_tab self.underlying group_by names values on_problems
 
     ## ---
@@ -3403,7 +3405,7 @@ type Table
 
              example_reverse = Examples.inventory_table.reverse
        ```
-    reverse self -> Table | Any =
+    reverse self -> Table & Any =
         self.implementation.reverse self.underlying
 
     ## ---
@@ -3579,7 +3581,7 @@ type Table
        ```
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default make_fill_nothing_default_widget
-    fill_nothing self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table | Any =
+    fill_nothing self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table & Any =
         columns.if_not_error <|
             self.implementation.fill_nothing self.underlying columns default
 
@@ -3608,7 +3610,7 @@ type Table
        ```
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default (self-> Widget_Helpers.make_fill_default_value_selector (self.select_columns (..By_Type ..Char)) value_types=Value_Type.Char add_nothing=True)
-    fill_empty self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table | Any =
+    fill_empty self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table & Any =
         columns.if_not_error <|
             self.implementation.fill_empty self.underlying columns default
 
@@ -3659,7 +3661,7 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Table | Any =
+    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Table & Any =
         columns.if_not_error <|
             self.implementation.text_replace self.underlying columns term new_text case_sensitivity only_first
 
@@ -3709,7 +3711,7 @@ type Table
                | World |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = (Missing_Argument.throw "columns")) (remove : Vector Named_Pattern = []) -> Table | Any =
+    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = (Missing_Argument.throw "columns")) (remove : Vector Named_Pattern = []) -> Table & Any =
         columns.if_not_error <|
             self.implementation.text_cleanse self.underlying columns remove
 
@@ -3763,7 +3765,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
-    running self statistic:Statistic=..Count (of : Text | Integer = 0) as:Text='' set_mode:Set_Mode=..Add (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    running self statistic:Statistic=..Count (of : Text | Integer = 0) as:Text='' set_mode:Set_Mode=..Add (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.running self.underlying statistic of as set_mode group_by order_by on_problems
 
     ## ---
@@ -3822,7 +3824,7 @@ type Table
     @default (self-> Widget_Helpers.make_fill_default_value_selector2)
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
-    offset self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table | Any =
+    offset self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
         self.implementation.offset self.underlying columns n fill_with group_by order_by set_mode on_problems
 
     ## ---

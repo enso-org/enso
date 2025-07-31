@@ -514,12 +514,10 @@ class EnsureCompiledJob(
   private def sendDiagnosticUpdates(
     diagnostics: Seq[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
-    if (diagnostics.nonEmpty) {
-      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
-        ctx.endpoint.sendToClient(
-          Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
-        )
-      }
+    ctx.contextManager.getAllContexts.keys.foreach { contextId =>
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
+      )
     }
 
   /** Send notification about the compilation status.

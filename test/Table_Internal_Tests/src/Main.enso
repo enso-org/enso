@@ -3,9 +3,11 @@ from Standard.Base import all hiding IO
 from Standard.Test import Test
 
 import project.Helpers.Auto_Constructor_Instrumentation_Spec
+import project.Types.Table_Column_Any_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
         Auto_Constructor_Instrumentation_Spec.add_specs suite_builder
+        Table_Column_Any_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

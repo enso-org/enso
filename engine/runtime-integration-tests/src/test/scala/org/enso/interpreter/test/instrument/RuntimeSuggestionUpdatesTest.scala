@@ -759,7 +759,9 @@ class RuntimeSuggestionUpdatesTest
     context.send(
       Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
