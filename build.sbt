@@ -5017,7 +5017,7 @@ lazy val `std-image` = project
     Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
-      val prev              = (Compile / packageBin).value
+      val stdImageJar       = (Compile / packageBin).value
       StdBits
         .copyDependencies(
           `image-polyglot-root`,
@@ -5034,7 +5034,7 @@ lazy val `std-image` = project
             Seq((`opencv-wrapper` / extractedFilesDir).value),
           extraJars = Seq((`opencv-wrapper` / thinJarOutput).value)
         )
-      prev
+      stdImageJar
     },
     clean := Def.task {
       val _ = clean.value
@@ -5414,9 +5414,9 @@ lazy val `std-microsoft` = project
       "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
     ),
     Compile / packageBin := {
-      val result            = (Compile / packageBin).value
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
+      val stdMicrosoftJar   = (Compile / packageBin).value
       StdBits
         .copyDependencies(
           `std-microsoft-polyglot-root`,
@@ -5454,7 +5454,7 @@ lazy val `std-microsoft` = project
           ),
           cacheStoreFactory = cacheStoreFactory
         )
-      result
+      stdMicrosoftJar
     },
     clean := Def.task {
       val _ = clean.value
