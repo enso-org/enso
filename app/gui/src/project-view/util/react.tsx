@@ -11,7 +11,7 @@ import type { Opt } from 'ydoc-shared/util/data/opt'
 /**
  * Creates a Vue component wrapping a React component.
  *
- * This should always be used in preference to {@link applyPureReactInVue}; its type information
+ * This should always be used in preference to {@link applyPureReactInVue}; its type information is
  * more precise, and it works around a bug.
  */
 export function reactComponent<Props extends object>(
