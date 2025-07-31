@@ -1211,23 +1211,31 @@ add_specs suite_builder =
             0.up_to 100 . each i->
                 ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
                 w0 = xlsx_sheet.read
+                IO.println "ZZZZZ Excel_Spec w0 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
                 w1 = xlsx_sheet.read
+                IO.println "ZZZZZ Excel_Spec w1 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
                 w2 = xls_sheet.read
+                IO.println "ZZZZZ Excel_Spec w2 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
                 w3 = xls_sheet.read
+                IO.println "ZZZZZ Excel_Spec w3 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
                 [w0, w1, w2, w3].each check_workbook
 
                 ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
                 w4 = xlsx_sheet.read
+                IO.println "ZZZZZ Excel_Spec w4 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
                 w5 = xlsx_sheet.read
+                IO.println "ZZZZZ Excel_Spec w5 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
                 w6 = xls_sheet.read
+                IO.println "ZZZZZ Excel_Spec w6 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
                 w7 = xls_sheet.read
+                IO.println "ZZZZZ Excel_Spec w7 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
                 [w4, w5, w6, w7].each check_workbook
 

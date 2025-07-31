@@ -95,6 +95,7 @@ public abstract class PrintlnNode extends Node {
       case "" -> out.print(str);
       default -> out.print(str + nl);
     }
+    out.flush();
   }
 
   @NeverDefault
