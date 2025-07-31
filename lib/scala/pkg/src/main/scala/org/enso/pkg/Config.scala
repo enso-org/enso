@@ -3,6 +3,7 @@ package org.enso.pkg
 import org.yaml.snakeyaml.nodes.Tag
 import org.enso.semver.SemVer
 import org.enso.editions.{EditionName, Editions}
+import org.enso.pkg.QualifiedName
 import org.enso.pkg.validation.NameValidation
 import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.enso.version.BuildVersion
@@ -20,7 +21,10 @@ import java.io.IOException
   * @param provides name of SPI type
   * @param with name of implementation type
   */
-case class ProvidesWith(val provides: String, val `with`: String) {}
+case class ProvidesWith(
+  val provides: QualifiedName,
+  val `with`: QualifiedName
+) {}
 
 object ProvidesWith {
 
@@ -46,7 +50,11 @@ object ProvidesWith {
                 .get(Fields.With)
                 .map(str.decode)
                 .getOrElse(Left(new IOException("Missing `with` field")))
-            } yield ProvidesWith(p, w)
+            } yield {
+              val qp = QualifiedName.fromString(p)
+              val qw = QualifiedName.fromString(w)
+              ProvidesWith(qp, qw)
+            }
         }
     }
 

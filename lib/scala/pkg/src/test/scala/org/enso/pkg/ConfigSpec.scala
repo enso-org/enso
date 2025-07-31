@@ -33,6 +33,7 @@ class ConfigSpec
         ),
         preferLocalLibraries = true,
         componentGroups      = None,
+        services             = List(),
         jvm                  = None
       )
       val deserialized = Config.fromYaml(config.toYaml).get
@@ -72,6 +73,7 @@ class ConfigSpec
         ),
         preferLocalLibraries = true,
         componentGroups      = None,
+        services             = List(),
         jvm                  = Some(true)
       )
       parsed shouldEqual expectedConfig

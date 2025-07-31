@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.pkg.QualifiedName;
 
 @BuiltinMethod(
     type = "Meta",
@@ -19,20 +20,26 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
     autoRegister = false)
 public final class LookupServicesNode extends Node {
   @CompilerDirectives.TruffleBoundary
-  private Type findType(String name, EnsoContext ensoCtx) {
-    var moduleName = name.replaceFirst("\\.[^\\.]*$", "");
-    var typeName = name.substring(moduleName.length() + 1);
-    var module = ensoCtx.getTopScope().getModule(moduleName).get();
-    if (module == null) {
-      throw ensoCtx.raiseAssertionPanic(this, "Cannot find " + moduleName, null);
+  private Type findType(QualifiedName fqn, EnsoContext ensoCtx) {
+    var moduleOpt =
+        fqn.getParent()
+            .map(
+                moduleName -> {
+                  return ensoCtx.getTopScope().getModule(moduleName.toString()).orElse(null);
+                });
+    if (moduleOpt.isEmpty()) {
+      throw ensoCtx.raiseAssertionPanic(this, "Cannot find " + fqn, null);
     }
+    var module = moduleOpt.get();
     var scope = module.compileScope(ensoCtx);
     var stage = module.getCompilationStage();
     assert stage.isAtLeast(CompilationStage.AFTER_CODEGEN) : "Unsufficient stage " + stage;
+
+    var typeName = fqn.item();
     var implType = scope.getType(typeName, true);
     if (implType == null) {
       throw ensoCtx.raiseAssertionPanic(
-          this, "Cannot find type " + typeName + " in " + moduleName, null);
+          this, "Cannot find type " + typeName + " in " + module.getName(), null);
     }
     return implType;
   }
