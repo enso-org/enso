@@ -8,6 +8,7 @@ const props = defineProps<{
   label?: string | undefined
   disabled?: boolean
   title?: string | undefined
+  variant?: 'accent' | 'submit' | undefined
 }>()
 const emit = defineEmits<{ activate: [] }>()
 </script>

@@ -18,16 +18,24 @@ const floatingElement = useTemplateRef<HTMLElement>('floating')
 const isModalOpen = ref(false)
 const interaction = injectInteractionHandler()
 
+const modalInteraction = {
+  cancel() {
+    isModalOpen.value = false
+  },
+  end() {
+    isModalOpen.value = false
+  },
+}
+
+function closeModal() {
+  interaction.cancel(modalInteraction)
+}
+
 watchEffect(() => {
   if (isModalOpen.value) {
-    interaction.setCurrent({
-      cancel() {
-        isModalOpen.value = false
-      },
-      end() {
-        isModalOpen.value = false
-      },
-    })
+    interaction.setCurrent(modalInteraction)
+  } else {
+    closeModal()
   }
 })
 
@@ -68,18 +76,18 @@ function openProjectInNewTab() {
         :initial="{ opacity: 0, y: '-100px' }"
         :animate="{ opacity: 1, y: '0' }"
         :exit="{ opacity: 0, y: '-100px' }"
-        @keydown.esc="isModalOpen = false"
-        @click.self="isModalOpen = false"
+        @keydown.esc="closeModal"
+        @mousedown.self.prevent="closeModal"
       >
-        <div class="modal-container">
+        <div class="modal-container" @mousedown.stop.prevent>
           <h2>Open Project</h2>
           <p>
             Would you like to open the project at '{{ decodeURIComponent(href) }}'? The current
             project will be closed.
           </p>
           <div class="button-bar">
-            <StandaloneButton label="Cancel" @activate="isModalOpen = false" />
-            <StandaloneButton label="Open" @activate="openProjectInNewTab" />
+            <StandaloneButton label="Cancel" @activate="closeModal" />
+            <StandaloneButton label="Open" variant="submit" @activate="openProjectInNewTab" />
           </div>
         </div>
       </motion.div>
