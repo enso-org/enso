@@ -151,6 +151,8 @@ public final class Module extends EnsoObject {
    * Creates a new module.
    *
    * @param name the qualified name of this module.
+   * @param fillWith a code to run to initialize module scope or {@code null} to leave the module
+   *     scope empty
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
    */
@@ -158,7 +160,7 @@ public final class Module extends EnsoObject {
       QualifiedName name,
       Package<TruffleFile> pkg,
       boolean synthetic,
-      Consumer<ModuleScopeBuilder> fillIn,
+      Consumer<ModuleScopeBuilder> fillWith,
       Rope literalSource) {
     ensureConsistentName(name, pkg);
     this.sources =
@@ -171,12 +173,13 @@ public final class Module extends EnsoObject {
     this.synthetic = synthetic;
     if (synthetic) {
       this.compilationStage = CompilationStage.INITIAL;
-      scopeBuilder.finish();
     } else {
-      fillIn.accept(scopeBuilder);
+      if (fillWith != null) {
+        fillWith.accept(scopeBuilder);
+      }
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
-      scopeBuilder.finish();
     }
+    scopeBuilder.finish();
   }
 
   private void ensureConsistentName(QualifiedName name, Package<TruffleFile> pkg) {
@@ -216,12 +219,24 @@ public final class Module extends EnsoObject {
    * @param name the qualified name of the newly created module.
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
-   * @param fillWith code to fill
-   * @return the module with empty scope.
+   * @param fillWith to fill in the scope
+   * @return the module with scope filled by provided with code
    */
-  public static Module newModuleWith(
+  public static Module emptyWith(
       QualifiedName name, Package<TruffleFile> pkg, Consumer<ModuleScopeBuilder> fillWith) {
     return new Module(name, pkg, false, fillWith, null);
+  }
+
+  /**
+   * Creates an empty module.
+   *
+   * @param name the qualified name of the newly created module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
+   * @return the module with empty scope.
+   */
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
+    return new Module(name, pkg, false, null, null);
   }
 
   /**

@@ -6,13 +6,13 @@ import org.enso.interpreter.node.expression.builtin.number.Integer;
 import org.enso.interpreter.runtime.data.Type;
 
 /** A container for all number-related builtins. */
-public class Number {
+public final class Number {
   private final Builtin integer;
   private final Builtin number;
   private final Builtin ensoFloat;
 
   /** Creates builders for number Atom Constructors. */
-  public Number(Builtins builtins) {
+  Number(Builtins builtins) {
     integer = builtins.getBuiltinType(Integer.class);
     number =
         builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.number.Number.class);

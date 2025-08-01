@@ -35,114 +35,119 @@ import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public final class Builtins {
   private static final EnsoContext.Extra<Builtins> KEY =
-      new EnsoContext.Extra<>(Builtins.class, Builtins::new);
-  private EnsoContext context;
-  private BuiltinsRegistry builtins;
+      new EnsoContext.Extra<>(Builtins.class, Builtins::create);
+  private final EnsoContext context;
+  private final BuiltinsRegistry builtins;
 
-  private Error error;
-  private Module module;
-  private Number number;
-  private Boolean bool;
+  /**
+   * Module isn't final, as it wasn't possible to assign it in constructor. But it is "effectively
+   * final" - nobody is changing that field.
+   */
+  @CompilerDirectives.CompilationFinal private Module module;
 
-  private Context contexts;
-  private Ordering ordering;
-  private Comparable comparable;
-  private DefaultComparator defaultComparator;
-  private System system;
+  private final Error error;
+  private final Number number;
+  private final Boolean bool;
+
+  private final Context contexts;
+  private final Ordering ordering;
+  private final Comparable comparable;
+  private final DefaultComparator defaultComparator;
+  private final System system;
 
   // Builtin types
-  private Builtin any;
-  private Builtin nothing;
-  private Builtin function;
-  private Builtin polyglot;
-  private Builtin text;
-  private Builtin array;
-  private Builtin vector;
-  private Builtin dictionary;
-  private Builtin dataflowError;
-  private Builtin ref;
-  private Builtin managedResource;
-  private Builtin debug;
-  private ProjectDescription projectDescription;
-  private Builtin file;
-  private Builtin date;
-  private Builtin dateTime;
-  private Builtin duration;
-  private Builtin timeOfDay;
-  private Builtin timeZone;
-  private Builtin warning;
-  private NoWrap noWrap;
-  private ProblemBehavior problemBehavior;
-  private AdditionalWarnings additionalWarnings;
-  private Builtin instrumentor;
+  private final Builtin any;
+  private final Builtin nothing;
+  private final Builtin function;
+  private final Builtin polyglot;
+  private final Builtin text;
+  private final Builtin array;
+  private final Builtin vector;
+  private final Builtin dictionary;
+  private final Builtin dataflowError;
+  private final Builtin ref;
+  private final Builtin managedResource;
+  private final Builtin debug;
+  private final ProjectDescription projectDescription;
+  private final Builtin file;
+  private final Builtin date;
+  private final Builtin dateTime;
+  private final Builtin duration;
+  private final Builtin timeOfDay;
+  private final Builtin timeZone;
+  private final Builtin warning;
+  private final NoWrap noWrap;
+  private final ProblemBehavior problemBehavior;
+  private final AdditionalWarnings additionalWarnings;
+  private final Builtin instrumentor;
+
+  /** Factory method to create the builtins. */
+  private static Builtins create(EnsoContext context) {
+    var fqn = QualifiedName.fromString(MethodNames.Builtins.MODULE_NAME);
+    var res = new Builtins[1];
+    var module =
+        Module.emptyWith(
+            fqn,
+            null,
+            (scopeBuilder) -> {
+              res[0] = new Builtins(context, scopeBuilder);
+            });
+    module.compileScope(context); // Dummy compilation for an empty module
+    // module has to be assigned only when constructor is over
+    res[0].module = module;
+    return res[0];
+  }
 
   /**
    * Creates an instance with builtin methods installed.
    *
-   * @param context the current {@link EnsoContext} instance
+   * @param ctx the current {@link EnsoContext} instance
+   * @param sb scope builder to fill
    */
-  private Builtins(EnsoContext context) {
-    this.context = context;
-    var language = context.getLanguage();
-    var fqn = QualifiedName.fromString(MethodNames.Builtins.MODULE_NAME);
-    module =
-        Module.newModuleWith(
-            fqn,
-            null,
-            (scopeBuilder) -> {
-              builtins = new BuiltinsRegistry(language, scopeBuilder);
+  private Builtins(EnsoContext ctx, ModuleScopeBuilder sb) {
+    context = ctx;
+    builtins = new BuiltinsRegistry(ctx.getLanguage(), sb);
 
-              ordering = getBuiltinType(Ordering.class);
-              comparable = getBuiltinType(Comparable.class);
-              defaultComparator = getBuiltinType(DefaultComparator.class);
-              bool = this.getBuiltinType(Boolean.class);
-              contexts = this.getBuiltinType(Context.class);
+    ordering = getBuiltinType(Ordering.class);
+    comparable = getBuiltinType(Comparable.class);
+    defaultComparator = getBuiltinType(DefaultComparator.class);
+    bool = getBuiltinType(Boolean.class);
+    contexts = getBuiltinType(Context.class);
 
-              any = getBuiltinType(Any.class);
-              nothing = getBuiltinType(Nothing.class);
-              function =
-                  getBuiltinType(
-                      org.enso.interpreter.node.expression.builtin.function.Function.class);
-              polyglot = getBuiltinType(Polyglot.class);
-              text = getBuiltinType(Text.class);
-              array = getBuiltinType(Array.class);
-              vector = getBuiltinType(Vector.class);
-              dictionary =
-                  getBuiltinType(org.enso.interpreter.node.expression.builtin.Dictionary.class);
-              dataflowError =
-                  getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
-              ref = getBuiltinType(Ref.class);
-              managedResource = getBuiltinType(ManagedResource.class);
-              debug = getBuiltinType(Debug.class);
-              projectDescription = getBuiltinType(ProjectDescription.class);
-              file = getBuiltinType(File.class);
-              date = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Date.class);
-              dateTime =
-                  getBuiltinType(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
-              duration =
-                  getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Duration.class);
-              timeOfDay =
-                  getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
-              timeZone =
-                  getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
-              warning = getBuiltinType(Warning.class);
-              noWrap = getBuiltinType(NoWrap.class);
-              problemBehavior = getBuiltinType(ProblemBehavior.class);
-              additionalWarnings = getBuiltinType(AdditionalWarnings.class);
-              instrumentor =
-                  getBuiltinType(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
+    any = getBuiltinType(Any.class);
+    nothing = getBuiltinType(Nothing.class);
+    function = getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
+    polyglot = getBuiltinType(Polyglot.class);
+    text = getBuiltinType(Text.class);
+    array = getBuiltinType(Array.class);
+    vector = getBuiltinType(Vector.class);
+    dictionary = getBuiltinType(org.enso.interpreter.node.expression.builtin.Dictionary.class);
+    dataflowError = getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
+    ref = getBuiltinType(Ref.class);
+    managedResource = getBuiltinType(ManagedResource.class);
+    debug = getBuiltinType(Debug.class);
+    projectDescription = getBuiltinType(ProjectDescription.class);
+    file = getBuiltinType(File.class);
+    date = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Date.class);
+    dateTime = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
+    duration = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Duration.class);
+    timeOfDay = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
+    timeZone = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
+    warning = getBuiltinType(Warning.class);
+    noWrap = getBuiltinType(NoWrap.class);
+    problemBehavior = getBuiltinType(ProblemBehavior.class);
+    additionalWarnings = getBuiltinType(AdditionalWarnings.class);
+    instrumentor = getBuiltinType(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
-              error = new Error(this, context);
-              system = new System(this);
-              number = new Number(this);
-              scopeBuilder.finish();
-            });
-    module.compileScope(context); // Dummy compilation for an empty module
+    error = new Error(this, ctx);
+    system = new System(this);
+    number = new Number(this);
   }
 
   /**
