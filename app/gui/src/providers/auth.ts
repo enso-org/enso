@@ -53,7 +53,6 @@ export function createUsersMeQuery(
         void setUsername(sessionVal.email)
         return null
       }
-      console.log(refetchCount.value)
       if (user.plan === backendModule.Plan.free && refetchCount.value < 30) {
         return null
       } else {
