@@ -257,6 +257,7 @@ export function useOpenProjectMutation() {
     onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
+      console.trace('Setting openingInProgress')
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
@@ -460,6 +461,7 @@ function useOpenProject() {
 
     if (!isOpeningTheSameProject) {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
+      console.trace('Setting openingInProgress')
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
       addOpeningProject(project.hybrid?.cloudProjectId ?? project.id)

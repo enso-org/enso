@@ -8,7 +8,11 @@
  * `hidden` property.
  */
 import ProjectView from '@/ProjectView.vue'
+import { onMounted, onUnmounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+
+onMounted(() => console.debug('PVT MOUNTED'))
+onUnmounted(() => console.trace('PVT UNMOUNTED'))
 
 const _props = defineProps<{
   hidden: boolean
