@@ -95,6 +95,7 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
+    mainModule: Option[String]               = None,
     modulePath: Seq[String]                  = Seq.empty,
     verbose: Boolean                         = false
   ): Def.Initialize[Task[Unit]] = Def
@@ -240,10 +241,15 @@ object NativeImage {
           args ++
           Seq(main)
         case None =>
-          val pathToJAR =
-            (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
-          args ++
-          Seq("-jar", pathToJAR.toString)
+          mainModule match {
+            case Some(mainMod) =>
+              args ++ Seq("--module", mainMod)
+            case None =>
+              val pathToJAR =
+                (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
+              args ++
+                Seq("-jar", pathToJAR.toString)
+          }
       }
 
       val targetDirValue = (Compile / target).value

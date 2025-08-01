@@ -3590,6 +3590,7 @@ lazy val `engine-runner` = project
         "org.yaml"               % "snakeyaml"                    % snakeyamlVersion
       ),
     Runtime / internalModuleDependencies := (Compile / internalModuleDependencies).value ++ Seq(
+      (Compile / exportedModule).value,
       (`downloader` / Compile / exportedModule).value,
       (persistance / Compile / exportedModule).value,
       (`polyglot-api-macros` / Compile / exportedModule).value,
@@ -3786,7 +3787,7 @@ lazy val `engine-runner` = project
                   } else {
                     Seq()
                   }),
-            mainClass = Some("org.enso.runner.Main"),
+            mainModule = Some("org.enso.runner/org.enso.runner.Main"),
             initializeAtRuntime = Seq(
               "org.apache",
               "org.openxmlformats",
