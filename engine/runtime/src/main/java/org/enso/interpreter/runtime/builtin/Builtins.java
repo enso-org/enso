@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.util.Optional;
 import org.enso.common.MethodNames;
@@ -139,6 +140,7 @@ public final class Builtins {
               error = new Error(this, context);
               system = new System(this);
               number = new Number(this);
+              scopeBuilder.finish();
             });
     module.compileScope(context); // Dummy compilation for an empty module
   }
@@ -146,10 +148,23 @@ public final class Builtins {
   /**
    * Obtains instance of {@link Builtins} for given context.
    *
-   * @param ctx context to find builtins for
-   * @return instance (1:1) associated with a context
+   * @param ctx the context to find builtins for
+   * @return the 1:1 instance associated with provided context
    */
   public static Builtins get(EnsoContext ctx) {
+    return KEY.get(ctx);
+  }
+
+  /**
+   * Obtains instance of {@link Builtins} for given node. Uses {@link EnsoContext#get} followed by
+   * {@link #get(org.enso.interpreter.runtime.EnsoContext)}.
+   *
+   * @param node the node to find builtins for
+   * @return instance of builtins for given node
+   */
+  public static Builtins get(Node node) {
+    var ctx = EnsoContext.get(node);
+    assert ctx != null : "No context for " + node;
     return KEY.get(ctx);
   }
 

@@ -100,8 +100,7 @@ public abstract class PrintlnNode extends Node {
 
   @NeverDefault
   static UnresolvedSymbol buildToTextSymbol(Node where) {
-    var ctx = EnsoContext.get(where);
-    var mod = Builtins.get(ctx).getModule();
+    var mod = Builtins.get(where).getModule();
     var scope = mod.getScope();
     return UnresolvedSymbol.build("to_text", scope);
   }
