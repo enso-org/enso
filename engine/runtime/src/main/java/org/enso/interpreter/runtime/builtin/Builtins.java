@@ -39,6 +39,7 @@ import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public final class Builtins {
+  private static final EnsoContext.Extra<Builtins> KEY = new EnsoContext.Extra<>(Builtins.class, Builtins::new);
   private final EnsoContext context;
   private final BuiltinsRegistry builtins;
 
@@ -85,10 +86,11 @@ public final class Builtins {
    *
    * @param context the current {@link EnsoContext} instance
    */
-  public Builtins(EnsoContext context) {
+  private Builtins(EnsoContext context) {
     this.context = context;
-    EnsoLanguage language = context.getLanguage();
-    module = Module.empty(QualifiedName.fromString(MethodNames.Builtins.MODULE_NAME), null);
+    var language = context.getLanguage();
+    var fqn = QualifiedName.fromString(MethodNames.Builtins.MODULE_NAME);
+    module = Module.empty(fqn, null);
     module.compileScope(context); // Dummy compilation for an empty module
     var scopeBuilder = module.newScopeBuilder();
 
@@ -129,6 +131,16 @@ public final class Builtins {
     system = new System(this);
     number = new Number(this);
     scope = scopeBuilder.build();
+  }
+  
+  /**
+   * Obtains instance of {@link Builtins} for given context.
+   * 
+   * @param ctx
+   * @return 
+   */
+  public static Builtins get(EnsoContext ctx) {
+      return KEY.get(ctx);
   }
 
   /**
