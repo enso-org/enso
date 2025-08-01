@@ -7,7 +7,6 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMount } from '#/hooks/mountHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
-import { useUnmount } from '#/hooks/unmountHooks'
 import * as backendModule from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
 import type { LaunchedProject } from '$/providers/container'
@@ -35,8 +34,6 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  useMount(() => console.debug('E MOUNTED'))
-  useUnmount(() => console.trace('E UNMOUNTED'))
   return (
     <ErrorBoundary>
       <EditorContents {...props} />
@@ -54,9 +51,6 @@ function EditorContents(props: EditorProps) {
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
   const startProject = projectHooks.useReopenProject(openProjectMutation)
 
-  useMount(() => console.debug('EC MOUNTED'))
-  useUnmount(() => console.trace('EC UNMOUNTED'))
-
   const { localBackend, remoteBackend, backendForType: backendForProjectType } = useBackends()
   const backend = backendForProjectType(project.type)
 
@@ -70,7 +64,6 @@ function EditorContents(props: EditorProps) {
   const projectQuery = reactQuery.useSuspenseQuery({
     ...projectStatusQuery,
     select: (data) => {
-      console.debug('Project query got', data.state.type)
       const isProjectOpening = projectHooks.OPENING_PROJECT_STATES.has(data.state.type)
       const isProjectClosed = projectHooks.CLOSED_PROJECT_STATES.has(data.state.type)
       const isProjectOpened = projectHooks.OPENED_PROJECT_STATES.has(data.state.type)
@@ -122,8 +115,6 @@ function EditorContents(props: EditorProps) {
   // but it leaves a bad taste. Nevertheless, it will be refined anyway as part of
   // https://github.com/enso-org/enso/issues/13491
   useMount(() => {
-    console.debug('AUTOOPENING', isProjectClosed, preventAutoReopen, isHybridOpened)
-    console.debug('Changed because of ', project)
     if (
       // Open project unless it is not supposed to be reopened.
       (isProjectClosed && !preventAutoReopen) ||
@@ -189,15 +180,6 @@ function EditorContents(props: EditorProps) {
     )
   }
 
-  console.debug(
-    'Rendering Editor: ',
-    projectQuery.isError,
-    isProjectClosed,
-    isProjectClosing,
-    isProjectOpening,
-    isProjectOpened,
-  )
-
   return (
     <div className="contents" data-testvalue={project.id} data-testid="editor">
       {(() => {
@@ -247,9 +229,6 @@ interface EditorInternalProps extends Omit<EditorProps, 'project'> {
 function EditorInternal(props: EditorInternalProps) {
   const { hidden = false, renameProject, openedProject, backendType, projectName } = props
 
-  useMount(() => console.debug('EI MOUNTED'))
-  useUnmount(() => console.trace('EI UNMOUNTED'))
-
   const { getText } = useText()
   const config = useConfig()
   const ydocUrl = useVueValue(React.useCallback(() => config.ydocUrl, [config]))
@@ -288,8 +267,6 @@ function EditorInternal(props: EditorInternalProps) {
       remoteBackend,
     },
   }
-
-  console.debug('Rerender Editor', appProps)
 
   // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
   // this is no longer necessary, the `key` could be removed.

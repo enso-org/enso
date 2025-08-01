@@ -3,7 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import { computed, watchEffect } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'
 
@@ -80,7 +80,6 @@ export const [provideContainerData, useContainerData] = createContextStore(
           shown: computed(() => tab.value === lp.ensoPath),
         })) ?? [],
     )
-    watchEffect(() => console.trace('LAUNCHED PROJECTS', openedProjects.value), { flush: 'sync' })
 
     const isValidTab = (name: string | undefined): name is TabId =>
       name === 'drive' ||

@@ -376,7 +376,6 @@ export default class LocalBackend extends Backend {
   override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
     const { id, directory } = extractTypeAndId(projectId)
     const state = this.projectManager.projects.get(id)
-    console.debug('LB getPRojectDetails', state)
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directory)
       const entry = entries
