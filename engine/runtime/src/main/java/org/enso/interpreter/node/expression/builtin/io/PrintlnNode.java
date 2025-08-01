@@ -99,7 +99,7 @@ public abstract class PrintlnNode extends Node {
 
   @NeverDefault
   UnresolvedSymbol buildSymbol() {
-    return UnresolvedSymbol.build("to_text", EnsoContext.get(this).getBuiltins().getScope());
+    return UnresolvedSymbol.build("to_text", EnsoContext.get(this).getBuiltins().getScopehack());
   }
 
   @NeverDefault

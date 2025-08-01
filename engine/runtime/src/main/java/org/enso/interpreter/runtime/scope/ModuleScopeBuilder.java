@@ -8,8 +8,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.enso.compiler.context.CompilerContext;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.ModuleScopeAccessor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
@@ -18,6 +18,13 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** Builder to create an instance of {@link ModuleScope}. */
 public final class ModuleScopeBuilder {
+  private static final ModuleScopeAccessor IMPL =
+      new ModuleScopeAccessor() {
+        @Override
+        protected final ModuleScopeBuilder newScopeBuilder(Module m) {
+          return new ModuleScopeBuilder(m);
+        }
+      };
 
   @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
   private final Module module;
@@ -29,7 +36,7 @@ public final class ModuleScopeBuilder {
   private final Set<ImportExportScope> imports;
   private final Set<ImportExportScope> exports;
 
-  public ModuleScopeBuilder(Module module) {
+  private ModuleScopeBuilder(Module module) {
     this.module = module;
     this.polyglotSymbols = new LinkedHashMap<>();
     this.types = new LinkedHashMap<>();
@@ -40,7 +47,7 @@ public final class ModuleScopeBuilder {
     this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
   }
 
-  public ModuleScopeBuilder(Module module, Map<String, Type> types) {
+  private ModuleScopeBuilder(Module module, Map<String, Type> types) {
     this.module = module;
     this.polyglotSymbols = new LinkedHashMap<>();
     this.types = types;
@@ -251,11 +258,6 @@ public final class ModuleScopeBuilder {
 
   public Function getMethodForType(Type tpe, String name) {
     return ModuleScopeUtils.findMethodForType(tpe, methods, name);
-  }
-
-  public static ModuleScopeBuilder fromCompilerModuleScopeBuilder(
-      CompilerContext.ModuleScopeBuilder scopeBuilder) {
-    return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
   }
 
   /**

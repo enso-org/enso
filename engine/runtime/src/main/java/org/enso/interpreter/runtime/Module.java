@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
@@ -93,7 +94,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -112,7 +113,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -132,7 +133,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -148,12 +149,16 @@ public final class Module extends EnsoObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+      QualifiedName name,
+      Package<TruffleFile> pkg,
+      boolean synthetic,
+      Consumer<ModuleScopeBuilder> fillIn,
+      Rope literalSource) {
     ensureConsistentName(name, pkg);
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -162,7 +167,9 @@ public final class Module extends EnsoObject {
       this.compilationStage = CompilationStage.INITIAL;
       scopeBuilder.build();
     } else {
+      fillIn.accept(scopeBuilder);
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
+      scopeBuilder.build();
     }
   }
 
@@ -203,10 +210,12 @@ public final class Module extends EnsoObject {
    * @param name the qualified name of the newly created module.
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
+   * @param fillWith code to fill
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg, false, null);
+  public static Module newModuleWith(
+      QualifiedName name, Package<TruffleFile> pkg, Consumer<ModuleScopeBuilder> fillWith) {
+    return new Module(name, pkg, false, fillWith, null);
   }
 
   /**
@@ -219,7 +228,7 @@ public final class Module extends EnsoObject {
    * @return the synthetic module
    */
   public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
-    return new Module(name, pkg, true, source);
+    return new Module(name, pkg, true, null, source);
   }
 
   /** Clears any literal source set for this module. */
@@ -431,7 +440,7 @@ public final class Module extends EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = newScopeBuilder();
+    scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -516,8 +525,14 @@ public final class Module extends EnsoObject {
     return scopeBuilder;
   }
 
-  public ModuleScopeBuilder newScopeBuilder() {
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+  /**
+   * Resets scope builder of this module by a new one. Shall only be called from compiler interface
+   * - {@link TruffleCompilerContext}.
+   *
+   * @return new scope builder - same as {@link #getScopeBuilder()} since now
+   */
+  final ModuleScopeBuilder newScopeBuilder() {
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
     return this.scopeBuilder;
   }
 
@@ -691,7 +706,7 @@ public final class Module extends EnsoObject {
         throw UnsupportedTypeException.create(args, "First argument must be a string");
       }
       String expr = iop.asString(args[0]);
-      Builtins builtins = context.getBuiltins();
+      Builtins builtins = Builtins.get(context);
       BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
@@ -740,7 +755,7 @@ public final class Module extends EnsoObject {
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
           if (result == null || result.getSchema().isProjectPrivate()) {
-            return context.getBuiltins().nothing();
+            return Builtins.get(context).nothing();
           } else {
             return result;
           }
