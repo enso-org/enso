@@ -1154,7 +1154,7 @@ type File_System_SPI
     new protocol:Text typ = File_System_SPI.Entry protocol typ
 
     private get_type protocol:Text _:Boolean =
-        vec = Self.get_types . filter (_.protocol == protocol)
+        vec = Self.get_types False . filter (_.protocol == protocol)
         if vec . not_empty then vec.first else Nothing
 
     private get_types _:Boolean =
