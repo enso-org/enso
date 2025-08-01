@@ -23,7 +23,8 @@ public final class State {
   private static final EnsoContext.Extra<Shape> ROOT_STATE_SHAPE =
       new EnsoContext.Extra<>(
           Shape.class,
-          () -> Shape.newBuilder().layout(State.Container.class, State.Container.lookup()).build());
+          (ctx) ->
+              Shape.newBuilder().layout(State.Container.class, State.Container.lookup()).build());
 
   private final Container container;
 
