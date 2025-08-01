@@ -7,8 +7,6 @@ import org.enso.logging.service.LogJobsProcessor;
 import org.enso.logging.service.TokenRefresher;
 import org.slf4j.LoggerFactory;
 
-@org.openide.util.lookup.ServiceProvider(
-    service = org.enso.logging.service.logback.AbstractRemoteAppender.class)
 public final class OpenSearchAppender extends org.enso.logging.service.RemoteAppender {
 
   public OpenSearchAppender() {

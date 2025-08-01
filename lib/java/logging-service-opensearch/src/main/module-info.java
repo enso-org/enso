@@ -9,7 +9,6 @@ module org.enso.logging.service.opensearch {
   // For jsoniter_scala
   requires org.enso.scala.wrapper;
   requires org.slf4j;
-  requires static org.openide.util.lookup.RELEASE180;
 
   exports org.enso.logging.service.opensearch;
 

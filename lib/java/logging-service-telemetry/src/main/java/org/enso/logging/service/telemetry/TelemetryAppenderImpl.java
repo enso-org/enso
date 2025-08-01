@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory;
  * Singleton. See {@link TelemetryLogFormatter} for the expected format of log messages to this
  * appender.
  */
-@org.openide.util.lookup.ServiceProvider(
-    service = org.enso.logging.service.logback.AbstractRemoteAppender.class)
 public final class TelemetryAppenderImpl extends org.enso.logging.service.RemoteAppender {
 
   public TelemetryAppenderImpl() {

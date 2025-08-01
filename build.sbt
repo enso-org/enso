@@ -867,13 +867,11 @@ lazy val `logging-config` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "com.typesafe"         % "config"                  % typesafeConfigVersion,
       "org.slf4j"            % "slf4j-api"               % slf4jVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= Seq(
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
       "com.typesafe"         % "config"                  % typesafeConfigVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
       "org.slf4j"            % "slf4j-api"               % slf4jVersion
@@ -893,11 +891,8 @@ lazy val `logging-service-logback` = project
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg,
-    Compile / moduleDependencies ++= logbackPkg ++ slf4jApi ++ Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-    ),
+    Compile / moduleDependencies ++= logbackPkg ++ slf4jApi,
     Compile / javaModuleName := "org.enso.logging.service.logback",
     Compile / shouldCompileModuleInfoManually := true,
     Compile / internalModuleDependencies := Seq(
@@ -964,16 +959,13 @@ lazy val `logging-service-opensearch` = project
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
     libraryDependencies ++= slf4jApi ++ Seq(
-      "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "junit"                      % "junit"                   % junitVersion       % Test,
       "com.github.sbt"             % "junit-interface"         % junitIfVersion     % Test,
       "org.hamcrest"               % "hamcrest-all"            % hamcrestVersion    % Test,
       "com.fasterxml.jackson.core" % "jackson-core"            % jacksonVersion     % Test,
       "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion     % Test
     ),
-    Compile / moduleDependencies ++= logbackPkg ++ slf4jApi ++ Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
-    ),
+    Compile / moduleDependencies ++= logbackPkg ++ slf4jApi,
     Compile / internalModuleDependencies ++= Seq(
       (`logging-service-common` / Compile / exportedModule).value
     )
@@ -3581,6 +3573,7 @@ lazy val `engine-runner` = project
     Runtime / moduleDependencies :=
       (Compile / moduleDependencies).value ++
       scalaReflect ++
+      logbackPkg ++
       Seq(
         "commons-io"             % "commons-io"                   % commonsIoVersion,
         "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
@@ -3592,6 +3585,8 @@ lazy val `engine-runner` = project
     Runtime / internalModuleDependencies := (Compile / internalModuleDependencies).value ++ Seq(
       (Compile / exportedModule).value,
       (`downloader` / Compile / exportedModule).value,
+      (`logging-service` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value,
       (persistance / Compile / exportedModule).value,
       (`polyglot-api-macros` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,

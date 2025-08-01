@@ -7,7 +7,6 @@ module org.enso.logging.service.telemetry {
   requires org.enso.logging.service;
   requires org.enso.logging.service.remote;
   requires org.slf4j;
-  requires static org.openide.util.lookup.RELEASE180;
 
   exports org.enso.logging.service.telemetry;
 
