@@ -33,7 +33,7 @@ export async function initialProjectPath(
   if (cliStartupProject) {
     path = `${localBackend?.rootPath()}/${cliStartupProject}`
   } else {
-    if (await shouldOpenInitialProject(localBackend, remoteBackend)) {
+    if (await shouldOpenInitialProject(localBackend, user.plan === Plan.free ? null : remoteBackend)) {
       if (user.plan === Plan.free) {
         path = `${localBackend?.rootPath()}/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
       } else {
@@ -69,7 +69,7 @@ export async function maybeRedirectToInitialProject(
 
 async function shouldOpenInitialProject(
   localBackend: Pick<LocalBackend, 'listDirectory'> | null,
-  remoteBackend: Pick<RemoteBackend, 'listDirectory'>,
+  remoteBackend: Pick<RemoteBackend, 'listDirectory'> | null,
 ) {
   const navigatedInDrive =
     window.localStorage.getItem('enso-category-id') ||
@@ -84,7 +84,7 @@ async function shouldOpenInitialProject(
   }
   const homeContent = await Promise.all([
     localBackend?.listDirectory(homeDirQuery) ?? [],
-    onlineManager.isOnline() ? remoteBackend.listDirectory(homeDirQuery, 'User Home') : [],
+    onlineManager.isOnline() && remoteBackend != null ? remoteBackend.listDirectory(homeDirQuery, 'User Home') : [],
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
