@@ -22,12 +22,13 @@ public final class ModuleScopeBuilder {
   private static final ModuleScopeAccessor IMPL =
       new ModuleScopeAccessor() {
         @Override
-        protected final ModuleScopeBuilder newScopeBuilder(Module m, Consumer<ModuleScope> onFinish) {
+        protected final ModuleScopeBuilder newScopeBuilder(
+            Module m, Consumer<ModuleScope> onFinish) {
           return new ModuleScopeBuilder(m, onFinish);
         }
       };
 
-  private final Consumer<ModuleScope> onFinish; 
+  private final Consumer<ModuleScope> onFinish;
   private ModuleScope moduleScope;
   private final Module module;
   private final Type associatedType;
@@ -48,18 +49,6 @@ public final class ModuleScopeBuilder {
     this.imports = new LinkedHashSet<>();
     this.exports = new LinkedHashSet<>();
     this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
-  }
-
-  private ModuleScopeBuilder(Module module, Map<String, Type> types) {
-    this.module = module;
-    this.polyglotSymbols = new LinkedHashMap<>();
-    this.types = types;
-    this.methods = new LinkedHashMap<>();
-    this.conversions = new LinkedHashMap<>();
-    this.imports = new LinkedHashSet<>();
-    this.exports = new LinkedHashSet<>();
-    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
-    this.onFinish = (_) -> {};
   }
 
   public Type registerType(Type type) {
@@ -192,16 +181,6 @@ public final class ModuleScopeBuilder {
 
   public Module getModule() {
     return module;
-  }
-
-  /**
-   * Create a new ModuleScopeBuilder which inherits from `this` `module` and `types` that need to
-   * survive the compilation.
-   *
-   * @return new ModuleScopeBuilder
-   */
-  public ModuleScopeBuilder newBuilderInheritingTypes() {
-    return new ModuleScopeBuilder(this.module, new LinkedHashMap<>(this.types));
   }
 
   /** Complete building this scope */
