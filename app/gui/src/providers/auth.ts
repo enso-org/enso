@@ -12,7 +12,7 @@ import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import invariant from 'tiny-invariant'
-import { computed, inject, toRef, toValue, watchEffect } from 'vue'
+import { computed, inject, Ref, ref, toRef, toValue, watchEffect } from 'vue'
 import { useBackends } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
@@ -38,6 +38,7 @@ export function createUsersMeQueryKey(
 export function createUsersMeQuery(
   session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
+  refetchCount: Ref<number>,
   setUsername: (username: string) => Promise<boolean>,
 ) {
   return vueQuery.queryOptions({
@@ -52,6 +53,13 @@ export function createUsersMeQuery(
         void setUsername(sessionVal.email)
         return null
       }
+      console.log(refetchCount.value)
+      if (user.plan === backendModule.Plan.free && refetchCount.value < 30) {
+        return null
+      } else {
+        refetchCount.value += 1
+      }
+
       return { user, ...sessionVal }
     },
   })
@@ -67,6 +75,7 @@ function createAuthStore(
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
+  const refetchCount = ref(0)
 
   const queryClient = vueQuery.useQueryClient()
 
@@ -121,7 +130,7 @@ function createAuthStore(
     return true
   }
 
-  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, setUsername)
+  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, refetchCount, setUsername)
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
