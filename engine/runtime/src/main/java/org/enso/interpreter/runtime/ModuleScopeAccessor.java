@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime;
 
+import java.util.function.Consumer;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 
 /**
@@ -33,5 +35,5 @@ public abstract class ModuleScopeAccessor {
     INIT = this;
   }
 
-  protected abstract ModuleScopeBuilder newScopeBuilder(Module m);
+  protected abstract ModuleScopeBuilder newScopeBuilder(Module m, Consumer<ModuleScope> update);
 }

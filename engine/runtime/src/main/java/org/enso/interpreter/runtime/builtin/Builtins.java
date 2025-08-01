@@ -34,7 +34,6 @@ import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -46,7 +45,6 @@ public final class Builtins {
 
   private Error error;
   private Module module;
-  private ModuleScope scope;
   private Number number;
   private Boolean bool;
 
@@ -141,7 +139,6 @@ public final class Builtins {
               error = new Error(this, context);
               system = new System(this);
               number = new Number(this);
-              scope = scopeBuilder.build();
             });
     module.compileScope(context); // Dummy compilation for an empty module
   }
@@ -464,19 +461,6 @@ public final class Builtins {
    */
   public Type instrumentor() {
     return instrumentor.getType();
-  }
-
-  /**
-   * Returns the builtin module scope.
-   *
-   * @return the builtin module scope
-   */
-  private ModuleScope getScope() {
-    return scope;
-  }
-
-  public ModuleScope getScopehack() {
-    return getScope();
   }
 
   public Module getModule() {

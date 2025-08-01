@@ -61,6 +61,7 @@ public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
   private ModuleScopeBuilder scopeBuilder;
+  private ModuleScope scope;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
@@ -94,11 +95,16 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = false;
+  }
+  
+  private void updateModuleScope(ModuleScope scope) {
+      assert scope == scopeBuilder.asModuleScope();
+      this.scope = scope;
   }
 
   /**
@@ -113,7 +119,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -133,7 +139,7 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -158,18 +164,18 @@ public final class Module extends EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = synthetic;
     if (synthetic) {
       this.compilationStage = CompilationStage.INITIAL;
-      scopeBuilder.build();
+      scopeBuilder.finish();
     } else {
       fillIn.accept(scopeBuilder);
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
-      scopeBuilder.build();
+      scopeBuilder.finish();
     }
   }
 
@@ -369,7 +375,9 @@ public final class Module extends EnsoObject {
       } catch (IOException ignored) {
       }
     }
-    return scopeBuilder.build();
+    scopeBuilder.finish();
+    assert scope == scopeBuilder.asModuleScope();
+    return scope;
   }
 
   /**
@@ -440,7 +448,7 @@ public final class Module extends EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
+    scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -532,7 +540,7 @@ public final class Module extends EnsoObject {
    * @return new scope builder - same as {@link #getScopeBuilder()} since now
    */
   final ModuleScopeBuilder newScopeBuilder() {
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this);
+    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
     return this.scopeBuilder;
   }
 

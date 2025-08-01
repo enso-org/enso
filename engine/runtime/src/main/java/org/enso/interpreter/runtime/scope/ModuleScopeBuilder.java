@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.ModuleScopeAccessor;
@@ -21,12 +22,13 @@ public final class ModuleScopeBuilder {
   private static final ModuleScopeAccessor IMPL =
       new ModuleScopeAccessor() {
         @Override
-        protected final ModuleScopeBuilder newScopeBuilder(Module m) {
-          return new ModuleScopeBuilder(m);
+        protected final ModuleScopeBuilder newScopeBuilder(Module m, Consumer<ModuleScope> onFinish) {
+          return new ModuleScopeBuilder(m, onFinish);
         }
       };
 
-  @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
+  private final Consumer<ModuleScope> onFinish; 
+  private ModuleScope moduleScope;
   private final Module module;
   private final Type associatedType;
   private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
@@ -36,8 +38,9 @@ public final class ModuleScopeBuilder {
   private final Set<ImportExportScope> imports;
   private final Set<ImportExportScope> exports;
 
-  private ModuleScopeBuilder(Module module) {
+  private ModuleScopeBuilder(Module module, Consumer<ModuleScope> onFinish) {
     this.module = module;
+    this.onFinish = onFinish;
     this.polyglotSymbols = new LinkedHashMap<>();
     this.types = new LinkedHashMap<>();
     this.methods = new LinkedHashMap<>();
@@ -56,25 +59,7 @@ public final class ModuleScopeBuilder {
     this.imports = new LinkedHashSet<>();
     this.exports = new LinkedHashSet<>();
     this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
-  }
-
-  private ModuleScopeBuilder(
-      Module module,
-      Type associatedType,
-      Map<String, Supplier<TruffleObject>> polyglotSymbols,
-      Map<String, Type> types,
-      Map<Type, Map<String, Supplier<Function>>> methods,
-      Map<Type, Map<Type, Supplier<Function>>> conversions,
-      Set<ImportExportScope> imports,
-      Set<ImportExportScope> exports) {
-    this.module = module;
-    this.associatedType = associatedType;
-    this.polyglotSymbols = polyglotSymbols;
-    this.types = types;
-    this.methods = methods;
-    this.conversions = conversions;
-    this.imports = imports;
-    this.exports = exports;
+    this.onFinish = (_) -> {};
   }
 
   public Type registerType(Type type) {
@@ -219,13 +204,18 @@ public final class ModuleScopeBuilder {
     return new ModuleScopeBuilder(this.module, new LinkedHashMap<>(this.types));
   }
 
+  /** Complete building this scope */
+  public void finish() {
+    build();
+  }
+
   /**
    * Materializes the builder and ensures that no further modifications to ModuleScope are possible.
    * Action is idempotent.
    *
    * @return an immutable ModuleScope
    */
-  public ModuleScope build() {
+  private ModuleScope build() {
     if (moduleScope == null) {
       moduleScope =
           new ModuleScope(
@@ -237,6 +227,7 @@ public final class ModuleScopeBuilder {
               Collections.unmodifiableMap(conversions),
               Collections.unmodifiableSet(imports),
               Collections.unmodifiableSet(exports));
+      onFinish.accept(moduleScope);
     }
     return moduleScope;
   }
