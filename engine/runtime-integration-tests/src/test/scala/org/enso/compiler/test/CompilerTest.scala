@@ -273,7 +273,7 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig,
     isGeneratingDocs: Boolean                    = false
   ): (ModuleContext, runtime.Module) = {
-    val mod = runtime.Module.newModuleWith(moduleName, null, _ => {})
+    val mod = runtime.Module.empty(moduleName, null)
     val ctx = ModuleContext(
       module            = mod.asCompilerModule(),
       freshNameSupply   = freshNameSupply,
@@ -301,10 +301,9 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
     val mod =
-      runtime.Module.newModuleWith(
+      runtime.Module.empty(
         QualifiedName.simpleName("Test_Module"),
-        null,
-        _ => {}
+        null
       )
     ModuleTestUtils.unsafeSetIr(
       mod,

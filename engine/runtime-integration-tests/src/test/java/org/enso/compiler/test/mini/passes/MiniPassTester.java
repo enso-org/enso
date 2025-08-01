@@ -47,7 +47,7 @@ public abstract class MiniPassTester {
     Option<PassConfiguration> passConfig = Option.empty();
     Option<PackageRepository> pkgRepo = Option.empty();
     var isGeneratingDocs = false;
-    var runtimeMod = org.enso.interpreter.runtime.Module.newModuleWith(moduleName, null, (_) -> {});
+    var runtimeMod = org.enso.interpreter.runtime.Module.empty(moduleName, null);
     return ModuleContext.apply(
         runtimeMod.asCompilerModule(),
         compilerConf,
