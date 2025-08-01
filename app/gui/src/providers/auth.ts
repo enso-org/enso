@@ -34,6 +34,18 @@ export function createUsersMeQueryKey(
   ] as const
 }
 
+const ACCOUNT_FRESHNESS_THRESHOLD_MS = 1000 * 60 * 30 // 30 minutes
+
+function extractTimestampFromKsuid(ksuid: string): Date {
+  const decoded = [...ksuid].reduce(
+    (p, c) =>
+      p * 62n + BigInt('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.indexOf(c)),
+    0n,
+  )
+  const timestamp = Number(decoded >> 128n) * 1000
+  return new Date(1.4e12 + timestamp)
+}
+
 /** Query to fetch the user's session data from the backend. */
 export function createUsersMeQuery(
   session: ToValue<Opt<cognitoModule.UserSession>>,
@@ -54,8 +66,11 @@ export function createUsersMeQuery(
         return null
       }
       if (user.plan === backendModule.Plan.free && refetchCount < 30) {
-        refetchCount += 1
-        return null
+        const date = extractTimestampFromKsuid(user.organizationId.replace(/^organization-/, ''))
+        if (Number(new Date()) - Number(date) < ACCOUNT_FRESHNESS_THRESHOLD_MS) {
+          refetchCount += 1
+          return null
+        }
       }
 
       refetchCount = 0
