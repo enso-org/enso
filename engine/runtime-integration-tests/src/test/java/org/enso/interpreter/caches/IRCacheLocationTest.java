@@ -11,12 +11,21 @@ import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class IRCacheLocationTest {
   @Rule public TemporaryFolder tmpDir = new TemporaryFolder();
+
+  @BeforeClass
+  public static void skipOnWindows() {
+    Assume.assumeFalse(
+        "This test suite should be skipped on Windows, because of NTFS weird refresh rate",
+        System.getProperty("os.name").toLowerCase().contains("win"));
+  }
 
   @Test
   public void noGlobalCacheOption_IsRespected() throws IOException {
