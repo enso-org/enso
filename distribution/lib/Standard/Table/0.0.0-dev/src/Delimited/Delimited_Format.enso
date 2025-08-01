@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Not_Invokable
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format.File_Format_SPI
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -266,3 +267,5 @@ private _catch_compatibility_changes ~action =
         Error.throw (Illegal_Argument.Error "The `keep_invalid_rows` argument has been renamed to `on_invalid_rows`.")
     Panic.catch Not_Invokable handler=on_not_invokable <|
         action
+
+File_Format_SPI (_:Delimited_Format) = File_Format_SPI.new Delimited_Format "delimited"

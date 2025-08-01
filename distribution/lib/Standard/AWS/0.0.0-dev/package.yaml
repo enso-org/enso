@@ -12,3 +12,6 @@ maintainers:
 services:
   - provides: Standard.Base.System.File.File_System_SPI
     with: Standard.AWS.Internal.S3_File_Write_Strategy.S3_FS_Impl
+
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.AWS.S3.S3_Data_Link.S3_Data_Link

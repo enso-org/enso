@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format.File_Format_SPI
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -371,3 +372,5 @@ Fixed_Width_Layout.from (that : Function) =
 _make_fixed_width_layout_widget display:Display=..When_Modified -> Widget =
     prepopulated_table = "Table.input [['names', ['column a']], ['starts', ['0']], ['widths', ['10']]]"
     make_single_choice [["Infer (left justified)", "..Left"], ["Infer (right justified)", "..Right"], ["Table", prepopulated_table ]] display=display
+
+File_Format_SPI (_:Fixed_Width_Format) = File_Format_SPI.new Fixed_Width_Format "fixed_width"

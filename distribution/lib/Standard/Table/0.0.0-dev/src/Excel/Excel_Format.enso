@@ -3,6 +3,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format.File_Format_SPI
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -252,3 +253,5 @@ Excel_Format.from (that : JS_Object) =
             headers = section.get "headers" |> parse_boolean_with_infer "headers"
             Excel_Format.Range address=address headers=headers
         unknown -> Error.throw (Illegal_Argument.Error "The `section.type` was "+unknown+" but it must be one of `workbook`, `sheet`, or `range`.")
+
+File_Format_SPI (_:Excel_Format) = File_Format_SPI.new Excel_Format "excel"

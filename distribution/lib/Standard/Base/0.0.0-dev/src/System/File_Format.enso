@@ -29,13 +29,11 @@ from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
-polyglot java import org.enso.base.file_format.FileFormatSPI
-
 ## ---
    private: true
    ---
 format_types : Vector
-format_types = Vector.from_polyglot_array (FileFormatSPI.get_types False)
+format_types = Vector.from_polyglot_array (File_Format_SPI.get_types False)
 
 ## ---
    private: true
@@ -458,3 +456,22 @@ type File_Name_Pattern
        it will be used by the `File_Format` to merge patterns and nesting it
        would not be allowed.
     Value display_name:Text (patterns : Vector Text)
+
+type File_Format_SPI
+    private Value typ data_link_format_name:Text|Nothing
+
+    new typ data_link_format_name:Text|Nothing=Nothing -> File_Format_SPI =
+        File_Format_SPI.Value typ data_link_format_name
+
+    private get_types _:Boolean =
+        Meta_Helpers.lookup_services File_Format_SPI
+
+    private find_format_for_data_link sub_type:Text =
+        all = get_types False
+        found = all.format \spi -> spi.data_link_format_name == sub_type
+        found.first
+
+File_Format_SPI.from (_:Bytes) = File_Format_SPI.new Bytes
+File_Format_SPI.from (_:JSON_Format) = File_Format_SPI.new JSON_Format "json"
+File_Format_SPI.from (_:Plain_Text_Format) = File_Format_SPI.new Plain_Text_Format
+

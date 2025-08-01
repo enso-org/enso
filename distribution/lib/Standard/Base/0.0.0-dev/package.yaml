@@ -37,3 +37,15 @@ component-groups:
 services:
   - provides: Standard.Base.System.File.File_System_SPI
     with: Standard.Base.Enso_Cloud.Enso_File_System_Impl.Enso_File_System_Impl
+
+# File_Format_SPI definitions
+
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Base.System.File_Format.Bytes
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Base.System.File_Format.JSON_Format
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Base.System.File_Format.Plain_Text_Format
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Base.Data.XML.XML_Format
+
