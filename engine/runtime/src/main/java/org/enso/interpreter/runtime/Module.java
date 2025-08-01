@@ -101,10 +101,10 @@ public final class Module extends EnsoObject {
     this.wasLoadedFromCache = false;
     this.synthetic = false;
   }
-  
+
   private void updateModuleScope(ModuleScope scope) {
-      assert scope == scopeBuilder.asModuleScope();
-      this.scope = scope;
+    assert scope == scopeBuilder.asModuleScope();
+    this.scope = scope;
   }
 
   /**

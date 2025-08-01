@@ -196,7 +196,7 @@ class IrToTruffle(
 
     val builderAlgorithm = new BuildModuleScopeFromModule
     builderAlgorithm.processModule(module, bindingsMap)
-    // scopeBuilder.build()
+    scopeBuilder.finish()
   }
 
   final private class BuildModuleScopeFromModule
