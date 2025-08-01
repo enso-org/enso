@@ -35,6 +35,8 @@ export interface SyncLocalStorageOptions<StoredState> {
     state: Partial<StoredState> | undefined,
     abort: AbortSignal,
   ) => Promise<void> | void
+  /** When to commit updates to the local storage. Defaults to 'pre'. */
+  flush?: 'pre' | 'post' | 'sync' | undefined
 }
 
 /**
@@ -55,7 +57,9 @@ export function useSyncLocalStorage<StoredState extends object>(
     getCurrentInstance(),
   ) as typeof options.restoreState
 
-  const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map())
+  const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map(), {
+    flush: options.flush ?? 'pre',
+  })
 
   /**
    * Maximum number of graph states stored in localStorage. When it is exceeded, least recently used
@@ -147,5 +151,7 @@ export function useSyncLocalStorage<StoredState extends object>(
         storageMap.value.set(newKey, stateBlob)
       }
     },
+    /** Save the current state immediately, independently of the debounce timer. */
+    saveState: () => saveState(graphViewportStorageKey.value, serializedState.value),
   }
 }
