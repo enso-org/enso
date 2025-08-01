@@ -63,6 +63,7 @@ type Excel_Workbook
             File_Error.handle_java_exceptions raw_file <| Excel_Reader.handle_bad_format file_for_errors <| Illegal_State.handle_java_exception <|
                 # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file` in the resulting workbook instance.
                 java_file = Java_File.new raw_file.absolute.normalize.path
+                IO.println "ZZZZZ Excel_Workbook call openReadOnlyConnection"
                 excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
                 Excel_Workbook.Value (Ref.new excel_connection_resource) file xls_format
 

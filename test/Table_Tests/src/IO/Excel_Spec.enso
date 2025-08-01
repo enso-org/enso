@@ -1210,32 +1210,40 @@ add_specs suite_builder =
         group_builder.specify "should clear cache on simulated reload" <|
             0.up_to 100 . each i->
                 ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+                IO.println "ZZZZZ Excel_Spec before w0 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w0 = xlsx_sheet.read
-                IO.println "ZZZZZ Excel_Spec w0 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w0 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+                IO.println "ZZZZZ Excel_Spec before w1 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w1 = xlsx_sheet.read
-                IO.println "ZZZZZ Excel_Spec w1 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w1 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+                IO.println "ZZZZZ Excel_Spec before w2 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w2 = xls_sheet.read
-                IO.println "ZZZZZ Excel_Spec w2 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w2 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+                IO.println "ZZZZZ Excel_Spec before w3 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w3 = xls_sheet.read
-                IO.println "ZZZZZ Excel_Spec w3 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w3 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
                 [w0, w1, w2, w3].each check_workbook
 
                 ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+                IO.println "ZZZZZ Excel_Spec before w4 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w4 = xlsx_sheet.read
-                IO.println "ZZZZZ Excel_Spec w4 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w4 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+                IO.println "ZZZZZ Excel_Spec before w5 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w5 = xlsx_sheet.read
-                IO.println "ZZZZZ Excel_Spec w5 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w5 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+                IO.println "ZZZZZ Excel_Spec before w6 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w6 = xls_sheet.read
-                IO.println "ZZZZZ Excel_Spec w6 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w6 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+                IO.println "ZZZZZ Excel_Spec before w7 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w7 = xls_sheet.read
-                IO.println "ZZZZZ Excel_Spec w7 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
+                IO.println "ZZZZZ Excel_Spec after w7 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
                 [w4, w5, w6, w7].each check_workbook
 

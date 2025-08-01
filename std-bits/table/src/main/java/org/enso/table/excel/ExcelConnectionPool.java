@@ -51,9 +51,12 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         throw new FileNotFoundException(file.toString());
       }
 
+      System.out.println("ZZZZZ ExceltConnectionPool.openReadOnlyConnection records " + records.size());
+
       String key = getKeyForFile(file);
       ConnectionRecord existingRecord = records.get(key);
       if (existingRecord != null) {
+        System.out.println("ZZZZZ ExceltConnectionPool.openReadOnlyConnection cache hit");
         // Adapt the existing record
         if (existingRecord.format != format) {
           throw new ExcelFileFormatMismatchException(
@@ -78,6 +81,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         record.format = format;
         record.reopen(true);
         records.put(key, record);
+        System.out.println("ZZZZZ ExceltConnectionPool.openReadOnlyConnection cache miss, records " + records.size());
         return new ReadOnlyExcelConnection(this, key, record);
       }
     }
