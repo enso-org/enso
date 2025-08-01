@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
@@ -144,11 +145,17 @@ public final class Module extends EnsoObject {
    * Creates a new module.
    *
    * @param name the qualified name of this module.
+   * @param fillWith a code to run to initialize module scope or {@code null} to leave the module
+   *     scope empty
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
    */
   private Module(
-      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+      QualifiedName name,
+      Package<TruffleFile> pkg,
+      boolean synthetic,
+      Consumer<ModuleScopeBuilder> fillWith,
+      Rope literalSource) {
     ensureConsistentName(name, pkg);
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
@@ -160,10 +167,13 @@ public final class Module extends EnsoObject {
     this.synthetic = synthetic;
     if (synthetic) {
       this.compilationStage = CompilationStage.INITIAL;
-      scopeBuilder.build();
     } else {
+      if (fillWith != null) {
+        fillWith.accept(scopeBuilder);
+      }
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
     }
+    scopeBuilder.build();
   }
 
   private void ensureConsistentName(QualifiedName name, Package<TruffleFile> pkg) {
@@ -203,10 +213,24 @@ public final class Module extends EnsoObject {
    * @param name the qualified name of the newly created module.
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
+   * @param fillWith to fill in the scope
+   * @return the module with scope filled by provided with code
+   */
+  public static Module emptyWith(
+      QualifiedName name, Package<TruffleFile> pkg, Consumer<ModuleScopeBuilder> fillWith) {
+    return new Module(name, pkg, false, fillWith, null);
+  }
+
+  /**
+   * Creates an empty module.
+   *
+   * @param name the qualified name of the newly created module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
    * @return the module with empty scope.
    */
   public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg, false, null);
+    return new Module(name, pkg, false, null, null);
   }
 
   /**
@@ -219,7 +243,7 @@ public final class Module extends EnsoObject {
    * @return the synthetic module
    */
   public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
-    return new Module(name, pkg, true, source);
+    return new Module(name, pkg, true, null, source);
   }
 
   /** Clears any literal source set for this module. */

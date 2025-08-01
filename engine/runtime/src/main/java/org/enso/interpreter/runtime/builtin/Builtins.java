@@ -35,17 +35,23 @@ import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public final class Builtins {
   private static final EnsoContext.Extra<Builtins> KEY =
-      new EnsoContext.Extra<>(Builtins.class, Builtins::new);
+      new EnsoContext.Extra<>(Builtins.class, Builtins::create);
   private final EnsoContext context;
   private final BuiltinsRegistry builtins;
 
+  /**
+   * Module isn't final, as it wasn't possible to assign it in constructor. But it is "effectively
+   * final" - nobody is changing that field.
+   */
+  @CompilerDirectives.CompilationFinal private Module module;
+
   private final Error error;
-  private final Module module;
   private final Number number;
   private final Boolean bool;
 
@@ -81,26 +87,38 @@ public final class Builtins {
   private final AdditionalWarnings additionalWarnings;
   private final Builtin instrumentor;
 
+  /** Factory method to create the builtins. */
+  private static Builtins create(EnsoContext context) {
+    var fqn = QualifiedName.fromString(MethodNames.Builtins.MODULE_NAME);
+    var res = new Builtins[1];
+    var module =
+        Module.emptyWith(
+            fqn,
+            null,
+            (scopeBuilder) -> {
+              res[0] = new Builtins(context, scopeBuilder);
+            });
+    module.compileScope(context); // Dummy compilation for an empty module
+    // module has to be assigned only when constructor is over
+    res[0].module = module;
+    return res[0];
+  }
+
   /**
    * Creates an instance with builtin methods installed.
    *
-   * @param context the current {@link EnsoContext} instance
+   * @param ctx the current {@link EnsoContext} instance
+   * @param sb scope builder to fill
    */
-  private Builtins(EnsoContext context) {
-    this.context = context;
-    var language = context.getLanguage();
-    var fqn = QualifiedName.fromString(MethodNames.Builtins.MODULE_NAME);
-    module = Module.empty(fqn, null);
-    module.compileScope(context); // Dummy compilation for an empty module
-    var scopeBuilder = module.newScopeBuilder();
-
-    builtins = new BuiltinsRegistry(language, scopeBuilder);
+  private Builtins(EnsoContext ctx, ModuleScopeBuilder sb) {
+    context = ctx;
+    builtins = new BuiltinsRegistry(ctx.getLanguage(), sb);
 
     ordering = getBuiltinType(Ordering.class);
     comparable = getBuiltinType(Comparable.class);
     defaultComparator = getBuiltinType(DefaultComparator.class);
-    bool = this.getBuiltinType(Boolean.class);
-    contexts = this.getBuiltinType(Context.class);
+    bool = getBuiltinType(Boolean.class);
+    contexts = getBuiltinType(Context.class);
 
     any = getBuiltinType(Any.class);
     nothing = getBuiltinType(Nothing.class);
@@ -127,10 +145,9 @@ public final class Builtins {
     additionalWarnings = getBuiltinType(AdditionalWarnings.class);
     instrumentor = getBuiltinType(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
-    error = new Error(this, context);
+    error = new Error(this, ctx);
     system = new System(this);
     number = new Number(this);
-    scopeBuilder.build();
   }
 
   /**
