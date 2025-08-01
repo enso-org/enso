@@ -14,42 +14,28 @@ public class MemoryAppender extends AppenderBase<ILoggingEvent> {
   private final Appender<ILoggingEvent> underlying;
 
   private final List<ILoggingEvent> events;
-  private volatile boolean forwardLogs;
+  private volatile boolean canForwardLogs;
 
   public MemoryAppender(Appender<ILoggingEvent> underlying) {
     this.underlying = underlying;
     this.events = new ArrayList<>();
-    this.forwardLogs = underlying != null;
+    this.canForwardLogs = underlying != null;
   }
 
   protected void append(ILoggingEvent e) {
-    if (forwardLogs) {
-      underlying.doAppend(e);
-    } else {
-      events.add(e);
-    }
+    events.add(e);
   }
 
   public void reset() {
-    this.forwardLogs = underlying != null;
-    if (forwardLogs) {
-      this.underlying.start();
-    }
     events.clear();
   }
 
   public void flush() {
-    // Ensure context set
-    underlying.start();
-    for (var element : events) {
-      underlying.doAppend(element);
+    if (canForwardLogs) {
+      for (var element : events) {
+        underlying.doAppend(element);
+      }
     }
-    underlying.stop();
-  }
-
-  public void stopForwarding() {
-    this.forwardLogs = false;
-    this.underlying.stop();
   }
 
   public List<ILoggingEvent> getEvents() {
@@ -63,7 +49,7 @@ public class MemoryAppender extends AppenderBase<ILoggingEvent> {
 
   @Override
   public String toString() {
-    if (this.underlying != null) {
+    if (canForwardLogs) {
       return "MemoryAppender[forwardTo=" + this.underlying.getName() + "]";
     } else {
       return "MemoryAppender[forwardTo=<disabled>]";

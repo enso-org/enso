@@ -2,11 +2,11 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-
 import org.enso.pkg.QualifiedName
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.editing.model
 import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
@@ -16,10 +16,12 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-import java.util.logging.Level
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
+class RuntimeVisualizationsTest
+    extends AnyFlatSpec
+    with Matchers
+    with ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 
@@ -38,7 +40,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           .allowAllAccess(true)
           .environment("NO_COLOR", "true")
           .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-          .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(
+            RuntimeOptions.LOG_LEVEL,
+            java.util.logging.Level.WARNING.getName()
+          )
           .option(
             RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
             sequentialExecution.toString
@@ -62,7 +67,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
             Paths.get("../../distribution/component").toFile.getAbsolutePath
           )
-          .logHandler(System.err)
+          .logHandler(org.enso.logger.JulHandler.get())
           .out(out)
           .serverTransport(runtimeServerEmulator.makeServerTransport)
           .build()

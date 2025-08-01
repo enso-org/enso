@@ -1,6 +1,5 @@
 package org.enso.interpreter.test.instrument
 
-import org.apache.commons.io.output.TeeOutputStream
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen, Types}
 import org.enso.interpreter.test.Metadata
@@ -8,9 +7,11 @@ import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
 import org.enso.polyglot.data.TypeGraph
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.debugger.IdExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -26,7 +27,8 @@ import java.util.UUID
 class RuntimeServerTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 
@@ -36,9 +38,8 @@ class RuntimeServerTest
       extends InstrumentTestContext(packageName)
       with RuntimeServerTest.TestMain {
 
-    val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
-    val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
-    private var _context: Context     = null;
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+    private var _context: Context  = null;
     protected def context(): Context = {
       if (_context == null) {
         _context = Context
@@ -73,8 +74,8 @@ class RuntimeServerTest
               .getAbsolutePath
           )
           .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-          .logHandler(new TeeOutputStream(logOut, System.err))
-          .out(new TeeOutputStream(out, System.err))
+          .logHandler(JulHandler.get())
+          .out(out)
           .serverTransport(runtimeServerEmulator.makeServerTransport)
           .build()
       }

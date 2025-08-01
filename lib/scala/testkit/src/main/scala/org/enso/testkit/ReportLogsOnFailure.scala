@@ -1,51 +1,44 @@
 package org.enso.testkit
 
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.Appender
-import org.enso.logging.service.logback.MemoryAppender
 import org.scalatest.{Args, Failed, Outcome, Status, TestSuite}
-import org.slf4j.{Logger, LoggerFactory}
+import org.enso.logging.service.logback.test.TestAppenderUtils
 
 trait ReportLogsOnFailure extends TestSuite {
-
-  private lazy val appender: Appender[ILoggingEvent] = {
-    val ctx = LoggerFactory.getILoggerFactory;
-    val rootLogger = ctx
-      .getLogger(Logger.ROOT_LOGGER_NAME)
-      .asInstanceOf[ch.qos.logback.classic.Logger]
-    rootLogger.getAppender(MemoryAppender.NAME)
-  }
 
   abstract override protected def runTest(
     testName: String,
     args: Args
   ): Status = {
-    appender match {
-      case memoryAppender: MemoryAppender =>
-        memoryAppender.stopForwarding()
+    val appender = TestAppenderUtils.getMemoryAppender
+    if (appender != null) {
+      try {
         super.runTest(testName, args)
-      case _ =>
-        super.runTest(testName, args)
+      } catch {
+        case e: Throwable =>
+          appender.flush()
+          throw e
+      }
+    } else {
+      super.runTest(testName, args)
     }
-
   }
 
   abstract override def withFixture(test: NoArgTest): Outcome = {
-    appender match {
-      case memoryAppender: MemoryAppender =>
-        try {
-          super.withFixture(test) match {
-            case outcome @ Failed(_) =>
-              memoryAppender.flush()
-              outcome
-            case outcome =>
-              outcome
-          }
-        } finally {
-          memoryAppender.reset()
+    val appender = TestAppenderUtils.getMemoryAppender()
+    if (appender != null) {
+      try {
+        super.withFixture(test) match {
+          case outcome @ Failed(_) =>
+            appender.flush()
+            outcome
+          case outcome =>
+            outcome
         }
-      case _ =>
-        super.withFixture(test)
+      } finally {
+        appender.reset()
+      }
+    } else {
+      super.withFixture(test)
     }
   }
 

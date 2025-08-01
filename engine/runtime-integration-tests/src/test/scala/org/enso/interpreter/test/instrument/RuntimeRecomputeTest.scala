@@ -1,12 +1,13 @@
 package org.enso.interpreter.test.instrument
 
-import org.apache.commons.io.output.TeeOutputStream
 import org.enso.common.{LanguageInfo, MethodNames, RuntimeOptions}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,7 +21,8 @@ import java.util.UUID
 class RuntimeRecomputeTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with ReportLogsOnFailure {
 
   var context: TestContext = _
 
@@ -28,8 +30,7 @@ class RuntimeRecomputeTest
       extends InstrumentTestContext(packageName)
       with RuntimeServerTest.TestMain {
 
-    val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
-    val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     protected val context =
       Context
         .newBuilder(LanguageInfo.ID)
@@ -60,8 +61,8 @@ class RuntimeRecomputeTest
             .getAbsolutePath
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-        .logHandler(new TeeOutputStream(logOut, System.err))
-        .out(new TeeOutputStream(out, System.err))
+        .logHandler(JulHandler.get)
+        .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 

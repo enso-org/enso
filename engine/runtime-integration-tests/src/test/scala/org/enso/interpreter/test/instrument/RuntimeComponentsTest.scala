@@ -15,9 +15,10 @@ import org.enso.pkg.{
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.OsSpec
+import org.enso.testkit.{OsSpec, ReportLogsOnFailure}
 import org.graalvm.polyglot.Context
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.flatspec.AnyFlatSpec
@@ -28,7 +29,6 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import java.util.logging.Level
 import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -39,7 +39,8 @@ class RuntimeComponentsTest
     with OptionValues
     with BeforeAndAfterEach
     with BeforeAndAfterAll
-    with OsSpec {
+    with OsSpec
+    with ReportLogsOnFailure {
 
   override val timeLimit = 5.minutes
 
@@ -123,7 +124,10 @@ class RuntimeComponentsTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           distributionHome.toString
         )
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+        .option(
+          RuntimeOptions.LOG_LEVEL,
+          java.util.logging.Level.WARNING.getName
+        )
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
@@ -132,7 +136,7 @@ class RuntimeComponentsTest
           InstrumentTestContext.DISABLE_IR_CACHE
         )
         .out(out)
-        .logHandler(System.err)
+        .logHandler(JulHandler.get)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 

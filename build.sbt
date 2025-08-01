@@ -1678,7 +1678,7 @@ lazy val testkit = project
     Compile / exportedModule := (Compile / exportedModuleBin).value,
     Compile / exportedModuleBin := (Compile / packageBin).value
   )
-  .dependsOn(`logging-service-logback`)
+  .dependsOn(`logging-service-logback` % "compile->test")
   .dependsOn(`runtime-utils`)
 
 lazy val searcher = project

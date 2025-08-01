@@ -1,9 +1,10 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.interpreter.runtime.`type`.ConstantsGen
+import org.enso.interpreter.test.Metadata
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{
@@ -14,7 +15,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 import org.enso.runtime.utils.ThreadUtils
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
-import org.enso.testkit.{DebugSpec, FlakySpec}
+import org.enso.testkit.{DebugSpec, FlakySpec, ReportLogsOnFailure}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -23,7 +24,6 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-import java.util.logging.Level
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeAsyncCommandsTest
@@ -31,7 +31,8 @@ class RuntimeAsyncCommandsTest
     with Matchers
     with BeforeAndAfterEach
     with DebugSpec
-    with FlakySpec {
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 
@@ -114,7 +115,10 @@ class RuntimeAsyncCommandsTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+        .option(
+          RuntimeOptions.LOG_LEVEL,
+          java.util.logging.Level.WARNING.getName
+        )
         .option(
           RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
           "false"
@@ -138,7 +142,7 @@ class RuntimeAsyncCommandsTest
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
-        .logHandler(System.err)
+        .logHandler(JulHandler.get)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 

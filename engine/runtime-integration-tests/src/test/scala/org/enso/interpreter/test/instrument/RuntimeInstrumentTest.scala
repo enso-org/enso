@@ -4,8 +4,10 @@ import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen}
 import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
@@ -20,7 +22,8 @@ import java.util.UUID
 class RuntimeInstrumentTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 
@@ -35,7 +38,10 @@ class RuntimeInstrumentTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(
+          RuntimeOptions.LOG_LEVEL,
+          java.util.logging.Level.WARNING.getName
+        )
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
@@ -56,7 +62,7 @@ class RuntimeInstrumentTest
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
-        .logHandler(System.err)
+        .logHandler(JulHandler.get)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 

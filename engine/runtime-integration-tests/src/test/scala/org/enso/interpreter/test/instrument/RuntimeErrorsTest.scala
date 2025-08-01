@@ -4,8 +4,10 @@ import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
@@ -17,13 +19,13 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-import java.util.logging.ConsoleHandler
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeErrorsTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 
@@ -33,9 +35,6 @@ class RuntimeErrorsTest
       extends InstrumentTestContext(packageName) {
 
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val logHandler                 = new ConsoleHandler()
-    val defaultLogLevel            = java.util.logging.Level.WARNING;
-    logHandler.setLevel(defaultLogLevel)
 
     val context =
       Context
@@ -64,8 +63,11 @@ class RuntimeErrorsTest
         )
         .option("engine.WarnInterpreterOnly", "false")
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-        .logHandler(logHandler)
-        .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)
+        .logHandler(JulHandler.get)
+        .option(
+          RuntimeOptions.LOG_LEVEL,
+          java.util.logging.Level.WARNING.getName
+        )
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()

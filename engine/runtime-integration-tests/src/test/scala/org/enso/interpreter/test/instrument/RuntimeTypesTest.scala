@@ -7,8 +7,10 @@ import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -24,7 +26,8 @@ import java.util.UUID
 class RuntimeTypesTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with ReportLogsOnFailure {
 
   // === Test Utilities =======================================================
 
@@ -65,7 +68,7 @@ class RuntimeTypesTest
             .getAbsolutePath
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-        .logHandler(new TeeOutputStream(logOut, System.err))
+        .logHandler(JulHandler.get())
         .out(new TeeOutputStream(out, System.err))
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()

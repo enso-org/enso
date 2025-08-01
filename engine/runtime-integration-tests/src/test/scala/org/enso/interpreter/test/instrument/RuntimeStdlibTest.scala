@@ -4,10 +4,11 @@ import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.OsSpec
+import org.enso.testkit.{OsSpec, ReportLogsOnFailure}
 import org.graalvm.polyglot.Context
 import org.scalatest.concurrent.{TimeLimitedTests, TimeLimits}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -18,7 +19,6 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import java.util.logging.Level
 import scala.collection.mutable
 import scala.concurrent.duration._
 
@@ -30,7 +30,8 @@ class RuntimeStdlibTest
     with Matchers
     with BeforeAndAfterEach
     with BeforeAndAfterAll
-    with OsSpec {
+    with OsSpec
+    with ReportLogsOnFailure {
 
   import RuntimeStdlibTest._
 
@@ -66,7 +67,10 @@ class RuntimeStdlibTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           distributionHome.toString
         )
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+        .option(
+          RuntimeOptions.LOG_LEVEL,
+          java.util.logging.Level.WARNING.getName
+        )
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
@@ -75,7 +79,7 @@ class RuntimeStdlibTest
           InstrumentTestContext.DISABLE_IR_CACHE
         )
         .out(out)
-        .logHandler(System.err)
+        .logHandler(JulHandler.get)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 

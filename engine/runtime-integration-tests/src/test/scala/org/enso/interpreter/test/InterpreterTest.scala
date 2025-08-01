@@ -15,6 +15,7 @@ import org.enso.polyglot.debugger.{
 import org.enso.common.DebugServerInfo
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.{Function, PolyglotContext}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
@@ -29,7 +30,6 @@ import java.io.{
 }
 import java.nio.file.{Path, Paths}
 import java.util.UUID
-import java.util.logging.Level
 
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
@@ -131,11 +131,14 @@ class InterpreterContext(
           .allowCreateThread(false)
           .out(_output)
           .err(_err)
-          .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(
+            RuntimeOptions.LOG_LEVEL,
+            java.util.logging.Level.WARNING.getName()
+          )
           .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
           .option(RuntimeOptions.STRICT_ERRORS, "false")
           .environment("NO_COLOR", "true")
-          .logHandler(System.err)
+          .logHandler(JulHandler.get)
           .in(_in)
           .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,

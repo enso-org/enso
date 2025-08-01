@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.LanguageInfo;
@@ -92,6 +93,14 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     var stdout = new ByteArrayOutputStream();
     var stderr = new ByteArrayOutputStream();
     var ctxBldr = Builder.defaultContextBuilder();
+    ctxBldr.out(stdout).err(stderr).logHandler(stdout);
+    return new ContextUtils(ctxBldr, stdout, stderr, true);
+  }
+
+  public static ContextUtils createDefault(Level logLevel, Handler logHanlder) {
+    var stdout = new ByteArrayOutputStream();
+    var stderr = new ByteArrayOutputStream();
+    var ctxBldr = Builder.defaultContextBuilder(logLevel, logHanlder);
     ctxBldr.out(stdout).err(stderr).logHandler(stdout);
     return new ContextUtils(ctxBldr, stdout, stderr, true);
   }
@@ -401,6 +410,22 @@ public final class ContextUtils implements TestRule, AutoCloseable {
           .allowAllAccess(true)
           .environment("NO_COLOR", "true")
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+          .option(RuntimeOptions.STRICT_ERRORS, "true")
+          .option(
+              RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+              Paths.get("../../distribution/component").toFile().getAbsolutePath());
+    }
+
+    private static Context.Builder defaultContextBuilder(
+        Level logLevel, Handler logHandler, String... permittedLanguages) {
+      return Context.newBuilder(permittedLanguages)
+          .allowExperimentalOptions(true)
+          .allowIO(IOAccess.ALL)
+          .allowAllAccess(true)
+          .environment("NO_COLOR", "true")
+          .logHandler(logHandler)
+          .option(RuntimeOptions.LOG_LEVEL, logLevel.getName())
           .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
           .option(RuntimeOptions.STRICT_ERRORS, "true")
           .option(

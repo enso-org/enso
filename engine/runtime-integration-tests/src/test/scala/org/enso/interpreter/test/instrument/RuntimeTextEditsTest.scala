@@ -3,6 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
+import org.enso.logger.JulHandler
 import org.enso.polyglot.{
   ExportedSymbol,
   ModuleExports,
@@ -11,6 +12,7 @@ import org.enso.polyglot.{
 }
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -21,15 +23,14 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-import java.util.logging.Level
-
 import scala.collection.immutable.ListSet
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeTextEditsTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with ReportLogsOnFailure {
 
   var context: TestContext = _
 
@@ -43,7 +44,10 @@ class RuntimeTextEditsTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+        .option(
+          RuntimeOptions.LOG_LEVEL,
+          java.util.logging.Level.WARNING.getName
+        )
         .option(
           RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
           "false"
@@ -68,7 +72,7 @@ class RuntimeTextEditsTest
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
-        .logHandler(System.err)
+        .logHandler(JulHandler.get())
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 
