@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -13,6 +12,7 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
@@ -53,90 +53,24 @@ public class HelloWorldCacheTest {
   }
 
   @Test
-  public void whenRunningWithDisablePrivateCheck_NoCachesAreWritten() throws Exception {
-    var libDir = tmpDir.newFolder("Lib").toPath();
-    var projDir = tmpDir.newFolder("Proj").toPath();
-    ProjectUtils.createProject(
-        "Lib",
-        Set.of(
-            new SourceModule(
-                QualifiedName.fromString("Priv_Mod"),
-                """
-                private
-                priv_func x = x
-                """),
-            new SourceModule(QualifiedName.fromString("Main"), "# Intentionally empty")),
-        libDir);
-    var libCacheDir = libDir.resolve(".enso");
-
-    ProjectUtils.createProject(
-        "Proj",
-        """
-        import local.Lib.Priv_Mod
-        main =
-            Priv_Mod.priv_func 42
-        """,
-        projDir);
-    var projCacheDir = projDir.resolve(".enso");
-    try (var ctx = ctxInProj(projDir, true).build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
-      try {
-        polyCtx.getTopScope().compile(true);
-      } catch (PolyglotException e) {
-        throw new AssertionError("Compilation should succeed", e);
-      }
-      assertThat("No IR cache for Lib was created", libCacheDir.toFile().exists(), is(false));
-      assertThat("No IR cache for Proj was created", projCacheDir.toFile().exists(), is(false));
-    }
-  }
-
-  @Test
-  public void whenRunningWithDisablePrivateCheck_NoCachesAreRead() throws Exception {
-    var libDir = tmpDir.newFolder("Lib").toPath();
-    ProjectUtils.createProject(
-        "Lib", """
-            lib_method =
-                42
-            """, libDir);
-    var libCacheDir = libDir.resolve(".enso");
-
-    var projDir = tmpDir.newFolder("Proj").toPath();
-    ProjectUtils.createProject(
-        "Proj",
-        """
-            from local.Lib import lib_method
-            main =
-                lib_method
-            """,
-        projDir);
-    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-
-    try (var ctx = ctxInProj(projDir, false).build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var assocMainModType = mainMod.getAssociatedType();
-      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
-      var res = mainMethod.execute();
-      assertThat("Evaluation is OK", res.asInt(), is(42));
-      assertThat("IR cache for Lib was created", libCacheDir.toFile().exists(), is(true));
-    }
-
+  public void irCacheCannotBeEnabled_WhenPrivateCheckIsDisabled() {
     try (var ctx =
-        ctxInProj(projDir, true)
+        ContextUtils.newBuilder()
             .withModifiedContext(
-                bldr -> bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName()))
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true")
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
-      polyCtx.getTopScope().compile(true);
-      var output = ctx.getOut();
-      assertThat(
-          "Lib IR cache was not read",
-          output,
-          not(
-              allOf(
-                  containsString("Deserializing module"),
-                  containsString("Lib"),
-                  containsString("from IR file: true"))));
+      try {
+        ctx.context().initialize(LanguageInfo.ID);
+        fail("Context initialization should fail");
+      } catch (Exception e) {
+        assertThat(
+            e.getMessage(),
+            allOf(
+                containsString("private check is disabled"),
+                containsString("IR caching is enabled")));
+      }
     }
   }
 
@@ -195,7 +129,8 @@ public class HelloWorldCacheTest {
                 bldr.option(
                         RuntimeOptions.DISABLE_PRIVATE_CHECK,
                         disablePrivateCheck ? "true" : "false")
-                    .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                    .option(
+                        RuntimeOptions.DISABLE_IR_CACHES, disablePrivateCheck ? "true" : "false")
                     .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
                     .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
         .withProjectRoot(projRoot);
