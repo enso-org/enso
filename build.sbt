@@ -4924,7 +4924,8 @@ lazy val `jna-wrapper-extracted` = project
       "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
         MacOSArm64
       ),
-      "com/**/*.class" -> CopyToOutputJar
+      "com/**/*.class" -> CopyToOutputJar,
+      "module-info.class" -> CopyToOutputJar,
     )
   )
 
@@ -5448,9 +5449,10 @@ lazy val `std-microsoft` = project
             (`jna-wrapper-extracted` / extractedFilesDir).value,
             (`netty-tc-native-wrapper` / extractedFilesDir).value
           ),
+          // `netty-tc-native-wrapper / thinJarOutput` is not here on purpose.
+          // It is an almost empty jar anyway.
           extraJars = Seq(
             (`jna-wrapper-extracted` / thinJarOutput).value,
-            (`netty-tc-native-wrapper` / thinJarOutput).value
           ),
           cacheStoreFactory = cacheStoreFactory
         )
