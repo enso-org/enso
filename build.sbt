@@ -3577,6 +3577,27 @@ lazy val `engine-runner` = project
       (`logging-config` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value
     ),
+    // Runtime / modulePath is used as module-path for the native image build.
+    Runtime / moduleDependencies :=
+      (Compile / moduleDependencies).value ++
+      scalaReflect ++
+      Seq(
+        "commons-io"             % "commons-io"                   % commonsIoVersion,
+        "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
+        "com.typesafe"           % "config"                       % typesafeConfigVersion,
+        "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
+        "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
+        "org.yaml"               % "snakeyaml"                    % snakeyamlVersion
+      ),
+    Runtime / internalModuleDependencies := (Compile / internalModuleDependencies).value ++ Seq(
+      (`downloader` / Compile / exportedModule).value,
+      (persistance / Compile / exportedModule).value,
+      (`polyglot-api-macros` / Compile / exportedModule).value,
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`scala-yaml` / Compile / exportedModule).value,
+      (`syntax-rust-definition` / Compile / exportedModule).value,
+      (`text-buffer` / Compile / exportedModule).value
+    ),
     Test / moduleDependencies ++= Seq(
       "com.typesafe" % "config" % typesafeConfigVersion
     ),
@@ -3719,6 +3740,7 @@ lazy val `engine-runner` = project
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
         ) ++ (if (areStdlibsIncluded) Seq(databaseFeature, azureFeature)
               else Seq())
+        val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
             "enso",
@@ -3732,6 +3754,7 @@ lazy val `engine-runner` = project
               s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties",
               s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*"
             ),
+            modulePath = mp,
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:+AddAllCharsets",

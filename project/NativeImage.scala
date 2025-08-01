@@ -1,3 +1,4 @@
+import JPMSPlugin.autoImport.modulePath
 import sbt._
 import sbt.Keys._
 import sbt.internal.util.ManagedLogger
@@ -94,6 +95,7 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
+    modulePath: Seq[String]                  = Seq.empty,
     verbose: Boolean                         = false
   ): Def.Initialize[Task[Unit]] = Def
     .task {
@@ -193,6 +195,12 @@ object NativeImage {
       val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
+      val mp = if (modulePath.nonEmpty) {
+        Seq("--module-path", modulePath.mkString(File.pathSeparator))
+      } else {
+        Seq()
+      }
+
       val isCi       = sys.env.contains("CI")
       val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
       val excludeConfigsOpt =
@@ -211,6 +219,7 @@ object NativeImage {
 
       var args: Seq[String] =
         excludeConfigsOpt ++
+        mp ++
         Seq("-cp", cpStr) ++
         staticParameters ++
         configs ++

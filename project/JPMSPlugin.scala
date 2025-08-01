@@ -13,7 +13,7 @@ import scala.collection.mutable
   * This plugin injects all the module-specific options to `javaOptions`, based on
   * the settings of this plugin.
   *
-  * Note that the settings of this plugin are *scoped* to `Compile` and `Test` configurations, so
+  * Note that the settings of this plugin are *scoped* to `Compile`, `Test`, and `Runtime` configurations, so
   * you need to always specify the configuration, for example, `Compile / moduleDependencies` instead
   * of just `moduleDependencies`.
   *
@@ -157,7 +157,7 @@ object JPMSPlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Setting[_]] = {
     // All the settings are scoped for Compile and Test
-    Seq(Compile, Test).flatMap { config: Configuration =>
+    Seq(Compile, Test, Runtime).flatMap { config: Configuration =>
       Seq(
         config / addModules := Seq.empty,
         config / moduleDependencies := Seq.empty,
