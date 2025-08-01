@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.util.Optional;
 import org.enso.common.MethodNames;
@@ -34,7 +35,6 @@ import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -46,7 +46,6 @@ public final class Builtins {
 
   private final Error error;
   private final Module module;
-  private final ModuleScope scope;
   private final Number number;
   private final Boolean bool;
 
@@ -131,16 +130,29 @@ public final class Builtins {
     error = new Error(this, context);
     system = new System(this);
     number = new Number(this);
-    scope = scopeBuilder.build();
+    scopeBuilder.build();
   }
 
   /**
    * Obtains instance of {@link Builtins} for given context.
    *
-   * @param ctx
-   * @return
+   * @param ctx the context to find builtins for
+   * @return the 1:1 instance associated with provided context
    */
   public static Builtins get(EnsoContext ctx) {
+    return KEY.get(ctx);
+  }
+
+  /**
+   * Obtains instance of {@link Builtins} for given node. Uses {@link EnsoContext#get} followed by
+   * {@link #get(org.enso.interpreter.runtime.EnsoContext)}.
+   *
+   * @param node the node to find builtins for
+   * @return instance of builtins for given node
+   */
+  public static Builtins get(Node node) {
+    var ctx = EnsoContext.get(node);
+    assert ctx != null : "No context for " + node;
     return KEY.get(ctx);
   }
 
@@ -452,15 +464,6 @@ public final class Builtins {
    */
   public Type instrumentor() {
     return instrumentor.getType();
-  }
-
-  /**
-   * Returns the builtin module scope.
-   *
-   * @return the builtin module scope
-   */
-  public ModuleScope getScope() {
-    return scope;
   }
 
   public Module getModule() {
