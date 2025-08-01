@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CloseButton from '$/components/CloseButton.vue'
+import { isOverflowing } from '$/utils/dom'
 import SvgIcon from '@/components/SvgIcon.vue'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
@@ -30,7 +31,9 @@ const emit = defineEmits<{ 'update:selected': [value: boolean] }>()
 const labelElement = useTemplateRef('label')
 
 const tooltipPlacement = computed(() => (orientation === 'horizontal' ? 'top' : 'left'))
-const tooltipOverflowElement = computed(() => (tooltip ? null : labelElement.value))
+const tooltipEnabled = computed(
+  (): boolean => !!tooltip || !labelElement.value || isOverflowing(labelElement.value),
+)
 
 const VARIANTS = {
   hidden: { opacity: 0 },
@@ -39,7 +42,7 @@ const VARIANTS = {
 </script>
 
 <template>
-  <TooltipTrigger :placement="tooltipPlacement" :whenOverflow="tooltipOverflowElement">
+  <TooltipTrigger :placement="tooltipPlacement" :enabled="tooltipEnabled">
     <template #default="triggerProps">
       <div class="SelectableTab" :class="orientation" @click="emit('update:selected', !selected)">
         <AnimatePresence :initial="selected != null">
