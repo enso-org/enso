@@ -1412,8 +1412,7 @@ export default class RemoteBackend extends Backend {
   async getProjectArchive(directoryId: backend.DirectoryId, fileName: string): Promise<File> {
     const queryString = new URLSearchParams({
       directory: extractIdFromDirectoryId(directoryId),
-    })
-
+    }).toString()
     const response = await this.client.get(`/api/cloud/get-project-archive?${queryString}`)
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
@@ -1426,10 +1425,10 @@ export default class RemoteBackend extends Backend {
 
   /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
-    const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
-      remoteBackendPaths.CUSTOMER_PORTAL_SESSION_CREATE_PATH,
-      {},
-    )
+    // A dummy query parameter is required due to issues with backend validation.
+    const queryString = new URLSearchParams({ ignored: '' }).toString()
+    const path = `${remoteBackendPaths.CUSTOMER_PORTAL_SESSION_CREATE_PATH}?${queryString}`
+    const response = await this.post<backend.CreateCustomerPortalSessionResponse>(path, null)
 
     if (!response.ok) {
       return await this.throw(response, 'getCustomerPortalUrlBackendError')
@@ -1554,7 +1553,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object, options?: HttpClientPostOptions) {
+  private post<T = void>(path: string, payload: object | null, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.post<T>(`${$config.API_URL}/${path}`, payload, options),
     )
