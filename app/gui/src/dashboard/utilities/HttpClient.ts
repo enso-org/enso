@@ -54,7 +54,7 @@ export default class HttpClient {
   }
 
   /** Send a JSON HTTP POST request to the specified URL. */
-  post<T = void>(url: string, payload: object, options?: HttpClientPostOptions) {
+  post<T = void>(url: string, payload: object | null, options?: HttpClientPostOptions) {
     return this.request<T>({
       method: HttpMethod.post,
       url,
