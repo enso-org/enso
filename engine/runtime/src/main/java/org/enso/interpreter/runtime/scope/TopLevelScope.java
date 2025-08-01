@@ -150,7 +150,7 @@ public final class TopLevelScope extends EnsoObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return Module.emptyWith(QualifiedName.simpleName(moduleName), null, (_) -> {});
+      return Module.empty(QualifiedName.simpleName(moduleName), null);
     }
 
     @CompilerDirectives.TruffleBoundary
