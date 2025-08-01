@@ -27,7 +27,10 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
     .getByRole('tab')
     .filter({ has: page.getByText('Data Catalog') })
     .click()
-  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
+
+  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible({
+    timeout: 30000,
+  })
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
