@@ -65,7 +65,7 @@ export function createUsersMeQuery(
         void setUsername(sessionVal.email)
         return null
       }
-      if (user.plan === backendModule.Plan.free && refetchCount < 30) {
+      if (user.plan === backendModule.Plan.free && refetchCount < 10) {
         const date = extractTimestampFromKsuid(user.organizationId.replace(/^organization-/, ''))
         if (Number(new Date()) - Number(date) < ACCOUNT_FRESHNESS_THRESHOLD_MS) {
           refetchCount += 1
