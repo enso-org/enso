@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import CloseButton from '$/components/CloseButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { Icon } from '@/util/iconMetadata/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { AnimatePresence, motion } from 'motion-v'
-import { computed } from 'vue'
-import CloseButton from '../CloseButton.vue'
+import { computed, useTemplateRef } from 'vue'
 
 const {
   selected,
@@ -27,8 +27,10 @@ const {
 // change.
 const emit = defineEmits<{ 'update:selected': [value: boolean] }>()
 
+const labelElement = useTemplateRef('label')
+
 const tooltipPlacement = computed(() => (orientation === 'horizontal' ? 'top' : 'left'))
-const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always'))
+const tooltipOverflowElement = computed(() => (tooltip ? null : labelElement.value))
 
 const VARIANTS = {
   hidden: { opacity: 0 },
@@ -37,7 +39,7 @@ const VARIANTS = {
 </script>
 
 <template>
-  <TooltipTrigger :placement="tooltipPlacement" :when="whenTooltip">
+  <TooltipTrigger :placement="tooltipPlacement" :whenOverflow="tooltipOverflowElement">
     <template #default="triggerProps">
       <div class="SelectableTab" :class="orientation" @click="emit('update:selected', !selected)">
         <AnimatePresence :initial="selected != null">
@@ -55,14 +57,15 @@ const VARIANTS = {
         <button
           role="tab"
           :aria-label="tooltip ?? label ?? ''"
-          class="tabContent"
+          class="tabContent tabLayout"
           :class="{ enabled, selected }"
           :disabled="!enabled"
-          v-bind="triggerProps"
         >
-          <SvgIcon v-if="icon" :name="icon" />
-          <slot />
-          <span v-if="label" class="label">{{ label }}</span>
+          <span class="tabLayout" v-bind="triggerProps">
+            <SvgIcon v-if="icon" :name="icon" />
+            <slot />
+            <span v-if="label" ref="label" class="label">{{ label }}</span>
+          </span>
           <CloseButton v-if="onClose" @click="onClose" />
         </button>
       </div>
@@ -143,14 +146,17 @@ const VARIANTS = {
   }
 }
 
-.tabContent {
-  height: 100%;
-  padding: 8px;
+.tabLayout {
   display: flex;
-  border-radius: var(--radius-full);
   flex-direction: row;
   align-items: center;
   gap: 12px;
+}
+
+.tabContent {
+  height: 100%;
+  padding: 8px;
+  border-radius: var(--radius-full);
   transition: background-color 0.3s;
   cursor: not-allowed;
   opacity: 0.2;

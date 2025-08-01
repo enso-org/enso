@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { unrefElement } from '@/composables/events'
 import { HoveredElement, type TooltipRegistry } from '@/providers/tooltipRegistry'
 import { Opt } from '@/util/data/opt'
 import { autoUpdate, flip, FloatingElement, offset, shift, useFloating } from '@floating-ui/vue'
@@ -56,17 +57,18 @@ const isDisplayed = (tooltip: Opt<HoveredElement>) => {
   if (tooltip.entry.isHidden) return false
   if (tooltip.entry.forceShow) return true
   if (!tooltip.element.isConnected) return false
-  switch (toValue(tooltip.entry.props.when)) {
-    case 'always':
-      return true
-    case 'whenOverflow':
-      return (
-        tooltip.element.scrollWidth > tooltip.element.clientWidth ||
-        tooltip.element.scrollHeight > tooltip.element.clientHeight
-      )
-    default:
-      return false
+  const whenOverflow = toValue(tooltip.entry.props.whenOverflow)
+  if (!whenOverflow) return true
+  const overflowElement = whenOverflow === true ? tooltip.element : unrefElement(whenOverflow)
+  if (!overflowElement) {
+    DEV: console.warn('Tooltip overflow element could not be resolved.')
+    return true
   }
+  return isOverflowing(overflowElement)
+}
+
+function isOverflowing(element: HTMLElement) {
+  return element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight
 }
 
 const displayedTooltip = computed(() => {

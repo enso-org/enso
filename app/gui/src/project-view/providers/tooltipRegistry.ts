@@ -1,6 +1,7 @@
 import { createContextStore } from '@/providers'
-import { ToValue } from '@/util/reactivity'
-import { Placement } from '@floating-ui/vue'
+import type { ToValue } from '@/util/reactivity'
+import type { Placement } from '@floating-ui/vue'
+import type { VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import {
   computed,
@@ -11,12 +12,11 @@ import {
   type Slot,
 } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
-
-export type TooltipDisplayStrategy = 'always' | 'whenOverflow'
+import type { Opt } from '@/util/data/opt'
 
 interface TooltipProps {
   placement: ToValue<Placement>
-  when: ToValue<TooltipDisplayStrategy>
+  whenOverflow: ToValue<Opt<true | HTMLElement | VueInstance>>
 }
 
 interface TooltipEntry {

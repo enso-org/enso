@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { useTooltipRegistry, type TooltipDisplayStrategy } from '@/providers/tooltipRegistry'
+import { useTooltipRegistry } from '@/providers/tooltipRegistry'
 import { usePropagateScopesToAllRoots } from '@/util/patching'
-import { Placement } from '@floating-ui/vue'
+import type { Placement } from '@floating-ui/vue'
+import type { VueInstance } from '@vueuse/core'
 import { toRef } from 'vue'
+import type { Opt } from '@/util/data/opt'
 
 const {
   placement = 'top',
-  when = 'always',
+  whenOverflow = undefined,
   showOnClick = false,
 } = defineProps<{
   placement?: Placement
-  when?: TooltipDisplayStrategy
+  /**
+   * If set, the tooltip is inhibited unless the reference element is overflowing. If `true`, the
+   * element in the default slot is the reference element; if an element is explicitly provided, it
+   * will be used as the reference element.
+   */
+  whenOverflow?: Opt<true | HTMLElement | VueInstance>
   showOnClick?: boolean
 }>()
 
@@ -26,7 +33,7 @@ const tooltipSlot = toRef(slots, 'tooltip')
 const registered = registry.registerTooltip(tooltipSlot)
 function onEnter(e: PointerEvent) {
   if (e.target instanceof HTMLElement && tooltipSlot.value != null) {
-    registered.onTargetEnter(e.target, { placement: () => placement, when: () => when })
+    registered.onTargetEnter(e.target, { placement: () => placement, whenOverflow: () => whenOverflow })
   }
 }
 
