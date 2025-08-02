@@ -13,5 +13,5 @@ services:
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
     with: Standard.Microsoft.SQLServer_Data_Link.SQLServer_Data_Link
 
-  - provides: Standard.Database.Connection.Connection.Database_Connection_Details_SPI
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
     with: Standard.Microsoft.Connection.SQLServer_Details.SQLServer_Details

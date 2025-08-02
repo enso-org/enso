@@ -13,6 +13,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
 import project.Internal.Telemetry
+import project.Internal.Meta_Helpers
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -32,16 +33,10 @@ from project.Metadata.Widget import Single_Choice
 ## ---
    private: true
    ---
-format_types : Vector
-format_types = Vector.from_polyglot_array (File_Format_SPI.get_types False)
-
-## ---
-   private: true
-   ---
    Gets the first format not returning Nothing from the callback
 get_format : Function -> Any | Nothing
 get_format callback =
-    types = format_types
+    types = File_Format_SPI.get_types
     reader idx =
         if idx >= types.length then Nothing else
             format = callback (types.at idx)
@@ -106,7 +101,7 @@ type File_Format
        imported within the current project. Importing an new library may cause
        more entries to show up on this list.
     all : Vector
-    all = [Auto_Detect] + format_types
+    all = [Auto_Detect] + File_Format_SPI.get_types
 
     ## ---
        private: true
@@ -115,9 +110,10 @@ type File_Format
     resolve : Function -> File_Format
     resolve constructor = case constructor of
         _ : Function ->
+            arr = File_Format_SPI.get_types
             try_next idx =
-                if idx >= format_types.length then Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.") else
-                    format = format_types.at idx
+                if idx >= arr.length then Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.") else
+                    format = arr.at idx
                     resolved = format.resolve constructor
                     if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
             try_next 0
@@ -163,13 +159,13 @@ type File_Format
        ---
        Returns a list of all name patterns of all known file formats.
     all_known_name_patterns -> Vector Text =
-        format_types.flat_map .get_name_patterns . flat_map .patterns . distinct
+        File_Format_SPI.get_types.flat_map .get_name_patterns . flat_map .patterns . distinct
 
     ## ---
        private: true
        ---
     default_widget display:Display=..When_Modified -> Widget =
-        options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
+        options = ([Auto_Detect]+File_Format_SPI.get_types).flat_map .get_dropdown_options
         Single_Choice display=display values=options
 
     ## ---
@@ -463,11 +459,11 @@ type File_Format_SPI
     new typ data_link_format_name:Text|Nothing=Nothing -> File_Format_SPI =
         File_Format_SPI.Value typ data_link_format_name
 
-    private get_types _:Boolean =
+    private get_types _:Boolean=False =
         Meta_Helpers.lookup_services File_Format_SPI
 
     private find_format_for_data_link sub_type:Text =
-        all = get_types False
+        all = File_Format_SPI.get_types False
         found = all.format \spi -> spi.data_link_format_name == sub_type
         found.first
 

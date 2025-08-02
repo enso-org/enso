@@ -16,5 +16,5 @@ services:
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
     with: Standard.AWS.S3.S3_Data_Link.S3_Data_Link
 
-  - provides: Standard.Database.Connection.Connection.Database_Connection_Details_SPI
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
     with: Standard.AWS.Database.Redshift.Redshift_Details.Redshift_Details

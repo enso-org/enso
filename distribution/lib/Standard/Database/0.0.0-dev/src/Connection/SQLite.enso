@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 
-import project.Connection.Connection.Database_Connection_Details_SPI
+import project.Connection.Database.Database_Connection_Details_SPI
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.SQLite_Connection.SQLite_Connection
 
@@ -52,7 +52,6 @@ type SQLite
     jdbc_properties self = []
 
 Database_Connection_Details_SPI.from (_:SQLite) = 
-    Database_Connection_Details_SPI.new SQLite "SQLite" "SQLite.From_File"
-
-Database_Connection_Details_SPI.from (_:SQLite) = 
-    Database_Connection_Details_SPI.new SQLite "SQLite (In-Memory)" "SQLite.In_Memory"
+    f = Database_Connection_Details_SPI.new SQLite "SQLite" "SQLite.From_File"
+    m = Database_Connection_Details_SPI.new SQLite "SQLite (In-Memory)" "SQLite.In_Memory"
+    f+m

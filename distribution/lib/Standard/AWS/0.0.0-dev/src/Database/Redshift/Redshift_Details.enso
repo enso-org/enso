@@ -4,7 +4,7 @@ import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Client_Certificate.Client_Certificate
 import Standard.Database.Connection.Connection.Connection
-import Standard.Database.Connection.Connection.Database_Connection_Details_SPI
+import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Connection.SSL_Mode.SSL_Mode

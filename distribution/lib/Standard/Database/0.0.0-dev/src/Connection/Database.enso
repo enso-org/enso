@@ -30,7 +30,7 @@ from project.Errors import SQL_Error
 connect : Connection_Details -> Connection_Options -> Connection ! SQL_Error
 connect details options:Connection_Options=..Value =
     result = case details of
-        _ : Function -> (resolve_constructor details) . connect options
+        _ : Function -> (Database_Connection_Details_SPI.resolve_constructor details) . connect options
         _ -> details.connect options
     result.if_not_error <|
         Telemetry.log "Database.connect" "Database connection opened: connection_type={}" [result.to Meta.Type . name]
@@ -62,7 +62,7 @@ type Database_Connection_Details_SPI
         Database_Connection_Details_SPI.Value typ name code
 
     private resolve_constructor constructor:Function =
-        types = DatabaseConnectionDetailsSPI.get_types False
+        types = Database_Connection_Details_SPI.get_types False
         try_next idx =
             if idx >= types.length then constructor else
                 db_type = types.at idx
@@ -71,7 +71,7 @@ type Database_Connection_Details_SPI
         try_next 0
 
     private get_types _:Boolean -> Vector =
-        Meta_Helpers.lookup_services Database_Connection_Details_SPI . map typ
+        Meta.lookup_services Database_Connection_Details_SPI . map .typ
 
     private get_default_constructors b:Boolean =
-        get_types b = get_types
+        Database_Connection_Details_SPI.get_types b

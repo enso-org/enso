@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Metadata.Widget.Text_Input
 
-import Standard.Database.Connection.Connection.Database_Connection_Details_SPI
+import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup

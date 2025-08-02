@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Connection.Connection.Database_Connection_Details_SPI
+import project.Connection.Database.Database_Connection_Details_SPI
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
