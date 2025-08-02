@@ -25,10 +25,7 @@ private _get_known_return_classes -> Vector =
 ## A common interface that represents ways to return a list of files that have
    been read.
 type Return_As
-    ## ---
-       private: true
-       ---
-    Instance underlying
+    private Instance underlying
 
     ## ---
        private: true
