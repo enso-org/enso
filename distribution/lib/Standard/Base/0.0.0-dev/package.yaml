@@ -56,4 +56,4 @@ services:
   # Return_As.SPI definitions
 
   - provides: Standard.Base.Data.Read.Return_As.SPI
-    with: Standard.Base.Data.Read.Return_As.Return_As_Base
+    with: Standard.Base.Internal.Data_Read_Helpers.Data_List_Default_Impl

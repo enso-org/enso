@@ -133,4 +133,3 @@ type SPI
    private _get_known_return_classes -> Vector =
       Meta_Helpers.lookup_services SPI . map .typ
 
-SPI.from (_ : Return_As_Base) = SPI.new Return_As_Base

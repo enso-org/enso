@@ -1,5 +1,6 @@
 private
 
+import project.Data.Read.Return_As
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -87,3 +88,7 @@ handle_legacy_format (method_name : Text) (new_argument_name : Text) format = ca
         warning = Deprecated.Warning "Standard.Base.Data" method_name "Deprecated: The `try_auto_parse_result` argument was replaced with `"+new_argument_name+"`. `True` becomes `Auto_Detect` and `False` becomes `Raw_Response`."
         Warning.attach warning new_format
     _ -> format
+
+
+type Data_List_Default_Impl
+Return_As.SPI.from (_ : Data_List_Default_Impl) = Return_As.SPI.new Return_As.Return_As_Base
