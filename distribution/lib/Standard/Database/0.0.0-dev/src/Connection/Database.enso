@@ -53,14 +53,14 @@ connection_details_widget =
    private: true
    ---
 type Database_Connection_Details_SPI
-    private One typ name:Text code:Text
+    private Single typ name:Text code:Text
     private Few arr:(Vector Database_Connection_Details_SPI)
 
     ##
         `name` - The user facing name of the connection.
         `code` - Default code that can be used to construct a default instance of the connection details.
     new typ name:Text code:Text =
-        Database_Connection_Details_SPI.One typ name code
+        Database_Connection_Details_SPI.Single typ name code
 
     ## Joins two registrations together
     + self that:Database_Connection_Details_SPI =
@@ -68,7 +68,7 @@ type Database_Connection_Details_SPI
 
     private to_vector self = case self of
         Database_Connection_Details_SPI.Few arr -> arr
-        one -> [one]
+        single -> [single]
 
     private resolve_constructor constructor:Function =
         types = Database_Connection_Details_SPI.get_types False
@@ -79,11 +79,19 @@ type Database_Connection_Details_SPI
                 if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
         try_next 0
 
-    private get_types _:Boolean -> Vector =
+    private get_simple_regs _:Boolean  -> Vector Database_Connection_Details_SPI =
         reg = Meta.lookup_services Database_Connection_Details_SPI
         arr = reg.map .to_vector
-        flat = arr.flatten
+        arr.flatten
+
+    private get_types b:Boolean -> Vector =
+        flat = Database_Connection_Details_SPI.get_simple_regs b
         flat.map .typ
 
+    ##
+      Returns an array of pairs, where the first element is the user facing connection name and the
+      second element is a string representing the code to insert to create a default connection
+      instance. That code may contain `_` placeholders for expected arguments.
     private get_default_constructors b:Boolean =
-        Database_Connection_Details_SPI.get_types b
+        flat = Database_Connection_Details_SPI.get_simple_regs b
+        flat.map \r -> Pair.new r.name r.code
