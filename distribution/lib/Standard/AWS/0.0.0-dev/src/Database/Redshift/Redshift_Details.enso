@@ -4,6 +4,7 @@ import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Client_Certificate.Client_Certificate
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Connection.Database_Connection_Details_SPI
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Connection.SSL_Mode.SSL_Mode
@@ -105,3 +106,6 @@ type Redshift_Details
             self.client_cert.properties
 
         credentials + ssl_properties + cert_properties
+
+Database_Connection_Details_SPI.from (_:Redshift_Details) = 
+    Database_Connection_Details_SPI.new Redshift_Details "Redshift" "..Redshift"

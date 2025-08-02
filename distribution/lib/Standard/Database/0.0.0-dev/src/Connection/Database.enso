@@ -10,8 +10,6 @@ import project.Connection.Connection_Options.Connection_Options
 import project.Internal.Telemetry
 from project.Errors import SQL_Error
 
-polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
-
 ## ---
    macros:
     - postgres: details=Postgres.Server
@@ -43,8 +41,8 @@ connect details options:Connection_Options=..Value =
    ---
 connection_details_widget : Widget
 connection_details_widget =
-    default_constructors = Vector.from_polyglot_array <|
-        DatabaseConnectionDetailsSPI.get_default_constructors False
+    default_constructors =
+        Database_Connection_Details_SPI.get_default_constructors False
     choices = default_constructors.map pair->
         name = pair.first
         code = pair.second
@@ -54,12 +52,26 @@ connection_details_widget =
 ## ---
    private: true
    ---
-resolve_constructor : Function -> Any
-resolve_constructor constructor =
-    types = Vector.from_polyglot_array (DatabaseConnectionDetailsSPI.get_types False)
-    try_next idx =
-        if idx >= types.length then constructor else
-            db_type = types.at idx
-            resolved = db_type.resolve constructor
-            if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
-    try_next 0
+type Database_Connection_Details_SPI
+    private Value typ name:Text code:Text
+
+    ##
+        `name` - The user facing name of the connection.
+        `code` - Default code that can be used to construct a default instance of the connection details.
+    new typ name:Text code:Text = 
+        Database_Connection_Details_SPI.Value typ name code
+
+    private resolve_constructor constructor:Function =
+        types = DatabaseConnectionDetailsSPI.get_types False
+        try_next idx =
+            if idx >= types.length then constructor else
+                db_type = types.at idx
+                resolved = db_type.resolve constructor
+                if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
+        try_next 0
+
+    private get_types _:Boolean -> Vector =
+        Meta_Helpers.lookup_services Database_Connection_Details_SPI . map typ
+
+    private get_default_constructors b:Boolean =
+        get_types b = get_types
