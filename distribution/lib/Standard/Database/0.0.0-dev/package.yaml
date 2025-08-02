@@ -12,7 +12,7 @@ maintainers:
 services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
     with: Standard.Database.Connection.SQLite_Format
-  
+
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
     with: Standard.Database.Connection.Data_Link.Postgres_Data_Link.Postgres_Data_Link
 

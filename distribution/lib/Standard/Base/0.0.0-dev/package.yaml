@@ -38,7 +38,7 @@ services:
   - provides: Standard.Base.System.File.File_System_SPI
     with: Standard.Base.Enso_Cloud.Enso_File_System_Impl.Enso_File_System_Impl
 
-# File_Format_SPI definitions
+  # File_Format_SPI definitions
 
   - provides: Standard.Base.System.File_Format.File_Format_SPI
     with: Standard.Base.System.File_Format.Bytes
@@ -49,7 +49,7 @@ services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
     with: Standard.Base.Data.XML.XML_Format
 
-# Data_Link_SPI definitions
+  # Data_Link_SPI definitions
 
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
     with: Standard.Base.Enso_Cloud.Internal.Enso_File_Data_Link
@@ -57,7 +57,7 @@ services:
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
     with: Standard.Base.Network.HTTP.Internal.HTTP_Fetch_Data_Link.HTTP_Fetch_Data_Link
 
-# Return_As.SPI definitions
+  # Return_As.SPI definitions
 
   - provides: Standard.Base.Data.Read.Return_As.SPI
     with: Standard.Base.Data.Read.Return_As.Return_As_Base

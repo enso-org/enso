@@ -17,7 +17,7 @@ services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
     with: Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
 
-# Return_As.SPI definitions
+  # Return_As.SPI definitions
 
   - provides: Standard.Base.Data.Read.Return_As.SPI
     with: Standard.Table.Return_As_Table.Return_As_Table
