@@ -41,8 +41,20 @@ public final class LookupServicesNode extends Node {
     var typeName = fqn.item();
     var implType = scope.getType(typeName, true);
     if (implType == null) {
-      throw ensoCtx.raiseAssertionPanic(
-          this, "Cannot find type " + typeName + " in " + module.getName(), null);
+      var sb = new StringBuilder();
+      sb.append("Cannot find type ")
+          .append(typeName)
+          .append(" in ")
+          .append(module.getName())
+          .append(" module");
+      var sep = ". Only found ";
+      for (var typ : scope.getAllTypes()) {
+        sb.append(sep);
+        sb.append(typ.getName());
+        sep = ", ";
+      }
+      var err = ensoCtx.getBuiltins().error().makeModuleDoesNotExistError(sb.toString());
+      throw new PanicException(err, this);
     }
     return implType;
   }
