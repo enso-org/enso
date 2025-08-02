@@ -57,3 +57,7 @@ services:
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
     with: Standard.Base.Network.HTTP.Internal.HTTP_Fetch_Data_Link.HTTP_Fetch_Data_Link
 
+# Return_As.SPI definitions
+
+  - provides: Standard.Base.Data.Read.Return_As.SPI
+    with: Standard.Base.Data.Read.Return_As.Return_As_Base
