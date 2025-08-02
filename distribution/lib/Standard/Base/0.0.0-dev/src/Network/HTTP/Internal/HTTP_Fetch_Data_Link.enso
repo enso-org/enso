@@ -10,6 +10,7 @@ import project.Network.HTTP.Request.Request
 import project.System.File.File_Access.File_Access
 import project.System.File_Format.Auto_Detect
 import project.System.Input_Stream.Input_Stream
+import project.Enso_Cloud.Data_Link.Data_Link_SPI
 from project.Enso_Cloud.Data_Link_Capabilities import Data_Link_With_Input_Stream
 from project.Enso_Cloud.Data_Link_Helpers import parse_format
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
@@ -57,3 +58,4 @@ type HTTP_Fetch_Data_Link
    private: true
    ---
 Data_Link_With_Input_Stream.from (that:HTTP_Fetch_Data_Link) = Data_Link_With_Input_Stream.Value that
+Data_Link_SPI.from (_:HTTP_Fetch_Data_Link) = Data_Link_SPI.new HTTP_Fetch_Data_Link "HTTP"

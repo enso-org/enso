@@ -49,3 +49,11 @@ services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
     with: Standard.Base.Data.XML.XML_Format
 
+# Data_Link_SPI definitions
+
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.Base.Enso_Cloud.Internal.Enso_File_Data_Link
+
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.Base.Network.HTTP.Internal.HTTP_Fetch_Data_Link.HTTP_Fetch_Data_Link
+
