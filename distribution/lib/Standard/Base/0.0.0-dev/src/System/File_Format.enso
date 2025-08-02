@@ -453,21 +453,54 @@ type File_Name_Pattern
        would not be allowed.
     Value display_name:Text (patterns : Vector Text)
 
-type File_Format_SPI
-    private Value typ data_link_format_name:Text|Nothing
+## ---
+   private: true
+   ---
+   Service provide interface to implement and register to expand capabilities
+   of `File_Format` recognition. Define singleton type in a `private`
+   module in your library:
+   ```
+   type Your_Providers
+   File_Format_SPI.from (_:YourProviders) =
+       File_Format_SPI.new "your info"
+   ```
+   and then add a registration into `package.yaml` of your library.
 
-    new typ data_link_format_name:Text|Nothing=Nothing -> File_Format_SPI =
-        File_Format_SPI.Value typ data_link_format_name
+type File_Format_SPI
+    private Single typ data_link_format_name:Text|Nothing
+    private Few arr:(Vector File_Format_SPI)
+
+    ## ---
+       private: true
+       ---
+       Creates new file format service provider registration
+
+       ## Arguments
+        - `typ`: type implementing the _"file format protocol"_
+        - `name`: data link format name
+
+    new typ name:Text|Nothing=Nothing -> File_Format_SPI =
+        File_Format_SPI.Single typ name
+
+
+    ## ---
+       private: true
+       ---
+       Concatenates two registrations together. Allows one conversion to
+       register multiple file formats service providers
+
+    + self that:File_Format_SPI = File_Format_SPI.Few self.to_vector+that.to_vector
+
+    private to_vector self -> Vector File_Format_SPI = case self of
+        File_Format_SPI.Few arr -> arr
+        single -> [single]
 
     private get_types _:Boolean=False =
-        Meta_Helpers.lookup_services File_Format_SPI
+        reg = Meta_Helpers.lookup_services File_Format_SPI
+        arr = reg.map .to_vector
+        arr.flatten.map .typ
 
     private find_format_for_data_link sub_type:Text =
         all = File_Format_SPI.get_types False
         found = all.format \spi -> spi.data_link_format_name == sub_type
         found.first
-
-File_Format_SPI.from (_:Bytes) = File_Format_SPI.new Bytes
-File_Format_SPI.from (_:JSON_Format) = File_Format_SPI.new JSON_Format "json"
-File_Format_SPI.from (_:Plain_Text_Format) = File_Format_SPI.new Plain_Text_Format
-
