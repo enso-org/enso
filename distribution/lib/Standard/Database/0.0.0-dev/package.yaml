@@ -11,13 +11,13 @@ maintainers:
 
 services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Database.Connection.SQLite_Format
+    with: Standard.Database.Internal.SQLite.SQLite_Services.Impl
+
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
+    with: Standard.Database.Connection.SQLite.SQLite
 
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
     with: Standard.Database.Connection.Data_Link.Postgres_Data_Link.Postgres_Data_Link
 
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
     with: Standard.Database.Connection.Postgres.Postgres
-
-  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
-    with: Standard.Database.Connection.SQLite.SQLite

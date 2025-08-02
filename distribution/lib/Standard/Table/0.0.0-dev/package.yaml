@@ -11,11 +11,7 @@ maintainers:
 
 services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Table.Excel.Excel_Format
-  - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Table.Delimited.Delimited_Format
-  - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
+    with: Standard.Table.Internal.Excel_Reader.Excel_Like_Formats
 
   # Return_As.SPI definitions
 

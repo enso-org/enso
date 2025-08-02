@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-import Standard.Base.System.File_Format.File_Format_SPI
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -96,5 +95,3 @@ type SQLite_Format
    Based on the File Format definition at: https://www.sqlite.org/fileformat.html
 private magic_header_string =
     "SQLite format 3".utf_8 + [0]
-
-File_Format_SPI (_:SQLite_Format) = File_Format_SPI.new SQLite_Format
