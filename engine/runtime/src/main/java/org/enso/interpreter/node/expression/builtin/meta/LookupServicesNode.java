@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.pkg.QualifiedName;
 
 @BuiltinMethod(
@@ -21,16 +22,18 @@ import org.enso.pkg.QualifiedName;
 public final class LookupServicesNode extends Node {
   @CompilerDirectives.TruffleBoundary
   private Type findType(QualifiedName fqn, EnsoContext ensoCtx) {
-    var moduleOpt =
-        fqn.getParent()
-            .map(
-                moduleName -> {
-                  return ensoCtx.getTopScope().getModule(moduleName.toString()).orElse(null);
-                });
-    if (moduleOpt.isEmpty()) {
-      throw ensoCtx.raiseAssertionPanic(this, "Cannot find " + fqn, null);
+    var module =
+        switch (fqn.getParent().isDefined() ? 1 : 0) {
+          case 1 -> {
+            var moduleName = fqn.getParent().get();
+            yield ensoCtx.getTopScope().getModule(moduleName.toString()).orElse(null);
+          }
+          default -> null;
+        };
+    if (module == null) {
+      var err = ensoCtx.getBuiltins().error().makeModuleDoesNotExistError(fqn.toString());
+      throw new PanicException(err, this);
     }
-    var module = moduleOpt.get();
     var scope = module.compileScope(ensoCtx);
     var stage = module.getCompilationStage();
     assert stage.isAtLeast(CompilationStage.AFTER_CODEGEN) : "Unsufficient stage " + stage;
