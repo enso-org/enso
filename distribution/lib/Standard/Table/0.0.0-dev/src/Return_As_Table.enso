@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Read.Return_As.Return_As
-import Standard.Base.Data.Read.Return_As.SPI
 import Standard.Base.Errors.Common.Type_Error
 from Standard.Base.Metadata.Choice import Option
 
@@ -50,5 +49,3 @@ type Return_As_Table
    ---
 Return_As.from (that : Return_As_Table) =
     Return_As.Instance that
-
-SPI.from (_ : Return_As_Table) = SPI.new Return_As_Table

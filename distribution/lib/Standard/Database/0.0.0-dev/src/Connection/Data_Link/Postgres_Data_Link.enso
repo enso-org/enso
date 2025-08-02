@@ -4,7 +4,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata, parse_secure_value
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
-import Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
 
 import project.Connection.Credentials.Credentials
 import project.Connection.Postgres.Postgres
@@ -49,4 +48,3 @@ type Postgres_Data_Link
             connection = self.details.connect default_options allow_data_links=False
             self.link_type.interpret connection
 
-Data_Link_SPI.from (_:Postgres_Data_Link) = Data_Link_SPI.new Postgres_Data_Link "Postgres_Connection"

@@ -3,12 +3,8 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.System.File_Format.File_Format_SPI
 
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Format
-import project.Delimited.Delimited_Format.Delimited_Format
-import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
 import project.Headers.Headers
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
@@ -112,12 +108,3 @@ handle_invalid_location ~action =
         Error.throw (Invalid_Location.Error java_exception.getLocation java_exception.getMessage)
     Panic.catch InvalidLocationException handler=bad_argument <|
         action
-
-
-type Excel_Like_Formats
-
-File_Format_SPI.from (_:Excel_Like_Formats) =
-    excel = File_Format_SPI.new Excel_Format "excel"
-    delim = File_Format_SPI.new Delimited_Format "delimited"
-    fixed = File_Format_SPI.new Fixed_Width_Format "fixed_width"
-    excel+delim+fixed

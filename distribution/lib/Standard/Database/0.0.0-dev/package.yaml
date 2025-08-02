@@ -14,10 +14,10 @@ services:
     with: Standard.Database.Internal.SQLite.SQLite_Services.Impl
 
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
-    with: Standard.Database.Connection.SQLite.SQLite
+    with: Standard.Database.Internal.SQLite.SQLite_Services.Impl
 
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
-    with: Standard.Database.Connection.Data_Link.Postgres_Data_Link.Postgres_Data_Link
+    with: Standard.Database.Internal.Postgres.Postgres_Services.Impl
 
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
-    with: Standard.Database.Connection.Postgres.Postgres
+    with: Standard.Database.Internal.Postgres.Postgres_Services.Impl

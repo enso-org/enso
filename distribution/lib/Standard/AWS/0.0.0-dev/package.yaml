@@ -11,10 +11,10 @@ maintainers:
 
 services:
   - provides: Standard.Base.System.File.File_System_SPI
-    with: Standard.AWS.Internal.S3_File_Write_Strategy.S3_FS_Impl
+    with: Standard.AWS.Internal.Services.Impl
 
   - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
-    with: Standard.AWS.S3.S3_Data_Link.S3_Data_Link
+    with: Standard.AWS.Internal.Services.Impl
 
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
-    with: Standard.AWS.Database.Redshift.Redshift_Details.Redshift_Details
+    with: Standard.AWS.Internal.Services.Impl

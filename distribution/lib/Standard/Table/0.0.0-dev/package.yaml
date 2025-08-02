@@ -11,9 +11,9 @@ maintainers:
 
 services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Table.Internal.Excel_Reader.Excel_Like_Formats
+    with: Standard.Table.Internal.Table_Services.Impl
 
   # Return_As.SPI definitions
 
   - provides: Standard.Base.Data.Read.Return_As.SPI
-    with: Standard.Table.Return_As_Table.Return_As_Table
+    with: Standard.Table.Internal.Table_Services.Impl

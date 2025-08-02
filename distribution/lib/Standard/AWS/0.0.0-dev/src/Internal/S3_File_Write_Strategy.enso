@@ -87,7 +87,3 @@ recover_errors ~action =
     Panic.catch S3_Error handler=(.convert_to_dataflow_error) <|
         Panic.catch File_Error handler=(.convert_to_dataflow_error) <|
             action
-
-type S3_FS_Impl
-
-File_System_SPI.from (_:S3_FS_Impl) = File_System_SPI.new "s3" S3_File

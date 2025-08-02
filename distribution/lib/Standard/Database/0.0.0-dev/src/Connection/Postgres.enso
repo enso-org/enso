@@ -4,7 +4,6 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Connection.Database.Database_Connection_Details_SPI
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
@@ -159,5 +158,3 @@ private create_data_link_structure details:Postgres data_link_location:Enso_File
             credential_part = if credentials_json.is_nothing.not then [["credentials", credentials_json]] else []
             header + connection_part + schema_part + credential_part
 
-Database_Connection_Details_SPI.from (_:Postgres) = 
-    Database_Connection_Details_SPI.new Postgres "Postgres" "(Postgres.Server 'localhost' 5432)"

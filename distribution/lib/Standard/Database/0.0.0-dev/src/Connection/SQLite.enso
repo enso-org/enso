@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 
-import project.Connection.Database.Database_Connection_Details_SPI
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.SQLite_Connection.SQLite_Connection
 
@@ -50,8 +49,3 @@ type SQLite
        Provides the properties for the connection.
     jdbc_properties : Vector
     jdbc_properties self = []
-
-Database_Connection_Details_SPI.from (_:SQLite) = 
-    f = Database_Connection_Details_SPI.new SQLite "SQLite" "SQLite.From_File"
-    m = Database_Connection_Details_SPI.new SQLite "SQLite (In-Memory)" "SQLite.In_Memory"
-    f+m

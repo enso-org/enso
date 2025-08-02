@@ -53,13 +53,22 @@ connection_details_widget =
    private: true
    ---
 type Database_Connection_Details_SPI
-    private Value typ name:Text code:Text
+    private One typ name:Text code:Text
+    private Few arr:(Vector Database_Connection_Details_SPI)
 
     ##
         `name` - The user facing name of the connection.
         `code` - Default code that can be used to construct a default instance of the connection details.
-    new typ name:Text code:Text = 
-        Database_Connection_Details_SPI.Value typ name code
+    new typ name:Text code:Text =
+        Database_Connection_Details_SPI.One typ name code
+
+    ## Joins two registrations together
+    + self that:Database_Connection_Details_SPI =
+        Database_Connection_Details_SPI.Few self.to_vector+that.to_vector
+
+    private to_vector self = case self of
+        Database_Connection_Details_SPI.Few arr -> arr
+        one -> [one]
 
     private resolve_constructor constructor:Function =
         types = Database_Connection_Details_SPI.get_types False
@@ -71,7 +80,10 @@ type Database_Connection_Details_SPI
         try_next 0
 
     private get_types _:Boolean -> Vector =
-        Meta.lookup_services Database_Connection_Details_SPI . map .typ
+        reg = Meta.lookup_services Database_Connection_Details_SPI
+        arr = reg.map .to_vector
+        flat = arr.flatten
+        flat.map .typ
 
     private get_default_constructors b:Boolean =
         Database_Connection_Details_SPI.get_types b
