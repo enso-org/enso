@@ -11,4 +11,4 @@ maintainers:
 
 services:
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
-    with: Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Details
+    with: Standard.Generic_JDBC.Internal.Services.Impl
