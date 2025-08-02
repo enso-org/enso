@@ -1,5 +1,6 @@
 private
 
+
 import project.Any.Any
 import project.Data.Dictionary.Dictionary
 import project.Data.Json.Invalid_JSON
@@ -7,9 +8,11 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link.Data_Link_SPI
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Enso_Cloud.Internal.Authentication
+import project.Enso_Cloud.Internal.Enso_File_Data_Link.Enso_File_Data_Link
 import project.Error.Error
 import project.Function.Function
 import project.Network.HTTP.Header.Header
@@ -168,3 +171,7 @@ invalidate_caches_with_prefix (prefix : Text) =
    anything.
 set_cached (key : Text) value (cache_duration : Duration | Nothing = Duration.new seconds=60) =
     CloudRequestCache.INSTANCE.put key value cache_duration
+
+type Services_Impl
+
+Data_Link_SPI.from (_:Services_Impl) = Data_Link_SPI.new Enso_File_Data_Link "Enso_File"
