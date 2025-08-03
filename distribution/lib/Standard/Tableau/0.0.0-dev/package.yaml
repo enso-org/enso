@@ -11,4 +11,4 @@ maintainers:
 
 services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Tableau.Tableau_Format.Tableau_Format
+    with: Standard.Tableau.Internal.Services.Impl
