@@ -9,6 +9,7 @@ import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
@@ -495,12 +496,17 @@ type File_Format_SPI
         File_Format_SPI.Few arr -> arr
         single -> [single]
 
-    private get_types _:Boolean=False =
+    private get_regs _:Boolean=False =
         reg = Meta_Helpers.lookup_services File_Format_SPI
         arr = reg.map .to_vector
-        arr.flatten.map .typ
+        arr.flatten
+
+    private get_types b:Boolean=False =
+        File_Format_SPI.get_regs b . map .typ
 
     private find_format_for_data_link sub_type:Text =
-        all = File_Format_SPI.get_types False
-        found = all.format \spi -> spi.data_link_format_name == sub_type
-        found.first
+        all = File_Format_SPI.get_regs False
+        found = all.filter \spi -> spi.data_link_format_name == sub_type
+        if found.length > 0 then found.first . typ else
+            Error.throw <|
+                Illegal_State.Error "Unknown format "+sub_type
