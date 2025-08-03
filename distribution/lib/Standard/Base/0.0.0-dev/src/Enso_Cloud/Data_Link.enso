@@ -221,13 +221,24 @@ type Data_Link_From_File
    implementation.
 Data_Link_From_File.from (that : File_Like) = Data_Link_From_File.from that.underlying
 
+## ---
+   private: true
+   ---
+   An interface for data link parser providers.
+   A service providing this type can register an
+   Enso type that defines how to `parse` a specific type of datalink.
+   The `parse` method on that
+   type should return a configured datalink instance that can later be `read`.
+
 type Data_Link_SPI
-    private Value link_type_name:Text
+    private Value typ name:Text
 
-    new link_type_name:Text =
-        Data_Link_SPI.Value link_type_name
+    new typ link_type_name:Text =
+        Data_Link_SPI.Value typ link_type_name
 
-    private find_data_link_type typ =
-        all = Meta_Helpers.lookup_services Data_Link_SPI 
-        correct = all . filter (\spi -> spi.link_type_name == typ)
-        correct.first
+    private find_data_link_type name =
+        all = Meta_Helpers.lookup_services Data_Link_SPI
+        found = all . filter (\spi -> spi.name == name)
+        if found.length == 0 then Nothing else
+            found.first.typ
+
