@@ -79,14 +79,20 @@ public final class LookupServicesNode extends Node {
                 var node = InteropApplicationNode.getUncached();
                 var fn = conversion.resolveFor(ensoCtx, fqn, implType);
                 if (fn == null) {
-                  var msg = "No conversion from " + implType.getQualifiedName() + " to " + fqn.getQualifiedName() + " found";
+                  var msg =
+                      "No conversion from "
+                          + implType.getQualifiedName()
+                          + " to "
+                          + fqn.getQualifiedName()
+                          + " found";
                   throw ensoCtx.raiseAssertionPanic(this, msg, null);
                 }
                 var obj = node.execute(fn, state, new Object[] {fqn, implType});
                 if (obj instanceof EnsoObject found) {
                   collect.add(found);
                 } else {
-                  throw ensoCtx.raiseAssertionPanic(this, "Expecting Enso object, but was: " + obj, null);
+                  throw ensoCtx.raiseAssertionPanic(
+                      this, "Expecting Enso object, but was: " + obj, null);
                 }
                 return null;
               });
