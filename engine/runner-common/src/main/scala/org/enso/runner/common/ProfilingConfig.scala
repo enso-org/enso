@@ -4,7 +4,7 @@ import org.apache.commons.io.FilenameUtils
 
 import java.nio.file.Path
 
-import scala.concurrent.duration.FiniteDuration
+import java.time.Duration
 
 /** Application profiling configuration.
   *
@@ -13,8 +13,8 @@ import scala.concurrent.duration.FiniteDuration
   * duration may cause out-of-memory errors.
   */
 case class ProfilingConfig(
-  profilingPath: Option[Path]           = None,
-  profilingTime: Option[FiniteDuration] = None
+  profilingPath: Option[Path]     = None,
+  profilingTime: Option[Duration] = None
 ) {
 
   /** Creates the path to the runtime events log with the same name as
@@ -60,7 +60,11 @@ object ProfilingConfig {
         s"$fileNameWithoutExtension$suffix.$extension"
       }
 
-    directory.resolve(modifiedFileName)
+    if (directory != null) {
+      directory.resolve(modifiedFileName)
+    } else {
+      Path.of(modifiedFileName)
+    }
   }
 
 }

@@ -5,8 +5,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.DistributionManager
 import org.enso.languageserver.runtime.events.RuntimeEventsMonitor
 import org.enso.logger.masking.MaskedPath
-import org.enso.profiling.events.{EventsMonitor, NoopEventsMonitor}
-import org.enso.profiling.sampler.{MethodsSampler, OutputStreamSampler}
+import org.enso.profiling.events.EventsMonitor
+import org.enso.profiling.sampler.MethodsSampler
 import org.enso.profiling.snapshot.{HeapDumpSnapshot, ProfilingSnapshot}
 
 import java.io.{ByteArrayOutputStream, PrintStream}
@@ -50,7 +50,10 @@ final class ProfilingManager(
         case None =>
           val instant = clock.instant()
           val result  = new ByteArrayOutputStream()
-          val sampler = new OutputStreamSampler(result)
+          val sampler = MethodsSampler.create(
+            result.asInstanceOf[Any].asInstanceOf[java.io.File],
+            null
+          )
 
           sampler.start()
 
@@ -86,7 +89,7 @@ final class ProfilingManager(
                 eventsMonitor
               )
             ) =>
-          sampler.stop()
+          sampler.close()
           eventsMonitor.close()
 
           Try(saveSamplerResult(result.toByteArray, instant)) match {
@@ -104,7 +107,7 @@ final class ProfilingManager(
           }
 
           eventsMonitorActor ! EventsMonitorProtocol.RegisterEventsMonitor(
-            new NoopEventsMonitor
+            EventsMonitor.NOOP
           )
 
           sender() ! ProfilingProtocol.ProfilingStopResponse

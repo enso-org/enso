@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Cache encapsulates a common functionality needed to serialize and de-serialize objects, while
@@ -25,6 +27,7 @@ import org.enso.logger.masking.MaskedPath;
  * @param <M> type of the metadata associated with the data
  */
 public final class Cache<T, M> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Cache.class);
   private final Object LOCK = new Object();
 
   /** implementation of the serialize/deserialize operations */
@@ -250,12 +253,8 @@ public final class Cache<T, M> {
 
     var meta = loadCacheMetadata(metadataPath, logger);
     if (meta != null) {
-      boolean sourceDigestValid =
-          !needsSourceDigestVerification
-              || spi.computeDigestFromSource(context, logger)
-                  .map(digest -> digest.equals(spi.sourceHash(meta)))
-                  .orElseGet(() -> false);
       var file = new File(dataPath.toUri());
+      var sourceDigestValid = isSourceDigestValid(file, context, logger, meta);
       ByteBuffer blobBytes;
       var threeMbs = 3 * 1024 * 1024;
       if (file.exists() && file.length() > threeMbs) {
@@ -265,9 +264,7 @@ public final class Cache<T, M> {
       } else {
         blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
       }
-      boolean blobDigestValid =
-          !needsDataDigestVerification
-              || CacheUtils.computeDigestFromBytes(blobBytes).equals(spi.blobHash(meta));
+      boolean blobDigestValid = isBlobDigestValid(file, logger, blobBytes, meta);
 
       if (sourceDigestValid && blobDigestValid) {
         try {
@@ -301,6 +298,32 @@ public final class Cache<T, M> {
               + toMaskedPath(metadataPath).applyMasking()
               + "].");
     }
+  }
+
+  private boolean isBlobDigestValid(File path, TruffleLogger logger, ByteBuffer blobBytes, M meta) {
+    if (!needsDataDigestVerification) {
+      return true;
+    }
+    LOGGER.info("checking blob digest is valid: " + path);
+    if (Boolean.getBoolean("enso.blob.valid")) {
+      return true;
+    }
+    return CacheUtils.computeDigestFromBytes(blobBytes).equals(spi.blobHash(meta));
+  }
+
+  private boolean isSourceDigestValid(
+      File path, EnsoContext context, TruffleLogger logger, M meta) {
+    if (!needsSourceDigestVerification) {
+      return true;
+    }
+    if (Boolean.getBoolean("enso.source.valid")) {
+      return true;
+    }
+    LOGGER.info("checking source digest is valid: " + path);
+    // if (true) throw new IllegalStateException("Checking " + path);
+    return spi.computeDigestFromSource(context, logger)
+        .map(digest -> digest.equals(spi.sourceHash(meta)))
+        .orElseGet(() -> false);
   }
 
   /**

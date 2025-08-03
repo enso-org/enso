@@ -2,12 +2,15 @@ package org.enso.runner;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,6 +23,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.logging.LogRecord;
+import java.util.logging.XMLFormatter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
@@ -39,6 +44,7 @@ import org.enso.editions.DefaultEdition;
 import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
 import org.enso.logger.Converter;
+import org.enso.logger.ObservedMessage;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -46,8 +52,7 @@ import org.enso.pkg.Template;
 import org.enso.polyglot.Module;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.debugger.DebuggerSessionManagerEndpoint;
-import org.enso.profiling.sampler.NoopSampler;
-import org.enso.profiling.sampler.OutputStreamSampler;
+import org.enso.profiling.sampler.MethodsSampler;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
@@ -64,7 +69,6 @@ import org.slf4j.event.Level;
 import scala.Option$;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
@@ -1295,22 +1299,44 @@ public class Main {
       java.util.concurrent.Callable<A> main)
       throws IOException {
     var path = profilingConfig.profilingPath();
+    var events = profilingConfig.profilingEventsLogPath();
     var sampler =
-        path.isDefined() ? OutputStreamSampler.ofFile(path.get().toFile()) : new NoopSampler();
+        path.isDefined() && events.isDefined()
+            ? MethodsSampler.create(path.get().toFile(), events.get().toFile())
+            : MethodsSampler.NOOP;
     sampler.start();
-    profilingConfig
-        .profilingTime()
-        .foreach(timeout -> sampler.scheduleStop(timeout.length(), timeout.unit(), executor));
+    profilingConfig.profilingTime().foreach(timeout -> sampler.scheduleStop(timeout));
     scala.sys.package$.MODULE$.addShutdownHook(
         () -> {
           try {
-            sampler.stop();
+            sampler.close();
           } catch (IOException ex) {
             LOGGER.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
 
+    AutoCloseable c1 = null;
+    AutoCloseable c2 = null;
+    if (events.isDefined()) {
+      var eventsOut = new FileWriter(events.get().toFile());
+      eventsOut.write("<?xml version='1.0'?>\n");
+      eventsOut.write("<records>\n");
+      c1 = eventsOut;
+      var format = new XMLFormatter();
+      c2 =
+          ObservedMessage.observe(
+              LoggerFactory.getLogger("org.enso"),
+              (ev) -> {
+                var record = new LogRecord(java.util.logging.Level.INFO, ev.getFormattedMessage());
+                record.setInstant(ev.getInstant());
+                try {
+                  eventsOut.write(format.format(record));
+                } catch (IOException ex) {
+                  ex.printStackTrace(new PrintWriter(eventsOut));
+                }
+              });
+    }
     try {
       return main.call();
     } catch (IOException | RuntimeException ex) {
@@ -1318,7 +1344,16 @@ public class Main {
     } catch (Exception ex) {
       throw new IOException(ex);
     } finally {
-      sampler.stop();
+      sampler.close();
+      try {
+        if (c1 != null) {
+          c1.close();
+        }
+        if (c2 != null) {
+          c2.close();
+        }
+      } catch (Exception exception) {
+      }
     }
   }
 
@@ -1358,11 +1393,11 @@ public class Main {
     } catch (InvalidPathException e) {
       throw new WrongOption("Profiling path is invalid");
     }
-    FiniteDuration profilingTime = null;
+    Duration profilingTime = null;
     try {
       var time = line.getOptionValue(PROFILING_TIME);
       if (time != null) {
-        profilingTime = FiniteDuration.apply(Integer.parseInt(time), TimeUnit.SECONDS);
+        profilingTime = Duration.of(Integer.parseInt(time), TimeUnit.SECONDS.toChronoUnit());
       }
     } catch (NumberFormatException e) {
       throw new WrongOption("Profiling time should be an integer");

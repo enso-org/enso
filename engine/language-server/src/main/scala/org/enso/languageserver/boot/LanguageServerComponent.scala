@@ -14,11 +14,7 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.profiling.sampler.{
-  MethodsSampler,
-  NoopSampler,
-  OutputStreamSampler
-}
+import org.enso.profiling.sampler.MethodsSampler
 import org.slf4j.event.Level
 
 import scala.concurrent.duration._
@@ -112,13 +108,12 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   private def startSampling(config: LanguageServerConfig): MethodsSampler = {
     val sampler = config.profilingConfig.profilingPath match {
       case Some(path) =>
-        OutputStreamSampler.ofFile(path.toFile)
-      case None =>
-        new NoopSampler()
+        MethodsSampler.create(path.toFile, null)
+      case None => MethodsSampler.NOOP
     }
     sampler.start()
     config.profilingConfig.profilingTime.foreach(timeout =>
-      sampler.scheduleStop(timeout.length, timeout.unit, ec)
+      sampler.scheduleStop(timeout)
     )
 
     sampler
@@ -141,7 +136,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     }
 
   private def stopSampling(serverContext: ServerContext): Future[Unit] =
-    Future(serverContext.sampler.stop()).recover(logError)
+    Future(serverContext.sampler.close()).recover(logError)
 
   private def releaseResources(serverContext: ServerContext): Future[Unit] =
     for {
