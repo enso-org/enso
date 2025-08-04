@@ -1,6 +1,11 @@
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
-import { describe, expect, it } from 'vitest'
-import { AssetType, compareAssets, type AnyAsset } from '../Backend'
+import { describe, expect, it, test } from 'vitest'
+import {
+  AssetType,
+  compareAssets,
+  doesTitleContainInvalidCharacters,
+  type AnyAsset,
+} from '../Backend'
 
 describe('Backend', () => {
   it('sorts assets by modified date descending', () => {
@@ -378,4 +383,36 @@ describe('Backend', () => {
       { title: 'Project_1' },
     ])
   })
+})
+
+test.each([
+  { name: 'foo', valid: true },
+  { name: 'foo/', valid: false },
+  { name: 'foo\\', valid: false },
+  { name: 'foo/bar', valid: false },
+  { name: 'foo\\bar', valid: false },
+  { name: '/bar', valid: false },
+  { name: '\\bar', valid: false },
+  { name: '\\', valid: false },
+  { name: '/', valid: false },
+  { name: '......', valid: false },
+  { name: '..', valid: false },
+  { name: '.', valid: false },
+  { name: '~', valid: false },
+  { name: '~a', valid: true },
+  { name: 'a~', valid: true },
+  { name: 'a.a.a.a.a.a.a.a.', valid: true },
+  { name: 'a.a.a.a.a.a.a.a.a', valid: true },
+  { name: '.a.a.a.a.a.a.a.a', valid: true },
+  { name: 'a.a.a.a.a.a.a.a..', valid: false },
+  { name: './', valid: false },
+  { name: '//', valid: false },
+  { name: '/\\', valid: false },
+  { name: '\\/', valid: false },
+])('directory name validation', (args) => {
+  const { name, valid } = args
+
+  expect(!doesTitleContainInvalidCharacters(name), `'${name}' is a valid directory name`).toBe(
+    valid,
+  )
 })

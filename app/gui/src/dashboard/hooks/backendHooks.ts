@@ -237,9 +237,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
     refetchInterval,
     filterBy = CATEGORY_TO_FILTER_BY[category.type],
   } = options
-
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
-
   return queryOptions({
     queryKey: [
       backend.type,
@@ -276,9 +274,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   })
 }
 
-/**
- * Options for {@link unsafe_assetFromCacheQueryOptions}.
- */
+/** Options for {@link unsafe_assetFromCacheQueryOptions}. */
 export interface AssetFromCacheQueryOptions {
   readonly backend: Backend
   readonly assetId: AssetId
@@ -312,24 +308,15 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
         .getAll()
         .map((query) => {
           const data = query.state.data
-
           if (Array.isArray(data)) {
             // eslint-disable-next-line no-restricted-syntax
             const asset = data.find((maybeAsset) => assetSchema.safeParse(maybeAsset).success) as
               | AnyAsset
               | undefined
-
-            if (asset != null) {
-              return asset
-            }
+            if (asset != null) return asset
           }
-
           const result = assetSchema.safeParse(data)
-
-          if (result.success) {
-            return result.data
-          }
-
+          if (result.success) return result.data
           return null
         })
         .filter((asset) => asset != null)[0],
@@ -486,11 +473,9 @@ export function useNewProject(backend: Backend, category: Category) {
     async (
       {
         templateName,
-        templateId,
         ensoPath,
       }: {
-        templateName: string | null | undefined
-        templateId?: string | null | undefined
+        templateName?: string | null | undefined
         ensoPath?: string | null | undefined
       },
       parentId: DirectoryId,
@@ -513,7 +498,6 @@ export function useNewProject(backend: Backend, category: Category) {
         {
           parentDirectoryId: placeholderItem.parentId,
           projectName: placeholderItem.title,
-          ...(templateId == null ? {} : { projectTemplateName: templateId }),
           ...(ensoPath == null ? {} : { ensoPath }),
         },
       ])

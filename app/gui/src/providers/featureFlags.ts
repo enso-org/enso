@@ -31,6 +31,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   multiplyUserList: z.boolean(),
   disableAnimations: z.boolean(),
   fileChunkUploadPoolSize: z.number().int().min(1),
+  unsafeDarkTheme: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
@@ -65,6 +66,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         multiplyUserList: false,
         disableAnimations: false,
         fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
+        unsafeDarkTheme: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

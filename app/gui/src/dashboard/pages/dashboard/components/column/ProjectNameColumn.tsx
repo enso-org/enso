@@ -2,7 +2,7 @@
 import EditableSpan from '#/components/EditableSpan'
 import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
@@ -13,7 +13,7 @@ import { useFullUserSession } from '$/providers/react'
 import { isOnMacOS } from 'enso-common/src/detect'
 
 /** Props for a {@link ProjectNameColumn}. */
-export interface ProjectNameColumnProps extends AssetColumnProps {
+export interface ProjectNameColumnProps extends AssetNameColumnProps {
   readonly item: ProjectAsset
 }
 
@@ -98,7 +98,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        schema={() => titleSchema({ asset: item, siblings: getAssetChildren(item.parentId) })}
+        schema={() =>
+          titleSchema({
+            id: item.id,
+            siblings: getAssetChildren(item.parentId),
+          })
+        }
       >
         {item.title}
       </EditableSpan>

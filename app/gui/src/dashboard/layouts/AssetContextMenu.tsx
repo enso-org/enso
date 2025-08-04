@@ -23,10 +23,10 @@ import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntri
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import type * as assetRow from '#/pages/dashboard/components/AssetRow'
+import { useExportArchive } from '#/pages/useExportArchive'
 import { usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import * as backendModule from '#/services/Backend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -34,6 +34,10 @@ import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'
+import {
+  TEAMS_DIRECTORY_ID,
+  USERS_DIRECTORY_ID,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
 import * as React from 'react'
 
 /** Props for a {@link AssetContextMenu}. */
@@ -82,6 +86,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
+  const exportArchive = useExportArchive({ backend })
   const disabledTooltip =
     !canRunProjects.locally[backend.type] ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
@@ -119,7 +124,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       !pasteDataParent ||
       !pasteData ||
       !isCloud ||
-      permissions.isTeamPath(pasteDataParent.virtualParentsPath)
+      (pasteDataParent.ensoPath != null && permissions.isTeamPath(pasteDataParent.ensoPath))
     ) ?
       true
     : pasteData.data.assets.every((pasteAsset) => {
@@ -280,6 +285,12 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               void uploadFileToLocal([asset])
             },
           },
+        {
+          action: 'exportArchive',
+          doAction: () => {
+            void exportArchive()
+          },
+        },
         canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject && {

@@ -11,7 +11,6 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -86,19 +85,37 @@ export function Dashboard(props: DashboardProps) {
         ) {
           await openProjectLocally(props.projectToOpen.asset, props.projectToOpen.backend)
         }
-      } else if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+      } else if (initialLocalProjectPath != null && localBackend) {
         const projectName = baseName(initialLocalProjectPath)
-        const { id, projectRoot } = await window.backendApi.importProjectFromPath(
-          initialLocalProjectPath,
-          localBackend.rootPath(),
-          projectName,
+        const parentDirectoryId = localBackendModule.newDirectoryId(localBackend.rootPath())
+        const metadata = await localBackend.uploadFileStart(
+          {
+            parentDirectoryId,
+            fileName: projectName,
+            fileId: null,
+            filePath: backendModule.Path(initialLocalProjectPath),
+          },
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          null!,
         )
+        const endMetadata = await localBackend.uploadFileEnd({
+          parentDirectoryId,
+          fileName: projectName,
+          assetId: null,
+          parts: [],
+          ...metadata,
+        })
+        if (endMetadata.project == null) {
+          return
+        }
         await openProjectLocally(
           {
-            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            id: endMetadata.id,
             title: projectName,
             parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
-            ensoPath: backendModule.EnsoPath(projectRoot),
+            ensoPath: backendModule.EnsoPath(
+              String(backendModule.extractTypeAndPath(endMetadata.id).path),
+            ),
           },
           backendModule.BackendType.local,
         )
@@ -111,17 +128,14 @@ export function Dashboard(props: DashboardProps) {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
       setDriveLocation(null, 'local')
 
-      const projectId = localBackendModule.newProjectId(
-        projectManager.UUID(project.id),
-        projectManager.Path(project.parentDirectory),
-      )
+      const projectId = localBackendModule.newProjectId(project.projectRoot)
 
       void openProjectLocally(
         {
           id: projectId,
           title: project.name,
           parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
-          ensoPath: backendModule.EnsoPath(project.projectRoot),
+          ensoPath: backendModule.EnsoPath(String(project.projectRoot)),
         },
         backendModule.BackendType.local,
       )

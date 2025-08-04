@@ -3,7 +3,7 @@ import { Button } from '#/components/Button'
 import EditableSpan from '#/components/EditableSpan'
 import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
@@ -12,7 +12,7 @@ import { useText } from '$/providers/react'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps extends AssetColumnProps {
+export interface DirectoryNameColumnProps extends AssetNameColumnProps {
   readonly item: DirectoryAsset
 }
 
@@ -79,7 +79,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         )}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

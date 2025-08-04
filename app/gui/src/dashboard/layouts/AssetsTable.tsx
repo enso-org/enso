@@ -20,6 +20,7 @@ import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
@@ -193,16 +194,11 @@ function AssetsTable(props: AssetsTableProps) {
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
   const rightPanel = useRightPanelData()
 
-  const columns = useMemo(
-    () =>
-      getColumnList(user, backend.type, category).filter((column) => enabledColumns.has(column)),
-    [backend.type, category, enabledColumns, user],
+  const columns = getColumnList(user, backend.type, category).filter((column) =>
+    enabledColumns.has(column),
   )
-
-  const hiddenColumns = useMemo(
-    () =>
-      getColumnList(user, backend.type, category).filter((column) => !enabledColumns.has(column)),
-    [backend.type, category, enabledColumns, user],
+  const hiddenColumns = getColumnList(user, backend.type, category).filter(
+    (column) => !enabledColumns.has(column),
   )
 
   const [sortInfo, setSortInfo] = useState<SortInfo<SortableColumn> | null>(null)
@@ -241,6 +237,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({
     category,
   })
+  const queryDirectoryIdRef = useSyncRef(queryDirectoryId)
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
   const { data: assets = [] } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
@@ -250,7 +247,9 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
-      setDriveLocation(null, category.id)
+      if (queryDirectoryId === queryDirectoryIdRef.current) {
+        setDriveLocation(null, category.id)
+      }
       return false
     },
   })
@@ -502,11 +501,11 @@ function AssetsTable(props: AssetsTableProps) {
   useEffect(
     () =>
       driveStore.subscribe(({ selectedIds }) => {
-        const predicate =
-          isCloud ?
-            (type: AssetType | undefined) =>
-              type === AssetType.project || type === AssetType.file || type === AssetType.datalink
-          : (type: AssetType | undefined) => type === AssetType.project
+        const predicate = (type: AssetType | undefined) =>
+          type === AssetType.directory ||
+          type === AssetType.project ||
+          type === AssetType.file ||
+          type === AssetType.datalink
         const map = new Map(assets.map((item) => [item.id, item]))
         const newCanDownload =
           selectedIds.size !== 0 &&

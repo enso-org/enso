@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
+import type { Path } from '#/services/Backend'
 import type { FeatureFlags } from '$/providers/featureFlags'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
@@ -18,19 +19,6 @@ interface StringConfig {
 /** The public interface exposed to `window` by the IDE. */
 interface Enso {
   readonly main: (inputConfig?: StringConfig) => Promise<void>
-}
-
-/**
- * `window.backendApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains non-authentication-related functionality.
- */
-interface BackendApi {
-  /** Return the ID of the new project. */
-  readonly importProjectFromPath: (
-    openedPath: string,
-    directory: string | null,
-    name: string,
-  ) => Promise<ProjectInfo>
 }
 
 /**
@@ -93,7 +81,7 @@ interface SystemApi {
 export interface ProjectInfo {
   readonly id: string
   readonly name: string
-  readonly projectRoot: string
+  readonly projectRoot: Path
   readonly parentDirectory: string
 }
 
@@ -140,7 +128,6 @@ declare global {
   const $config: $Config
 
   interface Window {
-    readonly backendApi?: BackendApi
     readonly authenticationApi: AuthenticationApi
     readonly navigationApi: NavigationApi
     readonly menuApi?: MenuApi

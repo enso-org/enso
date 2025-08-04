@@ -1,7 +1,6 @@
 /** @file The base class from which all `Actions` classes are derived. */
-import { expect, test, type Locator, type Page } from 'playwright/test'
-
 import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
+import { expect, test, type Locator, type Page } from 'playwright/test'
 
 /** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
 export async function modModifier(page: Page) {
@@ -13,8 +12,8 @@ export async function modModifier(page: Page) {
 }
 
 /** A callback that performs actions on a {@link Page}. */
-export interface PageCallback<Context> {
-  (input: Page, context: Context): Promise<void> | void
+export interface PageCallback<Context, Self = void> {
+  (input: Page, context: Context, self: Self): Promise<void> | void
 }
 
 /** A callback that performs actions on a {@link Locator}. */
@@ -34,12 +33,15 @@ export interface BaseActionsClass<Context, Args extends readonly unknown[] = []>
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions<Context> implements Promise<void> {
+export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never>
+  implements Promise<void>
+{
   /** Create a {@link BaseActions}. */
   constructor(
     protected readonly page: Page,
     protected readonly context: Context,
     private readonly promise = Promise.resolve(),
+    private readonly parentClass: ParentClass = null!,
   ) {}
 
   /**
@@ -114,6 +116,11 @@ export default class BaseActions<Context> implements Promise<void> {
     await this.promise.finally(onfinally)
   }
 
+  /** Return a {@link BaseActions} with the same {@link Promise} but the parent's type. */
+  intoParent() {
+    return this.into(this.parentClass)
+  }
+
   /** Return a {@link BaseActions} with the same {@link Promise} but a different type. */
   into<
     T extends new (
@@ -132,19 +139,19 @@ export default class BaseActions<Context> implements Promise<void> {
    * specific methods; this is more or less an escape hatch used ONLY when the methods do not
    * support desired functionality.
    */
-  do(callback: PageCallback<Context>): this {
+  do(callback: PageCallback<Context, this>): this {
     // @ts-expect-error This is SAFE, but only when the constructor of this class has the exact
     // same parameters as `BaseActions`.
     return new this.constructor(
       this.page,
       this.context,
-      this.then(() => callback(this.page, this.context)),
+      this.then(() => callback(this.page, this.context, this)),
     )
   }
 
   /** Perform an action. */
-  step(name: string, callback: PageCallback<Context>) {
-    return this.do(() => test.step(name, () => callback(this.page, this.context)))
+  step(name: string, callback: PageCallback<Context, this>) {
+    return this.do(() => test.step(name, () => callback(this.page, this.context, this)))
   }
 
   /**
