@@ -224,9 +224,8 @@ function useRightPanel(
     ] as const,
     queryFn: async (query) => {
       const [backendType, , currentItem] = query.queryKey
-      if (!backendType || !currentItem) return undefined
-      if (typeof currentItem === 'object' && currentItem.type === AssetType.specialUp)
-        return undefined
+      if (!backendType || !currentItem) return null
+      if (typeof currentItem === 'object' && currentItem.type === AssetType.specialUp) return null
       return await backendForType(backendType).getAssetDetails(
         typeof currentItem === 'object' ? currentItem.id : currentItem,
       )

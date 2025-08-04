@@ -70,7 +70,9 @@ function editorReadyCallback(view: EditorView) {
       { immediate: true },
     )
 
-    onTextEdited(() => (descriptionEdited = true))
+    onTextEdited(() => {
+      descriptionEdited = true
+    })
 
     onFocusOut.value = () => {
       updateDescription(rightPanel.focusedAssetDetails, getText())
