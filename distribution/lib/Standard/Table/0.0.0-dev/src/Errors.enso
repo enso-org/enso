@@ -1163,6 +1163,13 @@ type No_Column_Names_Found
     private handle_java_exception =
         Panic.catch NoColumnNamesFoundException handler=(_ -> Error.throw No_Column_Names_Found.Error)
 
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "No_Column_Names_Found"]]
+
 ## Indicates that a fixed-width file contains a line that is too long.
 type Fixed_Width_Line_Too_Long
     ## ---
@@ -1180,3 +1187,10 @@ type Fixed_Width_Line_Too_Long
        ---
     private handle_java_exception =
         Panic.catch FixedWidthLineTooLongException handler=(e -> Error.throw (Fixed_Width_Line_Too_Long.Error e.payload.sourceLineNumber e.payload.maxLineLength))
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Fixed_Width_Line_Too_Long"], ["sourceLineNumber", self.sourceLineNumber], ["maxLineLength", self.maxLineLength]]

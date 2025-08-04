@@ -4,6 +4,7 @@ import Portal from '#/components/Portal'
 import { TOOLTIP_STYLES, type TooltipProps } from '#/components/Tooltip'
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import { unsafeWriteValue } from '#/utilities/write'
+import { isOverflowing } from '$/utils/dom'
 import * as React from 'react'
 
 /** Props for {@link useVisualTooltip}. */
@@ -238,6 +239,5 @@ function TooltipInner(props: TooltipInnerProps) {
 
 const DISPLAY_STRATEGIES: Record<DisplayStrategy, (target: HTMLElement) => boolean> = {
   always: () => true,
-  whenOverflowing: (target) =>
-    target.scrollWidth > target.clientWidth || target.scrollHeight > target.clientHeight,
+  whenOverflowing: isOverflowing,
 }

@@ -2,6 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.AscriptionReason
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.{
@@ -327,7 +328,7 @@ case object TypeSignatures extends IRPass {
     newTyped
       .setLocation(sig.location())
       .updateMetadata(
-        new MetadataPair(this, Signature(newSig, sig.comment))
+        new MetadataPair(this, Signature(newSig, sig.reason))
       )
   }
 
@@ -411,10 +412,12 @@ case object TypeSignatures extends IRPass {
   /** A representation of a type signature.
     *
     * @param signature the expression for the type signature
-    * @param comment an optional comment from which the potential error message will be derived
+    * @param reason explaining why we have such a signature
     */
-  case class Signature(signature: Expression, comment: Option[String] = None)
-      extends IRPass.IRMetadata {
+  case class Signature(
+    signature: Expression,
+    reason: AscriptionReason = AscriptionReason.empty()
+  ) extends IRPass.IRMetadata {
     override val metadataName: String = "TypeSignatures.Signature"
 
     /** @inheritdoc */
@@ -440,6 +443,6 @@ case object TypeSignatures extends IRPass {
 
     /** @inheritdoc */
     override def duplicate(): Option[IRPass.IRMetadata] =
-      Some(this.copy(signature = signature.duplicate(), comment = comment))
+      Some(this.copy(signature = signature.duplicate(), reason = reason))
   }
 }

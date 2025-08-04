@@ -146,14 +146,14 @@ function onClick({
   const inputValue = editedValue.value ?? props.input.value
   if (inputValue instanceof Ast.Vector) {
     toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
-    props.onUpdate({ edit, directInteraction })
+    props.updateCallback({ edit, directInteraction })
   } else {
     const vector = Ast.Vector.new(
       edit,
       inputValue instanceof Ast.Ast ? [edit.take(inputValue.id)] : [],
     )
     toggleVectorValue(vector, tagValue, previousState)
-    props.onUpdate({
+    props.updateCallback({
       edit,
       portUpdate: { value: vector, origin: props.input.portId },
       directInteraction,

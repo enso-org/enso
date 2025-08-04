@@ -74,7 +74,7 @@ export const INVALIDATION_MAP: Partial<
 > = {
   createUser: ['usersMe'],
   updateUser: [INVALIDATE_ALL_QUERIES],
-  deleteUser: ['usersMe'],
+  deleteUser: ['usersMe', 'listUsers', 'listUserGroups', 'listDirectory', 'getAssetDetails'],
   restoreUser: ['usersMe'],
   uploadUserPicture: ['usersMe'],
   updateOrganization: ['getOrganization'],

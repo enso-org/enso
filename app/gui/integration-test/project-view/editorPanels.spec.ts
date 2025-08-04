@@ -9,7 +9,6 @@ import * as locate from './locate'
 
 async function goToGraphAndGetDocs(page: Page) {
   await actions.goToGraph(page)
-  await page.getByRole('tab', { name: 'Documentation' }).click()
   const docsContent = page.getByTestId('documentation-editor-content')
   const docsScroller = page.getByTestId('documentation-editor-scroller')
   await expect(docsContent.locator('.cm-line')).toExist()
