@@ -40,7 +40,7 @@ test('tags (positive)', ({ page }) =>
     }
   }))
 
-test('labels', ({ page }) =>
+test.skip('labels (were supported in list directory, but not supported in search)', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {

@@ -364,10 +364,7 @@ interface AssetSearchBarInputProps {
   readonly searchInputOnKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
 }
 
-/**
- * Renders the search field.
- */
-
+/** Search field. */
 const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   props: AssetSearchBarInputProps,
 ) {
@@ -507,9 +504,7 @@ const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
   )
 })
 
-/**
- * Props for a {@link SuggestionRenderer}.
- */
+/** Props for a {@link SuggestionRenderer}. */
 interface SuggestionRendererProps {
   readonly index: number
   readonly suggestion: Suggestion
@@ -523,9 +518,7 @@ interface SuggestionRendererProps {
   readonly setAreSuggestionsVisible: (value: boolean) => void
 }
 
-/**
- * Renders a suggestion.
- */
+/** Renders a suggestion. */
 const SuggestionRenderer = React.memo(function SuggestionRenderer(props: SuggestionRendererProps) {
   const {
     index,
@@ -602,11 +595,7 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
       return
     }
     unsafeWriteValue(querySource, 'current', QuerySource.internal)
-    setQuery((oldQuery) => {
-      const newQuery = oldQuery.withToggled('labels', label.value)
-      unsafeWriteValue(baseQuery, 'current', newQuery)
-      return newQuery
-    })
+    setQuery(query.withToggled('labels', label.value))
   })
 
   if (!isCloud || labels.length === 0) {

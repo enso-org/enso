@@ -699,6 +699,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
           params: URLSearchParams,
         ) => unknown,
       ) => {
+        if (!url) throw new Error(`Mock API URL missing. Callback: ${callback}`)
         if (url.includes('?'))
           throw new Error(
             'Base mock API URL patterns cannot contain a query string.\n  Problematic URL: ' + url,

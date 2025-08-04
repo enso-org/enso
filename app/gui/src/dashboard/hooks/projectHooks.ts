@@ -59,27 +59,25 @@ function useSetProjectAsset() {
     ) => {
       const listDirectoryQuery = queryClient
         .getQueryCache()
-        .find<readonly backendModule.AnyAsset<backendModule.AssetType>[] | undefined>({
+        .find<backendModule.ListDirectoryResponseBody | undefined>({
           queryKey: [backendType, 'listDirectory', parentId, { infinite: false }],
           exact: false,
         })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData(
-          listDirectoryQuery.state.data.map((child) =>
+        listDirectoryQuery.setData({
+          ...listDirectoryQuery.state.data,
+          assets: listDirectoryQuery.state.data.assets.map((child) =>
             child.id === assetId && child.type === backendModule.AssetType.project ?
               transform(child)
             : child,
           ),
-        )
+        })
       }
 
       const listDirectoryInfiniteQuery = queryClient
         .getQueryCache()
-        .find<
-          | reactQuery.InfiniteData<readonly backendModule.AnyAsset<backendModule.AssetType>[]>
-          | undefined
-        >({
+        .find<reactQuery.InfiniteData<backendModule.ListDirectoryResponseBody> | undefined>({
           queryKey: [backendType, 'listDirectory', parentId, { infinite: true }],
           exact: false,
         })
@@ -87,13 +85,14 @@ function useSetProjectAsset() {
       if (listDirectoryInfiniteQuery?.state.data) {
         listDirectoryInfiniteQuery.setData({
           ...listDirectoryInfiniteQuery.state.data,
-          pages: listDirectoryInfiniteQuery.state.data.pages.map((page) =>
-            page.map((child) =>
+          pages: listDirectoryInfiniteQuery.state.data.pages.map((page) => ({
+            ...page,
+            assets: page.assets.map((child) =>
               child.id === assetId && child.type === backendModule.AssetType.project ?
                 transform(child)
               : child,
             ),
-          ),
+          })),
         })
       }
     },
@@ -284,13 +283,13 @@ export function useOpenProjectMutation() {
         projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
       }))
     },
-    onSuccess: async (_, { title, hybrid, suppressHybridProjectOpen = false }) => {
+    onSuccess: async (_data, { title, hybrid, suppressHybridProjectOpen = false }) => {
       await client.cancelQueries({ queryKey: ['project'] })
       if (hybrid && !suppressHybridProjectOpen) {
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
     },
-    onError: async (_, { type, parentId }) => {
+    onError: async (_error, { type, parentId }) => {
       await client.invalidateQueries({ queryKey: ['project'] })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
