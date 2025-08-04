@@ -53,10 +53,10 @@ public class IRCacheLocationTest {
       var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
       var res = mainMethod.execute();
       assertThat("Module evaluation is OK", res.asInt(), is(42));
-
-      var cacheDir = projDir.toPath().resolve(".enso");
-      assertThat("Cache dir was created", cacheDir.toFile().exists(), is(true));
     }
+
+    var cacheDir = projDir.toPath().resolve(".enso");
+    assertThat("Cache dir was created", cacheDir.toFile().exists(), is(true));
   }
 
   @Test
@@ -108,8 +108,9 @@ public class IRCacheLocationTest {
       }
       assertThat("Module evaluation is OK", res.asInt(), is(42));
 
-      var libCacheDir = libDir.toPath().resolve(".enso");
-      assertThat("Cache dir for Lib was created", libCacheDir.toFile().exists(), is(true));
     }
+
+    var libCacheDir = libDir.toPath().resolve(".enso");
+    assertThat("Cache dir for Lib was created", libCacheDir.toFile().exists(), is(true));
   }
 }
