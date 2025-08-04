@@ -40,5 +40,5 @@ get_widget_json value call_name argument_names uuids="{}" = time_visualization W
             # The annotation is a constant, so we just return it.
             _ -> annotation
 
-    annotations = argument_names.map (arg -> [arg, read_annotation arg])
-    annotations.to_json
+    annotations = argument_names.map (arg -> '[' + arg.to_json + ',' + (read_annotation arg).to_json + ']')
+    '[' + (annotations.join ',') + ']'

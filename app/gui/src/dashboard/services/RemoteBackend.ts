@@ -1336,8 +1336,7 @@ export default class RemoteBackend extends Backend {
   async getProjectArchive(directoryId: backend.DirectoryId, fileName: string): Promise<File> {
     const queryString = new URLSearchParams({
       directory: extractIdFromDirectoryId(directoryId),
-    })
-
+    }).toString()
     const response = await this.get(
       new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
     )
@@ -1352,10 +1351,10 @@ export default class RemoteBackend extends Backend {
 
   /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
-    const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
-      remoteBackendPaths.CUSTOMER_PORTAL_SESSION_CREATE_PATH,
-      {},
-    )
+    // A dummy query parameter is required due to issues with backend validation.
+    const queryString = new URLSearchParams({ ignored: '' }).toString()
+    const path = `${remoteBackendPaths.CUSTOMER_PORTAL_SESSION_CREATE_PATH}?${queryString}`
+    const response = await this.post<backend.CreateCustomerPortalSessionResponse>(path, null)
 
     if (!response.ok) {
       return await this.throw(response, 'getCustomerPortalUrlBackendError')

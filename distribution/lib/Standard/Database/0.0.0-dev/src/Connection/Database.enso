@@ -22,7 +22,7 @@ polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
    icon: drive
    suggested: 5
    ---
-   Tries to connect to the database.
+   Connects to database.
 
    ## Arguments
     - `details`: `Connection_Details` specifying the database to connect to.

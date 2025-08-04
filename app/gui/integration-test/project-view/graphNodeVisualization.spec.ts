@@ -50,7 +50,7 @@ test('Previewing visualization', async ({ page }) => {
   await expect(locate.anyVisualization(node)).toBeVisible()
   // TODO[ao]: The simple move near top-left corner not always works i.e. not always
   //  `pointerleave` event is emitted. Investigated in https://github.com/enso-org/enso/issues/9478
-  await page.mouse.move(700, 1200, { steps: 20 })
+  await page.mouse.move(500, 1200, { steps: 20 })
   await expect(locate.anyVisualization(page)).toBeHidden()
   await page.keyboard.up('Meta')
   await page.keyboard.up('Control')

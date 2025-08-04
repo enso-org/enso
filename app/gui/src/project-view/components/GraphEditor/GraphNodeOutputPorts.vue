@@ -120,6 +120,7 @@ const portsVisible = computed(
 const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
 
 watchEffect(() => graph.value?.nodeOutputVisible.set(props.nodeId, portsVisible.value))
+watchEffect(() => graph.value?.nodeOutputHovered.set(props.nodeId, outputHovered.value != null))
 watchEffect(() => graph.value?.nodeOutputAnimations.set(props.nodeId, portsHoverAnimation.value))
 
 const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()

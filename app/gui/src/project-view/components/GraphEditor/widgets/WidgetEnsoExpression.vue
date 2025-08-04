@@ -10,7 +10,7 @@ import {
 } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { BodyBlock, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -21,7 +21,7 @@ const astCode = computed(() => {
 })
 
 function acceptValue(value: string): HandledUpdate {
-  return props.onUpdate({
+  return props.updateCallback({
     portUpdate: {
       value: Ast.parseExpression(value),
       origin: props.input.portId,
@@ -40,6 +40,8 @@ const extensions = [
   syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
   ensoSyntax(moduleRoot),
 ]
+
+const cmWidget = useTemplateRef('cmWidget')
 </script>
 
 <script lang="ts">
@@ -63,8 +65,12 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetEnsoExpression widgetRounded widgetPill">
+  <div
+    class="WidgetEnsoExpression widgetRounded widgetPill"
+    @click.stop="cmWidget?.focusAndSelect()"
+  >
     <CodeMirrorWidgetBase
+      ref="cmWidget"
       v-model="astCode"
       :widgetTypeId="widgetTypeId"
       :input="input"

@@ -34,7 +34,7 @@ function acceptValue(text: string): HandledUpdate {
     const value = edit.getVersion(props.input.value)
     if (value.rawTextContent === text) return Ok()
     value.setRawTextContent(text)
-    return props.onUpdate({ edit, directInteraction: true })
+    return props.updateCallback({ edit, directInteraction: true })
   } else {
     let value: Ast.Owned<Ast.MutableTextLiteral>
     if (inputTextLiteral.value) {
@@ -43,7 +43,7 @@ function acceptValue(text: string): HandledUpdate {
     } else {
       value = Ast.TextLiteral.new(text)
     }
-    return props.onUpdate({
+    return props.updateCallback({
       portUpdate: {
         value,
         origin: props.input.portId,

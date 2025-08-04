@@ -42,7 +42,7 @@ const onFocusOut = ref<() => void>()
 const { syncExt, connectSync } = useStringSync()
 const scope = effectScope()
 
-function onEditorReady(view: EditorView) {
+function editorReadyCallback(view: EditorView) {
   const { setText, getText, onTextEdited } = connectSync(view)
 
   // We want to run watch before DOM update, because the DescriptionEditor may be disposed as
@@ -90,7 +90,7 @@ function onEditorReady(view: EditorView) {
       v-if="rightPanel.focusedAsset"
       :extensions="syncExt"
       contentTestId="asset-panel-description"
-      @editorReady="onEditorReady"
+      :editorReadyCallback="editorReadyCallback"
     />
     <ResultComponent
       v-else

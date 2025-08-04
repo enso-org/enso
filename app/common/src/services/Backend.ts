@@ -2018,7 +2018,7 @@ export default abstract class Backend {
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  protected post<T = void>(path: string, payload: object, options?: HttpClientPostOptions) {
+  protected post<T = void>(path: string, payload: object | null, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.post<T>(this.resolvePath(path), payload, options),
     )

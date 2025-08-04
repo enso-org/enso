@@ -20,10 +20,11 @@ type Google_Analytics
     ## ---
        group: Standard.Base.Web
        icon: cloud_from
-       suggested: 1
+       suggested: 9
        ---
-       Performs Google Analytics call This method calls the Google Analytics
-       Reporting v4 API.
+       Reads data from the Google Analytics Reporting API.
+
+       (This component uses the Google Analytics Reporting v4 API.)
 
        ## Arguments
         - `property`: The Google Analytics property_id that is being queried
@@ -206,3 +207,10 @@ type Google_Analytics_Error
        ---
     to_display_text : Text
     to_display_text self = self.to_text
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Google_Analytics_Error"], ["message", self.message]]

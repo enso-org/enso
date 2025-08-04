@@ -93,6 +93,8 @@ reported if the type checker can 'prove' that a given operation **will** surely
 fail at runtime (if the piece of code is reached). If the operation may fail or
 succeed, no errors are reported.
 
+#### Any is Special
+
 This makes `Any` a special type. In terms of the subtyping relationship it is a
 [top type](https://en.wikipedia.org/wiki/Top_type), however in terms of the type
 checker it is a bit closer to the
@@ -111,38 +113,36 @@ values from polyglot calls.
 
 #### Relation to Intersection Types
 
-[Our approach to intersection types](./intersection-types.md) that allows for a
+[Enso approach to intersection types](./intersection-types.md) allows for a
 value to have multiple different types, some of which are hidden, adds some
 challenges to the type checking. The current state (where the hidden part of the
-type can only be uncovered via an explicit cast) seems to strike a relatively
-good balance between the ability to work with intersection types in the
-interactive GUI (that is capable of inserting the necessary casts) and pass them
-through various checked methods (which may hide the extra parts, but still being
-able to uncover them) and the capabilities of static analysis of types.
+type can only be uncovered via an explicit cast) provides good balance between
+the ability to work with intersection types in the interactive GUI (that is
+capable of inserting the necessary casts) and pass them through various checked
+methods (which may hide the extra parts, but still being able to uncover them)
+and the capabilities of static analysis of types. Good balance is namely
+achieved because of:
+
+- allowing `y = x:T`
+  [narrowing type check](./intersection-types.md#narrowing-type-check) that
+  check the type at run-time and allow to 'uncover' the hidden parts of the
+  type. They are treated as an `instanceof` check, so they are not validated by
+  static analysis but instead serve as _evidence_ that if the code continues
+  execution, then indeed `y` must now have type `T`.
+- all other places - _invoking methods_ on a type, passing a _value as an
+  argument_, using a _value in binary operators_ rely only on the **visible**
+  part of the type and thus can be checked in static analysis.
+- uncovering hidden values without a check is only possible when explicitly
+  requested by an [open type check](./intersection-types.md#open-type-check).
+  When one uses `x : Integer&Any` check, it is no longer possible to report any
+  type mismatch warnings. Type inference knows the value must conform to
+  `Integer`, but it cannot rule out that `x` was not created as
+  `Integer & Text`. Therefore the static analysis must assume that every value
+  can have any combination of types _"in its `&Any` part"_.
 
 Any changes to the related logic must be done very carefully as it is very easy
 to introduce a change that will introduce a 'collapse' of the type system that
 would make it unable to report any useful warnings.
-
-For example, if uncovering hidden values was possible when calling a method with
-checked arguments (without explicit casts), it would no longer be possible to
-report any type mismatch warnings. That is because even if there's a value
-`x : Integer` and function `f x` expects a `Text`, we cannot rule out that `x`
-was not created as `Integer & Text` before and the `Text` part was hidden. As
-the hidden part of the type is never known _statically_, the static analysis
-cannot rely on it and must assume that every value can have any kind of types in
-the hidden part.
-
-The current approach that seems to strike a good balance is:
-
-- allowing `y = x:T` type assertions that check the type at run-time and allow
-  to 'uncover' the hidden parts of the type. They are treated as an `instanceof`
-  check, so they are not validated by static analysis but instead serve as
-  _evidence_ that if the code continues execution, then indeed `y` must have now
-  have type `T`.
-- all other places - invoking methods on a type, passing a value as an argument,
-  using a value in binary operators rely only on the **visible** part of the
-  type and thus can be checked in static analysis.
 
 #### Local Inference and Type Propagation
 
