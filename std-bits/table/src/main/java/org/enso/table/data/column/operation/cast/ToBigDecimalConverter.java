@@ -50,7 +50,8 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     }
   }
 
-  private ColumnStorage<BigDecimal> convertDoubleStorage(ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+  private ColumnStorage<BigDecimal> convertDoubleStorage(
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
         Builder.getForBigDecimal(doubleStorage.getSize()),
@@ -102,10 +103,9 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
   }
 
-  /**
-   * For nan/inf, return null and report a wanring.
-   */
-  private static BigDecimal fromFloatWarnOnSpecial(double d, CastProblemAggregator problemAggregator) {
+  /** For nan/inf, return null and report a wanring. */
+  private static BigDecimal fromFloatWarnOnSpecial(
+      double d, CastProblemAggregator problemAggregator) {
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
