@@ -79,7 +79,7 @@ export const ICON_WIDTH = 16
     :rootElement="rootElement"
     :conditionalPorts="conditionalPorts"
     :extended="extended"
-    :onUpdate="handleWidgetUpdates"
+    :updateCallback="handleWidgetUpdates"
     @currentEditChanged="onCurrentEditChange"
   />
 </template>

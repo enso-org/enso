@@ -10,11 +10,13 @@ import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
+import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
-import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
+import { AssetDoesNotExistError, BackendType, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { NetworkError } from '#/utilities/error'
@@ -25,18 +27,17 @@ import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
 /**
- * Displays the current directory path and permissions, upload and download buttons,
+ * Display the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher.
  */
 export function DriveBarNavigation() {
   const { getText } = useText()
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
-
+  const localRootDirectory = useLocalRootDirectory() ?? undefined
   const { rootDirectoryId, currentDirectoryId } = useDirectoryIds({ category })
-
+  const currentDirectoryIdRef = useSyncRef(currentDirectoryId)
   const rightPanel = useRightPanelData()
-
   const driveStore = useDriveStore()
 
   const moveAssetsMutation = useMutationCallback({
@@ -56,11 +57,21 @@ export function DriveBarNavigation() {
 
   const { data: directoryData } = useSuspenseQuery({
     queryKey: [associatedBackend.type, 'getAssetDetails', { id: currentDirectoryId }],
-    queryFn: () => associatedBackend.getAssetDetails(currentDirectoryId),
+    queryFn: () =>
+      associatedBackend.getAssetDetails(
+        currentDirectoryId,
+        associatedBackend.type === BackendType.local ?
+          'rootPath' in category ?
+            category.rootPath
+          : localRootDirectory
+        : undefined,
+      ),
     meta: { persist: false },
     retry: (count, error) => {
       if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
-        setDriveLocation(null, null)
+        if (currentDirectoryId === currentDirectoryIdRef.current) {
+          setDriveLocation(null, null)
+        }
         return false
       }
 
@@ -71,18 +82,13 @@ export function DriveBarNavigation() {
         return null
       }
 
-      const virtualParentsPath = () => {
-        if (data.virtualParentsPath.length === 0) {
-          return data.title
-        }
-
-        return data.virtualParentsPath + '/' + data.title
-      }
-
       return {
         asset: data,
-        parentsPath: data.parentsPath + '/' + data.id,
-        virtualParentsPath: virtualParentsPath(),
+        parentsPath: data.parentsPath === '' ? data.id : data.parentsPath + '/' + data.id,
+        virtualParentsPath:
+          data.virtualParentsPath.length === 0 ?
+            data.title
+          : data.virtualParentsPath + '/' + data.title,
         parentId: data.parentId,
       }
     },
@@ -103,6 +109,7 @@ export function DriveBarNavigation() {
     rootDirectoryId,
     getCategoryByDirectoryId,
   })
+
   const finalPath = (() => {
     if (category.type === 'recent') {
       return [

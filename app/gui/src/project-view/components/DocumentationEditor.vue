@@ -90,7 +90,7 @@ const { syncExt, connectSync } = useYTextSync(editorContent)
       :readonly="currentMethodAst.value.readOnly"
       contentTestId="documentation-editor-content"
       scrollerTestId="documentation-editor-scroller"
-      @editorReady="connectSync"
+      :editorReadyCallback="connectSync"
     >
       <template #belowToolbar>
         <FunctionSignatureEditor

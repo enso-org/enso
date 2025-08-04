@@ -348,3 +348,10 @@ type Implicit_DB_Table_Read
        ---
     to_display_text self -> Text =
         "The "+self.operation_name+" operation has implicitly materialized a Database query. This may be a costly operation so it is recommened to `.read` the query into memory explicitly and performing such operations afterwards."
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Implicit_DB_Table_Read"], ["message", self.to_display_text]]

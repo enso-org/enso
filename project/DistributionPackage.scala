@@ -126,11 +126,19 @@ object DistributionPackage {
     )
   }
 
+  /** @param distributionRoot Root directory for the engine build distribution. Will be populated.
+    * @param jarModulesToCopy Modular Jar archives that will be copied into the `component` directory.
+    * @param pythonResources Directories with extracted resources from GraalPy
+    * @param pythonHome Target directory for `pythonResources`
+    * @param targetDir Directory with built rust-parser native library.
+    */
   def createEnginePackage(
     distributionRoot: File,
     cacheFactory: CacheStoreFactory,
     log: Logger,
     jarModulesToCopy: Seq[File],
+    pythonResources: Seq[File],
+    pythonHome: File,
     graalVersion: String,
     javaVersion: String,
     ensoVersion: String,
@@ -149,6 +157,20 @@ object DistributionPackage {
       jarModulesToCopy,
       distributionRoot / "component",
       cacheFactory.make("module jars")
+    )
+
+    // pythonResources contain everything - both files and directories.
+    // It should be enough to just recursively copy the first `python-home` directory.
+    val pyResource = pythonResources.head
+    if (pyResource.getName != "python-home") {
+      throw new AssertionError(
+        s"Expected the first python resource to be 'python-home', but got '${pyResource.getName}'"
+      )
+    }
+    copyDirectoryIncremental(
+      source      = pyResource,
+      destination = pythonHome,
+      cache       = cacheFactory.make("engine-python-home")
     )
 
     val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")

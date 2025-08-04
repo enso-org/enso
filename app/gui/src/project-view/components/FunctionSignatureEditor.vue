@@ -89,7 +89,7 @@ const primaryApplication = emptyPrimaryApplication()
       :primaryApplication="primaryApplication"
       :rootElement="rootElement"
       :extended="true"
-      :onUpdate="handleWidgetUpdates"
+      :updateCallback="handleWidgetUpdates"
     />
   </div>
 </template>

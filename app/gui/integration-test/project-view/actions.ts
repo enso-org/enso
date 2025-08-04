@@ -115,12 +115,12 @@ export async function createTableNode(page: Page) {
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(1)
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Table.input')
   await page.keyboard.press('Enter')
-  const node = locate.graphNodeByBinding(page, 'table1')
+  const node = locate.graphNodeByBinding(page, 'any1')
   await expect(node).toHaveCount(1)
   await expect(node).toBeVisible()
   await mockMethodCallInfo(
     page,
-    { binding: 'table1', expr: 'Table.input' },
+    { binding: 'any1', expr: 'Table.input' },
     {
       methodPointer: {
         module: 'Standard.Table.Table',

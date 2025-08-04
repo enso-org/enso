@@ -110,6 +110,7 @@ export const CheckboxGroup = forwardRef(
                       variants={fieldVariants}
                       {...checkboxGroupProps}
                       contextualHelp={contextualHelp}
+                      className="w-full"
                     >
                       {typeof children === 'function' ? children(renderProps) : children}
                     </Form.Field>

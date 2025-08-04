@@ -36,6 +36,7 @@ test('create project (remote)', ({ page }) =>
     .newEmptyProject()
     .waitForEditorToLoad()
     .goToPage.drive()
+    // Entries: [Samples, New Project 2]
     .driveTable.withRows((rows) => expect(rows).toHaveCount(1)))
 
 test('create project (local)', ({ page }) =>

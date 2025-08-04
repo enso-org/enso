@@ -3,8 +3,7 @@
  */
 import type { AnyCategory } from '../layouts/Drive/Categories/Category'
 import type { DirectoryId } from './Backend'
-import { Path } from './Backend'
-import { DIRECTORY_ID_PREFIX, newDirectoryId } from './LocalBackend'
+
 /**
  * Options for the parseDirectoriesPath function.
  */
@@ -29,11 +28,10 @@ export interface PathItem {
 export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   const { getCategoryByDirectoryId, parentsPath, rootDirectoryId, virtualParentsPath } = options
 
-  // Split the path using the helper function
-  // Parents path is a string of directory ids separated by slashes, but the ids are not escaped, so we need to split them manually.
   // e.g: parentsPath = 'directory-id1adsf/directory-id2adsf/directory-id3adsf'
-  const splitPath = splitDirectoryPath(parentsPath)
-  const rootDirectoryInPath = splitPath[0] ?? rootDirectoryId
+  // eslint-disable-next-line no-restricted-syntax
+  const splitPath = parentsPath.split('/') as DirectoryId[]
+  const rootDirectoryInPath = splitPath[0] || rootDirectoryId
 
   const splitVirtualParentsPath = virtualParentsPath.split('/')
   // Virtual parents path is a string of directory names separated by slashes.
@@ -46,19 +44,21 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   // We remove the root directory from the split path (it doesn't exist in the virtual parents path) -> virtualParentsIds = ['directory-id2adsf', 'directory-id3adsf']
   const virtualParentsIds = splitPath.slice(1)
 
-  const response = (() => {
+  const response: {
+    readonly finalPath: readonly PathItem[]
+    readonly category: AnyCategory | null
+  } = (() => {
     const result: PathItem[] = []
 
     const rootCategory = getCategoryByDirectoryId(rootDirectoryInPath)
 
-    // If the root category is not found it might mean
-    // that user is no longer have access to this root directory.
-    // Usually this could happen if the user was removed from the organization
-    // or user group.
-    // This shouldn't happen though and these files should be filtered out
-    // by the backend. But we need to handle this case anyway.
+    // If the root category is not found it might mean that the user no longer has access
+    // to this root directory.
+    // Usually this could happen if the user was removed from the organization or user group.
+    // This shouldn't happen though and these files should be filtered out by the backend.
+    // But we need to handle this case anyway.
     if (rootCategory == null) {
-      return { finalPath: [], category: null } as const
+      return { finalPath: [], category: null }
     }
 
     result.push({
@@ -87,29 +87,4 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   })()
 
   return response
-}
-
-/**
- * Splits a path string containing directory IDs into an array of individual directory IDs.
- * Handles cases where directory IDs themselves may contain forward slashes.
- */
-function splitDirectoryPath(path: string): DirectoryId[] {
-  if (path === '') {
-    return []
-  }
-
-  const result: DirectoryId[] = []
-
-  const directories = path.split(DIRECTORY_ID_PREFIX)
-
-  // Iterate through each character
-  for (const directory of directories) {
-    if (directory === '') {
-      continue
-    }
-
-    result.push(newDirectoryId(Path(directory.replace(/\/$/, ''))))
-  }
-
-  return result
 }

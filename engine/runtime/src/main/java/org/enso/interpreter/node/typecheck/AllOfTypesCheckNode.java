@@ -11,13 +11,14 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
-
+  final boolean allowThru;
   @Children private AbstractTypeCheckNode[] checks;
   @Child private TypeOfNode typeNode;
   @Child private EnsoMultiValue.NewNode newNode;
 
-  AllOfTypesCheckNode(String name, AbstractTypeCheckNode[] checks) {
+  AllOfTypesCheckNode(String name, boolean allowThru, AbstractTypeCheckNode[] checks) {
     super(name);
+    this.allowThru = allowThru;
     this.checks = checks;
     this.typeNode = TypeOfNode.create();
     this.newNode = EnsoMultiValue.NewNode.create();
@@ -41,7 +42,7 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
         dispatchTypes[at++] = t;
       }
       var node = EnsoMultiValue.NewNode.getUncached();
-      return node.renewMulti(multi, dispatchTypes);
+      return node.renewMulti(multi, dispatchTypes, allowThru, isAllTypes());
     }
     return null;
   }
@@ -49,6 +50,11 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
   @Override
   @ExplodeLoop
   Object executeConversion(VirtualFrame frame, Object value) {
+    if (checks.length == 0) {
+      assert isAllTypes() : "Can only happen with : Any check";
+      assert allowThru : "Such a check must allow other types thru";
+      return value;
+    }
     var values = new Object[checks.length];
     var valueTypes = new Type[checks.length];
     var at = 0;
