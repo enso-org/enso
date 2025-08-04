@@ -303,7 +303,6 @@ export class Server {
    */
   async process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
-    const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
     if (requestUrl == null) {
       logger.error('Request URL is null.')
     } else if (requestUrl.startsWith('/api/project-manager/')) {
