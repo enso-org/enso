@@ -5,12 +5,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
-import java.util.logging.Level;
 import org.enso.common.CompilationStage;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.CompilerTests;
-import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
@@ -23,7 +21,6 @@ public class ModuleCacheTest {
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()
           .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
-          .withLogHandler(Level.FINE, JulHandler.get())
           .build();
 
   @Rule(order = Integer.MIN_VALUE)

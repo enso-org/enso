@@ -13,10 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.BindingsMap;
-import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
@@ -233,10 +231,7 @@ public class ExportedSymbolsTest {
   }
 
   private static ContextUtils createCtx(Path projDir) {
-    return ContextUtils.newBuilder()
-        .withProjectRoot(projDir)
-        .withLogHandler(Level.FINE, JulHandler.get())
-        .build();
+    return ContextUtils.newBuilder().withProjectRoot(projDir).build();
   }
 
   private static void compile(ContextUtils ctx) {

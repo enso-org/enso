@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolutionError;
@@ -19,14 +18,15 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
-import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import scala.jdk.CollectionConverters;
@@ -35,6 +35,9 @@ import scala.util.Either;
 public class BindingsMapResolutionTest {
 
   @ClassRule public static final TemporaryFolder TMP_DIR = new TemporaryFolder();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void resolveSingleName_FromSingleImport() throws IOException {
@@ -641,7 +644,6 @@ public class BindingsMapResolutionTest {
     return ContextUtils.newBuilder()
         .withModifiedContext(
             bldr -> bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
-        .withLogHandler(Level.FINE, JulHandler.get())
         .build();
   }
 

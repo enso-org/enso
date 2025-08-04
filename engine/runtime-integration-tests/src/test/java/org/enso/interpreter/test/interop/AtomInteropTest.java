@@ -22,8 +22,10 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
@@ -31,7 +33,12 @@ import org.junit.Test;
  * org.enso.interpreter.runtime.data.atom.Atom atoms}.
  */
 public class AtomInteropTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
+  ;
 
   @Test
   public void atomMemberNames_AreNotQualified() {

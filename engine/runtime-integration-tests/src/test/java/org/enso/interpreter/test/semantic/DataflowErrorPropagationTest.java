@@ -6,15 +6,16 @@ import static org.junit.Assert.assertTrue;
 
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
 public class DataflowErrorPropagationTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static Value suppressError;
   private static Value suppressErrorWithAssign;

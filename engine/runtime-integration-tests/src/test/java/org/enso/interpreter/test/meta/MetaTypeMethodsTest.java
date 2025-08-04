@@ -17,11 +17,9 @@ import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
 /**
  * Tests consistency between {@code Meta.get_type_methods} and {@link
@@ -31,6 +29,9 @@ import org.junit.Test;
  */
 public class MetaTypeMethodsTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;

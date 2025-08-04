@@ -10,11 +10,9 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
-import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
@@ -30,7 +28,6 @@ public class ExecStrictCompilerTest {
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()
           .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.STRICT_ERRORS, "true"))
-          .withLogHandler(Level.FINE, JulHandler.get())
           .build();
 
   @Rule(order = Integer.MIN_VALUE)

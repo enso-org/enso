@@ -404,7 +404,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
       this.polyglotCtxBldr
           .out(stdout)
           .err(stderr)
-          .logHandler(stdout)
+          .logHandler(JulHandler.get())
           .environment("NO_COLOR", "true");
     }
 

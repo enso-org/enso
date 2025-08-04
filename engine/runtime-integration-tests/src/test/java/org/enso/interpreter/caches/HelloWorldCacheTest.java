@@ -10,10 +10,15 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class HelloWorldCacheTest {
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void loadingHelloWorldTwiceUsesCaching() throws Exception {
@@ -23,23 +28,24 @@ public class HelloWorldCacheTest {
     assertTrue("Hello_World.enso found", helloWorld.exists());
 
     // the first run may or may not use caches
-    var firstMsgs = executeOnce(helloWorld);
+    var firstMsgs = executeOnce(helloWorld).stdout();
     assertTrue("Contains hello world:\n" + firstMsgs, firstMsgs.endsWith("Hello World"));
     // after the first run the caches for Hello_World.enso must be generated
 
     // the second run must read Hello_World from its .ir file!
-    var secondMsgs = executeOnce(helloWorld);
+    var secondMsgsOutput = executeOnce(helloWorld);
+    var secondMsgs = secondMsgsOutput.stdout();
     assertTrue("Contains hello world:\n" + secondMsgs, secondMsgs.contains("Hello World"));
     assertThat(
-        "Properly deserialized:\n" + secondMsgs,
-        secondMsgs,
+        "Properly deserialized:\n" + secondMsgsOutput.logs(),
+        secondMsgsOutput.logs(),
         allOf(
             containsString("Deserializing module"),
             containsString("Hello_World"),
             containsString("from IR file: true")));
   }
 
-  private static String executeOnce(File src) throws Exception {
+  private OutputPair executeOnce(File src) throws Exception {
     try (var ctx =
         ContextUtils.newBuilder()
             .withModifiedContext(
@@ -52,12 +58,21 @@ public class HelloWorldCacheTest {
       var code = Source.newBuilder("enso", src).build();
       var res = ctx.evalModule(code, "main");
       assertTrue("Result of IO.println is Nothing", res.isNull());
-      return ctx.getOut()
-          .lines()
-          .filter(l -> l.toUpperCase().contains("HELLO"))
-          .collect(Collectors.joining("\n"));
+      var result =
+          new OutputPair(
+              ctx.getOut()
+                  .lines()
+                  .filter(l -> l.toUpperCase().contains("HELLO"))
+                  .collect(Collectors.joining("\n")),
+              appenderRule.pendingLogMessages().stream()
+                  .filter(l -> l.toUpperCase().contains("HELLO"))
+                  .collect(Collectors.joining("\n")));
+      appenderRule.dropPendingMessages();
+      return result;
     }
   }
+
+  private record OutputPair(String stdout, String logs) {}
 
   private static File children(File f, String... names) {
     for (var n : names) {

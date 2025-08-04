@@ -13,6 +13,7 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -22,6 +23,9 @@ import org.junit.rules.TemporaryFolder;
 public class ModuleScopeTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void extensionMethodIsRegisteredInModuleScope() throws IOException {

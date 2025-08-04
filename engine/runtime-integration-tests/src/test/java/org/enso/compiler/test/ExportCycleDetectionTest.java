@@ -10,8 +10,6 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.logging.Level;
-import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
@@ -130,11 +128,7 @@ public class ExportCycleDetectionTest {
   private void expectNoCompilationErrors(Path projDir, String code) throws IOException {
     var mainMod = new SourceModule(QualifiedName.fromString("Main"), code);
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx =
-        ContextUtils.newBuilder()
-            .withProjectRoot(projDir)
-            .withLogHandler(Level.FINE, JulHandler.get())
-            .build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
@@ -148,11 +142,7 @@ public class ExportCycleDetectionTest {
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
-    try (var ctx =
-        ContextUtils.newBuilder()
-            .withProjectRoot(projDir)
-            .withLogHandler(Level.FINE, JulHandler.get())
-            .build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);

@@ -1,6 +1,5 @@
 package org.enso.compiler.test;
 
-import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -15,24 +14,21 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.hamcrest.core.AllOf;
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 
 public class ExecCompilerTest {
-  /**
-   * Not using JulHandler as a handler since some tests capture and verify reported errors in
-   * strict-errors mode.
-   */
   @ClassRule
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()
           .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.STRICT_ERRORS, "false"))
           .build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @After
   public void cleanup() {
@@ -532,7 +528,8 @@ public class ExecCompilerTest {
     var expectedErrMsg = DeclaredAsPrivate$.MODULE$.explain();
     var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
     runMethod.execute(0);
-    assertThat(ctxRule.getOut(), containsString(expectedErrMsg));
+    assertTrue(
+        appenderRule.pendingLogMessages().stream().anyMatch(e -> e.contains(expectedErrMsg)));
   }
 
   @Test

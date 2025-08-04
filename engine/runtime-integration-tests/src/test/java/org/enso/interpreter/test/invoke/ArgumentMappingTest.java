@@ -12,6 +12,7 @@ import org.junit.Test;
 
 /** Test suite for {@link org.enso.interpreter.runtime.callable.argument.CallArgumentInfo}. */
 public final class ArgumentMappingTest {
+
   @Test
   public void oneArgument() {
     var funcSchema =

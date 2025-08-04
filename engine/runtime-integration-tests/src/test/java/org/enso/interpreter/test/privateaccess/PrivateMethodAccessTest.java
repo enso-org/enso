@@ -11,12 +11,16 @@ import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class PrivateMethodAccessTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void moduleDoesNotExposePrivateMethodsToPolyglot() {
