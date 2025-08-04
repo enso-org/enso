@@ -326,21 +326,22 @@ function AssetsTable(props: AssetsTableProps) {
   const fetchNextAssetPage = assetsPages.fetchNextPage
   const isFetching = assetsPages.isLoading || assetsPages.isFetchingNextPage
 
+  const isCloud = backend.type === BackendType.remote
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
+  const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
+
   useEffect(() => {
     const scrollerEl = scrollerRef.current
     if (!scrollerEl) return
-    if (scrollerEl.scrollTop + scrollerEl.clientHeight >= scrollerEl.scrollHeight) {
-      void fetchNextAssetPage()
+    const tableEl = scrollerEl.children[0]
+    if (!tableEl) return
+    if (scrollerEl.scrollTop + scrollerEl.clientHeight >= tableEl.scrollHeight) {
+      void assetsPages.fetchNextPage()
     }
   }, [fetchNextAssetPage, assetsPages.data?.pages])
 
   useAssetsTableItems({ parentId: currentDirectoryId, assets })
-
-  const isCloud = backend.type === BackendType.remote
-  const rootRef = useRef<HTMLDivElement | null>(null)
-  const scrollerRef = useRef<HTMLDivElement | null>(null)
-  const headerRowRef = useRef<HTMLTableRowElement>(null)
-  const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
 
   useEffect(() => {
     setNewestFolderId(null)
@@ -1118,27 +1119,6 @@ function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const headerRow = (
-    <tr ref={headerRowRef} className="rounded-none text-sm font-semibold">
-      {[...columns].map((column) => {
-        // The spread on the line above is required for React Compiler to compile this component.
-        // This is a React component, even though it does not contain JSX.
-        const Heading = COLUMN_HEADING[column]
-
-        return (
-          <th key={column} className={COLUMN_CSS_CLASS[column]}>
-            <Heading
-              sortInfo={state.sortInfo}
-              hideColumn={state.hideColumn}
-              setSortInfo={state.setSortInfo}
-              category={state.category}
-            />
-          </th>
-        )
-      })}
-    </tr>
-  )
-
   const specialEmptyText =
     query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
     : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
@@ -1155,7 +1135,9 @@ function AssetsTable(props: AssetsTableProps) {
       onScroll={(event) => {
         if (isFetching) return
         const element = event.currentTarget
-        if (element.scrollTop + element.clientHeight >= element.scrollHeight) {
+        const tableEl = element.children[0]
+        if (!tableEl) return
+        if (element.scrollTop + element.clientHeight >= tableEl.scrollHeight) {
           void assetsPages.fetchNextPage()
         }
       }}
@@ -1164,7 +1146,24 @@ function AssetsTable(props: AssetsTableProps) {
        * when scrolling horizontally. */}
       <table className="isolate max-w-[calc(100cqw_-_0.5rem)] table-fixed border-collapse rounded-rows">
         <thead className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
-          {headerRow}
+          <tr className="rounded-none text-sm font-semibold">
+            {[...columns].map((column) => {
+              // The spread on the line above is required for React Compiler to compile this component.
+              // This is a React component, even though it does not contain JSX.
+              const Heading = COLUMN_HEADING[column]
+
+              return (
+                <th key={column} className={COLUMN_CSS_CLASS[column]}>
+                  <Heading
+                    sortInfo={state.sortInfo}
+                    hideColumn={state.hideColumn}
+                    setSortInfo={state.setSortInfo}
+                    category={state.category}
+                  />
+                </th>
+              )
+            })}
+          </tr>
         </thead>
 
         <tbody ref={bodyRef} className="isolate">
@@ -1301,7 +1300,7 @@ function AssetsTable(props: AssetsTableProps) {
         <IsolateLayout className="isolate h-full w-full" useRAF>
           <div
             tabIndex={-1}
-            className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
+            className="h-full w-full flex-1 container-size"
             onKeyDown={onKeyDown}
             onBlur={(event) => {
               if (
@@ -1319,7 +1318,7 @@ function AssetsTable(props: AssetsTableProps) {
             }}
           >
             <div
-              className="flex h-max min-h-full w-max min-w-full flex-col"
+              className="flex h-full w-full min-w-full flex-col"
               onContextMenu={(event) => {
                 if (
                   event.target instanceof HTMLElement &&

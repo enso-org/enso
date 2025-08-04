@@ -1126,6 +1126,8 @@
   "multiplyingUserList": "Multiplying user list",
   "multitabsEnabled": "Multiple open projects allowed",
   "advancedProjectExecutionOptionsEnabled": "Advanced Scheduler options enabled",
+  "willFetchUpToXAssetsPerPage": "Will fetch up to $0 assets per page",
+  "willFetchUpToXLogEntriesPerPage": "Will fetch up to $0 log entries per page",
   "willUploadUpToXFileChunksAtOnce": "Will upload up to $0 file chunks at once",
   "authLogEvent": "Authenticate",
   "getOrganizationLogEvent": "Get Organization",

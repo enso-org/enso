@@ -249,6 +249,24 @@ export function EnsoDevStatus() {
             {getText('advancedProjectExecutionOptionsEnabled')}
           </DeveloperOverrideEntry>
         )}
+        {listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('listDirectoryPageSize', DEFAULT_LIST_DIRECTORY_PAGE_SIZE)
+            }}
+          >
+            {getText('willFetchUpToXAssetsPerPage', listDirectoryPageSize)}
+          </DeveloperOverrideEntry>
+        )}
+        {getLogEventsPageSize !== DEFAULT_GET_LOG_EVENTS_PAGE_SIZE && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('getLogEventsPageSize', DEFAULT_GET_LOG_EVENTS_PAGE_SIZE)
+            }}
+          >
+            {getText('willFetchUpToXLogEntriesPerPage', getLogEventsPageSize)}
+          </DeveloperOverrideEntry>
+        )}
         {fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE && (
           <DeveloperOverrideEntry
             reset={() => {
