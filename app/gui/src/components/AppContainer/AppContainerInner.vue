@@ -10,14 +10,14 @@ import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
+import { reactComponent } from '@/util/react'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { applyPureReactInVue } from 'veaury'
 import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
 import { Drive, Editor, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
-const UserBar = applyPureReactInVue(UserBarReact)
+const UserBar = reactComponent(UserBarReact)
 
 /**
  * A part of `AppContainer` which needs some hooks passed from react by `Dashboard.tsx`.

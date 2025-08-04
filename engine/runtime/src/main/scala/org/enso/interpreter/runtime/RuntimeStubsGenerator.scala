@@ -7,7 +7,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.scope.ModuleScope
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder
 
 /** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
@@ -19,7 +19,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     *
     * @param module the module to generate stubs in.
     */
-  def run(ir: IR, scope: ModuleScope.Builder): Unit = {
+  def run(ir: IR, scope: ModuleScopeBuilder): Unit = {
     val localBindings = ir.unsafeGetMetadata(
       BindingAnalysis,
       "Non-parsed module used in stubs generator"

@@ -47,6 +47,7 @@
     - Error target:Standard.Base.Any.Any
 - type Length_Mismatch
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
 - type Loss_Of_Numeric_Precision
     - Warning original_value:Standard.Base.Any.Any new_value:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
@@ -94,6 +95,7 @@
     - to_text self -> Standard.Base.Any.Any
 - type Private_Access
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
 - type Response_Too_Large
     - Error actual_size:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) limit:Standard.Base.Data.Numbers.Integer
     - handle_java_exception ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -104,6 +106,7 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Type_Error
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Uninitialized_State
     - Error key:Standard.Base.Any.Any

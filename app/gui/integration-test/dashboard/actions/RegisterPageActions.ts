@@ -1,9 +1,8 @@
 /** @file Available actions for the login page. */
 import { expect } from 'playwright/test'
-
-import { TEXT, VALID_EMAIL, VALID_PASSWORD } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
+import { TEXT, VALID_EMAIL, VALID_PASSWORD } from './utilities'
 
 /** Available actions for the login page. */
 export default class RegisterPageActions<Context> extends BaseActions<Context> {

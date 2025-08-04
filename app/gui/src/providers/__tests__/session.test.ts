@@ -1,4 +1,3 @@
-import HttpClient from '#/utilities/HttpClient'
 import type {
   AmplifyError,
   ConfirmSignUpError,
@@ -9,6 +8,7 @@ import type {
   UserSession,
 } from '$/authentication/cognito'
 import { withSetup } from '@/util/testing'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'

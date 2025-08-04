@@ -1,13 +1,12 @@
 /** @file Actions for the "drive" page. */
 import { expect, type Locator, type Page } from 'playwright/test'
-
-import { TEXT } from '.'
 import type { LocatorCallback } from './BaseActions'
 import { contextMenuActions } from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
 import { goToPageActions, type GoToPageActions } from './goToPageActions'
 import NewDataLinkModalActions from './NewDataLinkModalActions'
 import PageActions from './PageActions'
+import { TEXT } from './utilities'
 
 const ASSET_ROW_SAFE_POSITION = { x: 150, y: 16 }
 
@@ -403,7 +402,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   ) {
     return this.step(`Upload file '${name}'`, async (page) => {
       const fileChooserPromise = page.waitForEvent('filechooser')
-      await page.getByRole('button', { name: TEXT.uploadFiles }).click()
+      await page.getByRole('button', { name: TEXT.uploadFiles, exact: true }).click()
       const fileChooser = await fileChooserPromise
       await fileChooser.setFiles([{ name, buffer: Buffer.from(contents), mimeType }])
     })

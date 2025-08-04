@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { useTooltipRegistry, type TooltipDisplayStrategy } from '@/providers/tooltipRegistry'
+import { useTooltipRegistry } from '@/providers/tooltipRegistry'
 import { usePropagateScopesToAllRoots } from '@/util/patching'
-import { Placement } from '@floating-ui/vue'
+import type { Placement } from '@floating-ui/vue'
 import { toRef } from 'vue'
 
 const {
   placement = 'top',
-  when = 'always',
+  enabled = true,
   showOnClick = false,
 } = defineProps<{
   placement?: Placement
-  when?: TooltipDisplayStrategy
+  enabled?: boolean
   showOnClick?: boolean
 }>()
 
@@ -26,7 +26,7 @@ const tooltipSlot = toRef(slots, 'tooltip')
 const registered = registry.registerTooltip(tooltipSlot)
 function onEnter(e: PointerEvent) {
   if (e.target instanceof HTMLElement && tooltipSlot.value != null) {
-    registered.onTargetEnter(e.target, { placement: () => placement, when: () => when })
+    registered.onTargetEnter(e.target, { placement: () => placement, enabled: () => enabled })
   }
 }
 

@@ -231,3 +231,10 @@ type Excel_Range
             bytes.fold 0 current->value->
                 if value < 65 || value > 90 then Error.throw (Illegal_Argument.Error "Invalid column name "+name.pretty+".") else
                     current * 26 + (value - 64)
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Excel_Range"], ["address", self.address]]

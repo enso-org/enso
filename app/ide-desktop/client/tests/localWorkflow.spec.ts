@@ -73,7 +73,6 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   ])
 
   // Rename User Defined component
-  await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
     .getByTestId('widget-function-name-content')
@@ -135,7 +134,6 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   })
 
   // Paste an image in documentation.
-  // (the panel is opened in previous steps)
   await page.locator('.DocumentationEditor').click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
   const docImageElement = page.locator('.DocumentationEditor').getByTestId('doc-img')

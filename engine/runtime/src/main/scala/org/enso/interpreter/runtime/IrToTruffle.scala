@@ -97,8 +97,10 @@ import org.enso.interpreter.runtime.callable.{
   Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.scope.{ImportExportScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.ImportExportScope
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder
 import org.enso.interpreter.{Constants, EnsoLanguage}
+import org.enso.interpreter.runtime.builtin.Builtins
 
 import java.math.BigInteger
 import java.util.function.Supplier
@@ -125,9 +127,12 @@ import scala.jdk.OptionConverters._
 class IrToTruffle(
   val context: EnsoContext,
   val source: Source,
-  val scopeBuilder: ModuleScope.Builder,
+  val scopeBuilder: ModuleScopeBuilder,
   val compilerConfig: CompilerConfig
 ) {
+  private def getBuiltins: Builtins = {
+    Builtins.get(context)
+  }
 
   val language: EnsoLanguage = context.getLanguage
 
@@ -256,45 +261,46 @@ class IrToTruffle(
           frameInfo
         )
 
-        val function = conversion.body match {
-          case fn: Function =>
-            val bodyBuilder =
-              new expressionProcessor.BuildFunctionBody(
-                conversion.methodName.name,
-                fn.arguments,
-                fn.body,
-                TypeCheckValueNode.single(
-                  AscriptionReason.forFunctionResult("conversion"),
-                  toType
-                ),
-                None,
-                true
+        val function: Supplier[RuntimeFunction] = () =>
+          conversion.body match {
+            case fn: Function =>
+              val bodyBuilder =
+                new expressionProcessor.BuildFunctionBody(
+                  conversion.methodName.name,
+                  fn.arguments,
+                  fn.body,
+                  TypeCheckValueNode.single(
+                    AscriptionReason.forFunctionResult("conversion"),
+                    toType
+                  ),
+                  None,
+                  true
+                )
+              val rootNode = MethodRootNode.build(
+                language,
+                expressionProcessor.scope,
+                scopeBuilder.asModuleScope(),
+                () => bodyBuilder.bodyNode(),
+                makeSection(scopeBuilder.getModule, conversion.location),
+                toType,
+                conversion.methodName.name
               )
-            val rootNode = MethodRootNode.build(
-              language,
-              expressionProcessor.scope,
-              scopeBuilder.asModuleScope(),
-              () => bodyBuilder.bodyNode(),
-              makeSection(scopeBuilder.getModule, conversion.location),
-              toType,
-              conversion.methodName.name
-            )
-            val callTarget = rootNode.getCallTarget
-            val arguments  = bodyBuilder.args()
-            val funcSchema = FunctionSchema
-              .newBuilder()
-              .argumentDefinitions(arguments: _*)
-              .build()
-            new RuntimeFunction(
-              callTarget,
-              null,
-              funcSchema
-            )
-          case _ =>
-            throw new CompilerError(
-              s"Conversion bodies must be functions at the point of codegen (conversion $fromType to $toType)."
-            )
-        }
+              val callTarget = rootNode.getCallTarget
+              val arguments  = bodyBuilder.args()
+              val funcSchema = FunctionSchema
+                .newBuilder()
+                .argumentDefinitions(arguments: _*)
+                .build()
+              new RuntimeFunction(
+                callTarget,
+                null,
+                funcSchema
+              )
+            case _ =>
+              throw new CompilerError(
+                s"Conversion bodies must be functions at the point of codegen (conversion $fromType to $toType)."
+              )
+          }
         scopeBuilder.registerConversionMethod(toType, fromType, function)
       }
     }
@@ -361,7 +367,7 @@ class IrToTruffle(
     override protected def processTypeDefinition(typ: Definition.Type): Unit = {
       val atomDefs = typ.members
       val asType =
-        scopeBuilder.asModuleScope().getType(typ.name.name, true)
+        scopeBuilder.getType(typ.name.name, true)
       val atomConstructors =
         atomDefs.map(cons => asType.getConstructors.get(cons.name.name))
       atomConstructors
@@ -725,7 +731,7 @@ class IrToTruffle(
 
     val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
 
-    val builtinFunction = context.getBuiltins
+    val builtinFunction = getBuiltins
       .getBuiltinFunction(
         methodOwnerName,
         methodName,
@@ -742,7 +748,7 @@ class IrToTruffle(
       .left
       .flatMap { l =>
         // Builtin Types Number and Integer have methods only for documentation purposes
-        val number = context.getBuiltins.number()
+        val number = getBuiltins.number()
         val ok =
           staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
           !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
@@ -1060,10 +1066,12 @@ class IrToTruffle(
                         s"Source type should be defined in module ${module.getName}"
                       )
                       val conversionFun =
-                        actualScope.lookupConversionDefinition(
-                          sourceTp,
-                          targetTp
-                        )
+                        actualScope
+                          .asModuleScope()
+                          .lookupConversionDefinition(
+                            sourceTp,
+                            targetTp
+                          )
                       org.enso.common.Asserts.assertInJvm(
                         conversionFun != null,
                         s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
@@ -1296,7 +1304,7 @@ class IrToTruffle(
     def processType(value: Tpe): RuntimeExpression = {
       setLocation(
         ErrorNode.build(
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeSyntaxError(
               "Type operators are not currently supported at runtime"
@@ -1344,7 +1352,7 @@ class IrToTruffle(
 
             val message = invalidBranches.map(_.message).mkString(", ")
 
-            val error = context.getBuiltins
+            val error = getBuiltins
               .error()
               .makeCompileError(message)
 
@@ -1433,13 +1441,13 @@ class IrToTruffle(
                     ) =>
                   val atomCons =
                     asType(tp).getConstructors.get(cons.name)
-                  val r = if (atomCons == context.getBuiltins.bool().getTrue) {
+                  val r = if (atomCons == getBuiltins.bool().getTrue) {
                     BooleanBranchNode.build(
                       true,
                       branchCodeNode.getCallTarget,
                       branch.terminalBranch
                     )
-                  } else if (atomCons == context.getBuiltins.bool().getFalse) {
+                  } else if (atomCons == getBuiltins.bool().getFalse) {
                     BooleanBranchNode.build(
                       false,
                       branchCodeNode.getCallTarget,
@@ -1460,7 +1468,7 @@ class IrToTruffle(
                     ) =>
                   val tpe =
                     asType(binding)
-                  val polyglot = context.getBuiltins.polyglot
+                  val polyglot = getBuiltins.polyglot
                   val branchNode = if (tpe == polyglot) {
                     PolyglotBranchNode.build(
                       tpe,
@@ -1918,7 +1926,7 @@ class IrToTruffle(
             ConstantObjectNode.build(t)
           } else {
             ErrorNode.build(
-              context.getBuiltins
+              getBuiltins
                 .error()
                 .makeSyntaxError(
                   s"Type for $tp is null"
@@ -2005,47 +2013,47 @@ class IrToTruffle(
         case Error.InvalidIR(_, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeSyntaxError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Binding =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Method =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.MethodClashWithAtom =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Conversion =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Type =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.SelfArg =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Arg =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Unexpected.TypeSignature =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Resolution =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Conversion =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case _: errors.Pattern =>
@@ -2065,7 +2073,7 @@ class IrToTruffle(
       * @return the Nothing builtin
       */
     private def processEmpty(): RuntimeExpression = {
-      LiteralNode.build(context.getBuiltins.nothing())
+      LiteralNode.build(getBuiltins.nothing())
     }
 
     /** Processes function arguments, generates arguments reads and creates
@@ -2286,7 +2294,7 @@ class IrToTruffle(
         case _: Application.Typeset =>
           setLocation(
             ErrorNode.build(
-              context.getBuiltins
+              getBuiltins
                 .error()
                 .makeSyntaxError(
                   "Typeset literals are not yet supported at runtime"
@@ -2539,9 +2547,9 @@ class IrToTruffle(
       }
   }
 
-  private def asScope(module: CompilerContext.Module): ModuleScope = {
+  private def asScope(module: CompilerContext.Module): ModuleScopeBuilder = {
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScope()
+    m.getScopeBuilder()
   }
 
   private def asType(
@@ -2549,14 +2557,16 @@ class IrToTruffle(
   ): Type = {
     val m = org.enso.interpreter.runtime.Module
       .fromCompilerModule(typ.module.unsafeAsModule())
-    m.getScope().getType(typ.tp.name, true)
+    val sb = m.getScopeBuilder()
+    sb.getType(typ.tp.name, true)
   }
 
   private def asAssociatedType(
     module: CompilerContext.Module
   ): Type = {
-    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScope().getAssociatedType()
+    val m  = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
+    val sb = m.getScopeBuilder()
+    sb.getAssociatedType()
   }
 
   private def scopeAssociatedType =

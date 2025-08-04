@@ -1,163 +1,113 @@
 /** @file Type definitions common between all backends. */
 
 import { z } from 'zod'
-import { getText, resolveDictionary, type TextId } from '../text'
-import * as array from '../utilities/data/array'
-import * as dateTime from '../utilities/data/dateTime'
-import * as newtype from '../utilities/data/newtype'
-import * as permissions from '../utilities/permissions'
-import * as uniqueString from '../utilities/uniqueString'
+import { getText, Replacements, resolveDictionary, type TextId } from '../text.js'
+import * as array from '../utilities/data/array.js'
+import * as dateTime from '../utilities/data/dateTime.js'
+import * as newtype from '../utilities/data/newtype.js'
+import * as permissions from '../utilities/permissions.js'
+import * as uniqueString from '../utilities/uniqueString.js'
+import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
+import {
+  DatalinkId,
+  DirectoryId,
+  EnsoPath,
+  FileId,
+  ParentsPath,
+  Path,
+  ProjectId,
+  SecretId,
+  UpAssetId,
+  VirtualParentsPath,
+  type Address,
+  type AssetId,
+  type CredentialInput,
+  type EmailAddress,
+  type HttpsUrl,
+  type LabelName,
+  type OrganizationId,
+  type ProjectExecutionId,
+  type ProjectSessionId,
+  type S3FilePath,
+  type S3ObjectVersionId,
+  type SubscriptionId,
+  type TagId,
+  type UnzipAssetsJobId,
+  type UserGroupId,
+  type UserId,
+  type UserPermissionIdentifier,
+} from './Backend/types.js'
+import { HttpClient, HttpClientPostOptions, ResponseWithTypedJson } from './HttpClient.js'
+export { prettifyError } from 'zod/v4'
+
+export * from './Backend/types.js'
+
+/** HTTP status indicating that the request was successful, but the user is not authorized to access. */
+const STATUS_NOT_AUTHORIZED = 401
 
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
 
-/** Unique identifier for an organization. */
-export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
-export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
-/** Whether a given {@link string} is an {@link OrganizationId}. */
-export function isOrganizationId(id: unknown): id is OrganizationId {
-  return typeof id === 'string' && id.startsWith('organization-')
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+interface AssetTypeAndIdRaw<Type extends AssetType> {
+  readonly type: Type
+  readonly path: Path
 }
 
-/** Unique identifier for a user in an organization. */
-export type UserId = newtype.Newtype<string, 'UserId'>
-export const UserId = newtype.newtypeConstructor<UserId>()
-/** Whether a given {@link string} is an {@link UserId}. */
-export function isUserId(id: unknown): id is UserId {
-  return typeof id === 'string' && id.startsWith('user-')
-}
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+type AssetTypeAndId<Id extends AssetId = AssetId> =
+  | (DirectoryId extends Id ? AssetTypeAndIdRaw<AssetType.directory> : never)
+  | (FileId extends Id ? AssetTypeAndIdRaw<AssetType.file> : never)
+  | (ProjectId extends Id ? AssetTypeAndIdRaw<AssetType.project> : never)
 
-/** Unique identifier for a user group. */
-export type UserGroupId = newtype.Newtype<`usergroup-${string}`, 'UserGroupId'>
-export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
-/** Whether a given {@link string} is an {@link UserGroupId}. */
-export function isUserGroupId(id: unknown): id is UserGroupId {
-  return typeof id === 'string' && id.startsWith('usergroup-')
-}
-
-/** Unique identifier for a directory. */
-export type DirectoryId = newtype.Newtype<`directory-${string}`, 'DirectoryId'>
-export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
-
-/** Whether a given {@link unknown} is an {@link DirectoryId}. */
-export function isDirectoryId(id: unknown): id is DirectoryId {
-  return typeof id === 'string' && id.startsWith('directory-')
-}
-
-/** Unique identifier for an asset representing the parent directory. */
-export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
-export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
-
-/** Unique identifier for a user's project. */
-export type ProjectId = newtype.Newtype<string, 'ProjectId'>
-export const ProjectId = newtype.newtypeConstructor<ProjectId>()
-
-/** Unique identifier for an uploaded file. */
-export type FileId = newtype.Newtype<string, 'FileId'>
-export const FileId = newtype.newtypeConstructor<FileId>()
-
-/** Unique identifier for a secret environment variable. */
-export type SecretId = newtype.Newtype<string, 'SecretId'>
-export const SecretId = newtype.newtypeConstructor<SecretId>()
-
-/** Unique identifier for a project session. */
-export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
-export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
-
-/** Unique identifier for a project execution. */
-export type ProjectExecutionId = newtype.Newtype<string, 'ProjectExecutionId'>
-export const ProjectExecutionId = newtype.newtypeConstructor<ProjectExecutionId>()
-
-/** Unique identifier for a Datalink. */
-export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
-export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
-
-/** Unique identifier for a version of an S3 object. */
-export type S3ObjectVersionId = newtype.Newtype<string, 'S3ObjectVersionId'>
-export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
-
-/** Unique identifier for an arbitrary asset. */
-export type AssetId = IdType[keyof IdType]
-export const AssetId = newtype.newtypeConstructor<AssetId>()
-
-/** Unique identifier for a subscription. */
-export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
-export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
-
-/** The name of an asset label. */
-export type LabelName = newtype.Newtype<string, 'LabelName'>
-export const LabelName = newtype.newtypeConstructor<LabelName>()
-
-/** Unique identifier for a label. */
-export type TagId = newtype.Newtype<string, 'TagId'>
-export const TagId = newtype.newtypeConstructor<TagId>()
-
-/** A URL. */
-export type Address = newtype.Newtype<string, 'Address'>
-export const Address = newtype.newtypeConstructor<Address>()
-
-/** A HTTPS URL. */
-export type HttpsUrl = newtype.Newtype<string, 'HttpsUrl'>
-export const HttpsUrl = newtype.newtypeConstructor<HttpsUrl>()
-
-/** An email address. */
-export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
-export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
-
-/** An AWS S3 file path. */
-export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
-export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
-
-/** An AWS machine configuration. */
-export type Ami = newtype.Newtype<string, 'Ami'>
-export const Ami = newtype.newtypeConstructor<Ami>()
-
-/** An identifier for an entity with an {@link AssetPermission} for an {@link Asset}. */
-export type UserPermissionIdentifier = UserGroupId | UserId
-
-/** An filesystem path. Only present on the local backend. */
-export type Path = newtype.Newtype<string, 'Path'>
-export const Path = newtype.newtypeConstructor<Path>()
-
-/** The path of ids to this asset. */
-export type ParentsPath = newtype.Newtype<string, 'ParentsPath'>
-export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
-
-/** The path of directory names to this asset, excluding the root directory. */
-export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
-export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
-
-/** The path of this asset, including the root directory. This is NOT url-encoded. */
-export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
-export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
-
-/** Check if this path points to an asset in cloud drive. */
-export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
-  return ensoPath.startsWith('enso://')
-}
-
-const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
-
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId<Id>
 /**
- * Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
- * server.
+ * Extracts the asset type and its corresponding internal ID from a {@link AssetId}.
+ * @throws {Error} if the id has an unknown type.
  */
-export function isPlaceholderUserGroupId(id: string) {
-  return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+
+  switch (typeRaw) {
+    case AssetType.directory:
+    case AssetType.project:
+    case AssetType.file: {
+      return {
+        type: typeRaw,
+        path: Path(decodeURIComponent(idRaw)),
+      }
+    }
+    case undefined:
+    default: {
+      throw new Error(`Invalid type '${typeRaw}'`)
+    }
+  }
 }
 
 /**
- * Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
- * being created on the backend.
+ * Interface used to log logs, errors, etc.
+ *
+ * In the browser, this is the `Console` interface. In Electron, this is the `Logger` interface
+ * provided by the EnsoGL packager.
  */
-export function newPlaceholderUserGroupId() {
-  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
+export interface Logger {
+  /** Log a message to the console. */
+  readonly log: (message: unknown, ...optionalParams: unknown[]) => void
+  /** Log an error message to the console. */
+  readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
+
+type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
   local = 'local',
   remote = 'remote',
+}
+
+/** Check if this path points to an asset in cloud drive. */
+export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
+  return ensoPath.startsWith('enso://')
 }
 
 /** Metadata uniquely identifying a user inside an organization. */
@@ -683,7 +633,7 @@ export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPa
 
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
-  Asset<RealAssetTypeId<Id>>,
+  AnyAsset<RealAssetTypeId<Id>>,
   'ensoPath'
 > | null
 
@@ -1066,6 +1016,11 @@ function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
 }
 
+/** Whether an asset can be downloaded. */
+export function isDownloadableAsset(type: AssetType | undefined) {
+  return type !== AssetType.secret
+}
+
 /** Creates a {@link FileAsset} using the given values. */
 export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
   return {
@@ -1313,7 +1268,6 @@ export interface DeleteAssetRequestBody {
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
   readonly projectName: string
-  readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
   readonly ensoPath?: string
 }
@@ -1331,8 +1285,6 @@ export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
   /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
   readonly cognitoCredentials: CognitoCredentials | null
-  /** Only used by the Local backend. */
-  readonly parentId: DirectoryId
   /** Required when running in hybrid mode. */
   readonly cloudProjectDirectoryPath: string | null
 }
@@ -1356,33 +1308,6 @@ export interface CreateSecretRequestBody {
   readonly value: string
   readonly parentDirectoryId: DirectoryId | null
 }
-
-/** User settings for a Snowflake credential. */
-export interface SnowflakeCredentialInput {
-  readonly type: 'Snowflake'
-  readonly account: string
-  readonly clientId: string
-  readonly clientSecret: string
-  readonly role: string | null
-}
-
-/** User settings for a Google credential. */
-export interface GoogleCredentialInput {
-  readonly type: 'Google'
-  readonly scopes: readonly string[]
-}
-
-/** User settings for a Strava credential. */
-export interface StravaCredentialInput {
-  readonly type: 'Strava'
-  readonly scopes: readonly string[]
-}
-
-/** User settings for an arbitrary credential. */
-export type CredentialInput =
-  | SnowflakeCredentialInput
-  | GoogleCredentialInput
-  | StravaCredentialInput
 
 /** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
 export interface CredentialConfig {
@@ -1468,6 +1393,8 @@ export interface UploadFileRequestParams {
   // Marked as optional in the data type, however it is required by the actual route handler.
   readonly fileName: string
   readonly parentDirectoryId: DirectoryId | null
+  /** Only used for the Local backend when there is no {@link File} object available. */
+  readonly filePath?: Path
 }
 
 /** HTTP request body for the "upload file start" endpoint. */
@@ -1500,23 +1427,42 @@ export interface UploadFileEndRequestBody {
 }
 
 /** A large file that has finished uploading. */
-export interface UploadedLargeFile {
+export interface UploadedFile {
   readonly id: FileId
   readonly project: null
+  readonly jobId: null
+}
+
+/** A large archive that has finished uploading. */
+export interface UploadedArchive {
+  readonly id: FileId
+  readonly project: null
+  readonly jobId: UnzipAssetsJobId
 }
 
 /** A large project that has finished uploading. */
-export interface UploadedLargeProject {
+export interface UploadedProject {
   readonly id: ProjectId
   readonly project: Project
+  readonly jobId: null
 }
 
 /** A large asset (file or project) that has finished uploading. */
-export type UploadedLargeAsset = UploadedLargeFile | UploadedLargeProject
+export type UploadedAsset = UploadedFile | UploadedArchive | UploadedProject
 
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
   readonly fileName: string | null
+}
+
+export interface ExportArchiveParams {
+  readonly assetIds: readonly AssetId[]
+  /** The path of the archive to export to. */
+  readonly filePath: Path | null
+}
+
+export interface ExportedArchive {
+  readonly filePath: Path | null
 }
 
 /** Extract the {@link VersionLifecycle} from a version string. */
@@ -1589,21 +1535,32 @@ export function userHasUserAndTeamSpaces(user: User | null) {
   }
 }
 
-/** A subset of properties of the JS `File` type. */
+/** A subset of properties of the JS {@link File} type. */
 interface JSFile {
   readonly name: string
 }
 
-/** Whether a `File` is a project. */
-export function fileIsProject(file: JSFile) {
-  return (
-    file.name.endsWith('.tar.gz') ||
-    file.name.endsWith('.zip') ||
-    file.name.endsWith('.enso-project')
-  )
+/** Whether a file name represents a non-project archive. */
+export function fileNameIsArchive(fileName: string) {
+  return fileName.endsWith('.zip')
 }
 
-/** Whether a `File` is not a project. */
+/** Whether a file name represents a project. */
+export function fileNameIsProject(fileName: string) {
+  return fileName.endsWith('.tar.gz') || fileName.endsWith('.enso-project')
+}
+
+/** Whether a {@link File} is a non-project archive. */
+export function fileIsArchive(file: JSFile) {
+  return fileNameIsArchive(file.name)
+}
+
+/** Whether a {@link File} is a project. */
+export function fileIsProject(file: JSFile) {
+  return fileNameIsProject(file.name)
+}
+
+/** Whether a {@link File} is not a project. */
 export function fileIsNotProject(file: JSFile) {
   return !fileIsProject(file)
 }
@@ -1614,10 +1571,10 @@ export function stripProjectExtension(name: string) {
 }
 
 /**
- * Escape special characters in a project name to prevent them from being interpreted as path or regex
+ * Escape special characters in a project name to prevent them from being interpreted as path.
  */
 export function escapeSpecialCharacters(name: string): string {
-  return name.replace(/[*+?^${}()|[\]\\]/g, ':')
+  return name.replace(/[<>:"/\\|?*]/g, '_')
 }
 
 /**
@@ -1630,15 +1587,20 @@ export function extractProjectExtension(name: string) {
 }
 
 export interface TitleSchemaOptions {
-  readonly asset: AnyAsset
+  readonly id: AssetId
   readonly siblings?: readonly AnyAsset[] | null
 }
 
-/**
- * Check if the title contains invalid characters.
- */
+/** Check if the title contains invalid characters. */
 export function doesTitleContainInvalidCharacters(name: string) {
-  return name.includes('/') || name.includes('\\') || name.includes('..')
+  return (
+    name.includes('/') ||
+    name.includes('\\') ||
+    name.includes('..') ||
+    name === '.' ||
+    name === '..' ||
+    name === '~'
+  )
 }
 
 /** A regex for matching hybrid project directories. */
@@ -1647,18 +1609,14 @@ export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
 /** A list of regexes for matching invalid names. */
 const INVALID_NAME_MASKS = [HYBRID_PROJECT_DIRECTORY_MASK]
 
-/**
- * Check if the title contains invalid names.
- */
+/** Check if the title contains invalid names. */
 export function doesContainInvalidNames(title: string) {
   return INVALID_NAME_MASKS.some((mask) => mask.test(title))
 }
 
-/**
- * A Zod schema for validating a title.
- */
+/** A Zod schema for validating a title. */
 export function titleSchema(options: TitleSchemaOptions) {
-  const { asset, siblings } = options
+  const { id, siblings } = options
 
   const dictionary = resolveDictionary()
 
@@ -1673,29 +1631,27 @@ export function titleSchema(options: TitleSchemaOptions) {
     .refine((value) => !doesTitleContainInvalidCharacters(value), {
       message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
     })
-    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+    .refine((value) => isNewTitleUnique(id, value, siblings), {
       message: getText(dictionary, 'nameShouldBeUnique'),
     })
 }
 
-/**
- * Check whether a new title is unique among the siblings.
- */
+/** Check whether a new title is unique among an asset's siblings. */
 export function isNewTitleUnique(
-  item: AnyAsset,
+  id: AssetId,
   newTitle: string,
   siblings?: readonly AnyAsset[] | null,
 ) {
   siblings ??= []
 
-  return siblings.every((sibling) => {
-    if (sibling.id === item.id) {
-      return true
-    }
-
-    const hasSameTitle = sibling.title.trim().toLowerCase() === newTitle.trim().toLowerCase()
-    return !hasSameTitle
-  })
+  return siblings.every(
+    (sibling) =>
+      // Every sibling must:
+      // be the asset itself,
+      sibling.id === id ||
+      // or have a different title.
+      sibling.title.trim().toLowerCase() !== newTitle.trim().toLowerCase(),
+  )
 }
 
 /** Network error class. */
@@ -1719,15 +1675,55 @@ export class NotAuthorizedError extends NetworkError {}
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export default abstract class Backend {
   abstract readonly type: BackendType
+  abstract readonly baseUrl: URL
+
+  /** Create a {@link LocalBackend}. */
+  constructor(
+    private readonly logger: Logger,
+    protected getText: GetText,
+    private readonly client: HttpClient,
+  ) {}
+
+  /**
+   * Set `this.getText`. This function is exposed rather than the property itself to make it clear
+   * that it is intended to be mutable.
+   */
+  setGetText(getText: GetText) {
+    this.getText = getText
+  }
+
+  /**
+   * Log an error message and throws an {@link Error} with the specified message.
+   * @throws {Error} Always.
+   */
+  protected async throw<K extends Extract<TextId, `${string}BackendError`>>(
+    response: Response | null,
+    textId: NetworkError | K,
+    ...replacements: Replacements[K]
+  ): Promise<never> {
+    if (textId instanceof NetworkError) {
+      this.logger.error(textId.message)
+
+      throw textId
+    }
+
+    const error =
+      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+        { message: 'unknown error' }
+      : await ((): Promise<Error> => response.json())()
+
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    this.logger.error(message)
+
+    const status = response?.status
+
+    throw new NetworkError(message, status)
+  }
 
   /** The path to the root directory of this {@link Backend}. */
   abstract rootPath(user: User): string
   /** Return the ID of the root directory, if known. */
-  abstract rootDirectoryId(
-    user: User,
-    organization: OrganizationInfo | null,
-    localRootDirectory: Path | null | undefined,
-  ): DirectoryId | null
+  abstract rootDirectoryId(user: User, organization: OrganizationInfo | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<readonly Omit<User, 'groups'>[]>
   /** Set the username of the current user. */
@@ -1849,7 +1845,10 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<Id extends RealAssetId>(assetId: Id): Promise<AssetDetailsResponse<Id>>
+  abstract getAssetDetails<Id extends RealAssetId>(
+    assetId: Id,
+    rootPath: Path | undefined,
+  ): Promise<AssetDetailsResponse<Id>>
 
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
@@ -1892,15 +1891,31 @@ export default abstract class Backend {
   /** Upload a chunk of a large file. */
   abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
   /** Finish uploading a large file. */
-  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedLargeAsset>
+  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
-  /** Return file details. */
-  abstract getFileDetails(
+
+  /**
+   * Return details for a file.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async getFileDetails(
     fileId: FileId,
     title: string,
-    getPresignedUrl?: boolean,
-  ): Promise<FileDetails>
+    getPresignedUrl = false,
+  ): Promise<FileDetails> {
+    const searchParams = new URLSearchParams({
+      presigned: `${getPresignedUrl}`,
+    }).toString()
+    const path = `${getFileDetailsPath(fileId)}?${searchParams}`
+    const response = await this.get<FileDetails>(path)
+    if (!response.ok) {
+      return await this.throw(response, 'getFileDetailsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Create a Datalink. */
   abstract createDatalink(body: CreateDatalinkRequestBody): Promise<DatalinkInfo>
   /** Return a Datalink. */
@@ -1958,7 +1973,8 @@ export default abstract class Backend {
     targetDirectoryId: DirectoryId | null,
     shouldUnpackProject?: boolean,
   ): Promise<void>
-
+  /** Export multiple files and pack into an archive. */
+  abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
   /**
    * Get the URL for the customer portal.
    * @see https://stripe.com/docs/billing/subscriptions/integrating-customer-portal
@@ -1967,6 +1983,81 @@ export default abstract class Backend {
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
+
+  /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
+  private async checkForAuthenticationError<T>(
+    makeRequest: () => Promise<ResponseWithTypedJson<T>>,
+  ) {
+    const response = await makeRequest()
+    if (response.status === STATUS_NOT_AUTHORIZED) {
+      // User is not authorized, we should redirect to the login page.
+      return await this.throw(
+        response,
+        new NotAuthorizedError(this.getText('notAuthorizedBackendError')),
+      )
+    }
+    return response
+  }
+
+  /** Resolve the path relative to the base URL of this backend. */
+  protected resolvePath(path: string) {
+    return new URL(path, this.baseUrl).toString()
+  }
+
+  /** Send an HTTP GET request to the given path. */
+  protected get<T = void>(
+    path: string,
+    queryParams?: Record<string, string> | URLSearchParams,
+    abort?: AbortSignal,
+  ) {
+    const paramsString = queryParams != null ? new URLSearchParams(queryParams).toString() : ''
+    const query = paramsString ? '?' + paramsString : ''
+    return this.checkForAuthenticationError(() =>
+      this.client.get<T>(this.resolvePath(`${path}${query}`), abort),
+    )
+  }
+
+  /** Send a JSON HTTP POST request to the given path. */
+  protected post<T = void>(path: string, payload: object | null, options?: HttpClientPostOptions) {
+    return this.checkForAuthenticationError(() =>
+      this.client.post<T>(this.resolvePath(path), payload, options),
+    )
+  }
+
+  /** Send a binary HTTP POST request to the given path. */
+  protected postBinary<T = void>(path: string, payload: Blob) {
+    return this.checkForAuthenticationError(() =>
+      this.client.postBinary<T>(this.resolvePath(path), payload),
+    )
+  }
+
+  /** Send a JSON HTTP PATCH request to the given path. */
+  protected patch<T = void>(path: string, payload: object) {
+    return this.checkForAuthenticationError(() =>
+      this.client.patch<T>(this.resolvePath(path), payload),
+    )
+  }
+
+  /** Send a JSON HTTP PUT request to the given path. */
+  protected put<T = void>(path: string, payload: object) {
+    return this.checkForAuthenticationError(() =>
+      this.client.put<T>(this.resolvePath(path), payload),
+    )
+  }
+
+  /** Send a binary HTTP PUT request to the given path. */
+  protected putBinary<T = void>(path: string, payload: Blob) {
+    return this.checkForAuthenticationError(() =>
+      this.client.putBinary<T>(this.resolvePath(path), payload),
+    )
+  }
+
+  /** Send an HTTP DELETE request to the given path. */
+  protected delete<T = void>(path: string, payload?: Record<string, unknown>) {
+    return this.checkForAuthenticationError(() =>
+      this.client.delete<T>(this.resolvePath(path), payload),
+    )
+  }
 }
 
 /**
