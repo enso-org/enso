@@ -9,15 +9,10 @@ export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly open: () => T
   readonly rename: () => T
   readonly exportToCloud: () => T
-  readonly exportAllToCloud: () => T
   readonly exportToLocal: () => T
-  readonly exportAllToLocal: () => T
   readonly delete: () => T
-  readonly deleteAll: () => T
   readonly moveToTrash: () => T
-  readonly moveAllToTrash: () => T
   readonly restoreFromTrash: () => T
-  readonly restoreAllFromTrash: () => T
   readonly share: () => T
   readonly label: () => T
   readonly duplicate: () => T
@@ -56,25 +51,11 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .getByText(TEXT.uploadToCloudShortcut)
           .click(),
       ),
-    exportAllToCloud: () =>
-      step('Export all to cloud (context menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.uploadAllToCloudShortcut })
-          .getByText(TEXT.uploadAllToCloudShortcut)
-          .click(),
-      ),
     exportToLocal: () =>
       step('Export to local (context menu)', (page) =>
         page
           .getByRole('button', { name: TEXT.downloadToLocalShortcut })
           .getByText(TEXT.downloadToLocalShortcut)
-          .click(),
-      ),
-    exportAllToLocal: () =>
-      step('Export all to local (context menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.downloadAllToLocalShortcut })
-          .getByText(TEXT.downloadAllToLocalShortcut)
           .click(),
       ),
     delete: () =>
@@ -84,16 +65,6 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .getByText(TEXT.deleteShortcut)
           // Click the first result; the second one is the text of the keybind.
           .first()
-          .click()
-
-        // Confirm the deletion in the dialog
-        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
-      }),
-    deleteAll: () =>
-      step('Delete all (context menu)', async (page) => {
-        await page
-          .getByRole('button', { name: TEXT.deleteAllShortcut })
-          .getByText(TEXT.deleteAllShortcut)
           .click()
 
         // Confirm the deletion in the dialog
@@ -109,28 +80,11 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
         // Confirm the deletion in the dialog
         await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
       }),
-    moveAllToTrash: () =>
-      step('Move all to trash (context menu)', async (page) => {
-        await page
-          .getByRole('button', { name: TEXT.moveAllToTrashShortcut })
-          .getByText(TEXT.moveAllToTrashShortcut)
-          .click()
-
-        // Confirm the deletion in the dialog
-        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
-      }),
     restoreFromTrash: () =>
       step('Restore from trash (context menu)', (page) =>
         page
           .getByRole('button', { name: TEXT.restoreFromTrashShortcut })
           .getByText(TEXT.restoreFromTrashShortcut)
-          .click(),
-      ),
-    restoreAllFromTrash: () =>
-      step('Restore all from trash (context menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.restoreAllFromTrashShortcut })
-          .getByText(TEXT.restoreAllFromTrashShortcut)
           .click(),
       ),
     share: () =>

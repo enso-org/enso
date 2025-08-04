@@ -407,9 +407,7 @@ const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   )
 })
 
-/**
- * Props for a {@link AssetSearchBarPopover}.
- */
+/** Props for a {@link AssetSearchBarPopover}. */
 interface AssetSearchBarPopoverProps {
   readonly areSuggestionsVisible: boolean
   readonly isCloud: boolean
@@ -423,9 +421,7 @@ interface AssetSearchBarPopoverProps {
   readonly backend: Backend | null
 }
 
-/**
- * Renders the popover containing suggestions.
- */
+/** Renders the popover containing suggestions. */
 const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
   props: AssetSearchBarPopoverProps,
 ) {
@@ -471,10 +467,9 @@ const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
                 {/* Asset labels */}
                 <Labels
                   isCloud={isCloud}
+                  querySource={querySource}
                   query={query}
                   setQuery={setQuery}
-                  querySource={querySource}
-                  baseQuery={baseQuery}
                   backend={backend}
                 />
                 {/* Suggestions */}
@@ -581,12 +576,11 @@ interface LabelsProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly backend: Backend | null
   readonly querySource: React.MutableRefObject<QuerySource>
-  readonly baseQuery: React.MutableRefObject<AssetQuery>
 }
 
 /** Renders labels. */
 const Labels = React.memo(function Labels(props: LabelsProps) {
-  const { isCloud, query, setQuery, backend, querySource, baseQuery } = props
+  const { isCloud, query, setQuery, backend, querySource } = props
 
   const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
 
