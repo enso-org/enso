@@ -4928,8 +4928,8 @@ lazy val `jna-wrapper-extracted` = project
       "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
         MacOSArm64
       ),
-      "com/**/*.class" -> CopyToOutputJar,
-      "module-info.class" -> CopyToOutputJar,
+      "com/**/*.class"    -> CopyToOutputJar,
+      "module-info.class" -> CopyToOutputJar
     )
   )
 
@@ -4957,7 +4957,7 @@ lazy val `netty-tc-native-wrapper` = project
       // It contains just a single native library
       def isExpectedTcNativeJarName(name: String): Boolean = {
         name.contains(Platform.arch().replace("aarch64", "aarch_64")) &&
-          name.contains(Platform.osName())
+        name.contains(Platform.osName())
       }
       val tcNativeJar = tcNativeJars.filter { jar =>
         isExpectedTcNativeJarName(jar.getName)
@@ -5009,16 +5009,17 @@ lazy val `tableau-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     inputJarResolved := {
-      val tableauJars = (LocalProject("std-tableau") / Compile / unmanagedJars).value.map(_.data)
+      val tableauJars =
+        (LocalProject("std-tableau") / Compile / unmanagedJars).value
+          .map(_.data)
       val tableauSuffixInJar = s"tableauhyperapi-${StdBits.plainOsName()}"
-      tableauJars.filter(f => f.getName.contains(tableauSuffixInJar))
-        .head
+      tableauJars.filter(f => f.getName.contains(tableauSuffixInJar)).head
     },
     jarExtractor := JarExtractor(
       "darwin-aarch64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSArm64),
-      "darwin-x86-64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSX86_64),
-      "linux-x86-64/libtableauhyperapi.so" -> PolyglotLib(LinuxX86_64),
-      "win32-x86-64/tableauhyperapi.dll" -> PolyglotLib(WindowsX86_64),
+      "darwin-x86-64/libtableauhyperapi.dylib"  -> PolyglotLib(MacOSX86_64),
+      "linux-x86-64/libtableauhyperapi.so"      -> PolyglotLib(LinuxX86_64),
+      "win32-x86-64/tableauhyperapi.dll"        -> PolyglotLib(WindowsX86_64)
     )
   )
 
@@ -5454,16 +5455,16 @@ lazy val `std-microsoft` = project
 
             (fileName.startsWith("netty-resolver-dns-classes-macos") && StdBits
               .plainOsName() != "macos") ||
-              (fileName.startsWith("netty-tcnative-boringssl-static")) ||
-              (fileName.startsWith("netty-transport-native-epoll")) ||
-              nameCheck &&
-                StdBits
-                  .allSupportedOs()
-                  .exists(osName => fileName.contains(osName)) && {
-                val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
-                val thisPlatform  = StdBits.currentPlatformSuffix()
-                !sanitizedName.contains(thisPlatform)
-              }
+            (fileName.startsWith("netty-tcnative-boringssl-static")) ||
+            (fileName.startsWith("netty-transport-native-epoll")) ||
+            nameCheck &&
+            StdBits
+              .allSupportedOs()
+              .exists(osName => fileName.contains(osName)) && {
+              val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
+              val thisPlatform  = StdBits.currentPlatformSuffix()
+              !sanitizedName.contains(thisPlatform)
+            }
           }),
           logger         = logger,
           polyglotLibDir = Some(`std-microsoft-native-libs`),
@@ -5474,7 +5475,7 @@ lazy val `std-microsoft` = project
           // `netty-tc-native-wrapper / thinJarOutput` is not here on purpose.
           // It is an almost empty jar anyway.
           extraJars = Seq(
-            (`jna-wrapper-extracted` / thinJarOutput).value,
+            (`jna-wrapper-extracted` / thinJarOutput).value
           ),
           cacheStoreFactory = cacheStoreFactory
         )
@@ -5590,11 +5591,11 @@ lazy val `std-tableau` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := {
-      val logger            = streams.value.log
-      val cacheStoreFactory = streams.value.cacheStoreFactory
+      val logger             = streams.value.log
+      val cacheStoreFactory  = streams.value.cacheStoreFactory
       val libraryUpdates     = (Compile / update).value
       val unmanagedClasspath = (Compile / unmanagedJars).value
-      val stdTableauJar = (Compile / packageBin).value
+      val stdTableauJar      = (Compile / packageBin).value
       StdBits
         .copyDependencies(
           `std-tableau-polyglot-root`,

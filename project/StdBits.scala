@@ -177,17 +177,16 @@ object StdBits {
     }
   }
 
-  /**
-   * Copies native libraries from the specified source directories to the
-   * destination directory, ensuring that the destination is up-to-date.
-   * @param polyglotLibDir Destination directory.
-   * @param extractedNativeLibDirs Source directories with all the extracted native libraries.
-   */
+  /** Copies native libraries from the specified source directories to the
+    * destination directory, ensuring that the destination is up-to-date.
+    * @param polyglotLibDir Destination directory.
+    * @param extractedNativeLibDirs Source directories with all the extracted native libraries.
+    */
   private def copyNativeLibs(
     polyglotLibDir: File,
     extractedNativeLibDirs: Seq[File],
     cacheStoreFactory: CacheStoreFactory,
-    logger: ManagedLogger,
+    logger: ManagedLogger
   ): Unit = {
     val nativeLibsStore =
       cacheStoreFactory.make("std-bits-native-libs")
