@@ -45,7 +45,7 @@ const tooltipEnabled = computed(
         @click="emit('update:selected', !selected)"
       >
         <div class="underlying" :class="orientation" />
-        <div class="tabContent tabLayout" :class="{ enabled }" v-bind="triggerProps">
+        <div class="tabContent tabLayout" :class="{ enabled }">
           <span class="tabLayout" v-bind="triggerProps">
             <SvgIcon v-if="icon" :name="icon" />
             <slot />
