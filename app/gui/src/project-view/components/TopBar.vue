@@ -28,7 +28,7 @@ const zoomControlsHidden = computed(
   () => leftGroupsSize.value.x + zoomControlsSize.value.x + 2 * GAP > rootSize.value.x,
 )
 
-const extendeMenuZoomControls = computed(() =>
+const extendedMenuZoomControls = computed(() =>
   zoomControlsHidden.value ? { zoomLevel: props.zoomLevel } : undefined,
 )
 
