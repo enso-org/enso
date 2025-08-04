@@ -43,7 +43,7 @@ const style = computed(() => ({
   <div ref="rootElement" class="TopBar" :style="style">
     <div class="responsive">
       <div ref="leftGroups" class="alwaysVisibleElements">
-        <ExtendedMenu :actions="menuActions" :zoomControls="extendeMenuZoomControls" />
+        <ExtendedMenu :actions="menuActions" :zoomControls="extendedMenuZoomControls" />
         <NavBreadcrumbs v-model:projectNameEdited="projectNameEdited" />
       </div>
 
