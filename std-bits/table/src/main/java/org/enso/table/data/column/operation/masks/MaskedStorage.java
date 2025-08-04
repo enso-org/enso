@@ -3,9 +3,10 @@ package org.enso.table.data.column.operation.masks;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public class MaskedStorage<T> implements ColumnStorage<T> {
+public class MaskedStorage<T> extends Storage<T> {
   private final ColumnStorage<T> parent;
   private final IndexMapper indexMapper;
 
@@ -27,11 +28,6 @@ public class MaskedStorage<T> implements ColumnStorage<T> {
       throw new IndexOutOfBoundsException(index);
     }
     return indexMapper.map(index);
-  }
-
-  @Override
-  public long uniqueKey() {
-    return parent.uniqueKey();
   }
 
   @Override

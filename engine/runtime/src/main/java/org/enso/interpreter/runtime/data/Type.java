@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
@@ -38,6 +39,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
@@ -46,7 +48,7 @@ import org.enso.pkg.QualifiedName;
 public final class Type extends EnsoObject {
 
   private final String name;
-  private @CompilerDirectives.CompilationFinal ModuleScope.Builder definitionScope;
+  private @CompilerDirectives.CompilationFinal ModuleScopeBuilder definitionScope;
   private final boolean builtin;
   private final Type supertype;
   private final Type eigentype;
@@ -58,7 +60,7 @@ public final class Type extends EnsoObject {
 
   private Type(
       String name,
-      ModuleScope.Builder definitionScope,
+      ModuleScopeBuilder definitionScope,
       Type supertype,
       Type eigentype,
       boolean builtin,
@@ -74,7 +76,7 @@ public final class Type extends EnsoObject {
 
   public static Type createSingleton(
       String name,
-      ModuleScope.Builder definitionScope,
+      ModuleScopeBuilder definitionScope,
       Type supertype,
       boolean builtin,
       boolean hasAllConstructorsPrivate) {
@@ -84,7 +86,7 @@ public final class Type extends EnsoObject {
   public static Type create(
       EnsoLanguage lang,
       String name,
-      ModuleScope.Builder definitionScope,
+      ModuleScopeBuilder definitionScope,
       Type supertype,
       Type any,
       boolean builtin,
@@ -103,22 +105,26 @@ public final class Type extends EnsoObject {
 
   private void generateQualifiedAccessor(EnsoLanguage lang) {
     assert lang != null;
-    var node = new ConstantNode(lang, getDefinitionScope(), this);
-    var schemaBldr =
-        FunctionSchema.newBuilder()
-            .argumentDefinitions(
-                new ArgumentDefinition(
-                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (isProjectPrivate()) {
-      schemaBldr.projectPrivate();
-    }
-    var function = new Function(node.getCallTarget(), null, schemaBldr.build());
-    definitionScope.registerMethod(
-        definitionScope.asModuleScope().getAssociatedType(), this.name, function);
+    Supplier<Function> futureFunction =
+        () -> {
+          var node = new ConstantNode(lang, getDefinitionScope(), this);
+          var schemaBldr =
+              FunctionSchema.newBuilder()
+                  .argumentDefinitions(
+                      new ArgumentDefinition(
+                          0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+          if (isProjectPrivate()) {
+            schemaBldr.projectPrivate();
+          }
+          var function = new Function(node.getCallTarget(), null, schemaBldr.build());
+          return function;
+        };
+    var assType = definitionScope.getAssociatedType();
+    definitionScope.registerMethod(assType, this.name, futureFunction);
   }
 
   public QualifiedName getQualifiedName() {
-    if (this == this.getDefinitionScope().getAssociatedType()) {
+    if (this == definitionScope.getAssociatedType()) {
       return definitionScope.getModule().getName();
     } else {
       return definitionScope.getModule().getName().createChild(getName());
@@ -126,7 +132,7 @@ public final class Type extends EnsoObject {
   }
 
   public void setShadowDefinitions(
-      EnsoLanguage lang, ModuleScope.Builder scope, boolean generateAccessorsInTarget) {
+      EnsoLanguage lang, ModuleScopeBuilder scope, boolean generateAccessorsInTarget) {
     if (builtin) {
       // Ensure that synthetic methods, such as getters for fields are in the scope.
       CompilerAsserts.neverPartOfCompilation();
@@ -149,6 +155,7 @@ public final class Type extends EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
+    definitionScope.build();
     return definitionScope.asModuleScope();
   }
 
@@ -261,7 +268,7 @@ public final class Type extends EnsoObject {
                       schemaBldr.projectPrivate();
                     }
                     var funcSchema = schemaBldr.build();
-                    return new Function(node.getCallTarget(), null, funcSchema);
+                    return new Function(node.get().getCallTarget(), null, funcSchema);
                   });
           definitionScope.registerMethod(this, name, functionSupplier);
         });

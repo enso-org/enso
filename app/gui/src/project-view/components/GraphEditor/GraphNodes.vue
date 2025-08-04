@@ -2,8 +2,8 @@
 import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
-import { useDragging } from '@/components/GraphEditor/dragging'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useNodesDragging } from '@/components/GraphEditor/nodesDragging'
 import { useArrows, useEvent } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 const projectStore = useProjectStore()
 const selection = injectGraphSelection()
 const graphStore = useGraphStore()
-const dragging = useDragging()
+const dragging = useNodesDragging()
 const navigator = injectGraphNavigator()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {

@@ -41,7 +41,7 @@ public class LoggersLevels {
               if (normalizedKey.endsWith("*")) {
                 int idx = normalizedKey.indexOf('*');
                 fallbacks.put(normalizedKey.substring(0, idx), level);
-              } else {
+              } else if (!loggers.containsKey(normalizedKey)) {
                 loggers.put(normalizedKey, level);
               }
             });

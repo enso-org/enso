@@ -239,8 +239,8 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  int getExceptionExitStatus() {
-    return 1;
+  int getExceptionExitStatus() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
@@ -310,7 +310,8 @@ public final class PanicException extends AbstractTruffleException {
 
   @ExportMessage
   boolean hasSourceLocation() {
-    return getLocation().getEncapsulatingSourceSection() != null;
+    var location = getLocation();
+    return location != null && location.getEncapsulatingSourceSection() != null;
   }
 
   @ExportMessage(name = "getSourceLocation")

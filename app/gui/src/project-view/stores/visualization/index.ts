@@ -30,6 +30,7 @@ import { computed, reactive } from 'vue'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'ydoc-shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'ydoc-shared/languageServerTypes'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
+import { TypeInfo } from '../project/computedValueRegistry'
 
 /** The directory in the project under which custom visualizations can be found. */
 const customVisualizationsDirectory = 'visualizations'
@@ -250,15 +251,26 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       }
     })
 
-    function* byType(type: Opt<ProjectPath>): IterableIterator<VisualizationIdentifier> {
+    function* byType(
+      typeInfo: Opt<TypeInfo>,
+      typeName: Opt<ProjectPath>,
+    ): IterableIterator<VisualizationIdentifier> {
       const types =
-        type == null ?
+        typeInfo == null ?
+          typeName == null ?
+            []
+          : [typeName]
+        : [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+      const vizzes =
+        types.length === 0 ?
           metadata.keys()
         : new Set([
-            ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ...types.flatMap((type) => [
+              ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ]),
             ...(metadata.visualizationIdToType.reverseLookup(ANY_TYPE_QN) ?? []),
           ])
-      for (const type of types) yield fromVisualizationId(type)
+      for (const viz of vizzes) yield fromVisualizationId(viz)
     }
 
     function icon(type: VisualizationIdentifier) {

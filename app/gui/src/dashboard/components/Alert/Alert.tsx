@@ -35,7 +35,7 @@ export const ALERT_STYLES = tv({
     },
   },
   slots: {
-    iconContainer: 'mt-1',
+    iconContainer: 'my-auto pt-1',
     children: 'flex flex-col items-stretch',
   },
   defaultVariants: {

@@ -1,4 +1,6 @@
 <script lang="ts">
+import { ProjectId } from '#/services/Backend'
+import { isLocalProjectId } from '#/services/LocalBackend'
 import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
@@ -16,15 +18,27 @@ import { computed, ToRefs, toValue, watch } from 'vue'
  */
 const [provideCurrentProject, useCurrentProject] = createContextStore(
   'currentProject',
-  (projectId: ToValue<Opt<string>>) => {
+  (projectId: ToValue<Opt<ProjectId>>) => {
     const openedProjects = injectOpenedProjects()
 
-    const ref = computed(() => {
+    const hybridResolvedProjectId = computed(() => {
       const id = toValue(projectId)
+      // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
+      if (id && openedProjects.get(id) == null && !isLocalProjectId(id)) {
+        for (const openedId of openedProjects.listIds()) {
+          if (openedId.includes('/cloud-' + id) && isLocalProjectId(openedId)) return openedId
+        }
+      }
+      return id
+    })
+
+    const ref = computed(() => {
+      const id = hybridResolvedProjectId.value
       return id != null ? openedProjects.get(id) : undefined
     })
 
     return {
+      id: hybridResolvedProjectId,
       /* Current project as a single ref  */
       ref,
       /* Current project's stores decomposed to separate refs. */
@@ -76,7 +90,7 @@ export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 </script>
 
 <script setup lang="ts">
-const { id } = defineProps<{ id: Opt<string> }>()
+const { id } = defineProps<{ id: Opt<ProjectId> }>()
 
 const provided = provideCurrentProject(() => id).ref
 

@@ -1,27 +1,22 @@
 /** @file The mock API. */
-import * as test from '@playwright/test'
-
 import * as backend from '#/services/Backend'
-import type * as remoteBackend from '#/services/RemoteBackend'
-import * as remoteBackendPaths from '#/services/remoteBackendPaths'
-
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import * as uniqueString from 'enso-common/src/utilities/uniqueString'
-
-import * as actions from '.'
-
 import {
   organizationIdToDirectoryId,
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
-} from '#/services/RemoteBackend'
+} from '#/services/RemoteBackend/ids'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
 import type { FeatureFlags } from '$/providers/featureFlags'
+import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import * as test from 'playwright/test'
 import invariant from 'tiny-invariant'
+import { VALID_PASSWORD } from './utilities'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -34,9 +29,9 @@ const HTTP_STATUS_NOT_FOUND = 404
 /** A user id that is a path glob. */
 const GLOB_USER_ID = backend.UserId('*')
 /** An asset ID that is a path glob. */
-const GLOB_ASSET_ID: backend.AssetId = '*' as backend.DirectoryId
+const GLOB_ASSET_ID = backend.AssetId('*')
 /** A directory ID that is a path glob. */
-const GLOB_DIRECTORY_ID = '*' as backend.DirectoryId
+const GLOB_DIRECTORY_ID = backend.DirectoryId('directory-*')
 /** A project ID that is a path glob. */
 const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
@@ -108,7 +103,7 @@ const INITIAL_CALLS_OBJECT = {
   createTag: array<backend.CreateTagRequestBody>(),
   createProject: array<backend.CreateProjectRequestBody>(),
   createDirectory: array<backend.CreateDirectoryRequestBody>(),
-  getProjectContent: array<{ projectId: backend.ProjectId }>(),
+  resolveProjectAssetData: array<{ projectId: backend.ProjectId; path: string }>(),
   getProjectAsset: array<{ projectId: backend.ProjectId }>(),
   updateProject: array<backend.UpdateProjectRequestBody>(),
 }
@@ -154,7 +149,7 @@ export const mockApi: (params: MockParams) => Promise<MockApi> = mockApiInternal
 async function mockApiInternal({ page, setupAPI }: MockParams) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
-  const defaultPassword = actions.VALID_PASSWORD
+  const defaultPassword = VALID_PASSWORD
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
   const defaultOrganizationName = 'organization name'
   const defaultUserId = backend.UserId('user-placeholder id')
@@ -405,37 +400,51 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return getVirtualParentPath(this.parentId)
       },
       get ensoPath() {
-        return getEnsoPath(this.parentId)
+        return backend.EnsoPath(
+          `${getEnsoPath(this.parentId).replace(/[/]$/, '')}/${rest.title ?? ''}`,
+        )
       },
       ...rest,
     }
   }
 
   const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
-    const directoryTitles = new Set(
-      assets
-        .filter((asset) => asset.type === backend.AssetType.directory)
-        .map((asset) => asset.title),
-    )
-
-    const title = rest.title ?? `New Folder ${directoryTitles.size + 1}`
+    const title =
+      rest.title ??
+      (() => {
+        const parentId = rest.parentId ?? defaultDirectoryId
+        let i = 0
+        for (const asset of assets) {
+          if (asset.parentId !== parentId) continue
+          const match = asset.title.match(/^New Folder (\d+)$/)
+          if (match?.[1] == null) continue
+          i = Math.max(i, Number(match[1]))
+        }
+        return `New Folder ${i + 1}`
+      })()
 
     return createAsset({
       type: backend.AssetType.directory,
-      id: backend.DirectoryId(`directory-${uniqueString.uniqueString()}` as const),
+      id: backend.DirectoryId(`directory-${uniqueString.uniqueString()}`),
       title,
       ...rest,
     })
   }
 
   const createProject = (rest: Partial<backend.ProjectAsset> = {}): backend.ProjectAsset => {
-    const projectNames = new Set(
-      assets
-        .filter((asset) => asset.type === backend.AssetType.project)
-        .map((asset) => asset.title),
-    )
-
-    const title = rest.title ?? `New Project ${projectNames.size + 1}`
+    const title =
+      rest.title ??
+      (() => {
+        const parentId = rest.parentId ?? defaultDirectoryId
+        let i = 0
+        for (const asset of assets) {
+          if (asset.parentId !== parentId) continue
+          const match = asset.title.match(/^New Project (\d+)$/)
+          if (match?.[1] == null) continue
+          i = Math.max(i, Number(match[1]))
+        }
+        return `New Project ${i + 1}`
+      })()
 
     return createAsset({
       type: backend.AssetType.project,
@@ -562,7 +571,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const addUserGroup = (name: string, rest?: Partial<backend.UserGroupInfo>) => {
     const userGroup: backend.UserGroupInfo = {
-      id: backend.UserGroupId(`usergroup-${uniqueString.uniqueString()}` as const),
+      id: backend.UserGroupId(`usergroup-${uniqueString.uniqueString()}`),
       groupName: name,
       organizationId: currentOrganization?.id ?? defaultOrganizationId,
       ...rest,
@@ -609,21 +618,50 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
+  /**
+   * Transform glob patterts that we use in URLs into a regexp that matches them.
+   * This is NOT a complete glob implementation, it only supports * and ** patterns.
+   */
+  function simpleGlobToRegex(glob: string): RegExp {
+    const regexBody = glob
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // regex escape
+      .replace(/\\\*\\\*/g, '(.*)') // ** → (.*)
+      .replace(/\\\*/g, '([^/]*)') // * → ([^/]*)
+    return new RegExp(`^${regexBody}$`)
+  }
+
   await test.test.step('Mock API', async () => {
     const method =
       (theMethod: string) =>
-      async (url: string, callback: (route: test.Route, request: test.Request) => unknown) => {
-        await page.route(BASE_URL + url, async (route, request) => {
+      async (
+        url: string,
+        callback: (
+          route: test.Route,
+          request: test.Request,
+          globCaptures: string[],
+          params: URLSearchParams,
+        ) => unknown,
+      ) => {
+        if (url.includes('?'))
+          throw new Error(
+            'Base mock API URL patterns cannot contain a query string.\n  Problematic URL: ' + url,
+          )
+
+        const urlPathRegex = simpleGlobToRegex(BASE_URL + url)
+        async function handler(route: test.Route, request: test.Request): Promise<void> {
           if (request.method() !== theMethod) {
-            await route.fallback()
+            return await route.fallback()
           } else {
-            const result = await callback(route, request)
+            const url = new URL(request.url())
+            const [_, ...globCaptures] = (url.origin + url.pathname).match(urlPathRegex)!
+            const result = await callback(route, request, globCaptures, url.searchParams)
             // `null` counts as a JSON value that we will want to return.
             if (result !== undefined) {
               await route.fulfill({ json: result })
             }
           }
-        })
+        }
+        await page.route((url) => urlPathRegex.test(url.origin + url.pathname), handler)
       }
     const get = method('GET')
     const put = method('PUT')
@@ -631,10 +669,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     const patch = method('PATCH')
     const delete_ = method('DELETE')
 
-    await page.route(BASE_URL + '**', (_route, request) => {
-      throw new Error(
-        `Missing route handler for '${request.method()} ${request.url().replace(BASE_URL, '')}'.`,
-      )
+    await page.route(BASE_URL + '**', (route, request) => {
+      const message = `Missing route handler for '${request.method()} ${request.url().substring(BASE_URL.length)}'`
+      throw new Error(message)
     })
 
     // === Mock Cognito endpoints ===
@@ -665,41 +702,38 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Endpoints returning arrays ===
 
-    await get(remoteBackendPaths.LIST_DIRECTORY_PATH + '*', (route, request) => {
-      const query = Object.fromEntries(
-        new URL(request.url()).searchParams.entries(),
-      ) as unknown as ListDirectoryQuery
+    await get(paths.LIST_DIRECTORY_PATH, (route, _req, _, params) => {
+      const query = Object.fromEntries(params.entries()) as ListDirectoryQuery
       called('listDirectory', query)
-      const json: remoteBackend.ListDirectoryResponseBody = { assets: listDirectory(query) }
+      const json: backend.ListDirectoryResponseBody = { assets: listDirectory(query) }
       route.fulfill({ json })
     })
-    await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', () => {
+    await get(paths.LIST_SECRETS_PATH, () => {
       called('listSecrets', {})
-      return { secrets: [] } satisfies remoteBackend.ListSecretsResponseBody
+      return { secrets: [] } satisfies backend.ListSecretsResponseBody
     })
-    await get(remoteBackendPaths.LIST_TAGS_PATH + '*', () => {
+    await get(paths.LIST_TAGS_PATH, () => {
       called('listTags', {})
-      return { tags: labels } satisfies remoteBackend.ListTagsResponseBody
+      return { tags: labels } satisfies backend.ListTagsResponseBody
     })
-    await get(remoteBackendPaths.LIST_USERS_PATH + '*', async (route) => {
+    await get(paths.LIST_USERS_PATH, async (route) => {
       called('listUsers', {})
       if (currentUser != null) {
-        return { users } satisfies remoteBackend.ListUsersResponseBody
+        return { users } satisfies backend.ListUsersResponseBody
       } else {
         await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
         return
       }
     })
-    await get(remoteBackendPaths.LIST_USER_GROUPS_PATH + '*', async (route) => {
+    await get(paths.LIST_USER_GROUPS_PATH, async (route) => {
       called('listUserGroups', {})
       await route.fulfill({ json: userGroups })
     })
 
     // === Endpoints with dummy implementations ===
-    await get(remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID), (_route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
+    await get(paths.getProjectDetailsPath(GLOB_PROJECT_ID), (_route, _, [maybeId], params) => {
       if (!maybeId) return
-      const presigned = new URL(request.url()).searchParams.get('presigned') === 'true'
+      const presigned = params.get('presigned') === 'true'
       const projectId = backend.ProjectId(maybeId)
       called('getProjectDetails', { projectId, presigned })
       const project = assetMap.get(projectId)
@@ -720,7 +754,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         Tried to get: \n ${JSON.stringify(project, null, 2)}`)
       }
 
-      const name = 'example project name'
+      const name = project.title ?? 'example project name'
       return {
         organizationId: defaultOrganizationId,
         projectId: projectId,
@@ -735,12 +769,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       } satisfies backend.ProjectRaw
     })
 
-    await get(remoteBackendPaths.getAssetDetailsPath(GLOB_ASSET_ID), (route, request) => {
-      const maybeId = request.url().match(/[/]assets[/]([^?/]+)/)?.[1]
-      if (!maybeId) return
-      const assetId = maybeId != null ? (decodeURIComponent(maybeId) as backend.AssetId) : null
+    await get(paths.getAssetDetailsPath(GLOB_ASSET_ID), (route, _, [maybeId]) => {
+      const assetId = maybeId && (decodeURIComponent(maybeId) as backend.AssetId)
 
-      if (assetId == null) {
+      if (!assetId) {
         return route.fulfill({
           status: HTTP_STATUS_BAD_REQUEST,
           json: { message: 'Invalid Asset ID' },
@@ -788,15 +820,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Endpoints returning `void` ===
 
-    await post(remoteBackendPaths.copyAssetPath(GLOB_ASSET_ID), async (route, request) => {
+    await post(paths.copyAssetPath(GLOB_ASSET_ID), async (route, req, [maybeId]) => {
       /** The type for the JSON request payload for this endpoint. */
       interface Body {
         readonly parentDirectoryId: backend.DirectoryId
       }
 
-      const maybeId = request.url().match(/[/]assets[/]([^?/]+)/)?.[1]
-      if (!maybeId) return
-      const assetId = maybeId != null ? (decodeURIComponent(maybeId) as backend.DirectoryId) : null
+      const assetId = maybeId ? (decodeURIComponent(maybeId) as backend.DirectoryId) : null
       // This could be an id for an arbitrary asset, but pretend it's a
       // `DirectoryId` to make TypeScript happy.
       const asset = assetId != null ? assetMap.get(assetId) : null
@@ -813,7 +843,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
           })
         }
       } else {
-        const body: Body = request.postDataJSON()
+        const body: Body = req.postDataJSON()
         const parentId = body.parentDirectoryId
         called('copyAsset', { assetId: assetId!, parentId })
         // Can be any asset ID.
@@ -836,25 +866,24 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
 
-    await get(remoteBackendPaths.INVITATION_PATH + '*', (): backend.ListInvitationsResponseBody => {
+    await get(paths.INVITATION_PATH, (): backend.ListInvitationsResponseBody => {
       called('listInvitations', {})
       return {
         invitations: [],
         availableLicenses: totalSeats - usersMap.size,
       }
     })
-    await post(remoteBackendPaths.INVITE_USER_PATH + '*', async (route) => {
+    await post(paths.INVITE_USER_PATH, async (route) => {
       called('inviteUser', {})
       await route.fulfill()
     })
-    await post(remoteBackendPaths.CREATE_PERMISSION_PATH + '*', async (route) => {
+    await post(paths.CREATE_PERMISSION_PATH, async (route) => {
       called('createPermission', {})
       await route.fulfill()
     })
-    await post(remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID), async (route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
-      if (!maybeId) return
-      const projectId = backend.ProjectId(maybeId)
+    await post(paths.closeProjectPath(GLOB_PROJECT_ID), async (route, _, [id]) => {
+      if (!id) return
+      const projectId = backend.ProjectId(id)
       called('closeProject', { projectId })
       const project = assetMap.get(projectId)
       if (project?.projectState) {
@@ -862,8 +891,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
       await route.fulfill()
     })
-    await post(remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID), async (route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
+    await post(paths.openProjectPath(GLOB_PROJECT_ID), async (route, _, [maybeId]) => {
       if (!maybeId) return
       const projectId = backend.ProjectId(maybeId)
       called('openProject', { projectId })
@@ -883,9 +911,8 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       route.fulfill()
     })
     await post(
-      remoteBackendPaths.getHybridSetOpenInProgress(GLOB_PROJECT_ID),
-      async (route, request) => {
-        const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
+      paths.getHybridSetOpenInProgressPath(GLOB_PROJECT_ID),
+      async (route, _, [maybeId]) => {
         if (!maybeId) return
         const projectId = backend.ProjectId(maybeId)
         called('hybridSetOpenInProgress', { projectId })
@@ -905,10 +932,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         route.fulfill()
       },
     )
-    await post(remoteBackendPaths.getHybridSetOpened(GLOB_PROJECT_ID), async (route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
-      if (!maybeId) return
-      const projectId = backend.ProjectId(maybeId)
+    await post(paths.getHybridSetOpenedPath(GLOB_PROJECT_ID), async (route, _, [id]) => {
+      if (!id) return
+      const projectId = backend.ProjectId(id)
       called('hybridSetOpened', { projectId })
 
       const project = assetMap.get(projectId)
@@ -925,21 +951,20 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
       route.fulfill()
     })
-    await delete_(remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async (route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
-      if (!maybeId) return
-      const tagId = backend.TagId(maybeId)
+    await delete_(paths.deleteTagPath(GLOB_TAG_ID), async (route, _, [id]) => {
+      if (!id) return
+      const tagId = backend.TagId(id)
       called('deleteTag', { tagId })
       await route.fulfill()
     })
-    await post(remoteBackendPaths.POST_LOG_EVENT_PATH, async (route) => {
+    await post(paths.POST_LOG_EVENT_PATH, async (route) => {
       called('postLogEvent', {})
       await route.fulfill()
     })
 
     // === Entity creation endpoints ===
 
-    await put(remoteBackendPaths.UPLOAD_USER_PICTURE_PATH + '*', async (route, request) => {
+    await put(paths.UPLOAD_USER_PICTURE_PATH, async (route, request) => {
       const content = request.postData()
       if (content != null) {
         called('uploadUserPicture', { content })
@@ -950,7 +975,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return
       }
     })
-    await put(remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH + '*', async (route, request) => {
+    await put(paths.UPLOAD_ORGANIZATION_PICTURE_PATH, async (route, request) => {
       const content = request.postData()
       if (content != null) {
         called('uploadOrganizationPicture', { content })
@@ -983,7 +1008,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         await route.fallback()
       }
     })
-    await post(remoteBackendPaths.UPLOAD_FILE_START_PATH + '*', () => {
+    await post(paths.UPLOAD_FILE_START_PATH, () => {
       const uploadId = backend.FileId('file-' + uniqueString.uniqueString())
       called('uploadFileStart', { uploadId })
       return {
@@ -994,7 +1019,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         ),
       } satisfies backend.UploadLargeFileMetadata
     })
-    await post(remoteBackendPaths.UPLOAD_FILE_END_PATH + '*', (_route, request) => {
+    await post(paths.UPLOAD_FILE_END_PATH, (_route, request) => {
       const body: backend.UploadFileEndRequestBody = request.postDataJSON()
       called('uploadFileEnd', body)
 
@@ -1008,10 +1033,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         id = file.id
       }
 
-      return { id, project: null } satisfies backend.UploadedLargeAsset
+      return { id, project: null, jobId: null } satisfies backend.UploadedAsset
     })
 
-    await post(remoteBackendPaths.CREATE_SECRET_PATH + '*', async (_route, request) => {
+    await post(paths.CREATE_SECRET_PATH, async (_route, request) => {
       const body: backend.CreateSecretRequestBody = await request.postDataJSON()
       called('createSecret', body)
       const secret = addSecret({ title: body.name })
@@ -1020,7 +1045,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     // === Other endpoints ===
 
-    await post(remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH + '*', async (_route, request) => {
+    await post(paths.CREATE_CHECKOUT_SESSION_PATH, async (_route, request) => {
       const body: backend.CreateCheckoutSessionRequestBody = await request.postDataJSON()
       called('createCheckoutSession', body)
       if (currentUser) {
@@ -1031,13 +1056,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       return createCheckoutSession(body)
     })
 
-    await patch(remoteBackendPaths.updateAssetPath(GLOB_ASSET_ID), (route, request) => {
-      const maybeId = request.url().match(/[/]assets[/]([^?]+)/)?.[1]
-
-      if (!maybeId) throw new Error('updateAssetPath: Missing asset ID in path')
-      // This could be an id for an arbitrary asset, but pretend it's a
-      // `DirectoryId` to make TypeScript happy.
-      const assetId = maybeId as backend.DirectoryId
+    await patch(paths.updateAssetPath(GLOB_ASSET_ID), (route, request, [id]) => {
+      if (!id) throw new Error('updateAssetPath: Missing asset ID')
+      const assetId = id as backend.AssetId
       const body: backend.UpdateAssetRequestBody = request.postDataJSON()
 
       called('updateAsset', { ...body, assetId })
@@ -1061,12 +1082,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       return route.fulfill({ json: asset })
     })
 
-    await patch(remoteBackendPaths.associateTagPath(GLOB_ASSET_ID), async (_route, request) => {
-      const maybeId = request.url().match(/[/]assets[/]([^/?]+)/)?.[1]
-      if (!maybeId) return
-      // This could be an id for an arbitrary asset, but pretend it's a
-      // `DirectoryId` to make TypeScript happy.
-      const assetId = maybeId as backend.DirectoryId
+    await patch(paths.associateTagPath(GLOB_ASSET_ID), async (_, request, [id]) => {
+      if (!id) throw new Error('associateTag: Missing asset ID')
+      const assetId = id as backend.AssetId
       /** The type for the JSON request payload for this endpoint. */
       interface Body {
         readonly labels: readonly backend.LabelName[]
@@ -1087,8 +1105,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       return json
     })
 
-    await put(remoteBackendPaths.updateDirectoryPath(GLOB_DIRECTORY_ID), async (route, request) => {
-      const maybeId = request.url().match(/[/]directories[/]([^?]+)/)?.[1]
+    await put(paths.updateDirectoryPath(GLOB_DIRECTORY_ID), async (route, request, [maybeId]) => {
       if (!maybeId) return
       const directoryId = maybeId as backend.DirectoryId
       const body: backend.UpdateDirectoryRequestBody = request.postDataJSON()
@@ -1108,15 +1125,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
 
-    await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async (route, request) => {
-      const force = new URL(request.url()).searchParams.get('force') === 'true'
-      const maybeId = request.url().match(/[/]assets[/]([^?]+)/)?.[1]
-
-      if (!maybeId) return
+    await delete_(paths.deleteAssetPath(GLOB_ASSET_ID), async (route, req, [id], params) => {
+      if (!id) return
+      const force = params.get('force') === 'true'
 
       // This could be an id for an arbitrary asset, but pretend it's a
       // `DirectoryId` to make TypeScript happy.
-      const assetId = decodeURIComponent(maybeId) as backend.DirectoryId
+      const assetId = decodeURIComponent(id) as backend.DirectoryId
 
       called('deleteAsset', { assetId, force })
 
@@ -1129,7 +1144,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
     })
 
-    await patch(remoteBackendPaths.UNDO_DELETE_ASSET_PATH, async (route, request) => {
+    await patch(paths.UNDO_DELETE_ASSET_PATH, async (route, request) => {
       /** The type for the JSON request payload for this endpoint. */
       interface Body {
         readonly assetId: backend.AssetId
@@ -1140,14 +1155,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
     })
 
-    await put(remoteBackendPaths.projectUpdatePath(GLOB_PROJECT_ID), async (route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
-
+    await put(paths.projectUpdatePath(GLOB_PROJECT_ID), async (route, req, [maybeId]) => {
       if (!maybeId) return route.fulfill({ status: HTTP_STATUS_NOT_FOUND })
 
       const projectId = backend.ProjectId(maybeId)
 
-      const body: backend.UpdateProjectRequestBody = await request.postDataJSON()
+      const body: backend.UpdateProjectRequestBody = await req.postDataJSON()
 
       called('updateProject', body)
 
@@ -1162,7 +1175,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       })
     })
 
-    await post(remoteBackendPaths.CREATE_USER_PATH + '*', async (_route, request) => {
+    await post(paths.CREATE_USER_PATH, async (_route, request) => {
       const body: backend.CreateUserRequestBody = await request.postDataJSON()
 
       const organizationId = body.organizationId ?? defaultUser.organizationId
@@ -1184,32 +1197,28 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       return currentUser
     })
 
-    await post(remoteBackendPaths.CREATE_USER_GROUP_PATH + '*', async (_route, request) => {
+    await post(paths.CREATE_USER_GROUP_PATH, async (_route, request) => {
       const body: backend.CreateUserGroupRequestBody = await request.postDataJSON()
       called('createUserGroup', body)
       const userGroup = addUserGroup(body.name)
       return userGroup
     })
 
-    await put(
-      remoteBackendPaths.changeUserGroupPath(GLOB_USER_ID) + '*',
-      async (route, request) => {
-        const maybeId = request.url().match(/[/]users[/]([^?/]+)/)?.[1]
-        if (!maybeId) return
-        const userId = backend.UserId(decodeURIComponent(maybeId))
-        // The type of the body sent by this app is statically known.
-        const body: backend.ChangeUserGroupRequestBody = await request.postDataJSON()
-        called('changeUserGroup', { userId, ...body })
-        const user = usersMap.get(userId)
-        if (!user) {
-          await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
-        } else {
-          object.unsafeMutable(user).userGroups = body.userGroups
-          return user
-        }
-      },
-    )
-    await put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH + '*', async (_route, request) => {
+    await put(paths.changeUserGroupPath(GLOB_USER_ID), async (route, request, [maybeId]) => {
+      if (!maybeId) return
+      const userId = backend.UserId(decodeURIComponent(maybeId))
+      // The type of the body sent by this app is statically known.
+      const body: backend.ChangeUserGroupRequestBody = await request.postDataJSON()
+      called('changeUserGroup', { userId, ...body })
+      const user = usersMap.get(userId)
+      if (!user) {
+        await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
+      } else {
+        object.unsafeMutable(user).userGroups = body.userGroups
+        return user
+      }
+    })
+    await put(paths.UPDATE_CURRENT_USER_PATH, async (_route, request) => {
       const body: backend.UpdateUserRequestBody = await request.postDataJSON()
 
       called('updateCurrentUser', body)
@@ -1220,7 +1229,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
       return currentUser
     })
-    await get(remoteBackendPaths.USERS_ME_PATH + '*', (route) => {
+    await get(paths.USERS_ME_PATH, (route) => {
       called('usersMe', {})
       if (currentUser == null) {
         return route.fulfill({ status: HTTP_STATUS_NOT_FOUND })
@@ -1228,7 +1237,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
       return currentUser
     })
-    await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
+    await patch(paths.UPDATE_ORGANIZATION_PATH, async (route, request) => {
       const body: backend.UpdateOrganizationRequestBody = await request.postDataJSON()
       called('updateOrganization', body)
       if (body.name === '') {
@@ -1245,25 +1254,24 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return
       }
     })
-    await get(remoteBackendPaths.GET_ORGANIZATION_PATH + '*', async (route) => {
+    await get(paths.GET_ORGANIZATION_PATH, async (route) => {
       called('getOrganization', {})
       await route.fulfill({
         json: currentOrganization,
         status: currentOrganization == null ? 404 : 200,
       })
     })
-    await post(remoteBackendPaths.CREATE_TAG_PATH + '*', (route) => {
+    await post(paths.CREATE_TAG_PATH, (route) => {
       const body: backend.CreateTagRequestBody = route.request().postDataJSON()
       called('createTag', body)
       return addLabel(body.value, body.color)
     })
-    await post(remoteBackendPaths.CREATE_PROJECT_PATH + '*', (_route, request) => {
+    await post(paths.CREATE_PROJECT_PATH, (_route, request) => {
       const body: backend.CreateProjectRequestBody = request.postDataJSON()
       called('createProject', body)
       const id = backend.ProjectId(`project-${uniqueString.uniqueString()}`)
       const parentId =
-        body.parentDirectoryId ??
-        backend.DirectoryId(`directory-${uniqueString.uniqueString()}` as const)
+        body.parentDirectoryId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
 
       const state = { type: backend.ProjectState.closed, volumeId: '' }
 
@@ -1291,16 +1299,16 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         state: project.projectState,
         organizationId: defaultOrganizationId,
         packageName: 'Project_root',
-        ensoPath: backend.EnsoPath(`enso://Users/${defaultUser.name}/${project.title}`),
+        ensoPath: project.ensoPath,
       } satisfies backend.CreatedProject
     })
 
-    await post(remoteBackendPaths.CREATE_DIRECTORY_PATH + '*', (_route, request) => {
+    await post(paths.CREATE_DIRECTORY_PATH, (_route, request) => {
       const body: backend.CreateDirectoryRequestBody = request.postDataJSON()
 
       called('createDirectory', body)
 
-      const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}` as const)
+      const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
       const parentId = body.parentId ?? defaultDirectoryId
 
       const directory = addDirectory({
@@ -1316,12 +1324,11 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
 
-    await get(remoteBackendPaths.getProjectContentPath(GLOB_PROJECT_ID), (route, request) => {
-      const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
-      if (!maybeId) return
+    await get(paths.getProjectAssetPath(GLOB_PROJECT_ID, '**'), (route, _, [maybeId, path]) => {
+      if (!maybeId || !path) return
       const projectId = backend.ProjectId(maybeId)
-      called('getProjectContent', { projectId })
-      const content = readFileSync(join(__dirname, '../mock/enso-demo.main'), 'utf8')
+      called('resolveProjectAssetData', { projectId, path })
+      const content = readFileSync(join(__dirname, '../mock/project', path ?? ''), 'utf8')
 
       return route.fulfill({
         body: content,
@@ -1329,23 +1336,26 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       })
     })
 
-    await get(
-      remoteBackendPaths.getProjectAssetPath(GLOB_PROJECT_ID, '*'),
-      async (route, request) => {
-        const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
-
-        invariant(maybeId, 'Unable to parse the ID provided')
-
-        const projectId = backend.ProjectId(maybeId)
-
-        called('getProjectAsset', { projectId })
-
-        return route.fulfill({
-          // This is a mock SVG image. Just a square with a black background.
-          path: join(__dirname, '../mock/example.png'),
-        })
-      },
-    )
+    await get(paths.RESOLVE_ENSO_PATH, (route, _request, _captures, params) => {
+      const path = params.get('path')
+      const userRoot = `enso://Users/${currentUser?.name}`
+      if (!path?.startsWith(userRoot)) {
+        route.fulfill({ status: HTTP_STATUS_BAD_REQUEST, json: { message: 'Invalid enso path' } })
+        return
+      }
+      for (const asset of assetMap.values()) {
+        if (asset.ensoPath === path) {
+          const { type: _type, ...rest } = asset
+          return rest
+        }
+      }
+      route.fulfill({
+        status: HTTP_STATUS_NOT_FOUND,
+        json: {
+          message: `Path '${path}' does not resolve to any asset. Available paths: ${assets.map((asset) => `'${asset.ensoPath}'`).join(', ')}`,
+        },
+      })
+    })
 
     await page.route('*', async (route) => {
       if (!isOnline) {

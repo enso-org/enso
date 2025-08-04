@@ -21,6 +21,7 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setDriveLocation } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { Path } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
 import * as authProvider from '$/providers/react'
@@ -42,6 +43,7 @@ interface CategoryMetadata {
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
   readonly badgeContent?: React.ReactNode
   readonly isDisabled: boolean
+  readonly disabledReason?: string | null | undefined
   readonly onPress?: (() => void) | undefined
 }
 
@@ -58,7 +60,8 @@ const CATEGORY_SWITCHER_VARIANTS = tv({
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const {
     badgeContent,
-    isDisabled: isDisabledRaw,
+    isDisabled = false,
+    disabledReason,
     isNested = false,
     category,
     buttonLabel,
@@ -69,43 +72,13 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   const [isTransitioning, startTransition] = React.useTransition()
 
-  const { user } = authProvider.useFullUserSession()
   const { getText } = useText()
-  const { localBackend } = useBackends()
-  const { isOffline } = offlineHooks.useOffline()
 
   const isCurrent = areCategoriesEqual(currentCategory, category)
 
   const transferBetweenCategories = useTransferBetweenCategories(currentCategory)
 
-  const getCategoryError = useEventCallback((otherCategory: Category) => {
-    switch (otherCategory.type) {
-      case 'local':
-      case 'local-directory': {
-        if (localBackend == null) {
-          return getText('localBackendNotDetectedError')
-        } else {
-          return null
-        }
-      }
-      case 'cloud':
-      case 'recent':
-      case 'trash':
-      case 'user':
-      case 'team': {
-        if (isOffline) {
-          return getText('unavailableOffline')
-        } else if (!user.isEnabled) {
-          return getText('notEnabledSubtitle')
-        } else {
-          return null
-        }
-      }
-    }
-  })
-  const error = getCategoryError(category)
-  const isDisabled = error != null || isDisabledRaw
-  const tooltip = error ?? false
+  const tooltip = (isDisabled && disabledReason) ?? false
 
   const isDropTarget =
     !areCategoriesEqual(currentCategory, category) &&
@@ -113,7 +86,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = useEventCallback(() => {
-    if (error == null) {
+    if (!isDisabled) {
       // We use startTransition to trigger a background transition between categories.
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
@@ -126,38 +99,29 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   const onDrop = useEventCallback(async (event: aria.DropEvent) => {
     unsetModal()
-
-    if (event.dropOperation === 'cancel') {
-      return
-    }
-
-    const payloadSchema = ASSETS_DATA_TRANSFER_PAYLOAD
-
+    if (event.dropOperation === 'cancel') return
     const payloads = await Promise.all(
       event.items
         .filter((item) => item.kind === 'text')
         .map(async (item) => {
           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-          const parsedPayload = payloadSchema.safeParse(JSON.parse(text))
-
+          const parsedPayload = ASSETS_DATA_TRANSFER_PAYLOAD.safeParse(JSON.parse(text))
           return parsedPayload.success ? parsedPayload.data : null
         }),
-    )
+    ).then((items) => items.filter((payload) => payload != null))
     const firstItem = payloads[0]?.items[0]
 
     const transfer = async () => {
       await Promise.all(
-        payloads
-          .filter((payload) => payload != null)
-          .map((payload) =>
-            transferBetweenCategories(
-              payload.category,
-              category,
-              payload.items,
-              null,
-              event.dropOperation,
-            ),
+        payloads.map((payload) =>
+          transferBetweenCategories(
+            payload.category,
+            category,
+            payload.items,
+            null,
+            event.dropOperation,
           ),
+        ),
       )
     }
 
@@ -170,7 +134,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
               getText('deleteSelectedAssetActionText', firstItem.title)
             : getText(
                 'deleteSelectedAssetsActionText',
-                payloads.flatMap((payload) => payload?.items ?? []).length,
+                payloads.flatMap(({ items }) => items).length,
               )
           }
           onConfirm={transfer}
@@ -194,8 +158,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         return 'cancel'
       }}
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
-      onDrop={onDrop}
-      {...dragDelayProps}
+      {...aria.mergeProps<aria.DropZoneProps>()({ onDrop }, dragDelayProps)}
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
@@ -256,11 +219,33 @@ function CategorySwitcher(props: CategorySwitcherProps) {
   const { getText } = useText()
 
   const { isOffline } = offlineHooks.useOffline()
+  const { localBackend } = useBackends()
+  const { user } = authProvider.useFullUserSession()
 
   const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const { cloudCategory, recentCategory, trashCategory, teamCategories } = cloudCategories
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
+
+  const cloudDisabledReason = React.useMemo(() => {
+    if (isOffline) {
+      return getText('unavailableOffline')
+    } else if (!user.isEnabled) {
+      return getText('notEnabledSubtitle')
+    } else {
+      return null
+    }
+  }, [isOffline, user, getText])
+  const isCloudDisabled = cloudDisabledReason != null
+
+  const localDisabledReason = React.useMemo(() => {
+    if (localBackend == null) {
+      return getText('localBackendNotDetectedError')
+    } else {
+      return null
+    }
+  }, [localBackend, getText])
+  const isLocalDisabled = localDisabledReason != null
 
   return (
     <AnimatedBackground>
@@ -271,7 +256,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
       >
         <CategorySwitcherItem
           category={cloudCategory}
-          isDisabled={isOffline}
+          isDisabled={isCloudDisabled}
+          disabledReason={cloudDisabledReason}
           buttonLabel={getText('cloudCategoryButtonLabel')}
           dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
           badgeContent={getText('cloudCategoryBadgeContent')}
@@ -282,7 +268,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             key={teamCategory.id}
             isNested
             category={teamCategory}
-            isDisabled={isOffline}
+            isDisabled={isCloudDisabled}
+            disabledReason={cloudDisabledReason}
             buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
             dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
             onPress={onChange}
@@ -291,7 +278,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
         <CategorySwitcherItem
           isNested
           category={recentCategory}
-          isDisabled={isOffline}
+          isDisabled={isCloudDisabled}
+          disabledReason={cloudDisabledReason}
           buttonLabel={getText('recentCategoryButtonLabel')}
           dropZoneLabel={getText('recentCategoryDropZoneLabel')}
           onPress={onChange}
@@ -299,7 +287,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
         <CategorySwitcherItem
           isNested
           category={trashCategory}
-          isDisabled={isOffline}
+          isDisabled={isCloudDisabled}
+          disabledReason={cloudDisabledReason}
           buttonLabel={getText('trashCategoryButtonLabel')}
           dropZoneLabel={getText('trashCategoryDropZoneLabel')}
           onPress={onChange}
@@ -308,7 +297,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
           <div className="group flex items-center gap-2 self-stretch drop-target-after">
             <CategorySwitcherItem
               category={localCategory}
-              isDisabled={false}
+              isDisabled={isLocalDisabled}
+              disabledReason={localDisabledReason}
               buttonLabel={getText('localCategoryButtonLabel')}
               dropZoneLabel={getText('localCategoryDropZoneLabel')}
               onPress={onChange}
@@ -338,7 +328,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               <CategorySwitcherItem
                 isNested
                 category={directory}
-                isDisabled={false}
+                isDisabled={isLocalDisabled}
+                disabledReason={localDisabledReason}
                 buttonLabel={getText('localCategoryButtonLabel')}
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}
                 onPress={onChange}
@@ -382,8 +373,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                   const addedDirectory = directories.find(
                     (directory) => directory.rootPath === newDirectory,
                   )
-
-                  const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                  const newCategory = addedDirectory ?? addDirectory(Path(newDirectory))
                   setDriveLocation(null, newCategory.id)
                 }
               }}

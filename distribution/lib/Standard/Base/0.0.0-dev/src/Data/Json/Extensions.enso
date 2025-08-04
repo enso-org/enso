@@ -23,18 +23,24 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
-## GROUP Conversions
-   ICON convert
+## ---
+   group: Conversions
+   icon: convert
+   ---
    Converts the given value to a JSON serialized value.
 Any.to_json : Text
 Any.to_json self = Json.stringify self
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serialized value.
 Error.to_json : Text
 Error.to_json self = self.to_js_object.to_text
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -45,7 +51,9 @@ Text.to_js_object self =
         Text -> JS_Object.from_pairs [["type", "Text"]]
         _ -> self
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -62,20 +70,26 @@ Number.to_js_object self = case self of
             JS_Object.from_pairs [["type", "Integer"], ["value", self.to_text]]
     _ -> self
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts a JS_Object to an Integer.
 Integer.from (that:JS_Object) =
     case that.get "type" == "Integer" && ["value"].all that.contains_key of
         True -> Integer.parse (that.at "value")
         False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Integer.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
 Decimal.to_js_object : JS_Object
 Decimal.to_js_object self =
     JS_Object.from_pairs [["type", "Decimal"], ["value", self.to_text], ["scale", self.scale], ["precision", self.precision]]
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts a JS_Object to a Decimal.
 Decimal.from (that:JS_Object) =
     case that.get "type" == "Decimal" && ["value", "scale", "precision"].all that.contains_key of
@@ -85,7 +99,9 @@ Decimal.from (that:JS_Object) =
             raw_value.set_scale (that.at "scale")
         False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Decimal.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -95,7 +111,9 @@ Boolean.to_js_object self = case self of
     Boolean -> JS_Object.from_pairs [["type", "Boolean"]]
     _ -> self
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -103,7 +121,9 @@ Boolean.to_js_object self = case self of
 Nothing.to_js_object : Nothing
 Nothing.to_js_object self = self
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -114,7 +134,9 @@ Array.to_js_object self =
     proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -125,7 +147,9 @@ Vector.to_js_object self =
     proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
     Vector.from_polyglot_array proxy
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -152,7 +176,9 @@ Any.to_js_object self =
             JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
         _ -> Error.throw ("Cannot convert " + self.to_text + " to JSON")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
@@ -165,7 +191,9 @@ Error.to_js_object self =
     error_message = ["message", caught.to_display_text]
     JS_Object.from_pairs [error_type, error_content, error_message]
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    Custom serialization for Locale, serializes the language, country and variant.
 Locale.to_js_object : JS_Object
@@ -178,27 +206,35 @@ Locale.to_js_object self =
         b.append ["variant", self.variant]
     JS_Object.from_pairs pairs
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts the given value to a JSON serializable object.
    For Map, this is serialized as a Vector of Key-Value pairs.
-
-   Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
+   Enso Maps support arbitrary types as map keys, so we cannot serialize them
+   into JS Objects because there only strings are accepted as keys.
 Dictionary.to_js_object : JS_Object
 Dictionary.to_js_object self =
     as_vector = self.to_vector
     as_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
 
-## PRIVATE
-   ICON convert
+## ---
+   private: true
+   deprecated: true
+   icon: convert
+   ---
    Extension for Text to allow use.
-   Deprecated: The `parse_json` method uses a faster implementation now by default
+   Deprecated: The `parse_json` method uses a faster implementation now by
+   default
 Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | JS_Object
 Text.parse_fast_json self =
     warning = Deprecated.Warning "Standard.Base.Data.Text.Text" "parse_fast_json" "Deprecated: The `parse_json` method uses a faster implementation now by default"
     Warning.attach warning self.parse_json
 
-## PRIVATE
-   ICON convert
+## ---
+   private: true
+   icon: convert
+   ---
    Extension for Source_Location to allow use.
 Source_Location.to_js_object self =
     pairs = Vector.build initial_capacity=5 b->

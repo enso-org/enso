@@ -4,17 +4,15 @@ import FocusRing from '#/components/styled/FocusRing'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
 import { useText } from '$/providers/react'
+import FileBrowserWidgetVue from '@/components/widgets/FileBrowserWidget.vue'
 import { AnimatePresence, motion } from 'framer-motion'
-import { type CSSProperties, lazy, useRef, useState } from 'react'
+import { type CSSProperties, useRef, useState } from 'react'
 import { ROUNDED_INPUT_BASE_CLASSES } from './JSONSchemaInput'
 
 const ANIMATION_DURATION = 0.2
 
-const FileBrowserWidget = lazy(() =>
-  import('@/components/widgets/FileBrowserWidget.vue').then(({ default: vue }) =>
-    vueComponent(vue),
-  ),
-)
+// eslint-disable-next-line no-restricted-syntax
+const FileBrowserWidget = vueComponent(FileBrowserWidgetVue).default
 
 /** Props for {@link FilePathInput}. */
 export interface FilePathInputProps {
@@ -37,15 +35,12 @@ export default function FilePathInput(props: FilePathInputProps) {
   const roundedInputClassName = (roundBottom: boolean) =>
     twMerge(ROUNDED_INPUT_BASE_CLASSES, roundBottom ? 'rounded-input' : 'rounded-t-input')
 
-  // We want the selection submenu to be below the file browser.
-  const selectionSubmenuZIndex = 0
   const fileBrowserZIndex = 1
 
   /* eslint-disable @typescript-eslint/naming-convention */
   /* eslint-disable-next-line no-restricted-syntax */
   const fileBrowserStyles = {
     '--file-browser-min-width': '280px',
-    '--z-index-selection-submenu': selectionSubmenuZIndex,
     '--z-index-file-browser': fileBrowserZIndex,
     '--selection-submenu-color': 'black',
     '--selection-submenu-background-color': 'var(--color-dashboard-background)',

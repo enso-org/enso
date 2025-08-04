@@ -1,13 +1,12 @@
 /** @file Actions for the "drive" page. */
-import { expect, type Locator, type Page } from '@playwright/test'
-
-import { TEXT } from '.'
+import { expect, type Locator, type Page } from 'playwright/test'
 import type { LocatorCallback } from './BaseActions'
 import { contextMenuActions } from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
 import { goToPageActions, type GoToPageActions } from './goToPageActions'
 import NewDataLinkModalActions from './NewDataLinkModalActions'
 import PageActions from './PageActions'
+import { TEXT } from './utilities'
 
 const ASSET_ROW_SAFE_POSITION = { x: 150, y: 16 }
 
@@ -17,7 +16,7 @@ function locateContextMenu(page: Page) {
   return page.getByTestId('context-menu')
 }
 
-/** Find a drive view. */
+/** Find a drive view. .*/
 function locateDriveView(page: Page) {
   // This has no identifying features.
   return page.getByTestId('drive-view')
@@ -66,6 +65,13 @@ function locateSecretValueInput(page: Page) {
   return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
+/** Find a radio button that navigates to specified drive category. */
+function locateCategoryButton(page: Page, category: string): Locator {
+  return page
+    .getByLabel(TEXT.categorySwitcherMenuLabel)
+    .getByRole('button', { name: category, exact: true })
+}
+
 /** Find an asset panel. */
 function locateRightPanel(page: Page) {
   // This has no identifying features.
@@ -85,47 +91,12 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   }
 
   /** Switch to a different category. */
-  get goToCategory() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self: DrivePageActions<Context> = this
-    return {
-      /** Switch to the "cloud" category. */
-      cloud() {
-        return self.step('Go to "Cloud" category', (page) =>
-          page
-            .getByLabel(TEXT.categorySwitcherMenuLabel)
-            .getByRole('button', { name: TEXT.cloudCategory, exact: true })
-            .getByText(TEXT.cloudCategory)
-            .click(),
-        )
-      },
-      /** Switch to the "local" category. */
-      local() {
-        return self.step('Go to "Local" category', (page) =>
-          page
-            .getByLabel(TEXT.categorySwitcherMenuLabel)
-            .getByRole('button', { name: TEXT.localCategory, exact: true })
-            .getByText(TEXT.localCategory)
-            .click(),
-        )
-      },
-      /** Switch to the "recent" category. */
-      recent() {
-        return self.step('Go to "Recent" category', (page) =>
-          page
-            .getByLabel(TEXT.categorySwitcherMenuLabel)
-            .getByRole('button', { name: TEXT.recentCategory, exact: true })
-            .getByText(TEXT.recentCategory)
-            .click(),
-        )
-      },
-      /** Switch to the "trash" category. */
-      trash() {
-        return self.step('Go to "Trash" category', (page) =>
-          page.getByRole('button', { name: TEXT.trashCategory, exact: true }).click(),
-        )
-      },
-    }
+  goToCategory = {
+    /** Switch to the "cloud" category. */
+    cloud: () => this.goToCategoryNamed(TEXT.cloudCategory),
+    local: () => this.goToCategoryNamed(TEXT.localCategory),
+    recent: () => this.goToCategoryNamed(TEXT.recentCategory),
+    trash: () => this.goToCategoryNamed(TEXT.trashCategory),
   }
 
   /** Interact with the assets search bar. */
@@ -135,21 +106,18 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     )
   }
 
+  /** Select category of specified name. */
+  goToCategoryNamed(this: DrivePageActions<Context>, category: string) {
+    return this.step(`Go to "${category}" category`, async (page) => {
+      await locateCategoryButton(page, category).click()
+      await this.expectCategory(category)
+    })
+  }
+
   /** Expect the category to be selected. */
   expectCategory(category: string) {
     return this.step(`Expect category '${category}'`, (page) =>
-      expect(
-        page.getByLabel(TEXT.categorySwitcherMenuLabel).getByRole('button', { name: category }),
-      ).toHaveAttribute('data-selected', 'true'),
-    )
-  }
-
-  /** Expect the category to be not selected. */
-  expectCategoryNotSelected(category: string) {
-    return this.step(`Expect category '${category}' not selected`, (page) =>
-      expect(
-        page.getByLabel(TEXT.categorySwitcherMenuLabel).getByRole('button', { name: category }),
-      ).toHaveAttribute('data-selected', 'false'),
+      expect(locateCategoryButton(page, category)).toHaveAttribute('data-selected', 'true'),
     )
   }
 
@@ -385,6 +353,15 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     }
   }
 
+  /** Expect editor is opened due to external causes (like auto opening Welcome project). */
+  expectProjectEditorOpened(name: string) {
+    return this.step('Expect Editor is opened', async (page) => {
+      const projectTab = page.getByRole('tab', { name })
+      await expect(projectTab).toBeVisible()
+      await expect(projectTab).toHaveClass(/selected/)
+    }).into(EditorPageActions<Context>)
+  }
+
   /** Clear trash. */
   clearTrash() {
     return this.step('Clear trash', async (page) => {
@@ -425,7 +402,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   ) {
     return this.step(`Upload file '${name}'`, async (page) => {
       const fileChooserPromise = page.waitForEvent('filechooser')
-      await page.getByRole('button', { name: TEXT.uploadFiles }).click()
+      await page.getByRole('button', { name: TEXT.uploadFiles, exact: true }).click()
       const fileChooser = await fileChooserPromise
       await fileChooser.setFiles([{ name, buffer: Buffer.from(contents), mimeType }])
     })

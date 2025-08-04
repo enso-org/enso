@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
+import { useMounted } from '@/composables/events'
 import { injectSelectionArrow } from '@/providers/selectionArrow'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
-import { ArgumentNameShownKey } from './WidgetArgumentName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
 const innerInput = computed(() => ({ ...props.input }))
 const info = injectSelectionArrow(true)
 const teleportTarget = ref<HTMLElement | null>()
-onMounted(() => {
+useMounted(() => {
   assert(teleportTarget.value != null, 'Element ref must be available after mounting.')
   if (info && !info.handled) {
     info.requestArrow(teleportTarget.value)
     info.handled = true
+    return () => (info.handled = false)
   }
 })
-onUnmounted(() => info && (info.handled = false))
 </script>
 
 <script lang="ts">

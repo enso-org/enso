@@ -32,7 +32,7 @@ jobs:
   engine-checks-optional:
     name: ⚙️ Checks (Optional)
     uses: ./.github/workflows/engine-checks-optional.yml
-    needs: [engine-changed-files]
+    needs: [engine-changed-files, engine-checks]
     if: needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
     secrets: inherit
 

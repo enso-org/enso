@@ -1,7 +1,5 @@
 /** @file Application debug information. */
 
-import * as buildUtils from 'enso-common/src/buildUtils'
-
 import BUILD_INFO from '../buildInfo'
 
 // ==================
@@ -46,5 +44,5 @@ async function getInfo() {
 /** Print the current system information. */
 export async function printInfo() {
   const info = await getInfo()
-  console.log(JSON.stringify(info, undefined, buildUtils.INDENT_SIZE))
+  console.log(JSON.stringify(info, undefined, 4))
 }

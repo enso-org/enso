@@ -10,7 +10,8 @@ import scala.collection.mutable
   */
 class VisualizationHolder {
 
-  private var oneshotExpression: OneshotExpression = _
+  private val oneshotExpressions: mutable.Map[ExpressionId, OneshotExpression] =
+    mutable.Map.empty
 
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
@@ -88,18 +89,13 @@ class VisualizationHolder {
   def getOneshotExpression(
     expressionId: ExpressionId
   ): OneshotExpression = {
-    if (
-      oneshotExpression != null && oneshotExpression.expressionId == expressionId
-    ) {
-      return oneshotExpression
-    }
-
-    null
+    oneshotExpressions.remove(expressionId).orNull
   }
 
   /** Set oneshot expression for execution. */
   def setOneshotExpression(oneshotExpression: OneshotExpression): Unit = {
-    this.oneshotExpression = oneshotExpression
+    this.oneshotExpressions
+      .put(oneshotExpression.expressionId, oneshotExpression)
   }
 }
 

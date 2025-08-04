@@ -1,5 +1,9 @@
 private
 
+## This conversion allows us to convert the 'unsafe' raw DB_Table instance
+   (lacking `& Table`, that we get from `Table.underlying`) back to a
+   well-behaved `Table & DB_Table`.
+
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
@@ -43,7 +47,6 @@ from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
 import project.DB_Column.DB_Column
-from project.DB_Table import DB_Table, MAX_LITERAL_ELEMENT_COUNT, make_literal_table
 import project.Dialects.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
@@ -66,10 +69,8 @@ import project.Internal.Take_Drop_Helpers
 import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL.SQL_Type
+from project.DB_Table import DB_Table, make_literal_table, MAX_LITERAL_ELEMENT_COUNT
 from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
-
-## This conversion allows us to convert the 'unsafe' raw DB_Table instance
-   (lacking `& Table`, that we get from `Table.underlying`) back to a well-behaved `Table & DB_Table`.
 from project.Internal.Type_Refinements.DB_Table_Conversions import all
 
 polyglot java import java.sql.JDBCType
@@ -314,6 +315,10 @@ type DB_Table_Implementation
                         renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
+
+    find_group_number (this_table : Table & DB_Table) predicate over group_row name:Text from:Integer step:Integer on_problems:Problem_Behavior =
+        _ = [this_table, predicate, over, group_row, name, from, step, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "find_group_number")
 
     set (this_table : Table & DB_Table) (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new
@@ -687,11 +692,15 @@ type DB_Table_Implementation
             type_mapping.sql_type_to_value_type col.sql_type_reference.get
         Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     columns_helper (this_table : Table & DB_Table) =
         Table_Helpers.Table_Column_Helper.Value this_table.columns this_table.internal_columns this_table.make_column this_table .read
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     column_naming_helper (this_table : Table & DB_Table) = this_table.connection.base_connection.column_naming_helper
 
     to_text (this_table : Table & DB_Table) = "(Database Table "+this_table.name.to_text+")"
@@ -755,7 +764,9 @@ type DB_Table_Implementation
         _ = [this_table, over, as, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "generate_rows")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =
     grouping_columns = columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
     grouping_columns.each column->
@@ -763,7 +774,9 @@ private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Ve
             problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
     grouping_columns
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _resolve_order_descriptors table ordering operation_name:Text =
     Ordering_Helpers.require_ordering table operation_name ordering=ordering <|
         dialect = table.connection.dialect

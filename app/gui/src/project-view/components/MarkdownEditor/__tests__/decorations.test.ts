@@ -12,7 +12,8 @@ function decorations<T>(
     state: EditorState.create({
       doc: source,
       extensions: ensoMarkdown({
-        tryUploadPastedImage: undefined,
+        customClipboardAction: () => false,
+        customDropAction: () => false,
       }),
     }),
   })

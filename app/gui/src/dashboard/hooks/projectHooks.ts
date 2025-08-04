@@ -6,15 +6,14 @@ import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
+import type { LaunchedProject, LaunchedProjectId } from '$/providers/container'
+import * as authProvider from '$/providers/react'
 import {
   useAddLaunchedProject,
-  useProjectsStore,
+  useContainerData,
   useRemoveLaunchedProject,
   useUpdateLaunchedProjects,
-  type LaunchedProject,
-  type LaunchedProjectId,
-} from '#/providers/ProjectsProvider'
-import * as authProvider from '$/providers/react'
+} from '$/providers/react/container'
 
 import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
@@ -99,6 +98,7 @@ export const BUSY_PROJECT_STATES = new Set([
   ...Array.from(OPENING_PROJECT_STATES),
   ...Array.from(CLOSING_PROJECT_STATES),
   backendModule.ProjectState.opened,
+  backendModule.ProjectState.hybridOpened,
 ])
 
 /** Stale time for local projects, set to 10 seconds. */
@@ -222,7 +222,6 @@ export function useOpenProjectMutation() {
       title,
       id,
       type,
-      parentId,
       hybrid,
       inBackground = false,
       suppressHybridProjectOpen: _ = false,
@@ -246,7 +245,6 @@ export function useOpenProjectMutation() {
               refreshUrl: session.refreshUrl,
             },
             cloudProjectDirectoryPath,
-            parentId,
           },
           title,
         )
@@ -290,7 +288,12 @@ export function useCloseProjectMutation() {
 
   return useMutationCallback({
     mutationKey: ['closeProject'],
-    mutationFn: async ({ type, id, title, hybrid }: LaunchedProject) => {
+    mutationFn: async ({
+      type,
+      id,
+      title,
+      hybrid,
+    }: Pick<LaunchedProject, 'hybrid' | 'id' | 'parentId' | 'title' | 'type'>) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -376,6 +379,7 @@ export function useCloseProjectMutation() {
 /** Mutation to rename a project. */
 export function useRenameProjectMutation() {
   const updateLaunchedProjects = useUpdateLaunchedProjects()
+  const client = reactQuery.useQueryClient()
 
   return useMutationCallback({
     mutationKey: ['renameProject'],
@@ -391,6 +395,28 @@ export function useRenameProjectMutation() {
       const { id, title } = project
 
       return backend.updateProject(id, { projectName: newName }, title)
+    },
+    onMutate: async ({ newName, project }) => {
+      const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
+      await client.cancelQueries({
+        queryKey,
+      })
+      // Optimistically update the project name.
+      client.setQueryData<backendModule.Project>(queryKey, (data) => {
+        if (data == null) return undefined
+        return {
+          ...data,
+          name: newName,
+        }
+      })
+
+      return { queryKey }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.queryKey) {
+        const toInvalidate = [['listDirectory'], ['getAssetDetails'], context.queryKey]
+        return Promise.all(toInvalidate.map((queryKey) => client.invalidateQueries({ queryKey })))
+      }
     },
     onSuccess: (_, { newName, project }) => {
       updateLaunchedProjects((projects) =>
@@ -413,7 +439,7 @@ const OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA = z.object({
 /** A callback to open a project. */
 function useOpenProject() {
   const client = reactQuery.useQueryClient()
-  const projectsStore = useProjectsStore()
+  const containerData = useContainerData()
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
   const addLaunchedProject = useAddLaunchedProject()
@@ -439,7 +465,7 @@ function useOpenProject() {
       if (!enableMultitabs) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
         // The current project is opened as launched above.
-        if (projectsStore.getState().launchedProjects.length > 0) {
+        if (containerData.openedProjects.length > 0) {
           await closeAllProjects()
         }
       }
@@ -486,18 +512,19 @@ function useOpenHybridProject() {
 
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
+      let launchedProject: LaunchedProject | undefined
+
       try {
         invariant(localBackend != null, 'Local Backend is null')
         addOpeningProject(asset.id)
         await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
-        invariant(asset.ensoPath, 'Enso path is not defined')
         const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
 
         let project
-        for (const parentId of [localProject.targetId, localProject.parentId]) {
+        for (const parentId of [localProject.parentId, localProject.projectRootId]) {
           const assets = await localBackend.listDirectory({
-            parentId: parentId,
+            parentId,
             filterBy: null,
             labels: null,
             recentProjects: false,
@@ -509,11 +536,12 @@ function useOpenHybridProject() {
         }
 
         removeOpeningProject(asset.id)
-        invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-        await openProject({
+        invariant(project, 'Downloaded cloud project does not exist in Local Backend.')
+        launchedProject = {
           id: project.id,
           title: asset.title,
           parentId: project.parentId,
+          ensoPath: asset.ensoPath,
           type: backendModule.BackendType.local,
           hybrid: {
             cloudProjectId: asset.id,
@@ -521,11 +549,15 @@ function useOpenHybridProject() {
             parentId: localProject.parentId,
             cloudProjectDirectoryPath,
           },
-        })
+        }
+        await openProject(launchedProject)
       } catch (error) {
         removeOpeningProject(asset.id)
         toastAndLog('openProjectError', error, asset.title)
-        await closeProject({ ...asset, type: backendModule.BackendType.local })
+        await Promise.allSettled([
+          closeProject({ ...asset, type: backendModule.BackendType.remote }),
+          ...(launchedProject ? [closeProject(launchedProject)] : []),
+        ])
       }
     },
   )
@@ -552,7 +584,7 @@ export function useOpenProjectNatively() {
 
   return eventCallbacks.useEventCallback(
     async (
-      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
       if (!canRunProjects.natively[backendType]) {
@@ -593,60 +625,61 @@ export function useCloseProject() {
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
 
-  return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
-    client
-      .getMutationCache()
-      .findAll({
-        mutationKey: ['openProject'],
-        predicate: (mutation) => mutation.options.scope?.id === project.id,
-      })
-      .forEach((mutation) => {
-        mutation.setOptions({ ...mutation.options, retry: false })
-        mutation.destroy()
-      })
+  return eventCallbacks.useEventCallback(
+    async (project: Pick<LaunchedProject, 'hybrid' | 'id' | 'parentId' | 'title' | 'type'>) => {
+      client
+        .getMutationCache()
+        .findAll({
+          mutationKey: ['openProject'],
+          predicate: (mutation) => mutation.options.scope?.id === project.id,
+        })
+        .forEach((mutation) => {
+          mutation.setOptions({ ...mutation.options, retry: false })
+          mutation.destroy()
+        })
 
-    const promise = closeProjectMutation(project)
+      const promise = closeProjectMutation(project)
 
-    client
-      .getMutationCache()
-      .findAll({
-        mutationKey: ['closeProject'],
-        // This is unsafe, but we cannot do anything about it.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: (mutation) => mutation.state.variables?.id === project.id,
-      })
-      .forEach((mutation) => {
-        mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
-      })
+      client
+        .getMutationCache()
+        .findAll({
+          mutationKey: ['closeProject'],
+          // This is unsafe, but we cannot do anything about it.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          predicate: (mutation) => mutation.state.variables?.id === project.id,
+        })
+        .forEach((mutation) => {
+          mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
+        })
 
-    removeLaunchedProject(project.id)
+      removeLaunchedProject(project.id)
 
-    await promise
-  })
+      await promise
+    },
+  )
 }
 
 /** A function to close all projects. */
 export function useCloseAllProjects() {
   const closeProject = useCloseProject()
-  const projectsStore = useProjectsStore()
+  const containerData = useContainerData()
   const removeLaunchedProject = useRemoveLaunchedProject()
   const { remoteBackend, localBackend } = useBackends()
   const ensureQueryData = useEnsureQueryData()
 
   return eventCallbacks.useEventCallback(async () => {
-    const launchedProjects = projectsStore.getState().launchedProjects
+    const launchedProjects = containerData.openedProjects
 
     await Promise.all(
       launchedProjects.map(async (project) => {
-        const isHybrid = project.hybrid != null
         const backend =
-          project.type === backendModule.BackendType.remote || isHybrid ?
+          project.type === backendModule.BackendType.remote || project.hybrid != null ?
             remoteBackend
           : localBackend
         invariant(backend != null, 'Backend must not be async null')
         const projectDetails = await ensureQueryData(
           createGetProjectDetailsQuery({
-            assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
+            assetId: project.hybrid != null ? project.hybrid.cloudProjectId : project.id,
             backend,
           }),
         )

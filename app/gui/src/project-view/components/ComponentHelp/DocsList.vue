@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { FunctionDocs, TypeDocs } from '@/components/ComponentHelp/ir'
-import type { Doc } from '@/util/docParser'
 import { qnSplit } from '@/util/qualifiedName'
 import { computed } from 'vue'
 import type {
@@ -28,12 +27,6 @@ interface Types {
 
 type ListItems = Methods | Constructors | Types
 
-function firstParagraph(synopsis: Doc.Section[]): string | undefined {
-  if (synopsis[0] && 'Paragraph' in synopsis[0]) {
-    return synopsis[0].Paragraph.body
-  }
-}
-
 function argumentsList(args: SuggestionEntryArgument[]): string {
   return args
     .map((arg) => {
@@ -44,7 +37,7 @@ function argumentsList(args: SuggestionEntryArgument[]): string {
 }
 
 const annotations = computed<Array<string | undefined>>(() => {
-  return props.items.items.map((item) => firstParagraph(item.sections.synopsis))
+  return props.items.items.map((item) => item.documentationSummary)
 })
 </script>
 

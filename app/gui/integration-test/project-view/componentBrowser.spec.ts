@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test'
+import { test, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
@@ -32,8 +32,8 @@ async function expectAndCancelBrowser(
       'data-self-argument',
       expectedSelfArgument,
     )
-  await expect(page.getByTestId('component-editor-content')).toHaveText(expectedText)
-  await expect(page.getByTestId('component-editor-content')).toBeInViewport()
+  await expect(locate.componentBrowserInput(page)).toHaveText(expectedText)
+  await expect(locate.componentBrowserInput(page)).toBeInViewport()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(page.locator('[data-transitioning]')).toHaveCount(0)
@@ -150,7 +150,7 @@ test('Accepting suggestion', async ({ page }) => {
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
     'Data',
     '.',
-    'read_text',
+    'read_many',
   ])
   await expect(locate.graphNode(page).last()).toBeSelected()
 
@@ -189,7 +189,7 @@ test('Accepting any written input', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
   const nodeCount = await locate.graphNode(page).count()
-  await page.getByTestId('component-editor-content').fill('re')
+  await locate.componentBrowserInput(page).fill('re')
   await page.keyboard.press(ACCEPT_INPUT_SHORTCUT)
   await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
@@ -205,19 +205,19 @@ test('Filling input with suggestion', async ({ page }) => {
   // Applying suggestion
   await page.keyboard.press('Shift+Enter')
   await expect(locate.componentBrowser(page)).toExist()
-  await expect(page.getByTestId('component-editor-content')).toHaveText('Data.read ')
+  await expect(locate.componentBrowserInput(page)).toHaveText('Data.read ')
 })
 
 test('Filtering list', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
-  await page.getByTestId('component-editor-content').fill('re_te')
+  await locate.componentBrowserInput(page).fill('re_ma')
   const segments = locate.componentBrowserEntry(page).locator('.component-label-segment')
-  await expect(segments).toHaveText(['Data.', 're', 'ad', '_te', 'xt'])
+  await expect(segments).toHaveText(['Data.', 're', 'ad', '_ma', 'ny'])
   const highlighted = locate.componentBrowserEntry(page).locator('.component-label-segment.match')
-  await expect(highlighted).toHaveText(['re', '_te'])
+  await expect(highlighted).toHaveText(['re', '_ma'])
   // Filtered-out group are hidden, and the rest displays number of matched elements.
-  await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'Input (1)'])
+  await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'File (1)'])
 })
 
 test('Navigating components', async ({ page }) => {
@@ -230,10 +230,10 @@ test('Navigating components', async ({ page }) => {
     'Returns: Any',
   ])
   await page.keyboard.press('ArrowDown')
-  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read_text')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read_many')
   await expect(page.locator('.documentationContent > p')).toHaveText([
-    'Open and read the file at the provided path.',
-    'Returns: Text',
+    'Reads a list of files into Enso.',
+    'Returns: Any',
   ])
   await page.getByRole('button', { name: 'Show Help' }).click()
   await expect(locate.rightDock(page)).toBeVisible()
@@ -243,15 +243,29 @@ test('Navigating groups', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
-  await expect(page.locator('.groupEntry')).toHaveText(['suggestions', 'Input', 'Output'])
-  await expect(locate.componentBrowserEntry(page)).toHaveText(['Data.read', 'Data.read_text'])
+  await expect(page.locator('.groupEntry')).toHaveText([
+    'suggestions',
+    'File',
+    'Web',
+    'DateTime',
+    'Constants',
+    'Conversions',
+  ])
+  await expect(locate.componentBrowserEntry(page)).toHaveText([
+    'Data.read',
+    'Data.read_many',
+    'Data.fetch',
+    'Table.input',
+    'Data.post',
+    'Date_Time.now',
+  ])
 
   // Hover first group
   await page.locator('.groupEntry').nth(1).hover()
-  // Wait for view update: "Input" group have more entries than "suggestions"
-  await expect(locate.componentBrowserEntry(page)).toHaveCountGreaterThan(2)
+  // Wait for view update: "File" group has only two entries
+  await expect(locate.componentBrowserEntry(page)).toHaveCount(2)
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toHaveCount(0)
+  await expect(locate.componentBrowserEntryByLabel(page, 'Date_Time.now')).toHaveCount(0)
   await expect(locate.componentBrowserSelectedEntry(page)).toExist() // component list didn't lose focus.
 
   // Navigate to second group using arrows.
@@ -259,9 +273,9 @@ test('Navigating groups', async ({ page }) => {
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
   await page.keyboard.press('ArrowDown')
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
-  await expect(page.locator('.groupEntry.selected')).toHaveText('Output')
+  await expect(page.locator('.groupEntry.selected')).toHaveText('Web')
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toHaveCount(0)
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.fetch')).toExist()
   await page.keyboard.press('Tab')
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
 })
@@ -275,7 +289,7 @@ test('Editing existing nodes', async ({ page }) => {
   await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
   await expect(locate.componentBrowser(page)).toBeVisible()
   await expect(page.getByTestId('component-editor-label')).not.toExist()
-  const content = page.getByTestId('component-editor-content')
+  const content = locate.componentBrowserInput(page)
   await expect(content).toHaveText('Data.read')
 
   // Add argument and accept - assume the editor is already focused.
@@ -313,7 +327,7 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserEntry(page)).toExist()
-  const content = page.getByTestId('component-editor-content')
+  const content = locate.componentBrowserInput(page)
   await content.fill('Table.ne')
   await expect(content).toHaveText('Table.ne')
   await page.keyboard.press(`Shift+Enter`)
@@ -328,7 +342,7 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
-  const content = page.getByTestId('component-editor-content')
+  const content = locate.componentBrowserInput(page)
   await content.fill('4')
   await expect(content).toHaveText('4')
   await page.keyboard.press(`Shift+Enter`)
@@ -370,7 +384,7 @@ test.skip('Component browser handling of overridden record-mode', async ({ page 
   // Ensure editing in the component browser doesn't display the override expression.
   await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
   await expect(locate.componentBrowser(page)).toBeVisible()
-  const content = page.getByTestId('component-editor-content')
+  const content = locate.componentBrowserInput(page)
   await expect(content).toHaveText('Data.read')
   // Ensure committing an edit doesn't change the override state.
   await page.keyboard.press('End')
@@ -398,6 +412,6 @@ test('AI prompt', async ({ page }) => {
   await page.keyboard.insertText('AI:convert to table')
   await expect(page.locator('.ComponentList')).not.toExist()
   await page.keyboard.press('Enter')
-  await expect(page.getByTestId('component-editor-content')).toHaveText('to_table')
+  await expect(locate.componentBrowserInput(page)).toHaveText('to_table')
   await expect(locate.componentBrowser(page)).toHaveAttribute('data-self-argument', 'data')
 })

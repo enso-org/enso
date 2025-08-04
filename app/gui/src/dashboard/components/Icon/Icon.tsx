@@ -3,9 +3,6 @@
  *
  * Icon component that displays an icon based on different input.
  */
-import icons from '@/assets/icons.svg'
-import { isIconName, type Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
-
 import type {
   AvailableIconReturn,
   IconProp,
@@ -15,6 +12,8 @@ import type {
   TestIdProps,
 } from '#/components/types'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import icons from '@/assets/icons.svg'
+import { isIconName, type Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
 import { memo } from 'react'
 import SvgMask from '../SvgMask'
 
@@ -161,7 +160,7 @@ export interface SvgUseProps extends TestIdProps {
  * @internal
  */
 export function SvgUse(props: SvgUseProps) {
-  const { icon, testId = 'svg-use', className, alt = '' } = props
+  const { icon, testId, className, alt = '' } = props
 
   return (
     <svg

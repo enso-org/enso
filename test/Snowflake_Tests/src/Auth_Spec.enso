@@ -24,7 +24,7 @@ with_temp_user base_connection callback =
      Panic.with_finalizer (base_connection.execute_update ('DROP USER "' + user_name + '"')) <|
          callback user_name
 
-generate_local_key_pair passphrase:Text|Nothing =
+generate_local_key_pair passphrase:Text =
     public_key_file = File.create_temporary_file "snowflake-key" ".pub"
     private_key_file = File.create_temporary_file "snowflake-key" ".p8"
     TestKeyGenerator.generateKeyPairForTest private_key_file.path public_key_file.path passphrase
@@ -37,7 +37,7 @@ make_connection_details_with_credentials credentials =
 add_specs suite_builder ~default_connection =
     suite_builder.group "[Snowflake] Key-pair authentication" group_builder->
         group_builder.specify "using local private key" <|
-            key_pair = generate_local_key_pair passphrase=Nothing
+            key_pair = generate_local_key_pair passphrase=""
             private_key_file = key_pair.first
 
             with_temp_user default_connection user_name->
@@ -74,6 +74,26 @@ add_specs suite_builder ~default_connection =
                 default_connection.execute_update (generated_key.alter_user_query user_name) . should_succeed
 
                 key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=generated_key
+                new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
+                Panic.with_finalizer new_connection.close <|
+                    new_connection.query (..Raw_SQL "SELECT 2+3") . read
+            table.at 0 . at 0 . should_equal 5
+
+        group_builder.specify "using local private key encrypted with passphrase stored in secret" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            passphrase = "not-a-safe-passphrase-1234"
+            key_pair = generate_local_key_pair passphrase=passphrase
+            private_key_file = key_pair.first
+            
+            existing_secret = Enso_Secret.get "snowflake-passphrase" test_root.get
+            secret_exists = existing_secret.is_error.not
+            secret = case secret_exists of
+                True -> existing_secret.update_value passphrase
+                False -> Enso_Secret.create "snowflake-passphrase" passphrase test_root.get
+
+            table = with_temp_user default_connection user_name->
+                default_connection.execute_update (generate_alter_user_query user_name key_pair.second.read_text) . should_succeed
+                
+                key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=private_key_file passphrase=secret
                 new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
                 Panic.with_finalizer new_connection.close <|
                     new_connection.query (..Raw_SQL "SELECT 2+3") . read

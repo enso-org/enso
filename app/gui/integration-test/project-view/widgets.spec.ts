@@ -308,13 +308,13 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   const onProblemsArg = topLevelArgs.filter({ has: page.getByText('on_problems') })
   await onProblemsArg.click()
   const onProblemsDropdown = new DropDownLocator(onProblemsArg)
-  await onProblemsDropdown.expectVisibleWithOptions(['Ignore', 'Report_Warning', 'Report_Error'])
-  await onProblemsDropdown.clickOption('Report_Error')
-  await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
-    'Problem_Behavior',
-    '.',
-    'Report_Error',
+  await onProblemsDropdown.expectVisibleWithOptions([
+    '..Ignore',
+    '..Report_Warning',
+    '..Report_Error',
   ])
+  await onProblemsDropdown.clickOption('Report_Error')
+  await expect(onProblemsArg.locator('.WidgetToken')).toContainText(['..', 'Report_Error'])
 
   // Change value on `on_problems`
   await mockMethodCallInfo(page, 'data', {
@@ -326,13 +326,13 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [0, 1],
   })
   await page.getByText('Report_Error').click()
-  await onProblemsDropdown.expectVisibleWithOptions(['Ignore', 'Report_Warning', 'Report_Error'])
-  await onProblemsDropdown.clickOption('Report_Warning')
-  await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
-    'Problem_Behavior',
-    '.',
-    'Report_Warning',
+  await onProblemsDropdown.expectVisibleWithOptions([
+    '..Ignore',
+    '..Report_Warning',
+    '..Report_Error',
   ])
+  await onProblemsDropdown.clickOption('Report_Warning')
+  await expect(onProblemsArg.locator('.WidgetToken')).toContainText(['..', 'Report_Warning'])
 
   // Set value on `path` (dynamic config)
   const pathArg = topLevelArgs.filter({ has: page.getByText('path') })
@@ -373,11 +373,19 @@ test('Selection widget with text widget as input', async ({ page }) => {
   // Editing text input shows and filters drop down
   await pathArgInput.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
-  await page.keyboard.insertText('File 1')
+  // Using `type` instead of `inputText` here to catch keydown bugs like #13505.
+  await page.keyboard.type('File 1')
   await pathDropdown.expectVisibleWithOptions(['File 1'])
-  // Clearing input should show all text literal options
+  // Clearing input should show all options
   await pathArgInput.clear()
-  await pathDropdown.expectVisibleWithOptions(['File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
+
+  // When a filter doesn't match any entries, the dropdown is hidden.
+  await page.keyboard.insertText('No such entry')
+  await pathDropdown.expectNotVisible()
+  // If the text is changed so that the entries list is no longer empty, the dropdown returns.
+  await pathArgInput.clear()
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
 
   // Esc should cancel editing and close drop down
   await page.keyboard.press('Escape')
@@ -438,6 +446,8 @@ test('File Browser widget', async ({ page }) => {
 
 test('Manage aggregates in `aggregate` node', async ({ page }) => {
   await actions.goToGraph(page)
+  // Hide docpanel to not obscure long node.
+  await page.getByRole('tab', { name: 'Documentation' }).click()
   await mockMethodCallInfo(page, 'aggregated', {
     methodPointer: {
       module: 'Standard.Table.Table',
@@ -622,11 +632,11 @@ test('Autoscoped constructors', async ({ page }) => {
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
   // Wait for hidden arguments to appear after selecting the node.
   await node.click()
-  await expect(topLevelArgs).toHaveCount(3)
+  await expect(topLevelArgs).toHaveCount(4)
 
   const groupBy = node.getByTestId('list-item-content')
   await expect(groupBy).toBeVisible()
-  await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'new_name'])
+  await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'as“”'])
 })
 
 test('Table widget', async ({ page }) => {

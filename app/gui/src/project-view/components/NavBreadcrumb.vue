@@ -53,6 +53,11 @@ watch(editorRoot, (editorRoot) => {
   padding-bottom: 2px;
   user-select: none;
   border-radius: var(--radius-full);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .CodeMirrorRoot {

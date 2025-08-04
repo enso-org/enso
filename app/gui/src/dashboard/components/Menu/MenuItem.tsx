@@ -81,14 +81,7 @@ export interface MenuItemCustomContentProps {
 export const MenuItem = memo(function MenuItem<T extends object, IconType extends string>(
   props: MenuItemProps<T, IconType>,
 ) {
-  const {
-    icon,
-    shortcut,
-    className,
-    variants = MENU_ITEM_STYLES,
-    testId = 'menu-item',
-    ...itemProps
-  } = props
+  const { icon, shortcut, className, variants = MENU_ITEM_STYLES, testId, ...itemProps } = props
 
   return (
     <AriaMenuItem data-testid={testId} {...itemProps}>

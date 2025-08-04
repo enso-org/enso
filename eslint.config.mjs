@@ -9,7 +9,6 @@ import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
-import reactCompiler from 'eslint-plugin-react-compiler'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import pluginVue from 'eslint-plugin-vue'
@@ -143,10 +142,6 @@ const RESTRICTED_SYNTAXES = [
     message: 'Use arrow functions for nested functions',
   },
   {
-    selector: 'IfStatement > ExpressionStatement',
-    message: 'Wrap `if` branches in `{}`',
-  },
-  {
     selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
     message: 'Use `while (true)` instead of `for (;;)`',
   },
@@ -247,6 +242,11 @@ const config = [
               name: 'vue',
               importNames: ['proxyRefs'],
               message: 'Use more type-safe alternative in @/util/reactivity',
+            },
+            {
+              name: 'veaury',
+              importNames: ['applyReactInVue', 'applyPureReactInVue'],
+              message: 'Use `reactComponent` in @/util/react',
             },
           ],
         },
@@ -459,7 +459,10 @@ const config = [
           },
         },
       ],
-      '@typescript-eslint/no-confusing-void-expression': 'error',
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreVoidReturningFunctions: true },
+      ],
       '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-extraneous-class': 'error',
       '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
@@ -617,27 +620,6 @@ const config = [
             syntax.message !== 'Use a `getText()` from `useText` instead of a literal string',
         ),
       ],
-    },
-  },
-  // === React Compiler Rules ===
-  {
-    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
-    ignores: [
-      '**/*.d.ts',
-      '**/*.spec.ts',
-      '**/*.stories.tsx',
-      '**/*.test.tsx',
-      '**/*.test.ts',
-      '**/utilities/*.ts',
-      '**/services/*.ts',
-      '**/assets/*',
-      '**/authentication/*',
-      '**/configuration/*',
-      '**/index.ts',
-    ],
-    plugins: { 'react-compiler': reactCompiler },
-    rules: {
-      'react-compiler/react-compiler': 'error',
     },
   },
   // === Index Files ===

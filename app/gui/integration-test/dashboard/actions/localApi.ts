@@ -30,10 +30,13 @@ function array<T>(): Readonly<T>[] {
   return []
 }
 
+const ROOT_PARENT_PATH = Path('/home/user/enso')
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
+const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
+  getDownloadDirectory: array<object>(),
   downloadCloudProject: array<object>(),
   downloadProject: array<{ uuid: UUID; projectsDirectory: Path }>(),
   getFileContent: array<{ path: string }>(),
@@ -92,17 +95,17 @@ export interface SetupLocalAPI {
 }
 
 /** Parameters for {@link mockApi}. */
-export interface MockParams {
+export interface LocalMockParams {
   readonly page: Page
   readonly setupLocalAPI?: SetupLocalAPI | null | undefined
 }
 /** The return type of {@link localMockApi}. */
 export interface LocalMockApi extends Awaited<ReturnType<typeof localMockApiInternal>> {}
 
-export const mockLocalApi: (params: MockParams) => Promise<LocalMockApi> = localMockApiInternal
+export const mockLocalApi: (params: LocalMockParams) => Promise<LocalMockApi> = localMockApiInternal
 
 /** Add route handlers for the mock API to a page. */
-async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
+async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
   const fileSystem = new Map<string, FileSystemEntryWithData>()
   const openProjects = new Map<UUID, ProjectState>()
 
@@ -255,7 +258,9 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
     addEntry(options.path, createFile(options))
   }
 
+  addDirectory({ path: ROOT_PARENT_PATH })
   addDirectory({ path: ROOT_PATH })
+  addDirectory({ path: DOWNLOAD_PATH })
 
   await test.step('Mock Local API', async () => {
     await page.routeWebSocket('ws://localhost:30535/', (ws) => {
@@ -286,7 +291,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
               projectName: params.name,
               projectNormalizedName: params.name,
             }
-            const result: CreateProject = { projectId: id, ...metadata }
+            const result: CreateProject = { projectId: id, projectPath: path, ...metadata }
             addProject({
               path,
               metadata: {
@@ -347,7 +352,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       })
     })
 
-    await page.route('/api/root-directory', async (route, request) => {
+    await page.route('/api/root-directory-path', async (route, request) => {
       called('getRootDirectory', {})
       if (request.method() !== 'GET') {
         return route.fulfill({ status: 400 })
@@ -358,13 +363,24 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       })
     })
 
+    await page.route('/api/download-directory-path', async (route, request) => {
+      called('getDownloadDirectory', {})
+      if (request.method() !== 'GET') {
+        return route.fulfill({ status: 400 })
+      }
+      return route.fulfill({
+        contentType: 'text/plain',
+        body: DOWNLOAD_PATH,
+      })
+    })
+
     await page.route('/api/cloud/download-project?*', async (route, request) => {
       called('downloadCloudProject', {})
       if (request.method() !== 'GET') {
         return route.fulfill({ status: 400 })
       }
       const projectId = uniqueString()
-      const parentDirectory = join(ROOT_PATH, `cloud-${projectId}`)
+      const parentDirectory = join(ROOT_PATH, `cloud-project-${projectId}`)
       const targetDirectory = join(parentDirectory, 'project_root')
       addDirectory({ path: Path(parentDirectory) })
       addProject({
@@ -391,8 +407,9 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
     await page.route('/api/upload-file?*', async (route, request) => {
       const params = new URL(request.url()).searchParams
       const fileName = params.get('file_name')
-      const directoryPathRaw = params.get('directory')
-      const directoryPath = directoryPathRaw != null ? Path(directoryPathRaw) : ROOT_PATH
+      const directoryPathRaw = params.get('directory') as backend.DirectoryId | null
+      const directoryPath =
+        directoryPathRaw != null ? backend.extractTypeAndPath(directoryPathRaw).path : ROOT_PATH
       const filePath = Path(`${directoryPath}/${fileName}`)
       if (filePath == null) {
         return route.fulfill({ status: 400 })
@@ -463,7 +480,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
           return succeed({ exists: fileSystem.has(path) })
         }
         case 'filesystem-list': {
-          const folderPath = cliArguments[0]
+          const folderPath = cliArguments[0]?.replace(/[/]$/, '')
           const folder = folderPath != null ? fileSystem.get(folderPath) : null
           if (folder?.type !== 'DirectoryEntry') {
             return fail(`Could not find folder at '${folderPath}'`)

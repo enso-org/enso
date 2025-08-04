@@ -10,7 +10,9 @@ import { proxyRefs } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
 import {
   computed,
+  onMounted,
   onScopeDispose,
+  onUnmounted,
   ref,
   shallowRef,
   toValue,
@@ -116,12 +118,16 @@ export function useEventConditional(
   handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
-  watch(condition, (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      target.addEventListener(event, handler, options)
-      onCleanup(() => target.removeEventListener(event, handler, options))
-    }
-  })
+  watch(
+    condition,
+    (conditionMet, _, onCleanup) => {
+      if (conditionMet) {
+        target.addEventListener(event, handler, options)
+        onCleanup(() => target.removeEventListener(event, handler, options))
+      }
+    },
+    { immediate: true },
+  )
 }
 
 /** Whether focused element is within given element's subtree. */
@@ -656,4 +662,16 @@ export function useStateBeforePointerdown<T>(
      */
     stateBeforeClick,
   }
+}
+
+/** Calls the provide function on mount, and calls the function's return value on unmount. */
+export function useMounted(hook: () => (() => void) | undefined) {
+  let unmountedHook: (() => void) | undefined = undefined
+  onMounted(() => {
+    unmountedHook = hook()
+  })
+  onUnmounted(() => {
+    unmountedHook?.()
+    unmountedHook = undefined
+  })
 }

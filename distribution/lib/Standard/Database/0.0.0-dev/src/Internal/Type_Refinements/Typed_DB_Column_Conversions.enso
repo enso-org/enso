@@ -6,9 +6,9 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Column
 import Standard.Table.Internal.Type_Refinements.Typed_Column_Helpers
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+from Standard.Table import Column
 
 import project.DB_Column.DB_Column
 import project.Internal.Type_Refinements.Typed_DB_Column_Implementations.DB_Numeric_Column_Implementation

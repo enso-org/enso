@@ -14,6 +14,7 @@ import {
   markRaw,
   onActivated,
   onDeactivated,
+  onMounted,
   onScopeDispose,
   ref,
   toRaw,
@@ -27,8 +28,9 @@ const props = defineProps<{
   readonly projectInitialName: string
   readonly projectDisplayedName: string
   readonly projectNamespace?: string
+  readonly projectPath: string
   readonly engine: LsUrls
-  readonly renameProject: (newName: string) => void
+  readonly renameProject: (newName: string) => Promise<void>
   /** The current project's backend, which may be remote or local. */
   readonly projectBackend?: Opt<Backend>
   /**
@@ -67,8 +69,9 @@ provideSettings()
 const visible = ref(false)
 provideVisibility(visible)
 openedProjects.registerProject(toRefs(props))
-onScopeDispose(() => openedProjects.projectClosed(props.projectId))
+onScopeDispose(() => openedProjects.unregisterProject(props.projectId))
 
+onMounted(() => (visible.value = true))
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
 </script>

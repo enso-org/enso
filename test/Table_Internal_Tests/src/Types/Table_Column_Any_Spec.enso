@@ -1,0 +1,39 @@
+from Standard.Base import all
+from Standard.Table import all
+
+import Standard.Base.Internal.Meta_Helpers
+
+from Standard.Test import all
+
+# using Meta_Helpers requires us to run with --disabled-private-checks option
+# hence this module is in an "_Internal_" test suite
+private assert_type_name value:Any expected_name:Text = Frame_Hider.hide <|
+    actual_name = Meta_Helpers.simple_type_name_builtin value
+    actual_name . should_equal expected_name
+
+add_specs suite_builder =
+    suite_builder.group "Intersection types in table" group_builder->
+        group_builder.specify "Table of Integer" <|
+            ## Table
+            file1 = Table.new [["A", [1]]]
+            abs_off_table = file1.abs
+            range_off_table = (file1:Integer).up_to 1000
+
+            assert_type_name file1  "Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column & ~Integer"
+            assert_type_name abs_off_table  "Column & Numeric_Column & ~In_Memory_Column & ~Integer"
+            assert_type_name range_off_table  "Range"
+
+    suite_builder.group "Intersection types in column" group_builder->
+        group_builder.specify "Column of Integer" <|
+            file1 = Table.new [["A", [1]]]
+            column1 = file1.at 'A'
+            abs_column = column1.abs
+            range_off_column = (column1:Integer).up_to 1000
+
+            assert_type_name column1  "Column & In_Memory_Column & Numeric_Column & ~Integer"
+            assert_type_name abs_column  "Column & Numeric_Column & ~In_Memory_Column & ~Integer"
+            assert_type_name range_off_column  "Range"
+
+            as_int_plus v = v:(Integer & Any)
+
+            assert_type_name (as_int_plus column1) "Integer & In_Memory_Column & Numeric_Column & Column"

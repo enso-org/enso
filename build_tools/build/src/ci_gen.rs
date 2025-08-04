@@ -161,6 +161,10 @@ pub mod secret {
     // === OAuth Integrations ===
     /// The client ID for the Google OAuth integration used for Google Credentials.
     pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Strava OAuth integration used for Strava Credentials.
+    pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -268,7 +272,7 @@ pub fn cleaning_step(
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
     let mut ret = run("git-clean").with_name(name);
-    ret.r#if = CleaningCondition::format_conjunction(conditions);
+    ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }
 
@@ -955,6 +959,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Google",
         "Image",
         "Microsoft",
+        "Saas",
         "Snowflake",
         "Table",
         "Tableau",

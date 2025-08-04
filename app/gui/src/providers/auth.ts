@@ -1,16 +1,16 @@
-import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
 import { useFeatureFlag } from '$/providers/featureFlags'
+import * as analytics from '$/utils/analytics'
 import { Opt } from '@/util/data/opt'
 import { proxyRefs, ToValue } from '@/util/reactivity'
+import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { useBackends } from './backends'
@@ -27,7 +27,23 @@ export function createUsersMeQueryKey(
   session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
 ) {
-  return [remoteBackend.type, 'usersMe', () => toValue(session)?.clientId ?? null] as const
+  return [
+    remoteBackend.type,
+    'usersMe',
+    computed(() => toValue(session)?.clientId ?? null),
+  ] as const
+}
+
+const ACCOUNT_FRESHNESS_THRESHOLD_MS = 1000 * 60 * 30 // 30 minutes
+
+function extractTimestampFromKsuid(ksuid: string): Date {
+  const decoded = [...ksuid].reduce(
+    (p, c) =>
+      p * 62n + BigInt('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.indexOf(c)),
+    0n,
+  )
+  const timestamp = Number(decoded >> 128n) * 1000
+  return new Date(1.4e12 + timestamp)
 }
 
 /** Query to fetch the user's session data from the backend. */
@@ -36,6 +52,7 @@ export function createUsersMeQuery(
   remoteBackend: RemoteBackend,
   setUsername: (username: string) => Promise<boolean>,
 ) {
+  let refetchCount = 0
   return vueQuery.queryOptions({
     queryKey: createUsersMeQueryKey(session, remoteBackend),
     queryFn: async () => {
@@ -48,6 +65,15 @@ export function createUsersMeQuery(
         void setUsername(sessionVal.email)
         return null
       }
+      if (user.plan === backendModule.Plan.free && refetchCount < 10) {
+        const date = extractTimestampFromKsuid(user.organizationId.replace(/^organization-/, ''))
+        if (Number(new Date()) - Number(date) < ACCOUNT_FRESHNESS_THRESHOLD_MS) {
+          refetchCount += 1
+          return null
+        }
+      }
+
+      refetchCount = 0
       return { user, ...sessionVal }
     },
   })
@@ -66,10 +92,6 @@ function createAuthStore(
 
   const queryClient = vueQuery.useQueryClient()
 
-  // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
-  // defined by this component.
-  const gtagEvent = gtagHooks.event
-
   const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
   const planOverride = useFeatureFlag('developerPlanOverride')
@@ -77,6 +99,7 @@ function createAuthStore(
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
+    onSuccess: analytics.createUser.after,
     meta: { invalidates: [usersMeQueryKey], awaitInvalidates: true },
   })
 
@@ -109,7 +132,6 @@ function createAuthStore(
         userEmail: backendModule.EmailAddress(email),
         organizationId: orgId != null ? orgId : null,
       })
-      gtagEvent('cloud_user_created')
     }
     // Wait until the backend returns a value from `users/me`,
     // otherwise the rest of the steps are skipped.
@@ -204,9 +226,6 @@ function createAuthStore(
     }
   })
 
-  gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
-  gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
-
   const effectiveUserData = computed(() => {
     const intermediate =
       userData.value && planOverride.value != null ?
@@ -223,7 +242,7 @@ function createAuthStore(
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    waitForSession: () => sessionData.waitForSession().then(() => usersMeQuery.suspense()),
+    waitForSession: () => sessionData.waitForSession().then(() => waitForData(usersMeQuery)),
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

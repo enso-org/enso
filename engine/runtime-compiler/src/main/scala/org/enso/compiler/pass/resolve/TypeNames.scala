@@ -163,7 +163,7 @@ case object TypeNames extends IRPass {
             TypeSignatures,
             TypeSignatures.Signature(
               resolveSignature(selfTypeInfo, bindingsMap, s.signature),
-              s.comment
+              s.reason
             )
           )
         )

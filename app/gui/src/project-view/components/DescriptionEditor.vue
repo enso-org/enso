@@ -3,7 +3,6 @@ import { AnyAsset } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import { backendMutationOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
 import { useStringSync } from '@/util/codemirror'
@@ -43,7 +42,7 @@ const onFocusOut = ref<() => void>()
 const { syncExt, connectSync } = useStringSync()
 const scope = effectScope()
 
-function onEditorReady(view: EditorView) {
+function editorReadyCallback(view: EditorView) {
   const { setText, getText, onTextEdited } = connectSync(view)
 
   // We want to run watch before DOM update, because the DescriptionEditor may be disposed as
@@ -83,12 +82,6 @@ function onEditorReady(view: EditorView) {
     })
   })
 }
-
-provideDocumentationImages({
-  openedProject: () => null,
-  backend: backendForAsset,
-  projectId: null,
-})
 </script>
 
 <template>
@@ -97,7 +90,7 @@ provideDocumentationImages({
       v-if="rightPanel.focusedAsset"
       :extensions="syncExt"
       contentTestId="asset-panel-description"
-      @editorReady="onEditorReady"
+      :editorReadyCallback="editorReadyCallback"
     />
     <ResultComponent
       v-else
