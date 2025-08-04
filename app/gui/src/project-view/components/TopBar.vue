@@ -8,7 +8,7 @@ import ZoomControl from '@/components/ZoomControl.vue'
 import { useResizeObserver } from '@/composables/events'
 import { type DisplayableActionName } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { computed, useTemplateRef, watchEffect } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 
 const GAP = 8
 
@@ -28,15 +28,9 @@ const zoomControlsHidden = computed(
   () => leftGroupsSize.value.x + zoomControlsSize.value.x + 2 * GAP > rootSize.value.x,
 )
 
-watchEffect(() => {
-  console.debug(
-    'SIZES',
-    rootSize.value.x,
-    leftGroupsSize.value.x,
-    zoomControlsSize.value.x,
-    zoomControlsHidden.value,
-  )
-})
+const extendeMenuZoomControls = computed(() =>
+  zoomControlsHidden.value ? { zoomLevel: props.zoomLevel } : undefined,
+)
 
 const style = computed(() => ({
   flexWrap: zoomControlsHidden.value ? ('wrap' as const) : ('nowrap' as const),
@@ -49,7 +43,7 @@ const style = computed(() => ({
   <div ref="rootElement" class="TopBar" :style="style">
     <div class="responsive">
       <div ref="leftGroups" class="alwaysVisibleElements">
-        <ExtendedMenu :actions="menuActions" />
+        <ExtendedMenu :actions="menuActions" :zoomControls="extendeMenuZoomControls" />
         <NavBreadcrumbs v-model:projectNameEdited="projectNameEdited" />
       </div>
 
