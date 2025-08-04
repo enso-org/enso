@@ -763,9 +763,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const query = Object.fromEntries(params.entries()) as ListDirectoryQuery
       called('listDirectory', query)
       const assets = listDirectory(query)
+      const last = assets.at(-1)
       const json: backend.ListDirectoryResponseBody = {
         assets,
-        paginationToken: assets[0] ? backend.PaginationToken(String(assets[0].id)) : null,
+        paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
       }
       route.fulfill({ json })
     })
@@ -773,9 +774,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const query = Object.fromEntries(params.entries()) as SearchDirectoryQuery
       called('searchDirectory', query)
       const assets = searchDirectory(query)
+      const last = assets.at(-1)
       const json: backend.ListDirectoryResponseBody = {
         assets,
-        paginationToken: assets[0] ? backend.PaginationToken(String(assets[0].id)) : null,
+        paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
       }
       route.fulfill({ json })
     })
