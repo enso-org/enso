@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.CallTarget;
+import java.util.logging.Level;
 import org.enso.compiler.core.ir.AscriptionReason;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
@@ -11,13 +12,21 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class TypeCheckValueTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.createDefault(Level.FINE, JulHandler.get());
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void avoidDoubleWrappingOfEnsoMultiValue() {

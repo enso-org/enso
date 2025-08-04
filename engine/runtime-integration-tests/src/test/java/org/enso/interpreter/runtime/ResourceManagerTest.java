@@ -8,19 +8,26 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.util.logging.Level;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class ResourceManagerTest {
 
   public ResourceManagerTest() {}
 
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   @Test
   public void runFinalizersAtTheEnd() {
     var obj = new ResourceToGc();
     var fn = new FnCallback();
 
-    try (var ctx = ContextUtils.createDefault()) {
+    try (var ctx = ContextUtils.createDefault(Level.FINE, JulHandler.get())) {
       var ensoContext = ctx.ensoContext();
 
       ensoContext.getResourceManager().register(obj, fn);

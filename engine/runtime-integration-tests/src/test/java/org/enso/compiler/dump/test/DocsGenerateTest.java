@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -20,17 +21,26 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.editions.LibraryName;
+import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class DocsGenerateTest {
   @ClassRule public static final TemporaryFolder TEMP = new TemporaryFolder();
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.createDefault(Level.FINE, JulHandler.get());
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   public DocsGenerateTest() {}
 

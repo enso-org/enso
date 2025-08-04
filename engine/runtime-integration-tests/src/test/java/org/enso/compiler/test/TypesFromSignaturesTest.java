@@ -12,11 +12,15 @@ import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
+import org.junit.Rule;
 import org.junit.Test;
 import scala.Option;
 
 public class TypesFromSignaturesTest extends StaticAnalysisTest {
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void simpleCheck() throws Exception {

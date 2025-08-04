@@ -4,19 +4,27 @@ import static org.junit.Assert.assertEquals;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import java.util.logging.Level;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class PanicExceptionTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-  private static final InteropLibrary interop = InteropLibrary.getUncached();
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.createDefault(Level.FINE, JulHandler.get());
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static CatchPanicNode catchPanicNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;

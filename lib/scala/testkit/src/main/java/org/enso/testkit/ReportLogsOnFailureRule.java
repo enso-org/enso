@@ -1,6 +1,6 @@
 package org.enso.testkit;
 
-import org.enso.logging.service.logback.test.TestAppenderUtils;
+import org.enso.logging.service.logback.test.utils.TestAppenderUtils;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 

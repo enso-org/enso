@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.is;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -16,7 +17,9 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,7 +48,11 @@ public class ImportsAndFQNConsistencyTest {
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()
           .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
+          .withLogHandler(Level.FINE, JulHandler.get())
           .build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 

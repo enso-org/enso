@@ -13,4 +13,5 @@ module org.enso.logging.service.logback.test.provider {
       org.enso.logging.service.logback.test.provider.TestLogProvider;
 
   exports org.enso.logging.service.logback.test.provider;
+  exports org.enso.logging.service.logback.test.utils;
 }

@@ -13,9 +13,12 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.logger.JulHandler;
 import org.enso.pkg.PackageManager;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.IOAccess;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class SerializerTest {
@@ -28,13 +31,16 @@ public class SerializerTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
+            .option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+            .logHandler(JulHandler.get())
             .allowAllAccess(true)
             .build();
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
     return ctx;
   }
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void testSerializationOfFQNs() throws Exception {

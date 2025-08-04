@@ -33,12 +33,17 @@ import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import scala.Option;
 
 public class TypeInferenceTest extends StaticAnalysisTest {
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   @Test
   public void zeroAryCheck() throws Exception {
     final URI uri = new URI("memory://zeroAryModuleMethodCheck.enso");

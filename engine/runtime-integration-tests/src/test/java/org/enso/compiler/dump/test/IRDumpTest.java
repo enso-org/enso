@@ -15,6 +15,7 @@ import org.enso.compiler.dump.service.IRDumpFactoryService;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.IRDumperTestWrapper;
 import org.enso.test.utils.ProjectUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -33,6 +34,9 @@ import scala.Option;
 public class IRDumpTest {
   private static final Path irDumpsDir = Path.of(IRDumpFactoryService.DEFAULT_DUMP_DIR);
   private ByteArrayOutputStream out;
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Rule public PrintOutRule printOutRule = new PrintOutRule();
 

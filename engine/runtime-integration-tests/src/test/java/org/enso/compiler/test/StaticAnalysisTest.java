@@ -16,6 +16,7 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.test.InterpreterContext;
+import org.enso.logger.JulHandler;
 import org.enso.pkg.Config;
 import org.enso.pkg.Contact;
 import org.enso.pkg.Package;
@@ -39,8 +40,8 @@ public abstract class StaticAnalysisTest {
           (builder) ->
               builder
                   .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
-                  .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
-                  .option(RuntimeOptions.LOG_LEVEL, Level.SEVERE.getName())
+                  .option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                  .logHandler(JulHandler.get())
                   .out(OutputStream.nullOutputStream())
                   .err(OutputStream.nullOutputStream()));
 

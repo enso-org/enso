@@ -13,20 +13,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
 
 public class ExportedSymbolsTest {
   private Path projDir;
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
   public void setup() throws IOException {
@@ -226,7 +233,10 @@ public class ExportedSymbolsTest {
   }
 
   private static ContextUtils createCtx(Path projDir) {
-    return ContextUtils.newBuilder().withProjectRoot(projDir).build();
+    return ContextUtils.newBuilder()
+        .withProjectRoot(projDir)
+        .withLogHandler(Level.FINE, JulHandler.get())
+        .build();
   }
 
   private static void compile(ContextUtils ctx) {

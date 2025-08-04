@@ -101,7 +101,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     var stdout = new ByteArrayOutputStream();
     var stderr = new ByteArrayOutputStream();
     var ctxBldr = Builder.defaultContextBuilder(logLevel, logHanlder);
-    ctxBldr.out(stdout).err(stderr).logHandler(stdout);
+    ctxBldr.out(stdout).err(stderr);
     return new ContextUtils(ctxBldr, stdout, stderr, true);
   }
 
@@ -436,6 +436,15 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     /** Modifies the {@link Context.Builder}. Can be called multiple times. */
     public Builder withModifiedContext(Function<Context.Builder, Context.Builder> modifier) {
       polyglotCtxBldr = modifier.apply(polyglotCtxBldr);
+      return this;
+    }
+
+    /**
+     * Shortcut for {@code withModifiedContext(b -> b.option(RuntimeOptions.LOG_LEVEL,
+     * logLevel.getName()).logHandler(logHandler))}.
+     */
+    public Builder withLogHandler(Level logLevel, Handler logHandler) {
+      polyglotCtxBldr.logHandler(logHandler).option(RuntimeOptions.LOG_LEVEL, logLevel.getName());
       return this;
     }
 

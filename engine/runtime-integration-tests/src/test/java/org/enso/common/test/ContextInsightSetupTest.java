@@ -10,10 +10,13 @@ import java.io.FileWriter;
 import org.enso.common.ContextFactory;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
+import org.enso.logger.JulHandler;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
@@ -24,6 +27,9 @@ import org.junit.Test;
 public class ContextInsightSetupTest {
 
   public ContextInsightSetupTest() {}
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @AfterClass
   public static void cleanupInsightProperty() {
@@ -45,7 +51,7 @@ public class ContextInsightSetupTest {
     var out = new ByteArrayOutputStream();
     // Need to initialize the Context via ContextFactory, so that ContextInsightSetup is
     // triggered.
-    try (var ctx = ContextFactory.create().out(out).build()) {
+    try (var ctx = ContextFactory.create().logHandler(JulHandler.get()).out(out).build()) {
 
       var fourtyTwo = evalModule(ctx, """
         main = 42

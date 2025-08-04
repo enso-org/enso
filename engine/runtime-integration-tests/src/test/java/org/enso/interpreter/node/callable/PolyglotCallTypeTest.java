@@ -5,14 +5,23 @@ import static org.junit.Assert.assertFalse;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.math.BigInteger;
+import java.util.logging.Level;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class PolyglotCallTypeTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.createDefault(Level.FINE, JulHandler.get());
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   public PolyglotCallTypeTest() {}
 

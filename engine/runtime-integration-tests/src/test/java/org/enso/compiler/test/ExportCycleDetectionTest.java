@@ -10,12 +10,15 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.logging.Level;
+import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
@@ -24,6 +27,9 @@ import org.junit.rules.TemporaryFolder;
 
 public class ExportCycleDetectionTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void detectCycleInTwoModules() throws IOException {
@@ -103,40 +109,32 @@ public class ExportCycleDetectionTest {
 
   @Test
   public void noCycleDetectedWhenExportingSymbolsFromItself_1() throws IOException {
-    var mainMod =
-        new SourceModule(
-            QualifiedName.fromString("Main"),
-            """
+    expectNoCompilationErrors(
+        tempFolder.newFolder().toPath(),
+        """
         type Main_Type
         export project.Main.Main_Type
         """);
-    var projDir = tempFolder.newFolder().toPath();
-    ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
-      try {
-        polyCtx.getTopScope().compile(true);
-      } catch (PolyglotException e) {
-        fail("Compilation error not expected. But got: " + e);
-      }
-      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
-      assertThat(exportedSyms.size(), is(1));
-      assertThat(exportedSyms, hasKey("Main_Type"));
-    }
   }
 
   @Test
   public void noCycleDetectedWhenExportingSymbolsFromItself_2() throws IOException {
-    var mainMod =
-        new SourceModule(
-            QualifiedName.fromString("Main"),
-            """
+    expectNoCompilationErrors(
+        tempFolder.newFolder().toPath(),
+        """
         type Main_Type
         from project.Main export Main_Type
         """);
-    var projDir = tempFolder.newFolder().toPath();
+  }
+
+  private void expectNoCompilationErrors(Path projDir, String code) throws IOException {
+    var mainMod = new SourceModule(QualifiedName.fromString("Main"), code);
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx =
+        ContextUtils.newBuilder()
+            .withProjectRoot(projDir)
+            .withLogHandler(Level.FINE, JulHandler.get())
+            .build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
@@ -150,7 +148,11 @@ public class ExportCycleDetectionTest {
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
-    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx =
+        ContextUtils.newBuilder()
+            .withProjectRoot(projDir)
+            .withLogHandler(Level.FINE, JulHandler.get())
+            .build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);

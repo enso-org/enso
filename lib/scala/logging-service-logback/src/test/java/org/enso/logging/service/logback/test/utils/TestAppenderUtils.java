@@ -1,4 +1,4 @@
-package org.enso.logging.service.logback.test;
+package org.enso.logging.service.logback.test.utils;
 
 import org.enso.logging.service.logback.MemoryAppender;
 import org.slf4j.Logger;

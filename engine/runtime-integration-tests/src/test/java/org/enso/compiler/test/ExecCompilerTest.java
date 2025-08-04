@@ -24,6 +24,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class ExecCompilerTest {
+  /**
+   * Not using JulHandler as a handler since some tests capture and verify reported errors in
+   * strict-errors mode.
+   */
   @ClassRule
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()

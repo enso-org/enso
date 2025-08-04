@@ -4,10 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class WarningsAsErrorsTest {
@@ -16,7 +20,11 @@ public class WarningsAsErrorsTest {
       ContextUtils.newBuilder()
           .withModifiedContext(
               ctxBldr -> ctxBldr.option(RuntimeOptions.TREAT_WARNINGS_AS_ERRORS, "true"))
+          .withLogHandler(Level.FINE, JulHandler.get())
           .build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void warningCausesCompilerFailure() {

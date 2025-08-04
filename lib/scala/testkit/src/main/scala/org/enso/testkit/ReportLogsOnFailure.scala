@@ -1,7 +1,7 @@
 package org.enso.testkit
 
 import org.scalatest.{Args, Failed, Outcome, Status, TestSuite}
-import org.enso.logging.service.logback.test.TestAppenderUtils
+import org.enso.logging.service.logback.test.utils.TestAppenderUtils
 
 trait ReportLogsOnFailure extends TestSuite {
 

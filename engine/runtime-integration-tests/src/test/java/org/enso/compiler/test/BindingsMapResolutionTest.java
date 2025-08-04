@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolutionError;
@@ -18,6 +19,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
+import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
@@ -639,6 +641,7 @@ public class BindingsMapResolutionTest {
     return ContextUtils.newBuilder()
         .withModifiedContext(
             bldr -> bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
+        .withLogHandler(Level.FINE, JulHandler.get())
         .build();
   }
 
