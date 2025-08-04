@@ -228,6 +228,7 @@ function useRightPanel(
       if (typeof currentItem === 'object' && currentItem.type === AssetType.specialUp) return null
       return await backendForType(backendType).getAssetDetails(
         typeof currentItem === 'object' ? currentItem.id : currentItem,
+        undefined,
       )
     },
   })
