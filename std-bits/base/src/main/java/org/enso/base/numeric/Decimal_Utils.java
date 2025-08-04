@@ -60,19 +60,11 @@ public class Decimal_Utils {
     }
   }
 
-  /**
-   * Converts a double to a BigDecimal. For NaN, Infinity, and -Infinity, this
-   * returns null.
-   */
   public static BigDecimal fromFloat(double d) {
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
-    if (Double.isFinite(d)) {
-      return BigDecimal.valueOf(d);
-    } else {
-      return null;
-    }
+    return BigDecimal.valueOf(d);
   }
 
   public static BigDecimal fromFloatExact(double d) {
