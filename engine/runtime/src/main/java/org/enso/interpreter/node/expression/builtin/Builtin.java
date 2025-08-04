@@ -9,7 +9,7 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 
 /** A base class for all classes annotated with @BuiltinType */
 public abstract class Builtin {
@@ -18,7 +18,7 @@ public abstract class Builtin {
       this(name, Arrays.asList(params));
     }
 
-    private AtomConstructor build(EnsoLanguage language, ModuleScope.Builder scope, Type type) {
+    private AtomConstructor build(EnsoLanguage language, ModuleScopeBuilder scope, Type type) {
       var res = new AtomConstructor(name, scope.getModule(), type, true);
       res.initializeFields(
           language,
@@ -70,7 +70,7 @@ public abstract class Builtin {
 
   public final void initialize(
       EnsoLanguage language,
-      ModuleScope.Builder scope,
+      ModuleScopeBuilder scope,
       Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;

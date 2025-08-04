@@ -32,21 +32,16 @@ export const dataLoader: DataLoader<DashboardProps> = {
       to.params.path instanceof Array ? to.params.path.join('/') : to.params.path,
     )
 
-    if (path == null) return Ok({})
+    if (!path) return Ok({})
     const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
     if (backend == null) return Ok({})
     const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
     const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
     if (typedAsset?.type !== AssetType.project) return Ok({})
-
-    const options = backendQueryOptions('getAssetDetails', [typedAsset.id], backend)
+    const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
     const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
     if (!assetResponse) return Ok({})
-
-    const asset: ProjectAsset = {
-      ...assetResponse,
-      ensoPath: path,
-    }
+    const asset: ProjectAsset = { ...assetResponse, ensoPath: path }
     return Ok({ projectToOpen: { asset, backend: backend.type } })
   },
 }

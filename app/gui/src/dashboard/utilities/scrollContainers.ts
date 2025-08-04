@@ -2,6 +2,8 @@
  * @file Functions for working with scroll containers.
  */
 
+import { elementHierarchy, isOverflowing } from '$/utils/dom'
+
 /**
  * A type that represents an HTML or SVG element.
  */
@@ -51,20 +53,12 @@ export function findScrollContainers(element: HTMLOrSVGElement | null): HTMLOrSV
 }
 
 /**
- * Finds all containers that possbly have overflow (when scrollWidth/scrollHeight > clientWidth/clientHeight)
+ * Finds all containers that possibly have overflow (when scrollWidth/scrollHeight > clientWidth/clientHeight)
  * @param element - The element to start searching from
- * @returns An array of containers that possbly have overflow
+ * @returns An array of containers that possibly have overflow
  */
 export function findOverflowContainers(element: HTMLOrSVGElement | null): HTMLOrSVGElement[] {
-  const result: HTMLOrSVGElement[] = []
-
-  if (!element || element === document.body) return result
-
-  if (hasPossibleOverflow(element)) {
-    result.push(element)
-  }
-
-  return [...result, ...findOverflowContainers(element.parentElement)]
+  return elementHierarchy(element).filter((el) => el !== document.body && isOverflowing(el))
 }
 
 /**
@@ -148,16 +142,6 @@ export function hasTailwindOverflow(element: HTMLOrSVGElement): boolean {
     element.classList.contains('overflow-x-scroll') ||
     element.classList.contains('overflow-y-scroll')
   )
-}
-
-/**
- * Checks if the element has possible overflow, when scrollWidth/scrollHeight > clientWidth/clientHeight.
- * @param element - The element to check
- * @returns True if the element has possible overflow, false otherwise
- */
-export function hasPossibleOverflow(element: HTMLOrSVGElement): boolean {
-  const { scrollHeight, scrollWidth, clientHeight, clientWidth } = element
-  return scrollHeight > clientHeight || scrollWidth > clientWidth
 }
 
 /**

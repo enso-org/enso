@@ -29,7 +29,7 @@ export const cloudSignUp = {
   },
 }
 
-export type AuthProvider = 'Email' | 'Apple' | 'Google' | 'GitHub'
+export type AuthProvider = 'Email' | 'Apple' | 'Google' | 'GitHub' | 'Microsoft'
 
 /**
  * Cloud sign-in.

@@ -121,7 +121,7 @@ object ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
 
-    executionFrame match {
+    val pendingResult = executionFrame match {
       case ExecutionFrame(
             ExecutionItem.Method(module, cons, function),
             cache,
@@ -145,7 +145,7 @@ object ProgramExecutionSupport {
             )
         }
 
-        val pending = ctx.executionService.execute(
+        ctx.executionService.execute(
           module.toString,
           cons.item,
           function,
@@ -160,7 +160,6 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        pending.toCompletableFuture.get()
       case ExecutionFrame(
             ExecutionItem.CallData(expressionId, callData),
             cache,
@@ -189,7 +188,7 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
-        val pending = ctx.executionService.execute(
+        ctx.executionService.execute(
           ctx.contextManager.getVisualizationHolder(contextId),
           module,
           callData,
@@ -203,9 +202,10 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        pending.toCompletableFuture.get()
     }
 
+    // ensure it is finished
+    pendingResult.toCompletableFuture.get()
     callStack match {
       case Nil =>
         val notExecuted =

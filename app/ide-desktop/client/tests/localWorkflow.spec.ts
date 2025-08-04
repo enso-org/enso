@@ -64,10 +64,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
 
   // Enter User Defined Component
   // First wait until node is computed. Visualization may be cached, so we look at icon.
-  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute(
-    'href',
-    /#svgicon:group/,
-  )
+  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
   await page.locator('.GraphNode').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(3)
   await expect(page.locator('.NavBreadcrumb')).toHaveText([
@@ -76,7 +73,6 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   ])
 
   // Rename User Defined component
-  await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
     .getByTestId('widget-function-name-content')
@@ -138,7 +134,6 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   })
 
   // Paste an image in documentation.
-  // (the panel is opened in previous steps)
   await page.locator('.DocumentationEditor').click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
   const docImageElement = page.locator('.DocumentationEditor').getByTestId('doc-img')

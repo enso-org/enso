@@ -150,7 +150,7 @@ test('Accepting suggestion', async ({ page }) => {
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
     'Data',
     '.',
-    'read_text',
+    'read_many',
   ])
   await expect(locate.graphNode(page).last()).toBeSelected()
 
@@ -211,13 +211,13 @@ test('Filling input with suggestion', async ({ page }) => {
 test('Filtering list', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
-  await locate.componentBrowserInput(page).fill('re_te')
+  await locate.componentBrowserInput(page).fill('re_ma')
   const segments = locate.componentBrowserEntry(page).locator('.component-label-segment')
-  await expect(segments).toHaveText(['Data.', 're', 'ad', '_te', 'xt'])
+  await expect(segments).toHaveText(['Data.', 're', 'ad', '_ma', 'ny'])
   const highlighted = locate.componentBrowserEntry(page).locator('.component-label-segment.match')
-  await expect(highlighted).toHaveText(['re', '_te'])
+  await expect(highlighted).toHaveText(['re', '_ma'])
   // Filtered-out group are hidden, and the rest displays number of matched elements.
-  await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'Input (1)'])
+  await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'File (1)'])
 })
 
 test('Navigating components', async ({ page }) => {
@@ -230,10 +230,10 @@ test('Navigating components', async ({ page }) => {
     'Returns: Any',
   ])
   await page.keyboard.press('ArrowDown')
-  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read_text')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read_many')
   await expect(page.locator('.documentationContent > p')).toHaveText([
-    'Open and read the file at the provided path.',
-    'Returns: Text',
+    'Reads a list of files into Enso.',
+    'Returns: Any',
   ])
   await page.getByRole('button', { name: 'Show Help' }).click()
   await expect(locate.rightDock(page)).toBeVisible()
@@ -243,15 +243,29 @@ test('Navigating groups', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
-  await expect(page.locator('.groupEntry')).toHaveText(['suggestions', 'Input', 'Output'])
-  await expect(locate.componentBrowserEntry(page)).toHaveText(['Data.read', 'Data.read_text'])
+  await expect(page.locator('.groupEntry')).toHaveText([
+    'suggestions',
+    'File',
+    'Web',
+    'DateTime',
+    'Constants',
+    'Conversions',
+  ])
+  await expect(locate.componentBrowserEntry(page)).toHaveText([
+    'Data.read',
+    'Data.read_many',
+    'Data.fetch',
+    'Table.input',
+    'Data.post',
+    'Date_Time.now',
+  ])
 
   // Hover first group
   await page.locator('.groupEntry').nth(1).hover()
-  // Wait for view update: "Input" group have more entries than "suggestions"
-  await expect(locate.componentBrowserEntry(page)).toHaveCountGreaterThan(2)
+  // Wait for view update: "File" group has only two entries
+  await expect(locate.componentBrowserEntry(page)).toHaveCount(2)
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toHaveCount(0)
+  await expect(locate.componentBrowserEntryByLabel(page, 'Date_Time.now')).toHaveCount(0)
   await expect(locate.componentBrowserSelectedEntry(page)).toExist() // component list didn't lose focus.
 
   // Navigate to second group using arrows.
@@ -259,9 +273,9 @@ test('Navigating groups', async ({ page }) => {
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
   await page.keyboard.press('ArrowDown')
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
-  await expect(page.locator('.groupEntry.selected')).toHaveText('Output')
+  await expect(page.locator('.groupEntry.selected')).toHaveText('Web')
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toHaveCount(0)
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.fetch')).toExist()
   await page.keyboard.press('Tab')
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
 })

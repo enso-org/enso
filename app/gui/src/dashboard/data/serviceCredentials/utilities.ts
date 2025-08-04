@@ -1,6 +1,6 @@
 /** @file Hooks for credentials dialogs. */
 import type * as backend from '#/services/Backend'
-import { getOauthCallbackPath } from '#/services/remoteBackendPaths'
+import { getOauthCallbackPath } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import invariant from 'tiny-invariant'
 
 /**

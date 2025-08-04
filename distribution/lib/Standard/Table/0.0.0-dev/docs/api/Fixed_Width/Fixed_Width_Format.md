@@ -16,8 +16,9 @@
     - entries self -> Standard.Base.Data.Vector.Vector
     - from_descriptions descs:(Standard.Base.Data.Vector.Vector Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Column_Description) -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
     - missing_layout_argument -> Standard.Base.Any.Any
-- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Table.Column.Column -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+    - to_js_object self -> Standard.Base.Any.Any
 - Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Base.Data.Vector.Vector -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Base.Function.Function -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
 - type Fixed_Width_Layout_Entry
     - Value start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer name:Standard.Base.Data.Text.Text
 - type Infer_Layout
@@ -26,4 +27,4 @@
     - to_java self -> Standard.Table.Fixed_Width.Fixed_Width_Format.Justification
 - _make_fixed_width_layout_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
 - Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Table.Table.Table -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
-- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Base.Function.Function -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
+- Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Table.Column.Column -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout

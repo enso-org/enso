@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import { Opt } from '@/util/data/opt'
 import { Err, Ok, Result } from '@/util/data/result'
 import { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
-import { parse } from 'yaml'
+import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import * as z from 'zod'
 
 /** A macro definition in the `macros` array. */
@@ -15,16 +15,21 @@ export interface Macro {
   value: string
 }
 
+function orUndefined(ctx: { error: z.ZodError }) {
+  console.error('Parsing of documentation metadata field failed: ', ctx.error)
+  return undefined
+}
+
 /** The documentation metadata schema. It is based on the representation of the parsed YAML object. */
 export const documentationMetadataSchema = z.object({
-  advanced: z.boolean().optional(),
-  aliases: z.array(z.string()).optional(),
-  deprecated: z.boolean().optional(),
-  icon: z.string().optional(),
-  group: z.string().optional(),
-  private: z.boolean().optional(),
-  unstable: z.boolean().optional(),
-  suggested: z.number().optional(),
+  advanced: z.boolean().optional().catch(orUndefined),
+  aliases: z.array(z.string()).optional().catch(orUndefined),
+  deprecated: z.boolean().optional().catch(orUndefined),
+  icon: z.string().optional().catch(orUndefined),
+  group: z.string().optional().catch(orUndefined),
+  private: z.boolean().optional().catch(orUndefined),
+  unstable: z.boolean().optional().catch(orUndefined),
+  suggested: z.number().optional().catch(orUndefined),
   macros: z
     .array(
       z
@@ -37,11 +42,12 @@ export const documentationMetadataSchema = z.object({
           return { description: key, value } satisfies Macro
         }),
     )
-    .optional(),
-  added: z.string().optional(),
-  modified: z.string().optional(),
-  removed: z.string().optional(),
-  upcoming: z.string().optional(),
+    .optional()
+    .catch(orUndefined),
+  added: z.string().optional().catch(orUndefined),
+  modified: z.string().optional().catch(orUndefined),
+  removed: z.string().optional().catch(orUndefined),
+  upcoming: z.string().optional().catch(orUndefined),
 })
 
 export type DocumentationMetadata = z.infer<typeof documentationMetadataSchema>
@@ -74,5 +80,10 @@ export function parseMetadata(
   frontMatterContent: SyntaxNode,
 ): Result<DocumentationMetadata> {
   assert(frontMatterContent.node.name === 'YAMLContent')
-  return validateMetadata(parse(source(frontMatterContent.from, frontMatterContent.to)))
+  return validateMetadata(yamlParse(source(frontMatterContent.from, frontMatterContent.to)))
+}
+
+/** Serialize a frontmatter section for test purposes. */
+export function frontmatter(content: DocumentationMetadata): string {
+  return `---\n${yamlStringify(content)}---\n`
 }

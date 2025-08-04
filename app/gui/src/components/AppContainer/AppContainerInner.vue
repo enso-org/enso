@@ -10,14 +10,14 @@ import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
+import { reactComponent } from '@/util/react'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { applyPureReactInVue } from 'veaury'
 import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
 import { Drive, Editor, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
-const UserBar = applyPureReactInVue(UserBarReact)
+const UserBar = reactComponent(UserBarReact)
 
 /**
  * A part of `AppContainer` which needs some hooks passed from react by `Dashboard.tsx`.
@@ -129,7 +129,6 @@ const onSignOut = () => {
     <div class="bar">
       <div role="tablist" class="tablist">
         <SelectableTab
-          selectionLayoutId="tab-highlight"
           :selected="tab === 'drive'"
           icon="drive"
           label="Data Catalog"
@@ -139,7 +138,6 @@ const onSignOut = () => {
           v-for="project in openedProjects"
           :key="project.id"
           data-testid="editor-tab-button"
-          selectionLayoutId="tab-highlight"
           :selected="project.shown.value"
           :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
           :label="projectNames.get(project.id)"
@@ -154,7 +152,6 @@ const onSignOut = () => {
         </SelectableTab>
         <SelectableTab
           v-if="tab === 'settings'"
-          selectionLayoutId="tab-highlight"
           :selected="true"
           icon="settings"
           label="Settings"

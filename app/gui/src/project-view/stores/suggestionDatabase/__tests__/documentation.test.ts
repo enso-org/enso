@@ -1,25 +1,11 @@
 import { mockProjectNameStore } from '@/stores/projectNames'
-import {
-  getLegacyDocumentationSummary as getDocumentationSummary,
-  getGroupIndex,
-  getSuggestedRank,
-  tagValue,
-} from '@/stores/suggestionDatabase/documentation'
+import { getDocumentationSummary, getGroupIndex } from '@/stores/suggestionDatabase/documentation'
 import { unwrap } from '@/util/data/result'
-import { parseDocs } from '@/util/docParser'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
-
-test.each([
-  ['ALIAS Bar', 'Bar'],
-  ['Some one section\n   But not tags here', undefined],
-  ['GROUP different tag', undefined],
-  ['PRIVATE\nGROUP Input\nALIAS Foo\n\nSeveral tags', 'Foo'],
-])('Getting tag from docs case %#.', (doc, expected) => {
-  const sections = parseDocs(doc)
-  expect(tagValue(sections, 'Alias')).toBe(expected)
-})
+import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
+import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
 const projectNames = mockProjectNameStore('local', 'Project')
 
@@ -52,21 +38,12 @@ test.each`
   ${'Just summary'}                               | ${'Just summary'}
   ${'First paragraph\n\nSecond paragraph'}        | ${'First paragraph'}
   ${'First line\nsecond line'}                    | ${'First line second line'}
-  ${'ALIAS alias\n\nSummary'}                     | ${'Summary'}
+  ${'---\naliases: [alias]\n---\nSummary'}        | ${'Summary'}
   ${'Very Long Section. With multiple sentences'} | ${'Very Long Section.'}
   ${'One sentence, but with 0.8 number.'}         | ${'One sentence, but with 0.8 number.'}
 `('Getting summary from docs case %#', ({ docstring, expectedSummary }) => {
-  const sections = parseDocs(docstring)
-  expect(getDocumentationSummary(sections)).toBe(expectedSummary)
-})
-
-test.each`
-  docstring                           | expectedRank
-  ${'No tags'}                        | ${undefined}
-  ${'SUGGESTED 1\n\nDocs'}            | ${1}
-  ${'SUGGESTED\n\nDocs'}              | ${Infinity}
-  ${'SUGGESTED Not a number\n\nDocs'} | ${Infinity}
-`('Parsing Suggested rank case %#', ({ docstring, expectedRank }) => {
-  const sections = parseDocs(docstring)
-  expect(getSuggestedRank(sections)).toBe(expectedRank)
+  const prerendered = prerenderMarkdown(docstring)
+  const parsed = ensoMarkdownParser.parse(prerendered)
+  const cursor = parsed.cursor()
+  expect(getDocumentationSummary(cursor.node, prerendered)).toBe(expectedSummary)
 })
