@@ -187,10 +187,11 @@ function acceptFile(name: string) {
 }
 
 function chooseEntry(asset: AnyAsset, close: boolean) {
+  const name = asset.type === AssetType.datalink ? `${asset.title}.datalink` : asset.title
   if (props.writeMode) {
-    setFilename(asset.title)
+    setFilename(name)
   } else {
-    acceptFile(asset.title)
+    acceptFile(name)
     if (close) emit('close')
   }
 }
