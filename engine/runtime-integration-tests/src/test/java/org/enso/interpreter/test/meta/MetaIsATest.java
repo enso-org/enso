@@ -10,15 +10,19 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,7 +31,12 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class MetaIsATest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder().withLogHandler(Level.FINE, JulHandler.get()).build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static Value isACheck;
   private static Value warningCheck;

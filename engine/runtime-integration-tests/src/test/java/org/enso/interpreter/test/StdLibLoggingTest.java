@@ -1,19 +1,29 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItemInArray;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import java.util.List;
+import java.util.logging.Level;
+import org.enso.logger.JulHandler;
 import org.enso.logging.service.logback.MemoryAppender;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
-import org.junit.*;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 public class StdLibLoggingTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.createDefault(Level.FINEST, JulHandler.get());
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private final Source logExample =
       Source.newBuilder(
@@ -34,8 +44,8 @@ public class StdLibLoggingTest {
     var appender = (MemoryAppender) logger.getAppender("memory");
     appender.reset();
     ctxRule.eval(logExample).invokeMember("eval_expression", "test");
-    var events = appender.getEvents().stream().map(ILoggingEvent::getMessage).toList();
+    var events = appender.getEvents().stream().map(ILoggingEvent::getMessage).toArray();
 
-    assertEquals(events, List.of("Logging something"));
+    assertThat(events, hasItemInArray("Logging something"));
   }
 }
