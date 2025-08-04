@@ -3,8 +3,6 @@
  *
  * Icon component that displays an icon based on different input.
  */
-import { isIconName, type Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
-
 import type {
   AvailableIconReturn,
   IconProp,
@@ -14,7 +12,8 @@ import type {
   TestIdProps,
 } from '#/components/types'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { svgUseHref } from '@/util/icons'
+import icons from '@/assets/icons.svg'
+import { isIconName, type Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
 import { memo } from 'react'
 import SvgMask from '../SvgMask'
 
@@ -172,7 +171,12 @@ export function SvgUse(props: SvgUseProps) {
       preserveAspectRatio="xMidYMid slice"
       aria-label={alt}
     >
-      <use href={svgUseHref(icon)} className="h-full w-full" aria-hidden="true" data-icon={icon} />
+      <use
+        href={icon.includes(':') ? icon : `${icons}#${icon}`}
+        className="h-full w-full"
+        aria-hidden="true"
+        data-icon={icon}
+      />
     </svg>
   )
 }

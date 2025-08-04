@@ -114,8 +114,7 @@ type Date_Time
        icon: time
        suggested: 11
        ---
-       Obtains the current date-time from the system clock in the system
-       timezone.
+       Reads the current date-time in the system timezone.
 
        ## Examples
        ### Get the current time

@@ -5,10 +5,10 @@ import {
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
 } from '#/services/RemoteBackend/ids'
-import * as paths from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import type { FeatureFlags } from '$/providers/featureFlags'
+import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 import { readFileSync } from 'node:fs'
@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as test from 'playwright/test'
 import invariant from 'tiny-invariant'
-import * as actions from '.'
+import { VALID_PASSWORD } from './utilities'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -149,7 +149,7 @@ export const mockApi: (params: MockParams) => Promise<MockApi> = mockApiInternal
 async function mockApiInternal({ page, setupAPI }: MockParams) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
-  const defaultPassword = actions.VALID_PASSWORD
+  const defaultPassword = VALID_PASSWORD
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
   const defaultOrganizationName = 'organization name'
   const defaultUserId = backend.UserId('user-placeholder id')
@@ -400,20 +400,28 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return getVirtualParentPath(this.parentId)
       },
       get ensoPath() {
-        return getEnsoPath(this.parentId)
+        return backend.EnsoPath(
+          `${getEnsoPath(this.parentId).replace(/[/]$/, '')}/${rest.title ?? ''}`,
+        )
       },
       ...rest,
     }
   }
 
   const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
-    const directoryTitles = new Set(
-      assets
-        .filter((asset) => asset.type === backend.AssetType.directory)
-        .map((asset) => asset.title),
-    )
-
-    const title = rest.title ?? `New Folder ${directoryTitles.size + 1}`
+    const title =
+      rest.title ??
+      (() => {
+        const parentId = rest.parentId ?? defaultDirectoryId
+        let i = 0
+        for (const asset of assets) {
+          if (asset.parentId !== parentId) continue
+          const match = asset.title.match(/^New Folder (\d+)$/)
+          if (match?.[1] == null) continue
+          i = Math.max(i, Number(match[1]))
+        }
+        return `New Folder ${i + 1}`
+      })()
 
     return createAsset({
       type: backend.AssetType.directory,
@@ -424,13 +432,19 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   const createProject = (rest: Partial<backend.ProjectAsset> = {}): backend.ProjectAsset => {
-    const projectNames = new Set(
-      assets
-        .filter((asset) => asset.type === backend.AssetType.project)
-        .map((asset) => asset.title),
-    )
-
-    const title = rest.title ?? `New Project ${projectNames.size + 1}`
+    const title =
+      rest.title ??
+      (() => {
+        const parentId = rest.parentId ?? defaultDirectoryId
+        let i = 0
+        for (const asset of assets) {
+          if (asset.parentId !== parentId) continue
+          const match = asset.title.match(/^New Project (\d+)$/)
+          if (match?.[1] == null) continue
+          i = Math.max(i, Number(match[1]))
+        }
+        return `New Project ${i + 1}`
+      })()
 
     return createAsset({
       type: backend.AssetType.project,
@@ -896,26 +910,29 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
       route.fulfill()
     })
-    await post(paths.getHybridSetOpenInProgress(GLOB_PROJECT_ID), async (route, _, [maybeId]) => {
-      if (!maybeId) return
-      const projectId = backend.ProjectId(maybeId)
-      called('hybridSetOpenInProgress', { projectId })
+    await post(
+      paths.getHybridSetOpenInProgressPath(GLOB_PROJECT_ID),
+      async (route, _, [maybeId]) => {
+        if (!maybeId) return
+        const projectId = backend.ProjectId(maybeId)
+        called('hybridSetOpenInProgress', { projectId })
 
-      const project = assetMap.get(projectId)
+        const project = assetMap.get(projectId)
 
-      if (!project) {
-        throw new Error(
-          `Tried to open a project that does not exist. Project ID: ${projectId} \n Please make sure that you've created the project before opening it.`,
-        )
-      }
+        if (!project) {
+          throw new Error(
+            `Tried to open a project that does not exist. Project ID: ${projectId} \n Please make sure that you've created the project before opening it.`,
+          )
+        }
 
-      if (project?.projectState) {
-        object.unsafeMutable(project.projectState).type = backend.ProjectState.openInProgress
-      }
+        if (project?.projectState) {
+          object.unsafeMutable(project.projectState).type = backend.ProjectState.openInProgress
+        }
 
-      route.fulfill()
-    })
-    await post(paths.getHybridSetOpened(GLOB_PROJECT_ID), async (route, _, [id]) => {
+        route.fulfill()
+      },
+    )
+    await post(paths.getHybridSetOpenedPath(GLOB_PROJECT_ID), async (route, _, [id]) => {
       if (!id) return
       const projectId = backend.ProjectId(id)
       called('hybridSetOpened', { projectId })
@@ -1016,7 +1033,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         id = file.id
       }
 
-      return { id, project: null } satisfies backend.UploadedLargeAsset
+      return { id, project: null, jobId: null } satisfies backend.UploadedAsset
     })
 
     await post(paths.CREATE_SECRET_PATH, async (_route, request) => {
@@ -1282,7 +1299,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         state: project.projectState,
         organizationId: defaultOrganizationId,
         packageName: 'Project_root',
-        ensoPath: backend.EnsoPath(`enso://Users/${defaultUser.name}/${project.title}`),
+        ensoPath: project.ensoPath,
       } satisfies backend.CreatedProject
     })
 
@@ -1326,24 +1343,18 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         route.fulfill({ status: HTTP_STATUS_BAD_REQUEST, json: { message: 'Invalid enso path' } })
         return
       }
-      const pathFromHome = path.slice(userRoot.length)
-      let currentAsset: backend.AssetId | undefined = defaultDirectoryId
-      for (const segment of pathFromHome.split('/')) {
-        if (!segment) continue
-        currentAsset = assets.find(
-          (asset) => asset.parentId === currentAsset && asset.title == segment,
-        )?.id
-        if (currentAsset == null) {
-          route.fulfill({
-            status: HTTP_STATUS_NOT_FOUND,
-            json: { message: 'Path does not resolve to any asset' },
-          })
-          return
+      for (const asset of assetMap.values()) {
+        if (asset.ensoPath === path) {
+          const { type: _type, ...rest } = asset
+          return rest
         }
       }
-      const asset = assetMap.get(currentAsset)!
-      const { type: _type, ...rest } = asset
-      return rest
+      route.fulfill({
+        status: HTTP_STATUS_NOT_FOUND,
+        json: {
+          message: `Path '${path}' does not resolve to any asset. Available paths: ${assets.map((asset) => `'${asset.ensoPath}'`).join(', ')}`,
+        },
+      })
     })
 
     await page.route('*', async (route) => {

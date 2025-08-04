@@ -12,12 +12,12 @@ const {
   extensions = [],
   readonly = false,
   contentTestId,
-  onEditorReady = () => {},
+  editorReadyCallback = () => {},
 } = defineProps<{
   extensions?: Extension | undefined
   readonly?: boolean | undefined
   contentTestId?: string | undefined
-  onEditorReady: (view: EditorView) => void
+  editorReadyCallback: (view: EditorView) => void
 }>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
@@ -31,7 +31,7 @@ const { editorView, contentElement } = useCodeMirror(editorRoot, {
 
 useLinkTitles(editorView, { readonly })
 
-onEditorReady(editorView)
+editorReadyCallback(editorView)
 
 defineExpose({
   contentElement,

@@ -1,19 +1,18 @@
 /** @file Actions for the "account" form in settings. */
 import type { Locator, Page } from 'playwright/test'
-import { TEXT } from '.'
 import type { BaseActionsClass } from './BaseActions'
 import PageActions from './PageActions'
+import { TEXT } from './utilities'
 
 /** Actions for the "account" form in settings. */
 export default class SettingsFormActions<
   Context,
   ParentClass extends BaseActionsClass<Context>,
-> extends PageActions<Context> {
+> extends PageActions<Context, ParentClass> {
   /** Construct a {@link SettingsFormActions}. */
   constructor(
-    private parentClass: ParentClass,
     protected locate: (page: Page) => Locator,
-    ...args: ConstructorParameters<typeof PageActions<Context>>
+    ...args: ConstructorParameters<typeof PageActions<Context, ParentClass>>
   ) {
     super(...args)
   }
@@ -27,7 +26,7 @@ export default class SettingsFormActions<
       if (waitForSave) {
         await saveButton.waitFor({ state: 'detached' })
       }
-    }).into(this.parentClass)
+    }).intoParent()
   }
 
   /** Cancel editing this settings section. */
@@ -39,6 +38,6 @@ export default class SettingsFormActions<
       if (waitForCancel) {
         await cancelButton.waitFor({ state: 'detached' })
       }
-    }).into(this.parentClass)
+    }).intoParent()
   }
 }

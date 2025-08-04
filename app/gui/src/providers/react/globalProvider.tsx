@@ -1,4 +1,3 @@
-import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import { ActionsStore, useActionsStore } from '$/providers/actions'
 import { AuthStore, useAuth } from '$/providers/auth'
@@ -20,9 +19,10 @@ import { RouterContext, RouterForReact } from '$/providers/react/router'
 import { SessionStore, useSession } from '$/providers/session'
 import { TextStore, useText } from '$/providers/text'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
+import { reactComponent } from '@/util/react'
 import { proxyRefs } from '@/util/reactivity'
+import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
-import { applyPureReactInVue } from 'veaury'
 import { useRoute, useRouter } from 'vue-router'
 
 interface ContextsForReactProviderProps {
@@ -44,7 +44,7 @@ interface ContextsForReactProviderProps {
  * The default "crossing providers" from veaury has some downsides, for example
  * nesting two in a row does not work.
  */
-export const ContextsForReactProvider = applyPureReactInVue(
+export const ContextsForReactProvider = reactComponent(
   (props: react.PropsWithChildren<ContextsForReactProviderProps>) => {
     const {
       children,
@@ -107,4 +107,4 @@ export const ContextsForReactProvider = applyPureReactInVue(
       return () => result
     },
   },
-)
+) as any

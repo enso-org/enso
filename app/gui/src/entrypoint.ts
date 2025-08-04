@@ -9,9 +9,10 @@ import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { MotionGlobalConfig } from 'framer-motion'
 import * as idbKeyval from 'idb-keyval'
-import { createApp } from 'vue'
+import { createApp, markRaw } from 'vue'
 
 const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
@@ -19,6 +20,8 @@ const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
 const SENTRY_SAMPLE_RATE = 0.005
 const SCAM_WARNING_TIMEOUT = 1000
 const INITIAL_URL_KEY = `Enso-initial-url`
+
+markRaw(HttpClient.prototype)
 
 async function main() {
   setupScamWarning()
@@ -177,7 +180,7 @@ async function getRootDirPath() {
   const supportsLocalBackend =
     window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
   if (!supportsLocalBackend) return undefined
-  const rootDirRequest = await fetch(`/api/root-directory`)
+  const rootDirRequest = await fetch(`/api/root-directory-path`)
   return await rootDirRequest.text()
 }
 
