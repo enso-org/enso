@@ -10,7 +10,6 @@ import { Text } from '#/components/Text'
 import type { SvgUseIcon } from '#/components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorUtils from '#/utilities/error'
-import { OfflineError } from '#/utilities/HttpClient'
 import { useText } from '$/providers/react'
 import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
@@ -125,7 +124,7 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
     resetQueries = () => {},
   } = props
 
-  const isOfflineError = error instanceof OfflineError
+  const isOfflineError = error instanceof errorUtils.OfflineError
 
   const message = errorUtils.getMessageOrToString(error)
   const stack = errorUtils.tryGetStack(error)

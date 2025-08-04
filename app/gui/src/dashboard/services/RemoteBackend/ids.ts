@@ -1,16 +1,19 @@
-/**
- * @file ID encoding and decoding that is specific to cloud backend.
- */
-
-import type * as backend from '#/services/Backend'
-import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
-import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+/** @file ID encoding and decoding that is specific to cloud backend. */
+import {
+  DirectoryId,
+  UserGroupId,
+  UserId,
+  type AssetId,
+  type OrganizationId,
+} from '#/services/Backend'
+import {
+  TEAMS_DIRECTORY_ID,
+  USERS_DIRECTORY_ID,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
 
 /** Whether the given directory is a special directory that cannot be written to. */
-export function isSpecialReadonlyDirectoryId(id: backend.AssetId) {
-  return (
-    id === remoteBackendPaths.USERS_DIRECTORY_ID || id === remoteBackendPaths.TEAMS_DIRECTORY_ID
-  )
+export function isSpecialReadonlyDirectoryId(id: AssetId) {
+  return id === USERS_DIRECTORY_ID || id === TEAMS_DIRECTORY_ID
 }
 
 /**
@@ -19,7 +22,7 @@ export function isSpecialReadonlyDirectoryId(id: backend.AssetId) {
  * @param id - The user group ID.
  * @returns The ID.
  */
-export function extractIdFromUserGroupId(id: backend.UserGroupId) {
+export function extractIdFromUserGroupId(id: UserGroupId) {
   return id.replace(/^usergroup-/, '')
 }
 
@@ -27,7 +30,7 @@ export function extractIdFromUserGroupId(id: backend.UserGroupId) {
  * Extract the ID from the given organization ID.
  * Removes the `organization-` prefix.
  */
-export function extractIdFromOrganizationId(id: backend.OrganizationId) {
+export function extractIdFromOrganizationId(id: OrganizationId) {
   return id.replace(/^organization-/, '')
 }
 
@@ -35,7 +38,7 @@ export function extractIdFromOrganizationId(id: backend.OrganizationId) {
  * Extract the ID from the given directory ID.
  * Removes the `directory-` prefix.
  */
-export function extractIdFromDirectoryId(id: backend.DirectoryId) {
+export function extractIdFromDirectoryId(id: DirectoryId) {
   return id.replace(/^directory-/, '')
 }
 
@@ -43,17 +46,17 @@ export function extractIdFromDirectoryId(id: backend.DirectoryId) {
  * Extract the ID from the given user ID.
  * Removes the `user-` prefix.
  */
-export function extractIdFromUserId(id: backend.UserId) {
+export function extractIdFromUserId(id: UserId) {
   return id.replace(/^user-/, '')
 }
 
 /** Convert a user group ID to a directory ID. */
-export function userGroupIdToDirectoryId(id: backend.UserGroupId): backend.DirectoryId {
+export function userGroupIdToDirectoryId(id: UserGroupId): DirectoryId {
   return DirectoryId(`directory-${extractIdFromUserGroupId(id)}`)
 }
 
 /** Convert a user ID to a directory ID. */
-export function userIdToDirectoryId(id: backend.UserId): backend.DirectoryId {
+export function userIdToDirectoryId(id: UserId): DirectoryId {
   return DirectoryId(`directory-${extractIdFromUserId(id)}`)
 }
 
@@ -62,12 +65,12 @@ export function userIdToDirectoryId(id: backend.UserId): backend.DirectoryId {
  * @param id - The directory ID.
  * @returns The user ID.
  */
-export function directoryIdToUserId(id: backend.DirectoryId): backend.UserId {
+export function directoryIdToUserId(id: DirectoryId): UserId {
   return UserId(`user-${extractIdFromDirectoryId(id)}`)
 }
 
 /** Convert organization ID to a directory ID. */
-export function organizationIdToDirectoryId(id: backend.OrganizationId): backend.DirectoryId {
+export function organizationIdToDirectoryId(id: OrganizationId): DirectoryId {
   return DirectoryId(`directory-${extractIdFromOrganizationId(id)}`)
 }
 
@@ -76,7 +79,7 @@ export function organizationIdToDirectoryId(id: backend.OrganizationId): backend
  * @param id - The directory ID.
  * @returns The user group ID.
  */
-export function directoryIdToUserGroupId(id: backend.DirectoryId): backend.UserGroupId {
+export function directoryIdToUserGroupId(id: DirectoryId): UserGroupId {
   return UserGroupId(`usergroup-${extractIdFromDirectoryId(id)}`)
 }
 
@@ -85,7 +88,7 @@ export function directoryIdToUserGroupId(id: backend.DirectoryId): backend.UserG
  * @param id - The string to check.
  * @returns Whether the string is a valid organization ID.
  */
-export function isOrganizationId(id: string): id is backend.OrganizationId {
+export function isOrganizationId(id: string): id is OrganizationId {
   return id.startsWith('organization-')
 }
 
@@ -94,7 +97,7 @@ export function isOrganizationId(id: string): id is backend.OrganizationId {
  * @param id - The string to check.
  * @returns Whether the string is a valid user ID.
  */
-export function isUserId(id: string): id is backend.UserId {
+export function isUserId(id: string): id is UserId {
   return id.startsWith('user-')
 }
 
@@ -103,6 +106,6 @@ export function isUserId(id: string): id is backend.UserId {
  * @param id - The string to check.
  * @returns Whether the string is a valid user group ID.
  */
-export function idIsUserGroupId(id: string): id is backend.UserGroupId {
+export function idIsUserGroupId(id: string): id is UserGroupId {
   return id.startsWith('usergroup-')
 }
