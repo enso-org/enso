@@ -6,7 +6,7 @@ import { type DisplayableActionName } from '@/providers/action'
 import ZoomControl from './ZoomControl.vue'
 
 const open = defineModel<boolean>('open', { default: false })
-const { actions } = defineProps<{
+defineProps<{
   actions: DisplayableActionName[]
   zoomControls?: { zoomLevel: number } | undefined
 }>()
