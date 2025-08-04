@@ -56,17 +56,7 @@ const isDisplayed = (tooltip: Opt<HoveredElement>) => {
   if (tooltip.entry.isHidden) return false
   if (tooltip.entry.forceShow) return true
   if (!tooltip.element.isConnected) return false
-  switch (toValue(tooltip.entry.props.when)) {
-    case 'always':
-      return true
-    case 'whenOverflow':
-      return (
-        tooltip.element.scrollWidth > tooltip.element.clientWidth ||
-        tooltip.element.scrollHeight > tooltip.element.clientHeight
-      )
-    default:
-      return false
-  }
+  return toValue(tooltip.entry.props.enabled)
 }
 
 const displayedTooltip = computed(() => {

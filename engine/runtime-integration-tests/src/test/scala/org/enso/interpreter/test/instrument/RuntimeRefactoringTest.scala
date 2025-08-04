@@ -402,8 +402,9 @@ class RuntimeRefactoringTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, exprOperator1, exprOperator2),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       TestMessages
         .update(
           contextId,
@@ -1016,8 +1017,9 @@ class RuntimeRefactoringTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, exprOperator1, exprOperator2),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       TestMessages
         .update(
           contextId,

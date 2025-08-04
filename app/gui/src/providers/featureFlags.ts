@@ -37,6 +37,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   getLogEventsPageSize: z.number().int().min(1),
   listDirectoryPageSize: z.number().int().min(1),
   dataCatalogQueryDebounceDelay: z.number().int().min(0),
+  unsafeDarkTheme: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
@@ -74,6 +75,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         getLogEventsPageSize: DEFAULT_GET_LOG_EVENTS_PAGE_SIZE,
         listDirectoryPageSize: DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
         dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
+        unsafeDarkTheme: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

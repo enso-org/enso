@@ -725,6 +725,13 @@ type S3_File
     to_display_text : Text
     to_display_text self = "S3_File {" + self.to_text + "}"
 
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "S3_File"], ["uri", self.uri]]
+
 ## ---
    private: true
    ---

@@ -21,6 +21,9 @@ import * as tar from 'tar'
 import * as common from 'enso-common'
 
 import * as desktopEnvironment from '@/desktopEnvironment'
+import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
+import { Path, UUID } from 'enso-common/src/services/Backend'
+import { Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 
 const logger = console
 
@@ -30,8 +33,6 @@ const logger = console
 
 export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
-/** The filename suffix for the project bundle, including the leading period character. */
-const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
 const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
 const SAMPLES_DIRECTORY_NAME = 'Samples'
@@ -42,9 +43,9 @@ const SAMPLES_DIRECTORY_NAME = 'Samples'
 
 /** Metadata for a newly imported project. */
 export interface ProjectInfo {
-  readonly id: string
+  readonly id: UUID
   readonly name: string
-  readonly projectRoot: string
+  readonly projectRoot: Path
   readonly parentDirectory: string
 }
 
@@ -72,7 +73,7 @@ export function importProjectFromPath(
   openedPath: string,
   directory?: string | null,
   name: string | null = null,
-) {
+): ProjectInfo {
   directory ??= getProjectsDirectory()
   if (isProjectBundle(openedPath)) {
     logger.log(`Path '${openedPath}' denotes a bundled project.`)
@@ -104,11 +105,7 @@ export function importProjectFromPath(
  * Import the project from a bundle.
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
-export function importBundle(
-  bundlePath: string,
-  directory?: string | null,
-  name: string | null = null,
-) {
+function importBundle(bundlePath: string, directory?: string | null, name: string | null = null) {
   directory ??= getProjectsDirectory()
   logger.log(
     `Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}. Target directory: '${directory}'.`,
@@ -183,7 +180,7 @@ export async function uploadBundle(
   bundle: stream.Readable,
   directory?: string | null,
   name: string | null = null,
-) {
+): Promise<ProjectInfo> {
   directory ??= getProjectsDirectory()
   logger.log(`Uploading project from bundle${name != null ? ` as '${name}'` : ''}.`)
 
@@ -221,13 +218,13 @@ export function importDirectory(
   if (isProjectInstalled(rootPath, directory)) {
     // Project is already visible to Project Manager, so we can just return its ID.
     logger.log(`Project already installed at '${rootPath}'.`)
-    const id = getProjectId(rootPath)
+    const { id } = getMetadata(rootPath) ?? {}
     if (id != null) {
       return {
         id,
         name: getPackageName(rootPath) ?? '',
+        projectRoot: Path(rootPath),
         parentDirectory: directory,
-        projectRoot: rootPath,
       }
     } else {
       throw new Error(`Project already installed, but missing metadata.`)
@@ -253,13 +250,13 @@ interface ProjectMetadata {
    * The ID of the project. It is only used in communication with project manager;
    * it has no semantic meaning.
    */
-  readonly id: string
+  readonly id: UUID
   /** The project variant. This is currently always `UserProject`. */
   readonly kind: 'UserProject'
   /** The date at which the project was created, in RFC3339 format. */
-  readonly created: string
+  readonly created: Rfc3339DateTime
   /** The date at which the project was last opened, in RFC3339 format. */
-  readonly lastOpened: string
+  readonly lastOpened: Rfc3339DateTime
 }
 
 /**
@@ -276,11 +273,6 @@ function isProjectMetadata(value: unknown): value is ProjectMetadata {
   return typeof value === 'object' && value != null && 'id' in value && typeof value.id === 'string'
 }
 
-/** Get the ID from the project metadata. */
-export function getProjectId(projectRoot: string): string | null {
-  return getMetadata(projectRoot)?.id ?? null
-}
-
 /** Get the package name. */
 function getPackageName(projectRoot: string) {
   const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
@@ -290,7 +282,7 @@ function getPackageName(projectRoot: string) {
 }
 
 /** Update the package name. */
-export function updatePackageName(projectRoot: string, name: string) {
+function updatePackageName(projectRoot: string, name: string) {
   const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
   const contents = fs.readFileSync(path, { encoding: 'utf-8' })
   const newContents = contents.replace(/^name: .*/, `name: ${JSON.stringify(name)}`)
@@ -302,8 +294,8 @@ export function createMetadata(): ProjectMetadata {
   return {
     id: generateId(),
     kind: 'UserProject',
-    created: new Date().toISOString(),
-    lastOpened: new Date().toISOString(),
+    created: toRfc3339(new Date()),
+    lastOpened: toRfc3339(new Date()),
   }
 }
 
@@ -320,7 +312,7 @@ export function getMetadata(projectRoot: string): ProjectMetadata | null {
 }
 
 /** Write the project's metadata. */
-export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
+function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
   const metadataPath = pathModule.join(projectRoot, PROJECT_METADATA_RELATIVE_PATH)
   fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4))
@@ -332,7 +324,7 @@ export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): v
  *
  * Returns the metadata returned from the updater function.
  */
-export function updateMetadata(
+function updateMetadata(
   projectRoot: string,
   updater: (initialMetadata: ProjectMetadata) => ProjectMetadata,
 ): ProjectMetadata {
@@ -360,7 +352,7 @@ export function isProjectRoot(candidatePath: string): boolean {
  * Check if this bundle is a compressed directory (rather than directly containing the project
  * files). If it is, we return the path to the directory. Otherwise, we return `null`.
  */
-export function prefixInBundle(bundlePath: string): string | null {
+function prefixInBundle(bundlePath: string): string | null {
   // We need to look up the root directory among the tarball entries.
   let commonPrefix: string | undefined
   tar.list({
@@ -389,7 +381,7 @@ function getCommonPrefix(a: string, b: string): string {
  * `Name_1`. If a path containing multiple components is given, only the last component is used
  * for the name.
  */
-export function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
+function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
   // Use only the last path component.
   let baseName = pathModule.parse(name).name
 
@@ -436,10 +428,7 @@ export function getProjectsDirectory(): string {
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */
-export function isProjectInstalled(
-  projectRoot: string,
-  directory = getProjectsDirectory(),
-): boolean {
+function isProjectInstalled(projectRoot: string, directory = getProjectsDirectory()): boolean {
   const projectRootParent = pathModule.dirname(projectRoot)
   // Should resolve symlinks and relative paths. Normalize before comparison.
   return pathModule.resolve(projectRootParent) === pathModule.resolve(directory)
@@ -484,8 +473,8 @@ export async function unpackBundle(
 // ==================
 
 /** Generate a unique UUID for a project. */
-export function generateId(): string {
-  return crypto.randomUUID()
+export function generateId(): UUID {
+  return UUID(crypto.randomUUID())
 }
 
 /** Update the project's ID to a new, unique value, and its last opened date to the current date. */
@@ -525,9 +514,9 @@ export function bumpMetadata(
   const id = updateMetadata(projectRoot, (metadata) => ({
     ...metadata,
     id: generateId(),
-    lastOpened: new Date().toISOString(),
+    lastOpened: toRfc3339(new Date()),
   })).id
-  return { id, name, projectRoot, parentDirectory }
+  return { id, name, projectRoot: Path(projectRoot), parentDirectory }
 }
 
 /** Download project templates GitHub repo into the Samples directory if one not exists. */

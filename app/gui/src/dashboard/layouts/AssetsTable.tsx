@@ -25,6 +25,7 @@ import { useDerivedDebouncedState } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
@@ -271,6 +272,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
     return queryDirectoryIdRaw
   })()
+  const queryDirectoryIdRef = useSyncRef(queryDirectoryId)
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
   const debouncedQueryDelayMs = useFeatureFlag('dataCatalogQueryDebounceDelay')
   const debouncedQuery = useDerivedDebouncedState(query, debouncedQueryDelayMs)
@@ -315,7 +317,9 @@ function AssetsTable(props: AssetsTableProps) {
     initialPageParam: ((): PaginationToken | null => null)(),
     getNextPageParam: (lastPage) => lastPage.paginationToken,
     retry: () => {
-      setDriveLocation(null, category.id)
+      if (queryDirectoryId === queryDirectoryIdRef.current) {
+        setDriveLocation(null, category.id)
+      }
       return false
     },
   })
@@ -522,11 +526,11 @@ function AssetsTable(props: AssetsTableProps) {
   useEffect(
     () =>
       driveStore.subscribe(({ selectedIds }) => {
-        const predicate =
-          isCloud ?
-            (type: AssetType | undefined) =>
-              type === AssetType.project || type === AssetType.file || type === AssetType.datalink
-          : (type: AssetType | undefined) => type === AssetType.project
+        const predicate = (type: AssetType | undefined) =>
+          type === AssetType.directory ||
+          type === AssetType.project ||
+          type === AssetType.file ||
+          type === AssetType.datalink
         const map = new Map(assets.map((item) => [item.id, item]))
         const newCanDownload =
           selectedIds.size !== 0 &&

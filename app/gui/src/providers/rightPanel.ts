@@ -1,14 +1,15 @@
 import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import { type AnyAsset, AssetType, type ProjectId } from '#/services/Backend'
+import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
-import { useLocalStorage } from '@vueuse/core'
-import { computed, reactive, readonly, type Ref, ref, toRef, toValue } from 'vue'
+import { encoding } from 'lib0'
+import { computed, reactive, readonly, type Ref, ref, toValue } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { type TabId } from './container'
+import { isProjectTab, type TabId } from './container'
 import { type TextStore, useText } from './text'
 
 /** Information about content of "Help" panel. */
@@ -42,12 +43,6 @@ interface RightPanelTabInfo {
   enabled: ToValue<Result<void>>
   hidden?: ToValue<boolean>
   title: ToValue<string>
-}
-
-/** Right Panel Data kept in local storage. */
-interface RightPanelStore {
-  tab: RightPanelTabId | undefined
-  width: number | undefined
 }
 
 function useRightPanelTabs(
@@ -126,10 +121,9 @@ function useRightPanelTabs(
       'help',
       {
         icon: 'help',
-        enabled: computed(() => {
-          const tab = toValue(currentTab)
-          return tab !== 'drive' && tab !== 'settings' ? Ok() : Err('Exclusive to Project view')
-        }),
+        enabled: computed(() =>
+          isProjectTab(toValue(currentTab)) ? Ok() : Err('Exclusive to Project view'),
+        ),
         title: 'Component help',
       },
     ],
@@ -151,14 +145,30 @@ function useRightPanel(
   const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
+  const tab = ref<RightPanelTabId>()
+  const width = ref<number>()
 
-  const store = useLocalStorage<RightPanelStore>('rightPanel', {
-    tab: undefined,
-    width: undefined,
+  useSyncLocalStorage({
+    storageKey: 'rightPanel',
+    mapKeyEncoder: (enc) => encoding.writeVarString(enc, toValue(containerTab)),
+    debounce: 200,
+    captureState: () => ({
+      tab: tab.value,
+      width: width.value,
+    }),
+    restoreState: (state) => {
+      if (state) {
+        tab.value = state.tab
+        width.value = state.width
+      } else {
+        tab.value = isProjectTab(toValue(containerTab)) ? 'documentation' : undefined
+        width.value = undefined
+      }
+    },
   })
 
   const displayedTab = computed(() => {
-    const markedTab = temporaryTab.value ?? store.value.tab
+    const markedTab = temporaryTab.value ?? tab.value
     if (markedTab == null) return undefined
     if (!toValue(allTabs.get(markedTab)?.enabled)?.ok) return undefined
     return markedTab
@@ -201,13 +211,13 @@ function useRightPanel(
     return typeof currentItem === 'object' ? currentItem : undefined
   })
 
-  function setTab(tab: RightPanelTabId | undefined) {
-    store.value.tab = tab
+  function setTab(newTab: RightPanelTabId | undefined) {
+    tab.value = newTab
     temporaryTab.value = undefined
   }
 
   function toggleTab(specificTab?: RightPanelTabId | undefined) {
-    if (specificTab == null || store.value.tab == specificTab) {
+    if (specificTab == null || tab.value == specificTab) {
       setTab(undefined)
     } else {
       setTab(specificTab)
@@ -216,7 +226,7 @@ function useRightPanel(
 
   return proxyRefs({
     allTabs,
-    tab: readonly(toRef(store.value, 'tab')),
+    tab: readonly(tab),
     /** Tab which should be displayed (taking temporary tab into consideration). */
     displayedTab,
     setTab,
@@ -229,7 +239,7 @@ function useRightPanel(
      */
     temporaryTab,
     setTemporaryTab: (tab: RightPanelTabId | undefined) => (temporaryTab.value = tab),
-    width: toRef(store.value, 'width'),
+    width,
     fullscreen,
     context,
     setContext,

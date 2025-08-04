@@ -1,5 +1,5 @@
 /** @file Utilities for working with permissions. */
-import type * as text from '../text'
+import type * as text from '../text.js'
 
 // ========================
 // === PermissionAction ===

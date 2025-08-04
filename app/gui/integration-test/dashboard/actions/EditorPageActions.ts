@@ -8,18 +8,17 @@ export default class EditorPageActions<Context> extends PageActions<Context> {
   get goToPage(): Omit<GoToPageActions<Context>, 'editor'> {
     return goToPageActions(this.step.bind(this))
   }
-  /** Waits for the editor to load. */
+
+  /** Wait for the editor to load. */
   waitForEditorToLoad(): EditorPageActions<Context> {
-    return this.step('wait for the editor to load', async () => {
+    return this.step('Wait for the editor to load', async () => {
       await this.page.waitForSelector('[data-testid=editor]', { state: 'visible' })
     })
   }
 
-  /**
-   * Close all toast notifications.
-   */
+  /** Close all toast notifications. */
   closeToastNotifications() {
-    return this.step('close toast notifications', async () => {
+    return this.step('Close toast notifications', async () => {
       await Promise.all(
         await this.page
           .locator('.Toastify__toast')

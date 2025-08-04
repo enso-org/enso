@@ -5,7 +5,7 @@ import * as fileIcon from '#/utilities/fileIcon'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {
-  readonly asset: backend.AnyAsset
+  readonly asset: Pick<backend.AnyAsset, 'title' | 'type'>
   readonly className?: string
 }
 

@@ -5,6 +5,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   `type`,
+  AscriptionReason,
   CallArgument,
   Expression,
   IdentifiedLocation,
@@ -194,7 +195,7 @@ case object TypeFunctions extends IRPass {
 
       name.name match {
         case Type.Ascription.name =>
-          Type.Ascription(leftArg, rightArg, None, location)
+          Type.Ascription(leftArg, rightArg, AscriptionReason.empty(), location)
         case Type.Context.name =>
           Type.Context(leftArg, rightArg, location)
         case Type.Error.name =>

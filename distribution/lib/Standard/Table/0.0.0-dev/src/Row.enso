@@ -94,6 +94,14 @@ type Row
         pairs = self.column_names.map n-> [n, self.get n]
         JS_Object.from_pairs pairs
 
+    ## ---
+       private: true
+       ---
+       Converts this row into a JSON representation.
+    to_json_data : Text
+    to_json_data self =
+        self.java_row.toJsonData v->v.to_json
+
 ## ---
    private: true
    ---

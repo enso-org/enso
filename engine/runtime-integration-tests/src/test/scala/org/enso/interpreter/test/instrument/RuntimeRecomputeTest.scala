@@ -144,8 +144,9 @@ class RuntimeRecomputeTest
         Api.RecomputeContextRequest(contextId, None, None, Seq())
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -200,7 +201,7 @@ class RuntimeRecomputeTest
         )
       )
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.pending(
         contextId,
@@ -213,6 +214,7 @@ class RuntimeRecomputeTest
       context.Main.Update.mainX(contextId, typeChanged = false),
       context.Main.Update.mainY(contextId, typeChanged = false),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -269,10 +271,11 @@ class RuntimeRecomputeTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.pending(contextId, context.Main.idMainZ),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
   }
@@ -330,7 +333,7 @@ class RuntimeRecomputeTest
         )
       )
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.pending(
         contextId,
@@ -343,6 +346,7 @@ class RuntimeRecomputeTest
       context.Main.Update.mainX(contextId, typeChanged = false),
       context.Main.Update.mainY(contextId, typeChanged = false),
       context.Main.Update.mainZ(contextId, typeChanged = false),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment

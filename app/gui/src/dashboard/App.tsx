@@ -29,28 +29,29 @@ import RemoteBackend from '#/services/RemoteBackend'
 
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
-import { Path } from '#/utilities/path'
 
-import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useOffline } from '#/hooks/offlineHooks'
 import type { ModalApi } from '#/utilities/modal'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly localRootDirectory: string
     readonly preferredTimeZone: string
     readonly loginRedirect: string
   }
 }
-LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 LocalStorage.registerKey('loginRedirect', {
   isUserSpecific: true,
   schema: z.string(),
+})
+
+window.menuApi?.setMenuItemHandler('about', () => {
+  AboutModal.open()
 })
 
 /**
@@ -124,10 +125,6 @@ function AppRouter(props: React.PropsWithChildren) {
   const aboutModalRef = React.useRef<ModalApi>(null)
 
   React.useEffect(() => {
-    window.menuApi?.setMenuItemHandler('about', () => {
-      aboutModalRef.current?.open()
-    })
-
     let isClick = false
     const onMouseDown = () => {
       isClick = true
@@ -170,8 +167,8 @@ function AppRouter(props: React.PropsWithChildren) {
   return (
     <RouterProvider navigate={navigate}>
       <InputBindingsProvider>
-        <LocalBackendPathSynchronizer />
         <VersionChecker />
+        <ThemeSynchronizer />
         <AboutModal ref={aboutModalRef} />
         {children}
       </InputBindingsProvider>
@@ -179,16 +176,18 @@ function AppRouter(props: React.PropsWithChildren) {
   )
 }
 
-/** Keep `localBackend.rootPath` in sync with the saved root path state. */
-function LocalBackendPathSynchronizer() {
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-  const { localBackend } = useBackends()
+/** Keep theme class on document body in sync with saved theme state. */
+function ThemeSynchronizer() {
+  const isDarkTheme = useFeatureFlag('unsafeDarkTheme')
 
-  if (localRootDirectory != null) {
-    localBackend?.setRootPath(Path(localRootDirectory))
-  } else {
-    localBackend?.resetRootPath()
-  }
+  React.useEffect(() => {
+    if (isDarkTheme) {
+      document.documentElement.classList.add('theme-dark')
+    } else {
+      document.documentElement.classList.remove('theme-dark')
+    }
+    localStorage.setItem('enso-theme', isDarkTheme ? 'dark' : 'light')
+  }, [isDarkTheme])
 
   return null
 }

@@ -90,22 +90,17 @@ export function EnsoDevStatus() {
     listDirectoryPageSize,
     getLogEventsPageSize,
     fileChunkUploadPoolSize,
+    unsafeDarkTheme,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
     switch (developerPlanOverride) {
-      case backend.Plan.free: {
-        return getText('free')
-      }
-      case backend.Plan.solo: {
-        return getText('solo')
-      }
-      case backend.Plan.team: {
-        return getText('team')
-      }
+      case backend.Plan.free:
+      case backend.Plan.solo:
+      case backend.Plan.team:
       case backend.Plan.enterprise: {
-        return getText('enterprise')
+        return getText(developerPlanOverride)
       }
       case undefined: {
         return
@@ -127,7 +122,8 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions ||
     listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE ||
     getLogEventsPageSize !== DEFAULT_GET_LOG_EVENTS_PAGE_SIZE ||
-    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
+    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE ||
+    unsafeDarkTheme
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -274,6 +270,15 @@ export function EnsoDevStatus() {
             }}
           >
             {getText('willUploadUpToXFileChunksAtOnce', fileChunkUploadPoolSize)}
+          </DeveloperOverrideEntry>
+        )}
+        {unsafeDarkTheme && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('unsafeDarkTheme', false)
+            }}
+          >
+            {getText('developerDarkThemeEnabled')}
           </DeveloperOverrideEntry>
         )}
       </div>
@@ -510,6 +515,15 @@ export function EnsoDevtools() {
                         'assetsTableBackgroundRefreshInterval',
                         event.target.valueAsNumber,
                       )
+                    }}
+                  />
+                  <Switch
+                    form={form}
+                    name="unsafeDarkTheme"
+                    label="Developer Dark Theme"
+                    description="Enable quick-and-dirty dark theme for developer use only"
+                    onChange={(value) => {
+                      setFeatureFlag('unsafeDarkTheme', value)
                     }}
                   />
                 </div>

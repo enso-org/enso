@@ -106,3 +106,10 @@ type S3_Warning
        private: true
        ---
     to_text self = self.message
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "S3_Warning"], ["message", self.message]]

@@ -2,6 +2,7 @@ package org.enso.table.data.table;
 
 import java.util.Arrays;
 import java.util.function.Function;
+import org.enso.table.data.column.operation.JsonOperation;
 
 public class Row {
   private final Table table;
@@ -46,5 +47,22 @@ public class Row {
   public Object get_value(String name, Function<Object, Object> ifMissing) {
     var column = table.getColumnByName(name);
     return column == null ? ifMissing.apply(name) : column.getItem(rowIndex);
+  }
+
+  public String toJsonData(Function<Object, String> ensoJsonCallback) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    for (int i = 0; i < column_count(); i++) {
+      if (i > 0) {
+        sb.append(",");
+      }
+      String name = table.getColumns()[i].getName();
+      Object value = get_value(i, null);
+      sb.append(JsonOperation.objectToJson(name, ensoJsonCallback))
+          .append(":")
+          .append(JsonOperation.objectToJson(value, ensoJsonCallback));
+    }
+    sb.append("}");
+    return sb.toString();
   }
 }

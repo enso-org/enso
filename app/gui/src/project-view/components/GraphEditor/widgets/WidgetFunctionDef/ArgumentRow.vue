@@ -27,10 +27,10 @@ import { computed, useTemplateRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 
-const { definition, onUpdate, portIdBase } = defineProps<{
+const { definition, updateCallback, portIdBase } = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
-  onUpdate: UpdateHandler
+  updateCallback: UpdateHandler
   portIdBase: PortId
 }>()
 const emit = defineEmits<{
@@ -52,8 +52,8 @@ function patternWidget(pattern: Ast.Expression): WidgetProps {
       value: pattern,
       [EnsoExpression]: {},
     },
-    onUpdate(update: WidgetUpdate) {
-      return rewritePortValueUpdate(update, onUpdate, pattern.id, (value) => {
+    updateCallback(update: WidgetUpdate) {
+      return rewritePortValueUpdate(update, updateCallback, pattern.id, (value) => {
         if (value instanceof Ast.Ast && value instanceof Ast.Ident) {
           emit('rename', value)
           return Ok()
@@ -82,8 +82,8 @@ const nodeType = computed((): WidgetProps => {
       ...WidgetInput.FromAstOrPlaceholder(ty, () => syntheticId),
       [EnsoTypeExpression]: {},
     },
-    onUpdate(update: WidgetUpdate) {
-      return rewritePortValueUpdate(update, onUpdate, syntheticId, (rawValue) => {
+    updateCallback(update: WidgetUpdate) {
+      return rewritePortValueUpdate(update, updateCallback, syntheticId, (rawValue) => {
         const value = typeof rawValue === 'string' ? Ast.parseExpression(rawValue) : rawValue
         if (value instanceof Ast.Ast && value.isExpression()) {
           emit('updateType', value)
@@ -124,8 +124,8 @@ const nodeDefault = computed((): WidgetProps | undefined => {
         weakMatch: true,
       },
     },
-    onUpdate(update: WidgetUpdate) {
-      return rewritePortValueUpdate(update, onUpdate, syntheticId, (rawValue) => {
+    updateCallback(update: WidgetUpdate) {
+      return rewritePortValueUpdate(update, updateCallback, syntheticId, (rawValue) => {
         const value = typeof rawValue === 'string' ? Ast.parseExpression(rawValue) : rawValue
         if (value instanceof Ast.Ast && value.isExpression()) {
           emit('updateDefault', value)
