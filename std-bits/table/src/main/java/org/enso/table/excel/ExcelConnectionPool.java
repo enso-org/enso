@@ -44,8 +44,10 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
                 + "written to. This is a bug in the Table library.");
       }
 
-      System.out.println("ZZZZZ ExceltConnectionPool.openRO clearOnReload");
+      System.out.println("ZZZZZ ExcelConnectionPool.openRO before clearOnReload, records " + records.size());
+
       ReloadDetector.clearOnReload(this);
+      System.out.println("ZZZZZ ExcelConnectionPool.openRO after clearOnReload, records " + records.size());
 
       if (!file.exists()) {
         throw new FileNotFoundException(file.toString());

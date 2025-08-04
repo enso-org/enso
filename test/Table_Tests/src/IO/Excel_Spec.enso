@@ -1229,6 +1229,7 @@ add_specs suite_builder =
                 [w0, w1, w2, w3].each check_workbook
 
                 ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+
                 IO.println "ZZZZZ Excel_Spec before w4 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
                 w4 = xlsx_sheet.read
                 IO.println "ZZZZZ Excel_Spec after w4 "+ExcelConnectionPool.INSTANCE.getConnectionRecordCount.to_text
