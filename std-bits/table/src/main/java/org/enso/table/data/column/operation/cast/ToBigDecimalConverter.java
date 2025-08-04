@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.cast;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.enso.base.numeric.Decimal_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -54,7 +55,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
         Builder.getForBigDecimal(doubleStorage.getSize()),
-        (index, value, isNothing) -> BigDecimal.valueOf(value));
+        (index, value, isNothing) -> Decimal_Utils.fromFloat(value));
   }
 
   private ColumnStorage<BigDecimal> convertLongStorage(ColumnLongStorage longStorage) {
@@ -88,7 +89,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
             switch (value) {
               case Boolean b -> booleanAsBigDecimal(b);
               case Long l -> BigDecimal.valueOf(l);
-              case Double d -> BigDecimal.valueOf(d);
+              case Double d -> Decimal_Utils.fromFloat(d);
               case BigInteger bigInteger -> new BigDecimal(bigInteger);
               case BigDecimal bigDecimal -> bigDecimal;
               default -> {
