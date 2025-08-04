@@ -337,7 +337,7 @@ function AssetsTable(props: AssetsTableProps) {
     const tableEl = scrollerEl.children[0]
     if (!tableEl) return
     if (scrollerEl.scrollTop + scrollerEl.clientHeight >= tableEl.scrollHeight) {
-      void assetsPages.fetchNextPage()
+      void fetchNextAssetPage()
     }
   }, [fetchNextAssetPage, assetsPages.data?.pages])
 
