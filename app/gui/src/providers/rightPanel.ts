@@ -1,21 +1,13 @@
-import { backendQueryOptions } from '#/hooks/backendHooks'
 import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-import {
-  type AnyAsset,
-  AssetDetailsResponse,
-  AssetType,
-  type ProjectId,
-  RealAssetId,
-} from '#/services/Backend'
+import { type AnyAsset, AssetType, BackendType, type ProjectId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
-import { useQueryClient } from '@tanstack/vue-query'
-import { asyncComputed } from '@vueuse/core'
+import { useQuery } from '@tanstack/vue-query'
 import { encoding } from 'lib0'
 import { computed, reactive, readonly, type Ref, ref, toValue } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
@@ -150,7 +142,6 @@ function useRightPanel(
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   textStore: TextStore = useText(),
 ) {
-  const queryClient = useQueryClient()
   const { backendForType } = useBackends()
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
@@ -223,22 +214,25 @@ function useRightPanel(
     return typeof currentItem === 'object' ? currentItem : undefined
   })
 
-  const focusedAssetDetails = asyncComputed<AssetDetailsResponse<RealAssetId> | undefined>(
-    async () => {
-      if (!context.value?.category) return undefined
-      const currentItem = context.value?.item ?? context.value?.defaultItem
-      if (
-        !currentItem ||
-        (typeof currentItem === 'object' && currentItem.type === AssetType.specialUp)
-      )
+  const backendType = computed(() => context.value?.category?.backend ?? BackendType.remote)
+
+  const focusedAssetDetailsQuery = useQuery({
+    queryKey: [
+      backendType,
+      'getAssetDetails',
+      computed(() => context.value?.item ?? context.value?.defaultItem),
+    ] as const,
+    queryFn: async (query) => {
+      const [backendType, , currentItem] = query.queryKey
+      if (!backendType || !currentItem) return undefined
+      if (typeof currentItem === 'object' && currentItem.type === AssetType.specialUp)
         return undefined
-      return await queryClient.ensureQueryData(
-        backendQueryOptions(backendForType(context.value.category.backend), 'getAssetDetails', [
-          typeof currentItem === 'object' ? currentItem.id : currentItem,
-        ]),
+      return await backendForType(backendType).getAssetDetails(
+        typeof currentItem === 'object' ? currentItem.id : currentItem,
       )
     },
-  )
+  })
+  const focusedAssetDetails = focusedAssetDetailsQuery.data
 
   function setTab(newTab: RightPanelTabId | undefined) {
     tab.value = newTab
