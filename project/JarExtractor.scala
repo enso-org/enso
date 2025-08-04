@@ -102,9 +102,15 @@ object JarExtractor {
                   case CopyToOutputJar =>
                     copyEntry(outputJar, inputJar, entry, logger)
                   case PolyglotLib(arch) =>
+                    // Silently rename the old `*.jnilib` files to `*.dylib`.
                     val destPath = polyglotLibDir
                       .resolve(arch.path)
-                      .resolve(entryPath.getFileName)
+                      .resolve(
+                        entryPath.getFileName.toString.replace(
+                          ".jnilib",
+                          ".dylib"
+                        )
+                      )
                     if (archMatchesCurPlatform(arch)) {
                       copyEntry(destPath, inputJar, entry, logger)
                     }

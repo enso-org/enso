@@ -358,6 +358,7 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-tableau`,
     `syntax-rust-definition`,
+    `tableau-wrapper`,
     `task-progress-notifications`,
     testkit,
     `test-utils`,
@@ -5000,6 +5001,24 @@ lazy val `netty-epoll-native-wrapper` = project
     )
   )
 
+lazy val `tableau-wrapper` = project
+  .in(file("lib/java/tableau-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    inputJarResolved := {
+      val tableauJars = (LocalProject("std-tableau") / Compile / unmanagedJars).value.map(_.data)
+      val tableauSuffixInJar = s"tableauhyperapi-${StdBits.plainOsName()}"
+      tableauJars.filter(f => f.getName.contains(tableauSuffixInJar))
+        .head
+    },
+    jarExtractor := JarExtractor(
+      "darwin-aarch64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSArm64),
+      "darwin-x86-64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSX86_64),
+      "linux-x86-64/libtableauhyperapi.so" -> PolyglotLib(LinuxX86_64),
+      "win32-x86-64/tableauhyperapi.dll" -> PolyglotLib(WindowsX86_64),
+    )
+  )
+
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
   .settings(
@@ -5567,20 +5586,12 @@ lazy val `std-tableau` = project
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
-    // Extract native libraries from tableau's jar, and put them under
-    // Standard/Tableau/polyglot/lib directory.
-    extractNativeLibs := Def.task {
+    Compile / packageBin := {
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
-      import sbt.util.CacheImplicits._
-      val prev               = extractNativeLibs.previous
-      val tableauSuffixInJar = s"tableauhyperapi-${StdBits.plainOsName()}"
-      val tableauNativeLibJar = (Compile / unmanagedJars).value
-        .map(_.data)
-        .filter(f => f.getName.contains(tableauSuffixInJar))
-        .head
       val libraryUpdates     = (Compile / update).value
       val unmanagedClasspath = (Compile / unmanagedJars).value
+      val stdTableauJar = (Compile / packageBin).value
       StdBits
         .copyDependencies(
           `std-tableau-polyglot-root`,
@@ -5592,47 +5603,17 @@ lazy val `std-tableau` = project
           logger             = logger,
           cacheStoreFactory  = cacheStoreFactory,
           unmanagedClasspath = unmanagedClasspath,
-          previousRun        = prev
+          polyglotLibDir     = Some(`std-tableau-native-libs`),
+          extractedNativeLibsDirs = Seq(
+            (`jna-wrapper-extracted` / extractedFilesDir).value,
+            (`tableau-wrapper` / extractedFilesDir).value
+          ),
+          extraJars = Seq(
+            (`jna-wrapper-extracted` / thinJarOutput).value
+          )
         )
-      StdBits
-        .extractNativeLibsFromTableau(
-          `std-tableau-polyglot-root`,
-          `std-tableau-native-libs`,
-          tableauVersion,
-          jnaVersion,
-          (`jna-wrapper` / Compile / exportedModule).value,
-          updateReport       = libraryUpdates,
-          unmanagedClasspath = unmanagedClasspath,
-          logger             = logger,
-          moduleName         = moduleName.value,
-          scalaBinaryVersion = scalaBinaryVersion.value,
-          cacheStoreFactory  = cacheStoreFactory,
-          previousRun        = prev
-        )
-    }.value,
-    cleanPolyglotRoot := Def.task {
-      import sbt.util.CacheImplicits._
-      val forceClean = extractNativeLibs.previous.isEmpty
-      val logger     = streams.value.log
-      StdBits.ensureDirExistsAndIsClean(
-        `std-tableau-polyglot-root`.toPath,
-        logger,
-        forceClean
-      )
-      StdBits.ensureDirExistsAndIsClean(
-        `std-tableau-native-libs`.toPath,
-        logger,
-        forceClean
-      )
-    }.value,
-    Compile / packageBin := Def
-      .task {
-        val result = (Compile / packageBin).value
-        extractNativeLibs.value
-        result
-      }
-      .dependsOn(cleanPolyglotRoot)
-      .value,
+      stdTableauJar
+    },
     clean := Def.task {
       val _ = clean.value
       IO.delete(`std-tableau-polyglot-root`)
