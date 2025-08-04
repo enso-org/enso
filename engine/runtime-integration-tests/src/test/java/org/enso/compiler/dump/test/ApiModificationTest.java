@@ -7,8 +7,6 @@ import static org.hamcrest.Matchers.not;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
-import java.util.logging.Level;
-import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
@@ -17,9 +15,7 @@ import org.junit.Test;
 
 /** Tests recognitions of API changes in Enso code. */
 public final class ApiModificationTest {
-  @ClassRule
-  public static final ContextUtils ctxRule =
-      ContextUtils.createDefault(Level.FINE, JulHandler.get());
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

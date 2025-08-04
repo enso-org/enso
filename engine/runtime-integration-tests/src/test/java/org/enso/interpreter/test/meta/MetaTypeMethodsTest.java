@@ -30,7 +30,7 @@ import org.junit.Test;
  * org.enso.interpreter.runtime.data.atom.Atom}.
  */
 public class MetaTypeMethodsTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;

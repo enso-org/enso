@@ -21,6 +21,7 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.logger.JulHandler;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
@@ -97,12 +98,16 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     return new ContextUtils(ctxBldr, stdout, stderr, true);
   }
 
-  public static ContextUtils createDefault(Level logLevel, Handler logHanlder) {
+  private static ContextUtils createDefault(Level logLevel, Handler logHanlder) {
     var stdout = new ByteArrayOutputStream();
     var stderr = new ByteArrayOutputStream();
     var ctxBldr = Builder.defaultContextBuilder(logLevel, logHanlder);
     ctxBldr.out(stdout).err(stderr);
     return new ContextUtils(ctxBldr, stdout, stderr, true);
+  }
+
+  public static ContextUtils createWithDefaultLogLevel() {
+    return createDefault(Level.FINE, JulHandler.get());
   }
 
   /**

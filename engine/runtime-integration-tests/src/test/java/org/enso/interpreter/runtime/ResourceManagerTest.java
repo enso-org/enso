@@ -8,8 +8,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.util.logging.Level;
-import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.Rule;
@@ -27,7 +25,7 @@ public class ResourceManagerTest {
     var obj = new ResourceToGc();
     var fn = new FnCallback();
 
-    try (var ctx = ContextUtils.createDefault(Level.FINE, JulHandler.get())) {
+    try (var ctx = ContextUtils.createWithDefaultLogLevel()) {
       var ensoContext = ctx.ensoContext();
 
       ensoContext.getResourceManager().register(obj, fn);
@@ -35,7 +33,7 @@ public class ResourceManagerTest {
     }
 
     assertNotNull("Callback invoked when thread closed", fn.args);
-    assertNotNull("Callback invoked with one argument", fn.args.length);
+    assertEquals("Callback invoked with one argument", fn.args.length, 1);
     assertEquals("Called by our thread", fn.thread, Thread.currentThread());
     assertEquals("Callback called for the registered `obj`", obj, fn.args[0]);
   }

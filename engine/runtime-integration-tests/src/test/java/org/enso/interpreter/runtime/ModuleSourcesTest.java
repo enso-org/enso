@@ -4,8 +4,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.logging.Level;
-import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.enso.text.buffer.Rope$;
@@ -17,9 +15,7 @@ import org.junit.Test;
 
 public class ModuleSourcesTest {
 
-  @ClassRule
-  public static final ContextUtils ctxRule =
-      ContextUtils.createDefault(Level.FINE, JulHandler.get());
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

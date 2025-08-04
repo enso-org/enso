@@ -6,8 +6,6 @@ import static org.hamcrest.Matchers.hasItemInArray;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import java.util.logging.Level;
-import org.enso.logger.JulHandler;
 import org.enso.logging.service.logback.MemoryAppender;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
@@ -18,9 +16,7 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 public class StdLibLoggingTest {
-  @ClassRule
-  public static final ContextUtils ctxRule =
-      ContextUtils.createDefault(Level.FINEST, JulHandler.get());
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

@@ -194,7 +194,10 @@ prefer-local-libraries: true
    *     main} method
    */
   public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
-    testProjectRun(ContextUtils.newBuilder(), projDir, resultConsumer);
+    testProjectRun(
+        ContextUtils.newBuilder().withLogHandler(Level.FINE, JulHandler.get()),
+        projDir,
+        resultConsumer);
   }
 
   /**

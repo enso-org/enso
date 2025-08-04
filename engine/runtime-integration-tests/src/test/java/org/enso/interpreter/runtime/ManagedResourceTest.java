@@ -10,9 +10,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.util.logging.Level;
 import org.enso.common.MethodNames;
-import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
@@ -25,9 +23,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class ManagedResourceTest {
-  @ClassRule
-  public static final ContextUtils ctxRule =
-      ContextUtils.createDefault(Level.FINE, JulHandler.get());
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
