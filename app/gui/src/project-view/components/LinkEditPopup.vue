@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { setModal } from '#/providers/ModalProvider'
+import { vueComponent } from '#/utilities/vue'
 import { textEditorsBindings } from '@/bindings'
-import StandaloneButton from '@/components/StandaloneButton.vue'
-import { injectInteractionHandler } from '@/providers/interactionHandler'
+import OpenProjectModal from '@/components/OpenProjectModal.vue'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
-import { AnimatePresence, motion } from 'motion-v'
-import { ref, toRef, useTemplateRef, watchEffect } from 'vue'
-import { useRouter } from 'vue-router'
+import * as React from 'react'
+import { toRef, useTemplateRef } from 'vue'
 
 const props = defineProps<{
   referenceElement: HTMLElement
@@ -13,31 +13,13 @@ const props = defineProps<{
   popOut: boolean
 }>()
 
-const router = useRouter()
+const OpenProjectModalReact = vueComponent(OpenProjectModal).default
+
 const floatingElement = useTemplateRef<HTMLElement>('floating')
-const isModalOpen = ref(false)
-const interaction = injectInteractionHandler()
 
-const modalInteraction = {
-  cancel() {
-    isModalOpen.value = false
-  },
-  end() {
-    isModalOpen.value = false
-  },
+function openModal() {
+  setModal(React.createElement(OpenProjectModalReact, { href: props.href }))
 }
-
-function closeModal() {
-  interaction.cancel(modalInteraction)
-}
-
-watchEffect(() => {
-  if (isModalOpen.value) {
-    interaction.setCurrent(modalInteraction)
-  } else {
-    closeModal()
-  }
-})
 
 const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatingElement, {
   placement: 'top-start',
@@ -45,53 +27,22 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
   middleware: [flip()],
   whileElementsMounted: autoUpdate,
 })
-
-function openProjectInNewTab() {
-  isModalOpen.value = false
-  router.push(`/${props.href}`)
-}
 </script>
 
 <template>
   <teleport to="#floatingLayer">
     <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
       <a
-        v-if="!/^enso:.*[.]project$/.test(href)"
+        v-if="!/^enso:[/][/].*[.]project$/.test(href)"
         class="link"
         :href="href"
         target="_blank"
         rel="noopener,noreferrer"
         >Follow link</a
       >
-      <a v-else class="link" @click="isModalOpen = true">Follow link</a>
+      <a v-else class="link" @click="openModal">Follow link</a>
       ({{ textEditorsBindings.bindings.openLink.humanReadable }})
     </div>
-  </teleport>
-
-  <teleport to="#floatingLayer">
-    <AnimatePresence>
-      <motion.div
-        v-if="isModalOpen"
-        class="modal"
-        :initial="{ opacity: 0, y: '-100px' }"
-        :animate="{ opacity: 1, y: '0' }"
-        :exit="{ opacity: 0, y: '-100px' }"
-        @keydown.esc="closeModal"
-        @mousedown.self.prevent="closeModal"
-      >
-        <div class="modal-container" @mousedown.stop.prevent>
-          <h2>Open Project</h2>
-          <p>
-            Would you like to open the project at '{{ decodeURIComponent(href) }}'? The current
-            project will be closed.
-          </p>
-          <div class="button-bar">
-            <StandaloneButton label="Cancel" @activate="closeModal" />
-            <StandaloneButton label="Open" variant="submit" @activate="openProjectInNewTab" />
-          </div>
-        </div>
-      </motion.div>
-    </AnimatePresence>
   </teleport>
 </template>
 
