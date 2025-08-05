@@ -25,7 +25,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class ExportCycleDetectionTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

@@ -21,7 +21,6 @@ import org.junit.rules.TemporaryFolder;
 public class EnsoMultiValueTest {
   @Rule public final TemporaryFolder dir = new TemporaryFolder();
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

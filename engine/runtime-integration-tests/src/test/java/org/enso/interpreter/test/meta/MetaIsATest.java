@@ -30,7 +30,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class MetaIsATest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static Value isACheck;

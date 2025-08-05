@@ -6,8 +6,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class DisabledAssertionsTest {
@@ -16,6 +18,7 @@ public class DisabledAssertionsTest {
       ContextUtils.newBuilder()
           .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "false"))
           .build();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void assertionsCanBeDisabledWithEnvVar() {

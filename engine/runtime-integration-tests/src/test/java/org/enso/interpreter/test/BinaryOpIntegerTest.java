@@ -21,6 +21,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class BinaryOpIntegerTest {
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static final String[] OPERATIONS = {
     " +",
     " -",
@@ -40,9 +43,6 @@ public class BinaryOpIntegerTest {
     ".bit_or",
     ".bit_and"
   };
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
-  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Parameterized.Parameters(name = "({1}){0} ({2})")
   public static Object[][] parameters() {

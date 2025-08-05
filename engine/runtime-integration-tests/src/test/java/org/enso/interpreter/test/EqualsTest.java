@@ -38,7 +38,6 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class EqualsTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static EqualsNode equalsNode;

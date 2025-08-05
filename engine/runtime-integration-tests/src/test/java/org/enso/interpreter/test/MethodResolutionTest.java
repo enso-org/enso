@@ -21,7 +21,6 @@ import org.junit.Test;
 public final class MethodResolutionTest {
   private static MethodResolverNode methodResolverNode;
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @BeforeClass

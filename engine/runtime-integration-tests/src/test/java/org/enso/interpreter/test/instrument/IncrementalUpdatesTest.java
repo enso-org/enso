@@ -34,10 +34,12 @@ import org.enso.polyglot.runtime.Runtime$Api$Response;
 import org.enso.polyglot.runtime.Runtime$Api$SetExpressionValueNotification;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.enso.text.editing.model;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import scala.Option;
 import scala.collection.immutable.List;
@@ -48,6 +50,7 @@ import scala.collection.immutable.Vector$;
 import scala.collection.immutable.Vector1;
 
 public class IncrementalUpdatesTest {
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static final String MODULE_NAME = "Enso_Test.Test.Main";
   private TestContext context;

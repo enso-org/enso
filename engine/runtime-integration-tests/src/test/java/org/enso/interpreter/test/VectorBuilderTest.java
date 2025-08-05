@@ -23,7 +23,6 @@ import org.junit.Test;
 
 public class VectorBuilderTest {
   @ClassRule public static final ContextUtils ctx = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static Value create;

@@ -12,7 +12,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class QualifiedNameTest {
   @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static final String mainModSrc =

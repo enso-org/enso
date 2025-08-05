@@ -46,10 +46,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
 
 public class DebuggingEnsoTest {
   private static Context context;
@@ -99,19 +96,6 @@ public class DebuggingEnsoTest {
   public void resetOut() {
     out.reset();
   }
-
-  /** Only print warnings from the compiler if a test fails. */
-  @Rule
-  public TestWatcher testWatcher =
-      new TestWatcher() {
-        @Override
-        protected void failed(Throwable e, Description description) {
-          System.err.println("Test failed: " + description.getMethodName());
-          System.err.println("Error: " + e.getMessage());
-          System.err.println("Logs from the compiler and the engine: ");
-          System.err.println(out);
-        }
-      };
 
   private static void expectStackFrame(
       DebugStackFrame actualFrame, Map<String, String> expectedValues) {

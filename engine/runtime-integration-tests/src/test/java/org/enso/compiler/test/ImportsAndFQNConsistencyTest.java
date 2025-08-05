@@ -49,7 +49,6 @@ public class ImportsAndFQNConsistencyTest {
           .build();
 
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
-
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 
   /**

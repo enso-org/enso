@@ -4,7 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
@@ -13,6 +15,7 @@ import org.junit.Test;
  */
 public class BuiltinsJavaInteropTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   /**
    * This test reflects the state of many Java methods in stdlibs that accept Enso values as {@link

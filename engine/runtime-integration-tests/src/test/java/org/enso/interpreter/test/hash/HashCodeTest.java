@@ -18,10 +18,12 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -30,6 +32,8 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class HashCodeTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static HashCodeNode hashCodeNode;
   private static EqualsNode equalsNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;

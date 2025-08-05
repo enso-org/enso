@@ -10,18 +10,21 @@ import java.util.Map;
 import java.util.function.Function;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class InsightForEnsoTest {
   private static AutoCloseable insightHandle;
 
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @BeforeClass
   public static void initContext() {

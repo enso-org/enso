@@ -29,7 +29,6 @@ import org.junit.*;
  */
 public class MetaTypeMethodsTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static GetTypeMethodsNode getTypeMethodsNode;

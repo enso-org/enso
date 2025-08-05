@@ -20,7 +20,6 @@ import org.junit.Test;
 
 public class TypeCheckValueTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

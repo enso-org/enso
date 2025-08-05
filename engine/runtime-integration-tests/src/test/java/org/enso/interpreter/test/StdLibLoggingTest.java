@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 public class StdLibLoggingTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private final Source logExample =

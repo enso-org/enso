@@ -36,7 +36,6 @@ public class IRDumpTest {
   private ByteArrayOutputStream out;
 
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
-
   @Rule public PrintOutRule printOutRule = new PrintOutRule();
 
   @BeforeClass

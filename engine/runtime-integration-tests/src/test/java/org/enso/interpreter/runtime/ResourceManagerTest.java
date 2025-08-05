@@ -14,10 +14,9 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class ResourceManagerTest {
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   public ResourceManagerTest() {}
-
-  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void runFinalizersAtTheEnd() {

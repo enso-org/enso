@@ -18,7 +18,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class PrivateMethodAccessTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

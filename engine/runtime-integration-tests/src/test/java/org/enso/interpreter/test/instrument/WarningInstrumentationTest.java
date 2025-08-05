@@ -11,17 +11,19 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class WarningInstrumentationTest {
-
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static NodeCountingTestInstrument instrument;
 

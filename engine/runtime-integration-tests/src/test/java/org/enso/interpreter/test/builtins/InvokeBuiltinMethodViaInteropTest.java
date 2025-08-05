@@ -10,7 +10,9 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
@@ -19,6 +21,7 @@ import org.junit.Test;
  */
 public class InvokeBuiltinMethodViaInteropTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void invokeGetMethodOnRef()

@@ -22,7 +22,6 @@ import org.junit.Test;
 
 public class EqualsMultiValueTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static EqualsNode equalsNode;

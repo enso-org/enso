@@ -8,12 +8,15 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.service.ExecutionService.FunctionPointer;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class FunctionPointerTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void moduleFunctionPointer() throws Exception {

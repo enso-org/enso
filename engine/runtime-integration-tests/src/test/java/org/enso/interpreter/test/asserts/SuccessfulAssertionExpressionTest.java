@@ -4,7 +4,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -13,12 +15,12 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class SuccessfulAssertionExpressionTest {
-
   @ClassRule
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()
           .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
           .build();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static final String imports =
       """

@@ -23,7 +23,6 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class TypeOfNodeTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Parameterized.Parameter(0)

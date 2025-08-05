@@ -10,10 +10,12 @@ import static org.junit.Assert.assertTrue;
 
 import org.enso.common.DebugServerInfo;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.core.AllOf;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class DebugServerInspectTest {
@@ -23,6 +25,7 @@ public class DebugServerInspectTest {
           .withModifiedContext(
               b -> b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "ScriptTest.inspect"))
           .build();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
   public void cleanSteams() {

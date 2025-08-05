@@ -4,9 +4,12 @@ import static org.junit.Assert.fail;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
+import org.enso.testkit.ReportLogsOnFailureRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public final class RuntimeManagementCleanupTest {
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void cleanUp() throws InterruptedException {

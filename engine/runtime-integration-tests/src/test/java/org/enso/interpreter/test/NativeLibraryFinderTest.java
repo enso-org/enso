@@ -33,12 +33,10 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 public class NativeLibraryFinderTest {
-
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
-
   @Rule public final TestRule printContextRule = new PrintSystemInfoRule();
+
   private Package<TruffleFile> stdImgPkg;
   private Package<TruffleFile> stdTableauPkg;
 

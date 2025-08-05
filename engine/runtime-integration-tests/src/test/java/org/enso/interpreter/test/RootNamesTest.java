@@ -21,7 +21,6 @@ import org.junit.Test;
 
 public class RootNamesTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before

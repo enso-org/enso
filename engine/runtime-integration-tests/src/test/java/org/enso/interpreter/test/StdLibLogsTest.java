@@ -19,11 +19,10 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 public class StdLibLogsTest {
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static Value mod;
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
-  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @BeforeClass
   public static void initEnsoContext() {

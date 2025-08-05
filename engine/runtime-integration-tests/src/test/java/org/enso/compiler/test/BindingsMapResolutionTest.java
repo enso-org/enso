@@ -35,7 +35,6 @@ import scala.util.Either;
 public class BindingsMapResolutionTest {
 
   @ClassRule public static final TemporaryFolder TMP_DIR = new TemporaryFolder();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

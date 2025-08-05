@@ -32,9 +32,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class DocsGenerateTest {
   @ClassRule public static final TemporaryFolder TEMP = new TemporaryFolder();
-
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   public DocsGenerateTest() {}

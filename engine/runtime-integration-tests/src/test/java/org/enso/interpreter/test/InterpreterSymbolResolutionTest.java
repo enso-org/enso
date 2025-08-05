@@ -22,7 +22,6 @@ import org.junit.Test;
 /** Tests symbol resolution in the interpreter. */
 public class InterpreterSymbolResolutionTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @After

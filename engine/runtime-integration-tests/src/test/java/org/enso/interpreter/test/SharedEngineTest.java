@@ -17,10 +17,10 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class SharedEngineTest {
-  private static Engine sharedEngine;
   @Rule public ContextUtils ctx;
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
+  private static Engine sharedEngine;
 
   @BeforeClass
   public static void initializeSharedEngine() {

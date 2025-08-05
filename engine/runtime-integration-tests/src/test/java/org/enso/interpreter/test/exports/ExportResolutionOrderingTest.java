@@ -16,6 +16,7 @@ import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +31,7 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 public class ExportResolutionOrderingTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void testOrderingWithSubmoduleOfSyntheticModule() throws IOException {

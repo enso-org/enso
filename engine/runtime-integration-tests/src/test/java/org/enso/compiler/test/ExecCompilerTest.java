@@ -18,7 +18,11 @@ import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.hamcrest.core.AllOf;
-import org.junit.*;
+import org.junit.After;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class ExecCompilerTest {
   @ClassRule

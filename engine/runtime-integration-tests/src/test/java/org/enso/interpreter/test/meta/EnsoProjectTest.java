@@ -23,7 +23,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class EnsoProjectTest {
   @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

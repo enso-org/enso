@@ -14,7 +14,6 @@ import org.junit.Test;
 
 public class PolyglotFindExceptionMessageTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

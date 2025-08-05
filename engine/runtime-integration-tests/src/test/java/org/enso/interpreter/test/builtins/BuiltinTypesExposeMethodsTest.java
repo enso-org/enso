@@ -11,8 +11,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,6 +28,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class BuiltinTypesExposeMethodsTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private final Value type;
 

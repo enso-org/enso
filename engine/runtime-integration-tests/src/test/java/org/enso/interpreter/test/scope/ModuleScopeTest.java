@@ -23,7 +23,6 @@ import org.junit.rules.TemporaryFolder;
 public class ModuleScopeTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test

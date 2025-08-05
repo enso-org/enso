@@ -20,9 +20,7 @@ import org.junit.Test;
 
 /** Tests Truffle nodes for integer operations. */
 public class FloatTest {
-
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static AbsNode absNode;

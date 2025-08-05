@@ -18,7 +18,6 @@ import org.junit.Test;
 
 public class PanicExceptionTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static CatchPanicNode catchPanicNode;

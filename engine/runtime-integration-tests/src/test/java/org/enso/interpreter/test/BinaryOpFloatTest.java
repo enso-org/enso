@@ -22,12 +22,12 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class BinaryOpFloatTest {
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static final String[] OPERATIONS = {
     " +", " -", " ^", " *", " %", " <=", " <", " >=", " >", " /"
   };
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
-
-  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static Value wrapReal;
 

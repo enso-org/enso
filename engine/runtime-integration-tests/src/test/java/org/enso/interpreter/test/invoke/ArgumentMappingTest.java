@@ -8,10 +8,13 @@ import org.enso.interpreter.node.expression.constant.ConstantObjectNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.testkit.ReportLogsOnFailureRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 /** Test suite for {@link org.enso.interpreter.runtime.callable.argument.CallArgumentInfo}. */
 public final class ArgumentMappingTest {
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void oneArgument() {

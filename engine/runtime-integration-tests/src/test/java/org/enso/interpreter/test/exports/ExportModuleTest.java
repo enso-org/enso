@@ -14,12 +14,14 @@ import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class ExportModuleTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void exportSubModuleFromExistingModule() throws IOException {

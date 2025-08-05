@@ -28,6 +28,7 @@ import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.core.AllOf;
@@ -35,14 +36,15 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class WarningsTest {
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static ValuesGenerator generator;
   private static Value wrap;
-
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   @BeforeClass
   public static void initEnsoContext() {

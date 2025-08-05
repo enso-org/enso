@@ -25,9 +25,11 @@ import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import scala.Option;
 import scala.collection.immutable.List;
@@ -37,6 +39,8 @@ import scala.collection.immutable.Vector$;
 import scala.collection.immutable.Vector1;
 
 public class RuntimeProgressTest {
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static final String MODULE_NAME = "Enso_Test.Test.Main";
   private TestContext context;
   private File mainFile;
