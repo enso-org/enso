@@ -2,9 +2,7 @@ package org.enso.runner;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.InvalidPathException;
@@ -23,8 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.logging.LogRecord;
-import java.util.logging.XMLFormatter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
@@ -1316,28 +1312,18 @@ public class Main {
           return BoxedUnit.UNIT;
         });
 
-    AutoCloseable c1 = null;
-    AutoCloseable c2 = null;
-    if (events.isDefined()) {
-      var eventsOut = new FileWriter(events.get().toFile());
-      eventsOut.write("<?xml version='1.0'?>\n");
-      eventsOut.write("<records>\n");
-      c1 = eventsOut;
-      var format = new XMLFormatter();
-      c2 =
-          ObservedMessage.observe(
-              LoggerFactory.getLogger("org.enso"),
-              (ev) -> {
-                var record = new LogRecord(java.util.logging.Level.INFO, ev.getFormattedMessage());
-                record.setInstant(ev.getInstant());
-                try {
-                  eventsOut.write(format.format(record));
-                } catch (IOException ex) {
-                  ex.printStackTrace(new PrintWriter(eventsOut));
-                }
-              });
-    }
-    try {
+    try (var _ =
+            ObservedMessage.observe(
+                LoggerFactory.getLogger("org.enso"),
+                (ev) -> {
+                  sampler.log(ev.getInstant(), ev.getFormattedMessage());
+                });
+        var _ =
+            ObservedMessage.observe(
+                LoggerFactory.getLogger("enso"),
+                (ev) -> {
+                  sampler.log(ev.getInstant(), ev.getFormattedMessage());
+                }); ) {
       return main.call();
     } catch (IOException | RuntimeException ex) {
       throw ex;
@@ -1345,15 +1331,6 @@ public class Main {
       throw new IOException(ex);
     } finally {
       sampler.close();
-      try {
-        if (c1 != null) {
-          c1.close();
-        }
-        if (c2 != null) {
-          c2.close();
-        }
-      } catch (Exception exception) {
-      }
     }
   }
 

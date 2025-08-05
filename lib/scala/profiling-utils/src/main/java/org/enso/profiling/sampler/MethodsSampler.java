@@ -2,10 +2,10 @@ package org.enso.profiling.sampler;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
@@ -20,9 +20,9 @@ public sealed interface MethodsSampler extends Closeable permits OutputStreamSam
    * @param npss the sample snapshots
    * @param events associated events
    * @return sampler to use
-   * @throws FileNotFoundException if an I/O operation fails
+   * @throws IOException if an I/O operation fails
    */
-  public static MethodsSampler create(File npss, File events) throws FileNotFoundException {
+  public static MethodsSampler create(File npss, File events) throws IOException {
     return new OutputStreamSampler(new FileOutputStream(npss), new FileOutputStream(events));
   }
 
@@ -32,9 +32,10 @@ public sealed interface MethodsSampler extends Closeable permits OutputStreamSam
   /**
    * Logs an event into events stream.
    *
+   * @param at when the message was reported
    * @param message the message to log
    */
-  void log(String message);
+  void log(Instant at, String message);
 
   /**
    * Stop gathering the application statistics after the provided delay and write it to the output.
