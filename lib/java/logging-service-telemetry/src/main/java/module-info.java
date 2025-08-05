@@ -1,6 +1,5 @@
 module org.enso.logging.service.telemetry {
   requires java.net.http;
-  requires scala.library;
   requires ch.qos.logback.classic;
   requires ch.qos.logback.core;
   requires static org.enso.logging.service.logback;
