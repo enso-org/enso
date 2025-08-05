@@ -45,7 +45,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
       my_type_atom = My_Type.Cons 1
       """;
 
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

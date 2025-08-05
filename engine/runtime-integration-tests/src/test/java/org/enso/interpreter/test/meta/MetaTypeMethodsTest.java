@@ -28,7 +28,7 @@ import org.junit.*;
  * org.enso.interpreter.runtime.data.atom.Atom}.
  */
 public class MetaTypeMethodsTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

@@ -25,7 +25,7 @@ public class ResourceManagerTest {
     var obj = new ResourceToGc();
     var fn = new FnCallback();
 
-    try (var ctx = ContextUtils.createWithDefaultLogLevel()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var ensoContext = ctx.ensoContext();
 
       ensoContext.getResourceManager().register(obj, fn);

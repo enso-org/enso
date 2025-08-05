@@ -13,7 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class SequenceLiteralNodeTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

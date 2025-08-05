@@ -15,7 +15,7 @@ import org.junit.Test;
 
 /** Tests recognitions of API changes in Enso code. */
 public final class ApiModificationTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

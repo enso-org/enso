@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class InvokeMemberConsistencyTest {
-  @ClassRule public static final ContextUtils CTX = ContextUtils.createWithDefaultLogLevel();
+  @ClassRule public static final ContextUtils CTX = ContextUtils.createDefault();
 
   @Rule(order = Integer.MIN_VALUE)
   public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();

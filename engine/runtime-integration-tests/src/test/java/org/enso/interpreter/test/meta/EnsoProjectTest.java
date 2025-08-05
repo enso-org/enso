@@ -29,7 +29,7 @@ public class EnsoProjectTest {
 
   @Test
   public void noProjectWhenEvaluatingSingleFile() {
-    try (var ctx = ContextUtils.createWithDefaultLogLevel()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var res =
           ctx.evalModule(
               """

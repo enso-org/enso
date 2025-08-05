@@ -2710,6 +2710,7 @@ lazy val `runtime-integration-tests` =
         "-Dtck.inlineVerifierInstrument=false",
         "-Dpolyglot.engine.AllowExperimentalOptions=true"
       ),
+      Test / javacOptions += "-implicit:none",
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
         GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaLibrary ++ scalaReflect ++ slf4jApi ++ Seq(
