@@ -15,13 +15,12 @@ export function createBindings() {
 
 export const BINDINGS = inputBindings.defineBindings({
   settings: { bindings: ['Mod+,'], icon: 'settings' },
-  // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
-  closeTab: { bindings: ['Mod+W', 'Mod+Alt+W'], icon: 'close' },
   open: { bindings: ['Enter'], icon: 'open' },
   run: { bindings: ['Shift+Enter'], icon: 'workflow_play' },
   close: { bindings: [], icon: 'close' },
   uploadToCloud: { bindings: [], icon: 'cloud_to' },
   downloadToLocal: { bindings: [], icon: 'cloud_from' },
+  exportArchive: { bindings: [], icon: 'data_download' },
   rename: { bindings: ['Mod+R'], icon: 'edit' },
   edit: { bindings: ['Mod+E'], icon: 'edit' },
   delete: { bindings: ['OsDelete'], icon: 'trash', color: 'rgb(243 24 10 / 0.87)' },

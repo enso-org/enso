@@ -14,4 +14,5 @@
     - name self -> Standard.Base.Data.Text.Text
     - resource_group self -> Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Data.Text.Text

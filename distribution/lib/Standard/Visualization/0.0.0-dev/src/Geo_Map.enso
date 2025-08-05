@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table
 
 import project.Helpers
+from project.Helpers import time_visualization
 
 ## ---
    private: true
@@ -29,6 +30,7 @@ json_from_table table =
    ## Arguments
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value = case value of
-    _ : Table -> json_from_table value . to_text
-    _ -> value.to_json
+process_to_json_text value = time_visualization Geo_Map ("process_to_json_text: " + value.to_display_text) <|
+    case value of
+        _ : Table -> json_from_table value . to_text
+        _ -> value.to_json

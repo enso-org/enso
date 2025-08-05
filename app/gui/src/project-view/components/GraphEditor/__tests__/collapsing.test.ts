@@ -260,7 +260,7 @@ test('Perform collapse', () => {
   )
   expect(root.code()).toBe(
     [
-      '## ICON group',
+      '## ---\n   icon: group\n   ---\n   Documentation can be added here.',
       `${COLLAPSED_FUNCTION_NAME} keep1 =`,
       '    extract1 = keep1',
       '    extract2 = extract1 + 1',

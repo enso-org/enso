@@ -13,7 +13,7 @@ import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
 import * as backend from '#/services/Backend'
-import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
+import LocalStorage, { useLocalStorageValues } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import {
@@ -27,7 +27,6 @@ import { useFeatureFlag, useFeatureFlags, useSetFeatureFlag } from '$/providers/
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { motion } from 'framer-motion'
-import * as React from 'react'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
@@ -87,22 +86,17 @@ export function EnsoDevStatus() {
     multiplyUserList,
     disableAnimations,
     fileChunkUploadPoolSize,
+    unsafeDarkTheme,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
     switch (developerPlanOverride) {
-      case backend.Plan.free: {
-        return getText('free')
-      }
-      case backend.Plan.solo: {
-        return getText('solo')
-      }
-      case backend.Plan.team: {
-        return getText('team')
-      }
+      case backend.Plan.free:
+      case backend.Plan.solo:
+      case backend.Plan.team:
       case backend.Plan.enterprise: {
-        return getText('enterprise')
+        return getText(developerPlanOverride)
       }
       case undefined: {
         return
@@ -122,7 +116,8 @@ export function EnsoDevStatus() {
     disableAnimations ||
     enableMultitabs ||
     enableAdvancedProjectExecutionOptions ||
-    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE
+    fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE ||
+    unsafeDarkTheme
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -253,6 +248,15 @@ export function EnsoDevStatus() {
             {getText('willUploadUpToXFileChunksAtOnce', fileChunkUploadPoolSize)}
           </DeveloperOverrideEntry>
         )}
+        {unsafeDarkTheme && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('unsafeDarkTheme', false)
+            }}
+          >
+            {getText('developerDarkThemeEnabled')}
+          </DeveloperOverrideEntry>
+        )}
       </div>
     </motion.div>
   )
@@ -280,10 +284,7 @@ export function EnsoDevtools() {
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
   const localStorage = useLocalStorage()
-  const [localStorageState, setLocalStorageState] = React.useState<Partial<LocalStorageData>>({})
-
-  // Re-render when localStorage changes.
-  React.useEffect(() => localStorage.subscribeAll(setLocalStorageState), [localStorage])
+  const localStorageState = useLocalStorageValues(localStorage)
 
   const featureFlags = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
@@ -492,6 +493,15 @@ export function EnsoDevtools() {
                       )
                     }}
                   />
+                  <Switch
+                    form={form}
+                    name="unsafeDarkTheme"
+                    label="Developer Dark Theme"
+                    description="Enable quick-and-dirty dark theme for developer use only"
+                    onChange={(value) => {
+                      setFeatureFlag('unsafeDarkTheme', value)
+                    }}
+                  />
                 </div>
                 <Switch
                   form={form}
@@ -599,15 +609,13 @@ export function EnsoDevtools() {
             variant="icon"
             icon="trash"
             onPress={() => {
-              for (const key of LocalStorage.getAllKeys()) {
-                localStorage.delete(key)
-              }
+              localStorage.clearAll()
             }}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          {LocalStorage.getAllKeys().map((key) => {
+          {LocalStorage.getAllRegisteredKeys().map((key) => {
             const metadata = LocalStorage.getKeyMetadata(key)
             const title = key
               .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())

@@ -25,21 +25,27 @@ from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import data_link_extension
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Currently, most of the Cloud API relies on asset IDs and not paths.
    This object is a proxy for an existing asset within the cloud - whenever we
    perform an operation that operates on IDs, we can fetch this helper and then
    use it to perform the operation.
 type Existing_Enso_Asset
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Represents an existing asset within the Enso cloud.
-
        The metadata represents additional information about the asset.
        It is stored if it was available in a response. It may not be present for
-       entries saved in cache after an upload operation that does not return metadata.
+       entries saved in cache after an upload operation that does not return
+       metadata.
     private Value title:Text id:Text asset_type:Enso_Asset_Type metadata:Asset_Metadata|Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Target URI for the api
     internal_uri self -> Text = case self.id of
         "" -> if self.asset_type == Enso_Asset_Type.Directory then Utils.directory_api else
@@ -51,10 +57,14 @@ type Existing_Enso_Asset
             Enso_Asset_Type.Data_Link -> Utils.datalinks_api + "/" + self.id
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     asset_uri self -> Text = Utils.assets_api + "/" + self.id
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     name self -> Text =
         added_extension = case self.asset_type of
             Enso_Asset_Type.Data_Link -> data_link_extension
@@ -64,13 +74,15 @@ type Existing_Enso_Asset
             _ -> ""
         self.title + added_extension
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Fetches the basic information about a file from the Cloud endpoint.
 
-       Arguments:
-       - want_presigned_url: Whether to request presigned URL in the response.
-         The cloud does not include the presigned URL in the response by default. 
-         It should only be asked for when needed.
+       ## Arguments
+        - `want_presigned_url`: Whether to request presigned URL in the response.
+          The cloud does not include the presigned URL in the response by
+          default. It should only be asked for when needed.
     get_file_description self want_presinged_url:Boolean=False -> JS_Object =
         if self.asset_type != Enso_Asset_Type.File then
             Panic.throw (Illegal_Argument.Error "`get_file_description` can only be called on File assets.")
@@ -78,19 +90,23 @@ type Existing_Enso_Asset
         uri = if want_presinged_url then base_uri.add_query_argument "presigned" "true" else base_uri
         Utils.http_request_as_json HTTP_Method.Get uri
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Fetches the basic information about an existing file from the Cloud.
        It will fail if the file does not exist.
 
-       Arguments:
-       - file: The file to fetch the information for.
-       - want_metadata: Whether to require metadata for the file.
-         If set to True, a cached entry without metadata will not be considered
-         and a full fetch will be performed.
+       ## Arguments
+        - `file`: The file to fetch the information for.
+        - `want_metadata`: Whether to require metadata for the file. If set to
+          True, a cached entry without metadata will not be considered and a full
+          fetch will be performed.
     get_asset_reference_for (file : Enso_File) (want_metadata : Boolean = False) -> Existing_Enso_Asset ! File_Error =
         fetch_asset_reference file want_metadata
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolves a path to an existing asset in the cloud.
     resolve_path (path : Text) ~if_not_found = path.if_not_error <|
         handle_not_found _ = Error.throw Not_Found
@@ -101,7 +117,9 @@ type Existing_Enso_Asset
         Existing_Enso_Asset.from_json response
             . catch Not_Found _-> if_not_found
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     list_directory self =
         if self.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
             if self.id == "" then Error.throw (Illegal_Argument.Error "Cannot list the Users or Teams directory.") else
@@ -109,28 +127,41 @@ type Existing_Enso_Asset
                  assets = get_required_field "assets" response expected_type=Vector
                  assets.map Existing_Enso_Asset.from_json
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     from_json json -> Existing_Enso_Asset =
         title = get_required_field "title" json expected_type=Text
         id = get_required_field "id" json expected_type=Text
         metadata = Asset_Metadata.from_json json
         Existing_Enso_Asset.new id title metadata
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     new id:Text title:Text (metadata : Asset_Metadata | Nothing = Nothing) -> Existing_Enso_Asset =
         Existing_Enso_Asset.Value title id (asset_type_from_id id) metadata
 
-## PRIVATE
+## ---
+   private: true
+   ---
 asset_type_from_id id:Text -> Enso_Asset_Type =
     Enso_Asset_Type.from_text (id.take (..Before "-"))
 
-## PRIVATE
-   The asset metadata that is currently automatically included as part of the path resolution response.
+## ---
+   private: true
+   ---
+   The asset metadata that is currently automatically included as part of the
+   path resolution response.
 type Asset_Metadata
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value modified_at:Date_Time description:Text|Nothing labels:Vector credential_metadata:Credential_Secret_Metadata|Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     from_json json -> Asset_Metadata =
         modified_at_text = get_required_field "modifiedAt" json expected_type=Text
         modified_at = Date_Time.parse modified_at_text Date_Time_Formatter.iso_offset_date_time
@@ -149,35 +180,53 @@ type Asset_Metadata
             Credential_Secret_Metadata.Value service_name state expiration_date
         Asset_Metadata.Value modified_at description labels credential_metadata
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Credential_Secret_Metadata
     Value service_name:Text state:Text expiration_date:Date_Time|Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Asset_Cache
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     asset_prefix = "asset:"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     asset_key (file : Enso_File) -> Text = Asset_Cache.asset_prefix+file.enso_path.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     invalidate (file : Enso_File) =
         Utils.invalidate_cache (Asset_Cache.asset_key file)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     invalidate_subtree (file : Enso_File) =
         Utils.invalidate_caches_with_prefix (Asset_Cache.asset_key file)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     invalidate_all =
         Utils.invalidate_caches_with_prefix Asset_Cache.asset_prefix
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     update (file : Enso_File) (asset : Existing_Enso_Asset) =
         Utils.set_cached (Asset_Cache.asset_key file) asset cache_duration=Cloud_Caching_Settings.get_file_cache_ttl
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns the cached reference or fetches it from the cloud.
 fetch_asset_reference (file : Enso_File) (want_metadata : Boolean) -> Existing_Enso_Asset ! File_Error = file.if_not_error <|
     case file.enso_path.to_text of

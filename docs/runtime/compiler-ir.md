@@ -43,7 +43,7 @@ package of GraalVM JDK's module which is not exported by default.
 Usage example:
 
 ```
-$ env JAVA_TOOL_OPTIONS='--add-exports jdk.graal.compiler/jdk.graal.compiler.graphio=org.enso.runtime.compiler.dump.igv -Denso.compiler.dumpIr=Vector' ./built-distribution/*/bin/enso --no-ir-caches --run tmp.enso
+$ env JAVA_TOOL_OPTIONS='--add-exports=jdk.graal.compiler/jdk.graal.compiler.graphio=org.enso.runtime.compiler.dump.igv -Denso.compiler.dumpIr=Vector' ./built-distribution/*/bin/enso --no-ir-caches --run tmp.enso
 ```
 
 The IR graphs are dumped directly to IGV, if it is running, or to the `ir-dumps`

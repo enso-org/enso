@@ -39,12 +39,12 @@ export const ACTION_TO_TEXT_ID: Readonly<
   >
 > = {
   settings: 'settingsShortcut',
-  closeTab: 'closeTabShortcut',
   open: 'openShortcut',
   run: 'runShortcut',
   close: 'closeShortcut',
   uploadToCloud: 'uploadToCloudShortcut',
   downloadToLocal: 'downloadToLocalShortcut',
+  exportArchive: 'exportArchiveShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
   delete: 'deleteShortcut',

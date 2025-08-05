@@ -138,6 +138,7 @@ export function createGraphStore(
     nodeHovered: useAssociatedFlag({ onCleanup }),
     nodeExtended: useAssociatedFlag({ onCleanup }),
     nodeOutputVisible: useAssociatedFlag({ onCleanup }),
+    nodeOutputHovered: useAssociatedFlag({ onCleanup }),
     nodeRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
     vizRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
     nodeOutputAnimations: useAssociatedValue<NodeId, number>({ onCleanup }),
@@ -292,7 +293,10 @@ export function createGraphStore(
       return Err('Cannot read method from different module')
     if (!ptr.module.equals(ptr.definedOnType)) return Err('Method pointer is not a module method')
     const method = Ast.findModuleMethod(topLevel, ptr.name)
-    if (!method) return Err(`No method with name ${ptr.name} in ${proj.moduleProjectPath.value}`)
+    if (!method) {
+      const modulePath = projectNames.printProjectPath(proj.moduleProjectPath.value)
+      return Err(`No method with name ${ptr.name} in ${modulePath}`)
+    }
     return Ok(method.statement)
   }
 

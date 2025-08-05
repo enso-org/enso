@@ -1,10 +1,10 @@
+import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { mockProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert, assertDefined } from '@/util/assert'
 import { unwrap } from '@/util/data/result'
-import { parseDocs } from '@/util/docParser'
 import { parseAbsoluteProjectPathRaw, ProjectPath } from '@/util/projectPath'
 import {
   tryIdentifier,
@@ -13,6 +13,7 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
+import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { type SuggestionsDatabaseUpdate } from 'ydoc-shared/languageServerTypes/suggestions'
 
@@ -130,7 +131,7 @@ test("Modifying suggestion entries' fields", () => {
     start: { line: 1, character: 20 },
     end: { line: 20, character: 1 },
   }
-  const typeDocs2 = 'ALIAS Test Type 2\n\nA Test type 2'
+  const typeDocs2 = frontmatter({ aliases: ['Test'] }) + 'Type 2\n\nA Test type 2'
   const test = new Fixture()
   const modifications: lsTypes.SuggestionsDatabaseUpdate[] = [
     {
@@ -159,9 +160,9 @@ test("Modifying suggestion entries' fields", () => {
   test.expectedType.definedIn = stdPath('Standard.Base2.Main')
   test.expectedType.definitionPath = stdPath('Standard.Base2.Main.Type')
   test.expectedType.returnType = () => 'Standard.Base2.Type'
-  test.expectedType.aliasesAndMacros = ['Test Type 2']
-  test.expectedType.documentation = parseDocs(typeDocs2)
-  test.expectedType.docSummaryHtml = 'A Test type 2'
+  test.expectedType.aliasesAndMacros = ['Test']
+  test.expectedType.documentation = prerenderMarkdown(typeDocs2)
+  test.expectedType.documentationSummary = 'Type 2'
   test.expectedCon.memberOf = stdPath('Standard.Base2.Main.Type')
   test.expectedCon.definitionPath = stdPath('Standard.Base2.Main.Type.Con')
   test.expectedCon.returnType = () => unwrap(tryQualifiedName('Standard.Base2.Type'))
@@ -194,14 +195,14 @@ test("Unsetting suggestion entries' fields", () => {
   ]
   const db = test.createDbWithExpected()
   test.expectedModule.reexportedIn = undefined
-  test.expectedType.documentation = []
-  test.expectedType.docSummaryHtml = undefined
+  test.expectedType.documentation = ''
+  test.expectedType.documentationSummary = undefined
   test.expectedType.aliasesAndMacros = []
-  test.expectedCon.documentation = []
-  test.expectedCon.docSummaryHtml = undefined
+  test.expectedCon.documentation = ''
+  test.expectedCon.documentationSummary = undefined
   test.expectedCon.isUnstable = false
-  test.expectedMethod.documentation = []
-  test.expectedMethod.docSummaryHtml = undefined
+  test.expectedMethod.documentation = ''
+  test.expectedMethod.documentationSummary = undefined
   test.expectedMethod.groupIndex = undefined
 
   applyUpdates(db, modifications, test.suggestionContext)
@@ -337,10 +338,10 @@ class Fixture {
     end: { line: 10, character: 1 },
   }
   moduleDocs = 'A base module'
-  typeDocs = 'ALIAS Test Type\n\nA Test type'
-  conDocs = 'ADVANCED\n\nA Constructor'
-  methodDocs = 'GROUP Test1\n\nAn instance method'
-  staticMethodDocs = 'GROUP Test2\n\nA static method'
+  typeDocs = frontmatter({ aliases: ['Test'] }) + 'Type\n\nA Test type'
+  conDocs = frontmatter({ unstable: true }) + 'A Constructor'
+  methodDocs = frontmatter({ group: 'Test1' }) + 'An instance method'
+  staticMethodDocs = frontmatter({ group: 'Test2' }) + 'A static method'
   functionDocs = 'A local function'
   localDocs = 'A local variable'
   expectedModule = suggestionEntry<SuggestionKind.Module>({
@@ -349,14 +350,14 @@ class Fixture {
     definedIn: stdPath('Standard.Base.Main'),
     definitionPath: stdPath('Standard.Base.Main'),
     returnType: () => 'Standard.Base',
-    documentation: parseDocs(this.moduleDocs),
+    documentation: this.moduleDocs,
     reexportedIn: stdPath('Standard.Base.Another.Module'),
     aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     iconName: undefined,
     groupIndex: undefined,
-    docSummaryHtml: 'A base module',
+    documentationSummary: 'A base module',
     macros: {},
     suggestedRank: undefined,
   })
@@ -367,15 +368,15 @@ class Fixture {
     definitionPath: stdPath('Standard.Base.Main.Type'),
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Type',
-    documentation: parseDocs(this.typeDocs),
-    aliasesAndMacros: ['Test Type'],
+    documentation: prerenderMarkdown(this.typeDocs),
+    aliasesAndMacros: ['Test'],
     isPrivate: false,
     isUnstable: false,
     parentType: undefined,
     reexportedIn: stdPath('Standard.Base.Another.Module'),
     iconName: undefined,
     groupIndex: undefined,
-    docSummaryHtml: 'A Test type',
+    documentationSummary: 'Type',
     macros: {},
     suggestedRank: undefined,
   })
@@ -387,7 +388,7 @@ class Fixture {
     definitionPath: stdPath('Standard.Base.Main.Type.Con'),
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Type',
-    documentation: parseDocs(this.conDocs),
+    documentation: prerenderMarkdown(this.conDocs),
     aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: true,
@@ -395,7 +396,7 @@ class Fixture {
     annotations: ['Annotation 1'],
     iconName: undefined,
     groupIndex: undefined,
-    docSummaryHtml: 'A Constructor',
+    documentationSummary: 'A Constructor',
     macros: {},
     suggestedRank: undefined,
   })
@@ -408,7 +409,7 @@ class Fixture {
     selfType: stdPath('Standard.Base.Main.Type'),
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Number',
-    documentation: parseDocs(this.methodDocs),
+    documentation: prerenderMarkdown(this.methodDocs),
     groupIndex: 0,
     aliasesAndMacros: [],
     isPrivate: false,
@@ -416,7 +417,7 @@ class Fixture {
     annotations: ['Annotation 2', 'Annotation 3'],
     iconName: undefined,
     reexportedIn: undefined,
-    docSummaryHtml: 'An instance method',
+    documentationSummary: 'An instance method',
     macros: {},
     suggestedRank: undefined,
   })
@@ -428,7 +429,7 @@ class Fixture {
     definitionPath: stdPath('Standard.Base.Main.Type.static_method'),
     arguments: [this.arg1, this.arg2],
     returnType: () => 'Standard.Base.Number',
-    documentation: parseDocs(this.staticMethodDocs),
+    documentation: prerenderMarkdown(this.staticMethodDocs),
     groupIndex: 1,
     aliasesAndMacros: [],
     isPrivate: false,
@@ -437,7 +438,7 @@ class Fixture {
     annotations: [],
     iconName: undefined,
     selfType: undefined,
-    docSummaryHtml: 'A static method',
+    documentationSummary: 'A static method',
     macros: {},
     suggestedRank: undefined,
   })
@@ -448,14 +449,14 @@ class Fixture {
     definitionPath: stdPath('Standard.Base.Main.function'),
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Number',
-    documentation: parseDocs(this.functionDocs),
+    documentation: prerenderMarkdown(this.functionDocs),
     aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
     iconName: undefined,
     groupIndex: undefined,
-    docSummaryHtml: 'A local function',
+    documentationSummary: 'A local function',
     macros: {},
     suggestedRank: undefined,
   })
@@ -465,14 +466,14 @@ class Fixture {
     definedIn: stdPath('Standard.Base.Main'),
     definitionPath: stdPath('Standard.Base.Main.local'),
     returnType: () => 'Standard.Base.Number',
-    documentation: parseDocs(this.localDocs),
+    documentation: prerenderMarkdown(this.localDocs),
     aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
     iconName: undefined,
     groupIndex: undefined,
-    docSummaryHtml: 'A local variable',
+    documentationSummary: 'A local variable',
     macros: {},
     suggestedRank: undefined,
   })
@@ -492,7 +493,7 @@ class Fixture {
     name: unwrap(tryIdentifier('collapsed')),
     definedIn: ProjectPath.create(undefined, 'Main' as Identifier),
     definitionPath: ProjectPath.create(undefined, 'Main.collapsed' as QualifiedName),
-    documentation: [{ Tag: { tag: 'Icon', body: 'group' } }, { Paragraph: { body: '' } }],
+    documentation: prerenderMarkdown(frontmatter({ icon: 'group' })),
     iconName: 'group',
     aliasesAndMacros: [],
     isPrivate: false,
@@ -502,7 +503,7 @@ class Fixture {
     groupIndex: undefined,
     selfType: undefined,
     reexportedIn: undefined,
-    docSummaryHtml: '',
+    documentationSummary: undefined,
     macros: {},
     suggestedRank: undefined,
   })
@@ -621,7 +622,7 @@ class Fixture {
           selfType: 'local.Mock_Project.Main',
           returnType: 'Standard.Base.Any.Any',
           isStatic: true,
-          documentation: ' ICON group',
+          documentation: frontmatter({ icon: 'group' }),
           annotations: [],
         },
       },

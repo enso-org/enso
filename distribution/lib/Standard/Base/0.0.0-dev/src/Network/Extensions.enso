@@ -11,38 +11,44 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.URI.URI
 from project.System.File_Format import Auto_Detect, File_Format
 
-## ALIAS parse_uri, uri from text
-   GROUP Conversions
-   ICON convert
+## ---
+   aliases: [parse_uri, uri from text]
+   group: Conversions
+   icon: convert
+   ---
    Convert Text to a URI.
-
    Throws a `Syntax_Error` when `self` cannot be parsed as a URI.
 
-   > Example
-     Parse URI text.
+   ## Examples
+   ### Parse URI text.
 
+   ```
          import Standard.Base.Network.URI.Extensions
 
          example_parse = "http://example.com".to_uri
+   ```
 Text.to_uri : URI ! Syntax_Error
 Text.to_uri self = URI.parse self
 
-## ALIAS download, http get
-   GROUP Input
-   ICON data_input
-   SUGGESTED 3
+## ---
+   aliases: [download, http get]
+   group: Input
+   icon: data_input
+   suggested: 3
+   ---
    Fetches from the URI and returns the response, parsing the body if the
    content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
 
-   Arguments:
-   - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
-     `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
-     Defaults to `HTTP_Method.Get`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
-   - format: The format to use for interpreting the response.
-     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
-     cannot be determined automatically, a raw HTTP `Response` will be returned.
+   ## Arguments
+    - `method`: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`. Defaults
+      to `HTTP_Method.Get`.
+    - `headers`: The headers to send with the request. Defaults to an empty
+      vector.
+    - `format`: The format to use for interpreting the response. Defaults to
+      `Auto_Detect`. If `Raw_Response` is selected or if the format cannot be
+      determined automatically, a raw HTTP `Response` will be returned.
 @format Data_Read_Helpers.format_widget_with_raw_response
 @method HTTP_Method.default_fetch_widget
 @headers Header.default_widget
@@ -50,45 +56,46 @@ URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> An
 URI.fetch self (method:HTTP_Method=..Get) headers=[] format=Auto_Detect =
     Data.fetch self method headers format
 
-## ALIAS http post, upload
-   GROUP Output
-   ICON data_upload
-   SUGGESTED 4
-   Writes the provided data to the provided URI. Returns the response,
-   parsing the body if the content-type is recognised. Returns an  error if the
-   status code does not represent a successful response.
+## ---
+   aliases: [http post, upload]
+   group: Output
+   icon: data_upload
+   suggested: 4
+   ---
+   Writes the provided data to the provided URI. Returns the response, parsing
+   the body if the content-type is recognised. Returns an  error if the status
+   code does not represent a successful response.
 
-   Arguments:
-   - body: The data to write. See `Supported Body Types` below.
-   - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
-     `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
-   - response_format: The format to use for interpreting the response.
-     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
-     cannot be determined automatically, a raw HTTP `Response` will be returned.
+   ## Arguments
+    - `body`: The data to write. See `Supported Body Types` below.
+    - `method`: The HTTP method to use. Must be one of `HTTP_Method.Post`,
+      `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
+    - `headers`: The headers to send with the request. Defaults to an empty
+      vector.
+    - `response_format`: The format to use for interpreting the response.
+      Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+      cannot be determined automatically, a raw HTTP `Response` will be returned.
 
-   ! Specifying Content Types
+   ## Remarks
 
-     If the `body` parameter specifies an explicit content type, then it is an
-     error to also specify additional `Content-Type` headers in the `headers`
-     parameter. (It is not an error to specify multiple `Content-Type` values in
-     `headers`, however.)
+   ### Specifying Content Types
+   If the `body` parameter specifies an explicit content type, then it is an
+   error to also specify additional `Content-Type` headers in the `headers`
+   parameter. (It is not an error to specify multiple `Content-Type` values in
+   `headers`, however.)
 
-   ! Supported Body Types
-
-     - Request_Body.Text: Sends a text string, with optional encoding and content
-       type.
-     - Request_Body.Json: Sends an Enso object, after converting it to JSON.
-     - Request_Body.Binary: Sends a file.
-     - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys
-       must be `Text`, and the values must be `Text` or `File`.
-     - Request_Body.Empty: Sends an empty body.
-
-     Additionally, the following types are allowed as the `body` parameter:
-
-     - Text: shorthand for `Request_Body.Text that_text`.
-     - File: shorthand for `Request_Body.Binary that_file`.
-     - Any other Enso object: shorthand for `Request_Body.Json that_object`.
+   ### Supported Body Types
+   - Request_Body.Text: Sends a text string, with optional encoding and content
+   type.
+   - Request_Body.Json: Sends an Enso object, after converting it to JSON.
+   - Request_Body.Binary: Sends a file.
+   - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys
+   must be `Text`, and the values must be `Text` or `File`.
+   - Request_Body.Empty: Sends an empty body.
+   Additionally, the following types are allowed as the `body` parameter:
+   - Text: shorthand for `Request_Body.Text that_text`.
+   - File: shorthand for `Request_Body.Binary that_file`.
+   - Any other Enso object: shorthand for `Request_Body.Json that_object`.
 @headers Header.default_widget
 @method HTTP_Method.default_post_widget
 @response_format Data_Read_Helpers.format_widget_with_raw_response

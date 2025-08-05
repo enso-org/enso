@@ -6,30 +6,29 @@ from project.Data.Boolean import Boolean, True
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
-## Specifies the behavior of a write operation when the destination file
-   already exists.
+## Specifies the behavior of a write operation when the destination file already
+   exists.
 type Existing_File_Behavior
     ## Replace the existing file in-place, with the new file.
-
        Note: There is a risk of data loss if a failure occurs during the write
        operation.
     Overwrite
 
-    ## Creates a backup of the existing file (by appending a `.bak` suffix to
-       the name) before replacing it with the new contents.
-
+    ## Creates a backup of the existing file (by appending a `.bak` suffix to the
+       name) before replacing it with the new contents.
        Note: This requires sufficient storage to have two copies of the file.
-             If an existing `.bak` file exists, it will be replaced.
+       If an existing `.bak` file exists, it will be replaced.
     Backup
 
     ## Appends data to the existing file.
     Append
 
-    ## If the file already exists, a `File_Error.Already_Exists` error is
-       raised.
+    ## If the file already exists, a `File_Error.Already_Exists` error is raised.
     Error
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     widget (include_overwrite:Boolean = True) (include_backup:Boolean = True) (include_append:Boolean = True) (include_error:Boolean = True) -> Widget =
         fqn = Existing_File_Behavior.to Meta.Type . qualified_name
         options = Vector.build builder->

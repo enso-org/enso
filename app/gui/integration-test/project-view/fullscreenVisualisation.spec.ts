@@ -65,6 +65,16 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
     ],
   })
 
+  // We can switch visualization type to Table
+  await locate.toggleVisualizationSelectorButton(page).click()
+  await page.getByText('Table').click()
+  const tableVis = locate.tableVisualization(page)
+  await expect(tableVis).toExist()
+  // ... and back to JSON
+  await locate.toggleVisualizationSelectorButton(page).click()
+  await page.getByText('JSON').click()
+  await expect(vis).toExist()
+
   // We may leave fulscreen by pressing Escape
   await page.keyboard.press('Escape')
   await expect.poll(async () => (await vis.boundingBox())?.width).toBeCloseTo(initialBBox.width)

@@ -139,9 +139,9 @@ const nodeIdsWithOutputPorts = computed(() =>
   [...graph.db.nodeOutputPorts.allForward()].map(([id]) => id),
 )
 
-function onNewNodeClick(id: NodeId) {
+function onNewNodeClick(id: NodeId, position: Vec2) {
   nodeSelection?.setSelection(new Set([id]))
-  emit('createNodeFromPort', id, [{ commit: false, content: undefined }])
+  emit('createNodeFromPort', id, [{ commit: false, content: undefined, position }])
 }
 </script>
 
@@ -155,11 +155,18 @@ function onNewNodeClick(id: NodeId) {
         :edge="graph.outputSuggestedEdge"
         animateFromSourceHover
       />
+      <GraphEdge
+        v-for="edge in graph.createNodeFromOutputPortButtonEdges"
+        :key="edge.source"
+        :edge="edge"
+        :arrow="false"
+        animateFromSourceHover
+      />
       <template v-for="id in nodeIdsWithOutputPorts" :key="id">
         <GraphNodeOutputPorts
           v-show="id !== graph.editedNodeInfo?.id"
           :nodeId="id"
-          @newNodeClick="onNewNodeClick(id)"
+          @newNodeClick="(_portId, position) => onNewNodeClick(id, position)"
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
           @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
         />

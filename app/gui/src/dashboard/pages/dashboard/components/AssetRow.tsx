@@ -441,6 +441,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               event.stopPropagation()
 
               setIsDraggedOver(false)
+              dragDelayProps.onDrop(event)
               props.onDrop(event, item)
             }}
           >

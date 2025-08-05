@@ -54,6 +54,7 @@
 - type Fixed_Width_Line_Too_Long
     - handle_java_exception -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_js_object self -> Standard.Base.Any.Any
 - type Ignored_NaN_Values
     - Warning column:Standard.Base.Data.Text.Text rows:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
     - to_display_text self -> Standard.Base.Any.Any
@@ -129,6 +130,7 @@
 - type No_Column_Names_Found
     - handle_java_exception -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_js_object self -> Standard.Base.Any.Any
 - type No_Common_Type
     - Error types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) related_column_name:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)
     - Warning_Convert_To_Text types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) related_column_name:Standard.Base.Data.Text.Text
@@ -142,6 +144,7 @@
     - Error cause:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)=
     - to_display_text self -> Standard.Base.Any.Any
 - type No_Rows
+    - Warning message:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Data.Text.Text
 - type No_Such_Column
     - Error column_name:Standard.Base.Any.Any

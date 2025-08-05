@@ -10,6 +10,7 @@ import type * as accessToken from 'enso-common/src/accessToken'
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as projectManagement from '@/projectManagement'
+import { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import { FileFilter } from './fileBrowser'
 
 // Even though this is already built as an mjs module, we are "faking" cjs format on preload script
@@ -19,10 +20,6 @@ import { FileFilter } from './fileBrowser'
 // https://www.electronjs.org/fr/docs/latest/tutorial/esm#sandboxed-preload-scripts-cant-use-esm-imports
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const electron = require('electron')
-
-// =================
-// === Constants ===
-// =================
 
 const BACKEND_API_KEY = 'backendApi'
 const AUTHENTICATION_API_KEY = 'authenticationApi'
@@ -34,10 +31,6 @@ const SYSTEM_API_KEY = 'systemApi'
 const VERSION_INFO_KEY = 'versionInfo'
 const MAPBOX_API_TOKEN_KEY = 'mapBoxApiToken'
 
-// =========================
-// === exposeInMainWorld ===
-// =========================
-
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
 function exposeInMainWorld<Key extends string & keyof Window>(
   key: Key,
@@ -45,10 +38,6 @@ function exposeInMainWorld<Key extends string & keyof Window>(
 ) {
   electron.contextBridge.exposeInMainWorld(key, value)
 }
-
-// =============================
-// === importProjectFromPath ===
-// =============================
 
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
   string,
@@ -81,10 +70,6 @@ electron.ipcRenderer.on(
     resolveFunction?.(projectInfo)
   },
 )
-
-// ==========================
-// === Authentication API ===
-// ==========================
 
 /** A callback called when a deep link is opened. */
 type OpenDeepLinkHandler = (url: string) => void
@@ -143,10 +128,6 @@ exposeInMainWorld(AUTHENTICATION_API_KEY, {
   },
 })
 
-// ========================
-// === File Browser API ===
-// ========================
-
 exposeInMainWorld(FILE_BROWSER_API_KEY, {
   openFileBrowser: (
     kind: 'any' | 'directory' | 'file' | 'filePath',
@@ -154,10 +135,6 @@ exposeInMainWorld(FILE_BROWSER_API_KEY, {
     filters?: FileFilter[],
   ) => electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath, filters),
 })
-
-// ==============================
-// === Project management API ===
-// ==============================
 
 /** A callback when a project is opened by opening a fileusing the system's default method. */
 type OpenProjectHandler = (projectInfo: projectManagement.ProjectInfo) => void
@@ -176,25 +153,20 @@ exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
   },
 })
 
-// ================
-// === Menu API ===
-// ================
+const menuApiHandlers: Record<MenuItem, MenuItemHandler | undefined> = {
+  about: undefined,
+  closeTab: undefined,
+}
 
-let showAboutModalHandler: (() => void) | null = null
-
-electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
-  showAboutModalHandler?.()
+electron.ipcRenderer.on(ipc.Channel.handleMenuItem, (_event, name: MenuItem) => {
+  menuApiHandlers[name]?.()
 })
 
 exposeInMainWorld(MENU_API_KEY, {
-  setShowAboutModalHandler: (callback: () => void) => {
-    showAboutModalHandler = callback
+  setMenuItemHandler: (name: MenuItem, handler: MenuItemHandler) => {
+    menuApiHandlers[name] = handler
   },
 })
-
-// ==================
-// === System API ===
-// ==================
 
 exposeInMainWorld(SYSTEM_API_KEY, {
   downloadURL: (options) => {
@@ -208,14 +180,6 @@ exposeInMainWorld(SYSTEM_API_KEY, {
   },
 })
 
-// ====================
-// === Version info ===
-// ====================
-
 exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
-
-// ==================
-// === MapBox API ===
-// ==================
 
 exposeInMainWorld(MAPBOX_API_TOKEN_KEY, () => process.env.ENSO_IDE_MAPBOX_API_TOKEN || '')

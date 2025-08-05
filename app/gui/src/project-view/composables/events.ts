@@ -118,12 +118,16 @@ export function useEventConditional(
   handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
-  watch(condition, (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      target.addEventListener(event, handler, options)
-      onCleanup(() => target.removeEventListener(event, handler, options))
-    }
-  })
+  watch(
+    condition,
+    (conditionMet, _, onCleanup) => {
+      if (conditionMet) {
+        target.addEventListener(event, handler, options)
+        onCleanup(() => target.removeEventListener(event, handler, options))
+      }
+    },
+    { immediate: true },
+  )
 }
 
 /** Whether focused element is within given element's subtree. */

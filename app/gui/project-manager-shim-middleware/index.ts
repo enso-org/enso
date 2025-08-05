@@ -14,6 +14,42 @@ import * as yaml from 'yaml'
 
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
+import {
+  AssetType,
+  DirectoryId,
+  EnsoPath,
+  extractTypeAndPath,
+  extractTypeFromId,
+  FileId,
+  fileNameIsArchive,
+  fileNameIsProject,
+  ParentsPath,
+  Path,
+  ProjectId,
+  ProjectState,
+  stripProjectExtension,
+  UnzipAssetsJobId,
+  VirtualParentsPath,
+  type AnyAsset,
+  type AssetId,
+  type DirectoryAsset,
+  type ExportedArchive,
+  type FileAsset,
+  type ProjectAsset,
+} from 'enso-common/src/services/Backend'
+import { EXPORT_ARCHIVE_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import {
+  basenameAndExtension,
+  getFileName,
+  getFolderPath,
+  isFolderPath,
+} from 'enso-common/src/utilities/file'
+import { tmpdir } from 'node:os'
+import type { Readable } from 'node:stream'
+import { finished } from 'node:stream/promises'
+import { createGzip } from 'node:zlib'
+import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 import * as projectManagement from './projectManagement'
 
 // =================
@@ -30,6 +66,10 @@ const COMMON_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Resource-Policy': 'same-origin',
 }
+const COOP_COEP_CORP_HEADERS = [
+  ['Cross-Origin-Opener-Policy', 'same-origin'],
+  ['Cross-Origin-Resource-Policy', 'same-origin'],
+]
 
 // =============
 // === Types ===
@@ -221,33 +261,14 @@ export default function projectManagerShimMiddleware(
       }
     }
   } else if (request.method === 'POST') {
+    const params = new URL(requestUrl ?? '').searchParams
     switch (requestPath) {
+      case `/api/${EXPORT_ARCHIVE_PATH}`: {
+        httpDownloadArchive(request, response, params)
+        break
+      }
       case '/api/upload-file': {
-        const url = new URL(`https://example.com/${requestUrl}`)
-        const fileName = url.searchParams.get('file_name')
-        const directory = url.searchParams.get('directory') ?? PROJECTS_ROOT_DIRECTORY
-        if (fileName == null) {
-          response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `file_name`.')
-        } else {
-          const filePath = path.join(directory, fileName)
-          void fs
-            .writeFile(filePath, request)
-            .then(() => {
-              response
-                .writeHead(HTTP_STATUS_OK, {
-                  'Content-Length': String(filePath.length),
-                  'Content-Type': 'text/plain',
-                  ...COMMON_HEADERS,
-                })
-                .end(filePath)
-            })
-            .catch((e) => {
-              console.error(e)
-              response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
-            })
-        }
+        httpUploadFile(request, response, params)
         break
       }
       // This endpoint should only be used when accessing the app from the browser.
@@ -259,7 +280,7 @@ export default function projectManagerShimMiddleware(
         const name = url.searchParams.get('name')
         void projectManagement
           .uploadBundle(request, directory, name)
-          .then((id) => {
+          .then(({ id }) => {
             response
               .writeHead(HTTP_STATUS_OK, {
                 'Content-Length': String(id.length),
@@ -527,7 +548,7 @@ export default function projectManagerShimMiddleware(
         break
       }
     }
-  } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
+  } else if (request.method === 'GET' && requestPath === '/api/root-directory-path') {
     response
       .writeHead(HTTP_STATUS_OK, {
         'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
@@ -593,4 +614,440 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
 function isHidden(filePath: string): boolean {
   const dotfile = /(^|[\\/])\.[^\\/]+$/g
   return dotfile.test(filePath)
+}
+
+/** Return whether a file exists. */
+async function fileExists(path: string) {
+  try {
+    await fs.stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Send a HTTP response with a JSON payload. */
+function httpOkJson<T = never>(response: http.ServerResponse, body: NoInfer<T>) {
+  const content = JSON.stringify(body)
+  return response
+    .writeHead(HTTP_STATUS_OK, [
+      ['Content-Length', `${content.length}`],
+      ['Content-Type', 'application/json'],
+      ...COOP_COEP_CORP_HEADERS,
+    ])
+    .end(content)
+}
+
+/** Send a HTTP response with a JSON payload. */
+function httpOkText(response: http.ServerResponse, content: string) {
+  return response
+    .writeHead(HTTP_STATUS_OK, [
+      ['Content-Length', `${content.length}`],
+      ['Content-Type', 'text/plain'],
+      ...COOP_COEP_CORP_HEADERS,
+    ])
+    .end(content)
+}
+
+/** Get details for an asset by its path. */
+function apiGetAssetDetailsByPath<Type extends AssetType>({
+  type,
+  path,
+}: {
+  type?: Type
+  path: Path
+}): AnyAsset<Type> | undefined {
+  try {
+    // @ts-expect-error This is UNSAFE if `Type` is specified explicitly.
+    // If it is inferred, this means `type` is present and the constraint correctly falls back to
+    // `AssetType`
+    type ??= (() => {
+      const assetStat = fsSync.statSync(path)
+      if (assetStat.isDirectory()) {
+        const metadata = projectManagement.getMetadata(path)
+        if (metadata) {
+          return AssetType.project
+        } else {
+          return AssetType.directory
+        }
+      } else {
+        return AssetType.file
+      }
+    })()
+    const shared = {
+      title: getFileName(path),
+      modifiedAt: toRfc3339(new Date()),
+      parentId: DirectoryId(`directory-${getFolderPath(path)}` as const),
+      extension: null,
+      permissions: [],
+      projectState: null,
+      parentsPath: ParentsPath(''),
+      virtualParentsPath: VirtualParentsPath(''),
+      ensoPath: EnsoPath(String(path)),
+    } satisfies Partial<DirectoryAsset>
+    switch (type) {
+      case AssetType.project: {
+        const result: ProjectAsset = {
+          ...shared,
+          type: AssetType.project,
+          id: ProjectId(`project-${encodeURIComponent(path)}`),
+          // FIXME: Get correct state.
+          projectState: { type: ProjectState.closed },
+        }
+        // This is SAFE because `type` has been narrowed in the `switch` above.
+        return result as AnyAsset<Type>
+      }
+      case AssetType.file: {
+        const result: FileAsset = {
+          ...shared,
+          type: AssetType.file,
+          id: FileId(`file-${encodeURIComponent(path)}`),
+          extension: basenameAndExtension(path).extension,
+        }
+        // This is SAFE because `type` has been narrowed in the `switch` above.
+        return result as AnyAsset<Type>
+      }
+      case AssetType.directory: {
+        const result: DirectoryAsset = {
+          ...shared,
+          type: AssetType.directory,
+          id: DirectoryId(`directory-${encodeURIComponent(path)}` as const),
+        }
+        // This is SAFE because `type` has been narrowed in the `switch` above.
+        return result as AnyAsset<Type>
+      }
+      default: {
+        throw new Error(`Unknown asset type '${type}'`)
+      }
+    }
+  } catch {
+    return
+  }
+}
+
+/** List a directory. */
+async function apiListDirectory(params: { readonly directory?: DirectoryId }) {
+  const { directory: directoryRaw } = params
+  const directory = directoryRaw ? extractTypeAndPath(directoryRaw).path : PROJECTS_ROOT_DIRECTORY
+  const assets: AnyAsset[] = []
+  for (const entryName of await fs.readdir(directory)) {
+    const entryPath = Path(path.join(directory, entryName))
+    const asset = apiGetAssetDetailsByPath({ path: entryPath })
+    if (asset == null) {
+      throw new Error(`File not found at '${entryPath}'`)
+    }
+    assets.push(asset)
+  }
+  return assets
+}
+
+/** Create an archive stream with the given assets. */
+function apiArchiveStream(assets: readonly AssetId[]) {
+  const archive = zipWriteStream()
+
+  const addProject = async (id: ProjectId, rootPath?: string) => {
+    const assetPath = extractTypeAndPath(id).path
+    rootPath ??= getFolderPath(assetPath)
+    const pathInArchive = `${path.relative(rootPath, assetPath)}.enso-project`
+    if (!(await fileExists(assetPath))) {
+      return { type: 'error', error: 'notFound', id } as const
+    }
+    await archive.addFile(tarFsPack(assetPath).pipe(createGzip()), { name: pathInArchive })
+  }
+
+  const addFile = async (id: FileId, rootPath?: string) => {
+    const assetPath = extractTypeAndPath(id).path
+    rootPath ??= getFolderPath(assetPath)
+    const pathInArchive = path.relative(rootPath, assetPath)
+    if (!(await fileExists(assetPath))) {
+      return { type: 'error', error: 'notFound', id } as const
+    }
+    await archive.addFile(fsSync.createReadStream(assetPath), { name: pathInArchive })
+  }
+
+  const addFolder = async (id: DirectoryId, rootPath?: string) => {
+    const assetPath = extractTypeAndPath(id).path
+    rootPath ??= getFolderPath(assetPath)
+    const pathInArchive = path.relative(rootPath, assetPath)
+    if (!(await fileExists(assetPath))) {
+      return { type: 'error', error: 'notFound', id } as const
+    }
+    await archive.addFolder({ name: pathInArchive })
+    const entries = await apiListDirectory({ directory: id })
+    for (const entry of entries) {
+      await addAsset(entry.id, rootPath)
+    }
+  }
+
+  const addAsset = async (id: AssetId, rootPath?: string) => {
+    const typeAndId = extractTypeFromId(id)
+    switch (typeAndId.type) {
+      case AssetType.project: {
+        const error = await addProject(typeAndId.id, rootPath)
+        if (error) {
+          return error
+        }
+        break
+      }
+      case AssetType.file: {
+        const error = await addFile(typeAndId.id, rootPath)
+        if (error) {
+          return error
+        }
+        break
+      }
+      case AssetType.directory: {
+        const error = await addFolder(typeAndId.id, rootPath)
+        if (error) {
+          return error
+        }
+        break
+      }
+      // These asset types are not valid, however include them to force any newly added
+      // asset types to be handled (by causing a non-exhaustiveness error).
+      case AssetType.secret:
+      case AssetType.datalink:
+      case AssetType.specialUp: {
+        return
+      }
+    }
+  }
+
+  const promise = (async () => {
+    for (const id of assets) {
+      const error = await addAsset(id)
+      if (error) {
+        return error
+      }
+    }
+    archive.finalize()
+  })()
+
+  return { stream: archive.stream, promise } as const
+}
+
+/** Response handler for "download archive" endpoint. */
+async function httpDownloadArchive(
+  _request: http.IncomingMessage,
+  response: http.ServerResponse,
+  params: URLSearchParams,
+) {
+  const assets = params.getAll('asset') as AssetId[]
+  const filePath = params.get('filePath')
+  const archive = apiArchiveStream(assets)
+  let promise: Promise<void> | undefined
+  if (filePath != null) {
+    promise = finished(archive.stream.pipe(fsSync.createWriteStream(filePath)))
+  } else {
+    response.writeHead(HTTP_STATUS_OK, [
+      ['Content-Type', 'application/octet-stream'],
+      ...COOP_COEP_CORP_HEADERS,
+    ])
+    await finished(archive.stream.pipe(response))
+  }
+
+  if (filePath == null) {
+    // The HTTP headers were already sent
+    return
+  }
+  const error = await archive.promise
+  if (error) {
+    const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
+    response
+      .writeHead(HTTP_STATUS_NOT_FOUND, [
+        ['Content-Length', String(content.length)],
+        ['Content-Type', 'application/json'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      .end(content)
+  }
+  await promise
+  httpOkJson<ExportedArchive>(response, {
+    filePath: Path(filePath),
+  })
+}
+
+/** Upload an archive, optionally with a list of conflict resolutions. */
+async function apiUploadArchive({
+  directoryId,
+  jobId,
+  filePath,
+  readStream,
+}: {
+  directoryId?: DirectoryId | null | undefined
+  jobId?: UnzipAssetsJobId | null | undefined
+  filePath?: string | null | undefined
+  readStream?: Readable | null | undefined
+}): Promise<unknown> {
+  filePath ??= jobId != null ? Path(decodeURIComponent(jobId)) : undefined
+  const directory = directoryId ? extractTypeAndPath(directoryId).path : PROJECTS_ROOT_DIRECTORY
+  let tempDirectory: string | undefined
+  if (filePath == null) {
+    tempDirectory = await fs.mkdtemp(path.join(tmpdir(), 'enso-'))
+    filePath = path.join(tempDirectory, 'archive.zip')
+    const writeStream = fsSync.createWriteStream(filePath)
+    if (readStream == null) {
+      throw new Error(
+        'If no source path is provided, then a stream (e.g. from a request) is required',
+      )
+    }
+    readStream.pipe(writeStream)
+    await finished(writeStream)
+  }
+  const assets: AnyAsset[] = []
+
+  const pathMapping: Record<string, string> = {}
+
+  const getDirectoryPath = async (entryPathInArchive: string) => {
+    const isDirectory = isFolderPath(entryPathInArchive)
+    const parentPathInArchiveRaw = getFolderPath(entryPathInArchive)
+    let parentPathInArchive =
+      parentPathInArchiveRaw === entryPathInArchive ? '' : pathMapping[parentPathInArchiveRaw]
+    if (parentPathInArchive == null) {
+      await getDirectoryPath(parentPathInArchiveRaw)
+      parentPathInArchive = pathMapping[parentPathInArchiveRaw] ?? ''
+    }
+    let destinationPathInArchive = path.join(parentPathInArchive, getFileName(entryPathInArchive))
+    const { basename, extension: extensionRaw } = basenameAndExtension(
+      getFileName(entryPathInArchive),
+    )
+    const extension = (() => {
+      switch (extensionRaw) {
+        case 'enso-project':
+        case 'tar.gz':
+        case '': {
+          return ''
+        }
+        default: {
+          return `.${extensionRaw}`
+        }
+      }
+    })()
+    let destinationPath = Path(path.join(directory, `${basename}${extension}`))
+    // If directories need to be merged in the future, the following check can be skipped
+    // for directories.
+    let i = 0
+    while (await fileExists(destinationPath)) {
+      i += 1
+      destinationPathInArchive = path.join(parentPathInArchive, `${basename} (${i})${extension}`)
+      destinationPath = Path(path.join(directory, destinationPathInArchive))
+    }
+    if (isDirectory) {
+      pathMapping[entryPathInArchive] = destinationPathInArchive
+    }
+    return destinationPath
+  }
+
+  for await (const entry of await unzipEntries(filePath)) {
+    const entryPathInArchive = entry.metadata.name
+    const destinationPath = await getDirectoryPath(entryPathInArchive)
+    const isDirectory = isFolderPath(entryPathInArchive)
+    const isProject = entryPathInArchive.endsWith('.enso-project')
+    const shared = {
+      title: getFileName(destinationPath),
+      modifiedAt: toRfc3339(new Date()),
+      parentId: DirectoryId(`directory-${getFolderPath(destinationPath)}` as const),
+      extension: null,
+      permissions: [],
+      projectState: null,
+      parentsPath: ParentsPath(''),
+      virtualParentsPath: VirtualParentsPath(''),
+      ensoPath: EnsoPath(String(destinationPath)),
+    } satisfies Partial<DirectoryAsset>
+    if (isDirectory) {
+      assets.push({
+        ...shared,
+        type: AssetType.directory,
+        id: DirectoryId(`directory-${encodeURIComponent(destinationPath)}` as const),
+      })
+      await entry.extract({ rootDirectory: directory, destinationPath })
+    } else if (isProject) {
+      assets.push({
+        ...shared,
+        type: AssetType.project,
+        id: ProjectId(
+          `project-${encodeURIComponent(destinationPath.replace('.enso-project', '/'))}`,
+        ),
+        projectState: { type: ProjectState.closed },
+      })
+      await entry.extract({
+        rootDirectory: directory,
+        transform: async (stream) => {
+          const parentDirectory = getFolderPath(destinationPath)
+          const fileName = getFileName(destinationPath)
+          await projectManagement.uploadBundle(
+            stream,
+            parentDirectory,
+            stripProjectExtension(fileName),
+          )
+          // Prevent default behavior.
+          return false as const
+        },
+      })
+    } else {
+      assets.push({
+        ...shared,
+        type: AssetType.file,
+        id: FileId(`file-${encodeURIComponent(destinationPath)}`),
+        extension: basenameAndExtension(destinationPath).extension,
+      })
+      await entry.extract({ rootDirectory: directory, destinationPath })
+    }
+  }
+  if (tempDirectory != null) {
+    await fs.rm(tempDirectory, { force: true, recursive: true })
+  }
+  return { assets }
+}
+
+/** Response handler for "upload file" endpoint. */
+async function httpUploadFile(
+  request: http.IncomingMessage,
+  response: http.ServerResponse,
+  params: URLSearchParams,
+) {
+  const directoryParam = params.get('directory') as DirectoryId | null
+  const directory =
+    directoryParam ? extractTypeAndPath(directoryParam).path : PROJECTS_ROOT_DIRECTORY
+  const fileName = params.get('file_name')
+  const filePath = params.get('file_path')
+  try {
+    if (fileName == null) {
+      response
+        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+        .end('Request is missing search parameter `file_name`.')
+    } else if (fileNameIsArchive(fileName)) {
+      await apiUploadArchive({
+        directoryId: directoryParam,
+        filePath,
+        readStream: request,
+      })
+      response.writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS).end()
+    } else if (fileNameIsProject(fileName)) {
+      const project =
+        filePath ?
+          projectManagement.importProjectFromPath(filePath, directory, fileName)
+        : await projectManagement.uploadBundle(request, directory, fileName)
+      httpOkText(response, project.path)
+    } else {
+      const filePath = path.join(directory, fileName)
+      void fs
+        .writeFile(filePath, request)
+        .then(() => {
+          httpOkText(response, filePath)
+        })
+        .catch((e) => {
+          console.error(e)
+          response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
+        })
+    }
+  } catch (error) {
+    response
+      .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+      .end(
+        String(
+          typeof error === 'object' && error != null && 'message' in error ? error.message : error,
+        ),
+      )
+  }
 }

@@ -2,15 +2,18 @@
 ## module Standard.Base.Metadata
 - type Choice
     - Option label:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Text.Text|Standard.Base.Any.Any)= parameters:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= icon:Standard.Base.Data.Text.Text=
+    - to_json self -> Standard.Base.Data.Text.Text
 - type Display
     - Always
     - Expanded_Only
     - When_Modified
+    - to_json self -> Standard.Base.Any.Any
 - type File_Action
     - Open
     - Save
+    - to_json self -> Standard.Base.Any.Any
 - type File_Type
-    - Option label:Standard.Base.Data.Text.Text extensions:(Standard.Base.Any.Any|Standard.Base.Any.Any)= icon:Standard.Base.Data.Text.Text=
+    - Option label:Standard.Base.Data.Text.Text extensions:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)= icon:Standard.Base.Data.Text.Text=
 - type Widget
     - Boolean_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
     - File_Browse existing_only:Standard.Base.Data.Boolean.Boolean= label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= action:Standard.Base.Metadata.File_Action= file_types:(Standard.Base.Data.Vector.Vector Standard.Base.Metadata.File_Type)=
@@ -22,4 +25,5 @@
     - Text_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= quote_values:Standard.Base.Data.Boolean.Boolean= suggestions:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)= syntax:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)=
     - Vector_Editor item_editor:Standard.Base.Metadata.Widget item_default:Standard.Base.Data.Text.Text label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
     - to_js_object self -> Standard.Base.Any.Any
+    - to_json self -> Standard.Base.Data.Text.Text
 - make_single_choice values:Standard.Base.Data.Vector.Vector display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget

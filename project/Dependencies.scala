@@ -271,6 +271,8 @@ object Dependencies {
   val slf4jApi = Seq(
     "org.slf4j" % "slf4j-api" % slf4jVersion
   )
+  val slf4jNop       = "org.slf4j" % "slf4j-nop" % slf4jVersion
+  val slf4jNopModule = "org.slf4j.nop"
 
   // === Other ==================================================================
 
