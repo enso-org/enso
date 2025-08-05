@@ -5947,7 +5947,7 @@ lazy val runProjectManagerDistribution =
   inputKey[Unit](
     "Run or --debug the project manager distribution with arguments"
   )
-runProjectManagerDistribution := {
+(ThisBuild / runProjectManagerDistribution) := {
   buildEngineDistributionNoIndex.value
   buildProjectManagerDistributionCond.value
   val projectManagerJar = (`project-manager` / assembly).value.getAbsoluteFile()
