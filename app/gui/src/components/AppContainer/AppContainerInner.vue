@@ -129,7 +129,6 @@ const onSignOut = () => {
     <div class="bar">
       <div role="tablist" class="tablist">
         <SelectableTab
-          selectionLayoutId="tab-highlight"
           :selected="tab === 'drive'"
           icon="drive"
           label="Data Catalog"
@@ -139,7 +138,6 @@ const onSignOut = () => {
           v-for="project in openedProjects"
           :key="project.id"
           data-testid="editor-tab-button"
-          selectionLayoutId="tab-highlight"
           :selected="project.shown.value"
           :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
           :label="projectNames.get(project.id)"
@@ -154,7 +152,6 @@ const onSignOut = () => {
         </SelectableTab>
         <SelectableTab
           v-if="tab === 'settings'"
-          selectionLayoutId="tab-highlight"
           :selected="true"
           icon="settings"
           label="Settings"
