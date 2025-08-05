@@ -27,13 +27,13 @@ object JarExtractor {
     val path: String
   }
 
-  case object LinuxX86_64 extends NativeLibArch {
+  case object LinuxAMD64 extends NativeLibArch {
     override val path: String = "amd64/linux"
   }
-  case object WindowsX86_64 extends NativeLibArch {
+  case object WindowsAMD64 extends NativeLibArch {
     override val path: String = "amd64/windows"
   }
-  case object MacOSX86_64 extends NativeLibArch {
+  case object MacOSAMD64 extends NativeLibArch {
     override val path: String = "amd64/macos"
   }
   case object MacOSArm64 extends NativeLibArch {
@@ -50,7 +50,7 @@ object JarExtractor {
     * and a valid target directory hierarchy should be created.
     *
     * For example, if the entry is `foo.so` and the `arch` parameter is
-    * [[LinuxX86_64]], the entry will be copied to `amd64/linux/foo.so`.
+    * [[LinuxAMD64]], the entry will be copied to `amd64/linux/foo.so`.
     *
     * The entry will be copied only if the architecture matches the current
     * platform's architecture.
@@ -135,9 +135,9 @@ object JarExtractor {
   ): Boolean = {
     val osName = Platform.osName()
     (arch, Platform.osName(), Platform.arch()) match {
-      case (LinuxX86_64, "linux", "x86_64")     => true
-      case (WindowsX86_64, "windows", "x86_64") => true
-      case (MacOSX86_64, "osx", "x86_64")       => true
+      case (LinuxAMD64, "linux", "x86_64")     => true
+      case (WindowsAMD64, "windows", "x86_64") => true
+      case (MacOSAMD64, "osx", "x86_64")       => true
       case (MacOSArm64, "osx", "aarch64")       => true
       case _                                    => false
     }
