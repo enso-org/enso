@@ -420,6 +420,7 @@ lazy val componentModulesPaths =
     helidon ++
     scalaLibrary ++
     logbackPkg ++
+    jline ++
     slf4jApi ++
     Seq(
       "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
@@ -427,10 +428,6 @@ lazy val componentModulesPaths =
       "com.google.protobuf"    % "protobuf-java"                % googleProtobufVersion,
       "commons-cli"            % "commons-cli"                  % commonsCliVersion,
       "commons-io"             % "commons-io"                   % commonsIoVersion,
-      // Note there is no jline-native on purpose
-      "org.jline"           % "jline-terminal"     % jlineVersion,
-      "org.jline"           % "jline-terminal-jni" % jlineVersion,
-      "org.jline"           % "jline-reader"       % jlineVersion,
       "org.yaml"            % "snakeyaml"          % snakeyamlVersion,
       "org.eclipse.jgit"    % "org.eclipse.jgit"   % jgitVersion,
       "com.typesafe"        % "config"             % typesafeConfigVersion,
@@ -441,7 +438,7 @@ lazy val componentModulesPaths =
       "org.yaml"            % "snakeyaml"          % snakeyamlVersion,
       "com.ibm.icu"         % "icu4j"              % icuVersion
     )
-  val modsToExclude = Seq(
+  val modsToExclude = jlineNative ++ Seq(
     "org.graalvm.python" % "python-resources" % Dependencies.graalMavenPackagesVersion
   )
   val reducedThirdPartyModIds = thirdPartyModIds.filterNot { modId =>
