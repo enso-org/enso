@@ -10,7 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Map;
-import org.enso.logging.service.remote.RefreshTokenPayload;
+import org.enso.logging.service.common.RefreshTokenPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
