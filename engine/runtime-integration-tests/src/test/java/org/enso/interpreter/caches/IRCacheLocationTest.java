@@ -107,7 +107,6 @@ public class IRCacheLocationTest {
             e);
       }
       assertThat("Module evaluation is OK", res.asInt(), is(42));
-
     }
 
     var libCacheDir = libDir.toPath().resolve(".enso");
