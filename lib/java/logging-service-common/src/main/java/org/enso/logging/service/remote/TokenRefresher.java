@@ -1,4 +1,4 @@
-package org.enso.logging.service;
+package org.enso.logging.service.remote;
 
 import java.io.IOException;
 import java.net.URI;
@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Map;
+import org.enso.logging.service.remote.RefreshTokenPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

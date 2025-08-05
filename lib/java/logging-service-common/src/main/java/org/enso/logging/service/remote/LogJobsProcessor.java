@@ -1,4 +1,4 @@
-package org.enso.logging.service;
+package org.enso.logging.service.remote;
 
 import java.io.IOException;
 import java.net.URI;

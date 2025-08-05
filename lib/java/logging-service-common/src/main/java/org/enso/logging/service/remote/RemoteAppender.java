@@ -1,4 +1,4 @@
-package org.enso.logging.service;
+package org.enso.logging.service.remote;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.io.IOException;
