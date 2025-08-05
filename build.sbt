@@ -3941,7 +3941,6 @@ lazy val launcher = project
             mainClass  = Some("org.enso.launcher.cli.Main")
           )
       }
-      .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,
     buildNativeImage := NativeImage
@@ -3952,23 +3951,6 @@ lazy val launcher = project
       .value,
     cleanFiles += {
       new File("ensoup")
-    },
-    assembly / test := {},
-    assembly / assemblyOutputPath := file("launcher.jar"),
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case "application.conf" => MergeStrategy.concat
-      case "reference.conf"   => MergeStrategy.concat
-      // launcher.jar must not be an explicit Jar module
-      case PathList(xs @ _*) if xs.last.contains("module-info") =>
-        MergeStrategy.discard
-      case x =>
-        MergeStrategy.first
     }
   )
   .settings(
