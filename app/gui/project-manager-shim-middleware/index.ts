@@ -149,7 +149,6 @@ export default function projectManagerShimMiddleware(
 ) {
   const requestUrl = request.url ?? ''
   if (!requestUrl.startsWith('/api/')) return next()
-  console.log('requestUrl', requestUrl)
   const url = new URL(requestUrl, 'https://apishim.local')
   const requestPath = url.pathname
   if (requestPath.startsWith('/api/project-manager/')) {
@@ -157,7 +156,6 @@ export default function projectManagerShimMiddleware(
       /^\/api\/project-manager/,
       GLOBAL_CONFIG.projectManagerHttpEndpoint,
     )
-    console.log('urlString', urlString)
     const actualUrl = new URL(urlString)
     request.pipe(
       http.request(
