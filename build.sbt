@@ -5329,6 +5329,11 @@ lazy val `std-google` = project
           ignoreScalaLibrary = true,
           ignoreDependencyIncludeTransitive =
             Some(s"grpc-netty-shaded-${grpcVersion}"),
+          ignoreDependenciesByModuleID = Some(
+            Seq(
+              "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2"
+            )
+          ),
           libraryUpdates     = (Compile / update).value,
           logger             = streams.value.log,
           cacheStoreFactory  = cacheStoreFactory,
