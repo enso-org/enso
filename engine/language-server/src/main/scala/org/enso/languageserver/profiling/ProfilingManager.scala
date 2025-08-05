@@ -9,8 +9,7 @@ import org.enso.profiling.events.EventsMonitor
 import org.enso.profiling.sampler.MethodsSampler
 import org.enso.profiling.snapshot.{HeapDumpSnapshot, ProfilingSnapshot}
 
-import java.io.{ByteArrayOutputStream, PrintStream}
-import java.nio.charset.StandardCharsets
+import java.io.ByteArrayOutputStream
 import java.nio.file.{Files, Path}
 import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
@@ -48,16 +47,19 @@ final class ProfilingManager(
         case Some(_) =>
           sender() ! ProfilingProtocol.ProfilingStartResponse
         case None =>
-          val instant = clock.instant()
-          val result  = new ByteArrayOutputStream()
+          val instant           = clock.instant()
+          val result            = new ByteArrayOutputStream()
+          val eventsLogFileName = createEventsFileName(instant)
+          val eventsLogPath =
+            distributionManager.paths.profiling.resolve(eventsLogFileName)
           val sampler = MethodsSampler.create(
-            result.asInstanceOf[Any].asInstanceOf[java.io.File],
-            null
+            null,
+            eventsLogPath.toFile
           )
 
           sampler.start()
 
-          val eventsMonitor = createEventsMonitor(instant)
+          val eventsMonitor = createEventsMonitor(sampler)
           eventsMonitorActor ! EventsMonitorProtocol.RegisterEventsMonitor(
             eventsMonitor
           )
@@ -157,12 +159,10 @@ final class ProfilingManager(
     heapDumpPath
   }
 
-  private def createEventsMonitor(instant: Instant): RuntimeEventsMonitor = {
-    val eventsLogFileName = createEventsFileName(instant)
-    val eventsLogPath =
-      distributionManager.paths.profiling.resolve(eventsLogFileName)
-    val out = new PrintStream(eventsLogPath.toFile, StandardCharsets.UTF_8)
-    new RuntimeEventsMonitor(out)
+  private def createEventsMonitor(
+    sampler: MethodsSampler
+  ): RuntimeEventsMonitor = {
+    new RuntimeEventsMonitor(sampler.log)
   }
 }
 
