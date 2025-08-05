@@ -428,15 +428,15 @@ lazy val componentModulesPaths =
       "com.google.protobuf"    % "protobuf-java"                % googleProtobufVersion,
       "commons-cli"            % "commons-cli"                  % commonsCliVersion,
       "commons-io"             % "commons-io"                   % commonsIoVersion,
-      "org.yaml"            % "snakeyaml"          % snakeyamlVersion,
-      "org.eclipse.jgit"    % "org.eclipse.jgit"   % jgitVersion,
-      "com.typesafe"        % "config"             % typesafeConfigVersion,
-      "org.reactivestreams" % "reactive-streams"   % reactiveStreamsVersion,
-      "org.apache.commons"  % "commons-lang3"      % commonsLangVersion,
-      "org.apache.commons"  % "commons-compress"   % commonsCompressVersion,
-      "org.apache.tika"     % "tika-core"          % tikaVersion,
-      "org.yaml"            % "snakeyaml"          % snakeyamlVersion,
-      "com.ibm.icu"         % "icu4j"              % icuVersion
+      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
+      "org.eclipse.jgit"       % "org.eclipse.jgit"             % jgitVersion,
+      "com.typesafe"           % "config"                       % typesafeConfigVersion,
+      "org.reactivestreams"    % "reactive-streams"             % reactiveStreamsVersion,
+      "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
+      "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
+      "org.apache.tika"        % "tika-core"                    % tikaVersion,
+      "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
+      "com.ibm.icu"            % "icu4j"                        % icuVersion
     )
   val modsToExclude = jlineNative ++ Seq(
     "org.graalvm.python" % "python-resources" % Dependencies.graalMavenPackagesVersion
@@ -5837,7 +5837,7 @@ lazy val createEnginePackageNoIndex =
   taskKey[Unit]("Creates the engine distribution package")
 createEnginePackageNoIndex := {
   updateLibraryManifests.value
-  val modulesToCopy   = componentModulesPaths.value
+  val modulesToCopy = componentModulesPaths.value
   val extraJars     = (`jline-wrapper` / thinJarOutput).value
   val nativeLibsDir = (`jline-wrapper` / extractedFilesDir).value
   val nativeLibs    = listRecursively(nativeLibsDir)
@@ -5845,11 +5845,11 @@ createEnginePackageNoIndex := {
     Seq(extraJars) ++
     nativeLibs
 
-  val root         = engineDistributionRoot.value
+  val root            = engineDistributionRoot.value
   val pythonResources = (`python-extract` / extractPythonResources).value
   val pyHome          = (ThisBuild / pythonHome).value
-  vallog          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
+  val log             = streams.value.log
+  val cacheFactory    = streams.value.cacheStoreFactory
   DistributionPackage.createEnginePackage(
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
