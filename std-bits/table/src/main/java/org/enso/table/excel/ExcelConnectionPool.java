@@ -53,12 +53,12 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         throw new FileNotFoundException(file.toString());
       }
 
-      System.out.println("ZZZZZ ExceltConnectionPool.openReadOnlyConnection records " + records.size());
+      System.out.println("ZZZZZ ExcelConnectionPool.openReadOnlyConnection records " + records.size());
 
       String key = getKeyForFile(file);
       ConnectionRecord existingRecord = records.get(key);
       if (existingRecord != null) {
-        System.out.println("ZZZZZ ExceltConnectionPool.openReadOnlyConnection cache hit");
+        System.out.println("ZZZZZ ExcelConnectionPool.openReadOnlyConnection cache hit");
         // Adapt the existing record
         if (existingRecord.format != format) {
           throw new ExcelFileFormatMismatchException(
@@ -83,7 +83,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         record.format = format;
         record.reopen(true);
         records.put(key, record);
-        System.out.println("ZZZZZ ExceltConnectionPool.openReadOnlyConnection cache miss, records " + records.size());
+        System.out.println("ZZZZZ ExcelConnectionPool.openReadOnlyConnection cache miss, records " + records.size());
         return new ReadOnlyExcelConnection(this, key, record);
       }
     }
@@ -214,6 +214,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   }
 
   void release(ReadOnlyExcelConnection excelConnection) throws IOException {
+    System.out.println("ZZZZZ ExcelConnectionPool.release start, records " + ExcelConnectionPool.INSTANCE.getConnectionRecordCount());
+    System.out.println("ZZZZZ ExcelConnectionPool.release start, records " + records.size());
     synchronized (this) {
       excelConnection.record.refCount--;
       if (excelConnection.record.refCount <= 0) {
@@ -221,6 +223,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         records.remove(excelConnection.key);
       }
     }
+    System.out.println("ZZZZZ ExcelConnectionPool.release done, records " + ExcelConnectionPool.INSTANCE.getConnectionRecordCount());
+    System.out.println("ZZZZZ ExcelConnectionPool.release done, records " + records.size());
   }
 
   private final HashMap<String, ConnectionRecord> records = new HashMap<>();
@@ -229,18 +233,19 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   /** If a reload has just happened, clear the ConnectionRecord cache. */
   @Override
   public void clearCache() {
-    System.out.println("ZZZZZ ExceltConnectionPool.clearCache");
+    System.out.println("ZZZZZ ExcelConnectionPool.clearCache");
     synchronized (this) {
       for (var record : records.values()) {
         try {
-          System.out.println("ZZZZZ ExceltConnectionPool.clearCache closed");
+          System.out.println("ZZZZZ ExcelConnectionPool.clearCache closed");
           record.close();
         } catch (IOException e) {
-          System.out.println("ZZZZZ ExceltConnectionPool.clearCache failed to close");
+          System.out.println("ZZZZZ ExcelConnectionPool.clearCache failed to close");
           LOGGER.error("Unable to close " + record, e);
         }
       }
     }
+    System.out.println("ZZZZZ ExcelConnectionPool.clearCache done");
     records.clear();
   }
 

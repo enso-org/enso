@@ -18,6 +18,7 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
 
   @Override
   public synchronized void close() throws IOException {
+    System.out.println("ZZZZZ ReadOnlyExcelConnection.close start, records " + ExcelConnectionPool.INSTANCE.getConnectionRecordCount());
     if (record == null) {
       // already closed
       return;
@@ -25,6 +26,7 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
 
     myPool.release(this);
     record = null;
+    System.out.println("ZZZZZ ReadOnlyExcelConnection.close done, records " + ExcelConnectionPool.INSTANCE.getConnectionRecordCount());
   }
 
   public synchronized <T> T withWorkbook(
