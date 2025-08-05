@@ -36,8 +36,7 @@ public class MetaObjectTest {
 
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @BeforeClass
   public static void prepareCtx() {

@@ -18,8 +18,7 @@ import org.junit.Test;
 public class ArrayTest {
   @ClassRule public static final ContextUtils ctx = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void buildVectorOfLongAndOneWarning() throws Exception {

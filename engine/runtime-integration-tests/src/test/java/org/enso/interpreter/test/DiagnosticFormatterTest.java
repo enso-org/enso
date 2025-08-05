@@ -32,8 +32,7 @@ public class DiagnosticFormatterTest {
               b -> b.option(RuntimeOptions.STRICT_ERRORS, "true").environment("NO_COLOR", "true"))
           .build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
   public void resetOut() {

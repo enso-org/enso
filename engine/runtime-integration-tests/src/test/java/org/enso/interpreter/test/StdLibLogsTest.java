@@ -23,8 +23,7 @@ public class StdLibLogsTest {
   private static Value mod;
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @BeforeClass
   public static void initEnsoContext() {

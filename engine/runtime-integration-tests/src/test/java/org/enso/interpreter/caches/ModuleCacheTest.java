@@ -23,8 +23,7 @@ public class ModuleCacheTest {
           .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
           .build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   public ModuleCacheTest() {}
 

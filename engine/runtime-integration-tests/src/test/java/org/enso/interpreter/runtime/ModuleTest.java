@@ -36,8 +36,7 @@ public class ModuleTest {
           .withModifiedContext(b -> b.option(RuntimeOptions.STRICT_ERRORS, "false"))
           .build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
   public void prepareTest() throws IOException {

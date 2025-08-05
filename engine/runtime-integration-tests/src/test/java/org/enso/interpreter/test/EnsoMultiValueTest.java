@@ -22,8 +22,7 @@ public class EnsoMultiValueTest {
   @Rule public final TemporaryFolder dir = new TemporaryFolder();
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void keepIdentityOfAandB() throws Exception {

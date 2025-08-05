@@ -42,8 +42,7 @@ public class BinaryOpIntegerTest {
   };
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Parameterized.Parameters(name = "({1}){0} ({2})")
   public static Object[][] parameters() {

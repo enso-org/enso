@@ -23,8 +23,7 @@ public class FloatTest {
 
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static AbsNode absNode;
   private static AddNode addNode;

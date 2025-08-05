@@ -19,8 +19,7 @@ import org.junit.rules.TemporaryFolder;
 public class PrivateMethodAccessTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void moduleDoesNotExposePrivateMethodsToPolyglot() {

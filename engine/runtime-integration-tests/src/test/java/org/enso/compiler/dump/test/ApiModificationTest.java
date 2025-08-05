@@ -17,8 +17,7 @@ import org.junit.Test;
 public final class ApiModificationTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void reorderingMethods_DoesNotModifyApi() throws IOException {

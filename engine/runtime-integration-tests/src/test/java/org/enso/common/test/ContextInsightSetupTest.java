@@ -28,8 +28,7 @@ public class ContextInsightSetupTest {
 
   public ContextInsightSetupTest() {}
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @AfterClass
   public static void cleanupInsightProperty() {

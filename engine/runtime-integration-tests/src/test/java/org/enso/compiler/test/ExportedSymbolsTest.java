@@ -30,8 +30,7 @@ import scala.jdk.javaapi.CollectionConverters;
 public class ExportedSymbolsTest {
   private Path projDir;
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
   public void setup() throws IOException {

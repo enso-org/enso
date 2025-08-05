@@ -22,8 +22,7 @@ import org.junit.runners.Parameterized;
 public class InvokeMemberConsistencyTest {
   @ClassRule public static final ContextUtils CTX = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Parameterized.Parameter(0)
   public Object raw;

@@ -31,8 +31,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class MetaIsATest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static Value isACheck;
   private static Value warningCheck;

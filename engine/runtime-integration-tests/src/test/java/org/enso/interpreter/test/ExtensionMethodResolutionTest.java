@@ -31,8 +31,7 @@ import org.junit.rules.TemporaryFolder;
 public class ExtensionMethodResolutionTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static final Matcher<String> methodsOverloadErrorMessageMatcher =
       allOf(

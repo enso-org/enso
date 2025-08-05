@@ -35,8 +35,7 @@ public class IRDumpTest {
   private static final Path irDumpsDir = Path.of(IRDumpFactoryService.DEFAULT_DUMP_DIR);
   private ByteArrayOutputStream out;
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Rule public PrintOutRule printOutRule = new PrintOutRule();
 

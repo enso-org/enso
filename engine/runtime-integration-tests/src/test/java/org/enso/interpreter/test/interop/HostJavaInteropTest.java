@@ -8,8 +8,7 @@ import org.junit.Rule;
 public final class HostJavaInteropTest extends JavaInteropTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Override
   protected final ContextUtils ctx() {

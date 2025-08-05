@@ -31,8 +31,7 @@ public class ForeignMethodInvokeTest {
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder("enso", "js").alwaysExecuteInContext(false).build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void testForeignFunctionParseFailure() throws Exception {

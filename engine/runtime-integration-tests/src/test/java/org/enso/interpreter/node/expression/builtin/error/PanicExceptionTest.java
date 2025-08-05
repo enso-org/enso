@@ -19,8 +19,7 @@ import org.junit.Test;
 public class PanicExceptionTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static CatchPanicNode catchPanicNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;

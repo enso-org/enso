@@ -48,8 +48,7 @@ public class ImportsAndFQNConsistencyTest {
           .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
           .build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 

@@ -13,8 +13,7 @@ import org.junit.rules.TemporaryFolder;
 public class QualifiedNameTest {
   @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static final String mainModSrc =
       """

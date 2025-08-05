@@ -36,8 +36,7 @@ public class BindingsMapResolutionTest {
 
   @ClassRule public static final TemporaryFolder TMP_DIR = new TemporaryFolder();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void resolveSingleName_FromSingleImport() throws IOException {

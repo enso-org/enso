@@ -12,8 +12,7 @@ public final class GuestJavaInteropTest extends JavaInteropTest {
           .withModifiedContext((b) -> b.option("enso.classLoading", "guest"))
           .build();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Override
   protected final ContextUtils ctx() {

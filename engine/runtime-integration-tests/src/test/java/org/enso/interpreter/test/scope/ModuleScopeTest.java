@@ -24,8 +24,7 @@ public class ModuleScopeTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void extensionMethodIsRegisteredInModuleScope() throws IOException {

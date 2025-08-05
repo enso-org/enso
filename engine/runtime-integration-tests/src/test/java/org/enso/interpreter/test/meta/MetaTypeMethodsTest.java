@@ -30,8 +30,7 @@ import org.junit.*;
 public class MetaTypeMethodsTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;

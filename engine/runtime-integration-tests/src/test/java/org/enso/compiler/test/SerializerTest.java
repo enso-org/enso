@@ -39,8 +39,7 @@ public class SerializerTest {
     return ctx;
   }
 
-  @Rule(order = Integer.MIN_VALUE)
-  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void testSerializationOfFQNs() throws Exception {
