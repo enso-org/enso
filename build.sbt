@@ -867,14 +867,14 @@ lazy val `logging-config` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "com.typesafe"         % "config"                  % typesafeConfigVersion,
-      "org.slf4j"            % "slf4j-api"               % slf4jVersion,
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided"
+      "com.typesafe"         % "config"    % typesafeConfigVersion,
+      "org.slf4j"            % "slf4j-api" % slf4jVersion,
+      "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= Seq(
-      "com.typesafe"         % "config"                  % typesafeConfigVersion,
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.slf4j"            % "slf4j-api"               % slf4jVersion
+      "com.typesafe"         % "config"    % typesafeConfigVersion,
+      "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
+      "org.slf4j"            % "slf4j-api" % slf4jVersion
     ),
     Compile / internalModuleDependencies ++= Seq(
       (`engine-common` / Compile / exportedModule).value,
@@ -890,7 +890,7 @@ lazy val `logging-service-logback` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ) ++ logbackPkg,
     Compile / moduleDependencies ++= logbackPkg ++ slf4jApi,
     Compile / javaModuleName := "org.enso.logging.service.logback",
@@ -959,11 +959,11 @@ lazy val `logging-service-opensearch` = project
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
     libraryDependencies ++= slf4jApi ++ Seq(
-      "junit"                      % "junit"                   % junitVersion       % Test,
-      "com.github.sbt"             % "junit-interface"         % junitIfVersion     % Test,
-      "org.hamcrest"               % "hamcrest-all"            % hamcrestVersion    % Test,
-      "com.fasterxml.jackson.core" % "jackson-core"            % jacksonVersion     % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion     % Test
+      "junit"                      % "junit"            % junitVersion    % Test,
+      "com.github.sbt"             % "junit-interface"  % junitIfVersion  % Test,
+      "org.hamcrest"               % "hamcrest-all"     % hamcrestVersion % Test,
+      "com.fasterxml.jackson.core" % "jackson-core"     % jacksonVersion  % Test,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion  % Test
     ),
     Compile / moduleDependencies ++= logbackPkg ++ slf4jApi,
     Compile / internalModuleDependencies ++= Seq(
@@ -3887,34 +3887,60 @@ lazy val extraNITestLibs =
 
 lazy val launcher = project
   .in(file("engine/launcher"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    mixedJavaScalaProjectSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     commands += WithDebugCommand.withDebug,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= slf4jApi ++ logbackPkg ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
-      "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+      "org.scalatest"              %% "scalatest"        % scalatestVersion          % Test,
+      "org.graalvm.polyglot"        % "polyglot"         % graalMavenPackagesVersion % "provided",
       akkaSLF4J
-    )
+    ),
+    Compile / moduleDependencies := {
+      (`logging-utils` / Compile / moduleDependencies).value ++
+      (`logging-service` / Compile / moduleDependencies).value ++
+      (`logging-service-logback` / Compile / moduleDependencies).value ++
+      (`logging-config` / Compile / moduleDependencies).value
+    },
+    Compile / internalModuleDependencies := {
+      (`logging-utils` / Compile / internalModuleDependencies).value ++
+      (`logging-service` / Compile / internalModuleDependencies).value ++
+      (`logging-service-logback` / Compile / internalModuleDependencies).value ++
+      (`logging-config` / Compile / internalModuleDependencies).value ++
+      Seq(
+        (`logging-utils` / Compile / exportedModule).value,
+        (`logging-service` / Compile / exportedModule).value,
+        (`logging-service-logback` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value
+      )
+    }
   )
   .settings(
     NativeImage.smallJdk := None,
     NativeImage.additionalCp := Seq.empty,
-    rebuildNativeImage := NativeImage
-      .buildNativeImage(
-        "ensoup",
-        staticOnLinux = true,
-        initializeAtRuntime = Seq(
-          "org.jline"
-        ),
-        additionalOptions = Seq(
-          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$"
-        ),
-        mainClass = Some("org.enso.launcher.cli.Main")
-      )
+    rebuildNativeImage := Def
+      .taskDyn {
+        val mp = (Compile / modulePath).value.map(_.getAbsolutePath)
+        NativeImage
+          .buildNativeImage(
+            "ensoup",
+            staticOnLinux = true,
+            initializeAtRuntime = Seq(
+              "org.jline"
+            ),
+            additionalOptions = Seq(
+              "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+              "-H:IncludeResources=.*Main.enso$"
+            ),
+            modulePath = mp,
+            mainClass  = Some("org.enso.launcher.cli.Main")
+          )
+      }
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,

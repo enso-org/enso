@@ -248,7 +248,7 @@ object NativeImage {
               val pathToJAR =
                 (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
               args ++
-                Seq("-jar", pathToJAR.toString)
+              Seq("-jar", pathToJAR.toString)
           }
       }
 
