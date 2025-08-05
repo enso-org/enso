@@ -6,8 +6,9 @@ import org.enso.interpreter.node.controlflow.caseexpr.CaseNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class CodeLocationsTest extends InterpreterTest {
+class CodeLocationsTest extends InterpreterTest with ReportLogsOnFailure {
 
   override def subject: String = "Code Locations"
 

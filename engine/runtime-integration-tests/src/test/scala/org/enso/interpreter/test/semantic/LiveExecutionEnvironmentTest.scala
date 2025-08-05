@@ -1,9 +1,12 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 import org.graalvm.polyglot.Context
 
-class LiveExecutionEnvironmentTest extends InterpreterTest {
+class LiveExecutionEnvironmentTest
+    extends InterpreterTest
+    with ReportLogsOnFailure {
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(_.option("enso.ExecutionEnvironment", "live"))

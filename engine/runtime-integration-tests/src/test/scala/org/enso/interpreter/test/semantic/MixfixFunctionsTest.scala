@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class MixfixFunctionsTest extends InterpreterTest {
+class MixfixFunctionsTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject = "Mixfix Functions"
 
   override def specify(implicit

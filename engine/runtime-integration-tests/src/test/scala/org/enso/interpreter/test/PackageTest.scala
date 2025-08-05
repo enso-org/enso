@@ -3,7 +3,7 @@ package org.enso.interpreter.test
 import org.enso.pkg.PackageManager
 import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
-
+import org.enso.logger.JulHandler
 import org.enso.polyglot.PolyglotContext
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -45,7 +45,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option("engine.WarnInterpreterOnly", "false")
       .out(output)
       .in(System.in)
-      .logHandler(System.err)
+      .logHandler(JulHandler.get)
     for ((key, value) <- customOptions) {
       ctxBuilder.option(key, value)
     }

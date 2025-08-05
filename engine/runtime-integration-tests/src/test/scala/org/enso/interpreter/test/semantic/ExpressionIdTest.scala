@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest, Metadata}
+import org.enso.testkit.ReportLogsOnFailure
 
-class ExpressionIdTest extends InterpreterTest {
+class ExpressionIdTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Expression IDs"
 
   override def specify(implicit

@@ -6,9 +6,12 @@ import org.enso.interpreter.test.{
   InterpreterTest
 }
 import org.enso.common.RuntimeOptions
+import org.enso.testkit.ReportLogsOnFailure
 import org.graalvm.polyglot.Context
 
-class OverloadsResolutionErrorTest extends InterpreterTest {
+class OverloadsResolutionErrorTest
+    extends InterpreterTest
+    with ReportLogsOnFailure {
   override def subject: String = "Symbol Overloads"
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =

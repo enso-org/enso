@@ -1,8 +1,11 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class ComplexTypeDefinitionSugarTest extends InterpreterTest {
+class ComplexTypeDefinitionSugarTest
+    extends InterpreterTest
+    with ReportLogsOnFailure {
 
   override def subject: String = "Complex type definitions"
 

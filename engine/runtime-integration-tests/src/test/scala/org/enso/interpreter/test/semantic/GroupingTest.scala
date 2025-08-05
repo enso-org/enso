@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class GroupingTest extends InterpreterTest {
+class GroupingTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Parentheses"
 
   override def specify(implicit

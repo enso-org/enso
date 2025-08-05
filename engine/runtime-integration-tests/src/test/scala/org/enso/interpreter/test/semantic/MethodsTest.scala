@@ -5,8 +5,9 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
+import org.enso.testkit.ReportLogsOnFailure
 
-class MethodsTest extends InterpreterTest {
+class MethodsTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Methods"
 
   override def specify(implicit

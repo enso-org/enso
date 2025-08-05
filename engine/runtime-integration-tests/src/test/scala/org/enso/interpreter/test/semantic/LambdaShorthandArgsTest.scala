@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class LambdaShorthandArgsTest extends InterpreterTest {
+class LambdaShorthandArgsTest extends InterpreterTest with ReportLogsOnFailure {
 
   override def subject = "Lambda shorthand arguments"
 

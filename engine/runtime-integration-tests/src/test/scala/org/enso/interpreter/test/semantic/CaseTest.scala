@@ -5,8 +5,9 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
+import org.enso.testkit.ReportLogsOnFailure
 
-class CaseTest extends InterpreterTest {
+class CaseTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject = "Case expressions"
 
   override def specify(implicit

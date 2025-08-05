@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class GlobalScopeTest extends InterpreterTest {
+class GlobalScopeTest extends InterpreterTest with ReportLogsOnFailure {
 
   override def subject: String = "Functions"
 

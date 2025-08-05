@@ -5,11 +5,14 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
-import org.enso.testkit.OsSpec
+import org.enso.testkit.{OsSpec, ReportLogsOnFailure}
 
 import scala.util.Random
 
-class SystemProcessTest extends InterpreterTest with OsSpec {
+class SystemProcessTest
+    extends InterpreterTest
+    with OsSpec
+    with ReportLogsOnFailure {
   override def subject: String = "System.create_process"
 
   override def specify(implicit

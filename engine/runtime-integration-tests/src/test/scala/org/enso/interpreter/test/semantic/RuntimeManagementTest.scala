@@ -7,8 +7,9 @@ import org.enso.common.{LanguageInfo, MethodNames}
 import scala.ref.WeakReference
 import org.graalvm.polyglot.Context
 import org.enso.common.RuntimeOptions
+import org.enso.testkit.ReportLogsOnFailure
 
-class RuntimeManagementTest extends InterpreterTest {
+class RuntimeManagementTest extends InterpreterTest with ReportLogsOnFailure {
   private def parallelism = 5
 
   override def subject: String = "Enso Code Execution"

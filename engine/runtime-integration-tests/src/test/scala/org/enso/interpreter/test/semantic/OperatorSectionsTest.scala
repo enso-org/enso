@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class OperatorSectionsTest extends InterpreterTest {
+class OperatorSectionsTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Operator Sections"
 
   override def specify(implicit

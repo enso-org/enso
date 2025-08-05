@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class DataflowErrorsTest extends InterpreterTest {
+class DataflowErrorsTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Dataflow Errors"
 
   override def specify(implicit

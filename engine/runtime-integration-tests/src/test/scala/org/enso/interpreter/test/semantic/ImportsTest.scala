@@ -2,8 +2,9 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterException, PackageTest}
 import org.enso.common.RuntimeOptions
+import org.enso.testkit.ReportLogsOnFailure
 
-class ImportsTest extends PackageTest {
+class ImportsTest extends PackageTest with ReportLogsOnFailure {
   implicit def messagingNatureOInterpreterException
     : org.scalatest.enablers.Messaging[InterpreterException] =
     new org.scalatest.enablers.Messaging[InterpreterException] {

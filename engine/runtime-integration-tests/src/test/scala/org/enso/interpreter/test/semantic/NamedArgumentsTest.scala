@@ -5,8 +5,9 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
+import org.enso.testkit.ReportLogsOnFailure
 
-class NamedArgumentsTest extends InterpreterTest {
+class NamedArgumentsTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Named and Default Arguments"
 
   override def specify(implicit

@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class LambdaTest extends InterpreterTest {
+class LambdaTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Lambdas"
 
   override def specify(implicit

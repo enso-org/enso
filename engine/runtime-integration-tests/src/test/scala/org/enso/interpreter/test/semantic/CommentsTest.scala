@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class CommentsTest extends InterpreterTest {
+class CommentsTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "All Comments"
 
   override def specify(implicit

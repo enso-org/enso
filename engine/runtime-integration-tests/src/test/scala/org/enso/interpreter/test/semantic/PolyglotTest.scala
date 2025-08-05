@@ -5,8 +5,9 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
+import org.enso.testkit.ReportLogsOnFailure
 
-class PolyglotTest extends InterpreterTest {
+class PolyglotTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject: String = "Polyglot"
 
   override def specify(implicit

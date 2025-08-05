@@ -5,8 +5,9 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
+import org.enso.testkit.ReportLogsOnFailure
 
-class PatternMatchTest extends InterpreterTest {
+class PatternMatchTest extends InterpreterTest with ReportLogsOnFailure {
 
   override def subject = "Pattern Matching"
 

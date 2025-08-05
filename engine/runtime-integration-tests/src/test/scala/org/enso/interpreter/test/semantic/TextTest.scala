@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.testkit.ReportLogsOnFailure
 
-class TextTest extends InterpreterTest {
+class TextTest extends InterpreterTest with ReportLogsOnFailure {
   override def subject = "Text Library"
 
   override def specify(implicit
