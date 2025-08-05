@@ -953,8 +953,7 @@ lazy val `logging-service-opensearch` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    mixedJavaScalaProjectSetting,
+    javaModuleName := "org.enso.logging.service.opensearch",
     version := "0.1",
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
