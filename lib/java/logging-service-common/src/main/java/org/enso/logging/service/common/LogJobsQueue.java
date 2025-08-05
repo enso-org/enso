@@ -1,4 +1,4 @@
-package org.enso.logging.service.remote;
+package org.enso.logging.service.common;
 
 import java.util.ArrayList;
 import java.util.Deque;
