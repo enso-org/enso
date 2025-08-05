@@ -12,11 +12,9 @@ import {
   useCategoriesAPI,
   useTransferBetweenCategories,
 } from '#/layouts/Drive/Categories'
-import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
+import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import { setModal } from '#/providers/ModalProvider'
 import type LocalBackend from '#/services/LocalBackend'
-import { extractTypeAndId } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
@@ -30,14 +28,10 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query'
 import {
-  assetIsFile,
-  assetIsProject,
   AssetType,
-  createPlaceholderFileAsset,
-  createPlaceholderProjectAsset,
   escapeSpecialCharacters,
   extractProjectExtension,
-  fileIsNotProject,
+  extractTypeAndPath,
   fileIsProject,
   S3_CHUNK_SIZE_BYTES,
   stripProjectExtension,
@@ -47,7 +41,7 @@ import {
   type DirectoryId,
   type FileId,
   type ProjectId,
-  type UploadedLargeAsset,
+  type UploadedAsset,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
@@ -70,174 +64,112 @@ const UPLOADING_FILES_QUERY_KEY = ['uploadingFiles'] satisfies QueryKey
 /** A function to upload files. */
 export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const toastAndLog = useToastAndLog()
   const uploadFileMutation = useUploadFileMutation(backend)
   const setSelectedAssets = useSetSelectedAssets()
 
   return useEventCallback(async (filesToUpload: readonly File[], parentId: DirectoryId) => {
     const reversedFiles = Array.from(filesToUpload).reverse()
     const siblings = await ensureListDirectory(parentId)
-    const siblingFiles = siblings.filter(assetIsFile)
-    const siblingProjects = siblings.filter(assetIsProject)
-    const siblingFileTitles = new Set(siblingFiles.map((asset) => asset.title))
-    const siblingProjectTitles = new Set(siblingProjects.map((asset) => asset.title))
-    const files = reversedFiles.filter(fileIsNotProject).map((file) => {
-      const asset = createPlaceholderFileAsset(escapeSpecialCharacters(file.name), parentId)
-      return { asset, file }
+    const siblingsByTitle = new Map(siblings.map((asset) => [asset.title, asset]))
+    const files = reversedFiles.map((file) => {
+      if (fileIsProject(file)) {
+        const title = escapeSpecialCharacters(stripProjectExtension(file.name))
+        return { title, file }
+      } else {
+        const title = escapeSpecialCharacters(file.name)
+        return { title, file }
+      }
     })
-    const projects = reversedFiles.filter(fileIsProject).map((file) => {
-      const basename = escapeSpecialCharacters(stripProjectExtension(file.name))
-      const asset = createPlaceholderProjectAsset(basename, parentId)
-      return { asset, file }
-    })
-    const duplicateFiles = files.filter((file) => siblingFileTitles.has(file.asset.title))
-    const duplicateProjects = projects.filter((project) =>
-      siblingProjectTitles.has(stripProjectExtension(project.asset.title)),
+    const duplicates = new Map(
+      files.flatMap((file) => {
+        const asset = siblingsByTitle.get(file.title)
+        return asset ? [[file.file, { asset, ...file }]] : []
+      }),
     )
-    const fileMap = new Map<AssetId, File>([
-      ...files.map(({ asset, file }) => [asset.id, file] as const),
-      ...projects.map(({ asset, file }) => [asset.id, file] as const),
-    ])
     const uploadedFileInfos: SelectedAssetInfo[] = []
     const addToSelection = (info: SelectedAssetInfo) => {
       uploadedFileInfos.push(info)
       setSelectedAssets(uploadedFileInfos)
     }
 
-    const doUploadFile = async (asset: AnyAsset, method: 'new' | 'update') => {
-      const file = fileMap.get(asset.id)
+    const doUploadFile = async (file: File, title: string, fileId: AssetId | null = null) => {
+      if (fileIsProject(file)) {
+        const { extension } = extractProjectExtension(file.name)
+        title = escapeSpecialCharacters(stripProjectExtension(title))
 
-      if (file != null) {
-        const fileId = method === 'new' ? null : asset.id
-
-        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-        switch (true) {
-          case assetIsProject(asset): {
-            const { extension } = extractProjectExtension(file.name)
-            const title = escapeSpecialCharacters(stripProjectExtension(asset.title))
-
-            await uploadFileMutation
-              .mutateAsync([
-                {
-                  fileId,
-                  fileName: `${title}.${extension}`,
-                  parentDirectoryId: asset.parentId,
-                },
-                file,
-              ])
-              .then(({ id }) => {
-                addToSelection({
-                  type: AssetType.project,
-                  // This is SAFE, because it is guarded behind `assetIsProject`.
-                  // eslint-disable-next-line no-restricted-syntax
-                  id: id as ProjectId,
-                  parentId: asset.parentId,
-                  title,
-                })
-              })
-              .catch((error) => {
-                toastAndLog('uploadProjectError', error)
-              })
-
-            break
-          }
-          case assetIsFile(asset): {
-            const title = escapeSpecialCharacters(asset.title)
-            await uploadFileMutation
-              .mutateAsync([{ fileId, fileName: title, parentDirectoryId: asset.parentId }, file])
-              .then(({ id }) => {
-                addToSelection({
-                  type: AssetType.file,
-                  // This is SAFE, because it is guarded behind `assetIsFile`.
-                  // eslint-disable-next-line no-restricted-syntax
-                  id: id as FileId,
-                  parentId: asset.parentId,
-                  title,
-                })
-              })
-
-            break
-          }
-          default:
-            break
-        }
+        await uploadFileMutation
+          .mutateAsync([
+            { fileId, fileName: `${title}.${extension}`, parentDirectoryId: parentId },
+            file,
+          ])
+          .then((result) => {
+            if (result.jobId != null) {
+              return
+            }
+            addToSelection({
+              type: AssetType.project,
+              // This is SAFE, because it is guarded behind `assetIsProject`.
+              // eslint-disable-next-line no-restricted-syntax
+              id: result.id as ProjectId,
+              parentId,
+              title,
+            })
+          })
+      } else {
+        title = escapeSpecialCharacters(title)
+        await uploadFileMutation
+          .mutateAsync([{ fileId, fileName: title, parentDirectoryId: parentId }, file])
+          .then((result) => {
+            if (result.jobId != null) {
+              return
+            }
+            addToSelection({
+              type: AssetType.file,
+              // This is SAFE, because it is guarded behind `assetIsFile`.
+              // eslint-disable-next-line no-restricted-syntax
+              id: result.id as FileId,
+              parentId,
+              title,
+            })
+          })
       }
     }
 
-    if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
-      const assets = [...files, ...projects].map(({ asset }) => asset)
-      void Promise.all(assets.map((asset) => doUploadFile(asset, 'new')))
-    } else {
-      const siblingFilesByName = new Map(siblingFiles.map((file) => [file.title, file]))
-      const siblingProjectsByName = new Map(
-        siblingProjects.map((project) => [project.title, project]),
-      )
-      const conflictingFiles = duplicateFiles.map((file) => ({
-        // This is SAFE, as `duplicateFiles` only contains files that have siblings
-        // with the same name.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        current: siblingFilesByName.get(file.asset.title)!,
-        new: createPlaceholderFileAsset(file.asset.title, parentId),
-        file: file.file,
-      }))
-      const conflictingProjects = duplicateProjects.map((project) => {
-        const basename = stripProjectExtension(project.asset.title)
-        return {
-          // This is SAFE, as `duplicateProjects` only contains projects that have
-          // siblings with the same name.
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          current: siblingProjectsByName.get(basename)!,
-          new: createPlaceholderProjectAsset(basename, parentId),
-          file: project.file,
+    const resolutions =
+      duplicates.size === 0 ?
+        []
+      : await resolveDuplications({
+          targetId: parentId,
+          conflictingIds: Array.from(duplicates.values(), ({ asset }) => asset.id),
+        })
+    const resolutionsById = new Map(
+      resolutions.map((resolution) => [resolution.assetId, resolution]),
+    )
+
+    await Promise.allSettled(
+      files.flatMap(({ file, title }) => {
+        const duplicate = duplicates.get(file)
+        if (duplicate == null) {
+          return [doUploadFile(file, title)]
         }
-      })
-      setModal(
-        <DuplicateAssetsModal
-          parentKey={parentId}
-          parentId={parentId}
-          conflictingFiles={conflictingFiles}
-          conflictingProjects={conflictingProjects}
-          siblingFileNames={siblingFilesByName.keys()}
-          siblingProjectNames={siblingProjectsByName.keys()}
-          nonConflictingFileCount={files.length - conflictingFiles.length}
-          nonConflictingProjectCount={projects.length - conflictingProjects.length}
-          doUpdateConflicting={async (resolvedConflicts) => {
-            await Promise.allSettled(
-              resolvedConflicts.map((conflict) => {
-                const isUpdating = conflict.current.title === conflict.new.title
-                const asset = isUpdating ? conflict.current : conflict.new
-                fileMap.set(asset.id, conflict.file)
-                return doUploadFile(asset, isUpdating ? 'update' : 'new')
-              }),
-            )
-          }}
-          doUploadNonConflicting={async () => {
-            const newFiles = files
-              .filter((file) => !siblingFileTitles.has(file.asset.title))
-              .map((file) => {
-                const asset = createPlaceholderFileAsset(file.asset.title, parentId)
-                fileMap.set(asset.id, file.file)
-                return asset
-              })
-
-            const newProjects = projects
-              .filter(
-                (project) => !siblingProjectTitles.has(stripProjectExtension(project.asset.title)),
-              )
-              .map((project) => {
-                const basename = stripProjectExtension(project.asset.title)
-                const asset = createPlaceholderProjectAsset(basename, parentId)
-                fileMap.set(asset.id, project.file)
-                return asset
-              })
-
-            const assets = [...newFiles, ...newProjects]
-
-            await Promise.allSettled(assets.map((asset) => doUploadFile(asset, 'new')))
-          }}
-        />,
-      )
-    }
+        const resolution = resolutionsById.get(duplicate.asset.id)
+        if (resolution == null) {
+          return [doUploadFile(file, title)]
+        }
+        switch (resolution.conclusion) {
+          case 'rename': {
+            return [doUploadFile(duplicate.file, resolution.newName)]
+          }
+          case 'replace': {
+            return [doUploadFile(duplicate.file, duplicate.asset.title, duplicate.asset.id)]
+          }
+          case 'skip': {
+            // Ignored.
+            return []
+          }
+        }
+      }),
+    )
   })
 }
 
@@ -284,7 +216,7 @@ export interface UploadFileMutationOptions {
 
 /** The result of a {@link useUploadFileMutation}. */
 export type UploadFileMutationResult = UseMutationResult<
-  UploadedLargeAsset,
+  UploadedAsset,
   Error,
   [body: UploadFileRequestParams, file: File],
   unknown
@@ -527,10 +459,11 @@ export function useUploadFileToCloudMutation() {
               switch (asset.type) {
                 case AssetType.project: {
                   // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
-                  const parentDirectoryPath = extractTypeAndId(asset.parentId).id
+                  const parentDirectoryPath = extractTypeAndPath(asset.parentId).path
 
+                  const id = localBackend.getProjectId(extractTypeAndPath(asset.id).path)
                   const projectResponse = await httpClient.get(
-                    `/api/project-manager/projects/${extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
+                    `/api/project-manager/projects/${id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
                   )
 
                   if (!projectResponse.ok) {

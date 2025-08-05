@@ -13,8 +13,17 @@ import {
   INVALIDATE_ALL_QUERIES,
   INVALIDATION_MAP,
 } from 'enso-common/src/backendQuery'
-import Backend from 'enso-common/src/services/Backend'
+import type Backend from 'enso-common/src/services/Backend'
+import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { computed, toValue, type UnwrapRef } from 'vue'
+// eslint-disable-next-line vue/prefer-import-from-vue
+import '@vue/reactivity'
+
+declare module '@vue/reactivity' {
+  interface RefUnwrapBailTypes {
+    guiBailTypes: Backend | HttpClient
+  }
+}
 
 type ExtraOptions = Omit<UseQueryOptions, 'queryKey' | 'queryFn' | 'enabled' | 'networkMode'>
 

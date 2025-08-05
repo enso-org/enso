@@ -29,7 +29,7 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { unrefElement, useEvent } from '@/composables/events'
+import { unrefElement, useEventConditional } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
@@ -61,6 +61,8 @@ import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
 import {
   computed,
+  onActivated,
+  onDeactivated,
   onMounted,
   ref,
   toRaw,
@@ -331,9 +333,14 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-useEvent(
+const isActive = ref(true)
+onActivated(() => (isActive.value = true))
+onDeactivated(() => (isActive.value = false))
+
+useEventConditional(
   window,
   'keydown',
+  isActive,
   (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
 )
 

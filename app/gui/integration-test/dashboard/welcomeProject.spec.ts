@@ -8,7 +8,10 @@ test('Welcome project opens', ({ page }) =>
     page,
     setupAPI: (api) => {
       const samplesDir = api.addDirectory({ title: 'Samples' })
-      api.addProject({ parentId: samplesDir.id, title: 'Colorado COVID.project' })
+      api.addProject({
+        parentId: samplesDir.id,
+        title: 'Getting Started with Enso Analytics.project',
+      })
     },
     goToCloudFirst: false,
-  }).expectProjectEditorOpened('Colorado COVID'))
+  }).expectProjectEditorOpened('Getting Started with Enso Analytics'))

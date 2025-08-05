@@ -3,9 +3,13 @@ import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { type DisplayableActionName } from '@/providers/action'
+import ZoomControl from './ZoomControl.vue'
 
 const open = defineModel<boolean>('open', { default: false })
-const { actions } = defineProps<{ actions: DisplayableActionName[] }>()
+defineProps<{
+  actions: DisplayableActionName[]
+  zoomControls?: { zoomLevel: number } | undefined
+}>()
 </script>
 
 <template>
@@ -17,7 +21,9 @@ const { actions } = defineProps<{ actions: DisplayableActionName[] }>()
   >
     <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
     <template #menu>
-      <ActionMenu :actions="actions" @close="open = false" />
+      <ActionMenu :actions="actions" @close="open = false">
+        <ZoomControl v-if="zoomControls" :zoomLevel="zoomControls.zoomLevel" />
+      </ActionMenu>
     </template>
   </DropdownMenu>
 </template>

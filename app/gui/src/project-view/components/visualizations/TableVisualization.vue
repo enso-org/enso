@@ -1,4 +1,5 @@
 <script lang="ts">
+import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
   useTableVizToolbar,
@@ -7,7 +8,6 @@ import {
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { Icon } from '@/util/iconMetadata/iconName'
-import { svgUseHref } from '@/util/icons'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -184,7 +184,7 @@ const grid = ref<
 >()
 
 const getSvgTemplate = (icon: Icon) =>
-  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${encodeURI(svgUseHref(icon))}"/> </svg>`
+  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
 
 const getContextMenuItems = (
   params: GetContextMenuItemsParams,

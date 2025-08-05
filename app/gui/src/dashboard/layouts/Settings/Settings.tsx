@@ -11,12 +11,14 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
+import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
 import SearchBar from '#/layouts/SearchBar'
-import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useSession, useText } from '$/providers/react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import {
   ALL_SETTINGS_TABS,
@@ -52,20 +54,13 @@ export function Settings() {
   const isQueryBlank = !/\S/.test(query)
   const [preferredTimeZone, setPreferredTimeZone] = useLocalStorageState('preferredTimeZone')
 
-  const updateUser = useMutation(backendMutationOptions(backend, 'updateUser')).mutateAsync
-  const updateOrganization = useMutation(
+  const updateUser = useMutationCallback(backendMutationOptions(backend, 'updateUser'))
+  const updateOrganization = useMutationCallback(
     backendMutationOptions(backend, 'updateOrganization'),
-  ).mutateAsync
+  )
 
-  const [localRootDirectory, setLocalRootDirectory] = useLocalStorageState('localRootDirectory')
-  const updateLocalRootPath = useEventCallback((value: string) => {
-    setLocalRootDirectory(value)
-    localBackend?.setRootPath(Path(value))
-  })
-  const resetLocalRootPath = useEventCallback(() => {
-    setLocalRootDirectory(undefined)
-    localBackend?.resetRootPath()
-  })
+  const localRootDirectory = useLocalRootDirectory() ?? localBackend?.rootPath() ?? null
+  const downloadDirectory = useDownloadDirectory()
 
   const isMatch = React.useMemo(() => {
     const regex = new RegExp(regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
@@ -81,9 +76,8 @@ export function Settings() {
       organization,
       updateUser,
       updateOrganization,
-      localRootPath: localRootDirectory,
-      updateLocalRootPath,
-      resetLocalRootPath,
+      localRootDirectory,
+      downloadDirectory,
       toastAndLog,
       getText,
       queryClient,
@@ -99,15 +93,14 @@ export function Settings() {
       localBackend,
       organization,
       toastAndLog,
-      updateLocalRootPath,
-      resetLocalRootPath,
-      updateOrganization,
       updateUser,
+      updateOrganization,
+      localRootDirectory,
+      downloadDirectory,
       user,
       queryClient,
       isMatch,
       changePassword,
-      localRootDirectory,
       preferredTimeZone,
       setPreferredTimeZone,
     ],

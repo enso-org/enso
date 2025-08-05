@@ -20,6 +20,7 @@ export const BINDINGS = inputBindings.defineBindings({
   close: { bindings: [], icon: 'close' },
   uploadToCloud: { bindings: [], icon: 'cloud_to' },
   downloadToLocal: { bindings: [], icon: 'cloud_from' },
+  exportArchive: { bindings: [], icon: 'data_download' },
   rename: { bindings: ['Mod+R'], icon: 'edit' },
   edit: { bindings: ['Mod+E'], icon: 'edit' },
   delete: { bindings: ['OsDelete'], icon: 'trash', color: 'rgb(243 24 10 / 0.87)' },

@@ -2,18 +2,33 @@ import { Dialog as DialogReact } from '#/components/Dialog'
 import { Result as ResultReact } from '#/components/Result'
 import { Suspense } from '#/components/Suspense'
 import type { ReactNode } from 'react'
-import { applyPureReactInVue } from 'veaury'
+// Imported here to implement the safer wrapper.
+// eslint-disable-next-line no-restricted-imports
+import { applyPureReactInVue, type magicOptions } from 'veaury'
 import type { DefineComponent } from 'vue'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /**
  * Creates a Vue component wrapping a React component.
  *
- * This adds type information to {@link applyPureReactInVue}.
+ * This should always be used in preference to {@link applyPureReactInVue}; its type information is
+ * more precise, and it works around a bug.
  */
 export function reactComponent<Props extends object>(
   component: (props: Props) => unknown,
+  options?: Opt<magicOptions>,
 ): DefineComponent<Props> {
-  return applyPureReactInVue(component)
+  const vueComponent = applyPureReactInVue(component, options)
+  const cleanup = vueComponent.beforeUnmount
+  return {
+    ...vueComponent,
+    beforeUnmount() {
+      // Veaury's `beforeUnmount` hook fails with an exception if it is called when the `mounted`
+      // hook was not called. Check for a property set by the `mounted` hook and skip the cleanup if
+      // mounting did not occur
+      if (this.__veauryLast__) cleanup.call(this)
+    },
+  }
 }
 
 /** Creates a Vue component wrapping a React component inside {@link Suspense} element. */

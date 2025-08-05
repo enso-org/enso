@@ -1,5 +1,5 @@
 import { useStore } from '#/utilities/zustand'
-import { type FeatureFlagsStore, flagsStore } from '$/providers/featureFlags'
+import { flagsStore, type FeatureFlagsStore } from '$/providers/featureFlags'
 
 /** Hook to get all feature flags. */
 export function useFeatureFlags() {

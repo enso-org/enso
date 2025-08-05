@@ -1,8 +1,8 @@
 /** @file Actions for the context menu. */
-import { TEXT } from '.'
 import type BaseActions from './BaseActions'
 import type { PageCallback } from './BaseActions'
 import EditorPageActions from './EditorPageActions'
+import { TEXT } from './utilities'
 
 /** Actions for the context menu. */
 export interface ContextMenuActions<T extends BaseActions<Context>, Context> {

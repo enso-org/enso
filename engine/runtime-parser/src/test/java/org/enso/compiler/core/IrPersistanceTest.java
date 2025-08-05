@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.enso.compiler.core.ir.AscriptionReason;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -431,6 +432,21 @@ public class IrPersistanceTest {
     var out = serde(Name.Literal.class, in, -1);
     assertEquals("They are structurally equal", in, out);
     assertNotSame("But not ==", in, out);
+  }
+
+  @Test
+  public void emptyAscriptionReason() throws Exception {
+    var in = AscriptionReason.empty();
+    var out = serde(AscriptionReason.class, in, 5 + 12);
+    assertEquals(in, out);
+  }
+
+  @Test
+  public void forParamAscriptionReason() throws Exception {
+    var in = AscriptionReason.forParameter("x");
+    var out = serde(AscriptionReason.class, in, -1);
+    assertNotSame(in, out);
+    assertEquals(in, out);
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {

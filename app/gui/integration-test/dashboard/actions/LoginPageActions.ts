@@ -1,11 +1,10 @@
 /** @file Available actions for the login page. */
 import { expect } from 'playwright/test'
-
-import { TEXT, VALID_EMAIL, VALID_PASSWORD, passAgreementsDialog } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
+import { passAgreementsDialog, TEXT, VALID_EMAIL, VALID_PASSWORD } from './utilities'
 
 /** Available actions for the login page. */
 export default class LoginPageActions<Context> extends BaseActions<Context> {

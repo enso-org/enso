@@ -213,13 +213,15 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
    icon: folder
    suggested: 3
    ---
-   Lists files contained in the provided directory.
-   - directory: A path or `File` object to get the contents of.
-   - name_filter: A glob pattern that can be used to filter the returned files.
-   If it is not specified, all files are returned.
-   - recursive: Specifies whether the returned list of files should include also
-     files from the subdirectories. If set to `False` (the default), only the
-     immediate children of the listed directory are considered.
+   Lists files in a directory.
+
+   ## Arguments
+    - directory: A path or `File` object to get the contents of.
+    - name_filter: A glob pattern that can be used to filter the returned files.
+      If it is not specified, all files are returned.
+    - recursive: Specifies whether the returned list of files should include also
+      files from the subdirectories. If set to `False` (the default), only the
+      immediate children of the listed directory are considered.
 
    ## Examples
    ### List all files with `.md` extension in the example directory and any of its
@@ -281,6 +283,8 @@ list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False
    icon: data_download
    suggested: 4
    ---
+   Reads data from a web API.
+
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -347,6 +351,8 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
    icon: data_upload
    suggested: 8
    ---
+   Writes data to a web API.
+   
    Writes the provided data to the provided URI. Returns the response, parsing
    the body if the content-type is recognised. Returns an  error if the status
    code does not represent a successful response.
