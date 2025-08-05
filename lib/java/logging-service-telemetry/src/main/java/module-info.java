@@ -5,7 +5,7 @@ module org.enso.logging.service.telemetry {
   requires ch.qos.logback.core;
   requires static org.enso.logging.service.logback;
   requires org.enso.logging.service;
-  requires org.enso.logging.service.remote;
+  requires org.enso.logging.service.common;
   requires org.slf4j;
   requires static org.openide.util.lookup.RELEASE180;
 

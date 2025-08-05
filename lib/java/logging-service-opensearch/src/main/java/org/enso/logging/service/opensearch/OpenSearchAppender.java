@@ -2,10 +2,10 @@ package org.enso.logging.service.opensearch;
 
 import java.net.URI;
 import java.util.concurrent.ThreadPoolExecutor;
-import org.enso.logging.service.remote.AuthenticationData;
-import org.enso.logging.service.remote.LogJobsProcessor;
-import org.enso.logging.service.remote.TokenRefresher;
-import org.enso.logging.service.remote.RemoteAppender;
+import org.enso.logging.service.common.AuthenticationData;
+import org.enso.logging.service.common.LogJobsProcessor;
+import org.enso.logging.service.common.TokenRefresher;
+import org.enso.logging.service.common.RemoteAppender;
 import org.slf4j.LoggerFactory;
 
 public final class OpenSearchAppender extends RemoteAppender {
