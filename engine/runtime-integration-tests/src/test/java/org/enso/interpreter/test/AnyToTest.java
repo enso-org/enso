@@ -6,13 +6,18 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class AnyToTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void multiValueToInteger() throws Exception {

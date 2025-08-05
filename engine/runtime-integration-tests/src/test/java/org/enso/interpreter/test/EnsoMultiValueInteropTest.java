@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -14,6 +16,9 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class EnsoMultiValueInteropTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Parameterized.Parameter(0)
   public Object value;

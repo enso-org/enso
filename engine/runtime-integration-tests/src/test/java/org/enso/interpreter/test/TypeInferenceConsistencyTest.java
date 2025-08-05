@@ -8,10 +8,12 @@ import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.TypeInferenceTest;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
@@ -27,6 +29,9 @@ public class TypeInferenceConsistencyTest {
                   b.option(RuntimeOptions.STRICT_ERRORS, "true")
                       .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true"))
           .build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @After
   public void cleanMessages() {

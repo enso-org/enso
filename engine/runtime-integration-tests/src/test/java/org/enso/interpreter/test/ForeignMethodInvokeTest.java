@@ -17,17 +17,22 @@ import java.util.concurrent.Executors;
 import org.enso.common.MethodNames;
 import org.enso.runtime.utils.ThreadUtils;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class ForeignMethodInvokeTest {
   @ClassRule
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder("enso", "js").alwaysExecuteInContext(false).build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void testForeignFunctionParseFailure() throws Exception {

@@ -11,15 +11,20 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 /** Tests symbol resolution in the interpreter. */
 public class InterpreterSymbolResolutionTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @After
   public void clear() {

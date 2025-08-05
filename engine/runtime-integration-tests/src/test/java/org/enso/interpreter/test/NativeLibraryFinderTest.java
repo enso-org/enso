@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -34,6 +35,10 @@ import org.junit.runners.model.Statement;
 public class NativeLibraryFinderTest {
 
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   @Rule public final TestRule printContextRule = new PrintSystemInfoRule();
   private Package<TruffleFile> stdImgPkg;
   private Package<TruffleFile> stdTableauPkg;

@@ -4,10 +4,12 @@ import static org.junit.Assert.assertEquals;
 
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class NonStrictModeTests {
@@ -19,6 +21,9 @@ public class NonStrictModeTests {
           .withModifiedContext(
               b -> b.logHandler(logHandler).option(RuntimeOptions.STRICT_ERRORS, "false"))
           .build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @AfterClass
   public static void dispose() {

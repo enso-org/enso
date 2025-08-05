@@ -17,11 +17,16 @@ import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class AtomConstructorTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   public AtomConstructorTest() {}
 

@@ -22,11 +22,13 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -36,6 +38,10 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class EqualsTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static EqualsNode equalsNode;
   private static TestRootNode testRootNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;

@@ -12,14 +12,20 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class EqualsMultiValueTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static EqualsNode equalsNode;
   private static TestRootNode testRootNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;

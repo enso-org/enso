@@ -7,11 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -23,6 +25,10 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class VectorSortTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static Value sortFunc;
   private static Value equalsFunc;
 

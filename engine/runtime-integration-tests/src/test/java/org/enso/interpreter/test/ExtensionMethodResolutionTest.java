@@ -15,6 +15,7 @@ import org.enso.polyglot.TopScope;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
@@ -29,15 +30,14 @@ import org.junit.rules.TemporaryFolder;
  */
 public class ExtensionMethodResolutionTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static final Matcher<String> methodsOverloadErrorMessageMatcher =
       allOf(
           containsString("Method overloads are not supported"),
           containsString("defined multiple times"));
-
-  private static final Matcher<String> ambiguousResolutionErrorMessageMatcher =
-      allOf(
-          containsString("resolved ambiguously to"),
-          containsString("The symbol was first resolved to"));
 
   @Test
   public void twoExtensionMethodsWithSameNameInOneModuleShouldFail() throws IOException {

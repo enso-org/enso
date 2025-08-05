@@ -93,7 +93,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
   public static ContextUtils createDefault() {
     var stdout = new ByteArrayOutputStream();
     var stderr = new ByteArrayOutputStream();
-    var ctxBldr = Builder.defaultContextBuilder();
+    var ctxBldr = Builder.defaultContextBuilder(Level.FINE, JulHandler.get());
     ctxBldr.out(stdout).err(stderr).logHandler(stdout);
     return new ContextUtils(ctxBldr, stdout, stderr, true);
   }

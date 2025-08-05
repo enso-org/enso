@@ -5,13 +5,18 @@ import static org.junit.Assert.fail;
 
 import org.enso.common.HostEnsoUtils;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class PolyglotFindExceptionMessageTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void testJavaScriptException() {

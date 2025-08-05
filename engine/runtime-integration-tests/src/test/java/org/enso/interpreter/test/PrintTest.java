@@ -6,14 +6,19 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class PrintTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
   public void cleanOut() {

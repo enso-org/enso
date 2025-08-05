@@ -9,11 +9,13 @@ import java.util.Random;
 import java.util.stream.Stream;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,6 +26,10 @@ public class BinaryOpFloatTest {
     " +", " -", " ^", " *", " %", " <=", " <", " >=", " >", " /"
   };
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   private static Value wrapReal;
 
   @Parameterized.Parameters(name = "({1}){0} ({2})")

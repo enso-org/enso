@@ -9,10 +9,12 @@ import java.util.List;
 import org.enso.common.MethodNames;
 import org.enso.logging.service.logback.MemoryAppender;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +22,9 @@ public class StdLibLogsTest {
 
   private static Value mod;
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @BeforeClass
   public static void initEnsoContext() {

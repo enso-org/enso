@@ -6,12 +6,17 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class EqualsConversionsTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void testBasicInequalities() {

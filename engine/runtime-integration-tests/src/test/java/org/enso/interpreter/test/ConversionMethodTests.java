@@ -7,16 +7,21 @@ import static org.junit.Assert.fail;
 import java.util.stream.Stream;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class ConversionMethodTests {
   @ClassRule public static final ContextUtils ctx = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @After
   public void resetOutput() {

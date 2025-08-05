@@ -15,14 +15,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class SignatureTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createWithDefaultLogLevel();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void wrongFunctionSignature() throws Exception {
@@ -926,7 +931,6 @@ public class SignatureTest {
       var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
-      System.out.println(e);
       assertTrue("It is a syntax error exception", e.isSyntaxError());
     }
   }

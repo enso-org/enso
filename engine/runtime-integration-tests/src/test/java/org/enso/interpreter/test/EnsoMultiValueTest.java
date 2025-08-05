@@ -11,6 +11,7 @@ import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.TypeLiteral;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -20,6 +21,9 @@ import org.junit.rules.TemporaryFolder;
 public class EnsoMultiValueTest {
   @Rule public final TemporaryFolder dir = new TemporaryFolder();
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Test
   public void keepIdentityOfAandB() throws Exception {

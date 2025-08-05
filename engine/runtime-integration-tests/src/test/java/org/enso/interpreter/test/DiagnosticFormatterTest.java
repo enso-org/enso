@@ -15,11 +15,13 @@ import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.interpreter.runtime.util.GitHubDiagnosticFormatter;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.collections.Pair;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class DiagnosticFormatterTest {
@@ -29,6 +31,9 @@ public class DiagnosticFormatterTest {
           .withModifiedContext(
               b -> b.option(RuntimeOptions.STRICT_ERRORS, "true").environment("NO_COLOR", "true"))
           .build();
+
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
   public void resetOut() {

@@ -5,7 +5,9 @@ import static org.junit.Assert.assertEquals;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
+import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
@@ -18,13 +20,16 @@ public class SharedEngineTest {
   private static Engine sharedEngine;
   @Rule public ContextUtils ctx;
 
+  @Rule(order = Integer.MIN_VALUE)
+  public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
+
   @BeforeClass
   public static void initializeSharedEngine() {
     sharedEngine =
         Engine.newBuilder()
             .allowExperimentalOptions(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
+            .logHandler(JulHandler.get())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
