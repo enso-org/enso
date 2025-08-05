@@ -1,4 +1,4 @@
-package org.enso.logging.service
+package org.enso.logging.service.remote
 
 import com.github.plokhotnyuk.jsoniter_scala.core.{
   readFromString,

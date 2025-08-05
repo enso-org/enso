@@ -4,11 +4,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
-import org.enso.logging.service.ApiMessage;
-import org.enso.logging.service.AuthenticationData;
-import org.enso.logging.service.LogJob;
-import org.enso.logging.service.LogJobsProcessor;
-import org.enso.logging.service.TokenRefresher;
+import org.enso.logging.service.remote.ApiMessage;
+import org.enso.logging.service.remote.AuthenticationData;
+import org.enso.logging.service.remote.LogJob;
+import org.enso.logging.service.remote.LogJobsProcessor;
+import org.enso.logging.service.remote.TokenRefresher;
 import org.slf4j.LoggerFactory;
 
 public final class OpenSearchLogJobsProcessor extends LogJobsProcessor {

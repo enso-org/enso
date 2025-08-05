@@ -2,9 +2,10 @@ package org.enso.logging.service.telemetry;
 
 import java.net.URI;
 import java.util.concurrent.ThreadPoolExecutor;
-import org.enso.logging.service.AuthenticationData;
-import org.enso.logging.service.LogJobsProcessor;
-import org.enso.logging.service.TokenRefresher;
+import org.enso.logging.service.remote.AuthenticationData;
+import org.enso.logging.service.remote.LogJobsProcessor;
+import org.enso.logging.service.remote.TokenRefresher;
+import org.enso.logging.service.remote.RemoteAppender;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -12,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * Singleton. See {@link TelemetryLogFormatter} for the expected format of log messages to this
  * appender.
  */
-public final class TelemetryAppenderImpl extends org.enso.logging.service.RemoteAppender {
+public final class TelemetryAppenderImpl extends RemoteAppender {
 
   public TelemetryAppenderImpl() {
     super(LoggerFactory.getLogger(TelemetryAppenderImpl.class));
