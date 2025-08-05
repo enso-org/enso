@@ -20,6 +20,7 @@ public class SuccessfulAssertionExpressionTest {
       ContextUtils.newBuilder()
           .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
           .build();
+
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   private static final String imports =

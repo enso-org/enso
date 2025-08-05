@@ -25,6 +25,7 @@ public class DebugServerInspectTest {
           .withModifiedContext(
               b -> b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "ScriptTest.inspect"))
           .build();
+
   @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @Before
