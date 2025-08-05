@@ -2,8 +2,6 @@
 Toolchain for FlatBuffers compiler. Provides the path to the flatc executable.
 """
 
-load(":toolchain.bzl", "flatc_toolchain")
-
 toolchain_type(
     name = "toolchain_type",
     visibility = ["//visibility:public"],

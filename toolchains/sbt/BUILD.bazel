@@ -2,8 +2,6 @@
 Toolchain for sbt.
 """
 
-load(":toolchain.bzl", "sbt_toolchain")
-
 toolchain_type(
     name = "toolchain_type",
     visibility = ["//visibility:public"],
