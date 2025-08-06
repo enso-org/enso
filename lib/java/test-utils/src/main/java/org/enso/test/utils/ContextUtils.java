@@ -442,6 +442,17 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     }
 
     /**
+     * Helper method to allow stdout as engine's log handler.
+     *
+     * @param logLevel minimal level of logs that will be forwarded to log handler
+     * @return modified builder
+     */
+    public Builder withStdOutLogHandler(Level logLevel) {
+      polyglotCtxBldr.logHandler(stdout).option(RuntimeOptions.LOG_LEVEL, logLevel.getName());
+      return this;
+    }
+
+    /**
      * Shortcut for {@code withModifiedContext(b -> b.option(RuntimeOptions.PROJECT_ROOT,
      * projRoot)}.
      */

@@ -2,6 +2,7 @@ package org.enso.compiler.benchmarks.inline;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
@@ -51,6 +52,7 @@ public class InlineCompilerErrorBenchmark {
     ctx =
         Utils.createDefaultContextBuilder()
             .withModifiedContext(bldr -> bldr.option(RuntimeOptions.STRICT_ERRORS, "false"))
+            .withStdOutLogHandler(Level.SEVERE)
             .build();
     var ensoCtx = ctx.ensoContext();
     compiler = ensoCtx.getCompiler();
