@@ -3,7 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'
 
@@ -55,6 +55,8 @@ LocalStorage.registerKey('launchedProjects', {
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
 
+type OpenedProject = { state: 'opening'; id: ProjectId } | ({ state: 'launched' } & LaunchedProject)
+
 /** Tab identifier, equal to the path of the view's URL. */
 export type TabId = 'drive' | 'settings' | EnsoPath
 
@@ -78,7 +80,7 @@ export const [provideContainerData, useContainerData] = createContextStore(
     const route = useRoute()
     const localStorage = LocalStorage.getInstance()
 
-    const openedProjects = computed(
+    const launchedProjects = computed(
       () =>
         localStorage.get('launchedProjects')?.map((lp) => ({
           ...lp,
@@ -86,10 +88,18 @@ export const [provideContainerData, useContainerData] = createContextStore(
         })) ?? [],
     )
 
+    const openingProjects = reactive(new Set<ProjectId>())
+
+    const openedProjects = computed(() =>
+      launchedProjects.value
+        .map((project) => ({ state: 'launched', ...project }) as OpenedProject)
+        .concat([...openingProjects.values()].map((id) => ({ state: 'opening', id }))),
+    )
+
     const isValidTab = (name: string | undefined): name is TabId =>
       name === 'drive' ||
       name === 'settings' ||
-      openedProjects.value.find((p) => p.ensoPath === name) != null
+      launchedProjects.value.find((p) => p.ensoPath === name) != null
 
     const tab = computed<TabId>({
       get: () => {
@@ -119,6 +129,7 @@ export const [provideContainerData, useContainerData] = createContextStore(
 
     return proxyRefs({
       openedProjects,
+      openingProjects,
       tab,
       addLaunchedProject,
       removeLaunchedProject,
