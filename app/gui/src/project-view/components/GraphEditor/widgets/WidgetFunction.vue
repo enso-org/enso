@@ -219,9 +219,14 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
 </script>
 <script lang="ts">
 export const CallInfo: unique symbol = Symbol.for('WidgetInput:CallInfo')
+export const InheritedCallInfo: unique symbol = Symbol.for('WidgetInput:InheritedCallInfo')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [CallInfo]?: MethodCallInfo
+    // Same as CallInfo, but for nested widgets, like arguments.
+    // This allows us to check if the widget is matched against a function call or
+    // against an argument, while having the call info available for children.
+    [InheritedCallInfo]?: MethodCallInfo
   }
 }
 

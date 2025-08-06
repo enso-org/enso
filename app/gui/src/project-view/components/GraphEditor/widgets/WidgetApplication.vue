@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { CallInfo } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
+import { CallInfo, InheritedCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -59,7 +59,7 @@ const showArgument = computed(() => tree.extended || !application.value.argument
 const argumentWidgetInput = computed(() => {
   const input = application.value.argument.toWidgetInput()
   if (props.input[CallInfo]) {
-    input[CallInfo] = props.input[CallInfo]
+    input[InheritedCallInfo] = props.input[CallInfo]
   }
   return input
 })
