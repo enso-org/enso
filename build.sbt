@@ -6038,15 +6038,13 @@ lazy val runProjectManagerDistribution =
   buildEngineDistributionNoIndex.value
   buildProjectManagerDistributionCond.value
   val projManagerOpts = (`project-manager` / Runtime / javaOptions).value
-  val cmdlineFile = (`project-manager` / target).value / "run.sh"
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runProjectManagerPackage(
     engineDistributionRoot.value,
     projectManagerDistributionRoot.value,
     projManagerOpts,
     args,
-    streams.value.log,
-    cmdlineFile
+    streams.value.log
   )
 }
 
