@@ -964,7 +964,9 @@ lazy val `logging-service-opensearch` = project
     ),
     Compile / moduleDependencies ++= logbackPkg ++ slf4jApi,
     Compile / internalModuleDependencies ++= Seq(
-      (`logging-service-common` / Compile / exportedModule).value
+      (`logging-service` / Compile / exportedModule).value,
+      (`logging-service-common` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value,
     )
   )
   .dependsOn(`logging-service-common`)
