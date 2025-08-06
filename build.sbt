@@ -1349,9 +1349,7 @@ lazy val `zio-wrapper` = project
     assembly / assemblyExcludedJars := {
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
-        scalaLibrary ++
-        scalaReflect ++
-        Seq("dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion),
+        scalaLibrary ++ scalaReflect,
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -1360,6 +1358,9 @@ lazy val `zio-wrapper` = project
       excludedJars
         .map(Attributed.blank)
     },
+    Compile / internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value
+    ),
     Compile / patchModules := {
       val scalaLibs = JPMSUtils.filterModulesFromUpdate(
         update.value,
@@ -1367,6 +1368,7 @@ lazy val `zio-wrapper` = project
         Seq(
           "dev.zio" %% "zio"                                       % zioVersion,
           "dev.zio" %% "zio-internal-macros"                       % zioVersion,
+          "dev.zio" %% "zio-interop-cats"                       % zioInteropCatsVersion,
           "dev.zio" %% "zio-stacktracer"                           % zioVersion,
           "dev.zio" %% "izumi-reflect"                             % zioIzumiReflectVersion,
           "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % zioIzumiReflectVersion
