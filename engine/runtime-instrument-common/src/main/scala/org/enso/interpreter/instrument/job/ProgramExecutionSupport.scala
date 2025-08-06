@@ -771,7 +771,8 @@ object ProgramExecutionSupport {
               p.getLocation().getEncapsulatingSourceSection() match {
                 case ss: SourceSection =>
                   logger.warn(
-                    s"Error at ${ss.getCharIndex()}-${ss.getCharEndIndex()} (e.g. `${ss
+                    s"Error at ${ss.getCharIndex()}-${ss
+                      .getCharEndIndex()} in ${ss.getSource.getPath} (e.g. `${ss
                       .getCharacters()}`) of visualization $visualizationId",
                     p
                   )
