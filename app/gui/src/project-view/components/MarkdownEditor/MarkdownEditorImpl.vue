@@ -13,7 +13,7 @@ import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { type StartedUpload, useAsyncResources } from '@/providers/asyncResources'
-import { useCurrentProjectResourceContext } from '@/providers/asyncResources/context'
+import { type ResourceContext } from '@/providers/asyncResources/context'
 import { type AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
@@ -32,6 +32,7 @@ const {
   contentTestId,
   scrollerTestId,
   editorReadyCallback = () => {},
+  resourceContext = { project: undefined, asset: undefined, basePathSegments: undefined },
 } = defineProps<{
   toolbar?: boolean | undefined
   readonly?: boolean | undefined
@@ -48,10 +49,9 @@ const {
    * defined as signal)
    */
   editorReadyCallback?: ((view: EditorView) => void) | undefined
+  resourceContext?: ResourceContext | undefined
 }>()
 defineOptions({ inheritAttrs: false })
-
-const resourceContext = useCurrentProjectResourceContext()
 const res = useAsyncResources(true)
 
 async function selectAndUpload() {

@@ -117,8 +117,7 @@ export function Dashboard(props: DashboardProps) {
             fileId: null,
             filePath: backendModule.Path(initialLocalProjectPath),
           },
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          null!,
+          null,
         )
         const endMetadata = await localBackend.uploadFileEnd({
           ...metadata,

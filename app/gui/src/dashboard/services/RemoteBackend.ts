@@ -867,7 +867,7 @@ export default class RemoteBackend extends Backend {
    */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: File,
+    file: Blob,
     abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH

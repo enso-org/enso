@@ -666,7 +666,7 @@ export default class LocalBackend extends Backend {
   /** Begin uploading a large file. */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: File,
+    file: Blob | null,
   ): Promise<backend.UploadLargeFileMetadata> {
     const parentPath =
       body.parentDirectoryId == null ?
@@ -674,7 +674,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath = body.filePath ?? window.api?.system?.getFilePath(file)
+    const sourcePath = body.filePath
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],
@@ -688,12 +688,12 @@ export default class LocalBackend extends Backend {
     if (!response.ok) {
       return this.throw(response, 'uploadFileBackendError')
     }
-    if (backend.fileIsProject(file)) {
+    if (backend.fileNameIsProject(body.fileName)) {
       const projectPath = backend.Path(await response.text())
       const projectId = newProjectId(projectPath)
       const project = await this.getProjectDetails(projectId)
       this.uploadedFiles.set(uploadId, { id: projectId, project, jobId: null })
-    } else if (backend.fileIsArchive(file)) {
+    } else if (backend.fileNameIsArchive(body.fileName)) {
       this.uploadedFiles.set(uploadId, {
         id: newFileId(filePath),
         project: null,

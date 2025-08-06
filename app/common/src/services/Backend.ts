@@ -947,9 +947,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
-  //  to retrieve directory path easily.
-  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
+  readonly ensoPath: EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1274,19 +1272,19 @@ export type AssetSortDirection = 'ascending' | 'descending'
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
-  readonly filterBy: FilterBy | null
-  readonly labels: readonly LabelName[] | null
-  readonly sortExpression: AssetSortExpression | null
-  readonly sortDirection: AssetSortDirection | null
-  readonly recentProjects: boolean
+  readonly filterBy?: FilterBy | null
+  readonly labels?: readonly LabelName[] | null
+  readonly sortExpression?: AssetSortExpression | null
+  readonly sortDirection?: AssetSortDirection | null
+  readonly recentProjects?: boolean
   /**
    * The root path of the directory to list.
    * This is used to list a subdirectory of a local root directory,
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
-  readonly from: PaginationToken | null
-  readonly pageSize: number | null
+  readonly from?: PaginationToken | null
+  readonly pageSize?: number | null
 }
 
 /** URL query string parameters for the "search directory" endpoint. */
@@ -1849,7 +1847,7 @@ export default abstract class Backend {
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     params: UploadFileRequestParams,
-    file: File,
+    file: Blob,
     abort?: AbortSignal,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
