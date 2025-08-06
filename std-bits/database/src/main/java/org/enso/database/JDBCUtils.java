@@ -80,11 +80,12 @@ public class JDBCUtils {
   }
 
   /**
-   * Gets a BigDecimal from a ResultSet, but handles the case of databases
-   * without direct support for BigDecimals, which may return a float or double.
-   * In the case of nan / inf values, return null.
+   * Gets a BigDecimal from a ResultSet, but handles the case of databases without direct support
+   * for BigDecimals, which may return a float or double. In the case of nan / inf values, return
+   * null.
    */
-  public static BigDecimal getBigDecimalHandleSpecialFloats(ResultSet rs, int columnIndex) throws SQLException {
+  public static BigDecimal getBigDecimalHandleSpecialFloats(ResultSet rs, int columnIndex)
+      throws SQLException {
     try {
       return rs.getBigDecimal(columnIndex);
     } catch (SQLException e) {
