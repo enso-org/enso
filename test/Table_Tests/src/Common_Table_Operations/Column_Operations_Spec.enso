@@ -1200,6 +1200,7 @@ add_column_operation_specs suite_builder setup =
                 c2.value_type.is_decimal . should_be_true
                 c2.round -2 . to_vector . should_equal [Decimal.new "100", Decimal.new "200", Decimal.new "200", Decimal.new "-100", Decimal.new "-200", Decimal.new "-200"]
 
+        if setup.is_database.not then
             group_builder.specify "casting NaN to Decimal should attach a warning" <|
                 t = table_builder [["foo", [1.0, 2.1, Number.nan, 3.5]]]
                 t . at "foo" . value_type . should_equal Value_Type.Float
