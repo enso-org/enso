@@ -4,6 +4,7 @@ import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { Loader } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useMount } from '#/hooks/mountHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import * as backendModule from '#/services/Backend'
@@ -109,7 +110,11 @@ function EditorContents(props: EditorProps) {
     })
   })
 
-  React.useEffect(() => {
+  // TODO[ao]: We open project on mount only, so changing `project` property will not autoopen
+  // anything. This is not a problem, because project id is key property of AppContainer,
+  // but it leaves a bad taste. Nevertheless, it will be refined anyway as part of
+  // https://github.com/enso-org/enso/issues/13491
+  useMount(() => {
     if (
       // Open project unless it is not supposed to be reopened.
       (isProjectClosed && !preventAutoReopen) ||
@@ -118,7 +123,7 @@ function EditorContents(props: EditorProps) {
     ) {
       void startProject({ ...project, suppressHybridProjectOpen: isHybridOpened })
     }
-  }, [isProjectClosed, startProject, project, preventAutoReopen, isHybridOpened])
+  })
 
   React.useEffect(() => {
     stableOnNameUpdate(name)

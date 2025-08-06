@@ -1,9 +1,8 @@
 /** @file Actions for a "new Data Link" modal. */
 import type { Page } from 'playwright/test'
-
-import { TEXT } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
+import { TEXT } from './utilities'
 
 /** Locate the "new data link" modal. */
 function locateNewDataLinkModal(page: Page) {

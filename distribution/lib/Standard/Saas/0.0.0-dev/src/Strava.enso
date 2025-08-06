@@ -32,6 +32,13 @@ type Strava
         id = self.user.decode_as_json.get "id"
         _strava_get self "https://www.strava.com/api/v3/athletes/"+id.to_text+"/stats"
 
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Strava"]]
+
 private _strava_get strava url =
     header = Header.authorization_bearer strava.strava_service.getAccessToken.token
     HTTP.fetch url headers=[header]

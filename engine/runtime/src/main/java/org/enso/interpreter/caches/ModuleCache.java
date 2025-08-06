@@ -15,9 +15,9 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.common.CompilationStage;
+import org.enso.common.MethodNames;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.version.BuildVersion;
 
 public final class ModuleCache
@@ -140,8 +140,8 @@ public final class ModuleCache
       var pathSegmentsJava = new ArrayList<String>();
       pathSegmentsJava.addAll(
           Arrays.asList(
-              Builtins.NAMESPACE,
-              Builtins.PACKAGE_NAME,
+              MethodNames.Builtins.NAMESPACE,
+              MethodNames.Builtins.PACKAGE_NAME,
               BuildVersion.ensoVersion(),
               BuildVersion.ensoVersion()));
       pathSegmentsJava.addAll(module.getName().pathAsJava());

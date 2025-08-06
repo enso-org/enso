@@ -9,6 +9,7 @@ import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
+from project.Data.Json import JS_Object
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
@@ -249,3 +250,10 @@ type Encoding
     to_display_text self = case self of
         Encoding.Value charset_name -> charset_name
         Encoding.Default -> "Default Encoding"
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Encoding"], ["value", self.to_display_text]]

@@ -3,6 +3,7 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Errors.Common import Module_Not_In_Package_Error
+from project.Data.Json import JS_Object
 
 ## Functionality for inspecting the current project.
 @Builtin_Type
@@ -115,6 +116,13 @@ type Project_Description
        ```
     namespace : Text
     namespace self = self.ns
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Project_Description"], ["name", self.name], ["namespace", self.namespace]]
 
     ## ---
        private: true

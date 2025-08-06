@@ -90,7 +90,6 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
         <SelectableTab
           v-for="[id, tabInfo] in visibleTabs"
           :key="id"
-          selectionLayoutId="right-tab-highlight"
           :icon="tabInfo.icon"
           :tooltip="tabTooltip(tabInfo.title, tabInfo.enabled)"
           orientation="vertical"

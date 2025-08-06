@@ -524,9 +524,11 @@ type Table
        icon: select_column
        suggested: 1
        ---
-       Creates a new table with a chosen subset of columns, as specified by the
-       `columns`, from the input table. Any unmatched input columns will be
-       dropped from the output.
+       Creates a new table with a chosen subset of columns.
+       
+       The subset of columns is specified by the `columns` parameter
+       and taken from the input table. Any unmatched columns in the 
+       input will be dropped from the output.
 
        ## Arguments
         - `columns`: Specifies columns by a single instance or Vector of names;
@@ -1233,7 +1235,7 @@ type Table
        icon: transform4
        suggested: 7
        ---
-       Aggregates the rows in a table using `group_by` columns.
+       Groups the rows in the table.
        The columns argument specifies which additional aggregations to perform
        and to return.
 
@@ -1321,7 +1323,8 @@ type Table
        icon: order
        suggested: 8
        ---
-       Reorders the table by sorting them based on the specified columns.
+       Sorts the rows of the table by specified columns.
+       
        Optionally, the method of ordering text values can be specified allowing
        for case-insensitively or dictionary ordering.
 
@@ -1428,8 +1431,8 @@ type Table
        icon: preparation
        suggested: 5
        ---
-       Returns the distinct set of rows within the specified columns from the
-       input table.
+       Returns unique rows within the specified columns from the table.
+
        When multiple rows have the same values within the specified columns, the
        first row of each such set is returned if possible, but in database
        backends any row from each set may be returned (for example if the row
@@ -2147,7 +2150,9 @@ type Table
        icon: preparation
        suggested: 2
        ---
-       Filter is used to select data from a table using a condition. The rows
+       Creates a new table with a filtered subset of rows.
+       
+       The rows are selected from the input table using a condition. The rows
        that meet the condition will remain after the filter. Filters can compare
        columns, compare against static values, or compare against an argument
        from another component.
@@ -2545,7 +2550,7 @@ type Table
        icon: column_add
        suggested: 3
        ---
-       Sets the column value at the given name.
+       Adds or updates a column on the table.
 
        ## Arguments
         - `value`: The value, expression or column to create column.
@@ -2740,7 +2745,7 @@ type Table
        icon: join
        suggested: 4
        ---
-       Joins two tables according to the specified join conditions.
+       Joins two tables using the specified join conditions.
 
        ## Arguments
         - `right`: The table to join with.
@@ -3265,6 +3270,8 @@ type Table
        icon: map_row
        suggested: 10
        ---
+       Pivots a subset of the table's columns to rows.
+       
        Returns a new table with a chosen subset of columns left unchanged and the
        other columns pivoted to rows with a single name field and a single value
        field.
@@ -3324,6 +3331,8 @@ type Table
        icon: column_add
        suggested: 11
        ---
+       Pivots the table's rows to columns using a aggregation.
+
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
@@ -3420,7 +3429,8 @@ type Table
        icon: data_output
        suggested: 9
        ---
-       This function writes a table from memory into a file.
+       Saves the table's data to a file.
+
        The specific behavior of the various `File_Format`s is specified below.
 
        ## Arguments
