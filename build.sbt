@@ -1375,6 +1375,14 @@ lazy val `zio-wrapper` = project
       Map(
         javaModuleName.value -> scalaLibs
       )
+    },
+    Runtime / addReads := {
+      Map(
+        // zio internals tries to access classes from `jdk.unsupported`.
+        javaModuleName.value -> Seq(
+          "jdk.unsupported"
+        )
+      )
     }
   )
 
@@ -1611,6 +1619,9 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "--module",
         modName + "/" + mainClazz
       )
+    },
+    Runtime / addReads := {
+      (`zio-wrapper` / Runtime / addReads).value
     }
   )
   .settings(
