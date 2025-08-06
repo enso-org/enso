@@ -6060,7 +6060,7 @@ lazy val runProjectManagerDistribution =
   inputKey[Unit](
     "Run or --debug the project manager distribution with arguments"
   )
-(ThisBuild / runProjectManagerDistribution) := {
+runProjectManagerDistribution := {
   buildEngineDistributionNoIndex.value
   buildProjectManagerDistributionCond.value
   val projManagerOpts = (`project-manager` / Runtime / javaOptions).value
