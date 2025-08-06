@@ -4,8 +4,8 @@ import java.net.URI;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.enso.logging.service.common.AuthenticationData;
 import org.enso.logging.service.common.LogJobsProcessor;
-import org.enso.logging.service.common.TokenRefresher;
 import org.enso.logging.service.common.RemoteAppender;
+import org.enso.logging.service.common.TokenRefresher;
 import org.slf4j.LoggerFactory;
 
 /**

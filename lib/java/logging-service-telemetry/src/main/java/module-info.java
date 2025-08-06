@@ -10,5 +10,5 @@ module org.enso.logging.service.telemetry {
   exports org.enso.logging.service.telemetry;
 
   provides org.enso.logging.service.logback.AbstractRemoteAppender with
-          org.enso.logging.service.telemetry.TelemetryAppenderImpl;
+      org.enso.logging.service.telemetry.TelemetryAppenderImpl;
 }
