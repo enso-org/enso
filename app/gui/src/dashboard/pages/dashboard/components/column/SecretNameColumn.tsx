@@ -6,7 +6,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { setModal } from '#/providers/ModalProvider'
 import { isAssetCredential, titleSchema, type SecretAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
@@ -16,7 +16,7 @@ import { useText } from '$/providers/react'
 import { toast } from 'react-toastify'
 
 /** Props for a {@link SecretNameColumn}. */
-export interface SecretNameColumnProps extends AssetColumnProps {
+export interface SecretNameColumnProps extends AssetNameColumnProps {
   readonly item: SecretAsset
 }
 
@@ -84,7 +84,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

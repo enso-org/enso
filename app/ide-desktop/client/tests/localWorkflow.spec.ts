@@ -23,7 +23,18 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   const TEXT_TO_WRITE = 'Some text'
 
   await loginAsTestUser(page)
-  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
+
+  // If welcome project is to be opened, wait for it.
+  // If none for 3 seconds, we just move on.
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
+
+  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible({
+    timeout: 30000,
+  })
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
@@ -64,10 +75,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
 
   // Enter User Defined Component
   // First wait until node is computed. Visualization may be cached, so we look at icon.
-  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute(
-    'href',
-    /#svgicon:group/,
-  )
+  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
   await page.locator('.GraphNode').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(3)
   await expect(page.locator('.NavBreadcrumb')).toHaveText([
@@ -76,7 +84,6 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   ])
 
   // Rename User Defined component
-  await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
     .getByTestId('widget-function-name-content')
@@ -138,7 +145,6 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   })
 
   // Paste an image in documentation.
-  // (the panel is opened in previous steps)
   await page.locator('.DocumentationEditor').click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
   const docImageElement = page.locator('.DocumentationEditor').getByTestId('doc-img')

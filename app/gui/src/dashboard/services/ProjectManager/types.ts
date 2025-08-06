@@ -134,6 +134,7 @@ export interface IpWithSocket {
 export interface CreateProject {
   readonly projectId: UUID
   readonly projectName: string
+  readonly projectPath: Path
   readonly projectNormalizedName: string
 }
 
@@ -162,6 +163,7 @@ export interface VersionList {
 export interface DuplicatedProject {
   readonly projectId: UUID
   readonly projectName: string
+  readonly projectPath: Path
   readonly projectNormalizedName: string
 }
 
@@ -188,7 +190,7 @@ export interface OpenProjectParams {
   readonly projectId: UUID
   readonly missingComponentAction: MissingComponentAction
   readonly cloudProjectDirectoryPath?: string
-  readonly projectsDirectory?: string
+  readonly projectsDirectory: Path
 }
 
 /** Parameters for the "close project" endpoint. */
@@ -209,19 +211,19 @@ export interface CreateProjectParams {
 export interface RenameProjectParams {
   readonly projectId: UUID
   readonly name: ProjectName
-  readonly projectsDirectory?: Path
+  readonly projectsDirectory: Path
 }
 
 /** Parameters for the "duplicate project" endpoint. */
 export interface DuplicateProjectParams {
   readonly projectId: UUID
-  readonly projectsDirectory?: Path
+  readonly projectsDirectory: Path
 }
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
   readonly projectId: UUID
-  readonly projectsDirectory?: Path
+  readonly projectsDirectory: Path
 }
 
 export const PROJECT_MANAGER_LOADING_FAILED_EVENT = 'enso-project-manager-loading-failed'

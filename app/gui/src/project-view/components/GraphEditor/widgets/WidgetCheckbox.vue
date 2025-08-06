@@ -49,10 +49,10 @@ const value = computed({
         value ? ('True' as Identifier) : ('False' as Identifier),
       )
       if (requiresImport) graph.addMissingImports(edit, theImport)
-      props.onUpdate({ edit, directInteraction: true })
+      props.updateCallback({ edit, directInteraction: true })
     } else {
       graph.addMissingImports(edit, theImport)
-      props.onUpdate({
+      props.updateCallback({
         edit,
         portUpdate: {
           value: value ? 'True' : 'False',

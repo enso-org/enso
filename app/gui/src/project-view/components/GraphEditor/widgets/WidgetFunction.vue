@@ -86,7 +86,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
     if (!('value' in update.portUpdate)) {
       if (!Ast.isAstId(update.portUpdate.origin))
         console.error('Tried to set metadata on arg placeholder. This is not implemented yet!')
-      return props.onUpdate(update)
+      return props.updateCallback(update)
     }
     const {
       portUpdate: { value, origin },
@@ -118,7 +118,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
           .getVersion(argApp.appTree)
           .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
       }
-      return props.onUpdate({ edit, directInteraction })
+      return props.updateCallback({ edit, directInteraction })
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
 
@@ -152,7 +152,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
         // Named argument can always be removed immediately. Replace the whole application with its
         // target, effectively removing the argument from the call.
         const func = edit.getVersion(argApp.appTree.function).take()
-        return props.onUpdate({
+        return props.updateCallback({
           edit,
           portUpdate: {
             value: func,
@@ -166,7 +166,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
         // Infix application is removed as a whole. Only the target is kept.
         if (argApp.appTree.lhs) {
           const lhs = edit.getVersion(argApp.appTree.lhs).take()
-          return props.onUpdate({
+          return props.updateCallback({
             edit,
             portUpdate: {
               value: lhs,
@@ -194,7 +194,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
             } else {
               appTree.update((appTree) => appTree.function.take())
             }
-            return props.onUpdate({ edit, directInteraction })
+            return props.updateCallback({ edit, directInteraction })
           } else {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
@@ -214,7 +214,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
     }
   }
   // Any other case is handled by the default handler.
-  return props.onUpdate(update)
+  return props.updateCallback(update)
 }
 </script>
 <script lang="ts">
@@ -269,5 +269,5 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <NodeWidget :input="innerInput" :onUpdate="handleArgUpdate" />
+  <NodeWidget :input="innerInput" :updateCallback="handleArgUpdate" />
 </template>

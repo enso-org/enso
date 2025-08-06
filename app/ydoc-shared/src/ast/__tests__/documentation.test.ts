@@ -135,8 +135,8 @@ describe('Function documentation (Markdown)', () => {
       normalized: '## My function with one hard-wrapped paragraph',
     },
     {
-      source: '## ICON group\n   My function with an icon',
-      markdown: 'ICON group\nMy function with an icon',
+      source: '## ---\n   icon: group\n   ---\n   My function with an icon',
+      markdown: '---\nicon: group\n---\nMy function with an icon',
     },
     {
       source: '## My function\n   > Block quote\n   quote continuation',

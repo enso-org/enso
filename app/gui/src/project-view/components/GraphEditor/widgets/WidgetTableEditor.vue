@@ -61,7 +61,7 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
   () => props.input,
   graph,
   suggestionDb.entries,
-  props.onUpdate,
+  props.updateCallback,
 )
 
 // Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
@@ -178,7 +178,7 @@ export const widgetDefinition = defineWidget(
       :input="input"
       metadataKey="WidgetTableEditor"
       :config="config"
-      :onUpdate="onUpdate"
+      :updateCallback="updateCallback"
     >
       <Suspense>
         <AgGridTableView
