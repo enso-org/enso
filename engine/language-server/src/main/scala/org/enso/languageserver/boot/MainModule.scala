@@ -187,10 +187,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
-        def log(at: java.time.Instant, msg: String) = {
+        def logInstantMsg(at: java.time.Instant, msg: String) = {
           out.println(s"$at $msg")
         }
-        new RuntimeEventsMonitor(log) -> Some(())
+        new RuntimeEventsMonitor(logInstantMsg) -> Some(())
       case None =>
         EventsMonitor.NOOP -> None
     }
