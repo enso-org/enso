@@ -1,5 +1,6 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
@@ -19,6 +20,28 @@ write_source_files(
         "//app/gui:write_icon_metadata",
         "//app/table-expression:write_parser_codegen",
     ],
+)
+
+##################
+### Buildifier ###
+##################
+
+buildifier(
+    name = "lint_bazel_files",
+    exclude_patterns = [
+        "./app/gui/.env.bazel",
+    ],
+    lint_mode = "warn",
+    mode = "diff",
+)
+
+buildifier(
+    name = "format_bazel_files",
+    exclude_patterns = [
+        "./app/gui/.env.bazel",
+    ],
+    lint_mode = "fix",
+    mode = "fix",
 )
 
 ###########################

@@ -1,5 +1,15 @@
 "enso-org/enso"
 
+##########################################
+### Buildifier: checking bazel configs ###
+##########################################
+
+bazel_dep(
+    name = "buildifier_prebuilt",
+    version = "8.2.0.2",
+    dev_dependency = True,
+)
+
 ############################
 ### JavaScript ecosystem ###
 ############################
