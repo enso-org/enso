@@ -97,6 +97,7 @@ object NativeImage {
     mainClass: Option[String]                = None,
     mainModule: Option[String]               = None,
     modulePath: Seq[String]                  = Seq.empty,
+    addModules: Seq[String]                  = Seq.empty,
     verbose: Boolean                         = false
   ): Def.Initialize[Task[Unit]] = Def
     .task {
@@ -201,6 +202,9 @@ object NativeImage {
       } else {
         Seq()
       }
+      val addModulesOpt =
+        if (addModules.nonEmpty) Seq("--add-modules", addModules.mkString(","))
+        else Seq.empty
 
       val isCi       = sys.env.contains("CI")
       val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
@@ -221,6 +225,7 @@ object NativeImage {
       var args: Seq[String] =
         excludeConfigsOpt ++
         mp ++
+        addModulesOpt ++
         Seq("-cp", cpStr) ++
         staticParameters ++
         configs ++

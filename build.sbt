@@ -1620,25 +1620,62 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).dependsOn(buildEngineDistribution).value
   )
+  /** JPMS related settings for runtime
+  */
+  .settings(
+    Runtime / moduleDependencies := (Compile / moduleDependencies).value,
+    Runtime / moduleDependencies ++= {
+      (`scala-libs-wrapper` / Compile / moduleDependencies).value
+    },
+    Runtime / internalModuleDependencies := (Compile / internalModuleDependencies).value,
+    Runtime / internalModuleDependencies ++= {
+      Seq(
+        (Compile / exportedModule).value,
+        (`logging-service-opensearch` / Compile / exportedModule).value,
+        (`logging-service-telemetry` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value,
+      )
+    },
+    Runtime / addModules := Seq(
+        (`logging-service-opensearch` / javaModuleName).value,
+        (`logging-service-telemetry` / javaModuleName).value,
+    ),
+    Runtime / javaOptions ++= {
+      val mainClazz = (Compile / mainClass).value.get
+      val modName = javaModuleName.value
+      Seq(
+        "--module",
+        modName + "/" + mainClazz
+      )
+    }
+  )
   .settings(
     NativeImage.smallJdk := None,
     NativeImage.additionalCp := Seq.empty,
-    rebuildNativeImage := NativeImage
-      .buildNativeImage(
-        "project-manager",
-        staticOnLinux = true,
-        initializeAtRuntime = Seq(
-          "org.jline",
-          "scala.util.Random",
-          "zio.internal.ZScheduler$$anon$4",
-          "zio.Runtime$",
-          "zio.FiberRef$",
-          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
-          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
-        )
+    rebuildNativeImage := Def.taskDyn {
+      val mp = (Compile / modulePath).value.map(_.getAbsolutePath)
+      val addModules = Seq(
+        (`logging-service-telemetry` / javaModuleName).value,
+        (`logging-service-opensearch` / javaModuleName).value
       )
+      NativeImage
+        .buildNativeImage(
+          "project-manager",
+          staticOnLinux = true,
+          modulePath = mp,
+          addModules = addModules,
+          initializeAtRuntime = Seq(
+            "org.jline",
+            "scala.util.Random",
+            "zio.internal.ZScheduler$$anon$4",
+            "zio.Runtime$",
+            "zio.FiberRef$",
+            "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
+            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
+          )
+        )
+    }
       .dependsOn(VerifyReflectionSetup.run)
-      .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
@@ -6036,14 +6073,16 @@ lazy val runProjectManagerDistribution =
 (ThisBuild / runProjectManagerDistribution) := {
   buildEngineDistributionNoIndex.value
   buildProjectManagerDistributionCond.value
-  val projectManagerJar = (`project-manager` / assembly).value.getAbsoluteFile()
+  val projManagerOpts = (`project-manager` / Runtime / javaOptions).value
+  val cmdlineFile = (`project-manager` / target).value / "run.sh"
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runProjectManagerPackage(
     engineDistributionRoot.value,
     projectManagerDistributionRoot.value,
-    projectManagerJar,
+    projManagerOpts,
     args,
-    streams.value.log
+    streams.value.log,
+    cmdlineFile
   )
 }
 
