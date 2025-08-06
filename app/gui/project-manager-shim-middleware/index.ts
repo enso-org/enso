@@ -261,7 +261,7 @@ export default function projectManagerShimMiddleware(
       }
     }
   } else if (request.method === 'POST') {
-    const params = new URL(requestUrl ?? '').searchParams
+    const params = new URL(requestUrl ?? '', 'https://example.com/').searchParams
     switch (requestPath) {
       case `/api/${EXPORT_ARCHIVE_PATH}`: {
         httpDownloadArchive(request, response, params)
