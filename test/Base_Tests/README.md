@@ -12,7 +12,9 @@ To run the test server, you may use the following command:
 ```bash
 sbt 'http-test-helper/run localhost 8080'
 ```
+
 Then execute the tests in another terminal as
+
 ```bash
 sbt 'runEngineDistribution --env ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080 --run test/Base_Tests'
 ```
