@@ -1153,9 +1153,13 @@ type File_System_SPI
 
     new protocol:Text typ = File_System_SPI.Entry protocol typ
 
-    private get_type protocol:Text _:Boolean =
-        vec = Self.get_types False . filter (_.protocol == protocol)
-        if vec . not_empty then vec.first else Nothing
+    private get_type protocol:Text b:Boolean =
+        all = Self.get_regs b
+        vec = all . filter \e -> (e.protocol == protocol)
+        if vec . not_empty then vec.first.typ else Nothing
 
-    private get_types _:Boolean =
+    private get_regs _:Boolean =
         Meta_Helpers.lookup_services File_System_SPI
+
+    private get_types b:Boolean =
+        Self.get_regs b . map .typ
