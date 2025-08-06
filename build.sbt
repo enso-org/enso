@@ -1555,42 +1555,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         )
     }
   )
-  /** Fat jar assembly settings
-    */
-  .settings(
-    assembly / assemblyJarName := "project-manager.jar",
-    assembly / test := {},
-    assembly / assemblyOutputPath := file("project-manager.jar"),
-    // Exclude all the Truffle/Graal related artifacts from the fat jar
-    assembly / assemblyExcludedJars := {
-      val pkgsToExclude = GraalVM.modules
-      val ourFullCp     = (Runtime / fullClasspath).value
-      JPMSUtils.filterModulesFromClasspath(
-        ourFullCp,
-        pkgsToExclude,
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value
-      )
-    },
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case PathList("META-INF", "services", file)
-          if file.startsWith("org.enso") =>
-        MergeStrategy.concat
-      // This fat Jar must not be an explicit module, so discard all the module-info classes
-      case PathList(xs @ _*) if xs.last.contains("module-info") =>
-        MergeStrategy.discard
-      case "application.conf" => MergeStrategy.concat
-      case "reference.conf"   => MergeStrategy.concat
-      case _                  => MergeStrategy.first
-    }
-  )
   /** JPMS related settings for tests
     */
   .settings(
@@ -6062,7 +6026,7 @@ buildProjectManagerDistributionCond := Def.taskIf {
   if (shouldBuildNativeImage.value) {
     buildProjectManagerDistribution.value
   } else {
-    (`project-manager` / assembly).value
+    (`project-manager` / Compile / compile).value
   }
 }.value
 
