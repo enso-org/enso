@@ -1517,13 +1517,17 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     ),
     Compile / moduleDependencies := {
       (`akka-wrapper` / Compile / moduleDependencies).value ++
+      (`editions` / Compile / moduleDependencies).value ++
+      (`edition-updater` / Compile / moduleDependencies).value ++
       (`distribution-manager` / Compile / moduleDependencies).value ++
+      (`logging-config` / Compile / moduleDependencies).value ++
       (`logging-utils` / Compile / moduleDependencies).value ++
         (`logging-service` / Compile / moduleDependencies).value ++
         (`logging-service-common` / Compile / moduleDependencies).value ++
         (`logging-service-logback` / Compile / moduleDependencies).value ++
-        (`logging-config` / Compile / moduleDependencies).value ++
+        (`pkg` / Compile / moduleDependencies).value ++
         (`runtime-version-manager` / Compile / moduleDependencies).value ++
+        (`semver` / Compile / moduleDependencies).value ++
         (`zio-wrapper` / Compile / moduleDependencies).value ++
         Seq(
           "commons-io"   % "commons-io"    % commonsIoVersion,
@@ -1534,30 +1538,40 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     },
     Compile / internalModuleDependencies := {
         (`distribution-manager` / Compile / internalModuleDependencies).value ++
+        (`editions` / Compile / internalModuleDependencies).value ++
+        (`edition-updater` / Compile / internalModuleDependencies).value ++
         (`json-rpc-server` / Compile / internalModuleDependencies).value ++
+          (`logging-config` / Compile / internalModuleDependencies).value ++
         (`logging-utils` / Compile / internalModuleDependencies).value ++
         (`logging-service` / Compile / internalModuleDependencies).value ++
         (`logging-service-common` / Compile / internalModuleDependencies).value ++
         (`logging-service-logback` / Compile / internalModuleDependencies).value ++
-        (`logging-config` / Compile / internalModuleDependencies).value ++
         (`os-environment` / Compile / internalModuleDependencies).value ++
+        (`pkg` / Compile / internalModuleDependencies).value ++
         (`runtime-version-manager` / Compile / internalModuleDependencies).value ++
         (`scala-libs-wrapper` / Compile / internalModuleDependencies).value ++
+        (`semver` / Compile / internalModuleDependencies).value ++
+        (`task-progress-notifications` / Compile / internalModuleDependencies).value ++
         (`zio-wrapper` / Compile / internalModuleDependencies).value ++
         Seq(
           (`akka-wrapper` / Compile / exportedModule).value,
           (`distribution-manager` / Compile / exportedModule).value,
+          (`editions` / Compile / exportedModule).value,
+          (`edition-updater` / Compile / exportedModule).value,
           (`json-rpc-server` / Compile / exportedModule).value,
           (`language-server-deps-wrapper` / Compile / exportedModule).value,
+          (`logging-config` / Compile / exportedModule).value,
           (`logging-utils` / Compile / exportedModule).value,
           (`logging-utils-akka` / Compile / exportedModule).value,
           (`logging-service` / Compile / exportedModule).value,
           (`logging-service-common` / Compile / exportedModule).value,
           (`logging-service-logback` / Compile / exportedModule).value,
-          (`logging-config` / Compile / exportedModule).value,
           (`os-environment` / Compile / exportedModule).value,
+          (`pkg` / Compile / exportedModule).value,
           (`runtime-version-manager` / Compile / exportedModule).value,
           (`scala-libs-wrapper` / Compile / exportedModule).value,
+          (`semver` / Compile / exportedModule).value,
+          (`task-progress-notifications` / Compile / exportedModule).value,
           (`version-output` / Compile / exportedModule).value,
           (`zio-wrapper` / Compile / exportedModule).value,
         )
@@ -4711,7 +4725,8 @@ lazy val `runtime-version-manager` = project
     ),
     Compile / moduleDependencies ++= slf4jApi ++ Seq(
       "org.apache.commons" % "commons-compress" % commonsCompressVersion,
-      "org.apache.tika"    % "tika-core"        % tikaVersion
+      "org.apache.tika"    % "tika-core"        % tikaVersion,
+      "org.yaml"           % "snakeyaml"        % snakeyamlVersion
     ),
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
