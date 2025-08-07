@@ -1,0 +1,32 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+
+import Standard.Database.Dialects.Feature.Feature
+
+from Standard.Test import all
+
+import project.Common_Table_Operations.Util
+from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+
+type Lazy_Ref
+    Value ~get
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_text_columns_specs suite_builder setup)
+
+add_text_columns_specs suite_builder setup =
+    prefix = setup.prefix
+    table_builder = setup.light_table_builder
+
+    suite_builder.group prefix+"Text_Column" group_builder->
+        text_column = Lazy_Ref.Value <| table_builder [["X", ["asdf", "zxcv", "qwer", "xomt"]]] . at "X"
+        group_builder.specify "a text column can be cast to Text_Column" <|
+            column = text_column.get
+            column.value_type.is_text . should_be_true
+            check_column_refinements column x->
+                (x:Text_Column)
