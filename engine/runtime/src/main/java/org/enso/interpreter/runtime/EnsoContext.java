@@ -144,6 +144,12 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
+    if (isPrivateCheckDisabled && !isIrCachingDisabled) {
+      throw new IllegalStateException(
+          "Both private check is disabled and IR caching is enabled. " +
+           "Either keep private check enabled or disable IR caching."
+      );
+    }
     this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     {
         var classLoading = getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
@@ -238,9 +244,9 @@ public final class EnsoContext {
     }
   }
 
-    private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
-        return environment.getInternalLanguages().get("epb");
-    }
+  private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
+      return environment.getInternalLanguages().get("epb");
+  }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
   private void checkWorkingDirectory(Optional<TruffleFile> maybeProjectRoot) {
