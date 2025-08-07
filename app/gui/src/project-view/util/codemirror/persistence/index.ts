@@ -1,4 +1,4 @@
-import { useSyncLocalStorage, type SyncLocalStorageOptions } from '@/composables/syncLocalStorage'
+import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import {
   scrollStatePlugin,
   type ScrollState,
