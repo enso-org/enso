@@ -226,8 +226,9 @@ export function useOpenProjectMutation() {
       hybrid,
       inBackground = false,
       suppressHybridProjectOpen: _ = false,
+      ensoPath,
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
-      addOpeningProject(hybrid?.cloudProjectId ?? id)
+      addOpeningProject(hybrid?.cloudProjectId ?? id, ensoPath)
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -460,7 +461,7 @@ function useOpenProject() {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
-      addOpeningProject(project.hybrid?.cloudProjectId ?? project.id)
+      addOpeningProject(project.hybrid?.cloudProjectId ?? project.id, project.ensoPath)
 
       if (!enableMultitabs) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
@@ -515,7 +516,7 @@ function useOpenHybridProject() {
 
       try {
         invariant(localBackend != null, 'Local Backend is null')
-        addOpeningProject(asset.id)
+        addOpeningProject(asset.id, asset.ensoPath)
         const projectSessionId = await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
         const cloudProjectDirectoryPath = backendModule.EnsoPath(
@@ -666,7 +667,7 @@ export function useCloseAllProjects() {
   const closeProject = useCloseProject()
   const containerData = useContainerData()
   const removeLaunchedProject = useRemoveLaunchedProject()
-  const removeDownloadingHybridProject = useRemoveOpeningProject()
+  const removeOpeningProject = useRemoveOpeningProject()
   const { remoteBackend, localBackend } = useBackends()
   const ensureQueryData = useEnsureQueryData()
 
@@ -693,7 +694,7 @@ export function useCloseAllProjects() {
             removeLaunchedProject(project.id)
           }
         } else {
-          removeDownloadingHybridProject(project.id)
+          removeOpeningProject(project.id)
         }
       }),
     )
