@@ -90,13 +90,15 @@ const editorPersistenceExt = editorPersistence({
   }),
   scroll: { y: true, x: false },
 })
+
+const extensions = [syncExt, editorPersistenceExt]
 </script>
 
 <template>
   <div class="DocumentationEditor">
     <MarkdownEditor
       v-if="currentMethodAst.ok"
-      :extensions="[syncExt, editorPersistenceExt]"
+      :extensions="extensions"
       :readonly="currentMethodAst.value.readOnly"
       contentTestId="documentation-editor-content"
       scrollerTestId="documentation-editor-scroller"

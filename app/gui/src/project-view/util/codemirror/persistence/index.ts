@@ -9,7 +9,7 @@ import type { ToValue } from '@/util/reactivity'
 import { type Extension } from '@codemirror/state'
 import { EditorView, ViewPlugin, type PluginValue } from '@codemirror/view'
 import { encoding } from 'lib0'
-import { nextTick, onBeforeUnmount, readonly, shallowRef, toValue, type ShallowRef } from 'vue'
+import { nextTick, readonly, shallowRef, toValue, type ShallowRef } from 'vue'
 import { z } from 'zod'
 
 const editorSchema = z.object({
@@ -49,13 +49,12 @@ class EditorPersistencePluginValue implements PluginValue {
     private readonly view: EditorView,
     { documentViewId }: EditorPersistencePluginOptions,
   ) {
-    const { saveState } = useSyncLocalStorage(this.syncLocalStorageOptions())
-    onBeforeUnmount(saveState)
+    useSyncLocalStorage(this.syncLocalStorageOptions())
 
     this.documentViewId = documentViewId
   }
 
-  syncLocalStorageOptions(): SyncLocalStorageOptions<object> {
+  syncLocalStorageOptions(): SyncLocalStorageOptions<EditorState> {
     return {
       storageKey: 'textEditor',
       mapKeyEncoder: (enc) =>
@@ -63,10 +62,7 @@ class EditorPersistencePluginValue implements PluginValue {
       debounce: 200,
       captureState: this.captureState.bind(this),
       restoreState: this.restoreState.bind(this),
-      // The default (`pre`) cannot be used because state captured during `beforeMount` would never
-      // be flushed.
-      flush: 'sync',
-    } satisfies SyncLocalStorageOptions<EditorState>
+    }
   }
 
   private onReady() {

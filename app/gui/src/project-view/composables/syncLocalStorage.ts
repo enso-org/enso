@@ -1,7 +1,7 @@
 import { useAbortScope } from '@/util/net'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
-import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, ref, watch, withCtx } from 'vue'
 import { xxHash128 } from 'ydoc-shared/ast/ffi'
 import { AbortScope } from 'ydoc-shared/util/net'
 
@@ -35,8 +35,6 @@ export interface SyncLocalStorageOptions<StoredState> {
     state: Partial<StoredState> | undefined,
     abort: AbortSignal,
   ) => Promise<void> | void
-  /** When to commit updates to the local storage. Defaults to 'pre'. */
-  flush?: 'pre' | 'post' | 'sync' | undefined
 }
 
 /**
@@ -58,7 +56,9 @@ export function useSyncLocalStorage<StoredState extends object>(
   ) as typeof options.restoreState
 
   const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map(), {
-    flush: options.flush ?? 'pre',
+    // The default (`pre`) cannot be used because state captured during `beforeMount` would never
+    // be flushed.
+    flush: 'sync',
   })
 
   /**
@@ -106,6 +106,10 @@ export function useSyncLocalStorage<StoredState extends object>(
       debounce: options.debounce,
     },
   )
+  onBeforeUnmount(() => {
+    if (restoreIdInProgress.value == null)
+      saveState(graphViewportStorageKey.value, serializedState.value)
+  })
 
   function saveState(storageKey: string, state: StoredState) {
     storageMap.value.set(storageKey, state)
@@ -151,7 +155,5 @@ export function useSyncLocalStorage<StoredState extends object>(
         storageMap.value.set(newKey, stateBlob)
       }
     },
-    /** Save the current state immediately, independently of the debounce timer. */
-    saveState: () => saveState(graphViewportStorageKey.value, serializedState.value),
   }
 }

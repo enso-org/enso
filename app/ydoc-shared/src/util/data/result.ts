@@ -60,18 +60,9 @@ export function unwrap<T, E>(result: Result<T, E>): T {
   else throw result.error
 }
 
-export function unwrapOr<T, A>(result: Result<T, unknown>, alternative: A): T | A
-export function unwrapOr<T, A>(
-  result: Result<T, unknown> | undefined,
-  alternative: A,
-): T | A | undefined
 /** Unwraps the {@link Result} value. If the result is error, an alternative is returned. */
-export function unwrapOr<T, A>(
-  result: Result<T, unknown> | undefined,
-  alternative: A,
-): T | A | undefined {
-  if (!result) return
-  return (result.ok ? result.value : alternative) satisfies T | A
+export function unwrapOr<T, A>(result: Result<T> | undefined, alternative: A): T | A {
+  return result?.ok ? result.value : alternative
 }
 
 /** Unwraps the {@link Result} value. If the result is error, it is logged and alternative is returned. */

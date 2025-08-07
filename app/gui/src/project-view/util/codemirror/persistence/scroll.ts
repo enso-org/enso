@@ -1,41 +1,31 @@
 import type { PersistableStatePlugin } from '@/util/codemirror/persistence/persistableStatePlugin'
 import { EditorSelection, StateEffect } from '@codemirror/state'
 import { EditorView, type PluginValue, ViewPlugin, type ViewUpdate } from '@codemirror/view'
+import type { Mutable } from 'enso-common/src/utilities/data/object'
 import { shallowRef, type ShallowRef, triggerRef } from 'vue'
 import { z } from 'zod'
 
-const scrollModeSchema = z.union([
-  z.literal('nearest'),
-  z.literal('start'),
-  z.literal('end'),
-  z.literal('center'),
-])
-const scrollAxisSchema = z.object({
-  mode: scrollModeSchema,
-  margin: z.number(),
+const documentRange = z.object({
+  anchor: z.number(),
+  head: z.number().optional(),
 })
+
 const scrollSchema = z.object({
-  range: z.object({
-    anchor: z.number(),
-    head: z.number().optional(),
-  }),
-  x: scrollAxisSchema.optional(),
-  y: scrollAxisSchema.optional(),
+  range: documentRange,
+  x: z.number().optional(),
+  y: z.number().optional(),
 })
 
 export type ScrollState = z.infer<typeof scrollSchema>
 
+type DocumentRange = z.infer<typeof documentRange>
 type ScrollTarget = ReturnType<EditorView['scrollSnapshot']>['value']
 const scrollRestoreStateEffect = StateEffect.define()
 
 export interface ScrollStatePluginOptions {
   /** Whether to persist the scroll position along the y-axis. */
   y: boolean
-  /**
-   * Whether to persist the scroll position along the x-axis. Note that, if the view is not
-   * scrollable on the x-axis, this MUST be `false`. If it is `true` but the editor's element is not
-   * horizontally scrollable, restoring state may result in scrolling an ancestor of the editor.
-   */
+  /** Whether to persist the scroll position along the x-axis. */
   x: boolean
 }
 
@@ -75,58 +65,26 @@ class ScrollStatePlugin implements PluginValue, PersistableStatePlugin<ScrollSta
   }
 
   private serializeState(snapshot: ScrollTarget): ScrollState {
-    const { range, y, x, yMargin, xMargin } = snapshot
+    const { range, yMargin, xMargin } = snapshot
     return {
       range: {
         anchor: range.anchor,
         head: range.head,
       },
-      ...(this.y ?
-        {
-          y: {
-            mode: y,
-            margin: yMargin,
-          },
-        }
-      : {}),
-      ...(this.x ?
-        {
-          x: {
-            mode: x,
-            margin: xMargin,
-          },
-        }
-      : {}),
+      y: this.y ? yMargin : undefined,
+      x: this.x ? xMargin : undefined,
     }
   }
 
   restoreState(rawState: unknown) {
     const state = ScrollStatePlugin.parseState(rawState)
     if (!state) return
-    const { range, y, x } = state
+    const scrollTo = this.scrollSnapshotAt(state.range, state.y, state.x)
+    if (!scrollTo) return
     this.restoringScroll = true
     try {
-      const selectionRange = EditorSelection.range(range.anchor, range.head ?? range.anchor)
-      const scrollOptions = {
-        isSnapshot: true,
-        ...(this.y && y ?
-          {
-            y: y.mode,
-            yMargin: y.margin,
-          }
-        : {}),
-        ...(this.x && x ?
-          {
-            x: x.mode,
-            xMargin: x.margin,
-          }
-        : {}),
-      }
       this.view.dispatch({
-        effects: [
-          EditorView.scrollIntoView(selectionRange, scrollOptions),
-          scrollRestoreStateEffect.of(null),
-        ],
+        effects: [scrollTo, scrollRestoreStateEffect.of(null)],
       })
     } finally {
       this.restoringScroll = false
@@ -140,6 +98,21 @@ class ScrollStatePlugin implements PluginValue, PersistableStatePlugin<ScrollSta
     } else {
       console.warn('Failed to restore scroll state', rawState, 'because', state.error.message)
     }
+  }
+
+  private scrollSnapshotAt(
+    range: DocumentRange,
+    y: number | undefined,
+    x: number | undefined,
+  ): StateEffect<unknown> {
+    // CM does not offer a public API to create a "snapshot" scroll target with specific values; get
+    // a current snapshot and overwrite its contents.
+    const snapshot = this.view.scrollSnapshot()
+    const snapshotValue = snapshot.value as Mutable<typeof snapshot.value>
+    snapshotValue.range = EditorSelection.range(range.anchor, range.head ?? range.anchor)
+    if (y != null) snapshotValue.yMargin = y
+    if (x != null) snapshotValue.xMargin = x
+    return snapshot
   }
 }
 
