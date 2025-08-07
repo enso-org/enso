@@ -311,6 +311,22 @@ public class Main {
             .longOpt(LanguageServerApi.PROJECT_ID_OPTION)
             .desc("Project id.")
             .build();
+    var cloudProjectIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("id")
+            .longOpt(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)
+            .desc("Cloud project id (hybrid).")
+            .build();
+    var cloudProjectSessionIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("id")
+            .longOpt(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)
+            .desc("Cloud project session id (hybrid).")
+            .build();
     var pathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -527,6 +543,8 @@ public class Main {
         .addOption(secureDataPortOption)
         .addOption(uuidOption)
         .addOption(projectIdOption)
+        .addOption(cloudProjectIdOption)
+        .addOption(cloudProjectSessionIdOption)
         .addOption(pathOption)
         .addOption(inProjectOption)
         .addOption(version)
@@ -1631,8 +1649,15 @@ public class Main {
     } catch (IllegalArgumentException e) {
       projectId = "00000000-0000-0000-0000-000000000000";
     }
-
-    MDC.put("project.id", projectId);
+    if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
+      MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
+    }
+    if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
+      MDC.put(
+          "projectSessionId",
+          line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION));
+    }
+    MDC.put("projectLocalId", projectId);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
   }

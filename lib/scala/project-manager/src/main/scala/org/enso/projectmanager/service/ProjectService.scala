@@ -596,7 +596,9 @@ object ProjectService {
   /** The variable is used in stdlib to resolve relative paths. */
   private val ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME =
     "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
-  private val ENSO_CLOUD_PROJECT_ID_ENV_NAME = "ENSO_CLOUD_PROJECT_ID"
-  private val ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME =
+
+  /** Variables used during startup of a hybrid project */
+  val ENSO_CLOUD_PROJECT_ID_ENV_NAME = "ENSO_CLOUD_PROJECT_ID"
+  val ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME =
     "ENSO_CLOUD_PROJECT_SESSION_ID"
 }
