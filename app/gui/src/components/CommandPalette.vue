@@ -32,20 +32,23 @@ const actionHandlers = registerHandlers({
   },
 })
 
+const commandPaletteInteraction = {
+  cancel() {
+    visible.value = false
+  },
+  end() {
+    visible.value = false
+  },
+}
+
 watchEffect(() => {
   if (!input.value) return
   if (visible.value) {
     unsetModal()
     input.value.focus()
-    interaction.setCurrent({
-      cancel() {
-        visible.value = false
-      },
-      end() {
-        visible.value = false
-      },
-    })
+    interaction.setCurrent(commandPaletteInteraction)
   } else {
+    interaction.end(commandPaletteInteraction)
     input.value.blur()
     query.value = ''
   }

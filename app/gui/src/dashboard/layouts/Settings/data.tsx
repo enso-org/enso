@@ -22,6 +22,7 @@ import {
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { pick, unsafeEntries } from '#/utilities/object'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import type { GetText } from '$/providers/text'
 import type { Icon } from '@/util/iconMetadata/iconName'
@@ -429,7 +430,49 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     organizationOnly: true,
     visible: ({ user, organization }) =>
       user.isOrganizationAdmin && organization?.subscription != null,
-    sections: [],
+    sections: [
+      {
+        nameId: 'billingAndPlansSettingsSection',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'billingAndPlansSettingsCustomEntryAliases',
+            render: (context) => {
+              // This is a React component, so we can use hooks.
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const openCustomerPortalSession = useMutationCallback({
+                mutationKey: ['billing', 'customerPortalSession'],
+                mutationFn: () =>
+                  context.backend.createCustomerPortalSession().then(
+                    (url) => {
+                      if (url != null) {
+                        window.open(url, '_blank')?.focus()
+                      }
+                    },
+                    (error) => {
+                      context.toastAndLog('arbitraryErrorTitle', error)
+                      throw error
+                    },
+                  ),
+              })
+
+              return (
+                <Button.Group className="grow-0">
+                  <Button
+                    size="small"
+                    variant="outline"
+                    className="self-start"
+                    onPress={() => openCustomerPortalSession()}
+                  >
+                    {context.getText('resetLocalRootDirectory')}
+                  </Button>
+                </Button.Group>
+              )
+            },
+          },
+        ],
+      },
+    ],
     onPress: (context) =>
       context.queryClient
         .getMutationCache()

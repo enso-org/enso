@@ -1047,6 +1047,8 @@
   "downloadDirectoryButtonSettingsCustomEntryAliases": "reset download folder\nreset download directory",
   "accessSettingsTabSection": "Access",
   "billingAndPlansSettingsTab": "Billing",
+  "billingAndPlansSettingsSection": "Billing",
+  "billingAndPlansSettingsCustomEntryAliases": "billing and plans",
   "membersSettingsTab": "Members",
   "membersSettingsSection": "Members",
   "userGroupsSettingsTab": "User groups",
