@@ -39,8 +39,15 @@ public abstract class LookupServicesNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private final Type findType(QualifiedName fqn) {
+  private final Type findType(QualifiedName fqn, String namespace, String name) {
     var ensoCtx = EnsoContext.get(this);
+
+    var path = fqn.pathAsJava();
+    if (path.size() < 2 || !namespace.equals(path.get(0)) || !name.equals(path.get(1))) {
+      var err = ensoCtx.getBuiltins().error().makeModuleNotInPackageError();
+      throw new PanicException(err, this);
+    }
+
     var module =
         switch (fqn.getParent().isDefined() ? 1 : 0) {
           case 1 -> {
@@ -102,7 +109,7 @@ public abstract class LookupServicesNode extends Node {
           continue;
         }
         var with = pw.with();
-        found.add(() -> findType(with));
+        found.add(() -> findType(with, p.namespace(), p.name()));
       }
     }
     return found;
