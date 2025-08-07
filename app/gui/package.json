@@ -95,7 +95,6 @@
     "magic-string": "^0.30.17",
     "modern-isomorphic-ws": "^1.0.5",
     "monaco-editor": "0.48.0",
-    "motion-v": "^1.0.0-beta.1",
     "murmurhash": "^2.0.1",
     "papaparse": "^5.4.1",
     "postcss-inline-svg": "^6.0.0",

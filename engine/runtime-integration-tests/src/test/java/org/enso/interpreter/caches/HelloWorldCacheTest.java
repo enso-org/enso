@@ -3,17 +3,30 @@ package org.enso.interpreter.caches;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
+import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class HelloWorldCacheTest {
+  @Rule public TemporaryFolder tmpDir = new TemporaryFolder();
 
   @Test
   public void loadingHelloWorldTwiceUsesCaching() throws Exception {
@@ -37,6 +50,90 @@ public class HelloWorldCacheTest {
             containsString("Deserializing module"),
             containsString("Hello_World"),
             containsString("from IR file: true")));
+  }
+
+  @Test
+  public void irCacheCannotBeEnabled_WhenPrivateCheckIsDisabled() {
+    try (var ctx =
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true")
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
+            .build()) {
+      try {
+        ctx.context().initialize(LanguageInfo.ID);
+        fail("Context initialization should fail");
+      } catch (Exception e) {
+        assertThat(
+            e.getMessage(),
+            allOf(
+                containsString("private check is disabled"),
+                containsString("IR caching is enabled")));
+      }
+    }
+  }
+
+  @Test
+  public void runningAfterPrivateCheckWasDisabled_ShouldFail() throws Exception {
+    var libDir = tmpDir.newFolder("Lib").toPath();
+    var projDir = tmpDir.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Priv_Mod"),
+                """
+            private
+            priv_func x = x
+            """),
+            new SourceModule(QualifiedName.fromString("Main"), "# Intentionally empty")),
+        libDir);
+
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        import local.Lib.Priv_Mod
+        main =
+            Priv_Mod.priv_func 42
+        """,
+        projDir);
+    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
+
+    // First run with private check DISABLED
+    try (var privateCheckDisabledCtx = ctxInProj(projDir, true).build()) {
+      var polyCtx = new PolyglotContext(privateCheckDisabledCtx.context());
+      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
+      var assocMainModType = mainMod.getAssociatedType();
+      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
+      var res = mainMethod.execute();
+      assertThat("Eval with private check disabled is OK", res.asInt(), is(42));
+    }
+
+    // Second run with private check ENABLED - should fail to compile
+    try (var privateCheckEnabledCtx = ctxInProj(projDir, false).build()) {
+      var polyCtx = new PolyglotContext(privateCheckEnabledCtx.context());
+      try {
+        polyCtx.getTopScope().compile(true);
+        fail("Should result in compilation error");
+      } catch (PolyglotException e) {
+        assertThat(e.getMessage(), containsString("Cannot import private module"));
+      }
+    }
+  }
+
+  private static ContextUtils.Builder ctxInProj(Path projRoot, boolean disablePrivateCheck) {
+    return ContextUtils.newBuilder()
+        .withModifiedContext(
+            bldr ->
+                bldr.option(
+                        RuntimeOptions.DISABLE_PRIVATE_CHECK,
+                        disablePrivateCheck ? "true" : "false")
+                    .option(
+                        RuntimeOptions.DISABLE_IR_CACHES, disablePrivateCheck ? "true" : "false")
+                    .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
+                    .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
+        .withProjectRoot(projRoot);
   }
 
   private static String executeOnce(File src) throws Exception {
