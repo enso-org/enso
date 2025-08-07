@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.function.Supplier;
 import org.enso.interpreter.node.expression.builtin.meta.LookupServicesNode;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -111,6 +113,48 @@ public class MetaServicesTest {
     assertTrue("Returned an array", res.hasArrayElements());
     assertEquals("One registration found", 1, res.getArraySize());
     assertTrue("But it is errorneus", res.getArrayElement(0).isException());
+    try {
+      throw res.getArrayElement(0).throwException();
+    } catch (PolyglotException ex) {
+      MatcherAssert.assertThat(
+          "Verify the message",
+          ex.getMessage(),
+          containsString("expected the result of `conversion` to be File_System_SPI, but got"));
+    }
+  }
+
+  @Test
+  public void panicOnSupplierGet() {
+    var arr =
+        ctx.evalModule(
+            """
+    import Standard.Base.System.File.File_System_SPI
+    type Broken_Impl
+
+    main = [File_System_SPI, Broken_Impl]
+    """);
+    var node = new MockLookupServicesNode();
+    assertTrue("It is an array", arr.hasArrayElements());
+    assertEquals("Two elements", 2, arr.getArraySize());
+    var spi = (Type) ctx.unwrapValue(arr.getArrayElement(0));
+    var err = Text.create("Mock failure");
+    node.toReturn =
+        List.of(
+            () -> {
+              throw new PanicException(err, node);
+            });
+
+    var res = ctx.asValue(node.execute(spi));
+
+    assertTrue("Returned an array", res.hasArrayElements());
+    assertEquals("One registration found", 1, res.getArraySize());
+    assertTrue("But it is errorneus", res.getArrayElement(0).isException());
+    try {
+      throw res.getArrayElement(0).throwException();
+    } catch (PolyglotException ex) {
+      MatcherAssert.assertThat(
+          "Verify the message", ex.getMessage(), containsString(err.toString()));
+    }
   }
 
   private static final class MockLookupServicesNode extends LookupServicesNode {
