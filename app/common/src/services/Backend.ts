@@ -1285,11 +1285,11 @@ export interface UpdateProjectRequestBody {
  */
 export interface OpenHybridProjectParameters {
   /** Cloud project directory path. */
-  readonly cloudProjectDirectoryPath: string
+  readonly cloudProjectDirectoryPath: EnsoPath
   /** Cloud project id. */
-  readonly cloudProjectId: string
+  readonly cloudProjectId: ProjectId
   /** Cloud project session id. */
-  readonly cloudProjectSessionId: string
+  readonly cloudProjectSessionId: ProjectSessionId
 }
 
 /** HTTP request body for the "open project" endpoint. */

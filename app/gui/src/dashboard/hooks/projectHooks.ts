@@ -519,7 +519,9 @@ function useOpenHybridProject() {
         addOpeningProject(asset.id)
         const projectSessionId = await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
-        const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
+        const cloudProjectDirectoryPath = backendModule.EnsoPath(
+          asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/')),
+        )
 
         let project
         for (const parentId of [localProject.parentId, localProject.projectRootId]) {
