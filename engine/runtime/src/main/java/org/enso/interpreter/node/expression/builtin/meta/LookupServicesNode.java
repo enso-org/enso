@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.ArrayList;
@@ -96,7 +97,7 @@ public abstract class LookupServicesNode extends Node {
   @CompilerDirectives.TruffleBoundary
   public final EnsoObject execute(Type fqn) {
     var ensoCtx = EnsoContext.get(this);
-    var collect = new ArrayList<TruffleObject>();
+    var collect = new ArrayList<Object>();
     for (var implType : findImplementationsFor(fqn)) {
       var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
       var state = ensoCtx.currentState();
@@ -112,11 +113,11 @@ public abstract class LookupServicesNode extends Node {
         collect.add(DataflowError.withDefaultTrace(Text.create(msg), this));
         continue;
       }
-      var obj = node.execute(fn, state, new Object[] {fqn, implType});
-      if (obj instanceof EnsoObject found) {
-        collect.add(found);
-      } else {
-        throw ensoCtx.raiseAssertionPanic(this, "Expecting Enso object, but was: " + obj, null);
+      try {
+        var obj = node.execute(fn, state, new Object[] {fqn, implType});
+        collect.add(obj);
+      } catch (AbstractTruffleException ex) {
+        collect.add(DataflowError.withDefaultTrace(Text.create(ex.getMessage()), this));
       }
     }
     var arr = collect.toArray(TruffleObject[]::new);
