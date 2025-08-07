@@ -101,6 +101,9 @@ public class ReloadDetector {
     public void simulateReloadTestOnly() {
       ensureInitialized();
       System.out.println("ZZZZZ ReloadSentinel.simulateReloadTestOnly, sentinel " + this);
+      for (var f : new Throwable().getStackTrace()) {
+        System.out.println("ZZZZZ " + f);
+      }
       EnsoMeta.callStaticModuleMethod(
           "Standard.Base.Network.Reload_Sentinel", "simulate_reload_test_only", ensoReloadSentinel);
     }
