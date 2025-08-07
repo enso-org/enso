@@ -52,7 +52,7 @@
     "@codemirror/lint": "^6.8.4",
     "@codemirror/search": "^6.5.10",
     "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.36.4",
+    "@codemirror/view": "^6.38.1",
     "@floating-ui/vue": "^1.1.5",
     "@hookform/resolvers": "^3.9.1",
     "@internationalized/date": "3.7.0",
