@@ -5,21 +5,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
-import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class MetaServicesTest {
-  @ClassRule
-  public static ContextUtils ctx =
-      ContextUtils.newBuilder()
-          .withModifiedContext(
-              (b) -> {
-                return b.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true");
-              })
-          .build();
+  @ClassRule public static ContextUtils ctx = ContextUtils.createDefault();
 
   @Test
   public void loadFileSystemServices() throws Exception {
@@ -29,9 +21,9 @@ public class MetaServicesTest {
                 "enso",
                 """
     import Standard.Base.System.File.File_System_SPI
-    import Standard.Base.Internal.Meta_Helpers
+    import Standard.Base.Meta
     spis =
-        Meta_Helpers.lookup_services File_System_SPI
+        Meta.lookup_services File_System_SPI
     """,
                 "services.enso")
             .uri(uri)
