@@ -4660,9 +4660,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
+      "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
     Compile / packageBin := {
       val result = (Compile / packageBin).value
@@ -4830,19 +4829,18 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"     % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"      % "truffle-api"             % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
-      "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
-      "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
-      "org.antlr"                % "antlr4-runtime"          % antlrVersion,
-      "org.apache.logging.log4j" % "log4j"                   % "2.24.3",
-      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3", // org.apache.poi uses log4j
-      "junit"                    % "junit"                   % junitVersion              % Test,
-      "com.github.sbt"           % "junit-interface"         % junitIfVersion            % Test,
-      "org.mockito"              % "mockito-core"            % mockitoJavaVersion        % Test,
-      "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
+      "org.graalvm.polyglot"     % "polyglot"              % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "com.univocity"            % "univocity-parsers"     % univocityParsersVersion,
+      "org.apache.poi"           % "poi-ooxml"             % poiOoxmlVersion,
+      "org.apache.xmlbeans"      % "xmlbeans"              % xmlbeansVersion,
+      "org.antlr"                % "antlr4-runtime"        % antlrVersion,
+      "org.apache.logging.log4j" % "log4j"                 % "2.24.3",
+      "org.apache.logging.log4j" % "log4j-to-slf4j"        % "2.24.3", // org.apache.poi uses log4j
+      "junit"                    % "junit"                 % junitVersion              % Test,
+      "com.github.sbt"           % "junit-interface"       % junitIfVersion            % Test,
+      "org.mockito"              % "mockito-core"          % mockitoJavaVersion        % Test,
+      "org.mockito"              % "mockito-junit-jupiter" % mockitoJavaVersion        % Test
     ),
     Compile / unmanagedJars := {
       Seq(
@@ -4899,9 +4897,8 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.openpnp"          % "opencv"                  % opencvVersion
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "org.openpnp"          % "opencv"   % opencvVersion
     ),
     // Extract native libraries from opencv.jar, and put them under
     // Standard/Image/polyglot/lib directory. The minimized opencv.jar will
@@ -4979,8 +4976,7 @@ lazy val `std-generic-jdbc` = project
     Compile / packageBin / artifactPath :=
       `generic-jdbc-polyglot-root` / "std-generic-jdbc.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
@@ -5113,10 +5109,9 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"       % "postgresql"              % postgresVersion
+      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided",
+      "org.xerial"           % "sqlite-jdbc" % sqliteVersion,
+      "org.postgresql"       % "postgresql"  % postgresVersion
     ),
     // Extract native libraries from sqlite-jdbc-**.jar and put them under
     // Standard/Database/polyglot/lib directory. The minimized jar will be
@@ -5195,16 +5190,15 @@ lazy val `std-aws` = project
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.amazon.redshift"    % "redshift-jdbc42"         % redshiftVersion,
-      "com.amazonaws"          % "aws-java-sdk-core"       % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
-      "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "bom"                     % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
+      "com.amazon.redshift"    % "redshift-jdbc42"       % redshiftVersion,
+      "com.amazonaws"          % "aws-java-sdk-core"     % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-redshift" % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-sts"      % awsJavaSdkV1Version,
+      "software.amazon.awssdk" % "auth"                  % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "bom"                   % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "s3"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ssooidc"               % awsJavaSdkV2Version
     ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
@@ -5242,8 +5236,7 @@ lazy val `std-snowflake` = project
     Compile / packageBin / artifactPath :=
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.snowflake"    % "snowflake-jdbc-thin"     % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds")
+      "net.snowflake" % "snowflake-jdbc-thin" % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds")
     ),
     extractNativeLibs := Def.task {
       val logger            = streams.value.log
@@ -5331,11 +5324,10 @@ lazy val `std-microsoft` = project
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.microsoft.sqlserver"   % "mssql-jdbc"              % mssqlserverJDBCVersion,
-      "com.azure"                 % "azure-identity"          % azureIdentityVersion exclude ("net.java.dev.jna", "jna") exclude ("net.java.dev.jna", "jna-platform"),
-      "com.azure.resourcemanager" % "azure-resourcemanager"   % azureResourceVersion,
-      "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
+      "com.microsoft.sqlserver"   % "mssql-jdbc"            % mssqlserverJDBCVersion,
+      "com.azure"                 % "azure-identity"        % azureIdentityVersion exclude ("net.java.dev.jna", "jna") exclude ("net.java.dev.jna", "jna-platform"),
+      "com.azure.resourcemanager" % "azure-resourcemanager" % azureResourceVersion,
+      "com.azure"                 % "azure-storage-blob"    % azureBlobStorageVersion
     ),
     extractNativeLibs := Def.task {
       import sbt.util.CacheImplicits._
@@ -5526,7 +5518,6 @@ lazy val `std-tableau` = project
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
