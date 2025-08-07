@@ -11,7 +11,7 @@ const { name } = defineProps<{ name: AnyIcon }>()
 
 <template>
   <svg class="SvgIcon" viewBox="0 0 16 16" preserveAspectRatio="xMidYMid slice">
-    <use :href="svgUseHref(name)" crossorign></use>
+    <use :href="svgUseHref(name)"></use>
   </svg>
 </template>
 

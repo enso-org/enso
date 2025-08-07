@@ -22,7 +22,7 @@ import { createStore, useStore } from '#/utilities/zustand'
 import { useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import * as React from 'react'
 
 /** The reason behind a new query. */
@@ -468,55 +468,60 @@ const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
     new Set<number>(),
   )
 
-  console.log('areSuggestionsVisible', areSuggestionsVisible)
-
   return (
     <>
-      {areSuggestionsVisible && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          className={DIALOG_BACKGROUND({
-            className:
-              'absolute left-0 right-0 top-0 z-1 grid w-full overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary',
-          })}
-        >
-          <div className="overflow-hidden">
-            <div className="relative mt-3 flex flex-col gap-3 pt-8">
-              {/* Tags (`name:`, `modified:`, etc.) */}
-              <Tags isCloud={isCloud} querySource={querySource} query={query} setQuery={setQuery} />
-              {/* Asset labels */}
-              <Labels
-                isCloud={isCloud}
-                query={query}
-                setQuery={setQuery}
-                querySource={querySource}
-                baseQuery={baseQuery}
-                backend={backend}
-              />
-              {/* Suggestions */}
-              <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
-                {suggestions.map((suggestion, index) => (
-                  <SuggestionRenderer
-                    key={suggestion.key}
-                    index={index}
-                    selectedIndex={selectedIndex}
-                    selectedIndices={selectedIndices}
-                    querySource={querySource}
-                    setQuery={setQuery}
-                    suggestion={suggestion}
-                    setSelectedIndices={setSelectedIndices}
-                    setAreSuggestionsVisible={setAreSuggestionsVisible}
-                    query={query}
-                    baseQuery={baseQuery}
-                  />
-                ))}
+      <AnimatePresence mode="wait" custom={suggestions.length}>
+        {areSuggestionsVisible && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className={DIALOG_BACKGROUND({
+              className:
+                'absolute left-0 right-0 top-0 z-1 grid w-full overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary',
+            })}
+          >
+            <div className="overflow-hidden">
+              <div className="relative mt-3 flex flex-col gap-3 pt-8">
+                {/* Tags (`name:`, `modified:`, etc.) */}
+                <Tags
+                  isCloud={isCloud}
+                  querySource={querySource}
+                  query={query}
+                  setQuery={setQuery}
+                />
+                {/* Asset labels */}
+                <Labels
+                  isCloud={isCloud}
+                  query={query}
+                  setQuery={setQuery}
+                  querySource={querySource}
+                  baseQuery={baseQuery}
+                  backend={backend}
+                />
+                {/* Suggestions */}
+                <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
+                  {suggestions.map((suggestion, index) => (
+                    <SuggestionRenderer
+                      key={suggestion.key}
+                      index={index}
+                      selectedIndex={selectedIndex}
+                      selectedIndices={selectedIndices}
+                      querySource={querySource}
+                      setQuery={setQuery}
+                      suggestion={suggestion}
+                      setSelectedIndices={setSelectedIndices}
+                      setAreSuggestionsVisible={setAreSuggestionsVisible}
+                      query={query}
+                      baseQuery={baseQuery}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 })

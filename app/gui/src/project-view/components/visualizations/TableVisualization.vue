@@ -183,7 +183,7 @@ const grid = ref<
 >()
 
 const getSvgTemplate = (icon: string) =>
-  `<svg viewBox="0 0 16 16" width="16" height="16"><use xlink:href="${svgUseHref(icon)}" crossorigin></use></svg>`
+  `<svg viewBox="0 0 16 16" width="16" height="16"><use xlink:href="${svgUseHref(icon)}"/></svg>`
 
 const getContextMenuItems = (
   params: GetContextMenuItemsParams,
