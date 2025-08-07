@@ -1398,7 +1398,10 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Set state of the project running in Hybrid mode as open in progress. */
-  async setHybridOpenInProgress(id: backend.ProjectId, title: string): Promise<backend.ProjectSessionId> {
+  async setHybridOpenInProgress(
+    id: backend.ProjectId,
+    title: string,
+  ): Promise<backend.ProjectSessionId> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
       readonly projectSessionId: backend.ProjectSessionId
