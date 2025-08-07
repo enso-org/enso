@@ -13,13 +13,25 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.pkg.QualifiedName;
+import org.enso.scala.wrapper.ScalaConversions;
 
 @BuiltinMethod(
     type = "Meta",
     name = "lookup_services",
     description = "Looks services registered by a name up",
     autoRegister = false)
-public final class LookupServicesNode extends Node {
+public abstract class LookupServicesNode extends Node {
+  protected LookupServicesNode() {}
+
+  public static LookupServicesNode build() {
+    return new LookupServicesNode() {
+      @Override
+      protected Iterable<Type> findImplementationsFor(Type service) {
+        return super.defaultImplementationsFor(service);
+      }
+    };
+  }
+
   @CompilerDirectives.TruffleBoundary
   private Type findType(QualifiedName fqn, EnsoContext ensoCtx) {
     var module =
@@ -59,43 +71,49 @@ public final class LookupServicesNode extends Node {
     return implType;
   }
 
+  protected abstract Iterable<Type> findImplementationsFor(Type service);
+
+  private final Iterable<Type> defaultImplementationsFor(Type fqn) {
+    var found = new ArrayList<Type>();
+    var ensoCtx = EnsoContext.get(this);
+    for (var p : ensoCtx.getPackageRepository().getLoadedPackagesJava()) {
+      var regs = ScalaConversions.asJava(p.getConfig().services());
+      for (var pw : regs) {
+        var spiTypeName = pw.provides();
+        if (spiTypeName == null || !spiTypeName.equals(fqn.getQualifiedName())) {
+          continue;
+        }
+        var implType = findType(pw.with(), ensoCtx);
+        found.add(implType);
+      }
+    }
+    return found;
+  }
+
   @CompilerDirectives.TruffleBoundary
-  EnsoObject execute(Type fqn) {
+  public final EnsoObject execute(Type fqn) {
     var ensoCtx = EnsoContext.get(this);
     var collect = new ArrayList<EnsoObject>();
-    for (var p : ensoCtx.getPackageRepository().getLoadedPackagesJava()) {
-      p.getConfig()
-          .services()
-          .foreach(
-              pw -> {
-                var spiTypeName = pw.provides();
-                if (spiTypeName == null || !spiTypeName.equals(fqn.getQualifiedName())) {
-                  return null;
-                }
-
-                var implType = findType(pw.with(), ensoCtx);
-                var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
-                var state = ensoCtx.currentState();
-                var node = InteropApplicationNode.getUncached();
-                var fn = conversion.resolveFor(ensoCtx, fqn, implType);
-                if (fn == null) {
-                  var msg =
-                      "No conversion from "
-                          + implType.getQualifiedName()
-                          + " to "
-                          + fqn.getQualifiedName()
-                          + " found";
-                  throw ensoCtx.raiseAssertionPanic(this, msg, null);
-                }
-                var obj = node.execute(fn, state, new Object[] {fqn, implType});
-                if (obj instanceof EnsoObject found) {
-                  collect.add(found);
-                } else {
-                  throw ensoCtx.raiseAssertionPanic(
-                      this, "Expecting Enso object, but was: " + obj, null);
-                }
-                return null;
-              });
+    for (var implType : findImplementationsFor(fqn)) {
+      var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
+      var state = ensoCtx.currentState();
+      var node = InteropApplicationNode.getUncached();
+      var fn = conversion.resolveFor(ensoCtx, fqn, implType);
+      if (fn == null) {
+        var msg =
+            "No conversion from "
+                + implType.getQualifiedName()
+                + " to "
+                + fqn.getQualifiedName()
+                + " found";
+        throw ensoCtx.raiseAssertionPanic(this, msg, null);
+      }
+      var obj = node.execute(fn, state, new Object[] {fqn, implType});
+      if (obj instanceof EnsoObject found) {
+        collect.add(found);
+      } else {
+        throw ensoCtx.raiseAssertionPanic(this, "Expecting Enso object, but was: " + obj, null);
+      }
     }
     var arr = collect.toArray(EnsoObject[]::new);
     return ArrayLikeHelpers.asVectorEnsoObjects(arr);

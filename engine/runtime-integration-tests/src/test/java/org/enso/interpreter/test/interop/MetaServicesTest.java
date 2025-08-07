@@ -1,10 +1,14 @@
 package org.enso.interpreter.test.interop;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
+import java.util.List;
+import org.enso.interpreter.node.expression.builtin.meta.LookupServicesNode;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
@@ -44,5 +48,36 @@ public class MetaServicesTest {
       }
     }
     fail("Not found `enso` file protocol among: " + arr);
+  }
+
+  @Test
+  public void directCheckOfTheLookupServicesNode() {
+    var arr =
+        ctx.evalModule(
+            """
+    import Standard.Base.System.File.File_System_SPI
+    type Broken_Impl
+
+    main = [File_System_SPI, Broken_Impl]
+    """);
+    var node =
+        new LookupServicesNode() {
+          List<Type> toReturn;
+
+          @Override
+          protected Iterable<Type> findImplementationsFor(Type type) {
+            assertNotNull(toReturn);
+            return toReturn;
+          }
+        };
+    assertTrue("It is an array", arr.hasArrayElements());
+    assertEquals("Two elements", 2, arr.getArraySize());
+    var spi = (Type) ctx.unwrapValue(arr.getArrayElement(0));
+    var impl = (Type) ctx.unwrapValue(arr.getArrayElement(1));
+    node.toReturn = List.of(impl);
+
+    var res = ctx.asValue(node.execute(spi));
+
+    assertTrue("Returned an array", res.hasArrayElements());
   }
 }
