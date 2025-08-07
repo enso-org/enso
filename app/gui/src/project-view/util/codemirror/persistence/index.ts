@@ -49,20 +49,16 @@ class EditorPersistencePluginValue implements PluginValue {
     private readonly view: EditorView,
     { documentViewId }: EditorPersistencePluginOptions,
   ) {
-    useSyncLocalStorage(this.syncLocalStorageOptions())
-
-    this.documentViewId = documentViewId
-  }
-
-  syncLocalStorageOptions(): SyncLocalStorageOptions<EditorState> {
-    return {
+    useSyncLocalStorage({
       storageKey: 'textEditor',
       mapKeyEncoder: (enc) =>
         encoding.writeVarString(enc, this.ready.value ? (toValue(this.documentViewId) ?? '') : ''),
       debounce: 200,
       captureState: this.captureState.bind(this),
       restoreState: this.restoreState.bind(this),
-    }
+    })
+
+    this.documentViewId = documentViewId
   }
 
   private onReady() {
