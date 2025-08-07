@@ -5,6 +5,7 @@ import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.ArrayList;
+import java.util.function.Supplier;
 import org.enso.common.CompilationStage;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
@@ -25,19 +26,21 @@ import org.enso.scala.wrapper.ScalaConversions;
     description = "Looks services registered by a name up",
     autoRegister = false)
 public abstract class LookupServicesNode extends Node {
+  /** Protected for mocking purposes */
   protected LookupServicesNode() {}
 
   public static LookupServicesNode build() {
     return new LookupServicesNode() {
       @Override
-      protected Iterable<Type> findImplementationsFor(Type service) {
+      protected Iterable<Supplier<Type>> findImplementationsFor(Type service) {
         return super.defaultImplementationsFor(service);
       }
     };
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Type findType(QualifiedName fqn, EnsoContext ensoCtx) {
+  private final Type findType(QualifiedName fqn) {
+    var ensoCtx = EnsoContext.get(this);
     var module =
         switch (fqn.getParent().isDefined() ? 1 : 0) {
           case 1 -> {
@@ -75,10 +78,21 @@ public abstract class LookupServicesNode extends Node {
     return implType;
   }
 
-  protected abstract Iterable<Type> findImplementationsFor(Type service);
+  /**
+   * Implements the lookup of all type registrations for given {@code service} type. This method is
+   * protected to allow unit testing with mocks. The expected implementation is supposed to find all
+   * possible registrations and return them as {@link Iterable}. Each element of the iterable is
+   * "supplier" that can either return the Type implementing the service or yield {@link
+   * AbstractTruffleException} (like {@link PanicException}) to signal that the registration is
+   * there, but broken.
+   *
+   * @param service the type to find implementations for
+   * @return iterable with suppliers of types
+   */
+  protected abstract Iterable<Supplier<Type>> findImplementationsFor(Type service);
 
-  private final Iterable<Type> defaultImplementationsFor(Type fqn) {
-    var found = new ArrayList<Type>();
+  private final Iterable<Supplier<Type>> defaultImplementationsFor(Type fqn) {
+    var found = new ArrayList<Supplier<Type>>();
     var ensoCtx = EnsoContext.get(this);
     for (var p : ensoCtx.getPackageRepository().getLoadedPackagesJava()) {
       var regs = ScalaConversions.asJava(p.getConfig().services());
@@ -87,8 +101,8 @@ public abstract class LookupServicesNode extends Node {
         if (spiTypeName == null || !spiTypeName.equals(fqn.getQualifiedName())) {
           continue;
         }
-        var implType = findType(pw.with(), ensoCtx);
-        found.add(implType);
+        var with = pw.with();
+        found.add(() -> findType(with));
       }
     }
     return found;
@@ -98,22 +112,24 @@ public abstract class LookupServicesNode extends Node {
   public final EnsoObject execute(Type fqn) {
     var ensoCtx = EnsoContext.get(this);
     var collect = new ArrayList<Object>();
-    for (var implType : findImplementationsFor(fqn)) {
-      var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
-      var state = ensoCtx.currentState();
-      var node = InteropApplicationNode.getUncached();
-      var fn = conversion.resolveFor(ensoCtx, fqn, implType);
-      if (fn == null) {
-        var msg =
-            "No conversion from "
-                + implType.getQualifiedName()
-                + " to "
-                + fqn.getQualifiedName()
-                + " found";
-        collect.add(DataflowError.withDefaultTrace(Text.create(msg), this));
-        continue;
-      }
+    for (var supplierOfType : findImplementationsFor(fqn)) {
       try {
+        // the get() call may yield AbstractTruffleException
+        var implType = supplierOfType.get();
+        var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
+        var state = ensoCtx.currentState();
+        var node = InteropApplicationNode.getUncached();
+        var fn = conversion.resolveFor(ensoCtx, fqn, implType);
+        if (fn == null) {
+          var msg =
+              "No conversion from "
+                  + implType.getQualifiedName()
+                  + " to "
+                  + fqn.getQualifiedName()
+                  + " found";
+          collect.add(DataflowError.withDefaultTrace(Text.create(msg), this));
+          continue;
+        }
         var obj = node.execute(fn, state, new Object[] {fqn, implType});
         collect.add(obj);
       } catch (AbstractTruffleException ex) {

@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.util.List;
+import java.util.function.Supplier;
 import org.enso.interpreter.node.expression.builtin.meta.LookupServicesNode;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
@@ -68,7 +69,7 @@ public class MetaServicesTest {
     assertEquals("Two elements", 2, arr.getArraySize());
     var spi = (Type) ctx.unwrapValue(arr.getArrayElement(0));
     var impl = (Type) ctx.unwrapValue(arr.getArrayElement(1));
-    node.toReturn = List.of(impl);
+    node.toReturn = List.of(() -> impl);
 
     var res = ctx.asValue(node.execute(spi));
 
@@ -103,7 +104,7 @@ public class MetaServicesTest {
     assertEquals("Two elements", 2, arr.getArraySize());
     var spi = (Type) ctx.unwrapValue(arr.getArrayElement(0));
     var impl = (Type) ctx.unwrapValue(arr.getArrayElement(1));
-    node.toReturn = List.of(impl);
+    node.toReturn = List.of(() -> impl);
 
     var res = ctx.asValue(node.execute(spi));
 
@@ -113,10 +114,10 @@ public class MetaServicesTest {
   }
 
   private static final class MockLookupServicesNode extends LookupServicesNode {
-    List<Type> toReturn;
+    List<Supplier<Type>> toReturn;
 
     @Override
-    protected Iterable<Type> findImplementationsFor(Type type) {
+    protected Iterable<Supplier<Type>> findImplementationsFor(Type type) {
       assertNotNull("The test has to tell us what to return first", toReturn);
       return toReturn;
     }
