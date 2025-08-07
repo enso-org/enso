@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.ArrayList;
 import org.enso.common.CompilationStage;
@@ -10,7 +11,9 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
@@ -93,7 +96,7 @@ public abstract class LookupServicesNode extends Node {
   @CompilerDirectives.TruffleBoundary
   public final EnsoObject execute(Type fqn) {
     var ensoCtx = EnsoContext.get(this);
-    var collect = new ArrayList<EnsoObject>();
+    var collect = new ArrayList<TruffleObject>();
     for (var implType : findImplementationsFor(fqn)) {
       var conversion = UnresolvedConversion.build(implType.getDefinitionScope());
       var state = ensoCtx.currentState();
@@ -106,7 +109,8 @@ public abstract class LookupServicesNode extends Node {
                 + " to "
                 + fqn.getQualifiedName()
                 + " found";
-        throw ensoCtx.raiseAssertionPanic(this, msg, null);
+        collect.add(DataflowError.withDefaultTrace(Text.create(msg), this));
+        continue;
       }
       var obj = node.execute(fn, state, new Object[] {fqn, implType});
       if (obj instanceof EnsoObject found) {
@@ -115,7 +119,7 @@ public abstract class LookupServicesNode extends Node {
         throw ensoCtx.raiseAssertionPanic(this, "Expecting Enso object, but was: " + obj, null);
       }
     }
-    var arr = collect.toArray(EnsoObject[]::new);
-    return ArrayLikeHelpers.asVectorEnsoObjects(arr);
+    var arr = collect.toArray(TruffleObject[]::new);
+    return ArrayLikeHelpers.asVectorWithCheckAt((Object[]) arr);
   }
 }

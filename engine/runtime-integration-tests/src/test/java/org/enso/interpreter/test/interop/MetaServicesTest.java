@@ -51,7 +51,7 @@ public class MetaServicesTest {
   }
 
   @Test
-  public void directCheckOfTheLookupServicesNode() {
+  public void missingConversionYieldsDataflowError() {
     var arr =
         ctx.evalModule(
             """
@@ -60,16 +60,7 @@ public class MetaServicesTest {
 
     main = [File_System_SPI, Broken_Impl]
     """);
-    var node =
-        new LookupServicesNode() {
-          List<Type> toReturn;
-
-          @Override
-          protected Iterable<Type> findImplementationsFor(Type type) {
-            assertNotNull(toReturn);
-            return toReturn;
-          }
-        };
+    var node = new MockLookupServicesNode();
     assertTrue("It is an array", arr.hasArrayElements());
     assertEquals("Two elements", 2, arr.getArraySize());
     var spi = (Type) ctx.unwrapValue(arr.getArrayElement(0));
@@ -79,5 +70,17 @@ public class MetaServicesTest {
     var res = ctx.asValue(node.execute(spi));
 
     assertTrue("Returned an array", res.hasArrayElements());
+    assertEquals("One registration found", 1, res.getArraySize());
+    assertTrue("But it is errorneus", res.getArrayElement(0).isException());
+  }
+
+  private static final class MockLookupServicesNode extends LookupServicesNode {
+    List<Type> toReturn;
+
+    @Override
+    protected Iterable<Type> findImplementationsFor(Type type) {
+      assertNotNull("The test has to tell us what to return first", toReturn);
+      return toReturn;
+    }
   }
 }
