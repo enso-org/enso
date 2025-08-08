@@ -6,11 +6,7 @@ import { computed, toValue, type Ref } from 'vue'
 
 interface UserFilesBackend {
   rootPath: (user: User) => string
-  rootDirectoryId: (
-    user: User,
-    organization: OrganizationInfo | null,
-    localRootDirectory: null,
-  ) => DirectoryId | null
+  rootDirectoryId: (user: User, organization: OrganizationInfo | null) => DirectoryId | null
 }
 
 interface QueryResult<T> {
@@ -42,7 +38,7 @@ export function useUserFiles({
       rootDirectoryId: computed<DirectoryId>(() => {
         const currentOrganization = toValue(organization.data)
         return (
-          (currentOrganization && backend.rootDirectoryId(user, currentOrganization, null)) ??
+          (currentOrganization && backend.rootDirectoryId(user, currentOrganization)) ??
           user.rootDirectoryId
         )
       }),

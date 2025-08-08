@@ -21,6 +21,7 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setDriveLocation } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { Path } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
 import * as authProvider from '$/providers/react'
@@ -372,8 +373,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                   const addedDirectory = directories.find(
                     (directory) => directory.rootPath === newDirectory,
                   )
-
-                  const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                  const newCategory = addedDirectory ?? addDirectory(Path(newDirectory))
                   setDriveLocation(null, newCategory.id)
                 }
               }}

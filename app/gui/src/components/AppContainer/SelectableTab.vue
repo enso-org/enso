@@ -4,19 +4,16 @@ import { isOverflowing } from '$/utils/dom'
 import SvgIcon from '@/components/SvgIcon.vue'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { AnimatePresence, motion } from 'motion-v'
 import { computed, useTemplateRef } from 'vue'
 
 const {
   selected,
-  selectionLayoutId,
   label,
   tooltip,
   orientation = 'horizontal',
   enabled = true,
 } = defineProps<{
   selected: boolean
-  selectionLayoutId: string
   icon?: Icon | undefined
   label?: string | undefined
   tooltip?: string | undefined
@@ -34,44 +31,29 @@ const tooltipPlacement = computed(() => (orientation === 'horizontal' ? 'top' : 
 const tooltipEnabled = computed(
   (): boolean => !!tooltip || !labelElement.value || isOverflowing(labelElement.value),
 )
-
-const VARIANTS = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-}
 </script>
 
 <template>
   <TooltipTrigger :placement="tooltipPlacement" :enabled="tooltipEnabled">
     <template #default="triggerProps">
-      <div class="SelectableTab" :class="orientation" @click="emit('update:selected', !selected)">
-        <AnimatePresence :initial="selected != null">
-          <motion.div
-            v-if="selected"
-            class="underlying"
-            :class="orientation"
-            :layoutId="selectionLayoutId"
-            :variants="VARIANTS"
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-          />
-        </AnimatePresence>
-        <button
-          role="tab"
-          :aria-label="tooltip ?? label ?? ''"
-          class="tabContent tabLayout"
-          :class="{ enabled, selected }"
-          :disabled="!enabled"
-        >
+      <button
+        role="tab"
+        :aria-label="tooltip ?? label ?? ''"
+        :disabled="!enabled"
+        class="SelectableTab"
+        :class="{ [orientation]: true, selected, enabled }"
+        @click="emit('update:selected', !selected)"
+      >
+        <div class="underlying" :class="orientation" />
+        <div class="tabContent tabLayout" :class="{ enabled }">
           <span class="tabLayout" v-bind="triggerProps">
             <SvgIcon v-if="icon" :name="icon" />
             <slot />
             <span v-if="label" ref="label" class="label">{{ label }}</span>
           </span>
           <CloseButton v-if="onClose" @click="onClose" />
-        </button>
-      </div>
+        </div>
+      </button>
     </template>
     <template v-if="$slots.tooltip || tooltip || label" #tooltip>
       <slot name="tooltip">{{ tooltip ?? label }}</slot>
@@ -89,6 +71,12 @@ const VARIANTS = {
   align-items: center;
   padding: 8px;
   white-space: nowrap;
+  text-align: left;
+  cursor: not-allowed;
+
+  &.enabled {
+    cursor: pointer;
+  }
 
   &.horizontal {
     height: 100%;
@@ -96,6 +84,14 @@ const VARIANTS = {
 
   &.vertical {
     width: 100%;
+  }
+
+  &.selected .underlying {
+    opacity: 1;
+  }
+
+  &:hover:not(.selected).enabled .underlying {
+    opacity: 0.6;
   }
 }
 
@@ -106,7 +102,10 @@ const VARIANTS = {
   width: 100%;
   height: 100%;
   z-index: -1;
+  pointer-events: none;
   background-color: var(--selection-color);
+  opacity: 0;
+  transition: opacity 0.3s;
 
   &:before,
   &:after {
@@ -159,19 +158,11 @@ const VARIANTS = {
 .tabContent {
   height: 100%;
   padding: 8px;
-  border-radius: var(--radius-full);
   transition: background-color 0.3s;
-  cursor: not-allowed;
   opacity: 0.2;
 
   &.enabled {
     opacity: 1;
-    cursor: pointer;
-
-    &:hover,
-    &:active {
-      background-color: var(--tab-highlight);
-    }
   }
 }
 

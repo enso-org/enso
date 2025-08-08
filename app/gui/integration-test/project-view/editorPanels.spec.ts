@@ -15,62 +15,163 @@ async function goToGraphAndGetDocs(page: Page) {
   return { docsContent, docsScroller }
 }
 
-test('Main method documentation', async ({ page }) => {
-  const { docsContent } = await goToGraphAndGetDocs(page)
-
-  // Right-dock displays main method documentation.
-  await expect(docsContent).toContainText('The main method')
-
-  // All three images are loaded properly
-  await expect(docsContent.getByAltText('Image')).toHaveCount(3)
-  for (const img of await docsContent.getByAltText('Image').all())
-    await expect(img).toHaveJSProperty('naturalWidth', 3)
-
-  // The video was recognized
-  await expect(docsContent.locator('.DocumentationVideo')).toHaveCount(1)
-
-  // Nested lists are rendered with hierarchical indentation
-  const listItemPos = (text: string) =>
-    docsContent
-      .locator('span.cm-BulletList-item span')
-      .getByText(text, { exact: true })
-      .boundingBox()
-  const listLevel0 = await listItemPos('Outer list element')
-  const listLevel1 = await listItemPos('Nested list element')
-  const listLevel2 = await listItemPos('Very nested list element')
-  expect(listLevel0).not.toBeNull()
-  expect(listLevel1).not.toBeNull()
-  expect(listLevel2).not.toBeNull()
-  expect(listLevel0!.x).toBeLessThan(listLevel1!.x)
-  expect(listLevel1!.x).toBeLessThan(listLevel2!.x)
-
-  // Documentation hotkey closes right-dock.
-  await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(docsContent).toBeHidden()
-})
-
-test('Doc panel focus (regression #10471)', async ({ page }) => {
-  const { docsContent } = await goToGraphAndGetDocs(page)
-
-  // Open and focus code editor.
-  const { codeEditor, getCodeEditorContent } = await openCodeEditor(page)
-  await codeEditor.click()
-
-  await page.evaluate(() => {
-    const codeEditorApi = (window as any).__codeEditorApi
-    const docStart = codeEditorApi.indexOf('The main method')
-    codeEditorApi.placeCursor(docStart + 8)
+test.describe('Main method documentation rendering', () => {
+  test('Text', async ({ page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+    await expect(docsContent).toContainText('The main method')
   })
-  await page.keyboard.press('Space')
-  await page.keyboard.press('T')
-  await page.keyboard.press('E')
-  await page.keyboard.press('S')
-  await page.keyboard.press('T')
 
-  const content = await getCodeEditorContent()
-  expect(content.includes('The main TEST method')).toBe(true)
-  await expect(docsContent).toContainText('The main TEST method')
+  test('Images', async ({ page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+    await expect(docsContent.getByAltText('Image')).toHaveCount(3)
+    for (const img of await docsContent.getByAltText('Image').all())
+      await expect(img).toHaveJSProperty('naturalWidth', 3)
+  })
+
+  test('Video', async ({ page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+    await expect(docsContent.locator('.DocumentationVideo')).toHaveCount(1)
+  })
+
+  test('Lists', async ({ page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+
+    // Nested lists are rendered with hierarchical indentation
+    const listItemPos = (text: string) =>
+      docsContent
+        .locator('span.cm-BulletList-item span')
+        .getByText(text, { exact: true })
+        .boundingBox()
+    const listLevel0 = await listItemPos('Outer list element')
+    const listLevel1 = await listItemPos('Nested list element')
+    const listLevel2 = await listItemPos('Very nested list element')
+    expect(listLevel0).not.toBeNull()
+    expect(listLevel1).not.toBeNull()
+    expect(listLevel2).not.toBeNull()
+    expect(listLevel0!.x).toBeLessThan(listLevel1!.x)
+    expect(listLevel1!.x).toBeLessThan(listLevel2!.x)
+  })
+
+  test('Link (rendered and interactive)', async ({ page, context }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+    await expect(docsContent.locator('a')).toHaveAccessibleDescription(
+      /Click to edit.*Click to open link/,
+    )
+
+    await expect(docsContent.locator('a')).toHaveText('https://example.com')
+    await docsContent.locator('a').click()
+    await expect(page.locator('.LinkEditPopup')).toBeVisible()
+    await locate.graphEditor(page).click()
+    await expect(page.locator('.LinkEditPopup')).toBeHidden()
+    await context.route('https://example.com', (route) =>
+      route.fulfill({ status: 200, body: 'YAY' }),
+    )
+    const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
+    await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
+    await expect(newPagePromise).resolves.toHaveURL('https://example.com')
+  })
 })
+
+test.describe('Panels', () => {
+  test('Doc panel: Close with hotkey', async ({ page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+    await page.keyboard.press(`${CONTROL_KEY}+D`)
+    await expect(docsContent).toBeHidden()
+  })
+
+  test('Doc panel focus (regression #10471)', async ({ page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(page)
+
+    // Open and focus code editor.
+    const { codeEditor, getCodeEditorContent } = await openCodeEditor(page)
+    await codeEditor.click()
+
+    await page.evaluate(() => {
+      const codeEditorApi = (window as any).__codeEditorApi
+      const docStart = codeEditorApi.indexOf('The main method')
+      codeEditorApi.placeCursor(docStart + 8)
+    })
+    await page.keyboard.press('Space')
+    await page.keyboard.press('T')
+    await page.keyboard.press('E')
+    await page.keyboard.press('S')
+    await page.keyboard.press('T')
+
+    const content = await getCodeEditorContent()
+    expect(content.includes('The main TEST method')).toBe(true)
+    await expect(docsContent).toContainText('The main TEST method')
+  })
+
+  test('Code editor with wide content does not take space from doc editor (#12476)', async ({
+    page,
+  }) => {
+    await goToGraphAndGetDocs(page)
+    const rightDock = locate.rightDock(page)
+
+    const getDocX = async () => {
+      await rightDock.elementHandle().then((el) => el!.waitForElementState('stable'))
+      return (await rightDock.boundingBox())!.x
+    }
+    const docPosWithoutCodeEditor = await getDocX()
+    await page.keyboard.press(`${CONTROL_KEY}+\``)
+    const codeEditor = page.locator('.CodeEditor')
+    await expect(codeEditor).toBeVisible()
+    const docPosWithCodeEditor = await getDocX()
+
+    // Note that we compare `x` instead of `width`: This will catch either a change in width, or the
+    // viewport becoming larger than the page (causing a change in *apparent* width).
+    expect(docPosWithCodeEditor).toBe(docPosWithoutCodeEditor)
+  })
+
+  test('Remember scroll position when closed and reopened', async ({ page }) => {
+    const { docsContent, docsScroller } = await goToGraphAndGetDocs(page)
+    const { getCodeEditorContent } = await openCodeEditor(page)
+
+    await setDocumentationText('Some text\n'.repeat(200), {
+      docsContent,
+      getCodeEditorContent,
+      page,
+    })
+    await docsContent.hover()
+    await page.mouse.wheel(0, -2000)
+    await docsContent.elementHandle().then((el) => el!.waitForElementState('stable'))
+    await page.mouse.wheel(0, 400)
+    await docsContent.elementHandle().then((el) => el!.waitForElementState('stable'))
+    await expect.poll(() => docsScroller.evaluate((e) => e.scrollTop)).toBe(400)
+
+    await page.keyboard.press(`${CONTROL_KEY}+D`)
+    await expect(docsContent).toBeHidden()
+
+    await page.keyboard.press(`${CONTROL_KEY}+D`)
+    await expect(docsContent).toBeVisible()
+    await expect
+      .poll(async () => Math.abs(400 - (await docsScroller.evaluate((e) => e.scrollTop))))
+      .toBeLessThan(10)
+  })
+})
+
+async function setDocumentationText(
+  text: string,
+  {
+    docsContent,
+    getCodeEditorContent,
+    page,
+  }: {
+    docsContent: Locator
+    getCodeEditorContent: () => Promise<string>
+    page: Page
+  },
+) {
+  await docsContent.focus()
+  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(DELETE_KEY)
+  await docsContent.fill(text)
+  const codeAfterSettingNewDocs = await getCodeEditorContent()
+  // Wrapping-aware comparison; not correct for all inputs, but it only needs to work for test
+  // cases.
+  const normalizeWhitespace = (text: string) => text.replaceAll(/\s+/g, ' ')
+  expect(normalizeWhitespace(codeAfterSettingNewDocs)).toContain(normalizeWhitespace(text))
+}
 
 async function openCodeEditor(page: Page) {
   await page.keyboard.press(`${CONTROL_KEY}+\``)
@@ -81,27 +182,6 @@ async function openCodeEditor(page: Page) {
   const codeScroller = codeEditor.locator('.cm-scroller')
   return { codeEditor, getCodeEditorContent, codeScroller }
 }
-
-test('Code editor with wide content does not take space from doc editor (#12476)', async ({
-  page,
-}) => {
-  await goToGraphAndGetDocs(page)
-  const rightDock = locate.rightDock(page)
-
-  const getDocX = async () => {
-    await rightDock.elementHandle().then((el) => el!.waitForElementState('stable'))
-    return (await rightDock.boundingBox())!.x
-  }
-  const docPosWithoutCodeEditor = await getDocX()
-  await page.keyboard.press(`${CONTROL_KEY}+\``)
-  const codeEditor = page.locator('.CodeEditor')
-  await expect(codeEditor).toBeVisible()
-  const docPosWithCodeEditor = await getDocX()
-
-  // Note that we compare `x` instead of `width`: This will catch either a change in width, or the
-  // viewport becoming larger than the page (causing a change in *apparent* width).
-  expect(docPosWithCodeEditor).toBe(docPosWithoutCodeEditor)
-})
 
 test('Component help', async ({ page }) => {
   await actions.goToGraph(page)
@@ -214,23 +294,6 @@ test.describe('User-defined component documentation', () => {
     await expect(arg!.defaultValue.locator('.WidgetEnsoExpression .cm-content')).toBeFocused()
     await arg!.setMissingBehaviour('optional')
   })
-})
-
-test('Link in documentation is rendered and interactive', async ({ page, context }) => {
-  const { docsContent } = await goToGraphAndGetDocs(page)
-  await expect(docsContent.locator('a')).toHaveAccessibleDescription(
-    /Click to edit.*Click to open link/,
-  )
-
-  await expect(docsContent.locator('a')).toHaveText('https://example.com')
-  await docsContent.locator('a').click()
-  await expect(page.locator('.LinkEditPopup')).toBeVisible()
-  await locate.graphEditor(page).click()
-  await expect(page.locator('.LinkEditPopup')).toBeHidden()
-  context.route('https://example.com', (route) => route.fulfill({ status: 200, body: 'YAY' }))
-  const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
-  await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
-  await expect(newPagePromise).resolves.toHaveURL('https://example.com')
 })
 
 test('Insert link button inserts link and focuses editor', async ({ page }) => {

@@ -1,7 +1,6 @@
 /** @file Test the drive view. */
-import { expect, test, type Page } from 'playwright/test'
-
 import { EmailAddress, ProjectState } from '#/services/Backend'
+import { expect, test, type Page } from 'playwright/test'
 import { getText, mockAllAndLogin, TEXT } from './actions'
 
 /** Find an extra columns button panel. */

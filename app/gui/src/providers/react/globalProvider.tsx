@@ -1,4 +1,3 @@
-import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import { AuthStore, useAuth } from '$/providers/auth'
 import { BackendsStore, useBackends } from '$/providers/backends'
@@ -20,6 +19,7 @@ import { TextStore, useText } from '$/providers/text'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { reactComponent } from '@/util/react'
 import { proxyRefs } from '@/util/reactivity'
+import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
 import { useRoute, useRouter } from 'vue-router'
 

@@ -1,9 +1,9 @@
 /** @file Actions for the "organization" form in settings. */
-import { TEXT } from '.'
 import type { LocatorCallback } from './BaseActions'
 import type PageActions from './PageActions'
 import SettingsFormActions from './SettingsFormActions'
 import SettingsOrganizationTabActions from './SettingsOrganizationTabActions'
+import { TEXT } from './utilities'
 
 /** Actions for the "organization" form in settings. */
 export default class SettingsOrganizationFormActions<Context> extends SettingsFormActions<
@@ -12,14 +12,17 @@ export default class SettingsOrganizationFormActions<Context> extends SettingsFo
 > {
   /** Create a {@link SettingsOrganizationFormActions}. */
   constructor(...args: ConstructorParameters<typeof PageActions<Context>>) {
+    const [page, context, promise] = args
     super(
-      SettingsOrganizationTabActions<Context>,
       (page) =>
         page
           .getByRole('heading')
           .and(page.getByText(TEXT.organizationSettingsSection))
           .locator('..'),
-      ...args,
+      page,
+      context,
+      promise,
+      SettingsOrganizationTabActions<Context>,
     )
   }
 

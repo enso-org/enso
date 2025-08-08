@@ -6,13 +6,13 @@ import {
   ProjectManager,
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
-import HttpClient from '#/utilities/HttpClient'
 import { useEvent } from '@/composables/events'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { proxyRefs, ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import invariant from 'tiny-invariant'
-import { computed, inject, readonly, ref, toValue, watchEffect } from 'vue'
+import { computed, inject, readonly, ref, toValue, watch, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { GetText, useText } from './text'
 
@@ -36,9 +36,17 @@ function initializeBackends(
     projectManager.value = pm
   })
   const localBackend = computed(() =>
-    projectManager.value ? new LocalBackend(projectManager.value) : null,
+    projectManager.value ? new LocalBackend(console, getText, projectManager.value) : null,
   )
-  const remoteBackend = new RemoteBackend(httpClient, console, getText)
+  const remoteBackend = new RemoteBackend(console, getText, httpClient)
+
+  watch(
+    () => getText,
+    (getText) => {
+      localBackend.value?.setGetText(getText)
+      remoteBackend.setGetText(getText)
+    },
+  )
 
   const backendForType = (projectType: BackendType) => {
     switch (projectType) {
