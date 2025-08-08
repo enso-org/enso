@@ -464,7 +464,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                     className="self-start"
                     onPress={() => openCustomerPortalSession()}
                   >
-                    {context.getText('resetLocalRootDirectory')}
+                    {context.getText('openBillingPage')}
                   </Button>
                 </Button.Group>
               )
