@@ -432,9 +432,9 @@ export default class LocalBackend extends Backend {
       await this.projectManager.openProject({
         projectId: id,
         missingComponentAction: projectManager.MissingComponentAction.install,
-        ...(body?.cloudProjectDirectoryPath != null ?
+        ...(body?.openHybridProjectParameters != null ?
           {
-            cloudProjectDirectoryPath: body.cloudProjectDirectoryPath,
+            cloud: body.openHybridProjectParameters,
           }
         : {}),
         ...(body?.parentId != null ?
