@@ -3662,6 +3662,7 @@ lazy val `engine-runner` = project
         "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
         "com.typesafe"           % "config"                       % typesafeConfigVersion,
         "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
+        "org.apache.tika"        % "tika-core"                    % tikaVersion,
         "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
         "org.yaml"               % "snakeyaml"                    % snakeyamlVersion
       ),
