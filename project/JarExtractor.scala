@@ -138,8 +138,8 @@ object JarExtractor {
       case (LinuxAMD64, "linux", "x86_64")     => true
       case (WindowsAMD64, "windows", "x86_64") => true
       case (MacOSAMD64, "osx", "x86_64")       => true
-      case (MacOSArm64, "osx", "aarch64")       => true
-      case _                                    => false
+      case (MacOSArm64, "osx", "aarch64")      => true
+      case _                                   => false
     }
   }
 

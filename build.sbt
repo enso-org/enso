@@ -18,8 +18,8 @@ import Dependencies.*
 import JarExtractor.{
   CopyToOutputJar,
   LinuxAMD64,
-  MacOSArm64,
   MacOSAMD64,
+  MacOSArm64,
   PolyglotLib,
   WindowsAMD64
 }
@@ -5488,11 +5488,11 @@ lazy val `std-snowflake` = project
               "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2"
             )
           ),
-          libraryUpdates                    = (Compile / update).value,
-          logger                            = streams.value.log,
-          cacheStoreFactory                 = cacheStoreFactory,
-          unmanagedClasspath                = (Compile / unmanagedJars).value,
-          polyglotLibDir                    = Some(`std-snowflake-native-libs`),
+          libraryUpdates     = (Compile / update).value,
+          logger             = streams.value.log,
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          polyglotLibDir     = Some(`std-snowflake-native-libs`),
           extractedNativeLibsDirs = Seq(
             (`grpc-wrapper-older` / extractedFilesDir).value,
             (`conscrypt-wrapper` / extractedFilesDir).value
