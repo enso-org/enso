@@ -21,13 +21,15 @@ export function useBindGlobalActions(actions: Partial<Record<DashboardBindingKey
   useEffect(() => {
     actionsRef.value = unsafeEntries(actions).flatMap(([action, doAction]) => {
       if (!doAction) return []
+      const metadata = inputBindings.metadata[action]
       return [
         {
           name: getText(actionToTextId(action)),
-          doAction: doAction,
-          shortcuts: inputBindings.metadata[action].bindings,
+          category: getText(`${metadata.category}BindingCategory`),
+          doAction,
+          shortcuts: metadata.bindings,
           // eslint-disable-next-line no-restricted-syntax
-          icon: inputBindings.metadata[action].icon as Icon | undefined,
+          icon: metadata.icon as Icon | undefined,
         },
       ]
     })
@@ -56,13 +58,15 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
   useEffect(() => {
     actionsRef.value = entries.flatMap((entry) => {
       if (entry == null || entry === false || entry.isDisabled === true) return []
+      const metadata = inputBindings.metadata[entry.action]
       return [
         {
           name: getText(actionToTextId(entry.action)),
+          category: getText(`${metadata.category}BindingCategory`),
           doAction: entry.doAction,
-          shortcuts: inputBindings.metadata[entry.action].bindings,
+          shortcuts: metadata.bindings,
           // eslint-disable-next-line no-restricted-syntax
-          icon: (entry.icon ?? inputBindings.metadata[entry.action].icon) as Icon | undefined,
+          icon: (entry.icon ?? metadata.icon) as Icon | undefined,
         },
       ]
     })

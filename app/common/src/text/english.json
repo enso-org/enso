@@ -1275,5 +1275,14 @@
   "invitationError": "Something went wrong. Please contact the administrator.",
   "pendingInvitationInfo": "You have pending team invitation.",
   "invitationText": "\"$0\" invites you to join",
-  "invitationAlert": "All of your assets will be transfered with you. This might take a while."
+  "invitationAlert": "All of your assets will be transfered with you. This might take a while.",
+  "bestMatchesBindingCategory": "Best Matches",
+  "helpBindingCategory": "Help",
+  "otherBindingCategory": "Other",
+  "fileManagementBindingCategory": "File Management",
+  "editingBindingCategory": "Editing",
+  "collaborationBindingCategory": "Collaboration",
+  "settingsBindingCategory": "Settings",
+  "navigationBindingCategory": "Navigation",
+  "developerBindingCategory": "Developer"
 }

@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { CATEGORIES } from '#/configurations/inputBindings'
 import KeyboardShortcutReact from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
 import * as objects from '#/utilities/object'
 import { useActionsStore, type Action } from '$/providers/actions'
 import { useContainerData } from '$/providers/container'
+import { useText } from '$/providers/text'
 import { commandPaletteBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
@@ -18,6 +20,7 @@ const KeyboardShortcut = reactComponent(KeyboardShortcutReact)
 const { findActions } = useActionsStore()
 const containerData = useContainerData()
 const interaction = injectInteractionHandler()
+const { getText } = useText()
 
 const visible = ref(false)
 const query = ref('')
@@ -27,7 +30,7 @@ const actionHandlers = registerHandlers({
   'commandPalette.open': {
     action: () => {
       if (containerData.tab !== 'drive' && containerData.tab !== 'settings') return
-      visible.value = true
+      open()
     },
   },
 })
@@ -41,16 +44,26 @@ const commandPaletteInteraction = {
   },
 }
 
+function open() {
+  visible.value = true
+  unsetModal()
+  interaction.setCurrent(commandPaletteInteraction)
+}
+
+function close() {
+  if (!input.value) return
+  interaction.end(commandPaletteInteraction)
+  query.value = ''
+}
+
+// This must be in a `watcEffect` or else `input.value` will be `null`
+// since the modal is only conditionally shown.
 watchEffect(() => {
   if (!input.value) return
   if (visible.value) {
-    unsetModal()
     input.value.focus()
-    interaction.setCurrent(commandPaletteInteraction)
   } else {
-    interaction.end(commandPaletteInteraction)
     input.value.blur()
-    query.value = ''
   }
 })
 
@@ -67,11 +80,28 @@ useEvent(
 
 function trigger(action: Action | undefined) {
   if (!action) return
-  visible.value = false
+  close()
   action.doAction()
 }
 
 const actions = computed(() => findActions(query))
+
+const groupedActions = computed(() => {
+  const actionsValue = actions.value
+  return CATEGORIES.flatMap((category) => {
+    const categoryName = getText(`${category}BindingCategory`)
+    const actionsInThisCategory = actionsValue.filter((action) => action.category === categoryName)
+    if (actionsInThisCategory.length === 0) {
+      return []
+    }
+    return [
+      {
+        category: categoryName,
+        actions: actionsInThisCategory,
+      },
+    ]
+  })
+})
 </script>
 
 <template>
@@ -82,7 +112,7 @@ const actions = computed(() => findActions(query))
       :initial="{ opacity: 0, y: '-100px' }"
       :animate="{ opacity: 1, y: '0' }"
       :exit="{ opacity: 0, y: '-100px' }"
-      @click.stop="visible = false"
+      @click.stop="close"
       @keydown.enter.stop
     >
       <div class="container" @click.stop>
@@ -94,25 +124,28 @@ const actions = computed(() => findActions(query))
           @keydown.enter.prevent="trigger(actions[0])"
         />
         <div class="scroll-container">
-          <ul>
-            <li v-for="(action, i) in actions" :key="i">
-              <button @click="trigger(action)">
-                <SvgIcon v-if="action.icon" :name="action.icon" class="icon" />
-                <div v-else class="icon-placeholder"></div>
-                <!-- eslint-disable vue/no-v-html -->
-                <span class="entry-content" v-html="action.highlighted.name"></span>
-                <!-- eslint-enable -->
-                <div class="shortcuts">
-                  <KeyboardShortcut
-                    v-for="(shortcut, j) in action.shortcuts"
-                    :key="j"
-                    :shortcut="shortcut"
-                  />
-                </div>
-              </button>
-            </li>
-            <li v-if="!actions.length" class="disabled">No actions found</li>
-          </ul>
+          <div v-for="actionsGroup in groupedActions" :key="actionsGroup.category">
+            <h3 class="category-heading">{{ actionsGroup.category }}</h3>
+            <ul>
+              <li v-for="(action, i) in actionsGroup.actions" :key="i">
+                <button @click="trigger(action)">
+                  <SvgIcon v-if="action.icon" :name="action.icon" class="icon" />
+                  <div v-else class="icon-placeholder"></div>
+                  <!-- eslint-disable vue/no-v-html -->
+                  <span class="entry-content" v-html="action.highlighted.name"></span>
+                  <!-- eslint-enable -->
+                  <div class="shortcuts">
+                    <KeyboardShortcut
+                      v-for="(shortcut, j) in action.shortcuts"
+                      :key="j"
+                      :shortcut="shortcut"
+                    />
+                  </div>
+                </button>
+              </li>
+              <li v-if="!actions.length" class="disabled">No actions found</li>
+            </ul>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -159,10 +192,17 @@ const actions = computed(() => findActions(query))
 }
 
 .scroll-container {
+  display: flex;
+  flex-flow: column;
   overflow-y: auto;
   height: 20em;
   width: 100%;
   padding-right: 0.5em;
+}
+
+.category-heading {
+  font-weight: bold;
+  padding: 0.75em 1em 0.25em 1em;
 }
 
 input {

@@ -473,25 +473,6 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         ],
       },
     ],
-    onPress: (context) =>
-      context.queryClient
-        .getMutationCache()
-        .build(context.queryClient, {
-          mutationKey: ['billing', 'customerPortalSession'],
-          mutationFn: () =>
-            context.backend
-              .createCustomerPortalSession()
-              .then((url) => {
-                if (url != null) {
-                  window.open(url, '_blank')?.focus()
-                }
-              })
-              .catch((err) => {
-                context.toastAndLog('arbitraryErrorTitle', err)
-                throw err
-              }),
-        })
-        .execute({} satisfies unknown),
   },
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
@@ -721,7 +702,6 @@ export interface SettingsTabData {
    */
   readonly feature?: PaywallFeatureName
   readonly sections: readonly SettingsSectionData[]
-  readonly onPress?: (context: SettingsContext) => Promise<void> | void
 }
 
 /** Metadata describing a settings tab section. */

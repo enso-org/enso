@@ -6,6 +6,8 @@ import { MaybeRef, ref, Ref, toValue } from 'vue'
 export interface Action {
   /** The name of the action. */
   name: string
+  /** The category of the action. */
+  category: string
   /** The function to execute when the action is triggered. */
   doAction: () => void
   shortcuts: readonly string[]
@@ -47,15 +49,12 @@ function createActionsStore() {
       [...actions.value].flatMap((ref) =>
         Array.isArray(ref.value) ? ref.value : Object.values(ref.value),
       ),
-      {
-        keys: ['name'],
-        all: true,
-      },
+      { keys: ['name', 'category'], all: true },
     )
     return matches.map((match) => ({
       ...match.obj,
       highlighted: {
-        name: match[0]?.highlight('<span class="highlighted">', '</span>') ?? match.obj.name,
+        name: match[0]?.highlight('<span class="highlighted">', '</span>') || match.obj.name,
       },
     }))
   }

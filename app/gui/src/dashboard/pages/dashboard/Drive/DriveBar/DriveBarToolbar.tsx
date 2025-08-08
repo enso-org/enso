@@ -21,7 +21,6 @@ import {
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useBindGlobalActions } from '#/hooks/menuHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
@@ -34,12 +33,10 @@ import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
-import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, isDirectoryId, isProjectId, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -63,7 +60,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { category, associatedBackend: backend } = useCategoriesAPI()
   const { getText } = useText()
   const driveStore = useDriveStore()
-  const inputBindings = useInputBindings()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = backend.type === BackendType.remote
   const { isOffline } = useOffline()
@@ -107,34 +103,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     mutationKey: ['newProject'],
     mutationFn: async () => await newProjectRaw({}, currentDirectoryId),
   })
-
-  const inputBindingHandlers = React.useMemo(
-    () =>
-      inputBindings.defineHandlers({
-        ...(isCloud ?
-          {
-            newFolder: () => {
-              void newFolder(currentDirectoryId)
-            },
-          }
-        : {}),
-        newProject: () => {
-          void newProjectMutation()
-        },
-        uploadFiles: () => {
-          void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
-        },
-      }),
-    [currentDirectoryId, inputBindings, isCloud, newFolder, newProjectMutation, uploadFiles],
-  )
-
-  useBindGlobalActions(inputBindingHandlers)
-
-  React.useEffect(
-    () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', inputBindingHandlers),
-    [inputBindingHandlers, inputBindings],
-  )
 
   const newProject = useEventCallback(async () => {
     await newProjectMutation()

@@ -36,7 +36,6 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
     label?: BackendLabel,
   ) => void
   readonly onDelete?: () => Promise<void> | void
-  readonly onContextMenu?: (event: MouseEvent<HTMLElement>) => void
   readonly onDragStart?: (event: DragEvent<HTMLElement>) => void
 }
 
@@ -46,7 +45,7 @@ export default forwardRef(function Label(
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
-  const { onPress, onDragStart, onContextMenu, label, onDelete } = props
+  const { onPress, onDragStart, label, onDelete } = props
   const { children: childrenRaw } = props
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   const isLight = color.lightness > 50
@@ -88,7 +87,6 @@ export default forwardRef(function Label(
           style={{ backgroundColor: lChColorToCssColor(color) }}
           onClick={onClick}
           onDragStart={onDragStartStableCallback}
-          onContextMenu={onContextMenu}
         >
           {typeof childrenRaw !== 'string' ?
             childrenRaw

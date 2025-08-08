@@ -66,7 +66,6 @@ import {
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
   isAssetCredential,
-  isDirectoryId,
   type AnyAsset,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
@@ -212,27 +211,9 @@ function AssetsTable(props: AssetsTableProps) {
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
   const paste = usePaste(category)
 
-  const isSingleSelectedDirectoryItem = useStore(
-    driveStore,
-    (state) => {
-      const selectedIds = state.selectedIds
-
-      if (selectedIds.size !== 1) {
-        return false
-      }
-
-      const firstId = Array.from(selectedIds).values().next().value
-
-      if (firstId == null) {
-        return false
-      }
-
-      const isDirectory = isDirectoryId(firstId)
-
-      return isDirectory
-    },
-    { unsafeEnableTransition: true },
-  )
+  const isSingleSelectedItem = useStore(driveStore, (state) => state.selectedIds.size === 1, {
+    unsafeEnableTransition: true,
+  })
 
   const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({
     category,
@@ -772,7 +753,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const contextMenu =
-    isSingleSelectedDirectoryItem ? null : (
+    isSingleSelectedItem ? null : (
       <AssetsTableContextMenu
         ref={contextMenuRef}
         backend={backend}
