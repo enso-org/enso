@@ -156,6 +156,24 @@
   --progress-animation-final-duration: 0.1s;
 }
 
+.widgetPill {
+  background-color: var(--color-widget);
+  min-width: var(--node-port-height);
+  min-height: var(--node-port-height);
+  border-radius: var(--node-port-border-radius);
+  box-shadow: var(--node-port-shadow);
+  transition:
+    background-color,
+    color,
+    opacity 0.2s ease;
+
+  &:focus,
+  &:has(:focus):not(:has(.widgetPill :focus)) {
+    outline: none;
+    background-color: var(--color-widget-focus);
+  }
+}
+
 /*********************************
  *** other non-color variables ***
  *********************************/

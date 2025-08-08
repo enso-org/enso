@@ -121,6 +121,7 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
+          class="widgetPill"
           :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
           :color="color"
           :backgroundColor="backgroundColor"

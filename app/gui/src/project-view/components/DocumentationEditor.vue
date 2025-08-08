@@ -5,6 +5,7 @@ import { useRightPanelData } from '$/providers/rightPanel'
 import { useDocumentViewId } from '@/components/DocumentationEditor/documentViewId'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
 import { useYTextSync } from '@/util/codemirror'
@@ -13,7 +14,7 @@ import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
 import { useQuery } from '@tanstack/vue-query'
-import { computed } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 
 const rightPanel = useRightPanelData()
 const currentProject = useCurrentProject()
@@ -23,6 +24,9 @@ const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
   return backendForType(rightPanel.context.category.backend)
 })
+
+const rootElement = useTemplateRef('rootElement')
+providePopoverRoot(rootElement)
 
 const fileContentsFromCloud = useQuery({
   queryKey: computed(
@@ -95,7 +99,7 @@ const extensions = [syncExt, editorPersistenceExt]
 </script>
 
 <template>
-  <div class="DocumentationEditor">
+  <div ref="rootElement" class="DocumentationEditor">
     <MarkdownEditor
       v-if="currentMethodAst.ok"
       :extensions="extensions"

@@ -1,110 +1,104 @@
 <script setup lang="ts">
-import {
-  useGraphStore,
-  useProjectNames,
-  useSuggestionDbStore,
-} from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
-import { FunctionInfoKey } from '@/components/GraphEditor/widgets/WidgetFunctionDef.vue'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
-import { colorFromString } from '@/util/colors'
 import { useYText } from '@/util/crdt'
 import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
-import { useFocusWithin } from '@vueuse/core'
 import { computed, useTemplateRef } from 'vue'
-
-const suggestionDb = useSuggestionDbStore()
-const projectNames = useProjectNames()
+import FormContainer from './FormContainer.vue'
+import FormRow from './FormRow.vue'
+import { FunctionName } from './GraphEditor/widgets/WidgetFunctionName.vue'
+import { DisplayIcon } from './GraphEditor/widgets/WidgetIcon.vue'
 
 const { functionAst, methodPointer } = defineProps<{
   functionAst: Ast.FunctionDef
   methodPointer: MethodPointer | undefined
 }>()
 
+const rootElement = useTemplateRef('rootElement')
+providePopoverRoot(rootElement)
+
+const currentProject = useCurrentProject()
+
 const docsString = useYText(() => functionAst.mutableDocumentationMarkdown())
 
 const docsData = computed(() => {
   const definedIn = methodPointer?.module
-  return definedIn && documentationData(docsString.value, definedIn.project, suggestionDb.groups)
+  return (
+    definedIn &&
+    documentationData(
+      docsString.value,
+      definedIn.project,
+      currentProject.ref.value?.suggestionDb.groups ?? [],
+    )
+  )
 })
-
-const treeRootInput = computed((): WidgetInput => {
-  const input = WidgetInput.FromAst(functionAst)
-  if (methodPointer) input[FunctionInfoKey] = { methodPointer, docsData }
-  return input
-})
-
-const rootElement = useTemplateRef('rootElement')
-const { focused } = useFocusWithin(rootElement)
-providePopoverRoot(rootElement)
-
-const graph = useGraphStore()
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  applyWidgetUpdates(update, graph)
+  const graph = currentProject.ref.value?.graph
+  if (graph) applyWidgetUpdates(update, graph)
   return Ok()
 }
 
-const groupBasedColor = computed(() => {
-  const groupIndex = docsData.value?.groupIndex
-  return groupIndex != null ? suggestionDb.groups[groupIndex]?.color : undefined
+const funcNameInput = computed(() => {
+  const nameAst = functionAst.name
+  const widgetInput = WidgetInput.FromAst(nameAst)
+  if (methodPointer) {
+    widgetInput[FunctionName] = { editableNameExpression: nameAst.externalId, methodPointer }
+  }
+  return { input: widgetInput, externalId: nameAst.externalId, updateCallback: handleWidgetUpdates }
 })
 
-const returnTypeBasedColor = computed(() => {
-  if (!methodPointer) return
-  const suggestionId = suggestionDb.entries.findByMethodPointer(methodPointer)
-  if (suggestionId == null) return
-  const entry = suggestionDb.entries.get(suggestionId)
-  if (!entry) return
-  return colorFromString(entry.returnType(projectNames))
+const funcIconInput = computed(() => {
+  const icon = docsData.value?.iconName ?? 'enso_logo'
+  const nameAst = functionAst.name
+  const widgetInput = WidgetInput.FromAst(nameAst)
+  widgetInput[DisplayIcon] = { icon, allowChoice: true, showContents: false }
+  return { input: widgetInput, externalId: nameAst.externalId, updateCallback: handleWidgetUpdates }
 })
 
-const rootStyle = computed(() => {
+const funcArgsInput = computed(() => {
+  const widgetInput = WidgetInput.FromAst(functionAst)
   return {
-    '--node-group-color':
-      groupBasedColor.value ?? returnTypeBasedColor.value ?? 'var(--group-color-fallback)',
+    input: widgetInput,
+    externalId: functionAst.externalId,
+    updateCallback: handleWidgetUpdates,
   }
 })
-
-// We surely don’t have primary application for the function definition.
-const primaryApplication = emptyPrimaryApplication()
 </script>
 
 <template>
-  <div
-    ref="rootElement"
-    :style="rootStyle"
-    class="FunctionSignatureEditor define-node-colors"
-    :class="{ selected: focused }"
-  >
-    <WidgetTreeRoot
-      :selected="focused"
-      :externalId="functionAst.externalId"
-      :input="treeRootInput"
-      :primaryApplication="primaryApplication"
-      :rootElement="rootElement"
-      :extended="true"
-      :updateCallback="handleWidgetUpdates"
-    />
+  <div ref="rootElement" class="FunctionSignatureEditor define-node-colors">
+    <FormContainer>
+      <FormRow>
+        <template #label>Collapsed Components Name</template>
+        <WidgetTreeRoot v-bind="funcNameInput" />
+      </FormRow>
+      <FormRow inline>
+        <template #label>Icon</template>
+        <!-- TODO: handle allowChoice to make item selection dropdown -->
+        <WidgetTreeRoot class="widgetPill" v-bind="funcIconInput" />
+      </FormRow>
+      <FormRow>
+        <template #label>Arguments (Name : Type = Default)</template>
+        <!-- TODO: inline arg list and delete WidgetFunctionDef -->
+        <WidgetTreeRoot class="widgetPill" v-bind="funcArgsInput" />
+      </FormRow>
+      <FormRow>
+        <template #label>Documentation</template>
+      </FormRow>
+    </FormContainer>
   </div>
 </template>
 
 <style scoped>
 .FunctionSignatureEditor {
-  padding: 4px;
-
-  /*
-   * TODO: Add node coloring.
-   * Function color cannot be inferred at the moment, as it depends on the output type.
-   */
-
-  border-radius: var(--node-border-radius);
-  transition: background-color 0.2s ease;
-  background-color: var(--color-node-background);
+  --node-group-color: white;
+  --color-node-text: black;
+  --node-port-shadow: inset 0 0 0 1px black;
 }
 </style>

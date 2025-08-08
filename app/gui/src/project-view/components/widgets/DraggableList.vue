@@ -554,10 +554,8 @@ div {
   transition: color 0.2s ease;
   cursor: grab;
 
-  color: var(--color-widget);
-
   &:hover {
-    color: var(--color-widget-focus);
+    opacity: 0.5;
   }
 }
 
