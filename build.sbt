@@ -368,6 +368,7 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-tableau`,
     `std-saas`,
+    `sqlite-wrapper`,
     `syntax-rust-definition`,
     `tableau-wrapper`,
     `task-progress-notifications`,
@@ -3760,6 +3761,7 @@ lazy val `engine-runner` = project
               "--features=" + features.mkString(","),
               // Needed for the NativeLibraryFeature
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
+              "--verbose",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
             ) ++ (if (GraalVM.EnsoLauncher.debug) {
