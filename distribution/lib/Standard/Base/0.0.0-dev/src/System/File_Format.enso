@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
+import project.Warning.Warning
 import project.Data.Text.Case.Case
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -497,9 +498,8 @@ type File_Format_SPI
         single -> [single]
 
     private get_regs _:Boolean=False =
-        reg = Meta_Helpers.lookup_services File_Format_SPI
-        arr = reg.map .to_vector
-        arr.flatten
+        reg = errors_to_warnings (Meta_Helpers.lookup_services File_Format_SPI)
+        reg.map .to_vector . flatten
 
     private get_types b:Boolean=False =
         File_Format_SPI.get_regs b . map .typ
@@ -510,3 +510,12 @@ type File_Format_SPI
         if found.length > 0 then found.first . typ else
             Error.throw <|
                 Illegal_State.Error "Unknown format "+sub_type
+
+## ---
+   private: true
+   ---
+private errors_to_warnings v =
+    errors = v.map (x-> if x.is_error then [x.catch] else []) . flatten
+    non_errors = v.map (x-> if x.is_error then [] else [x]) . flatten
+    if errors.is_empty then non_errors else
+        Warning.attach_multiple errors non_errors
