@@ -173,9 +173,6 @@ importers:
       '@babel/parser':
         specifier: ^7.26.3
         version: 7.27.5
-      '@codemirror/autocomplete':
-        specifier: 'catalog:'
-        version: 6.18.6
       '@codemirror/commands':
         specifier: ^6.8.1
         version: 6.8.1
