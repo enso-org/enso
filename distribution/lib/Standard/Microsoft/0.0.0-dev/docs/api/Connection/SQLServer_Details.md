@@ -6,3 +6,4 @@
     - jdbc_properties self -> Standard.Base.Any.Any
     - jdbc_url self -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Database.Connection.Database.Database_Connection_Details_SPI.from that:Standard.Microsoft.Connection.SQLServer_Details.SQLServer_Details -> Standard.Database.Connection.Database.Database_Connection_Details_SPI
