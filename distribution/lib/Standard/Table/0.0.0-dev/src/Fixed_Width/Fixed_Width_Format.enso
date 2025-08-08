@@ -371,5 +371,3 @@ Fixed_Width_Layout.from (that : Function) =
 _make_fixed_width_layout_widget display:Display=..When_Modified -> Widget =
     prepopulated_table = "Table.input [['names', ['column a']], ['starts', ['0']], ['widths', ['10']]]"
     make_single_choice [["Infer (left justified)", "..Left"], ["Infer (right justified)", "..Right"], ["Table", prepopulated_table ]] display=display
-
-File_Format_SPI (_:Fixed_Width_Format) = File_Format_SPI.new Fixed_Width_Format "fixed_width"
