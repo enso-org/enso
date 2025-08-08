@@ -21,7 +21,7 @@ const astCode = computed(() => {
 })
 
 function acceptValue(value: string): HandledUpdate {
-  return props.onUpdate({
+  return props.updateCallback({
     portUpdate: {
       value: Ast.parseExpression(value),
       origin: props.input.portId,

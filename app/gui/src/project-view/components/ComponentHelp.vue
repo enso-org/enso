@@ -167,7 +167,7 @@ function openDocs(url: string) {
           v-else
           :content="documentation.documentation"
           :toolbar="false"
-          @editorReady="syncMarkdownDocumentation"
+          :editorReadyCallback="syncMarkdownDocumentation"
         />
       </div>
       <div class="sections">

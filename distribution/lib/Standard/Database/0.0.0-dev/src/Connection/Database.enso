@@ -20,7 +20,7 @@ from project.Errors import SQL_Error
    icon: drive
    suggested: 5
    ---
-   Tries to connect to the database.
+   Connects to database.
 
    ## Arguments
     - `details`: `Connection_Details` specifying the database to connect to.

@@ -20,14 +20,15 @@ import {
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
-import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 
@@ -63,12 +64,13 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   const selectedAssets = useSelectedAssets()
   const setSelectedAssets = useSetSelectedAssets()
   const driveStore = useDriveStore()
-  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
-  const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
+  const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
+  const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
+  const exportArchive = useExportArchive({ backend })
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
@@ -137,7 +139,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
     const selectedIds = selectedAssets.map((asset) => asset.id)
     const deleteAll = async () => {
       setSelectedAssets([])
-      await deleteAssetsMutation.mutateAsync([selectedIds, false])
+      await deleteAssets([selectedIds, false])
     }
     const firstKey = selectedIds[0]
     const soleAssetName =
@@ -192,7 +194,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
             action: 'undelete',
             label: getText('restoreAllFromTrashShortcut'),
             doAction: () => {
-              restoreAssetsMutation.mutate({
+              void restoreAssets({
                 ids: selectedAssets.map((asset) => asset.id),
                 parentId: null,
               })
@@ -214,10 +216,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
                   }
                   onConfirm={async () => {
                     setSelectedAssets([])
-                    await deleteAssetsMutation.mutateAsync([
-                      selectedAssets.map((otherAsset) => otherAsset.id),
-                      true,
-                    ])
+                    await deleteAssets([selectedAssets.map((otherAsset) => otherAsset.id), true])
                   }}
                 />,
               )
@@ -250,6 +249,12 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
               void downloadFilesToLocalCallback()
             },
           },
+        selectedAssets.length !== 0 && {
+          action: 'exportArchive',
+          doAction: () => {
+            void exportArchive()
+          },
+        },
         selectedAssets.length !== 0 &&
           isCloud && { action: 'copy', label: getText('copyAllShortcut'), doAction: doCopy },
         selectedAssets.length !== 0 && {

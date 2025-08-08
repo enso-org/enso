@@ -7,7 +7,7 @@ const props = defineProps<{
   extensions?: Extension
   readonly?: boolean
   contentTestId?: string | undefined
-  onEditorReady: (view: EditorView) => void
+  editorReadyCallback: (view: EditorView) => void
 }>()
 
 const impl = ref<ComponentInstance<typeof LazyPlainTextEditor>>()

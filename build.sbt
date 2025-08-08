@@ -314,6 +314,7 @@ lazy val enso = (project in file("."))
     `process-utils`,
     `profiling-utils`,
     `project-manager`,
+    `python-extract`,
     `refactoring-utils`,
     runtime,
     `runtime-and-langs`,
@@ -422,9 +423,20 @@ lazy val componentModulesPaths =
       "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
       "com.ibm.icu"            % "icu4j"                        % icuVersion
     )
+  val modsToExclude = Seq(
+    "org.graalvm.python" % "python-resources" % Dependencies.graalMavenPackagesVersion
+  )
+  val reducedThirdPartyModIds = thirdPartyModIds.filterNot { modId =>
+    modsToExclude.exists { excludedMod =>
+      modId.organization == excludedMod.organization &&
+      modId.name == excludedMod.name &&
+      modId.revision == excludedMod.revision
+    }
+  }
+
   val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
-    thirdPartyModIds,
+    reducedThirdPartyModIds,
     log,
     projName = moduleName.value,
     scalaBinaryVersion.value,
@@ -722,6 +734,48 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     )
   )
   .dependsOn(editions)
+
+lazy val extractPythonResources = taskKey[Seq[File]](
+  "Extract python resources from the python-resource.jar"
+)
+// Project that extracts python-resources during build time.
+lazy val `python-extract` = project
+  .in(file("lib/java/python-extract"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "org.graalvm.python" % "python-language"  % graalMavenPackagesVersion,
+      "org.graalvm.python" % "python-resources" % graalMavenPackagesVersion
+    ),
+    Compile / run / mainClass := Some("org.enso.pyextract.PythonExtract"),
+    Compile / run / fork := true,
+    extractPythonResources := {
+      val outDir          = target.value / "python-resources"
+      val pyResourcesGlob = target.value.toGlob / "python-resources" / ** / *
+      val logger          = streams.value.log
+      val outs            = FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1)
+      val main            = (Compile / run / mainClass).value
+      val classPath       = (Compile / fullClasspath).value
+      val args = Seq(
+        outDir.getPath
+      )
+      val javaRunner = (Compile / run / runner).value
+      if (outs.isEmpty) {
+        javaRunner.run(
+          main.get,
+          classPath.files,
+          args,
+          logger
+        )
+      }
+      FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1.toFile)
+    },
+    clean := {
+      val _      = clean.value
+      val outDir = target.value / "python-resources"
+      IO.delete(outDir)
+    }
+  )
 
 lazy val `akka-native` = project
   .in(file("lib/scala/akka-native"))
@@ -2439,13 +2493,13 @@ lazy val `runtime-language-arrow` =
       libraryDependencies ++= GraalVM.modules ++ slf4jApi.map(_ % Test) ++ Seq(
         "junit"            % "junit"              % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"    % junitIfVersion     % Test,
-        "org.slf4j"        % "slf4j-nop"          % slf4jVersion       % Test,
+        slf4jNop           % Test,
         "org.apache.arrow" % "arrow-vector"       % apacheArrowVersion % Test,
         "org.apache.arrow" % "arrow-memory-netty" % apacheArrowVersion % Test
       ),
       javaModuleName := "org.enso.interpreter.arrow",
       Compile / moduleDependencies ++= GraalVM.modules,
-      Test / moduleDependencies += projectID.value,
+      Test / internalModuleDependencies += (Compile / exportedModule).value,
       Test / patchModules := {
         val testClassesDir = (Test / productDirectories).value.head
         Map(javaModuleName.value -> Seq(testClassesDir))
@@ -2826,15 +2880,15 @@ lazy val `runtime-benchmarks` =
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ logbackPkg ++ slf4jApi ++ Seq(
-        "org.openjdk.jmh"     % "jmh-core"                     % jmhVersion,
-        "org.openjdk.jmh"     % "jmh-generator-annprocess"     % jmhVersion,
-        "jakarta.xml.bind"    % "jakarta.xml.bind-api"         % jaxbVersion,
-        "com.sun.xml.bind"    % "jaxb-impl"                    % jaxbVersion,
-        "org.graalvm.truffle" % "truffle-api"                  % graalMavenPackagesVersion,
-        "org.graalvm.truffle" % "truffle-dsl-processor"        % graalMavenPackagesVersion % "provided",
-        "org.slf4j"           % "slf4j-nop"                    % slf4jVersion,
-        "com.typesafe"        % "config"                       % typesafeConfigVersion,
-        "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion
+        "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion,
+        "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion,
+        "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
+        "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
+        "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-dsl-processor"    % graalMavenPackagesVersion % "provided",
+        slf4jNop,
+        "com.typesafe"     % "config"                       % typesafeConfigVersion,
+        "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
       ),
       mainClass :=
         Some("org.enso.interpreter.bench.benchmarks.RuntimeBenchmarksRunner"),
@@ -2845,11 +2899,11 @@ lazy val `runtime-benchmarks` =
       parallelExecution := false,
       Compile / moduleDependencies ++= {
         GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaReflect ++ slf4jApi ++ Seq(
-          "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
-          "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
-          "commons-io"             % "commons-io"                   % commonsIoVersion,
-          "org.apache.tika"        % "tika-core"                    % tikaVersion,
-          "org.slf4j"              % "slf4j-nop"                    % slf4jVersion,
+          "org.apache.commons" % "commons-lang3"    % commonsLangVersion,
+          "org.apache.commons" % "commons-compress" % commonsCompressVersion,
+          "commons-io"         % "commons-io"       % commonsIoVersion,
+          "org.apache.tika"    % "tika-core"        % tikaVersion,
+          slf4jNop,
           "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
           "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
           "com.ibm.icu"            % "icu4j"                        % icuVersion,
@@ -2911,7 +2965,7 @@ lazy val `runtime-benchmarks` =
       Compile / addModules := Seq(
         (`runtime` / javaModuleName).value,
         (`benchmarks-common` / javaModuleName).value,
-        "org.slf4j.nop"
+        slf4jNopModule
       ),
       // Benchmark sources are patched into the `org.enso.runtime` module
       Compile / patchModules := {
@@ -2948,7 +3002,7 @@ lazy val `runtime-benchmarks` =
         }.toMap
 
         pkgsExports ++ Map(
-          "org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j")
+          s"$slf4jNopModule/$slf4jNopModule" -> Seq(slf4jNop.organization)
         )
       },
       javaOptions ++= {
@@ -4176,7 +4230,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion,
       "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion,
       "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion,
-      "org.slf4j"            % "slf4j-nop"                % slf4jVersion
+      "org.slf4j"            % "slf4j-nop"                % slf4jVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion % "provided"
     ),
     commands += WithDebugCommand.withDebug
   )
@@ -4204,7 +4259,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-processor",
       "org.enso.benchmarks.processor.BenchProcessor,org.openjdk.jmh.generators.BenchmarkProcessor",
       // There is no Truffle compiler available for annotation processors. Suppress the warning.
-      "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
+      "-J-Dpolyglot.engine.WarnInterpreterOnly=false",
+      "-J--sun-misc-unsafe-memory-access=allow"
     ),
     Compile / javaOptions ++= Seq(
       // Force killing of alive threads once a benchmark is finished.
@@ -4224,7 +4280,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     Compile / addModules := Seq(
       (`runtime` / javaModuleName).value,
       (`bench-processor` / javaModuleName).value,
-      (`benchmarks-common` / javaModuleName).value
+      (`benchmarks-common` / javaModuleName).value,
+      slf4jNopModule
     ),
     // std benchmark sources are patch into the `org.enso.runtime` module
     Compile / patchModules := {
@@ -4258,7 +4315,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       }.toMap
 
       pkgsExports ++ Map(
-        "org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j")
+        s"$slf4jNopModule/$slf4jNopModule" -> Seq(slf4jNop.organization)
       )
     },
     javaOptions ++= testLogProviderOptions,
@@ -5697,19 +5754,32 @@ ThisBuild / createStdLibsIndexes := {
   createStdLibsIndexes.result.value
 }
 
+lazy val pythonHome = settingKey[File](
+  "Output directory for extracted GraalPy resources."
+)
+
+ThisBuild / pythonHome := {
+  val engineDir = engineDistributionRoot.value
+  engineDir / "python-home"
+}
+
 lazy val createEnginePackageNoIndex =
   taskKey[Unit]("Creates the engine distribution package")
 createEnginePackageNoIndex := {
   updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value
-  val root          = engineDistributionRoot.value
-  val log           = streams.value.log
-  val cacheFactory  = streams.value.cacheStoreFactory
+  val modulesToCopy   = componentModulesPaths.value
+  val root            = engineDistributionRoot.value
+  val pythonResources = (`python-extract` / extractPythonResources).value
+  val pyHome          = (ThisBuild / pythonHome).value
+  val log             = streams.value.log
+  val cacheFactory    = streams.value.cacheStoreFactory
   DistributionPackage.createEnginePackage(
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
     jarModulesToCopy    = modulesToCopy,
+    pythonResources     = pythonResources,
+    pythonHome          = pyHome,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
