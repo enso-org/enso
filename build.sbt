@@ -5482,6 +5482,11 @@ lazy val `std-snowflake` = project
           Seq("std-snowflake.jar"),
           ignoreScalaLibrary                = true,
           ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.60.0"),
+          ignoreDependenciesByModuleID = Some(
+            Seq(
+              "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2"
+            )
+          ),
           libraryUpdates                    = (Compile / update).value,
           logger                            = streams.value.log,
           cacheStoreFactory                 = cacheStoreFactory,
