@@ -5206,7 +5206,6 @@ lazy val `sqlite-wrapper` = project
       ),
       "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
       "META-INF/maven/**"                     -> CopyToOutputJar,
-      "META-INF/native-image/**"              -> CopyToOutputJar,
       "META-INF/services/**"                  -> CopyToOutputJar,
       "META-INF/versions/9/module-info.class" -> CopyToOutputJar,
       "9/module-info.class"                   -> CopyToOutputJar,
