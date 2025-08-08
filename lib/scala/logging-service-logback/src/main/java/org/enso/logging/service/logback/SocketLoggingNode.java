@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 // Contributors: Moses Hohman <mmhohman@rainbow.uchicago.edu>
@@ -51,6 +52,7 @@ public class SocketLoggingNode implements Runnable {
   volatile State state = State.NOT_STARTED;
   SocketServer socketServer;
   UUID projectId;
+  Map<String, String> localMdc;
 
   public SocketLoggingNode(SocketServer socketServer, Socket socket, LoggerContext context) {
     this.socketServer = socketServer;
@@ -59,6 +61,7 @@ public class SocketLoggingNode implements Runnable {
     this.context = context;
     logger = context.getLogger(SocketLoggingNode.class);
     projectId = null;
+    localMdc = null;
   }
 
   public void run() {
@@ -80,9 +83,10 @@ public class SocketLoggingNode implements Runnable {
           event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
           if (projectId == null) {
             try {
-              var property = event.getMDCPropertyMap().get("project.id");
+              var property = event.getMDCPropertyMap().get("projectLocalId");
               if (property != null) {
                 projectId = UUID.fromString(property);
+                localMdc = event.getMDCPropertyMap();
               }
             } catch (IllegalArgumentException e) {
               // ignore
@@ -93,8 +97,11 @@ public class SocketLoggingNode implements Runnable {
           remoteLogger = context.getLogger(event.getLoggerName());
           // apply the logger-level filter
           if (remoteLogger.isEnabledFor(event.getLevel())) {
+            // Ensure MDC properties are set
+            // event.getMDCPropertyMap() returns an immutable map that can't be updated
+            var event1 = localMdc != null ? new ProxyLoggingEvent(event, localMdc) : event;
             // finally log the event as if was generated locally
-            remoteLogger.callAppenders(event);
+            remoteLogger.callAppenders(event1);
           }
         } catch (IOException e) {
           throw e;

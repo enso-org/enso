@@ -1,4 +1,4 @@
-import { BackendType, DirectoryId, EnsoPath, ProjectId } from '#/services/Backend'
+import { BackendType, DirectoryId, EnsoPath, ProjectId, ProjectSessionId } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
@@ -18,9 +18,13 @@ declare module '#/utilities/LocalStorage' {
 const PROJECT_ID_SCHEMA = z.custom<ProjectId>(
   (x) => typeof x === 'string' && x.startsWith('project-'),
 )
+const PROJECT_SESSION_ID_SCHEMA = z.custom<ProjectSessionId>(
+  (x) => typeof x === 'string' && x.startsWith('projectsession-'),
+)
 const DIRECTORY_ID_SCHEMA = z.custom<DirectoryId>(
   (x) => typeof x === 'string' && x.startsWith('directory-'),
 )
+const ENSO_PATH_SCHEMA = z.custom<EnsoPath>((x) => typeof x === 'string')
 const PROJECT_SCHEMA = z
   .object({
     id: PROJECT_ID_SCHEMA,
@@ -31,9 +35,10 @@ const PROJECT_SCHEMA = z
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
+        cloudProjectSessionId: PROJECT_SESSION_ID_SCHEMA,
         cloudParentId: DIRECTORY_ID_SCHEMA,
         parentId: DIRECTORY_ID_SCHEMA,
-        cloudProjectDirectoryPath: z.string(),
+        cloudProjectDirectoryPath: ENSO_PATH_SCHEMA,
       }),
     ),
   })

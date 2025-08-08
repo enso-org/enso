@@ -3,8 +3,10 @@
 #### Enso Language & Runtime
 
 - [Open type check `Type&Any` lets all visible types thru][13225]
+- [The documentation panel opens to the scroll position at last close][13647]
 
 [13225]: https://github.com/enso-org/enso/pull/13225
+[13647]: https://github.com/enso-org/enso/pull/13647
 
 # Next Release
 

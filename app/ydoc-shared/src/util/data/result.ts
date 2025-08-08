@@ -61,9 +61,8 @@ export function unwrap<T, E>(result: Result<T, E>): T {
 }
 
 /** Unwraps the {@link Result} value. If the result is error, an alternative is returned. */
-export function unwrapOr<T, A>(result: Result<T, unknown>, alternative: A): T | A {
-  if (result.ok) return result.value
-  else return alternative
+export function unwrapOr<T, A>(result: Result<T> | undefined, alternative: A): T | A {
+  return result?.ok ? result.value : alternative
 }
 
 /** Unwraps the {@link Result} value. If the result is error, it is logged and alternative is returned. */
@@ -83,6 +82,21 @@ export function unwrapOrWithLog<T, A>(
 export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result<U, E> {
   if (result.ok) return Ok(f(result.value))
   else return result
+}
+
+export function mapOkOr<T, U, A>(result: Opt<Result<T>>, f: (value: T) => U, alternative: A): U | A
+export function mapOkOr<T, U, A>(
+  result: Opt<Result<T>>,
+  f: (value: T) => U,
+  alternative?: A,
+): U | A | undefined
+/** Maps the {@link Result} value if present, otherwise returns `alternative`. */
+export function mapOkOr<T, U, A>(
+  result: Opt<Result<T>>,
+  f: (value: T) => U,
+  alternative?: A,
+): U | A | undefined {
+  return result && result.ok ? f(result.value) : alternative
 }
 
 /** Maps the {@link Result} value with a function that returns a result. */
