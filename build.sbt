@@ -4974,10 +4974,9 @@ lazy val `jna-wrapper-extracted` = project
   .in(file("lib/java/jna-wrapper-extracted"))
   .enablePlugins(JarExtractPlugin)
   .settings(
-    libraryDependencies ++= Seq(
-      "net.java.dev.jna" % "jna" % jnaVersion
-    ),
-    inputJar := "net.java.dev.jna" % "jna" % jnaVersion,
+    inputJarResolved := {
+      (`jna-wrapper` / Compile / exportedModuleBin).value
+    },
     jarExtractor := JarExtractor(
       "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxAMD64),
       "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsAMD64),
@@ -4995,6 +4994,7 @@ lazy val `jna-wrapper-extracted` = project
       "META-INF/AL2.0"       -> CopyToOutputJar
     )
   )
+  .dependsOn(`jna-wrapper`)
 
 lazy val `netty-tc-native-wrapper` = project
   .in(file("lib/java/tc-native-wrapper"))
