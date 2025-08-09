@@ -17,7 +17,7 @@ export type DashboardBindingKey = keyof typeof BINDINGS
 
 /** Create a keybind and mousebind namespace. */
 export function createBindings() {
-  return inputBindings.defineBindingNamespace('dashboard', BINDINGS)
+  return inputBindings.defineBindingNamespace('dashboard', BINDINGS, CATEGORIES)
 }
 
 const BINDINGS_AND_CATEGORIES = inputBindings.defineBindings(
