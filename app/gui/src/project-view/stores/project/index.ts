@@ -389,7 +389,7 @@ export function createProjectStore(
           if (state === 1) {
             if (retryAttempt < MAX_RETRIES_IN_QUEUE) {
               const incRetryAttempt = retryAttempt + 1
-              console.warn(
+              DEV: console.warn(
                 'Waiting on data (expressionId=' +
                   expressionId +
                   ', visualizationId=' +
