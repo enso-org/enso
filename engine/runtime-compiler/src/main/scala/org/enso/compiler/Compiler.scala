@@ -274,30 +274,9 @@ class Compiler(
     generateDocs: Boolean
   ): List[Module] = {
     initialize()
-    modules.foreach(m =>
-      try {
-        parseModule(
-          m,
-          irCachingEnabled && !context.isInteractive(m),
-          generateDocs
-        )
-      } catch {
-        case e: Throwable =>
-          context.log(
-            Level.SEVERE,
-            "Encountered a critical failure while parsing module",
-            e
-          )
-          context.log(
-            Level.SEVERE,
-            "Contents of module {0}: {0}",
-            m.getPath,
-            m.getCharacters.toString
-          )
-      }
-    )
 
     var moduleIrDumpers: HashMap[Module, IRDumper] = new HashMap()
+
     def getOrCreateDumper(module: Module): Option[IRDumper] = {
       config.dumpModuleIR.flatMap(pattern => {
         if (module.getName().toString.contains(pattern)) {
@@ -317,6 +296,30 @@ class Compiler(
     def closeAllDumpers(): Unit = {
       moduleIrDumpers.foreach { case (_, dumper) => dumper.close() }
     }
+
+    modules.foreach(m =>
+      try {
+        parseModule(
+          m,
+          irCachingEnabled && !context.isInteractive(m),
+          generateDocs,
+          irDumper = getOrCreateDumper(m)
+        )
+      } catch {
+        case e: Throwable =>
+          context.log(
+            Level.SEVERE,
+            "Encountered a critical failure while parsing module",
+            e
+          )
+          context.log(
+            Level.SEVERE,
+            "Contents of module {0}: {0}",
+            m.getPath,
+            m.getCharacters.toString
+          )
+      }
+    )
 
     val requiredModules = modules.flatMap { module =>
       val isLoadedFromSource =
