@@ -13,7 +13,6 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Internal.Meta_Helpers
 from project.Data.Boolean import False, True
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
@@ -131,5 +130,5 @@ type SPI
    new typ -> SPI = SPI.Value typ
 
    private _get_known_return_classes -> Vector =
-      Meta_Helpers.lookup_services SPI . map .typ
+      Meta.lookup_services SPI . map .typ
 

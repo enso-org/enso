@@ -7,7 +7,6 @@ import project.Errors.Common.No_Such_Conversion
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
-import project.Internal.Meta_Helpers
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -237,7 +236,7 @@ type Data_Link_SPI
         Data_Link_SPI.Value typ link_type_name
 
     private find_data_link_type name =
-        all = Meta_Helpers.lookup_services Data_Link_SPI
+        all = Meta.lookup_services Data_Link_SPI
         found = all . filter (\spi -> spi.name == name)
         if found.length == 0 then Nothing else
             found.first.typ

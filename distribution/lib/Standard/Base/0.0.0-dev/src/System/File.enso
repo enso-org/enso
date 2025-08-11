@@ -1159,7 +1159,7 @@ type File_System_SPI
         if vec . not_empty then vec.first.typ else Nothing
 
     private get_regs _:Boolean =
-        Meta_Helpers.lookup_services File_System_SPI
+        Meta.lookup_services File_System_SPI
 
     private get_types b:Boolean =
         Self.get_regs b . map .typ

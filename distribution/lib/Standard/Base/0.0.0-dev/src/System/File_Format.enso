@@ -15,7 +15,6 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
 import project.Internal.Telemetry
-import project.Internal.Meta_Helpers
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -498,7 +497,7 @@ type File_Format_SPI
         single -> [single]
 
     private get_regs _:Boolean=False =
-        reg = errors_to_warnings (Meta_Helpers.lookup_services File_Format_SPI)
+        reg = Meta.lookup_services File_Format_SPI
         reg.map .to_vector . flatten
 
     private get_types b:Boolean=False =
@@ -511,11 +510,3 @@ type File_Format_SPI
             Error.throw <|
                 Illegal_State.Error "Unknown format "+sub_type
 
-## ---
-   private: true
-   ---
-private errors_to_warnings v =
-    errors = v.map (x-> if x.is_error then [x.catch] else []) . flatten
-    non_errors = v.map (x-> if x.is_error then [] else [x]) . flatten
-    if errors.is_empty then non_errors else
-        Warning.attach_multiple errors non_errors
