@@ -1,5 +1,6 @@
 package org.enso.languageserver.boot
 
+import java.nio.file.Files
 import akka.http.scaladsl.Http
 import akka.pattern.ask
 import akka.util.Timeout
@@ -108,7 +109,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   private def startSampling(config: LanguageServerConfig): MethodsSampler = {
     val sampler = config.profilingConfig.profilingPath match {
       case Some(path) =>
-        MethodsSampler.create(path.toFile, null)
+        MethodsSampler.create(Files.newOutputStream(path), null)
       case None => MethodsSampler.NOOP
     }
     sampler.start()

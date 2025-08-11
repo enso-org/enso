@@ -53,8 +53,8 @@ final class ProfilingManager(
           val eventsLogPath =
             distributionManager.paths.profiling.resolve(eventsLogFileName)
           val sampler = MethodsSampler.create(
-            null,
-            eventsLogPath.toFile
+            result,
+            Files.newOutputStream(eventsLogPath)
           )
 
           sampler.start()

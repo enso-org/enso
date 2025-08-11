@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -1314,10 +1315,9 @@ public class Main {
       throws IOException {
     var path = profilingConfig.profilingPath();
     var events = profilingConfig.profilingEventsLogPath();
-    var sampler =
-        path.isDefined() && events.isDefined()
-            ? MethodsSampler.create(path.get().toFile(), events.get().toFile())
-            : MethodsSampler.NOOP;
+    var pathOS = path.isEmpty() ? null : Files.newOutputStream(path.get());
+    var eventsOS = events.isEmpty() ? null : Files.newOutputStream(events.get());
+    var sampler = MethodsSampler.create(pathOS, eventsOS);
     sampler.start();
     profilingConfig.profilingTime().foreach(timeout -> sampler.scheduleStop(timeout));
     scala.sys.package$.MODULE$.addShutdownHook(

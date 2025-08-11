@@ -1,9 +1,8 @@
 package org.enso.profiling.sampler;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
@@ -15,15 +14,21 @@ public sealed interface MethodsSampler extends Closeable permits OutputStreamSam
   public static final MethodsSampler NOOP = new NoopSampler();
 
   /**
-   * Create new sampler to write to two files.
+   * Create new sampler to write to two output streams.
    *
-   * @param npss the sample snapshots
-   * @param events associated events
+   * @param npss the sample snapshots or {@code null}
+   * @param events associated events or {@code null}
    * @return sampler to use
    * @throws IOException if an I/O operation fails
    */
-  public static MethodsSampler create(File npss, File events) throws IOException {
-    return new OutputStreamSampler(new FileOutputStream(npss), new FileOutputStream(events));
+  public static MethodsSampler create(OutputStream npss, OutputStream events) throws IOException {
+    if (npss == null && events == null) {
+      return NOOP;
+    } else {
+      var s1 = npss != null ? npss : OutputStream.nullOutputStream();
+      var s2 = events != null ? events : OutputStream.nullOutputStream();
+      return new OutputStreamSampler(s1, s2);
+    }
   }
 
   /** Start gathering the application statistics. */
