@@ -2,6 +2,7 @@
 import { CATEGORIES } from '#/configurations/inputBindings'
 import KeyboardShortcutReact from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
+import { isTextInputEvent } from '#/utilities/event'
 import * as objects from '#/utilities/object'
 import { useActionsStore, type Action } from '$/providers/actions'
 import { useContainerData } from '$/providers/container'
@@ -24,6 +25,7 @@ const { getText } = useText()
 
 const visible = ref(false)
 const query = ref('')
+const container = ref<HTMLDivElement | null>(null)
 const input = ref<HTMLInputElement | null>(null)
 
 const actionHandlers = registerHandlers({
@@ -51,19 +53,17 @@ function open() {
 }
 
 function close() {
-  if (!input.value) return
   interaction.end(commandPaletteInteraction)
   query.value = ''
 }
 
-// This must be in a `watcEffect` or else `input.value` will be `null`
+// This must be in a `watchEffect` or else `input.value` will be `null`
 // since the modal is only conditionally shown.
 watchEffect(() => {
-  if (!input.value) return
   if (visible.value) {
-    input.value.focus()
+    input.value?.focus()
   } else {
-    input.value.blur()
+    input.value?.blur()
   }
 })
 
@@ -102,6 +102,36 @@ const groupedActions = computed(() => {
     ]
   })
 })
+
+function getActionsElements() {
+  const containerValue = container.value
+  if (!containerValue) return []
+  return containerValue.querySelectorAll('.action-entry button')
+}
+
+function focusPreviousAction() {
+  if (!document.activeElement) return
+  const actions = getActionsElements()
+  const index = document.activeElement ? [...actions].indexOf(document.activeElement) : -1
+  const action = actions[index === -1 ? actions.length - 1 : index - 1]
+  if (!(action instanceof HTMLButtonElement)) return
+  action?.focus()
+}
+
+function focusNextAction() {
+  if (!document.activeElement) return
+  const actions = getActionsElements()
+  const index = document.activeElement ? [...actions].indexOf(document.activeElement) : -1
+  const action = actions[index === -1 ? 0 : index + 1]
+  if (!(action instanceof HTMLButtonElement)) return
+  action?.focus()
+}
+
+function focusInputOnTextEvent(event: KeyboardEvent) {
+  if (!isTextInputEvent(event)) return
+  event.stopPropagation()
+  input.value?.focus()
+}
 </script>
 
 <template>
@@ -113,9 +143,12 @@ const groupedActions = computed(() => {
       :animate="{ opacity: 1, y: '0' }"
       :exit="{ opacity: 0, y: '-100px' }"
       @click.stop="close"
+      @keydown="focusInputOnTextEvent"
       @keydown.enter.stop
+      @keydown.arrow-up.prevent="focusPreviousAction"
+      @keydown.arrow-down.prevent="focusNextAction"
     >
-      <div class="container" @click.stop>
+      <div ref="container" class="container" @click.stop>
         <input
           ref="input"
           v-model="query"
@@ -127,7 +160,7 @@ const groupedActions = computed(() => {
           <div v-for="actionsGroup in groupedActions" :key="actionsGroup.category">
             <h3 class="category-heading">{{ actionsGroup.category }}</h3>
             <ul>
-              <li v-for="(action, i) in actionsGroup.actions" :key="i">
+              <li v-for="(action, i) in actionsGroup.actions" :key="i" class="action-entry">
                 <button @click="trigger(action)">
                   <SvgIcon v-if="action.icon" :name="action.icon" class="icon" />
                   <div v-else class="icon-placeholder"></div>
