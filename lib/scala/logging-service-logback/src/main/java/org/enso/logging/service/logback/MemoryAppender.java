@@ -39,7 +39,7 @@ public class MemoryAppender extends AppenderBase<ILoggingEvent> {
   }
 
   public List<ILoggingEvent> getEvents() {
-    return events;
+    return new ArrayList<>(events);
   }
 
   @Override
