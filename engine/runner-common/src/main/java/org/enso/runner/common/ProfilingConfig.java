@@ -16,6 +16,11 @@ public record ProfilingConfig(Option<Path> profilingPath, Option<Duration> profi
   private static final String EventsLogSuffix = "";
   private static final String EventsLogExtension = "log";
 
+  /** Disabled profiling config. */
+  public static ProfilingConfig none() {
+    return new ProfilingConfig(Option.empty(), Option.empty());
+  }
+
   /**
    * Creates the path to the runtime events log with the same name as `profilingPath` but with the
    * `.log` extension.
