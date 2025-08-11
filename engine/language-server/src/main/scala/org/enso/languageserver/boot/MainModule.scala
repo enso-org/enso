@@ -530,7 +530,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     contextSupervisor.close()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
-    MDC.remove("project.id")
+    MDC.remove("projectLocalId")
+    MDC.remove("projectId")
+    MDC.remove("projectSessionId")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {
