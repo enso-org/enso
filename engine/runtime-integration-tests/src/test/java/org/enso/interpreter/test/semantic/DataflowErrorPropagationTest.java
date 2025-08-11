@@ -9,7 +9,11 @@ import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class DataflowErrorPropagationTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();

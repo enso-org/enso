@@ -19,7 +19,11 @@ import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Value;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
 /**
  * Tests consistency between {@code Meta.get_type_methods} and {@link

@@ -531,8 +531,8 @@ public class ExecCompilerTest {
     var expectedErrMsg = DeclaredAsPrivate$.MODULE$.explain();
     var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
     runMethod.execute(0);
-    assertTrue(
-        appenderRule.pendingLogMessages().stream().anyMatch(e -> e.contains(expectedErrMsg)));
+    assertThat(
+        String.join("\n", appenderRule.pendingLogMessages()), containsString(expectedErrMsg));
   }
 
   @Test

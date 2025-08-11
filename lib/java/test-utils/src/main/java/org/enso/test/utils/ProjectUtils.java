@@ -7,10 +7,8 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
-import org.enso.logger.JulHandler;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils.Builder;
@@ -174,7 +172,6 @@ prefer-local-libraries: true
                     bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
                         .option(RuntimeOptions.STRICT_ERRORS, "true")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
-            .withLogHandler(Level.FINE, JulHandler.get())
             .build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       var mainSrcPath = projDir.resolve("src").resolve("Main.enso");

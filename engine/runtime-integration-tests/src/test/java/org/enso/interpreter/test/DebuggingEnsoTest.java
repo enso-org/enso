@@ -36,6 +36,8 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
+import org.enso.logger.JulHandler;
+import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
@@ -46,6 +48,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -53,6 +56,8 @@ public class DebuggingEnsoTest {
   private static Engine engine;
   private static Debugger debugger;
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+  @Rule public ReportLogsOnFailureRule appenderRule = new ReportLogsOnFailureRule();
 
   @BeforeClass
   public static void initContext() {
@@ -63,7 +68,7 @@ public class DebuggingEnsoTest {
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(out)
+            .logHandler(JulHandler.get())
             .err(out)
             .out(out)
             .build();

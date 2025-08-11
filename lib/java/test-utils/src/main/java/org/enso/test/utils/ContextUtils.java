@@ -433,15 +433,6 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     }
 
     /**
-     * Shortcut for {@code withModifiedContext(b -> b.option(RuntimeOptions.LOG_LEVEL,
-     * logLevel.getName()).logHandler(logHandler))}.
-     */
-    public Builder withLogHandler(Level logLevel, Handler logHandler) {
-      polyglotCtxBldr.logHandler(logHandler).option(RuntimeOptions.LOG_LEVEL, logLevel.getName());
-      return this;
-    }
-
-    /**
      * Helper method to allow stdout as engine's log handler.
      *
      * @param logLevel minimal level of logs that will be forwarded to log handler

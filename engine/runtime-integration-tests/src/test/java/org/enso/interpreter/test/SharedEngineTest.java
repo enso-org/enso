@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
-import org.enso.logger.JulHandler;
 import org.enso.test.utils.ContextUtils;
 import org.enso.testkit.ReportLogsOnFailureRule;
 import org.graalvm.polyglot.Engine;
@@ -28,7 +27,6 @@ public class SharedEngineTest {
         Engine.newBuilder()
             .allowExperimentalOptions(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(JulHandler.get())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
