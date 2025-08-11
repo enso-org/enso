@@ -1488,7 +1488,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     mixedJavaScalaProjectSetting,
     javaModuleName := "org.enso.project.manager",
     (Compile / run / fork) := true,
-    (Test / fork) := true,
     (Compile / run / connectInput) := true,
     commands += WithDebugCommand.withDebug,
     libraryDependencies ++= akka ++ Seq(akkaSLF4J, akkaTestkit % Test),
