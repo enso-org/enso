@@ -3,7 +3,6 @@ import Standard.Base.Errors.Common.Type_Error
 
 from Standard.Table import all
 from Standard.Table.Errors import all
-import Standard.Table.In_Memory_Column.In_Memory_Column
 
 import Standard.Database.Dialects.Feature.Feature
 
