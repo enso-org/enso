@@ -3,7 +3,7 @@ import { unsetModal } from '#/providers/ModalProvider'
 import StandaloneButton from '@/components/StandaloneButton.vue'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { AnimatePresence, motion } from 'motion-v'
-import { watchEffect } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps<{ href: string }>()
@@ -13,11 +13,11 @@ const interaction = injectInteractionHandler()
 
 const modalInteraction: Interaction = {
   cancel() {
-    console.log(':(')
+    console.log(':(', modalInteraction)
     unsetModal()
   },
   end() {
-    console.log(':( 2')
+    console.log(':( 2', modalInteraction)
     unsetModal()
   },
 }
@@ -26,7 +26,7 @@ function closeModal() {
   interaction.end(modalInteraction)
 }
 
-watchEffect(() => {
+onMounted(() => {
   interaction.setCurrent(modalInteraction)
 })
 
