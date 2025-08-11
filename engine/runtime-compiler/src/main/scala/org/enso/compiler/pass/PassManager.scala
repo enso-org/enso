@@ -195,11 +195,24 @@ class PassManager(
     megaPassCompile: (IRPass, IRType, ContextType) => IRType
   ): IRType = {
     val pendingMiniPasses: ListBuffer[MiniPassFactory] = ListBuffer()
+    val shouldCombineMiniPasses                        = irDumper.isEmpty
+    if (!shouldCombineMiniPasses) {
+      logger.trace(
+        "  Mini passes will not be combined - they will be flushed immediately, " +
+        " because IRDumper is set."
+      );
+    }
 
     def flushMiniPasses(in: IRType): IRType = {
       if (pendingMiniPasses.nonEmpty) {
         val miniPasses =
           pendingMiniPasses.map(factory => createMiniPass(factory, context))
+        if (!shouldCombineMiniPasses) {
+          assert(
+            pendingMiniPasses.size <= 1,
+            "Mini passes should be flushed immediately."
+          )
+        }
         val combinedPass = miniPasses.fold(null)(MiniIRPass.combine)
         pendingMiniPasses.clear()
         if (combinedPass != null) {
@@ -224,22 +237,29 @@ class PassManager(
               "  mini collected: {}",
               pass
             )
-            val combiningPreventedByOpt = pendingMiniPasses.find { p =>
-              p.invalidatedPasses.contains(miniFactory)
+            if (shouldCombineMiniPasses) {
+              val combiningPreventedByOpt = pendingMiniPasses.find { p =>
+                p.invalidatedPasses.contains(miniFactory)
+              }
+              val irForRemainingMiniPasses = combiningPreventedByOpt match {
+                case Some(combiningPreventedBy) =>
+                  logger.trace(
+                    "  pass {} forces flush before (invalidates) {}",
+                    combiningPreventedBy,
+                    miniFactory
+                  )
+                  flushMiniPasses(intermediateIR)
+                case None =>
+                  intermediateIR
+              }
+              pendingMiniPasses.addOne(miniFactory)
+              irForRemainingMiniPasses
+            } else {
+              // IRDumper is set - treat mini passes as mega passes.
+              val newIr = flushMiniPasses(intermediateIR)
+              pendingMiniPasses.addOne(miniFactory)
+              newIr
             }
-            val irForRemainingMiniPasses = combiningPreventedByOpt match {
-              case Some(combiningPreventedBy) =>
-                logger.trace(
-                  "  pass {} forces flush before (invalidates) {}",
-                  combiningPreventedBy,
-                  miniFactory
-                )
-                flushMiniPasses(intermediateIR)
-              case None =>
-                intermediateIR
-            }
-            pendingMiniPasses.addOne(miniFactory)
-            irForRemainingMiniPasses
 
           case megaPass: IRPass =>
             // TODO [AA, MK] This is a possible race condition.
