@@ -147,12 +147,16 @@ export default function projectManagerShimMiddleware(
   response: http.ServerResponse,
   next: () => void,
 ) {
-  const requestUrl = request.url
-  const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
-  if (requestUrl != null && requestUrl.startsWith('/api/project-manager/')) {
-    const actualUrl = new URL(
-      requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
+  const requestUrl = request.url ?? ''
+  if (!requestUrl.startsWith('/api/')) return next()
+  const url = new URL(requestUrl, 'https://apishim.local')
+  const requestPath = url.pathname
+  if (requestPath.startsWith('/api/project-manager/')) {
+    const urlString = requestUrl.replace(
+      /^\/api\/project-manager/,
+      GLOBAL_CONFIG.projectManagerHttpEndpoint,
     )
+    const actualUrl = new URL(urlString)
     request.pipe(
       http.request(
         // `...actualUrl` does NOT work because `URL` properties are not enumerable.
@@ -181,7 +185,6 @@ export default function projectManagerShimMiddleware(
   } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
     switch (requestPath) {
       case '/api/cloud/download-project': {
-        const url = new URL(`https://example.com/${requestUrl}`)
         const downloadUrl = url.searchParams.get('downloadUrl')
         const projectId = url.searchParams.get('projectId')
 
@@ -227,7 +230,6 @@ export default function projectManagerShimMiddleware(
         break
       }
       case '/api/cloud/get-project-archive': {
-        const url = new URL(`https://example.com/${requestUrl}`)
         const parentDir = url.searchParams.get('directory')
 
         if (parentDir == null) {
@@ -261,21 +263,19 @@ export default function projectManagerShimMiddleware(
       }
     }
   } else if (request.method === 'POST') {
-    const params = new URL(requestUrl ?? '').searchParams
     switch (requestPath) {
       case `/api/${EXPORT_ARCHIVE_PATH}`: {
-        httpDownloadArchive(request, response, params)
+        httpDownloadArchive(request, response, url.searchParams)
         break
       }
       case '/api/upload-file': {
-        httpUploadFile(request, response, params)
+        httpUploadFile(request, response, url.searchParams)
         break
       }
       // This endpoint should only be used when accessing the app from the browser.
       // When accessing the app from Electron, the file input event will have the
       // full system path.
       case '/api/upload-project': {
-        const url = new URL(`https://example.com/${requestUrl}`)
         const directory = url.searchParams.get('directory')
         const name = url.searchParams.get('name')
         void projectManagement
@@ -295,9 +295,7 @@ export default function projectManagerShimMiddleware(
         break
       }
       case '/api/run-project-manager-command': {
-        const cliArguments: unknown = JSON.parse(
-          new URL(`https://example.com/${requestUrl}`).searchParams.get('cli-arguments') ?? '[]',
-        )
+        const cliArguments: unknown = JSON.parse(url.searchParams.get('cli-arguments') ?? '[]')
         if (
           !Array.isArray(cliArguments) ||
           !cliArguments.every((item): item is string => typeof item === 'string')

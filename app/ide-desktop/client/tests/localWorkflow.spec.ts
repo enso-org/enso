@@ -23,7 +23,18 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   const TEXT_TO_WRITE = 'Some text'
 
   await loginAsTestUser(page)
-  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
+
+  // If welcome project is to be opened, wait for it.
+  // If none for 3 seconds, we just move on.
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
+
+  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible({
+    timeout: 30000,
+  })
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 

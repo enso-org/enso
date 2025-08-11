@@ -795,7 +795,7 @@ lazy val `profiling-utils` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings(targetJdk = "21"),
     compileOrder := CompileOrder.JavaThenScala,
     javaModuleName := "org.enso.profiling",
     Compile / exportJars := true,
