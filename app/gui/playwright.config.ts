@@ -78,9 +78,7 @@ export default defineConfig({
   fullyParallel: true,
   ...(WORKERS ? { workers: WORKERS } : {}),
   forbidOnly: isCI,
-  // Make test preview use the same port as test URL, so that svg icons are properly displayed.
-  // Unfortunately we can't make it work for both dashboard and project-view at the same time.
-  reporter: isCI ? [['list'], ['blob']] : [['html', { port: ports.projectView }]],
+  reporter: isCI ? [['list'], ['blob']] : [['html']],
   retries: isCI ? 1 : 0,
   use: {
     actionTimeout: 5000,

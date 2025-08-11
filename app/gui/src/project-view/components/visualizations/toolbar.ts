@@ -1,4 +1,5 @@
-import { AnyIcon } from '@/util/icons'
+import type { URLString } from '@/util/data/urlString'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { ToValue } from '@/util/reactivity'
 import type { Ref } from 'vue'
 
@@ -6,7 +7,7 @@ export interface Button {
   iconStyle?: Record<string, string>
   title?: string
   dataTestid?: string
-  icon: AnyIcon
+  icon: Icon | URLString
 }
 
 export interface ActionButton extends Button {
