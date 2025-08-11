@@ -157,3 +157,4 @@ private create_data_link_structure details:Postgres data_link_location:Enso_File
             schema_part = if details.schema.not_empty then [["schema", details.schema]] else []
             credential_part = if credentials_json.is_nothing.not then [["credentials", credentials_json]] else []
             header + connection_part + schema_part + credential_part
+

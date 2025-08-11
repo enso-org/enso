@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /** Events monitor that does nothing. */
-public final class NoopEventsMonitor implements EventsMonitor {
+final class NoopEventsMonitor implements EventsMonitor {
 
   @Override
   public void registerRuntimeMessage(Object event) {}
