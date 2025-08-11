@@ -51,6 +51,7 @@ public final class ContextFactory {
   private boolean enableAutoParallelism;
   private String executionEnvironment;
   private String checkForWarnings;
+  private String pythonHome;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = new HashMap<>();
   private String runtimerServerKey;
@@ -168,6 +169,11 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory pythonHome(String pythonHome) {
+    this.pythonHome = pythonHome;
+    return this;
+  }
+
   public ContextFactory enableDebugServer(boolean b) {
     this.enableDebugServer = b;
     return this;
@@ -186,6 +192,9 @@ public final class ContextFactory {
         engineOptions = new java.util.HashMap<>();
         engineOptions.put(runtimerServerKey, "true");
       }
+    }
+    if (pythonHome != null) {
+      options.put("python.PythonHome", pythonHome);
     }
     var builder =
         Context.newBuilder()
@@ -227,6 +236,9 @@ public final class ContextFactory {
               new File(new File(new File(new File(projectRoot), "polyglot"), "python"), "bin"),
               "graalpy");
       if (graalpy.exists()) {
+        if (inAOTMode) {
+          throw new IllegalStateException("Cannot use Python in AOT mode. Run with --jvm");
+        }
         builder.option("python.Executable", graalpy.getAbsolutePath());
       }
     }

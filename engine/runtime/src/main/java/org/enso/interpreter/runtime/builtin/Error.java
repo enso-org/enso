@@ -84,7 +84,7 @@ public final class Error {
   private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");
 
   /** Creates builders for error Atom Constructors. */
-  public Error(Builtins builtins, EnsoContext context) {
+  Error(Builtins builtins, EnsoContext context) {
     this.context = context;
     syntaxError = builtins.getBuiltinType(SyntaxError.class);
     typeError = builtins.getBuiltinType(TypeError.class);

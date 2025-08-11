@@ -165,7 +165,7 @@ const dropDownInteraction = WidgetEditHandler.New(props, {
     ) {
       dropDownInteraction.value.end()
       if (editedWidget.value)
-        props.onUpdate({
+        props.updateCallback({
           portUpdate: { origin: props.input.portId, value: editedValue.value },
           directInteraction: false,
         })
@@ -214,7 +214,7 @@ function expressionTagClicked(tag: ExpressionTag) {
 
   const edit = graph.value.startEdit()
   const tagValue = tag.resolveExpression(edit, graph.value)
-  props.onUpdate({
+  props.updateCallback({
     edit,
     portUpdate: { value: tagValue, origin: props.input.portId },
     directInteraction: true,

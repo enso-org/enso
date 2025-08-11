@@ -10,7 +10,7 @@ import { useMeasureCallback } from '#/hooks/measureHooks'
 import { useMenuEntries } from '#/hooks/menuHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import type { AssetColumnProps, AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import DatalinkNameColumn from '#/pages/dashboard/components/column/DatalinkNameColumn'
 import DirectoryNameColumn from '#/pages/dashboard/components/column/DirectoryNameColumn'
 import FileNameColumn from '#/pages/dashboard/components/column/FileNameColumn'
@@ -209,7 +209,7 @@ export function ModifiedColumn(props: AssetColumnProps) {
 }
 
 /** The icon and name of an {@link backendModule.Asset}. */
-export function NameColumn(props: AssetColumnProps) {
+export function NameColumn(props: AssetNameColumnProps) {
   const { item } = props
 
   switch (item.type) {

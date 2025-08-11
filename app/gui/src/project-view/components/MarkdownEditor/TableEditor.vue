@@ -62,7 +62,7 @@ const sync = (text: WatchSource<string | undefined>) => (view: EditorView) => {
           <MarkdownEditorImpl
             :toolbar="false"
             readonly
-            @editorReady="sync(() => content.headers[c])"
+            :editorReadyCallback="sync(() => content.headers[c])"
           />
         </th>
       </tr>
@@ -73,7 +73,7 @@ const sync = (text: WatchSource<string | undefined>) => (view: EditorView) => {
           <MarkdownEditorImpl
             :toolbar="false"
             readonly
-            @editorReady="sync(() => content.rows[r]?.[c])"
+            :editorReadyCallback="sync(() => content.rows[r]?.[c])"
           />
         </td>
       </tr>

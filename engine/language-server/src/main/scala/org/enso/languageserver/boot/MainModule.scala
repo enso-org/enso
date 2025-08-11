@@ -10,6 +10,7 @@ import org.enso.distribution.locking.{
 import org.enso.logger.Converter
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
+import org.enso.profiling.events.EventsMonitor
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
@@ -47,13 +48,15 @@ import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
-import org.enso.common.RuntimeOptions
-import org.enso.common.ContextFactory
-import org.enso.common.HostEnsoUtils
+import org.enso.common.{
+  ContextFactory,
+  HostEnsoUtils,
+  PythonHomeFinder,
+  RuntimeOptions
+}
 import org.enso.filewatcher.WatcherFactory
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
-import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.version.BuildVersion
@@ -184,9 +187,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
-        new RuntimeEventsMonitor(out) -> Some(())
+        def logInstantMsg(at: java.time.Instant, msg: String) = {
+          out.println(s"$at $msg")
+        }
+        new RuntimeEventsMonitor(logInstantMsg) -> Some(())
       case None =>
-        new NoopEventsMonitor() -> None
+        EventsMonitor.NOOP -> None
     }
   log.trace(
     "Started runtime events monitor [{}]",
@@ -327,6 +333,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Running Language Server in JVM mode")
   }
 
+  private val pythonHome = if (PythonHomeFinder.findPythonHome() != null) {
+    PythonHomeFinder.findPythonHome().toString
+  } else {
+    null
+  }
+
   private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
@@ -337,6 +349,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .pythonHome(pythonHome)
     .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
@@ -520,7 +533,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     contextSupervisor.close()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
-    MDC.remove("project.id")
+    MDC.remove("projectLocalId")
+    MDC.remove("projectId")
+    MDC.remove("projectSessionId")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {

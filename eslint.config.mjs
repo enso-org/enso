@@ -243,6 +243,11 @@ const config = [
               importNames: ['proxyRefs'],
               message: 'Use more type-safe alternative in @/util/reactivity',
             },
+            {
+              name: 'veaury',
+              importNames: ['applyReactInVue', 'applyPureReactInVue'],
+              message: 'Use `reactComponent` in @/util/react',
+            },
           ],
         },
       ],

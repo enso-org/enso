@@ -426,14 +426,15 @@ private auth_jdbc_properties credentials = case credentials of
     Credentials.Username_And_Password username password ->
         [Pair.new 'user' username, Pair.new 'password' password]
     Key_Pair_Credentials.Key_Pair username private_key passphrase ->
+        resolved_passphrase = _resolve_passphrase passphrase
         key_part = case private_key of
             local_file : File ->
-                passphrase_part = if passphrase != Nothing then [Pair.new 'private_key_file_pwd' passphrase] else []
+                passphrase_part = if resolved_passphrase != Nothing then [Pair.new 'private_key_file_pwd' resolved_passphrase] else []
                 [Pair.new 'private_key_file' local_file.absolute.path] + passphrase_part
             _ : Enso_File ->
                 Error.throw (Illegal_Argument.Error "Currently only local files can be used as private keys. In Cloud, consider using a Secret instead of a file.")
             secret : Enso_Secret ->
-                if passphrase != Nothing then
+                if resolved_passphrase != Nothing then
                     Error.throw (Illegal_Argument.Error "Passphrase is not applicable when using a secret as a private key.")
                 secret_as_private_key = InterpretAsPrivateKey.new (as_hideable_value secret)
                 [Pair.new 'privateKey' secret_as_private_key]
@@ -441,6 +442,10 @@ private auth_jdbc_properties credentials = case credentials of
     _ : Enso_Secret ->
         Panic.throw (Illegal_Argument.Error "Cannot extract `auth_jdbc_properties` from a Cloud Credential. This is a bug in Snowflake library.")
 
+private _resolve_passphrase passphrase:Text|Enso_Secret =
+    case passphrase of
+      _ : Text -> if passphrase.is_empty then Nothing else passphrase
+      secret : Enso_Secret -> as_hideable_value secret
 ## ---
    private: true
    ---

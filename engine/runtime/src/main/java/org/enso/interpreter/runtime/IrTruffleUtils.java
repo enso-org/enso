@@ -37,7 +37,7 @@ final class IrTruffleUtils {
     @Override
     protected TypeCheckValueNode forName(CompilerContext.Module module, String name) {
       var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-      var typ = m.getScope().getType(name, true);
+      var typ = m.getScopeBuilder().getType(name, true);
       if (typ == ctx.getBuiltins().any()) {
         if (allTypes) {
           return TypeCheckValueNode.allOf(comment, new TypeCheckValueNode[1]);

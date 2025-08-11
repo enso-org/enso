@@ -1,7 +1,6 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
 import * as mkcert from 'mkcert'
-import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
@@ -17,9 +16,64 @@ import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
+import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
 import * as contentConfig from '@/contentConfig'
+import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
+import { app } from 'electron'
+import {
+  AnyAsset,
+  AssetId,
+  AssetType,
+  DirectoryAsset,
+  DirectoryId,
+  EnsoPath,
+  ExportedArchive,
+  extractTypeFromId,
+  FileAsset,
+  FileDetails,
+  FileId,
+  fileNameIsArchive,
+  fileNameIsProject,
+  ParentsPath,
+  Path,
+  ProjectAsset,
+  ProjectId,
+  ProjectState,
+  S3FilePath,
+  stripProjectExtension,
+  UnzipAssetsJobId,
+  VirtualParentsPath,
+} from 'enso-common/src/services/Backend'
+import {
+  DOWNLOAD_PROJECT_REGEX,
+  downloadFilePath,
+  EXPORT_ARCHIVE_PATH,
+  GET_FILE_DETAILS_REGEX,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import {
+  basenameAndExtension,
+  getFileName,
+  getFolderPath,
+  isFolderPath,
+} from 'enso-common/src/utilities/file'
+import { createReadStream, createWriteStream, statSync } from 'node:fs'
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  rmdir,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
+import { createGzip } from 'node:zlib'
 
 const logger = contentConfig.logger
 
@@ -38,17 +92,66 @@ const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
 const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
+// ==================
+// === fileExists ===
+// ==================
+
+/** Return whether a file exists. */
+async function fileExists(path: string) {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ========================
+// === extractTypeAndId ===
+// ========================
+
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+interface AssetTypeAndIdRaw<Type extends AssetType> {
+  readonly type: Type
+  readonly path: Path
+}
+
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+type AssetTypeAndId<Id extends AssetId = AssetId> =
+  | (DirectoryId extends Id ? AssetTypeAndIdRaw<AssetType.directory> : never)
+  | (FileId extends Id ? AssetTypeAndIdRaw<AssetType.file> : never)
+  | (ProjectId extends Id ? AssetTypeAndIdRaw<AssetType.project> : never)
+
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId<Id>
+/**
+ * Extracts the asset type and its corresponding internal ID from a {@link AssetId}.
+ * @throws {Error} if the id has an unknown type.
+ */
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+
+  switch (typeRaw) {
+    case AssetType.directory:
+    case AssetType.project:
+    case AssetType.file: {
+      return {
+        type: typeRaw,
+        path: Path(decodeURIComponent(idRaw)),
+      }
+    }
+    case undefined:
+    default: {
+      throw new Error(`Invalid type '${typeRaw}'`)
+    }
+  }
+}
+
 // ==============
 // === Config ===
 // ==============
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-  readonly uploadProjectBundle: (
-    project: stream.Readable,
-    directory: string | null,
-    name: string | null,
-  ) => Promise<projectManagement.ProjectInfo>
   readonly runProjectManagerCommand: (
     cliArguments: string[],
     body?: NodeJS.ReadableStream,
@@ -99,8 +202,8 @@ async function findPort(port: number): Promise<number> {
  * Read this topic to learn why: https://github.com/http-party/http-server/issues/483
  */
 export class Server {
-  projectsRootDirectory: string
-  devServer?: vite.ViteDevServer
+  private projectsRootDirectory: string
+  private devServer?: vite.ViteDevServer
 
   /** Create a simple HTTP server. */
   constructor(public config: Config) {
@@ -196,9 +299,8 @@ export class Server {
    * @throws {Error} when passing invalid JSON to
    * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`.
    */
-  process(request: http.IncomingMessage, response: http.ServerResponse) {
+  async process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
-    const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
     if (requestUrl == null) {
       logger.error('Request URL is null.')
     } else if (requestUrl.startsWith('/api/project-manager/')) {
@@ -222,188 +324,68 @@ export class Server {
         ),
         { end: true },
       )
-    } else if (requestUrl.startsWith('/api/cloud/')) {
-      switch (requestPath) {
-        case '/api/cloud/download-project': {
-          const url = new URL(`https://example.com/${requestUrl}`)
-          const downloadUrl = url.searchParams.get('downloadUrl')
-          const projectId = url.searchParams.get('projectId')
-
-          if (downloadUrl == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-              .end('Request is missing search parameter `downloadUrl`.')
-            break
-          }
-
-          if (projectId == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-              .end('Request is missing search parameter `projectId`.')
-            break
-          }
-
-          https.get(downloadUrl, async (actualResponse) => {
-            const projectsDirectory = projectManagement.getProjectsDirectory()
-            const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-            const projectRootDirectory = path.join(parentDirectory, 'project_root')
-
-            try {
-              await fs.mkdir(projectRootDirectory, { recursive: true })
-              await projectManagement.unpackBundle(actualResponse, projectRootDirectory)
-              response
-                .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
-                .end(JSON.stringify({ projectRootDirectory, parentDirectory }))
-            } catch (e) {
-              logger.error(e)
-              await fs
-                .access(parentDirectory)
-                .then(() => {
-                  fs.rmdir(parentDirectory, { maxRetries: 3, recursive: true })
-                })
-                .catch((e) => {
-                  logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
-                })
-              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
-            }
-          })
-
+    } else if (request.url?.startsWith('/api/')) {
+      const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
+      const params = route.searchParams
+      switch (`${request.method} ${route.pathname}`) {
+        case 'GET /cloud/download-project': {
+          await this.httpCloudDownloadProject(request, response, params)
           break
         }
-        case '/api/cloud/get-project-archive': {
-          const url = new URL(`https://example.com/${requestUrl}`)
-          const parentDir = url.searchParams.get('directory')
-
-          if (parentDir == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-              .end('Request is missing search parameter `directory`.')
-            break
-          }
-          const projectDir = path.join(parentDir, 'project_root')
-
-          projectManagement
-            .createBundle(projectDir)
-            .then((projectBundle) => {
-              response
-                .writeHead(HTTP_STATUS_OK, {
-                  ...COOP_COEP_CORP_HEADERS,
-                  'Content-Length': String(projectBundle.byteLength),
-                })
-                .end(projectBundle)
-            })
-            .catch((err) => {
-              logger.error(err)
-              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
-            })
-
+        case 'GET /cloud/get-project-archive': {
+          await this.httpCloudGetProjectArchive(request, response, params)
+          break
+        }
+        case 'GET /root-directory-path': {
+          await this.httpGetRootDirectoryPath(request, response, params)
+          break
+        }
+        case 'GET /download-directory-path': {
+          await this.httpGetDownloadDirectoryPath(request, response, params)
+          break
+        }
+        // `GET` needs to be supported to be able to download the file using a hyperlink.
+        case `GET /${EXPORT_ARCHIVE_PATH}`:
+        case `POST /${EXPORT_ARCHIVE_PATH}`: {
+          await this.httpDownloadArchive(request, response, params)
+          break
+        }
+        case 'POST /upload-file': {
+          await this.httpUploadFile(request, response, params)
+          break
+        }
+        case 'POST /run-project-manager-command': {
+          await this.httpRunProjectManagerCommand(request, response, params)
           break
         }
         default: {
-          logger.error(`Unknown Cloud middleware request:`, requestPath)
-          break
-        }
-      }
-    } else if (request.method === 'POST') {
-      switch (requestPath) {
-        case '/api/upload-file': {
-          const url = new URL(`https://example.com/${requestUrl}`)
-          const fileName = url.searchParams.get('file_name')
-          const directory = url.searchParams.get('directory') ?? this.projectsRootDirectory
-          if (fileName == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-              .end('Request is missing search parameter `file_name`.')
-          } else {
-            const filePath = path.join(directory, fileName)
-            void fs
-              .writeFile(filePath, request)
-              .then(() => {
-                response
-                  .writeHead(HTTP_STATUS_OK, [
-                    ['Content-Length', String(filePath.length)],
-                    ['Content-Type', 'text/plain'],
-                    ...COOP_COEP_CORP_HEADERS,
-                  ])
-                  .end(filePath)
-              })
-              .catch((e) => {
-                console.error(e)
-                response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
-              })
+          let match: RegExpMatchArray | null = null
+          match = route.pathname.match(GET_FILE_DETAILS_REGEX)
+          if (request.method === 'GET' && match?.groups?.['fileId'] != null) {
+            const fileId = match.groups['fileId']
+            await this.httpGetFileDetails(request, response, params, [fileId as FileId])
+            break
           }
-          break
-        }
-        // This endpoint should only be used when accessing the app from the browser.
-        // When accessing the app from Electron, the file input event will have the
-        // full system path.
-        case '/api/upload-project': {
-          const url = new URL(`https://example.com/${requestUrl}`)
-          const directory = url.searchParams.get('directory')
-          const name = url.searchParams.get('name')
-          void this.config.externalFunctions
-            .uploadProjectBundle(request, directory, name)
-            .then((project) => {
-              response
-                .writeHead(HTTP_STATUS_OK, [
-                  ['Content-Length', String(project.id.length)],
-                  ['Content-Type', 'text/plain'],
-                  ...COOP_COEP_CORP_HEADERS,
-                ])
-                .end(project.id)
-            })
-            .catch(() => {
-              response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
-            })
-          break
-        }
-        case '/api/run-project-manager-command': {
-          const cliArguments: unknown = JSON.parse(
-            new URL(`https://example.com/${requestUrl}`).searchParams.get('cli-arguments') ?? '[]',
-          )
-          if (
-            !Array.isArray(cliArguments) ||
-            !cliArguments.every((item): item is string => typeof item === 'string')
-          ) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-              .end('Command arguments must be an array of strings.')
-          } else {
-            const commandOutput = (() => {
-              try {
-                return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
-              } catch {
-                const readableStream = new stream.Readable()
-                readableStream.push(
-                  JSON.stringify({
-                    error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
-                  }),
-                )
-                readableStream.push(null)
-                return readableStream
-              }
-            })()
-            response.writeHead(HTTP_STATUS_OK, [
+          match = route.pathname.match(DOWNLOAD_PROJECT_REGEX)
+          if (request.method === 'GET' && match?.groups?.['projectId'] != null) {
+            const projectId = match.groups['projectId']
+            await this.httpDownloadProject(request, response, params, [projectId as ProjectId])
+            break
+          }
+          const content = JSON.stringify({
+            type: 'error',
+            error: `Unknown endpoint '${route.pathname}'`,
+          })
+          response
+            .writeHead(HTTP_STATUS_NOT_FOUND, [
+              ['Content-Length', String(content.length)],
               ['Content-Type', 'application/json'],
               ...COOP_COEP_CORP_HEADERS,
             ])
-            commandOutput.pipe(response, { end: true })
-          }
-          break
-        }
-        default: {
-          response.writeHead(HTTP_STATUS_NOT_FOUND, COOP_COEP_CORP_HEADERS).end()
+            .end(content)
           break
         }
       }
-    } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
-      response
-        .writeHead(HTTP_STATUS_OK, [
-          ['Content-Length', String(this.projectsRootDirectory.length)],
-          ['Content-Type', 'text/plain'],
-          ...COOP_COEP_CORP_HEADERS,
-        ])
-        .end(this.projectsRootDirectory)
     } else if (this.devServer) {
       this.devServer.middlewares(request, response)
     } else {
@@ -422,7 +404,7 @@ export class Server {
       for (const [header, value] of COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }
-      fs.readFile(resourceFile)
+      readFile(resourceFile)
         .then((data) => {
           const contentType = mime.contentType(path.extname(resourceFile))
           const contentLength = data.length
@@ -438,6 +420,669 @@ export class Server {
           response.writeHead(HTTP_STATUS_NOT_FOUND)
           response.end()
         })
+    }
+  }
+
+  /** Send a HTTP response with a JSON payload. */
+  httpOkJson<T = never>(response: http.ServerResponse, body: NoInfer<T>) {
+    const content = JSON.stringify(body)
+    return response
+      .writeHead(HTTP_STATUS_OK, [
+        ['Content-Length', `${content.length}`],
+        ['Content-Type', 'application/json'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      .end(content)
+  }
+
+  /** Send a HTTP response with a JSON payload. */
+  httpOkText(response: http.ServerResponse, content: string) {
+    return response
+      .writeHead(HTTP_STATUS_OK, [
+        ['Content-Length', `${content.length}`],
+        ['Content-Type', 'text/plain'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      .end(content)
+  }
+
+  /** Send a HTTP error with a text payload. */
+  httpError(response: http.ServerResponse, message: string) {
+    return response
+      .writeHead(HTTP_STATUS_BAD_REQUEST, [
+        ['Content-Length', `${message.length}`],
+        ['Content-Type', 'text/plain'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      .end(message)
+  }
+
+  /** The root directory path. */
+  apiGetRootDirectoryPath() {
+    return this.projectsRootDirectory
+  }
+
+  /** Response handler for "get root directory path" endpoint. */
+  async httpGetRootDirectoryPath(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    _params: URLSearchParams,
+  ) {
+    this.httpOkText(response, this.apiGetRootDirectoryPath())
+  }
+
+  /** The download directory path. */
+  apiGetDownloadDirectoryPath() {
+    return app.getPath('downloads')
+  }
+
+  /** Response handler for "get download directory path" endpoint. */
+  async httpGetDownloadDirectoryPath(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    _params: URLSearchParams,
+  ) {
+    this.httpOkText(response, this.apiGetDownloadDirectoryPath())
+  }
+
+  /** Download a project from the cloud. */
+  async apiCloudDownloadProject(downloadUrl: string, projectId: ProjectId) {
+    const response = await new Promise<http.IncomingMessage>((resolve) =>
+      https.get(downloadUrl, resolve),
+    )
+    const projectsDirectory = projectManagement.getProjectsDirectory()
+    const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+    const projectRootDirectory = path.join(parentDirectory, 'project_root')
+
+    await mkdir(projectRootDirectory, { recursive: true })
+    await projectManagement.unpackBundle(response, projectRootDirectory)
+    return { projectRootDirectory, parentDirectory }
+  }
+
+  /** Response handler for "download project from cloud" endpoint. */
+  async httpCloudDownloadProject(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+  ) {
+    const downloadUrl = this.expectParameter(response, params, 'downloadUrl')
+    const projectId = this.expectParameter(response, params, 'projectId')
+    if (downloadUrl == null || projectId == null) {
+      return
+    }
+
+    try {
+      this.httpOkJson<{
+        readonly projectRootDirectory: string
+        readonly parentDirectory: string
+      }>(response, await this.apiCloudDownloadProject(downloadUrl, ProjectId(projectId)))
+    } catch (error) {
+      logger.error(error)
+      const projectsDirectory = projectManagement.getProjectsDirectory()
+      const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+      await access(parentDirectory)
+        .then(() => {
+          rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+        })
+        .catch((e) => {
+          logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+        })
+      response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+    }
+  }
+
+  /** Return a parameter if it exists, return an error if it does not. */
+  expectParameter(response: http.ServerResponse, params: URLSearchParams, parameter: string) {
+    const value = params.get(parameter)
+    if (value == null) {
+      response
+        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+        .end(`Request is missing search parameter '${parameter}'.`)
+    }
+    return value
+  }
+
+  /** Response handler for "get project archive for cloud" endpoint. */
+  async httpCloudGetProjectArchive(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+  ) {
+    const parentDir = this.expectParameter(response, params, 'directory')
+    if (parentDir == null) {
+      response
+        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+        .end('Request is missing search parameter `directory`.')
+      return
+    }
+    const projectDir = path.join(parentDir, 'project_root')
+
+    try {
+      const projectBundle = await projectManagement.createBundle(projectDir)
+      response
+        .writeHead(HTTP_STATUS_OK, [
+          ['Content-Length', String(projectBundle.byteLength)],
+          ['Content-Type', 'application/octet-stream'],
+          ...COOP_COEP_CORP_HEADERS,
+        ])
+        .end(projectBundle)
+    } catch (error) {
+      logger.error(error)
+      response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+    }
+  }
+
+  /** Response handler for "get file details" endpoint. */
+  async apiGetFileDetails(fileId: FileId) {
+    const typeAndPath = extractTypeAndPath(fileId)
+    const { path } = typeAndPath
+    const file = this.apiGetAssetDetailsByPath(typeAndPath)
+    if (file == null) {
+      return
+    }
+    const stat = statSync(path)
+    const result: FileDetails = {
+      file: {
+        fileId,
+        fileName: getFileName(path),
+        // Incorrect, but not sure what to do.
+        path: S3FilePath(String(path)),
+      },
+      metadata: { size: stat.size },
+      url: downloadFilePath(fileId),
+    }
+    return result
+  }
+
+  /** Response handler for "get file details" endpoint. */
+  async httpGetFileDetails(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    _params: URLSearchParams,
+    [fileId]: [fileId: FileId],
+  ) {
+    const details = await this.apiGetFileDetails(fileId)
+    if (!details) {
+      const filePath = extractTypeAndPath(fileId).path
+      this.httpError(response, `File not found at '${filePath}'`)
+      return
+    }
+    this.httpOkJson<FileDetails>(response, details)
+  }
+
+  /** Response handler for "download project" endpoint. */
+  async httpDownloadProject(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+    [projectId]: [projectId: ProjectId],
+  ) {
+    const filePath = params.get('filePath')
+    const projectPath = extractTypeAndPath(projectId).path
+    const stream = tarFsPack(projectPath).pipe(createGzip())
+    let promise: Promise<void> | undefined
+    if (filePath != null) {
+      promise = finished(stream.pipe(createWriteStream(filePath)))
+    } else {
+      response.writeHead(HTTP_STATUS_OK, [
+        ['Content-Type', 'application/octet-stream'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      await finished(stream.pipe(response))
+    }
+    if (filePath == null) {
+      return
+    }
+    await promise
+    this.httpOkJson<null>(response, null)
+  }
+
+  /** Upload an archive, optionally with a list of conflict resolutions. */
+  async apiUploadArchive({
+    directoryId,
+    jobId,
+    filePath,
+    readStream,
+  }: {
+    directoryId?: DirectoryId | null | undefined
+    jobId?: UnzipAssetsJobId | null | undefined
+    filePath?: string | null | undefined
+    readStream?: stream.Readable | null | undefined
+  }): Promise<unknown> {
+    filePath ??= jobId != null ? Path(decodeURIComponent(jobId)) : undefined
+    const directory =
+      directoryId ? extractTypeAndPath(directoryId).path : this.projectsRootDirectory
+    let tempDirectory: string | undefined
+    if (filePath == null) {
+      tempDirectory = await mkdtemp(path.join(tmpdir(), 'enso-'))
+      filePath = path.join(tempDirectory, 'archive.zip')
+      const writeStream = createWriteStream(filePath)
+      if (readStream == null) {
+        throw new Error(
+          'If no source path is provided, then a stream (e.g. from a request) is required',
+        )
+      }
+      readStream.pipe(writeStream)
+      await finished(writeStream)
+    }
+    const assets: AnyAsset[] = []
+
+    const pathMapping: Record<string, string> = {}
+
+    const getDirectoryPath = async (entryPathInArchive: string) => {
+      const isDirectory = isFolderPath(entryPathInArchive)
+      const parentPathInArchiveRaw = getFolderPath(entryPathInArchive)
+      let parentPathInArchive =
+        parentPathInArchiveRaw === entryPathInArchive ? '' : pathMapping[parentPathInArchiveRaw]
+      if (parentPathInArchive == null) {
+        await getDirectoryPath(parentPathInArchiveRaw)
+        parentPathInArchive = pathMapping[parentPathInArchiveRaw] ?? ''
+      }
+      const { basename: basenameRaw, extension: extensionRaw } = basenameAndExtension(
+        getFileName(entryPathInArchive),
+      )
+      const basename = basenameRaw.match(/^.*(?= \((?:copy)? ?\d*\)$)/)?.[0] ?? basenameRaw
+      const extension = (() => {
+        switch (extensionRaw) {
+          case 'enso-project':
+          case 'tar.gz':
+          case '': {
+            return ''
+          }
+          default: {
+            return `.${extensionRaw}`
+          }
+        }
+      })()
+      let destinationPathInArchive = path.join(parentPathInArchive, `${basename}${extension}`)
+      let destinationPath = Path(path.join(directory, destinationPathInArchive))
+      // If directories need to be merged in the future, the following check can be skipped
+      // for directories.
+      let i = 0
+      while (await fileExists(destinationPath)) {
+        i += 1
+        destinationPathInArchive = path.join(parentPathInArchive, `${basename} (${i})${extension}`)
+        destinationPath = Path(path.join(directory, destinationPathInArchive))
+      }
+      if (isDirectory) {
+        pathMapping[entryPathInArchive] = destinationPathInArchive
+      }
+      return destinationPath
+    }
+
+    for await (const entry of await unzipEntries(filePath)) {
+      const entryPathInArchive = entry.metadata.name
+      const destinationPath = await getDirectoryPath(entryPathInArchive)
+      const isDirectory = isFolderPath(entryPathInArchive)
+      const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
+      const shared = {
+        title: getFileName(destinationPath),
+        modifiedAt: toRfc3339(new Date()),
+        parentId: DirectoryId(`directory-${getFolderPath(destinationPath)}` as const),
+        extension: null,
+        permissions: [],
+        projectState: null,
+        parentsPath: ParentsPath(''),
+        virtualParentsPath: VirtualParentsPath(''),
+        ensoPath: EnsoPath(String(destinationPath)),
+      } satisfies Partial<DirectoryAsset>
+      if (isDirectory) {
+        assets.push({
+          ...shared,
+          type: AssetType.directory,
+          id: DirectoryId(`directory-${destinationPath}` as const),
+        })
+        await entry.extract({ rootDirectory: directory, destinationPath })
+      } else if (isProject) {
+        assets.push({
+          ...shared,
+          type: AssetType.project,
+          id: ProjectId(`project-${destinationPath.replace(BUNDLED_PROJECT_SUFFIX, '/')}`),
+          projectState: { type: ProjectState.closed },
+        })
+        await entry.extract({
+          rootDirectory: directory,
+          transform: async (stream) => {
+            const parentDirectory = getFolderPath(destinationPath)
+            const fileName = getFileName(destinationPath)
+            await projectManagement.uploadBundle(
+              stream,
+              parentDirectory,
+              stripProjectExtension(fileName),
+            )
+            // Prevent default behavior.
+            return false as const
+          },
+        })
+      } else {
+        assets.push({
+          ...shared,
+          type: AssetType.file,
+          id: FileId(`file-${destinationPath}`),
+          extension: basenameAndExtension(destinationPath).extension,
+        })
+        await entry.extract({ rootDirectory: directory, destinationPath })
+      }
+    }
+    if (tempDirectory != null) {
+      await rm(tempDirectory, { force: true, recursive: true })
+    }
+    return { assets }
+  }
+
+  /** Create an archive stream with the given assets. */
+  apiArchiveStream(assets: readonly AssetId[]) {
+    const archive = zipWriteStream()
+
+    const addProject = async (id: ProjectId, rootPath?: string) => {
+      const assetPath = extractTypeAndPath(id).path
+      rootPath ??= getFolderPath(assetPath)
+      const pathInArchive = `${path.relative(rootPath, assetPath)}${BUNDLED_PROJECT_SUFFIX}`
+      if (!(await fileExists(assetPath))) {
+        return { type: 'error', error: 'notFound', id } as const
+      }
+      await archive.addFile(tarFsPack(assetPath).pipe(createGzip()), { name: pathInArchive })
+    }
+
+    const addFile = async (id: FileId, rootPath?: string) => {
+      const assetPath = extractTypeAndPath(id).path
+      rootPath ??= getFolderPath(assetPath)
+      const pathInArchive = path.relative(rootPath, assetPath)
+      if (!(await fileExists(assetPath))) {
+        return { type: 'error', error: 'notFound', id } as const
+      }
+      await archive.addFile(createReadStream(assetPath), { name: pathInArchive })
+    }
+
+    const addFolder = async (id: DirectoryId, rootPath?: string) => {
+      const assetPath = extractTypeAndPath(id).path
+      rootPath ??= getFolderPath(assetPath)
+      const pathInArchive = path.relative(rootPath, assetPath)
+      if (!(await fileExists(assetPath))) {
+        return { type: 'error', error: 'notFound', id } as const
+      }
+      await archive.addFolder({ name: pathInArchive })
+      const entries = await this.apiListDirectory({ directory: id })
+      for (const entry of entries) {
+        await addAsset(entry.id, rootPath)
+      }
+    }
+
+    const addAsset = async (id: AssetId, rootPath?: string) => {
+      const typeAndId = extractTypeFromId(id)
+      switch (typeAndId.type) {
+        case AssetType.project: {
+          const error = await addProject(typeAndId.id, rootPath)
+          if (error) {
+            return error
+          }
+          break
+        }
+        case AssetType.file: {
+          const error = await addFile(typeAndId.id, rootPath)
+          if (error) {
+            return error
+          }
+          break
+        }
+        case AssetType.directory: {
+          const error = await addFolder(typeAndId.id, rootPath)
+          if (error) {
+            return error
+          }
+          break
+        }
+        // These asset types are not valid, however include them to force any newly added
+        // asset types to be handled (by causing a non-exhaustiveness error).
+        case AssetType.secret:
+        case AssetType.datalink:
+        case AssetType.specialUp: {
+          return
+        }
+      }
+    }
+
+    const promise = (async () => {
+      for (const id of assets) {
+        const error = await addAsset(id)
+        if (error) {
+          return error
+        }
+      }
+      archive.finalize()
+    })()
+
+    return { stream: archive.stream, promise } as const
+  }
+
+  /** Response handler for "download archive" endpoint. */
+  async httpDownloadArchive(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+  ) {
+    const assets = params.getAll('asset') as AssetId[]
+    const filePath = params.get('filePath')
+    const archive = this.apiArchiveStream(assets)
+    let promise: Promise<void> | undefined
+    if (filePath != null) {
+      promise = finished(archive.stream.pipe(createWriteStream(filePath)))
+    } else {
+      response.writeHead(HTTP_STATUS_OK, [
+        ['Content-Type', 'application/octet-stream'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      await finished(archive.stream.pipe(response))
+    }
+
+    if (filePath == null) {
+      // The HTTP headers were already sent
+      return
+    }
+    const error = await archive.promise
+    if (error) {
+      const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
+      response
+        .writeHead(HTTP_STATUS_NOT_FOUND, [
+          ['Content-Length', String(content.length)],
+          ['Content-Type', 'application/json'],
+          ...COOP_COEP_CORP_HEADERS,
+        ])
+        .end(content)
+    }
+    await promise
+    this.httpOkJson<ExportedArchive>(response, {
+      filePath: Path(filePath),
+    })
+  }
+
+  /** Get details for an asset by its path. */
+  apiGetAssetDetailsByPath<Type extends AssetType>({
+    type,
+    path,
+  }: {
+    type?: Type
+    path: Path
+  }): AnyAsset<Type> | undefined {
+    try {
+      // @ts-expect-error This is UNSAFE if `Type` is specified explicitly.
+      // If it is inferred, this means `type` is present and the constraint correctly falls back to
+      // `AssetType`
+      type ??= (() => {
+        const assetStat = statSync(path)
+        if (assetStat.isDirectory()) {
+          const metadata = projectManagement.getMetadata(path)
+          if (metadata) {
+            return AssetType.project
+          } else {
+            return AssetType.directory
+          }
+        } else {
+          return AssetType.file
+        }
+      })()
+      const shared = {
+        title: getFileName(path),
+        modifiedAt: toRfc3339(new Date()),
+        parentId: DirectoryId(`directory-${getFolderPath(path)}` as const),
+        extension: null,
+        permissions: [],
+        projectState: null,
+        parentsPath: ParentsPath(''),
+        virtualParentsPath: VirtualParentsPath(''),
+        ensoPath: EnsoPath(String(path)),
+      } satisfies Partial<DirectoryAsset>
+      switch (type) {
+        case AssetType.project: {
+          const result: ProjectAsset = {
+            ...shared,
+            type: AssetType.project,
+            id: ProjectId(`project-${path}`),
+            // FIXME: Get correct state.
+            projectState: { type: ProjectState.closed },
+          }
+          // This is SAFE because `type` has been narrowed in the `switch` above.
+          return result as AnyAsset<Type>
+        }
+        case AssetType.file: {
+          const result: FileAsset = {
+            ...shared,
+            type: AssetType.file,
+            id: FileId(`file-${path}`),
+            extension: basenameAndExtension(path).extension,
+          }
+          // This is SAFE because `type` has been narrowed in the `switch` above.
+          return result as AnyAsset<Type>
+        }
+        case AssetType.directory: {
+          const result: DirectoryAsset = {
+            ...shared,
+            type: AssetType.directory,
+            id: DirectoryId(`directory-${path}` as const),
+          }
+          // This is SAFE because `type` has been narrowed in the `switch` above.
+          return result as AnyAsset<Type>
+        }
+        default: {
+          throw new Error(`Unknown asset type '${type}'`)
+        }
+      }
+    } catch {
+      return
+    }
+  }
+
+  /** Get an asset's details by its id. */
+  apiGetAssetDetails({ assetId }: { readonly assetId: AssetId }) {
+    const typeAndPath = extractTypeAndPath(assetId)
+    return this.apiGetAssetDetailsByPath(typeAndPath)
+  }
+
+  /** List a directory. */
+  async apiListDirectory(params: { readonly directory?: DirectoryId }) {
+    const { directory: directoryRaw } = params
+    const directory =
+      directoryRaw ? extractTypeAndPath(directoryRaw).path : this.projectsRootDirectory
+    const assets: AnyAsset[] = []
+    for (const entryName of await readdir(directory)) {
+      const entryPath = Path(path.join(directory, entryName))
+      const asset = this.apiGetAssetDetailsByPath({ path: entryPath })
+      if (asset == null) {
+        throw new Error(`File not found at '${entryPath}'`)
+      }
+      assets.push(asset)
+    }
+    return assets
+  }
+
+  /** Response handler for "upload file" endpoint. */
+  async httpUploadFile(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+  ) {
+    const directoryParam = params.get('directory') as DirectoryId | null
+    const directory =
+      directoryParam ? extractTypeAndPath(directoryParam).path : this.projectsRootDirectory
+    const fileName = params.get('file_name')
+    const filePath = params.get('file_path')
+    try {
+      if (fileName == null) {
+        response
+          .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+          .end('Request is missing search parameter `file_name`.')
+      } else if (fileNameIsArchive(fileName)) {
+        await this.apiUploadArchive({
+          directoryId: directoryParam,
+          filePath,
+          readStream: request,
+        })
+        response.writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS).end()
+      } else if (fileNameIsProject(fileName)) {
+        const projectName = stripProjectExtension(fileName)
+        const project =
+          filePath ?
+            projectManagement.importProjectFromPath(filePath, directory, projectName)
+          : await projectManagement.uploadBundle(request, directory, projectName)
+        this.httpOkText(response, project.projectRoot)
+      } else {
+        const filePath = path.join(directory, fileName)
+        void writeFile(filePath, request)
+          .then(() => {
+            this.httpOkText(response, filePath)
+          })
+          .catch((e) => {
+            console.error(e)
+            response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
+          })
+      }
+    } catch (error) {
+      response
+        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+        .end(
+          String(
+            typeof error === 'object' && error != null && 'message' in error ?
+              error.message
+            : error,
+          ),
+        )
+    }
+  }
+
+  /** Response handler for "run project manager command" endpoint. */
+  async httpRunProjectManagerCommand(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+  ) {
+    const cliArguments: unknown = JSON.parse(params.get('cli-arguments') ?? '[]')
+    if (
+      !Array.isArray(cliArguments) ||
+      !cliArguments.every((item): item is string => typeof item === 'string')
+    ) {
+      response
+        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+        .end('Command arguments must be an array of strings.')
+    } else {
+      const commandOutput = (() => {
+        try {
+          return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
+        } catch {
+          const readableStream = new stream.Readable()
+          readableStream.push(
+            JSON.stringify({
+              error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+            }),
+          )
+          readableStream.push(null)
+          return readableStream
+        }
+      })()
+      response.writeHead(HTTP_STATUS_OK, [
+        ['Content-Type', 'application/json'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      commandOutput.pipe(response, { end: true })
     }
   }
 }

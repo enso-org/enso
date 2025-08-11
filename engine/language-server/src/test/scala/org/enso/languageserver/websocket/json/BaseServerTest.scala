@@ -54,7 +54,7 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.profiling.events.NoopEventsMonitor
+import org.enso.profiling.events.EventsMonitor
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
@@ -115,7 +115,7 @@ abstract class BaseServerTest
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
-      ProfilingConfig(),
+      ProfilingConfig.none(),
       StartupConfig(),
       None
     )
@@ -378,7 +378,7 @@ abstract class BaseServerTest
     )
 
     val eventsMonitor = system.actorOf(
-      EventsMonitorActor.props(new NoopEventsMonitor)
+      EventsMonitorActor.props(EventsMonitor.NOOP)
     )
 
     val profilingManager = system.actorOf(

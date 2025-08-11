@@ -1,7 +1,7 @@
 import { useAbortScope } from '@/util/net'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
-import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, ref, watch, withCtx } from 'vue'
 import { xxHash128 } from 'ydoc-shared/ast/ffi'
 import { AbortScope } from 'ydoc-shared/util/net'
 
@@ -55,7 +55,11 @@ export function useSyncLocalStorage<StoredState extends object>(
     getCurrentInstance(),
   ) as typeof options.restoreState
 
-  const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map())
+  const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map(), {
+    // The default (`pre`) cannot be used because state captured during `beforeMount` would never
+    // be flushed.
+    flush: 'sync',
+  })
 
   /**
    * Maximum number of graph states stored in localStorage. When it is exceeded, least recently used
@@ -102,6 +106,10 @@ export function useSyncLocalStorage<StoredState extends object>(
       debounce: options.debounce,
     },
   )
+  onBeforeUnmount(() => {
+    if (restoreIdInProgress.value == null)
+      saveState(graphViewportStorageKey.value, serializedState.value)
+  })
 
   function saveState(storageKey: string, state: StoredState) {
     storageMap.value.set(storageKey, state)

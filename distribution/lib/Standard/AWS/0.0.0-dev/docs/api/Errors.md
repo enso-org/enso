@@ -21,4 +21,5 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type S3_Warning
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
