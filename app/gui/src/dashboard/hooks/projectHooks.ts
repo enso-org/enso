@@ -230,8 +230,8 @@ export function useOpenProjectMutation() {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
-      const cloudProjectDirectoryPath = hybrid ? hybrid.cloudProjectDirectoryPath : null
 
+      const openHybridProjectParameters = hybrid ? { ...hybrid } : null
       await backend
         .openProject(
           id,
@@ -244,7 +244,7 @@ export function useOpenProjectMutation() {
               expireAt: session.expireAt,
               refreshUrl: session.refreshUrl,
             },
-            cloudProjectDirectoryPath,
+            openHybridProjectParameters,
           },
           title,
         )
@@ -517,9 +517,11 @@ function useOpenHybridProject() {
       try {
         invariant(localBackend != null, 'Local Backend is null')
         addOpeningProject(asset.id)
-        await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
+        const projectSessionId = await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
-        const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
+        const cloudProjectDirectoryPath = backendModule.EnsoPath(
+          asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/')),
+        )
 
         let project
         for (const parentId of [localProject.parentId, localProject.projectRootId]) {
@@ -545,6 +547,7 @@ function useOpenHybridProject() {
           type: backendModule.BackendType.local,
           hybrid: {
             cloudProjectId: asset.id,
+            cloudProjectSessionId: projectSessionId,
             cloudParentId: asset.parentId,
             parentId: localProject.parentId,
             cloudProjectDirectoryPath,

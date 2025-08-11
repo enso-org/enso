@@ -925,11 +925,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
           )
         }
 
+        const projectSessionId = backend.ProjectSessionId('projectsession-0000')
         if (project?.projectState) {
           object.unsafeMutable(project.projectState).type = backend.ProjectState.openInProgress
+          object.unsafeMutable(project.projectState).currentSessionId = projectSessionId
         }
 
-        route.fulfill()
+        return { projectSessionId }
       },
     )
     await post(paths.getHybridSetOpenedPath(GLOB_PROJECT_ID), async (route, _, [id]) => {

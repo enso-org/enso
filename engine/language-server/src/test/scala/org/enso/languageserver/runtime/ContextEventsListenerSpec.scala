@@ -503,7 +503,7 @@ class ContextEventsListenerSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig(),
+      ProfilingConfig.none(),
       StartupConfig(),
       None
     )
