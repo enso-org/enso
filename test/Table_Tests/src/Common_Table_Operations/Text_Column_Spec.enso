@@ -3,6 +3,7 @@ import Standard.Base.Errors.Common.Type_Error
 
 from Standard.Table import all
 from Standard.Table.Errors import all
+import Standard.Table.In_Memory_Column.In_Memory_Column
 
 import Standard.Database.Dialects.Feature.Feature
 
@@ -22,11 +23,19 @@ add_specs suite_builder setup =
 add_text_columns_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.light_table_builder
+    build_sorted_table = Util.build_sorted_table setup
 
     suite_builder.group prefix+"Text_Column" group_builder->
-        text_column = Lazy_Ref.Value <| table_builder [["X", ["asdf", "zxcv", "qwer", "xomt"]]] . at "X"
+        text_column = Lazy_Ref.Value <| build_sorted_table [["X", ["asdf", "ZXcv fFFf", "qwER gGgG", "XOMT"]]] . at "X"
+
         group_builder.specify "a text column can be cast to Text_Column" <|
             column = text_column.get
             column.value_type.is_text . should_be_true
             check_column_refinements column x->
                 (x:Text_Column)
+
+        group_builder.specify "to_case works" <|
+            column = text_column.get
+            column.to_case ..Upper . to_vector . should_equal ["ASDF", "ZXCV FFFF", "QWER GGGG", "XOMT"]
+            column.to_case ..Lower . to_vector . should_equal ["asdf", "zxcv ffff", "qwer gggg", "xomt"]
+            column.to_case ..Title . to_vector . should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]

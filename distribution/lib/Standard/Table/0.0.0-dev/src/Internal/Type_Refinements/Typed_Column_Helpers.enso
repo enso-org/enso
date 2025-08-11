@@ -1,4 +1,5 @@
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Refined_Types.Text_Column.Text_Column
 
 ## ---
    private: true
@@ -8,3 +9,12 @@ import project.Refined_Types.Numeric_Column.Numeric_Column
    refinement.
 make_numeric_column base_column numeric_operations_implementation =
     Numeric_Column.Value base_column numeric_operations_implementation
+
+## ---
+   private: true
+   ---
+   For internal use only, this function should be used by implementations to
+   provide a hidden conversion to `Text_Column` that allows the type
+   refinement.
+make_text_column base_column text_operations_implementation =
+    Text_Column.Value base_column text_operations_implementation

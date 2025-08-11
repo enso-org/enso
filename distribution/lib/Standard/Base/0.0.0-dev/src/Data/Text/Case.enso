@@ -1,4 +1,4 @@
-polyglot import org.enso.base.text.Case as Java_Case
+polyglot java import org.enso.base.text.Case as Java_Case
 
 ## Specifies the casing options for text conversion.
 type Case
@@ -15,8 +15,8 @@ type Case
        private: true
        ---
        Convert Case to a Java enum.
-    to_java_case : Case -> Java_Case
-    to_java_case self -> Java_Case = case self of
+    to_java : Case -> Java_Case
+    to_java self -> Java_Case = case self of
         Case.Lower -> Java_Case.LOWER
         Case.Upper -> Java_Case.UPPER
         Case.Title -> Java_Case.TITLE

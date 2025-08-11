@@ -21,4 +21,4 @@ type Text_Column
              example_to_case = Examples.text_column_1.to_case ..Upper
        ```
     to_case self case_option:Case=..Lower locale:Locale=Locale.default -> Column & Text_Column =
-        self.operations_implementation.to_case self.column
+        self.operations_implementation.to_case self.column case_option locale

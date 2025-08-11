@@ -8,7 +8,9 @@ import project.Internal.In_Memory_Column_Implementation.apply_unary_operation
 import project.Internal.In_Memory_Column_Implementation.naming_helper
 import project.Value_Type.Value_Type
 
+polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
+polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 
 type In_Memory_Numeric_Column_Implementation
     abs (column : Column & In_Memory_Column) =
