@@ -1580,6 +1580,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     */
   .settings(
     Test / fork := true,
+    // Ensure that `Test / javaOptions` do not "inherit" from `Runtime / javaOptions`.
+    Test / javaOptions := (Compile / javaOptions).value,
     // These dependencies are here so that we can use them in `--module-path` later on.
     libraryDependencies ++= {
       val necessaryModules =
