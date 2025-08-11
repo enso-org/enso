@@ -338,7 +338,7 @@ export function createProjectStore(
   function queuedExecuteExpression(
     expressionId: ExternalId,
     expression: string,
-    timeoutMs: number = 5000
+    timeoutMs: number = 5000,
   ): Promise<Result<any> | null> {
     if (inProgress.value >= MAX_IN_PROGRESS) {
       queueLength.value += 1
@@ -389,7 +389,14 @@ export function createProjectStore(
           if (state === 1) {
             if (retryAttempt < MAX_RETRIES_IN_QUEUE) {
               const incRetryAttempt = retryAttempt + 1
-              console.warn("Waiting on data (expressionId=" + expressionId + ", visualizationId=" + visualizationId + "), retry attempt: " + incRetryAttempt)
+              console.warn(
+                'Waiting on data (expressionId=' +
+                  expressionId +
+                  ', visualizationId=' +
+                  visualizationId +
+                  '), retry attempt: ' +
+                  incRetryAttempt,
+              )
               waitWithExponentialBackoff(incRetryAttempt, timeoutMs * 2 ** retryAttempt)
             } else {
               inProgress.value -= 1
