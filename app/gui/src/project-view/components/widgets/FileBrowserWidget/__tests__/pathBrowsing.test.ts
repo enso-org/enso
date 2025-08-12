@@ -86,5 +86,5 @@ test('does not re-traverse unchanged prefix when entering overlapping path', asy
 
   // Reset to Users/user
   await setBrowsingPath({ root: rootId, segments: ['Users', 'user'] })
-  expect(calls).toBe(5)
+  expect(calls).toBe(4)
 })

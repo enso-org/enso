@@ -26,6 +26,7 @@ import {
   usePathBrowsing,
   type Directory,
 } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import { useFileBrowserSync } from '@/components/widgets/FileBrowserWidget/useFileBrowserSync'
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { registerHandlers } from '@/providers/action'
@@ -33,7 +34,7 @@ import { providePopoverRoot } from '@/providers/popoverRoot'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
-import { computed, ref, toValue, useTemplateRef, watch, watchEffect } from 'vue'
+import { computed, ref, toValue, useTemplateRef, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -109,25 +110,17 @@ const { currentDirPath, chosenFilename, setPath, enterDir, popTo, append } = use
   home: () => ensoPath(toValue(userFiles.value?.home ?? [])),
   enteredPath,
 })
-// Sync opened directory with the passed property.
-watchEffect(() => setPath(parseEnsoPath(props.choosenPath)))
-// Sync the browsing path with the current directory (usually when navigating).
-watchEffect(() => {
-  if (currentDirPath.value) {
-    const fullPath =
-      chosenFilename.value ?
-        mapPath(currentDirPath.value, append(chosenFilename.value))
-      : currentDirPath.value
-    setBrowsingPath(fullPath)
-  }
-})
-// Sync the filename with entered path (usually when openening the file browser).
-watchEffect(() => {
-  if (props.writeMode && unenteredPathSuffix.value) setFilename(unenteredPathSuffix.value)
-})
-// Set the filename with the chosen file.
-watchEffect(() => {
-  if (chosenFilename.value) setFilename(chosenFilename.value)
+useFileBrowserSync({
+  writeMode: () => props.writeMode,
+  choosenPath: () => props.choosenPath,
+  parseEnsoPath,
+  currentDirPath,
+  chosenFilename,
+  setPath,
+  setBrowsingPath,
+  append,
+  setFilename,
+  unenteredPathSuffix,
 })
 
 const highlightedFilename = computed(
