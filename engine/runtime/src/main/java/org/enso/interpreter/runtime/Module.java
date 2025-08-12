@@ -95,7 +95,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -119,7 +120,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -139,7 +141,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -166,7 +169,8 @@ public final class Module extends EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -463,7 +467,7 @@ public final class Module extends EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
+    scopeBuilder = ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -562,7 +566,8 @@ public final class Module extends EnsoObject {
    * @return new scope builder - same as {@link #getScopeBuilder()} since now
    */
   final ModuleScopeBuilder newScopeBuilder() {
-    this.scopeBuilder = ModuleScopeAccessor.INSTANCE.newScopeBuilder(this, this::updateModuleScope);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     return this.scopeBuilder;
   }
 

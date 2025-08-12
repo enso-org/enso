@@ -14,8 +14,7 @@ import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
  * </ul>
  */
 public abstract class ModuleScopeAccessor {
-  private static ModuleScopeAccessor INIT;
-  static final ModuleScopeAccessor INSTANCE;
+  private static ModuleScopeAccessor INSTANCE;
 
   static {
     var forceInitialization = ModuleScopeBuilder.class;
@@ -24,15 +23,17 @@ public abstract class ModuleScopeAccessor {
     } catch (ClassNotFoundException ex) {
       throw new IllegalStateException(ex);
     }
-    assert INIT != null : "Class " + forceInitialization + " should register accessor";
-    INSTANCE = INIT;
-    INIT = null;
+  }
+
+  static ModuleScopeAccessor getInstance() {
+    assert INSTANCE != null;
+    return INSTANCE;
   }
 
   /** Registers the only one implementation of this accessor. */
   protected ModuleScopeAccessor() {
     assert INSTANCE == null : "Allow only one implementation";
-    INIT = this;
+    INSTANCE = this;
   }
 
   protected abstract ModuleScopeBuilder newScopeBuilder(Module m, Consumer<ModuleScope> update);
