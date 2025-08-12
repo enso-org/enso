@@ -109,9 +109,9 @@ const { currentDirPath, chosenFilename, setPath, enterDir, popTo, append } = use
   home: () => ensoPath(toValue(userFiles.value?.home ?? [])),
   enteredPath,
 })
-// Set initial path when opening the file browser.
+// Sync opened directory with the passed property.
 watchEffect(() => setPath(parseEnsoPath(props.choosenPath)))
-// Set the browsing path when the current directory changes.
+// Sync the browsing path with the current directory (usually when navigating).
 watchEffect(() => {
   if (currentDirPath.value) {
     const fullPath =
@@ -121,11 +121,11 @@ watchEffect(() => {
     setBrowsingPath(fullPath)
   }
 })
-// Set the filename when the user enters a directory.
+// Sync the filename with entered path (usually when openening the file browser).
 watchEffect(() => {
   if (props.writeMode && unenteredPathSuffix.value) setFilename(unenteredPathSuffix.value)
 })
-// Set the filename when the user chooses a file.
+// Set the filename with the chosen file.
 watchEffect(() => {
   if (chosenFilename.value) setFilename(chosenFilename.value)
 })
