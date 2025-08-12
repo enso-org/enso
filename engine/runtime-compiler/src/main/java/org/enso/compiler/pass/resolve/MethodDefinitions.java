@@ -212,14 +212,16 @@ public final class MethodDefinitions implements MiniPassFactory {
                 false,
                 null,
                 new MetadataStorage());
+        // Here we add the type ascription ensuring that the 'proper' self argument only
+        // accepts _instances_ of the type (or triggers conversions)
+        var newBodyRef =
+            Persistance.Reference.of(addTypeAscriptionToSelfArgument(dup.body()), true);
         var newBody =
             Function.Lambda.builder()
                 .arguments(
                     // This is the synthetic Self argument that gets the static module
                     list(syntheticModuleSelfArg))
-                // Here we add the type ascription ensuring that the 'proper' self argument only
-                // accepts _instances_ of the type (or triggers conversions)
-                .bodyReference(Persistance.Reference.of(dup.body(), true))
+                .bodyReference(newBodyRef)
                 .canBeTCO(true)
                 .build();
         // The actual `self` argument that is referenced inside of method body is the second one in
