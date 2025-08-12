@@ -419,10 +419,10 @@ export function getProjectsDirectory(): string {
 
   const documentsPath = desktopEnvironment.DOCUMENTS
   
-  if (documentsPath !== undefined) {
-    return pathModule.join(documentsPath, 'enso-projects')
-  } else {
+  if (documentsPath === undefined) {
     return pathModule.join(os.homedir(), 'enso', 'projects')
+  } else {
+    return pathModule.join(documentsPath, 'enso-projects')
   }
 }
 
