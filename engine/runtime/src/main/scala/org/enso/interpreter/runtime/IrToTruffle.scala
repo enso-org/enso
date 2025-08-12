@@ -144,9 +144,7 @@ class IrToTruffle(
   ) = this(
     context,
     source,
-    org.enso.interpreter.runtime.Module
-      .fromCompilerModule(mod)
-      .getScopeBuilder(),
+    TruffleCompilerModuleScopeBuilder.fromCompilerModule(mod),
     compilerConfig
   )
 
@@ -2562,24 +2560,22 @@ class IrToTruffle(
   }
 
   private def asScope(module: CompilerContext.Module): ModuleScopeBuilder = {
-    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScopeBuilder()
+    TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
   }
 
   private def asType(
     typ: BindingsMap.ResolvedType
   ): Type = {
-    val m = org.enso.interpreter.runtime.Module
-      .fromCompilerModule(typ.module.unsafeAsModule())
-    val sb = m.getScopeBuilder()
+    val sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(
+      typ.module.unsafeAsModule()
+    )
     sb.getType(typ.tp.name, true)
   }
 
   private def asAssociatedType(
     module: CompilerContext.Module
   ): Type = {
-    val m  = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    val sb = m.getScopeBuilder()
+    val sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
     sb.getAssociatedType()
   }
 

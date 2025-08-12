@@ -19,4 +19,8 @@ final class TruffleCompilerModuleScopeBuilder extends CompilerContext.ModuleScop
       CompilerContext.ModuleScopeBuilder scopeBuilder) {
     return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
   }
+
+  static ModuleScopeBuilder fromCompilerModule(CompilerContext.Module module) {
+    return fromCompilerModuleScopeBuilder(module.getScopeBuilder());
+  }
 }

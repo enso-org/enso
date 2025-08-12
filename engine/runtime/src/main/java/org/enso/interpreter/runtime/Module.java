@@ -55,12 +55,15 @@ import org.enso.polyglot.data.TypeGraph;
 import org.enso.text.buffer.Rope;
 import org.slf4j.LoggerFactory;
 
-/** Represents a source module with a known location. */
+/**
+ * Represents a source module with a known location. The state of {@link Module} may change as the
+ * user manipulates it source in the Enso Studio. The immutable state is captured inside of {@link
+ * ModuleScope}. Snapshot of the scope can be obtained via {@link #getScope()}.
+ */
 @ExportLibrary(InteropLibrary.class)
 public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
-  private ModuleScopeBuilder scopeBuilder;
   private ModuleScope scope;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
@@ -95,16 +98,13 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = false;
   }
 
-  private void updateModuleScope(ModuleScope scope) {
-    assert scope == scopeBuilder.asModuleScope();
+  final void updateModuleScope(ModuleScope scope) {
     this.scope = scope;
   }
 
@@ -120,8 +120,6 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -141,8 +139,6 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -169,7 +165,7 @@ public final class Module extends EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder =
+    var scopeBuilder =
         ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
@@ -394,8 +390,8 @@ public final class Module extends EnsoObject {
       } catch (IOException ignored) {
       }
     }
-    scopeBuilder.finish();
-    assert scope == scopeBuilder.asModuleScope();
+    var cm = TruffleCompilerContext.findCompilerModule(this);
+    TruffleCompilerModuleScopeBuilder.fromCompilerModule(cm).finish();
     return scope;
   }
 
@@ -467,9 +463,10 @@ public final class Module extends EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
+    var cm = asCompilerModule();
+    cm.newScopeBuilder();
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(asCompilerModule());
+    context.getCompiler().run(cm);
   }
 
   /**
@@ -549,26 +546,11 @@ public final class Module extends EnsoObject {
    * scope instance at given time. Over time the scope instance may change as a result of {@link
    * ModuleScopeBuilder#finish()} call.
    *
-   * @return the current runtime scope of this module.
+   * @return the current runtime scope of this module, future calls may yield different instance if
+   *     the code/state of the module was modified
    */
   public final ModuleScope getScope() {
     return scope;
-  }
-
-  final ModuleScopeBuilder getScopeBuilder() {
-    return scopeBuilder;
-  }
-
-  /**
-   * Resets scope builder of this module by a new one. Shall only be called from compiler interface
-   * - {@link TruffleCompilerContext}.
-   *
-   * @return new scope builder - same as {@link #getScopeBuilder()} since now
-   */
-  final ModuleScopeBuilder newScopeBuilder() {
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
-    return this.scopeBuilder;
   }
 
   /**
@@ -639,7 +621,7 @@ public final class Module extends EnsoObject {
    * @return instance of {@link CompilerContext.Module} that delegates to this module
    */
   public final CompilerContext.Module asCompilerModule() {
-    return new TruffleCompilerContext.Module(this);
+    return TruffleCompilerContext.findCompilerModule(this);
   }
 
   /**

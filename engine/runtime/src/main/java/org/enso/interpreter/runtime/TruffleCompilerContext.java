@@ -8,12 +8,15 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -736,7 +739,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.newScopeBuilder();
+        module.newScopeBuilder();
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
@@ -744,13 +747,28 @@ final class TruffleCompilerContext implements CompilerContext {
     }
   }
 
-  public static final class Module extends CompilerContext.Module {
+  private static final Map<org.enso.interpreter.runtime.Module, Reference<Module>>
+      COMPILER_MODULES = new WeakHashMap<>();
 
+  static synchronized Module findCompilerModule(org.enso.interpreter.runtime.Module module) {
+    var ref = COMPILER_MODULES.get(module);
+    var cm = ref == null ? null : ref.get();
+    if (cm == null) {
+      cm = new Module(module);
+      COMPILER_MODULES.put(module, new WeakReference<>(cm));
+    }
+    return cm;
+  }
+
+  public static final class Module extends CompilerContext.Module {
     private final org.enso.interpreter.runtime.Module module;
     private BindingsMap bindings;
+    private ModuleScopeBuilder sb;
 
-    public Module(org.enso.interpreter.runtime.Module module) {
+    private Module(org.enso.interpreter.runtime.Module module) {
       this.module = module;
+      var tmp = newScopeBuilder();
+      assert this.sb == tmp;
     }
 
     @Override
@@ -839,14 +857,15 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
-      var sb = module.getScopeBuilder();
-      return new TruffleCompilerModuleScopeBuilder(sb);
+      return sb;
     }
 
     @Override
     public ModuleScopeBuilder newScopeBuilder() {
-      var sb = module.newScopeBuilder();
-      return new TruffleCompilerModuleScopeBuilder(sb);
+      var inner =
+          ModuleScopeAccessor.getInstance().newScopeBuilder(module, module::updateModuleScope);
+      sb = new TruffleCompilerModuleScopeBuilder(inner);
+      return sb;
     }
 
     @Override
