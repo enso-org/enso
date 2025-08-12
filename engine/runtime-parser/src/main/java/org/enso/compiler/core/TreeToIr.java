@@ -388,6 +388,7 @@ final class TreeToIr {
             .body(def)
             .isPrivate(false)
             .canBeTCO(true)
+            .location(getIdentifiedLocation(fn))
             .build();
         yield join(binding, appendTo);
       }
@@ -586,6 +587,7 @@ final class TreeToIr {
           .name(name)
           .arguments(args)
           .body(ascribedBody)
+          .location(loc)
           .isPrivate(isPrivate)
           .canBeTCO(true)
           .build();
