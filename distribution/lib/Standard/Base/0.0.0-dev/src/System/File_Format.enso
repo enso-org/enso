@@ -9,6 +9,7 @@ import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
@@ -29,21 +30,13 @@ from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
-polyglot java import org.enso.base.file_format.FileFormatSPI
-
-## ---
-   private: true
-   ---
-format_types : Vector
-format_types = Vector.from_polyglot_array (FileFormatSPI.get_types False)
-
 ## ---
    private: true
    ---
    Gets the first format not returning Nothing from the callback
 get_format : Function -> Any | Nothing
 get_format callback =
-    types = format_types
+    types = File_Format_SPI.get_types
     reader idx =
         if idx >= types.length then Nothing else
             format = callback (types.at idx)
@@ -108,7 +101,7 @@ type File_Format
        imported within the current project. Importing an new library may cause
        more entries to show up on this list.
     all : Vector
-    all = [Auto_Detect] + format_types
+    all = [Auto_Detect] + File_Format_SPI.get_types
 
     ## ---
        private: true
@@ -117,9 +110,10 @@ type File_Format
     resolve : Function -> File_Format
     resolve constructor = case constructor of
         _ : Function ->
+            arr = File_Format_SPI.get_types
             try_next idx =
-                if idx >= format_types.length then Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.") else
-                    format = format_types.at idx
+                if idx >= arr.length then Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.") else
+                    format = arr.at idx
                     resolved = format.resolve constructor
                     if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
             try_next 0
@@ -165,13 +159,13 @@ type File_Format
        ---
        Returns a list of all name patterns of all known file formats.
     all_known_name_patterns -> Vector Text =
-        format_types.flat_map .get_name_patterns . flat_map .patterns . distinct
+        File_Format_SPI.get_types.flat_map .get_name_patterns . flat_map .patterns . distinct
 
     ## ---
        private: true
        ---
     default_widget display:Display=..When_Modified -> Widget =
-        options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
+        options = ([Auto_Detect]+File_Format_SPI.get_types).flat_map .get_dropdown_options
         Single_Choice display=display values=options
 
     ## ---
@@ -458,3 +452,60 @@ type File_Name_Pattern
        it will be used by the `File_Format` to merge patterns and nesting it
        would not be allowed.
     Value display_name:Text (patterns : Vector Text)
+
+## ---
+   private: true
+   ---
+   Service provide interface to implement and register to expand capabilities
+   of `File_Format` recognition. Define singleton type in a `private`
+   module in your library:
+   ```
+   type Your_Providers
+   File_Format_SPI.from (_:YourProviders) =
+       File_Format_SPI.new "your info"
+   ```
+   and then add a registration into `package.yaml` of your library.
+
+type File_Format_SPI
+    private Single typ data_link_format_name:Text|Nothing
+    private Few arr:(Vector File_Format_SPI)
+
+    ## ---
+       private: true
+       ---
+       Creates new file format service provider registration
+
+       ## Arguments
+        - `typ`: type implementing the _"file format protocol"_
+        - `name`: data link format name
+
+    new typ name:Text|Nothing=Nothing -> File_Format_SPI =
+        File_Format_SPI.Single typ name
+
+
+    ## ---
+       private: true
+       ---
+       Concatenates two registrations together. Allows one conversion to
+       register multiple file formats service providers
+
+    + self that:File_Format_SPI = File_Format_SPI.Few self.to_vector+that.to_vector
+
+    private to_vector self -> Vector File_Format_SPI = case self of
+        File_Format_SPI.Few arr -> arr
+        single -> [single]
+
+    private get_regs _:Boolean=False =
+        reg = Meta.lookup_services File_Format_SPI
+        reg.map .to_vector . flatten
+
+    private get_types b:Boolean=False =
+        File_Format_SPI.get_regs b . map .typ
+
+    private find_format_for_data_link sub_type:Text =
+        all = File_Format_SPI.get_regs False
+        found = all.filter \spi -> spi.data_link_format_name == sub_type
+        if found.length > 0 then found.first . typ else
+            Error.throw <|
+                Illegal_State.Error "Unknown format "+sub_type
+

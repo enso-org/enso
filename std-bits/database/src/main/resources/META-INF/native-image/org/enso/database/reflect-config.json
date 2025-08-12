@@ -9,9 +9,6 @@
     ]
   },
       {
-        "name": "org.enso.database.DatabaseConnectionDetailsSPI"
-      },
-      {
         "name": "org.enso.database.JDBCProxy"
       },
       {

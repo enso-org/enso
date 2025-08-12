@@ -201,6 +201,16 @@ object LauncherApplication {
     ) {
       val rootId    = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
       val projectId = Opts.parameter[UUID]("project-id", "UUID", "Project id.")
+      val projectCloudId = Opts.optionalParameter[String](
+        "cloud-project-id",
+        "ID",
+        "Cloud project id (hybrid)."
+      )
+      val projectSessionId = Opts.optionalParameter[String](
+        "cloud-project-session-id",
+        "ID",
+        "Cloud project session id (hybrid)."
+      )
       val path =
         Opts.parameter[Path]("path", "PATH", "Path to the content root.")
       val interface =
@@ -246,6 +256,8 @@ object LauncherApplication {
       (
         rootId,
         projectId,
+        projectCloudId,
+        projectSessionId,
         path,
         interface,
         rpcPort,
@@ -262,6 +274,8 @@ object LauncherApplication {
         (
           rootId,
           projectId,
+          projectCloudId,
+          projectSessionId,
           path,
           interface,
           rpcPort,
@@ -277,14 +291,16 @@ object LauncherApplication {
         ) => (config: Config) =>
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
-              rootId         = rootId,
-              projectId      = projectId,
-              interface      = interface,
-              rpcPort        = rpcPort,
-              secureRpcPort  = secureRpcPort,
-              dataPort       = dataPort,
-              secureDataPort = secureDataPort,
-              jvm            = Option(jvm)
+              rootId                = rootId,
+              projectId             = projectId,
+              projectCloudId        = projectCloudId,
+              projectCloudSessionId = projectSessionId,
+              interface             = interface,
+              rpcPort               = rpcPort,
+              secureRpcPort         = secureRpcPort,
+              dataPort              = dataPort,
+              secureDataPort        = secureDataPort,
+              jvm                   = Option(jvm)
             ),
             contentRoot         = path,
             versionOverride     = versionOverride,

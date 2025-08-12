@@ -4,7 +4,6 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Runtime.Context
 
 from Standard.Image import Image, Read_Flag, Write_Flag
-import Standard.Image.Image_File_Format.Image_File_Format
 
 from Standard.Test import all
 
@@ -72,9 +71,13 @@ add_specs suite_builder =
 
     suite_builder.group "Image File_Format" group_builder->
         group_builder.specify "should recognise image files" <|
-            Auto_Detect.get_reading_format (enso_project.data / "data.jpg") . should_be_a Image_File_Format
-            Auto_Detect.get_reading_format (enso_project.data / "data.png") . should_be_a Image_File_Format
-            Auto_Detect.get_reading_format (enso_project.data / "data.bmp") . should_be_a Image_File_Format
+            assert_image_file_format v =
+               t = Meta.type_of v . to_text
+               t . should_equal "Image_File_Format"
+
+            assert_image_file_format <| Auto_Detect.get_reading_format (enso_project.data / "data.jpg")
+            assert_image_file_format <| Auto_Detect.get_reading_format (enso_project.data / "data.png")
+            assert_image_file_format <| Auto_Detect.get_reading_format (enso_project.data / "data.bmp")
 
         group_builder.specify "should allow reading an Image" <|
             img = Data.read rgba_file

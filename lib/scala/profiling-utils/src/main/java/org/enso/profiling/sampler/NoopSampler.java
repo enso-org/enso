@@ -1,11 +1,16 @@
 package org.enso.profiling.sampler;
 
+import java.time.Instant;
+
 /** Sampler that does nothing. */
-public class NoopSampler implements MethodsSampler {
+final class NoopSampler implements MethodsSampler {
 
   @Override
   public void start() {}
 
   @Override
-  public void stop() {}
+  public void close() {}
+
+  @Override
+  public void log(Instant at, String message) {}
 }

@@ -222,7 +222,6 @@ export function useOpenProjectMutation() {
       title,
       id,
       type,
-      parentId,
       hybrid,
       inBackground = false,
       suppressHybridProjectOpen: _ = false,
@@ -231,8 +230,8 @@ export function useOpenProjectMutation() {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
-      const cloudProjectDirectoryPath = hybrid ? hybrid.cloudProjectDirectoryPath : null
 
+      const openHybridProjectParameters = hybrid ? { ...hybrid } : null
       await backend
         .openProject(
           id,
@@ -245,8 +244,7 @@ export function useOpenProjectMutation() {
               expireAt: session.expireAt,
               refreshUrl: session.refreshUrl,
             },
-            cloudProjectDirectoryPath,
-            parentId,
+            openHybridProjectParameters,
           },
           title,
         )
@@ -514,17 +512,21 @@ function useOpenHybridProject() {
 
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
+      let launchedProject: LaunchedProject | undefined
+
       try {
         invariant(localBackend != null, 'Local Backend is null')
         addOpeningProject(asset.id)
-        await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
+        const projectSessionId = await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
-        const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
+        const cloudProjectDirectoryPath = backendModule.EnsoPath(
+          asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/')),
+        )
 
         let project
         for (const parentId of [localProject.parentId, localProject.projectRootId]) {
           const assets = await localBackend.listDirectory({
-            parentId: parentId,
+            parentId,
             filterBy: null,
             labels: null,
             recentProjects: false,
@@ -536,8 +538,8 @@ function useOpenHybridProject() {
         }
 
         removeOpeningProject(asset.id)
-        invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-        await openProject({
+        invariant(project, 'Downloaded cloud project does not exist in Local Backend.')
+        launchedProject = {
           id: project.id,
           title: asset.title,
           parentId: project.parentId,
@@ -545,15 +547,20 @@ function useOpenHybridProject() {
           type: backendModule.BackendType.local,
           hybrid: {
             cloudProjectId: asset.id,
+            cloudProjectSessionId: projectSessionId,
             cloudParentId: asset.parentId,
             parentId: localProject.parentId,
             cloudProjectDirectoryPath,
           },
-        })
+        }
+        await openProject(launchedProject)
       } catch (error) {
         removeOpeningProject(asset.id)
         toastAndLog('openProjectError', error, asset.title)
-        await closeProject({ ...asset, type: backendModule.BackendType.local })
+        await Promise.allSettled([
+          closeProject({ ...asset, type: backendModule.BackendType.remote }),
+          ...(launchedProject ? [closeProject(launchedProject)] : []),
+        ])
       }
     },
   )

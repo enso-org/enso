@@ -281,6 +281,7 @@ object ComponentGroupsResolverSpec {
       edition              = None,
       preferLocalLibraries = true,
       componentGroups      = Some(componentGroups),
+      services             = List(),
       jvm                  = None
     )
 
@@ -300,6 +301,7 @@ object ComponentGroupsResolverSpec {
       edition              = None,
       preferLocalLibraries = true,
       componentGroups      = None,
+      services             = List(),
       jvm                  = None
     )
 
