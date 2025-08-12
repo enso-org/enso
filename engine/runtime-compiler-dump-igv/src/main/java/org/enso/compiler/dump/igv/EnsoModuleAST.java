@@ -333,12 +333,14 @@ final class EnsoModuleAST {
         }
         yield prefixAppNode;
       }
-      case Function.Lambda lambda -> {
-        var lambdaNode = newNode(lambda);
-        var bodyNode = buildTree(lambda.body());
+      case Function function -> {
+        Map<String, Object> props =
+            Map.of("canBeTCO", function.canBeTCO(), "isPrivate", function.isPrivate());
+        var lambdaNode = newNode(function, props);
+        var bodyNode = buildTree(function.body());
         createEdge(lambdaNode, bodyNode, "body");
-        for (var i = 0; i < lambda.arguments().size(); i++) {
-          var arg = lambda.arguments().apply(i);
+        for (var i = 0; i < function.arguments().size(); i++) {
+          var arg = function.arguments().apply(i);
           var argNode = buildTree(arg);
           createEdge(lambdaNode, argNode, "arg[" + i + "]");
         }
