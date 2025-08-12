@@ -551,7 +551,7 @@ public final class Module extends EnsoObject {
     return scope;
   }
 
-  public ModuleScopeBuilder getScopeBuilder() {
+  final ModuleScopeBuilder getScopeBuilder() {
     return scopeBuilder;
   }
 

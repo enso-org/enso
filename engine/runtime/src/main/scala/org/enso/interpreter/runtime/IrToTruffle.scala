@@ -136,6 +136,20 @@ class IrToTruffle(
 
   val language: EnsoLanguage = context.getLanguage
 
+  def this(
+    context: EnsoContext,
+    source: Source,
+    mod: CompilerContext.Module,
+    compilerConfig: CompilerConfig
+  ) = this(
+    context,
+    source,
+    org.enso.interpreter.runtime.Module
+      .fromCompilerModule(mod)
+      .getScopeBuilder(),
+    compilerConfig
+  )
+
   // ==========================================================================
   // === Top-Level Runners ====================================================
   // ==========================================================================
