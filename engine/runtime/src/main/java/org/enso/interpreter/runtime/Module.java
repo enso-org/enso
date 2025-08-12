@@ -538,10 +538,17 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * @return the runtime scope of this module.
+   * The current scope of the module. Module instance lives <em>"forever"</em> and its source code
+   * can change as a result of use operations in the Enso Studio. On the other hand the Enso
+   * language prefers immutability. To accomodate such a need for stability with a need for a
+   * change, there is an immutable {@link ModuleScope}. Each module is associated with a single
+   * scope instance at given time. Over time the scope instance may change as a result of {@link
+   * ModuleScopeBuilder#finish()} call.
+   *
+   * @return the current runtime scope of this module.
    */
-  public ModuleScope getScope() {
-    return scopeBuilder.asModuleScope();
+  public final ModuleScope getScope() {
+    return scope;
   }
 
   public ModuleScopeBuilder getScopeBuilder() {
