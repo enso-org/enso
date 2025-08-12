@@ -1509,6 +1509,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "org.hamcrest"                % "hamcrest-all"                 % hamcrestVersion           % Test,
       "org.netbeans.api"            % "org-netbeans-modules-sampler" % netbeansApiVersion        % Test,
       "org.slf4j"                   % "slf4j-api"                    % slf4jVersion              % "provided",
+      "org.graalvm.polyglot"        % "polyglot"                     % graalMavenPackagesVersion % Runtime,
       "org.graalvm.polyglot"        % "polyglot"                     % graalMavenPackagesVersion % "provided"
     ),
     addCompilerPlugin(
