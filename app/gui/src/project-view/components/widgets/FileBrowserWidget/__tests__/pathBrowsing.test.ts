@@ -1,7 +1,7 @@
 import { type DirectoryId } from '#/services/Backend'
 import { expect, test } from 'vitest'
 import { useEnsoPaths } from '../ensoPath'
-import { usePathBrowsing } from '../pathBrowsing'
+import { Directory, usePathBrowsing } from '../pathBrowsing'
 import { MOCK_FS, mockListDirectory } from './mockData'
 
 function deriveRootId(rootPath: string): DirectoryId {
@@ -37,8 +37,8 @@ test.each`
   ${'enso://Users/user/input.csv'}                  | ${'enso://Users/user'} | ${['3']}                | ${'input.csv'}
   ${'enso://Users/user/New Folder 1/input.csv'}     | ${'enso://'}           | ${['0', '1', '3', '4']} | ${'input.csv'}
   ${'enso://Users/user/New Folder 1/input.csv'}     | ${'enso://Users/user'} | ${['3', '4']}           | ${'input.csv'}
-  ${'enso://Users/user/New Folder 2/input.csv'}     | ${'enso://'}           | ${['0', '1', '3']}      | ${'New Folder 2/input.csv'}
-  ${'enso://Users/user/New Folder 2/input.csv'}     | ${'enso://Users/user'} | ${['3']}                | ${'New Folder 2/input.csv'}
+  ${'enso://Users/user/DOES_NOT_EXIST/input.csv'}   | ${'enso://'}           | ${['0', '1', '3']}      | ${'DOES_NOT_EXIST/input.csv'}
+  ${'enso://Users/user/DOES_NOT_EXIST/input.csv'}   | ${'enso://Users/user'} | ${['3']}                | ${'DOES_NOT_EXIST/input.csv'}
   ${'enso://Users/user/New Folder 1/dir/input.csv'} | ${'enso://'}           | ${['0', '1', '3', '4']} | ${'dir/input.csv'}
   ${'enso://Users/user/New Folder 1/dir/input.csv'} | ${'enso://Users/user'} | ${['3', '4']}           | ${'dir/input.csv'}
 `(
@@ -61,3 +61,30 @@ test.each`
     expect(currentDirectory.value?.id).toBe(expectedStack[expectedStack.length - 1])
   },
 )
+
+test('does not re-traverse unchanged prefix when entering overlapping path', async () => {
+  const rootPath = 'enso://'
+  const rootId = deriveRootId(rootPath)
+  let calls = 0
+  const countingListDirectory = async (dir: Directory) => {
+    calls += 1
+    return mockListDirectory(dir)
+  }
+
+  const { setBrowsingPath } = usePathBrowsing({ listDirectory: countingListDirectory })
+  // First enter Users/user
+  await setBrowsingPath({ root: rootId, segments: ['Users', 'user'] })
+  expect(calls).toBe(2) // Users, then user
+
+  // Extend to Users/user/New Folder 1
+  await setBrowsingPath({ root: rootId, segments: ['Users', 'user', 'New Folder 1'] })
+  expect(calls).toBe(3)
+
+  // Extend with a new segment
+  await setBrowsingPath({ root: rootId, segments: ['Users', 'user', 'New Folder 1', 'input.csv'] })
+  expect(calls).toBe(4)
+
+  // Reset to Users/user
+  await setBrowsingPath({ root: rootId, segments: ['Users', 'user'] })
+  expect(calls).toBe(5)
+})
