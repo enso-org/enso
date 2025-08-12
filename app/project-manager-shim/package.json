@@ -1,0 +1,19 @@
+{
+  "name": "project-manager-shim",
+  "version": "1.0.0",
+  "description": "Shared filesystem operations and types for project manager shim",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.4",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "yaml": "^2.7.0"
+  }
+}

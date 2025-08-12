@@ -13,6 +13,7 @@ import type * as vite from 'vite'
 
 import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
+import { handleFilesystemCommandSimple } from 'project-manager-shim'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
@@ -65,7 +66,6 @@ import {
   mkdtemp,
   readdir,
   readFile,
-  rename,
   rm,
   rmdir,
   stat,
@@ -1065,188 +1065,28 @@ export class Server {
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
         .end('Command arguments must be an array of strings.')
     } else {
-      // Handle filesystem operations with native Node.js fs methods
-      const toJSONRPCResult = (result: unknown) => JSON.stringify({ jsonrpc: '2.0', id: 0, result })
-      const toJSONRPCError = (message: string, data?: unknown) =>
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: 0,
-          error: { code: 0, message, ...(data != null ? { data } : {}) },
-        })
+      let commandOutput: NodeJS.ReadableStream
 
-      let commandOutput: NodeJS.ReadableStream | undefined
-
-      try {
-        switch (cliArguments[0]) {
-          case '--filesystem-exists': {
-            const directoryPath = cliArguments[1]
-            if (directoryPath != null) {
-              const exists = await fileExists(directoryPath)
-              const result = toJSONRPCResult({ exists })
-              const readableStream = new stream.Readable()
-              readableStream.push(result)
-              readableStream.push(null)
-              commandOutput = readableStream
-            }
-            break
+      // Check if it's a filesystem command
+      if (cliArguments[0]?.startsWith('--filesystem-')) {
+        // Handle filesystem operations with the shared module
+        commandOutput = await handleFilesystemCommandSimple(cliArguments, request, projectManagement)
+      } else {
+        // For non-filesystem commands, fallback to the project manager
+        commandOutput = (() => {
+          try {
+            return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
+          } catch {
+            const readableStream = new stream.Readable()
+            readableStream.push(
+              JSON.stringify({
+                error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+              }),
+            )
+            readableStream.push(null)
+            return readableStream
           }
-          case '--filesystem-list': {
-            const directoryPath = cliArguments[1]
-            if (directoryPath != null) {
-              const entryNames = await readdir(directoryPath)
-              const entries: Array<{
-                type: string
-                path: string
-                attributes: {
-                  byteSize: number
-                  creationTime: string
-                  lastAccessTime: string
-                  lastModifiedTime: string
-                }
-                metadata?: ReturnType<typeof projectManagement.getMetadata>
-              }> = []
-
-              for (const entryName of entryNames) {
-                const entryPath = path.join(directoryPath, entryName)
-                const stats = await stat(entryPath)
-                const attributes = {
-                  byteSize: stats.size,
-                  creationTime: new Date(stats.ctimeMs).toISOString(),
-                  lastAccessTime: new Date(stats.atimeMs).toISOString(),
-                  lastModifiedTime: new Date(stats.mtimeMs).toISOString(),
-                }
-
-                if (stats.isFile()) {
-                  entries.push({
-                    type: 'FileEntry',
-                    path: entryPath,
-                    attributes,
-                  })
-                } else if (stats.isDirectory()) {
-                  // Check if it's a project
-                  const metadata = projectManagement.getMetadata(entryPath)
-                  if (metadata) {
-                    entries.push({
-                      type: 'ProjectEntry',
-                      path: entryPath,
-                      attributes,
-                      metadata,
-                    })
-                  } else {
-                    entries.push({
-                      type: 'DirectoryEntry',
-                      path: entryPath,
-                      attributes,
-                    })
-                  }
-                }
-              }
-
-              const result = toJSONRPCResult({ entries })
-              const readableStream = new stream.Readable()
-              readableStream.push(result)
-              readableStream.push(null)
-              commandOutput = readableStream
-            }
-            break
-          }
-          case '--filesystem-create-directory': {
-            const directoryPath = cliArguments[1]
-            if (directoryPath != null) {
-              await mkdir(directoryPath, { recursive: true })
-              const result = toJSONRPCResult(null)
-              const readableStream = new stream.Readable()
-              readableStream.push(result)
-              readableStream.push(null)
-              commandOutput = readableStream
-            }
-            break
-          }
-          case '--filesystem-read-path': {
-            const filePath = cliArguments[1]
-            if (filePath != null) {
-              commandOutput = createReadStream(filePath)
-            }
-            break
-          }
-          case '--filesystem-write-path': {
-            const filePath = cliArguments[1]
-            if (filePath != null) {
-              await new Promise((resolve, reject) => {
-                request
-                  .pipe(createWriteStream(filePath), { end: true })
-                  .on('close', resolve)
-                  .on('error', reject)
-              })
-              const result = toJSONRPCResult(null)
-              const readableStream = new stream.Readable()
-              readableStream.push(result)
-              readableStream.push(null)
-              commandOutput = readableStream
-            }
-            break
-          }
-          case '--filesystem-move-from': {
-            const sourcePath = cliArguments[1]
-            const destinationPath = cliArguments[3]
-            if (
-              sourcePath != null &&
-              cliArguments[2] === '--filesystem-move-to' &&
-              destinationPath != null
-            ) {
-              await rename(sourcePath, destinationPath)
-              const result = toJSONRPCResult(null)
-              const readableStream = new stream.Readable()
-              readableStream.push(result)
-              readableStream.push(null)
-              commandOutput = readableStream
-            }
-            break
-          }
-          case '--filesystem-delete': {
-            const fileOrDirectoryPath = cliArguments[1]
-            if (fileOrDirectoryPath != null) {
-              await rm(fileOrDirectoryPath, { recursive: true })
-              const result = toJSONRPCResult(null)
-              const readableStream = new stream.Readable()
-              readableStream.push(result)
-              readableStream.push(null)
-              commandOutput = readableStream
-            }
-            break
-          }
-          default: {
-            // For non-filesystem commands, fallback to the project manager
-            commandOutput = (() => {
-              try {
-                return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
-              } catch {
-                const readableStream = new stream.Readable()
-                readableStream.push(
-                  JSON.stringify({
-                    error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
-                  }),
-                )
-                readableStream.push(null)
-                return readableStream
-              }
-            })()
-          }
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        const result = toJSONRPCError(`Filesystem operation failed: ${errorMessage}`)
-        const readableStream = new stream.Readable()
-        readableStream.push(result)
-        readableStream.push(null)
-        commandOutput = readableStream
-      }
-
-      if (!commandOutput) {
-        const readableStream = new stream.Readable()
-        readableStream.push(toJSONRPCError('Invalid command'))
-        readableStream.push(null)
-        commandOutput = readableStream
+        })()
       }
 
       response.writeHead(HTTP_STATUS_OK, [
