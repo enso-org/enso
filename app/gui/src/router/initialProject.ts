@@ -84,7 +84,6 @@ async function shouldOpenInitialProject(
     console.error('Cannot read user home directory; will skip launching Welcome Project', err)
     return null
   }
-  console.log(onlineManager.isOnline(), remoteBackend)
   const homeContent = await Promise.all([
     localBackend?.listDirectory(homeDirQuery) ?? [],
     onlineManager.isOnline() && remoteBackend != null ?
