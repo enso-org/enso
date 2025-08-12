@@ -1,4 +1,5 @@
 /** @file This module contains the logic for the detection of user-specific desktop environment attributes. */
+
 import * as childProcess from 'node:child_process'
 import * as os from 'node:os'
 import * as path from 'node:path'

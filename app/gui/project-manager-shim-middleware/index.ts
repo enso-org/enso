@@ -49,7 +49,7 @@ import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
-import * as projectManagement from './projectManagement'
+import * as projectManagement from 'project-manager-shim'
 
 // =================
 // === Constants ===
@@ -735,7 +735,7 @@ async function httpUploadFile(
         filePath ?
           projectManagement.importProjectFromPath(filePath, directory, fileName)
         : await projectManagement.uploadBundle(request, directory, fileName)
-      httpOkText(response, project.path)
+      httpOkText(response, project.projectRoot)
     } else {
       const filePath = path.join(directory, fileName)
       void fs

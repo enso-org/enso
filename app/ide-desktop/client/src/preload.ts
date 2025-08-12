@@ -9,7 +9,7 @@ import type * as accessToken from 'enso-common/src/accessToken'
 
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
-import type * as projectManagement from '@/projectManagement'
+import type * as projectManagement from 'project-manager-shim'
 import { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import { FileFilter } from './fileBrowser'
 

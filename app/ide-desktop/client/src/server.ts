@@ -11,7 +11,7 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
-import * as projectManagement from '@/projectManagement'
+import * as projectManagement from 'project-manager-shim'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import { handleFilesystemCommandSimple } from 'project-manager-shim'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }

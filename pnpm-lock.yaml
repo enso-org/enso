@@ -807,6 +807,12 @@ importers:
 
   app/project-manager-shim:
     dependencies:
+      enso-common:
+        specifier: workspace:*
+        version: link:../common
+      tar:
+        specifier: ^6.2.1
+        version: 6.2.1
       yaml:
         specifier: ^2.7.0
         version: 2.7.0
@@ -814,6 +820,9 @@ importers:
       '@types/node':
         specifier: ^22.10.4
         version: 22.10.4
+      '@types/tar':
+        specifier: ^6.1.13
+        version: 6.1.13
       typescript:
         specifier: 'catalog:'
         version: 5.7.2
