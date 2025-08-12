@@ -725,8 +725,7 @@ export default class LocalBackend extends Backend {
 
   /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
   override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    // eslint-disable-next-line no-restricted-syntax
-    const { directoryPath } = getDirectoryAndName(projectManager.Path(path as string))
+    const { directoryPath } = getDirectoryAndName(projectManager.Path(String(path)))
     return this.findAsset(directoryPath, 'ensoPath', path)
   }
 

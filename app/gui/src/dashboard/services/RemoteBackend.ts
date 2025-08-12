@@ -1365,9 +1365,10 @@ export default class RemoteBackend extends Backend {
 
   /** Resolve asset metadata from an enso path. */
   override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    const effectivePath = backend.EnsoPath(path.replace(/%20/g, ' '))
     const response = await this.get<backend.Asset<backend.RealAssetType>>(
       remoteBackendPaths.RESOLVE_ENSO_PATH,
-      { path },
+      { path: effectivePath },
     )
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')

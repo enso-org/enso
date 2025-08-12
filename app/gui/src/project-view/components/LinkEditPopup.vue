@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { setModal } from '#/providers/ModalProvider'
+import { AssetType, IS_OPENING_OR_OPENED } from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
+import { useRightPanelData } from '$/providers/rightPanel'
 import { textEditorsBindings } from '@/bindings'
 import OpenProjectModal from '@/components/OpenProjectModal.vue'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
 import * as React from 'react'
-import { toRef, useTemplateRef } from 'vue'
+import { computed, toRef, useTemplateRef } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps<{
   referenceElement: HTMLElement
@@ -13,12 +16,29 @@ const props = defineProps<{
   popOut: boolean
 }>()
 
+const router = useRouter()
+const rightPanelData = useRightPanelData()
+
+const isProject = computed(() => rightPanelData.focusedAsset?.type === AssetType.project)
+
+const shouldOpenProjectModal = computed(() => {
+  if (!isProject.value) return false
+  const projectState = rightPanelData.focusedAsset?.projectState
+  if (!projectState) return false
+  return IS_OPENING_OR_OPENED[projectState.type]
+})
+
 const OpenProjectModalReact = vueComponent(OpenProjectModal).default
 
 const floatingElement = useTemplateRef<HTMLElement>('floating')
 
-function openModal() {
+function openProjectModal() {
   setModal(React.createElement(OpenProjectModalReact, { href: props.href }))
+}
+
+function openProjectInNewTab() {
+  console.log('WHAT', { name: 'dashboard', params: { path: props.href } })
+  router.push({ name: 'dashboard', params: { path: props.href } })
 }
 
 const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatingElement, {
@@ -32,15 +52,9 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
 <template>
   <teleport to="#floatingLayer">
     <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
-      <a
-        v-if="!/^enso:[/][/].*[.]project$/.test(href)"
-        class="link"
-        :href="href"
-        target="_blank"
-        rel="noopener,noreferrer"
-        >Follow link</a
-      >
-      <a v-else class="link" @click="openModal">Follow link</a>
+      <a v-if="shouldOpenProjectModal" class="link" @click="openProjectModal">Follow link</a>
+      <a v-else-if="isProject" class="link" @click="openProjectInNewTab">Follow link</a>
+      <a v-else class="link" :href="href" target="_blank" rel="noopener,noreferrer">Follow link</a>
       ({{ textEditorsBindings.bindings.openLink.humanReadable }})
     </div>
   </teleport>

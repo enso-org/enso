@@ -19,36 +19,50 @@ import {
   ProjectAsset,
   ProjectId,
 } from 'enso-common/src/services/Backend'
+import { ref } from 'vue'
+import { onBeforeRouteUpdate } from 'vue-router'
 
 const Dashboard = reactComponent(DashboardReact)
 
+async function getPropsFromPath(pathParam: string | readonly string[] | undefined) {
+  if (pathParam == null) return {}
+  const { localBackend, remoteBackend } = useBackends()
+  const queryClient = useQueryClient()
+
+  console.log('!', pathParam)
+  const path = EnsoPath(pathParam instanceof Array ? pathParam.join('/') : pathParam)
+
+  if (!path) return {}
+  const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
+  if (backend == null) return {}
+  const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
+  const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
+  if (typedAsset?.type !== AssetType.project) return {}
+  const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
+  const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
+  if (!assetResponse) return {}
+  const asset: ProjectAsset = { ...assetResponse, ensoPath: path }
+  return { projectToOpen: { asset, backend: backend.type } }
+}
+
 export const dataLoader: DataLoader<DashboardProps> = {
   async beforeRouteEnter(to) {
-    if (to.params.path == null) return Ok({})
-    const { localBackend, remoteBackend } = useBackends()
-    const queryClient = useQueryClient()
-
-    const path = EnsoPath(
-      to.params.path instanceof Array ? to.params.path.join('/') : to.params.path,
-    )
-
-    if (!path) return Ok({})
-    const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
-    if (backend == null) return Ok({})
-    const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
-    const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
-    if (typedAsset?.type !== AssetType.project) return Ok({})
-    const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
-    const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
-    if (!assetResponse) return Ok({})
-    const asset: ProjectAsset = { ...assetResponse, ensoPath: path }
-    return Ok({ projectToOpen: { asset, backend: backend.type } })
+    return Ok(await getPropsFromPath(to.params.path))
   },
 }
 </script>
 
 <script setup lang="ts">
 const props = defineProps<DashboardProps>()
+
+const dashboardProps = ref(props)
+
+onBeforeRouteUpdate(async (to) => {
+  console.log('HELLO???')
+  const { projectToOpen } = await getPropsFromPath(to.params.path)
+  console.log(':U hello?', projectToOpen)
+  dashboardProps.value = { projectToOpen }
+})
 
 const openedProjectsStore = provideOpenedProjects()
 provideAsyncResources(openedProjectsStore)
@@ -57,7 +71,7 @@ provideContainerData()
 <template>
   <div class="TabView">
     <ContainerDataProviderForReact>
-      <Dashboard v-bind="props" />
+      <Dashboard v-bind="dashboardProps" />
     </ContainerDataProviderForReact>
   </div>
 </template>
