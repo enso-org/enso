@@ -21,7 +21,6 @@ add_specs suite_builder setup =
 
 add_text_columns_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.light_table_builder
     build_sorted_table = Util.build_sorted_table setup
 
     suite_builder.group prefix+"Text_Column" group_builder->
