@@ -37,6 +37,7 @@ import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
 import project.Common_Table_Operations.Temp_Column_Spec
 import project.Common_Table_Operations.Text_Cleanse_Spec
+import project.Common_Table_Operations.Text_Column_Spec
 import project.Common_Table_Operations.Transpose_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -151,6 +152,7 @@ add_specs suite_builder setup =
     Take_Drop_Spec.add_specs suite_builder setup
     Temp_Column_Spec.add_specs suite_builder setup
     Text_Cleanse_Spec.add_specs suite_builder setup
+    Text_Column_Spec.add_specs suite_builder setup
     Transpose_Spec.add_specs suite_builder setup
     Union_Spec.add_specs suite_builder setup
     Zip_Spec.add_specs suite_builder setup
