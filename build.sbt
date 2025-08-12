@@ -1600,6 +1600,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       )
     },
     Test / internalModuleDependencies := Seq(
+      (`logging-service-logback` / Test / exportedModule).value,
       (`profiling-utils` / Compile / exportedModule).value,
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value
