@@ -48,8 +48,8 @@ import { tmpdir } from 'node:os'
 import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
-import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 import * as projectManagement from 'project-manager-shim'
+import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 
 // =================
 // === Constants ===
@@ -240,14 +240,8 @@ export default function projectManagerShimMiddleware(
           void (async () => {
             const result = await handleFilesystemCommand(cliArguments, request)
 
-            const resultData = typeof result === 'string' ? Buffer.from(result) : result
-            if (resultData instanceof fsSync.ReadStream) {
-              const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
-                'Content-Type': 'application/octet-stream',
-                ...COMMON_HEADERS,
-              })
-              resultData.pipe(responseWithHead)
-            } else {
+            if (typeof result === 'string') {
+              const resultData = Buffer.from(result)
               response
                 .writeHead(HTTP_STATUS_OK, {
                   'Content-Length': String(resultData.byteLength),
@@ -255,6 +249,12 @@ export default function projectManagerShimMiddleware(
                   ...COMMON_HEADERS,
                 })
                 .end(resultData)
+            } else {
+              const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+                'Content-Type': 'application/octet-stream',
+                ...COMMON_HEADERS,
+              })
+              result.pipe(responseWithHead, { end: true })
             }
           })()
         }

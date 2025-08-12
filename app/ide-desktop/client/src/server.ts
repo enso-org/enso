@@ -11,10 +11,10 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
-import * as projectManagement from 'project-manager-shim'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import { handleFilesystemCommandSimple } from 'project-manager-shim'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
+import * as projectManagement from 'project-manager-shim'
+import { handleFilesystemCommand } from 'project-manager-shim'
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
@@ -1069,11 +1069,27 @@ export class Server {
 
       // Check if it's a filesystem command
       if (cliArguments[0]?.startsWith('--filesystem-')) {
-        // Handle filesystem operations with the shared module
-        commandOutput = await handleFilesystemCommandSimple(cliArguments, request)
+        const result = await handleFilesystemCommand(cliArguments, request)
+
+        if (typeof result === 'string') {
+          const resultData = Buffer.from(result)
+          response
+            .writeHead(HTTP_STATUS_OK, {
+              'Content-Length': String(resultData.byteLength),
+              'Content-Type': 'application/json',
+              ...COOP_COEP_CORP_HEADERS,
+            })
+            .end(resultData)
+        } else {
+          const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+            'Content-Type': 'application/octet-stream',
+            ...COOP_COEP_CORP_HEADERS,
+          })
+          result.pipe(responseWithHead, { end: true })
+        }
       } else {
         // For non-filesystem commands, fallback to the project manager
-        commandOutput = (() => {
+        let commandOutput = (() => {
           try {
             return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
           } catch {
@@ -1087,13 +1103,13 @@ export class Server {
             return readableStream
           }
         })()
-      }
 
-      response.writeHead(HTTP_STATUS_OK, [
-        ['Content-Type', 'application/json'],
-        ...COOP_COEP_CORP_HEADERS,
-      ])
-      commandOutput.pipe(response, { end: true })
+        response.writeHead(HTTP_STATUS_OK, [
+          ['Content-Type', 'application/json'],
+          ...COOP_COEP_CORP_HEADERS,
+        ])
+        commandOutput.pipe(response, { end: true })
+      }
     }
   }
 }
