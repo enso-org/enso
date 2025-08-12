@@ -233,6 +233,13 @@ final class EnsoModuleAST {
           var argNode = buildTree(arg);
           createEdge(node, argNode, "arg[" + i + "]");
         }
+        for (var i = 0; i < type.body().size(); i++) {
+          var bodyItem = type.body().apply(i);
+          if (bodyItem instanceof Expression bodyItemExpr) {
+            var bodyItemNode = buildTree(bodyItemExpr);
+            createEdge(node, bodyItemNode, "body[" + i + "]");
+          }
+        }
         yield node;
       }
       case Name.GenericAnnotation genericAnnotation -> {
