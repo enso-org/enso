@@ -13,6 +13,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
 import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -201,7 +202,8 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
       var ctx = EpbContext.get(null);
       return ctx.getEnv().asHostSymbol(clazz);
     } catch (ClassNotFoundException ex) {
-      throw UnknownIdentifierException.create(member, ex);
+      logger.log(Level.ERROR, "Cannot find class {0} in host class loader", member);
+      throw UnknownIdentifierException.create(member);
     }
   }
 

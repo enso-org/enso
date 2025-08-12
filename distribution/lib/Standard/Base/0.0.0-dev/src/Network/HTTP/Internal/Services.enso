@@ -1,0 +1,8 @@
+private
+
+import project.Enso_Cloud.Data_Link.Data_Link_SPI
+import project.Network.HTTP.Internal.HTTP_Fetch_Data_Link.HTTP_Fetch_Data_Link
+
+type Impl
+
+Data_Link_SPI.from (_:Impl) = Data_Link_SPI.new HTTP_Fetch_Data_Link "HTTP"

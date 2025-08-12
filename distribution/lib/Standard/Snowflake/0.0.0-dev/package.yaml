@@ -8,3 +8,10 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+
+services:
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.Snowflake.Snowflake_Data_Link.Snowflake_Data_Link "Snowflake_Connection"
+
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
+    with: Standard.Snowflake.Connection.Snowflake_Details.Snowflake_Details
