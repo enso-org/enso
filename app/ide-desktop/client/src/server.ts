@@ -1070,7 +1070,7 @@ export class Server {
       // Check if it's a filesystem command
       if (cliArguments[0]?.startsWith('--filesystem-')) {
         // Handle filesystem operations with the shared module
-        commandOutput = await handleFilesystemCommandSimple(cliArguments, request, projectManagement)
+        commandOutput = await handleFilesystemCommandSimple(cliArguments, request)
       } else {
         // For non-filesystem commands, fallback to the project manager
         commandOutput = (() => {

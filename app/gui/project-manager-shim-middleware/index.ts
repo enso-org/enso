@@ -238,7 +238,7 @@ export default function projectManagerShimMiddleware(
             .end('Command arguments must be an array of strings.')
         } else {
           void (async () => {
-            const result = await handleFilesystemCommand(cliArguments, request, projectManagement)
+            const result = await handleFilesystemCommand(cliArguments, request)
 
             const resultData = typeof result === 'string' ? Buffer.from(result) : result
             if (resultData instanceof fsSync.ReadStream) {

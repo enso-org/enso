@@ -1,10 +1,11 @@
 import * as crypto from 'node:crypto'
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
 import type * as http from 'node:http'
-import * as yaml from 'yaml'
+import * as path from 'node:path'
 import { Readable } from 'node:stream'
+import * as yaml from 'yaml'
+import * as projectManagement from './projectManagement.js'
 import {
   type Attributes,
   type DirectoryEntry,
@@ -14,11 +15,6 @@ import {
   type ProjectEntry,
   type ProjectMetadata,
 } from './types.js'
-
-export interface ProjectManagementModule {
-  getMetadata(path: string): any | null
-  PROJECT_METADATA_RELATIVE_PATH: string
-}
 
 /** JSON-RPC result wrapper */
 export function toJSONRPCResult(result: unknown): string {
@@ -102,8 +98,7 @@ export async function fileExists(path: string): Promise<boolean> {
 /** Handle filesystem commands */
 export async function handleFilesystemCommand(
   cliArguments: string[],
-  request?: http.IncomingMessage,
-  projectManagement?: ProjectManagementModule,
+  request: http.IncomingMessage,
 ): Promise<string | fsSync.ReadStream> {
   let result: string | fsSync.ReadStream = toJSONRPCError(
     `Error running Project Manager command.`,
@@ -124,7 +119,7 @@ export async function handleFilesystemCommand(
       }
       case '--filesystem-list': {
         const directoryPath = cliArguments[1]
-        if (directoryPath != null && projectManagement != null) {
+        if (directoryPath != null) {
           const entryNames = await fs.readdir(directoryPath)
           const entries: FileSystemEntry[] = []
           for (const entryName of entryNames) {
@@ -168,18 +163,12 @@ export async function handleFilesystemCommand(
                       lastOpened: null,
                     }
                     await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
-                    await fs.writeFile(
-                      projectMetadataPath,
-                      JSON.stringify(projectMetadataJson),
-                    )
+                    await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
                   } else {
                     throw e
                   }
                 }
-                const metadata = extractProjectMetadata(
-                  packageMetadataYaml,
-                  projectMetadataJson,
-                )
+                const metadata = extractProjectMetadata(packageMetadataYaml, projectMetadataJson)
                 if (metadata != null) {
                   // This is a project.
                   entries.push({
@@ -224,7 +213,7 @@ export async function handleFilesystemCommand(
       }
       case '--filesystem-write-path': {
         const filePath = cliArguments[1]
-        if (filePath != null && request != null) {
+        if (filePath != null) {
           await new Promise((resolve, reject) => {
             request
               .pipe(fsSync.createWriteStream(filePath), {
@@ -278,8 +267,7 @@ export async function handleFilesystemCommand(
  */
 export async function handleFilesystemCommandSimple(
   cliArguments: string[],
-  request?: http.IncomingMessage,
-  projectManagement?: { getMetadata(path: string): any | null },
+  request: http.IncomingMessage,
 ): Promise<NodeJS.ReadableStream> {
   try {
     switch (cliArguments[0]) {
@@ -329,7 +317,7 @@ export async function handleFilesystemCommandSimple(
               })
             } else if (stats.isDirectory()) {
               // Check if it's a project
-              const metadata = projectManagement?.getMetadata(entryPath)
+              const metadata = projectManagement.getMetadata(entryPath)
               if (metadata) {
                 entries.push({
                   type: 'ProjectEntry',
@@ -376,7 +364,7 @@ export async function handleFilesystemCommandSimple(
       }
       case '--filesystem-write-path': {
         const filePath = cliArguments[1]
-        if (filePath != null && request != null) {
+        if (filePath != null) {
           await new Promise((resolve, reject) => {
             request
               .pipe(fsSync.createWriteStream(filePath), { end: true })
