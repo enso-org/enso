@@ -330,6 +330,7 @@ export function createProjectStore(
 
   // Maximum number of in-progress expressions.
   const MAX_IN_PROGRESS = 5
+  const MAX_RETRIES_IN_QUEUE = 5
 
   const inProgress = ref(0)
   const queueLength = ref(0)
@@ -339,16 +340,12 @@ export function createProjectStore(
     expression: string,
     timeoutMs: number = 5000,
   ): Promise<Result<any> | null> {
-    if (inProgress.value > MAX_IN_PROGRESS) {
-      if (timeoutMs < 0) {
-        return Promise.reject(Err(`queuedExecuteExpression: Execution timed out.`))
-      }
-
+    if (inProgress.value >= MAX_IN_PROGRESS) {
       queueLength.value += 1
       const pause = queueLength.value * 250
       return new Promise((resolve) => setTimeout(resolve, pause)).then(() => {
         queueLength.value -= 1
-        return queuedExecuteExpression(expressionId, expression, timeoutMs - pause)
+        return queuedExecuteExpression(expressionId, expression, timeoutMs)
       })
     }
 
@@ -387,15 +384,31 @@ export function createProjectStore(
         reject(Err(message))
       }
 
-      wait((timeoutMs < 1000 ? 1000 : timeoutMs) + 100).then(() => {
-        if (state === 1) {
-          inProgress.value -= 1
-          state = 0 // Prevent further updates from this handler.
-          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-          executionContext.off('visualizationEvaluationFailed', errorHandler)
-          reject(Err(`executeExpression: Execution timed out.`))
-        }
-      })
+      const waitWithExponentialBackoff = (retryAttempt: number, timeoutMs: number) => {
+        wait(timeoutMs).then(() => {
+          if (state === 1) {
+            if (retryAttempt < MAX_RETRIES_IN_QUEUE) {
+              const incRetryAttempt = retryAttempt + 1
+              DEV: console.warn(
+                'Waiting on data (expressionId=' +
+                  expressionId +
+                  ', visualizationId=' +
+                  visualizationId +
+                  '), retry attempt: ' +
+                  incRetryAttempt,
+              )
+              waitWithExponentialBackoff(incRetryAttempt, timeoutMs * 2 ** retryAttempt)
+            } else {
+              inProgress.value -= 1
+              state = 0 // Prevent further updates from this handler.
+              dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+              executionContext.off('visualizationEvaluationFailed', errorHandler)
+              reject(Err(`executeExpression: Execution timed out.`))
+            }
+          }
+        })
+      }
+      waitWithExponentialBackoff(0, timeoutMs)
 
       dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
       executionContext.on('visualizationEvaluationFailed', errorHandler)
