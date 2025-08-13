@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { AnyIcon } from '@/util/icons'
 
 const toggledOn = defineModel<boolean | undefined>()
 defineProps<{
-  name?: Icon | URLString | undefined
+  name?: AnyIcon | undefined
   label?: string | undefined
   disabled?: boolean | undefined
   title?: string | undefined
