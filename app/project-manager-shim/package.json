@@ -12,7 +12,8 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "compile": "tsc"
+    "compile": "tsc",
+    "lint": "eslint . --cache --max-warnings=0"
   },
   "devDependencies": {
     "@types/node": "^22.10.4",

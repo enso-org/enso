@@ -1087,7 +1087,7 @@ export class Server {
         }
       } else {
         // For non-filesystem commands, fallback to the project manager
-        let commandOutput = (() => {
+        const commandOutput = (() => {
           try {
             return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
           } catch {
