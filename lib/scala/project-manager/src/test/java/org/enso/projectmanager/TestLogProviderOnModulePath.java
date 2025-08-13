@@ -18,9 +18,9 @@ import org.slf4j.spi.SLF4JServiceProvider;
  *
  * <p>Note that the same test is in the `runtime/Test` project.
  */
-public class TestLogProviderOnClasspath {
+public class TestLogProviderOnModulePath {
   @Test
-  public void testLogProviderIsOnClasspath() {
+  public void testLogProviderIsOnModulePath() {
     var sl = ServiceLoader.load(SLF4JServiceProvider.class);
     var serviceIterator = sl.iterator();
     List<SLF4JServiceProvider> providers = new ArrayList<>();
