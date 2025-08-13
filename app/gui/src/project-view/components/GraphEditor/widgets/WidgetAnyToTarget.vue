@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { InheritedCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import { withDropdownItems } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { injectFunctionInfo } from '@/providers/functionInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { SuggestionEntry, SuggestionKind } from '@/stores/suggestionDatabase/entry'
-import { ArgumentInfoKey } from '@/util/callTree'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
-import { MethodPointer, methodPointerEquals } from '@/util/methodPointer'
 import { ProjectPath } from '@/util/projectPath'
-import { Identifier, QualifiedName } from '@/util/qualifiedName'
+import { QualifiedName } from '@/util/qualifiedName'
 import { map } from 'enso-common/src/utilities/data/iter'
 import { computed } from 'vue'
 
@@ -67,34 +64,13 @@ const innerWidgetInput = computed(() => {
 </script>
 
 <script lang="ts">
-const ANY_MODULE_PATH = ProjectPath.create('Standard.Base' as QualifiedName, 'Any' as QualifiedName)
-const ANY_TYPE_PATH = ProjectPath.create(
-  'Standard.Base' as QualifiedName,
-  'Any.Any' as QualifiedName,
-)
-const ANY_TO_METHOD_POINTER: MethodPointer = {
-  module: ANY_MODULE_PATH,
-  definedOnType: ANY_TYPE_PATH,
-  name: 'to' as Identifier,
-}
-const TARGET_ARGUMENT_NAME = 'target_type' as Identifier
-
-function isAnyToMethodCall(methodPointer: MethodPointer): boolean {
-  return methodPointerEquals(methodPointer, ANY_TO_METHOD_POINTER)
-}
-
 export const widgetDefinition = defineWidget(
   WidgetInput.isAstOrPlaceholder,
   {
     priority: 45, // Higher priority than WidgetSelection but lower than specialized widgets
     score: (props) => {
-      const argInfo = props.input[ArgumentInfoKey]
-      const callInfo = props.input[InheritedCallInfo]
-      if (argInfo == null || callInfo == null) return Score.Mismatch
-      const isFirstArg = argInfo.info?.name === TARGET_ARGUMENT_NAME
-      return isFirstArg && isAnyToMethodCall(callInfo.methodCall.methodPointer) ?
-          Score.Perfect
-        : Score.Mismatch
+      if (props.input.dynamicConfig?.kind === 'Any_To_Target') return Score.Perfect
+      return Score.Mismatch
     },
   },
   import.meta.hot,
