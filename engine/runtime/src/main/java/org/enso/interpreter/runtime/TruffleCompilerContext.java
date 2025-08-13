@@ -763,12 +763,10 @@ final class TruffleCompilerContext implements CompilerContext {
   public static final class Module extends CompilerContext.Module {
     private final org.enso.interpreter.runtime.Module module;
     private BindingsMap bindings;
-    private ModuleScopeBuilder sb;
+    private TruffleCompilerModuleScopeBuilder sb;
 
     private Module(org.enso.interpreter.runtime.Module module) {
       this.module = module;
-      var tmp = newScopeBuilder();
-      // assert this.sb == tmp;
     }
 
     @Override
@@ -855,16 +853,29 @@ final class TruffleCompilerContext implements CompilerContext {
       return module.isPrivate();
     }
 
+  /**
+   * Gets current or reset builder for this module.
+   *
+   * @param reset should any existing builder be reset?
+   * @return
+   */
+    final TruffleCompilerModuleScopeBuilder getScopeBuilder(boolean reset) {
+      if (reset || sb == null) {
+        var scopeBuilder =
+            ModuleScopeAccessor.getInstance().newScopeBuilder(module, module::updateModuleScope);
+        sb = new TruffleCompilerModuleScopeBuilder(scopeBuilder);
+      }
+      return sb;
+    }
+    
     @Override
     public TruffleCompilerModuleScopeBuilder getScopeBuilder() {
-      var sb = module.getScopeBuilder(false);
-      return new TruffleCompilerModuleScopeBuilder(sb);
+      return getScopeBuilder(false);
     }
 
     @Override
     public TruffleCompilerModuleScopeBuilder newScopeBuilder() {
-      var sb = module.getScopeBuilder(true);
-      return new TruffleCompilerModuleScopeBuilder(sb);
+      return getScopeBuilder(true);
     }
 
     @Override

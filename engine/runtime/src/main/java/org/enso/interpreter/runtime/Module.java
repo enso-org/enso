@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
 public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
-  private ModuleScopeBuilder scopeBuilder;
   private ModuleScope scope;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
@@ -565,11 +564,8 @@ public final class Module extends EnsoObject {
    * @return
    */
   final ModuleScopeBuilder getScopeBuilder(boolean reset) {
-    if (reset || scopeBuilder == null) {
-      scopeBuilder =
-          ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
-    }
-    return scopeBuilder;
+    var sb = TruffleCompilerContext.findCompilerModule(this).getScopeBuilder(reset);
+    return sb.unsafeScopeBuilder();
   }
 
   /**
