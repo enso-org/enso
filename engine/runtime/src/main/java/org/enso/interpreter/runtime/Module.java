@@ -99,8 +99,6 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -108,7 +106,6 @@ public final class Module extends EnsoObject {
   }
 
   final void updateModuleScope(ModuleScope scope) {
-    assert scope == scopeBuilder.asModuleScope();
     this.scope = scope;
   }
 
@@ -124,8 +121,6 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -145,8 +140,6 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -402,8 +395,8 @@ public final class Module extends EnsoObject {
     //    var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(cm);
     //    assert sb == scopeBuilder;
     //    sb.finish();
-    scopeBuilder.finish();
-    assert scope == scopeBuilder.asModuleScope();
+    getScopeBuilder().finish();
+    assert scope == getScopeBuilder().asModuleScope();
     return scope;
   }
 
@@ -566,6 +559,10 @@ public final class Module extends EnsoObject {
   }
 
   final ModuleScopeBuilder getScopeBuilder() {
+    if (scopeBuilder == null) {
+      scopeBuilder =
+          ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
+    }
     return scopeBuilder;
   }
 
@@ -576,9 +573,8 @@ public final class Module extends EnsoObject {
    * @return new scope builder - same as {@link #getScopeBuilder()} since now
    */
   final ModuleScopeBuilder newScopeBuilder() {
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
-    return this.scopeBuilder;
+    this.scopeBuilder = null;
+    return this.getScopeBuilder();
   }
 
   /**
