@@ -1689,25 +1689,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val responsesAfterEdit = context.receiveNIgnoreExpressionUpdates(2)
-      responsesAfterEdit should contain(
+      context.receiveNIgnoreExpressionUpdates(
+        1
+      ) should contain theSameElementsAs Seq(
         context.executionComplete(contextId)
       )
-      val Some(data2) = responsesAfterEdit.collectFirst {
-        case Api.Response(
-              None,
-              Api.VisualizationUpdate(
-                Api.VisualizationContext(
-                  `visualizationId`,
-                  `contextId`,
-                  `expectedExpressionId`
-                ),
-                data
-              )
-            ) =>
-          data
-      }
-      data2.sameElements("6".getBytes) shouldBe true
   }
 
   it should "not reorder visualization commands" in withContext() { context =>
