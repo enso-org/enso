@@ -5,6 +5,8 @@ import org.enso.compiler.context.{CompilerContext, InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.dump.service.IRDumper
+import org.enso.compiler.data.IRDumperConfig.DumpLevel
+import org.enso.compiler.data.IRDumperWithConfig
 import org.enso.compiler.dump.service.IRSource
 
 import scala.collection.mutable.ListBuffer
@@ -72,7 +74,7 @@ class PassManager(
     ir: Module,
     moduleContext: ModuleContext,
     passGroup: PassGroup,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): Module = {
     if (!passes.contains(passGroup)) {
       throw new CompilerError("Cannot run an unvalidated pass group.")
@@ -188,15 +190,20 @@ class PassManager(
     context: ContextType,
     passGroup: PassGroup,
     moduleName: Option[String],
-    irDumper: Option[IRDumper],
+    irDumper: Option[IRDumperWithConfig],
     module: CompilerContext.Module,
     createMiniPass: (MiniPassFactory, ContextType) => MiniIRPass,
     miniPassCompile: (MiniIRPass, IRType) => IRType,
     megaPassCompile: (IRPass, IRType, ContextType) => IRType
   ): IRType = {
     val pendingMiniPasses: ListBuffer[MiniPassFactory] = ListBuffer()
-    val shouldCombineMiniPasses                        = irDumper.isEmpty
-    if (!shouldCombineMiniPasses) {
+    val noMiniPassChaining = irDumper match {
+      case Some(dumper)
+          if dumper.config().getDumpLevel == DumpLevel.NO_MINI_PASS_CHAINING =>
+        true
+      case _ => false
+    }
+    if (noMiniPassChaining) {
       logger.trace(
         "  Mini passes will not be combined - they will be flushed immediately, " +
         " because IRDumper is set."
@@ -207,7 +214,7 @@ class PassManager(
       if (pendingMiniPasses.nonEmpty) {
         val miniPasses =
           pendingMiniPasses.map(factory => createMiniPass(factory, context))
-        if (!shouldCombineMiniPasses) {
+        if (noMiniPassChaining) {
           assert(
             pendingMiniPasses.size <= 1,
             "Mini passes should be flushed immediately."
@@ -218,7 +225,13 @@ class PassManager(
         if (combinedPass != null) {
           logger.trace("  flushing pending mini pass: {}", combinedPass)
           val ret = miniPassCompile(combinedPass, in)
-          dump(ret, moduleName, irDumper, combinedPass.toString, module)
+          dump(
+            ret,
+            moduleName,
+            irDumper.map(_.irDumper()),
+            combinedPass.toString,
+            module
+          )
           ret
         } else {
           in
@@ -237,7 +250,7 @@ class PassManager(
               "  mini collected: {}",
               pass
             )
-            if (shouldCombineMiniPasses) {
+            if (!noMiniPassChaining) {
               val combiningPreventedByOpt = pendingMiniPasses.find { p =>
                 p.invalidatedPasses.contains(miniFactory)
               }
@@ -274,7 +287,13 @@ class PassManager(
               megaPass
             )
             val ret = megaPassCompile(megaPass, flushedIR, context)
-            dump(ret, moduleName, irDumper, megaPass.toString, module)
+            dump(
+              ret,
+              moduleName,
+              irDumper.map(_.irDumper()),
+              megaPass.toString,
+              module
+            )
             ret
         }
     }
