@@ -2,9 +2,10 @@ import type { Interaction, InteractionHandler } from '@/providers/interactionHan
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
-import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
+import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { proxyRefs } from '@/util/reactivity'
 import { computed, markRaw, shallowRef, useId, watch, WatchSource, type ShallowRef } from 'vue'
 import { assertDefined } from 'ydoc-shared/util/assert'
 
@@ -237,7 +238,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     props: { widgetTypeId: WidgetTypeId; input: WidgetInput },
     myInteraction: WidgetEditHooks,
   ): ShallowRef<WidgetEditHandler> {
-    const widgetTree = injectWidgetTree()
+    const widgetTree = proxyRefs(useCurrentEdit())
     const interactionHandler = injectInteractionHandler()
     const portId = computed(() => props.input.portId)
     const parent = computed(() => props.input.editHandler)
@@ -264,7 +265,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     parent: WatchSource<WidgetEditHandlerParent | undefined>,
     myInteraction: WidgetEditHooks,
   ): ShallowRef<WidgetEditHandler> {
-    const widgetTree = injectWidgetTree()
+    const widgetTree = proxyRefs(useCurrentEdit())
     const interactionHandler = injectInteractionHandler()
     const instanceId = newWidgetInstanceId()
     return WidgetEditHandler.NewRaw(
