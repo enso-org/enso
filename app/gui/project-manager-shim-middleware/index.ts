@@ -8,8 +8,6 @@ import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
 
-import * as tar from 'tar'
-
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import { handleFilesystemCommand } from 'project-manager-shim'
 
@@ -36,7 +34,10 @@ import {
   type FileAsset,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
-import { EXPORT_ARCHIVE_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import {
+  DOWNLOAD_PROJECT_REGEX,
+  EXPORT_ARCHIVE_PATH,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
   basenameAndExtension,
@@ -271,51 +272,32 @@ export default function projectManagerShimMiddleware(
         break
       }
       default: {
-        const downloadProjectMatch = requestPath?.match(
-          /^[/]api[/]project-manager[/]projects[/]([^/]+)[/]enso-project$/,
-        )
-        if (downloadProjectMatch) {
-          const uuid = downloadProjectMatch[1]
-          void fs.readdir(PROJECTS_ROOT_DIRECTORY).then(async (filenames) => {
-            let success = false
-            for (const filename of filenames) {
-              try {
-                const projectRoot = path.join(PROJECTS_ROOT_DIRECTORY, filename)
-                const stat = await fs.stat(projectRoot)
-                if (stat.isDirectory()) {
-                  const metadataPath = path.join(
-                    projectRoot,
-                    projectManagement.PROJECT_METADATA_RELATIVE_PATH,
-                  )
-                  const metadataContents = await fs.readFile(metadataPath)
-                  const metadata: unknown = JSON.parse(metadataContents.toString())
-                  if (
-                    typeof metadata === 'object' &&
-                    metadata != null &&
-                    'id' in metadata &&
-                    metadata.id === uuid
-                  ) {
-                    response.writeHead(HTTP_STATUS_OK, {
-                      'Content-Type': 'application/gzip+x-enso-project',
-                      ...COMMON_HEADERS,
-                    })
-                    tar
-                      .create({ gzip: true, cwd: projectRoot }, [projectRoot])
-                      .pipe(response, { end: true })
-                    success = true
-                    break
-                  }
-                }
-              } catch {
-                // Ignored.
-              }
-            }
-            if (!success) {
-              response.writeHead(HTTP_STATUS_NOT_FOUND, COMMON_HEADERS).end()
-            }
-          })
+        const route = requestPath.replace('/api/', '/')
+        let match: RegExpMatchArray | null = null
+
+        match = route.match(DOWNLOAD_PROJECT_REGEX)
+        if (request.method === 'GET' && match?.groups?.['projectId'] != null) {
+          const projectId = ProjectId(match.groups['projectId'])
+          const projectPath = extractTypeAndPath(projectId).path
+          projectManagement
+            .createBundle(projectPath)
+            .then((projectBundle) => {
+              response
+                .writeHead(HTTP_STATUS_OK, {
+                  ...COMMON_HEADERS,
+                  'Content-Length': String(projectBundle.byteLength),
+                  'Content-Type': 'application/octet-stream',
+                })
+                .end(projectBundle)
+            })
+            .catch((err) => {
+              console.error(err)
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+            })
+
           break
         }
+
         response.writeHead(HTTP_STATUS_NOT_FOUND, COMMON_HEADERS).end()
         break
       }
