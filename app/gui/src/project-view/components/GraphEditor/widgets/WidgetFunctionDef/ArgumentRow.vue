@@ -9,6 +9,7 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetFunctionDef/argumentAst'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
+import WidgetTreeRootStyles from '@/components/GraphEditor/WidgetTreeRootStyles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { PortId, syntheticPortId } from '@/providers/portInfo'
@@ -19,20 +20,25 @@ import {
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { provideWidgetTree } from '@/providers/widgetTree'
+import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
-import { computed, useTemplateRef } from 'vue'
+import { computed, toRef, useTemplateRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
+import { ExternalId } from 'ydoc-shared/yjsModel'
 
-const { definition, updateCallback, portIdBase } = defineProps<{
+const props = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
   updateCallback: UpdateHandler
   portIdBase: PortId
+  externalId: string & ExternalId
 }>()
+const { definition, updateCallback, portIdBase } = props
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
@@ -182,44 +188,60 @@ const defaultEntries = [
   mkDefaultEntry('required', 'required argument'),
   mkDefaultEntry('explicit', 'default value'),
 ] as const satisfies DropdownEntry[]
+
+/** Provide minimally viable widget tree for children NodeWidgets. */
+const extended = computed(() => false)
+const hasAnimations = computed(() => false)
+const conditionalPorts = computed(() => undefined)
+const primaryApplication = computed(() => emptyPrimaryApplication())
+provideWidgetTree(
+  toRef(props, 'externalId'),
+  toRef(props, 'root'),
+  conditionalPorts,
+  extended,
+  hasAnimations,
+  primaryApplication,
+)
 </script>
 
 <template>
-  <div class="ArgumentRow pad-right">
-    <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
-    <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
-    <span class="tokenText">&nbsp;:&nbsp;</span>
-    <NodeWidget v-bind="nodeType" />
-    <span class="tokenText">&nbsp;=&nbsp;</span>
-    <div
-      ref="defaultValueRoot"
-      class="defaultValueRoot clickable"
-      @click.stop="defaultValueDropdownInteraction.start()"
-    >
-      <SvgIcon
-        name="arrow_right_head_only"
-        class="dropdownArrow widgetOutOfLayout"
-        :class="{ hovered: false }"
+  <WidgetTreeRootStyles>
+    <div class="ArgumentRow pad-right">
+      <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
+      <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
+      <span class="tokenText">&nbsp;:&nbsp;</span>
+      <NodeWidget v-bind="nodeType" />
+      <span class="tokenText">&nbsp;=&nbsp;</span>
+      <div
+        ref="defaultValueRoot"
+        class="defaultValueRoot clickable"
+        @click.stop="defaultValueDropdownInteraction.start()"
+      >
+        <SvgIcon
+          name="arrow_right_head_only"
+          class="dropdownArrow widgetOutOfLayout"
+          :class="{ hovered: false }"
+        />
+        <SelectionSubmenu
+          ref="submenuRef"
+          :rootElement="root"
+          :floatReference="defaultValueRoot"
+          :show="defaultValueDropdownInteraction.isActive()"
+          :entries="defaultEntries"
+          :topLevel="true"
+          :extendUpwards="false"
+          @clickedEntry="defaultOnClick"
+        />
+        <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
+      </div>
+      <NodeWidget
+        v-if="nodeDefault"
+        v-bind="nodeDefault"
+        class="pad-left"
+        data-testid="missing-default-value"
       />
-      <SelectionSubmenu
-        ref="submenuRef"
-        :rootElement="root"
-        :floatReference="defaultValueRoot"
-        :show="defaultValueDropdownInteraction.isActive()"
-        :entries="defaultEntries"
-        :topLevel="true"
-        :extendUpwards="false"
-        @clickedEntry="defaultOnClick"
-      />
-      <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
     </div>
-    <NodeWidget
-      v-if="nodeDefault"
-      v-bind="nodeDefault"
-      class="pad-left"
-      data-testid="missing-default-value"
-    />
-  </div>
+  </WidgetTreeRootStyles>
 </template>
 
 <style scoped>
