@@ -166,8 +166,7 @@ public final class Module extends EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder =
-        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
+    var scopeBuilder = TruffleCompilerContext.findCompilerModule(this).newScopeBuilder();
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -176,7 +175,7 @@ public final class Module extends EnsoObject {
       this.compilationStage = CompilationStage.INITIAL;
     } else {
       if (fillWith != null) {
-        fillWith.accept(scopeBuilder);
+        fillWith.accept(scopeBuilder.unsafeScopeBuilder());
       }
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
     }

@@ -11,10 +11,6 @@ final class TruffleCompilerModuleScopeBuilder extends CompilerContext.ModuleScop
     this.scopeBuilder = scopeBuilder;
   }
 
-  org.enso.interpreter.runtime.scope.ModuleScopeBuilder unsafeScopeBuilder() {
-    return scopeBuilder;
-  }
-
   static ModuleScopeBuilder fromCompilerModuleScopeBuilder(
       CompilerContext.ModuleScopeBuilder scopeBuilder) {
     return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
@@ -22,5 +18,13 @@ final class TruffleCompilerModuleScopeBuilder extends CompilerContext.ModuleScop
 
   static ModuleScopeBuilder fromCompilerModule(CompilerContext.Module module) {
     return fromCompilerModuleScopeBuilder(module.getScopeBuilder());
+  }
+
+  org.enso.interpreter.runtime.scope.ModuleScopeBuilder unsafeScopeBuilder() {
+    return scopeBuilder;
+  }
+
+  final void finish() {
+    this.scopeBuilder.finish();
   }
 }
