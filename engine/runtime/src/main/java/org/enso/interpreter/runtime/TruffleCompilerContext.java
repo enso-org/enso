@@ -853,12 +853,21 @@ final class TruffleCompilerContext implements CompilerContext {
       return module.isPrivate();
     }
 
-  /**
-   * Gets current or reset builder for this module.
-   *
-   * @param reset should any existing builder be reset?
-   * @return
-   */
+    final void compile(Compiler compiler) throws IOException {
+      Source source = module.getSource();
+      if (source != null) {
+        this.newScopeBuilder();
+        module.unsafeSetCompilationStage(CompilationStage.INITIAL);
+        compiler.run(this);
+      }
+    }
+
+    /**
+     * Gets current or reset builder for this module.
+     *
+     * @param reset should any existing builder be reset?
+     * @return
+     */
     final TruffleCompilerModuleScopeBuilder getScopeBuilder(boolean reset) {
       if (reset || sb == null) {
         var scopeBuilder =
@@ -867,7 +876,7 @@ final class TruffleCompilerContext implements CompilerContext {
       }
       return sb;
     }
-    
+
     @Override
     public TruffleCompilerModuleScopeBuilder getScopeBuilder() {
       return getScopeBuilder(false);

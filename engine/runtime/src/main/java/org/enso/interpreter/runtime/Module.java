@@ -385,7 +385,8 @@ public final class Module extends EnsoObject {
   public ModuleScope compileScope(EnsoContext context) {
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
-        compile(context);
+        var cm = TruffleCompilerContext.findCompilerModule(this);
+        cm.compile(context.getCompiler());
       } catch (IOException ignored) {
       }
     }
@@ -464,15 +465,6 @@ public final class Module extends EnsoObject {
     return allSources.containsKey(s);
   }
 
-  private void compile(EnsoContext context) throws IOException {
-    Source source = getSource();
-    if (source == null) return;
-    var cm = asCompilerModule();
-    cm.newScopeBuilder();
-    compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(cm);
-  }
-
   /**
    * @return IR defined by this module.
    */
@@ -503,7 +495,7 @@ public final class Module extends EnsoObject {
   /**
    * @return the current compilation stage of this module.
    */
-  public CompilationStage getCompilationStage() {
+  final CompilationStage getCompilationStage() {
     return compilationStage;
   }
 
@@ -694,7 +686,8 @@ public final class Module extends EnsoObject {
       module.disposeInteractive();
       module.wasLoadedFromCache = false;
       try {
-        module.compile(context);
+        var cm = TruffleCompilerContext.findCompilerModule(module);
+        cm.compile(context.getCompiler());
       } catch (IOException ignored) {
       }
       return module;
