@@ -1,5 +1,5 @@
-import missingIconUri from '@/assets/icon-missing.svg?no-inline'
-import iconsUri from '@/assets/icons.svg?no-inline'
+import missingIconUri from '@/assets/icon-missing.svg'
+import iconsUri from '@/assets/icons.svg'
 import { isUrlString, type URLString } from '@/util/data/urlString'
 import { type Icon, isIconName } from '@/util/iconMetadata/iconName'
 

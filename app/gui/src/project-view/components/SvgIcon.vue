@@ -1,11 +1,15 @@
-<script setup lang="ts">
+<script lang="ts">
+import { AnyIcon, svgUseHref } from '@/util/icons'
+// This export is to have this widely used component's docs displayed in IDE.
 /**
- * @file  A component displaying a SVG icon.
+ * A component displaying a SVG icon.
  *
  * It displays one group defined in `@/assets/icons.svg` file, specified by `variant` property.
  */
-import { AnyIcon, svgUseHref } from '@/util/icons'
+export default {}
+</script>
 
+<script setup lang="ts">
 const { name } = defineProps<{ name: AnyIcon }>()
 </script>
 
