@@ -156,10 +156,8 @@ final class TruffleCompilerContext implements CompilerContext {
       CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    var s =
-        org.enso.interpreter.runtime.scope.ModuleScopeBuilder.fromCompilerModuleScopeBuilder(
-            scopeBuilder);
-    new IrToTruffle(context, m.getSource(), s, config).run(module.getIr());
+    var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModuleScopeBuilder(scopeBuilder);
+    new IrToTruffle(context, m.getSource(), sb, config).run(module.getIr());
   }
 
   // module related
@@ -244,9 +242,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public void runStubsGenerator(
       CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
     var m = ((Module) module).unsafeModule();
-    var s =
-        ((org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder) scopeBuilder)
-            .unsafeScopeBuilder();
+    var s = ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
     stubsGenerator.run(m.getIr(), s);
   }
 
@@ -843,14 +839,14 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
-      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.getScopeBuilder());
+      var sb = module.getScopeBuilder();
+      return new TruffleCompilerModuleScopeBuilder(sb);
     }
 
     @Override
     public ModuleScopeBuilder newScopeBuilder() {
-      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.newScopeBuilder());
+      var sb = module.newScopeBuilder();
+      return new TruffleCompilerModuleScopeBuilder(sb);
     }
 
     @Override

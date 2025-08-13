@@ -14,7 +14,7 @@
   "license": "MIT",
   "devDependencies": {
     "@lezer/html": "^1.0.0",
-    "@marijn/buildtool": "^0.1.6"
+    "@marijn/buildtool": "^1.1.0"
   },
   "dependencies": {
     "@lezer/common": "^1.0.0",

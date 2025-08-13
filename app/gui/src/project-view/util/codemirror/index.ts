@@ -33,6 +33,8 @@ import { createDebouncer } from 'lib0/eventloop.js'
 import {
   type ComponentInstance,
   computed,
+  isRef,
+  markRaw,
   onUnmounted,
   ref,
   toValue,
@@ -57,8 +59,12 @@ export type Getter<T> = () => T
 
 interface CodeMirrorOptions {
   placeholder?: ToValue<string>
-  /** CodeMirror {@link Extension}s to include in the editor's initial state. */
-  extensions?: Extension
+  /**
+   * CodeMirror extensions to include in the editor's state. Values may be {@link Extension}s, or
+   * {@link WatchSource}s that return {@link Extension}s; in the latter case, a compartment will be
+   * created for each watch source to allow its contents to be reactively reconfigured.
+   */
+  extensions?: (Extension | WatchSource<Extension>)[]
   /**
    * If a value is provided, it will be made available to extensions that render Vue components.
    */
@@ -97,7 +103,7 @@ export function useCodeMirror(
   const placeholderExt =
     placeholderText ? useCompartment(dispatch, () => placeholder(toValue(placeholderText))) : []
   const { bindingsExt } = useBindings()
-  const extrasCompartment = new Compartment()
+  const extrasCompartment = markRaw(new Compartment())
   const bindingsCompartment = useCompartment(dispatch, () => keyBindings(toValue(lineMode)))
   const singleLineState = computed(() => {
     const mode = toValue(lineMode)
@@ -107,19 +113,27 @@ export function useCodeMirror(
     theme({ singleLine: singleLineState.value }),
   )
 
-  const view = new EditorView({
-    state: EditorState.create({
-      extensions: [
-        readonlyExt,
-        bindingsExt,
-        placeholderExt,
-        bindingsCompartment,
-        themeCompartment,
-        extrasCompartment.of([]),
-        extensions ?? [],
-      ],
+  const reactiveExtensions =
+    extensions ?
+      extensions.map((ext) =>
+        isRef(ext) || typeof ext === 'function' ? useCompartment(dispatch, ext) : ext,
+      )
+    : []
+  const view = markRaw(
+    new EditorView({
+      state: EditorState.create({
+        extensions: [
+          readonlyExt,
+          bindingsExt,
+          placeholderExt,
+          bindingsCompartment,
+          themeCompartment,
+          extrasCompartment.of([]),
+          reactiveExtensions,
+        ],
+      }),
     }),
-  })
+  )
   watch(
     () => toValue(editorRoot),
     (editorRootValue) => {
@@ -200,14 +214,16 @@ function useBindings() {
   }
 }
 
+interface StringSyncOptions {
+  onTextEdited?: (text: string) => void
+  onUserAction?: (text: string, selection: SelectionRange) => void
+}
+
 /**
  * Creates a CodeMirror extension for reading, writing, and watching the editor's contents as a
  * string value.
  */
-export function useStringSync() {
-  const textEditCallbacks: ((text: string) => void)[] = []
-  const userActionCallbacks: ((text: string, selection: SelectionRange) => void)[] = []
-
+export function useStringSync({ onTextEdited, onUserAction }: StringSyncOptions = {}) {
   return {
     syncExt: EditorView.updateListener.of((update) => {
       const textEdit = update.transactions.some(
@@ -220,34 +236,22 @@ export function useStringSync() {
         )
       if (userAction) {
         const text = update.state.doc.toString()
-        for (const cb of userActionCallbacks) cb(text, update.state.selection.main)
-        if (textEdit) for (const cb of textEditCallbacks) cb(text)
+        if (onUserAction) onUserAction(text, update.state.selection.main)
+        if (onTextEdited) onTextEdited(text)
       }
     }),
-    connectSync: (view: EditorView) => {
-      function getText(): string {
-        return view.state.doc.toString()
-      }
-
-      function setText(text: string, selection?: Range): void {
-        const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
-        if (selection && !selection.rangeEquals(safeSelection))
-          console.warn('Clipping invalid selection', { text, selection })
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: text },
-          selection:
-            safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
-        })
-      }
-
-      function onTextEdited(callback: (text: string) => void): void {
-        textEditCallbacks.push(callback)
-      }
-
-      function onUserAction(callback: (text: string, selection: SelectionRange) => void): void {
-        userActionCallbacks.push(callback)
-      }
-      return { getText, setText, onTextEdited, onUserAction }
+    getText: (view: EditorView): string => {
+      return view.state.doc.toString()
+    },
+    setText: (view: EditorView, text: string, selection?: Range): void => {
+      const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
+      if (selection && !selection.rangeEquals(safeSelection))
+        console.warn('Clipping invalid selection', { text, selection })
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: text },
+        selection:
+          safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
+      })
     },
   }
 }

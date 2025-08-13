@@ -9,6 +9,7 @@ import project.Errors.Common.Private_Access
 import project.Function.Function as Real_Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 
 type Type
@@ -501,6 +502,31 @@ is_type value -> Boolean = @Tail_Call Meta_Helpers.is_type value
    ## Arguments
     - `value`: The value to check.
 is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
+
+## ---
+   private: true
+   advanced: true
+   ---
+   Support for registration and discovery of services among Enso libraries.
+   Returns vector of instances of `spi_type` discovered among libraries
+   present in the runtime. The vector may be associated with a warning,
+   if some registrations found are found, but invalid - e.g. not producing the desired `spi_type`.
+   
+   To register an implementation of a type:
+   - create `private` module called `Services` in your project
+   - put a singleton `type Impl` there
+   - create a conversion from your type to the desired SPI type
+   - e.g. `SPI_Type.from (_:Impl) = # create SPI_Type somehow`
+   - put registration into `package.yaml` 
+
+   ## Arguments
+    - `spi_type`: service provider interface type to discover
+lookup_services spi_type -> Vector =
+    v = Meta_Helpers.lookup_services spi_type
+    errors = v.map (x-> if x.is_error then [x.catch] else []) . flatten
+    non_errors = v.map (x-> if x.is_error then [] else [x]) . flatten
+    if errors.is_empty then non_errors else
+        Warning.attach_multiple errors non_errors
 
 ## Converts any value to its `Meta.Type`. Useful for querying various type
    properties like `.name` or `.qualified_name`.
