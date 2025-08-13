@@ -241,20 +241,14 @@ object NativeImage {
         compilationTimeoutOpt ++
         Seq("-o", targetLoc.toString)
 
-      args = mainClass match {
-        case Some(main) =>
-          args ++
-          Seq(main)
-        case None =>
-          mainModule match {
-            case Some(mainMod) =>
-              args ++ Seq("--module", mainMod)
-            case None =>
-              val pathToJAR =
-                (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
-              args ++
-              Seq("-jar", pathToJAR.toString)
-          }
+      val pathToJAR =
+        (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
+      if (mainModule.isDefined && mainClass.isDefined) {
+        args ++= Seq("--module", mainModule.get + "/" + mainClass.get)
+      } else if (mainClass.isDefined) {
+        args ++= Seq(mainClass.get)
+      } else {
+        args ++= Seq("-jar", pathToJAR.toString)
       }
 
       val targetDirValue = (Compile / target).value

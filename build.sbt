@@ -1654,17 +1654,16 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := Def
       .taskDyn {
-        val mp = (Compile / modulePath).value.map(_.getAbsolutePath)
-        val addModules = Seq(
-          (`logging-service-telemetry` / javaModuleName).value,
-          (`logging-service-opensearch` / javaModuleName).value
-        )
+        val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
+        val addMods = (Runtime / addModules).value
         NativeImage
           .buildNativeImage(
             "project-manager",
             staticOnLinux = true,
+            mainModule    = Some(javaModuleName.value),
+            mainClass     = (Compile / mainClass).value,
             modulePath    = mp,
-            addModules    = addModules,
+            addModules    = addMods,
             initializeAtRuntime = Seq(
               "org.jline",
               "scala.util.Random",
