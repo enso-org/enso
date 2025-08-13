@@ -1581,8 +1581,17 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     */
   .settings(
     Test / fork := true,
-    // Ensure that `Test / javaOptions` do not "inherit" from `Runtime / javaOptions`.
-    Test / javaOptions := (Compile / javaOptions).value,
+    /** Ensure that Test/javaOptions are independent on settings from the Runtime scope.
+      * They should "inherit" only from the Compile scope.
+      */
+    Test / javaOptions := {
+      val compileOpts = (Compile / javaOptions).value
+      val testModOpts = (Test / constructOptionsTask).value
+      JPMSPlugin.joinModulePathOption(
+        compileOpts ++ testModOpts
+      )
+    },
+    Test / javaOptions ++= testLogProviderOptions,
     // These dependencies are here so that we can use them in `--module-path` later on.
     libraryDependencies ++= {
       val necessaryModules =
@@ -1606,7 +1615,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value
     ),
-    Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).dependsOn(buildEngineDistribution).value
   )
   /** JPMS related settings for runtime
