@@ -195,20 +195,20 @@ export default function projectManagerShimMiddleware(
         break
       }
     }
-  } else if (request.method === 'POST') {
-    switch (requestPath) {
-      case `/api/${EXPORT_ARCHIVE_PATH}`: {
+  } else if (requestPath.startsWith('/api/')) {
+    switch (`${request.method} ${requestPath}`) {
+      case `POST /api/${EXPORT_ARCHIVE_PATH}`: {
         httpDownloadArchive(request, response, url.searchParams)
         break
       }
-      case '/api/upload-file': {
+      case 'POST /api/upload-file': {
         httpUploadFile(request, response, url.searchParams)
         break
       }
       // This endpoint should only be used when accessing the app from the browser.
       // When accessing the app from Electron, the file input event will have the
       // full system path.
-      case '/api/upload-project': {
+      case 'POST /api/upload-project': {
         const directory = url.searchParams.get('directory')
         const name = url.searchParams.get('name')
         void projectManagement
@@ -227,7 +227,7 @@ export default function projectManagerShimMiddleware(
           })
         break
       }
-      case '/api/run-project-manager-command': {
+      case 'POST /api/run-project-manager-command': {
         const cliArguments: unknown = JSON.parse(url.searchParams.get('cli-arguments') ?? '[]')
         if (
           !Array.isArray(cliArguments) ||
@@ -258,6 +258,16 @@ export default function projectManagerShimMiddleware(
             }
           })()
         }
+        break
+      }
+      case 'GET /api/root-directory-path': {
+        response
+          .writeHead(HTTP_STATUS_OK, {
+            'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
+            'Content-Type': 'text/plain',
+            ...COMMON_HEADERS,
+          })
+          .end(PROJECTS_ROOT_DIRECTORY)
         break
       }
       default: {
@@ -310,14 +320,6 @@ export default function projectManagerShimMiddleware(
         break
       }
     }
-  } else if (request.method === 'GET' && requestPath === '/api/root-directory-path') {
-    response
-      .writeHead(HTTP_STATUS_OK, {
-        'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
-        'Content-Type': 'text/plain',
-        ...COMMON_HEADERS,
-      })
-      .end(PROJECTS_ROOT_DIRECTORY)
   } else {
     next()
   }
