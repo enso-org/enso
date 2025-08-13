@@ -418,7 +418,7 @@ export function getProjectsDirectory(): string {
   }
 
   const documentsPath = desktopEnvironment.DOCUMENTS
-  
+
   if (documentsPath === undefined) {
     return pathModule.join(os.homedir(), 'enso', 'projects')
   } else {
@@ -515,11 +515,11 @@ export function bumpMetadata(
     id: generateId(),
     lastOpened: toRfc3339(new Date()),
   })).id
-  return { 
-    id, 
-    name, 
-    projectRoot: Path(projectRoot), 
-    parentDirectory 
+  return {
+    id,
+    name,
+    projectRoot: Path(projectRoot),
+    parentDirectory,
   }
 }
 
@@ -559,4 +559,3 @@ export async function downloadSamples(): Promise<void> {
     })
   })
 }
-
