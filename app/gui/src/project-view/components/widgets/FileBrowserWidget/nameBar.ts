@@ -20,8 +20,13 @@ export function useNameBar() {
     fileExtensionFilter,
     setFilename: (filename: string) => {
       const [name, extension] = splitFilename(filename)
-      filenameInput.value = name
-      extensionInput.value = extension
+      // Filtering datalinks does not make much sense, and we should probably change behavior for other extensions as well in the future.
+      if (extension === 'datalink') {
+        filenameInput.value = filename
+      } else {
+        filenameInput.value = name
+        extensionInput.value = extension
+      }
     },
   }
 }
