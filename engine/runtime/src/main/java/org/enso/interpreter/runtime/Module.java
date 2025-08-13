@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
 public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
+  private ModuleScopeBuilder scopeBuilder;
   private ModuleScope scope;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
@@ -98,6 +99,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -105,6 +108,7 @@ public final class Module extends EnsoObject {
   }
 
   final void updateModuleScope(ModuleScope scope) {
+    assert scope == scopeBuilder.asModuleScope();
     this.scope = scope;
   }
 
@@ -120,6 +124,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -139,6 +145,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -165,7 +173,7 @@ public final class Module extends EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    var scopeBuilder =
+    this.scopeBuilder =
         ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
@@ -390,8 +398,12 @@ public final class Module extends EnsoObject {
       } catch (IOException ignored) {
       }
     }
-    var cm = TruffleCompilerContext.findCompilerModule(this);
-    TruffleCompilerModuleScopeBuilder.fromCompilerModule(cm).finish();
+    //    var cm = TruffleCompilerContext.findCompilerModule(this);
+    //    var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(cm);
+    //    assert sb == scopeBuilder;
+    //    sb.finish();
+    scopeBuilder.finish();
+    assert scope == scopeBuilder.asModuleScope();
     return scope;
   }
 
@@ -551,6 +563,22 @@ public final class Module extends EnsoObject {
    */
   public final ModuleScope getScope() {
     return scope;
+  }
+
+  final ModuleScopeBuilder getScopeBuilder() {
+    return scopeBuilder;
+  }
+
+  /**
+   * Resets scope builder of this module by a new one. Shall only be called from compiler interface
+   * - {@link TruffleCompilerContext}.
+   *
+   * @return new scope builder - same as {@link #getScopeBuilder()} since now
+   */
+  final ModuleScopeBuilder newScopeBuilder() {
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
+    return this.scopeBuilder;
   }
 
   /**

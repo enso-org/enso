@@ -768,7 +768,7 @@ final class TruffleCompilerContext implements CompilerContext {
     private Module(org.enso.interpreter.runtime.Module module) {
       this.module = module;
       var tmp = newScopeBuilder();
-      assert this.sb == tmp;
+      // assert this.sb == tmp;
     }
 
     @Override
@@ -857,15 +857,14 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
-      return sb;
+      var sb = module.getScopeBuilder();
+      return new TruffleCompilerModuleScopeBuilder(sb);
     }
 
     @Override
     public ModuleScopeBuilder newScopeBuilder() {
-      var inner =
-          ModuleScopeAccessor.getInstance().newScopeBuilder(module, module::updateModuleScope);
-      sb = new TruffleCompilerModuleScopeBuilder(inner);
-      return sb;
+      var sb = module.newScopeBuilder();
+      return new TruffleCompilerModuleScopeBuilder(sb);
     }
 
     @Override
