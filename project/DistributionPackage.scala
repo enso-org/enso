@@ -488,12 +488,10 @@ object DistributionPackage {
       .orElse(findArg("--compile"))
   }
 
-  /**
-   *
-   * @param projManagerCmdLine Options for the java process.
-   * @param args Args for the project manager.
-   * @return
-   */
+  /** @param projManagerCmdLine Options for the java process.
+    * @param args Args for the project manager.
+    * @return
+    */
   def runProjectManagerPackage(
     engineRoot: File,
     distributionRoot: File,

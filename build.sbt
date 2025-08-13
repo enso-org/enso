@@ -6076,7 +6076,7 @@ lazy val runProjectManagerDistribution =
 runProjectManagerDistribution := {
   buildEngineDistributionNoIndex.value
   buildProjectManagerDistributionCond.value
-  val projManagerOpts = (`project-manager` / Runtime / javaOptions).value
+  val projManagerOpts   = (`project-manager` / Runtime / javaOptions).value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runProjectManagerPackage(
     engineDistributionRoot.value,
