@@ -1065,8 +1065,6 @@ export class Server {
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
         .end('Command arguments must be an array of strings.')
     } else {
-      let commandOutput: NodeJS.ReadableStream
-
       // Check if it's a filesystem command
       if (cliArguments[0]?.startsWith('--filesystem-')) {
         const result = await handleFilesystemCommand(cliArguments, request)

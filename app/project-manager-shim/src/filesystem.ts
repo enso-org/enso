@@ -3,26 +3,94 @@ import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import type * as http from 'node:http'
 import * as path from 'node:path'
-import { Readable } from 'node:stream'
 import * as yaml from 'yaml'
 import * as projectManagement from './projectManagement.js'
-import {
-  type Attributes,
-  type DirectoryEntry,
-  type FileEntry,
-  type FileSystemEntry,
-  FileSystemEntryType,
-  type ProjectEntry,
-  type ProjectMetadata,
-} from './types.js'
+
+// =======================
+// === ProjectMetadata ===
+// =======================
+
+/** Details of a project. */
+export interface ProjectMetadata {
+  /** The name of the project. */
+  readonly name: string
+  /** The namespace of the project. */
+  readonly namespace: string
+  /** The project id. */
+  readonly id: string
+  /**
+   * The Enso Engine version to use for the project, represented by a semver version
+   * string.
+   *
+   * If the edition associated with the project could not be resolved, the
+   * engine version may be missing.
+   */
+  readonly engineVersion?: string
+  /** The project creation time. */
+  readonly created: string
+  /** The last opened datetime. */
+  readonly lastOpened?: string
+}
+
+// ==================
+// === Attributes ===
+// ==================
+
+/** Attributes of a file or folder. */
+export interface Attributes {
+  readonly creationTime: string
+  readonly lastAccessTime: string
+  readonly lastModifiedTime: string
+  readonly byteSize: number
+}
+
+// =======================
+// === FileSystemEntry ===
+// =======================
+
+/** Metadata for an arbitrary file system entry. */
+export type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+
+/** The discriminator value for {@link FileSystemEntry}. */
+export enum FileSystemEntryType {
+  DirectoryEntry = 'DirectoryEntry',
+  ProjectEntry = 'ProjectEntry',
+  FileEntry = 'FileEntry',
+}
+
+/** Metadata for a file. */
+export interface FileEntry {
+  readonly type: FileSystemEntryType.FileEntry
+  readonly path: string
+  readonly attributes: Attributes
+}
+
+/** Metadata for a directory. */
+export interface DirectoryEntry {
+  readonly type: FileSystemEntryType.DirectoryEntry
+  readonly path: string
+  readonly attributes: Attributes
+}
+
+/** Metadata for a project. */
+export interface ProjectEntry {
+  readonly type: FileSystemEntryType.ProjectEntry
+  readonly path: string
+  readonly metadata: ProjectMetadata
+  readonly attributes: Attributes
+}
+
+// ================
+// === Handlers ===
+// ================
 
 /** JSON-RPC result wrapper */
-export function toJSONRPCResult(result: unknown): string {
+function toJSONRPCResult(result: unknown): string {
   return JSON.stringify({ jsonrpc: '2.0', id: 0, result })
 }
 
 /** JSON-RPC error wrapper */
-export function toJSONRPCError(message: string, data?: unknown): string {
+function toJSONRPCError(message: string, data?: unknown): string {
   return JSON.stringify({
     jsonrpc: '2.0',
     id: 0,
@@ -34,7 +102,7 @@ export function toJSONRPCError(message: string, data?: unknown): string {
  * Return a {@link ProjectMetadata} if the metadata is a valid metadata object,
  * else return `null`.
  */
-export function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMetadata | null {
+function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMetadata | null {
   if (
     typeof yamlObj !== 'object' ||
     yamlObj == null ||
@@ -80,13 +148,13 @@ export function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): Proj
  * Checks if files that start with the dot.
  * Note on Windows does not check the hidden property.
  */
-export function isHidden(filePath: string): boolean {
+function isHidden(filePath: string): boolean {
   const dotfile = /(^|[\\/])\.[^\\/]+$/g
   return dotfile.test(filePath)
 }
 
 /** Return whether a file exists. */
-export async function fileExists(path: string): Promise<boolean> {
+async function fileExists(path: string): Promise<boolean> {
   try {
     await fs.stat(path)
     return true
