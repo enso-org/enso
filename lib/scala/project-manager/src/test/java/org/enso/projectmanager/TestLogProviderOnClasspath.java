@@ -34,7 +34,7 @@ public class TestLogProviderOnClasspath {
   }
 
   @Test
-  public void testLogProviderIsInUnnamedModule() {
+  public void testLogProviderIsInNamedModule() {
     Class<?> testLogProviderClass = null;
     try {
       testLogProviderClass =
@@ -44,6 +44,6 @@ public class TestLogProviderOnClasspath {
     }
     var mod = testLogProviderClass.getModule();
     assertThat(mod, notNullValue());
-    assertThat("Should be an unnamed module - with null name", mod.getName(), nullValue());
+    assertThat("Should be named module", mod.getName(), notNullValue());
   }
 }
