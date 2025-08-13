@@ -21,7 +21,7 @@
     "url": "https://github.com/enso-org/enso/issues"
   },
   "devDependencies": {
-    "@types/node": "^22.10.4",
+    "@types/node": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {
