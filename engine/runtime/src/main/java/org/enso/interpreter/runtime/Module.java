@@ -394,8 +394,9 @@ public final class Module extends EnsoObject {
     //    var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(cm);
     //    assert sb == scopeBuilder;
     //    sb.finish();
-    getScopeBuilder().finish();
-    assert scope == getScopeBuilder().asModuleScope();
+    var sb = getScopeBuilder(false);
+    sb.finish();
+    assert scope == sb.asModuleScope();
     return scope;
   }
 
@@ -557,23 +558,18 @@ public final class Module extends EnsoObject {
     return scope;
   }
 
-  final ModuleScopeBuilder getScopeBuilder() {
-    if (scopeBuilder == null) {
+  /**
+   * Gets current or reset builder for this module.
+   *
+   * @param reset should any existing builder be reset?
+   * @return
+   */
+  final ModuleScopeBuilder getScopeBuilder(boolean reset) {
+    if (reset || scopeBuilder == null) {
       scopeBuilder =
           ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     }
     return scopeBuilder;
-  }
-
-  /**
-   * Resets scope builder of this module by a new one. Shall only be called from compiler interface
-   * - {@link TruffleCompilerContext}.
-   *
-   * @return new scope builder - same as {@link #getScopeBuilder()} since now
-   */
-  final ModuleScopeBuilder newScopeBuilder() {
-    this.scopeBuilder = null;
-    return this.getScopeBuilder();
   }
 
   /**

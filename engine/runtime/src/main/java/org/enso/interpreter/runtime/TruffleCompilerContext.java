@@ -857,13 +857,13 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public TruffleCompilerModuleScopeBuilder getScopeBuilder() {
-      var sb = module.getScopeBuilder();
+      var sb = module.getScopeBuilder(false);
       return new TruffleCompilerModuleScopeBuilder(sb);
     }
 
     @Override
     public TruffleCompilerModuleScopeBuilder newScopeBuilder() {
-      var sb = module.newScopeBuilder();
+      var sb = module.getScopeBuilder(true);
       return new TruffleCompilerModuleScopeBuilder(sb);
     }
 
