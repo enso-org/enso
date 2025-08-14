@@ -1,4 +1,5 @@
 <script lang="ts">
+import { SHORT_CACHE_TIME_MS } from '#/hooks/backendHooks'
 import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
 import { EnsoPath } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
@@ -38,15 +39,13 @@ export const dataLoader: DataLoader<DashboardProps> = {
     const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
     const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
     if (typedAsset?.type !== AssetType.project) return Ok({})
-
-    const options = backendQueryOptions('getAssetDetails', [typedAsset.id], backend)
-    const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
+    const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
+    const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery({
+      ...options,
+      staleTime: SHORT_CACHE_TIME_MS,
+    })
     if (!assetResponse) return Ok({})
-
-    const asset: ProjectAsset = {
-      ...assetResponse,
-      ensoPath: path,
-    }
+    const asset: ProjectAsset = { ...assetResponse, ensoPath: path }
     return Ok({ projectToOpen: { asset, backend: backend.type } })
   },
 }

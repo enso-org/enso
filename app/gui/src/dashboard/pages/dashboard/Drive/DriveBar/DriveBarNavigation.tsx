@@ -9,6 +9,7 @@ import { Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
+import { SHORT_CACHE_TIME_MS } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
@@ -58,6 +59,7 @@ export function DriveBarNavigation() {
     queryKey: [associatedBackend.type, 'getAssetDetails', { id: currentDirectoryId }],
     queryFn: () => associatedBackend.getAssetDetails(currentDirectoryId),
     meta: { persist: false },
+    staleTime: SHORT_CACHE_TIME_MS,
     retry: (count, error) => {
       if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
         setDriveLocation(null, null)

@@ -12,6 +12,7 @@ import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import {
   MissingComponentAction,
+  Path,
   PROJECT_MANAGER_LOADING_FAILED_EVENT,
   type CloseProjectParams,
   type CreateProject,
@@ -151,8 +152,12 @@ export class ProjectManager {
     return projectPath
   }
 
-  /** Get the directory path of a project. */
-  getProjectDirectoryPath(projectId: UUID) {
+  /** Get the state of a project given its path. */
+  async getProject(projectPath: Path) {
+    const existingProjectId = this.projectIds.get(projectPath)
+    if (existingProjectId) {
+      return this.projects.get(existingProjectId)
+    }
     const projectPath = this.internalProjectPaths.get(projectId)
     return projectPath == null ? this.rootDirectory : getDirectoryAndName(projectPath).directoryPath
   }
