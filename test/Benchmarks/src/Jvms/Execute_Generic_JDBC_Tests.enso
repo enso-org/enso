@@ -8,11 +8,16 @@ polyglot java import java.io.File as Java_File
 type Data
     private Value ~enso_bin:File ~prj:File
 
-    bench_tests self extra_params=[] jvm=False =
+    bench_tests self expected_test_count:Integer extra_params=[] jvm=False =
         jvm_args = if jvm then [ "--jvm" ] else []
-        self.startup jvm_args+["--run", self.prj.to_text]+extra_params
 
-    startup self  args =
+        out = self.startup jvm_args+["--run", self.prj.to_text]+extra_params
+
+        msg = expected_test_count.to_text+" tests succeeded"
+        Runtime.assert (out.contains msg) 'Expecting '+msg+' in:\n'+out
+        Runtime.assert (out.contains "0 tests failed.") 'Expecting no test failures in:\n'+out
+
+    startup self  args -> Text =
         exe = self.enso_bin
         result = Process.run exe.path args
         case result.exit_code of
@@ -23,7 +28,7 @@ type Data
                 IO.println result.stderr
                 Panic.throw "Exit code: "+code.to_text
             Exit_Code.Success ->
-                Nothing
+                result.stdout
 
 collect_benches = Bench.build builder->
     options = Bench.options . set_warmup (Bench.phase_conf 1 10) . set_measure (Bench.phase_conf 2 10)
@@ -33,17 +38,17 @@ collect_benches = Bench.build builder->
 
     builder.group "Compare_JVM_Modes" options group_builder->
         group_builder.specify "Empty_Tests" <|
-            data.bench_tests jvm=True [ "NoTestFilter" ]
+            data.bench_tests 0 jvm=True [ "NoTestFilter" ]
         group_builder.specify "Empty_Dual_Tests" <|
-            data.bench_tests [ "--vm.D=polyglot.enso.classLoading=guest", "NoTestFilter" ]
+            data.bench_tests 0 [ "--vm.D=polyglot.enso.classLoading=guest", "NoTestFilter" ]
         group_builder.specify "Empty_Dual_JVM_Tests" <|
-            data.bench_tests jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", "NoTestFilter" ]
+            data.bench_tests 0 jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", "NoTestFilter" ]
         group_builder.specify "Single_JVM_Tests" <|
-            data.bench_tests jvm=True [ "should.be.able.to.insert..update" ]
+            data.bench_tests 1 jvm=True [ "should.be.able.to.insert..update" ]
         group_builder.specify "Single_Dual_Tests" <|
-            data.bench_tests [ "--vm.D=polyglot.enso.classLoading=guest", "should.be.able.to.insert..update" ]
+            data.bench_tests 1 [ "--vm.D=polyglot.enso.classLoading=guest", "should.be.able.to.insert..update" ]
         group_builder.specify "Single_Dual_JVM_Tests" <|
-            data.bench_tests jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", "should.be.able.to.insert..update" ]
+            data.bench_tests 1 jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", "should.be.able.to.insert..update" ]
 
 private copy_test_prj bin:File name:Text -> File =
     repo_root e =
