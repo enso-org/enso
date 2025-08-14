@@ -15,8 +15,8 @@ import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import { BackendType, DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
+import { OfflineError } from '#/utilities/error'
 import * as github from '#/utilities/github'
-import { OfflineError } from '#/utilities/HttpClient'
 import * as appUtils from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
@@ -28,9 +28,11 @@ import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export const Drive = React.memo(function Drive() {
   return (
-    <DriveProvider>
-      <DriveInner />
-    </DriveProvider>
+    <ErrorBoundary>
+      <DriveProvider>
+        <DriveInner />
+      </DriveProvider>
+    </ErrorBoundary>
   )
 })
 
@@ -151,18 +153,18 @@ function DriveAssetsView() {
             <AssetsTableAssetsUnselector />
           </div>
 
-          <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
-            <DriveBar query={query} setQuery={setQuery} />
+          <Suspense>
+            <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
+              <DriveBar query={query} setQuery={setQuery} />
 
-            {isInaccessible && <OfflineMessage />}
-            {!isInaccessible && (
-              <Suspense>
+              {isInaccessible && <OfflineMessage />}
+              {!isInaccessible && (
                 <ErrorBoundary>
                   <AssetsTable query={query} setQuery={setQuery} />
                 </ErrorBoundary>
-              </Suspense>
-            )}
-          </div>
+              )}
+            </div>
+          </Suspense>
         </div>
       </div>
     </div>

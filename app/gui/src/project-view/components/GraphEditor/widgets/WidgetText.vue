@@ -34,7 +34,7 @@ function acceptValue(text: string): HandledUpdate {
     const value = edit.getVersion(props.input.value)
     if (value.rawTextContent === text) return Ok()
     value.setRawTextContent(text)
-    return props.onUpdate({ edit, directInteraction: true })
+    return props.updateCallback({ edit, directInteraction: true })
   } else {
     let value: Ast.Owned<Ast.MutableTextLiteral>
     if (inputTextLiteral.value) {
@@ -43,7 +43,7 @@ function acceptValue(text: string): HandledUpdate {
     } else {
       value = Ast.TextLiteral.new(text)
     }
-    return props.onUpdate({
+    return props.updateCallback({
       portUpdate: {
         value,
         origin: props.input.portId,
@@ -76,8 +76,13 @@ const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 
+/** Language support for a known syntax. */
 const languageExt = computed(() => languageExtension(syntaxLanguage.value))
-const extensions = computed(() => (languageExt.value ? [languageExt.value] : []))
+/** Extensions added when any language support is available, e.g. autocomplete (TODO: #12305). */
+const anyLanguageExt = computed(() => [])
+const extensions = computed(() =>
+  languageExt.value ? [languageExt.value, ...anyLanguageExt.value] : [],
+)
 
 function isTextMultiline(text: string) {
   return !!text.match(/[\r\n]/)

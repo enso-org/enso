@@ -29,24 +29,27 @@ polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 ## Represents a Uniform Resource Identifier (URI) reference.
 type URI
-    ## ALIAS get uri
-       GROUP Conversions
-       ICON convert
-
+    ## ---
+       aliases: [get uri]
+       group: Conversions
+       icon: convert
+       ---
        Parse a URI from text.
        If the input text is not a valid URI, this function will separate the
-       query string and encode it. If it still cannot be parsed, it will throw
-       a `Syntax_Error`.
+       query string and encode it. If it still cannot be parsed, it will throw a
+       `Syntax_Error`.
 
-       Arguments:
-       - uri: The text to parse as a URI.
+       ## Arguments
+        - `uri`: The text to parse as a URI.
 
-       > Example
-         Parse URI text.
+       ## Examples
+       ### Parse URI text.
 
+       ```
              import Standard.Base.Network.URI.URI
 
              example_parse = URI.parse "http://example.com"
+       ```
     parse : Text -> URI ! Syntax_Error
     parse uri:Text = if uri == "" then Error.throw (Syntax_Error.Error "URI cannot be empty.") else
         raw_uri = Panic.catch URISyntaxException (URI.Value (Java_URI.new uri) []) caught_panic->
@@ -64,99 +67,124 @@ type URI
         if raw_uri.scheme == Nothing && (uri.starts_with "/" . not) then URI.parse ("https://" + uri) else
             raw_uri
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the scheme part of this URI.
 
-       > Example
-         Return the scheme from the URI.
+       ## Examples
+       ### Return the scheme from the URI.
 
+       ```
              import Standard.Examples
 
              example_scheme = Examples.uri.scheme
+       ```
     scheme : Text | Nothing
     scheme self = handle_resolve_errors <|
         self.to_java_representation.getScheme
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the user info part of this URI.
 
-       > Example
-         Return the user info part of the URI.
+       ## Examples
+       ### Return the user info part of the URI.
 
+       ```
              import Standard.Examples
 
              example_user_info = Examples.uri.user_info
+       ```
     user_info : Text | Nothing ! Enso_Secret_Error
     user_info self = handle_resolve_errors <|
         self.to_java_representation.getUserInfo
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the host part of this URI.
 
-       > Example
-         Return the host portion of the URI.
+       ## Examples
+       ### Return the host portion of the URI.
 
+       ```
              import Standard.Examples
 
              example_host = Examples.uri.host
+       ```
     host : Text | Nothing
     host self = handle_resolve_errors <|
         self.to_java_representation.getHost
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Get the authority (user info and host) part of this URI.
 
-       > Example
-         Return the authority portion of the URI.
+       ## Examples
+       ### Return the authority portion of the URI.
 
+       ```
              import Standard.Examples
 
              example_authority = Examples.uri.authority
+       ```
     authority : Text | Nothing ! Enso_Secret_Error
     authority self = handle_resolve_errors <|
         self.to_java_representation.getAuthority
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Get the port part of this URI.
 
-       > Example
-         Return the port portion of the URI
+       ## Examples
+       ### Return the port portion of the URI
 
+       ```
              import Standard.Examples
 
              example_port = Examples.uri.port
+       ```
     port : Integer | Nothing
     port self = handle_resolve_errors <|
         port_number = self.to_java_representation.getPort
         if port_number == -1 then Nothing else port_number
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the path part of this URI.
 
-       > Example
-         Return the path portion of the URI.
+       ## Examples
+       ### Return the path portion of the URI.
 
+       ```
              import Standard.Examples
 
              example_path = Examples.uri.path
+       ```
     path : Text | Nothing
     path self = handle_resolve_errors <|
         self.to_java_representation.getPath
 
-    ## GROUP Operators
-       ICON folder
-       SUGGESTED 2
+    ## ---
+       group: Operators
+       icon: folder
+       suggested: 2
+       ---
        Extends the path of this URI with an additional segment.
 
-       Arguments:
-       - segment: The segment to add to the path.
-         The `segment` may contain multiple segments separated by `/` characters.
-         Any other characters that are not normally permitted in a URI will be
-         percent-encoded.
+       ## Arguments
+        - `segment`: The segment to add to the path. The `segment` may contain
+          multiple segments separated by `/` characters. Any other characters
+          that are not normally permitted in a URI will be percent-encoded.
     / : Text -> URI
     / self segment:Text =
         has_question_mark = if segment.contains "?" then [Illegal_Argument.Error "The requested path contained a '?' symbol which has been URL-encoded. If you want to modify the query, use the `add_query_argument` method instead."] else []
@@ -167,128 +195,164 @@ type URI
         result = URI.Value (URITransformer.extendPath self.internal_uri segments) self.additional_query_parameters
         Problem_Behavior.Report_Warning.attach_problems_before (has_question_mark+has_hash) result
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Get the query part of this URI.
 
-       > Example
-         Return the query portion of the URI.
+       ## Examples
+       ### Return the query portion of the URI.
 
+       ```
              import Standard.Examples
 
              example_query = Examples.uri.query
+       ```
     query : Text | Nothing ! Enso_Secret_Error
     query self = handle_resolve_errors <|
         self.to_java_representation.getQuery
 
-    ## GROUP Calculations
-       ICON edit
-       SUGGESTED 1
+    ## ---
+       group: Calculations
+       icon: edit
+       suggested: 1
+       ---
        Adds a query parameter to the URI.
 
-       Arguments:
-       - key: The key of the query parameter.
-       - value: The value of the query parameter.
+       ## Arguments
+        - `key`: The key of the query parameter.
+        - `value`: The value of the query parameter.
     add_query_argument : Text -> Text | Enso_Secret -> URI
     add_query_argument self key:Text value:(Text | Enso_Secret) =
         URI.Value self.internal_uri self.additional_query_parameters+[Pair.new key value]
 
-    ## GROUP Calculations
-       ICON trash
+    ## ---
+       group: Calculations
+       icon: trash
+       ---
        Removes any query parameters within the URI.
     reset_query_arguments : URI
     reset_query_arguments self = handle_resolve_errors <|
         URI.Value (URITransformer.removeQueryParameters self.internal_uri) []
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Get the fragment part of this URI.
 
-       > Example
-         Return the fragment portion of the URI.
+       ## Examples
+       ### Return the fragment portion of the URI.
 
+       ```
              import Standard.Examples
 
              example_fragment = Examples.uri.fragment
+       ```
     fragment : Text | Nothing
     fragment self = handle_resolve_errors <|
         self.to_java_representation.getFragment
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Get the unescaped user info part of this URI.
     raw_user_info : Text | Nothing ! Enso_Secret_Error
     raw_user_info self = handle_resolve_errors <|
         self.to_java_representation.getRawUserInfo
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Get the unescaped authority part of this URI.
     raw_authority : Text | Nothing ! Enso_Secret_Error
     raw_authority self = handle_resolve_errors <|
         self.to_java_representation.getRawAuthority
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Get the unescaped path part of this URI.
     raw_path : Text | Nothing
     raw_path self = handle_resolve_errors <|
         self.to_java_representation.getRawPath
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Get the unescaped query part of this URI.
     raw_query : Text | Nothing ! Enso_Secret_Error
     raw_query self = handle_resolve_errors <|
         self.to_java_representation.getRawQuery
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Get the unescaped fragment part of this URI.
     raw_fragment : Text | Nothing
     raw_fragment self = handle_resolve_errors <|
         self.to_java_representation.getRawFragment
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert this URI to text.
     to_text : Text
     to_text self = handle_resolve_errors <|
         self.to_java_representation.render.toString
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this URI.
     to_display_text : Text
     to_display_text self = self.to_text.to_display_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     pretty : Text
     pretty self = self.to_text
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Represents a Uniform Resource Identifier (URI) reference.
 
-       Arguments:
-       - internal_builder: A Java URI that contains parsed URI data.
-       - additional_query_parameters: A list of query parameters to add to the URI.
+       ## Arguments
+        - `internal_builder`: A Java URI that contains parsed URI data.
+        - `additional_query_parameters`: A list of query parameters to add to the
+          URI.
     Value (internal_uri : Java_URI) (additional_query_parameters : Vector (Pair Text (Text | Enso_Secret)))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a JavaScript Object representing this URI.
 
-       > Example
-         Convert a URI to a JS_Object.
+       ## Examples
+       ### Convert a URI to a JS_Object.
 
+       ```
              import Standard.Base.Network.URI.URI
              import Standard.Examples
 
              example_to_json = Examples.uri.to_js_object
+       ```
     to_js_object : JS_Object
     to_js_object self =
         type_pair = ["type", "URI"]
         cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a Java representation that can be used to render this URL with
        secrets hidden or processed by trusted operations.
     to_java_representation : URIWithSecrets
@@ -297,16 +361,22 @@ type URI
             Java_Pair.create p.first (as_hideable_value p.second)
         URIWithSecrets.new self.internal_uri parameters
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert this to a raw Java URI.
     to_java_uri : Java_URI ! Enso_Secret_Error
     to_java_uri self = handle_resolve_errors <|
         self.to_java_representation.safeResolve
 
-## PRIVATE
+## ---
+   private: true
+   ---
 URI.from (that:Text) = URI.parse that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_resolve_errors ~action =
     handle_access_denied _ =
         Error.throw (Enso_Secret_Error.Access_Denied)
@@ -314,9 +384,13 @@ handle_resolve_errors ~action =
         Panic.catch EnsoSecretAccessDenied handler=handle_access_denied <|
             action
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type URI_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compare x y =
         java_uri_x = x.to_java_uri.catch Enso_Secret_Error
         java_uri_y = y.to_java_uri.catch Enso_Secret_Error
@@ -329,18 +403,28 @@ type URI_Comparator
             False -> java_uri_x == java_uri_y
         if eq then Ordering.Equal else Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash x =
         Ordering.hash x.text
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that:URI) = Comparable.new that URI_Comparator
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Invalid_Query_String
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Warning (query_string:Text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text self =
         "The query string contained invalid characters and has been URL-encoded ("+self.query_string+")."

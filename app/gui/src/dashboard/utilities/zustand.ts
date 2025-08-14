@@ -8,7 +8,6 @@ import { LOGOUT_EVENT } from '$/providers/session/constants'
 import type { Mutate, StoreApi, StoreMutatorIdentifier } from 'zustand'
 export {
   useStore,
-  useTearingTransitionStore,
   type AreEqual,
   type EqualityFunction,
   type EqualityFunctionName,

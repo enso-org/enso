@@ -9,10 +9,6 @@ import { defaultClientConditions, defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
-// @ts-expect-error We don't need to typecheck this file
-import reactCompiler from 'babel-plugin-react-compiler'
-// @ts-expect-error We don't need to typecheck this file
-import syntaxImportAttributes from '@babel/plugin-syntax-import-attributes'
 
 const isDevMode = process.env.NODE_ENV === 'development'
 const isE2E = process.env.INTEGRATION_TEST === 'true'
@@ -55,12 +51,6 @@ export default defineConfig({
         fileURLToPath(new URL('./src/dashboard/**/use*.ts', import.meta.url)),
         fileURLToPath(new URL('./src/dashboard/**/*Hooks.ts', import.meta.url)),
       ],
-      babel: {
-        plugins: [
-          syntaxImportAttributes,
-          [reactCompiler, { target: '18', enablePreserveExistingMemoizationGuarantees: true }],
-        ],
-      },
     }),
     ...(process.env.DASHBOARD_TESTS !== 'true' ? [await projectManagerShim()] : []),
     ...((

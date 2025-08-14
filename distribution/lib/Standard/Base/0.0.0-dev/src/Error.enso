@@ -12,102 +12,101 @@ from project.Function import const
 from project.Internal.Error_Builtins import all
 
 ## A type representing dataflow errors.
+   A dataflow error in Enso is one that behaves like a standard value, and hence
+   represents erroneous states in a way that exists _within_ standard control
+   flow.
 
-   A dataflow error in Enso is one that behaves like a standard value, and
-   hence represents erroneous states in a way that exists _within_ standard
-   control flow.
+   ## Remarks
 
-   ? Dataflow Errors or Panics
-     Whilst a Panic is useful for unrecoverable situations, most Enso APIs
-     are designed to use dataflow errors instead. As they exist within the
-     normal program control flow, they are able to be represented on the
-     Enso graph.
+   ### Dataflow Errors or Panics
+   Whilst a Panic is useful for unrecoverable situations, most Enso APIs are
+   designed to use dataflow errors instead. As they exist within the normal
+   program control flow, they are able to be represented on the Enso graph.
 @Builtin_Type
 type Error
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a new dataflow error containing the provided payload.
 
-       Arguments:
-       - payload: The contents of the dataflow error to be created.
+       ## Arguments
+        - `payload`: The contents of the dataflow error to be created.
 
-       > Example
-         Throw a dataflow error containing the text "Oops".
+       ## Examples
+       ### Throw a dataflow error containing the text "Oops".
 
+       ```
              Error.throw "Oops"
+       ```
     throw : Any -> Error
     throw payload = @Builtin_Method "Error.throw"
 
-    ## PRIVATE
-       UNSTABLE
-
+    ## ---
+       private: true
+       unstable: true
+       ---
        Returns a textual representation of the stack trace attached to an error.
     get_stack_trace_text : Text
     get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts an error to a corresponding textual representation.
 
-       > Example
-         Converting a thrown error to text.
+       ## Examples
+       ### Converting a thrown error to text.
 
+       ```
              Error.throw "foo" . to_text
+       ```
     to_text : Text
     to_text self = @Builtin_Method "Error.to_text"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a human-readable text representing this error.
     to_display_text : Text
     to_display_text self = "Error: " + (self.catch Any .to_display_text)
 
-    ## GROUP Errors
-       ICON error
+    ## ---
+       group: Errors
+       icon: error
+       ---
        Executes the provided handler on an error, or returns the value unchanged.
 
-       Arguments:
-       - error_type: The type of error to handle. Defaults to `Any` to handle
-         all errors.
-       - handler: The function to call on this if it is an error value of a
-         matching type. By default this is identity.
+       ## Arguments
+        - `error_type`: The type of error to handle. Defaults to `Any` to handle
+          all errors.
+        - `handler`: The function to call on this if it is an error value of a
+          matching type. By default this is identity.
 
-       ! Wrapped Errors
+       ## Examples
+       ### Catching an `Illegal_Argument` and returning its message.
 
-         A wrapped error is one that has been wrapped inside another error. For
-         example, an error thrown in a `Vector.map operation` at index 3 would
-         look like this:
-
-             `(Map_Error.Error 3 (Some_Error.Error "an error occurred"))`
-
-          A wrapped error can be caught either as as the inner error, or as the
-          outer error, by using the `error_type` parameter. If it is caught as
-          the inner error, the outer wrapping error is removed. If
-          `error_wrapper` is unspecified or `Any`, the error is caught as the
-          outer error.
-
-          A wrapping error must implement a conversion to `Wrapped_Error` to be
-          treated properly as a wrapping error.
-
-       > Example
-         Catching an `Illegal_Argument` and returning its message.
-
+       ```
              from Standard.Base import all
 
              example_catch =
                  error = Error.throw (Illegal_Argument.Error "My message")
                  error.catch Illegal_Argument (err -> err.message)
+       ```
 
-       > Example
-         Catching any dataflow error and turning it into a regular value.
+       ### Catching any dataflow error and turning it into a regular value.
 
+       ```
              from Standard.Base import all
 
              example_catch =
                  error = Error.throw 42
                  error.catch == 42
+       ```
 
-       > Example
-         Catch a wrapped error in various ways.
+       ### Catch a wrapped error in various ways.
 
+       ```
              map_fun a = if a == 30 then Error.throw (Some_Error.Error a) else a+1
 
              # Catch an error as the inner error
@@ -121,6 +120,21 @@ type Error
              # Catch an error without specifying an error type
              [10, 20, 30, 40] . map map_fun . catch
              # => (Map_Error.Error 2 (Some_Error.Error 30))
+       ```
+
+       ## Remarks
+
+       ### Wrapped Errors
+       A wrapped error is one that has been wrapped inside another error. For
+       example, an error thrown in a `Vector.map operation` at index 3 would look
+       like this:
+       `(Map_Error.Error 3 (Some_Error.Error "an error occurred"))` A wrapped
+       error can be caught either as as the inner error, or as the outer error,
+       by using the `error_type` parameter. If it is caught as the inner error,
+       the outer wrapping error is removed. If `error_wrapper` is unspecified or
+       `Any`, the error is caught as the outer error.
+       A wrapping error must implement a conversion to `Wrapped_Error` to be
+       treated properly as a wrapping error.
     catch : Any -> (Error -> Any) -> Any
     catch self (error_type = Any) (handler = x->x) =
         self.catch_primitive error_value->
@@ -131,7 +145,9 @@ type Error
                         Maybe.None -> self
                         Maybe.Some inner_error -> handler inner_error
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Remove all wrapping errors, returning the inner error. If the argument is
        not a wrapping error, it is returned unchanged.
     unwrap : Any -> Any
@@ -140,73 +156,86 @@ type Error
             wrapped_error = Wrapped_Error.from error_value
             @Tail_Call Error.unwrap wrapped_error.inner_error
 
-    ## ICON column_add
+    ## ---
+       icon: column_add
+       ---
        Transforms an error.
 
-       Arguments:
-       - f: The function used to transform the error.
+       If `self` is a non-error value it is returned unchanged. However, if
+       `self` is an error, the error is transformed using the provided function
 
-       If `self` is a non-error value it is returned unchanged. However, if `self`
-       is an error, the error is transformed using the provided function
+       ## Arguments
+        - `f`: The function used to transform the error.
 
-       > Example
-         Transforming an error value.
+       ## Examples
+       ### Transforming an error value.
 
+       ```
              import Standard.Examples
 
              example_map_error =
                  map = Examples.map
                  map.at 10 . map_error (_ -> "The element 10 was not found.")
+       ```
     map_error : (Error -> Error) -> Any
     map_error self f = self.catch Any (x -> Error.throw (f x))
 
-    ## ADVANCED
-       GROUP Errors
-       ICON metadata
-
+    ## ---
+       advanced: true
+       group: Errors
+       icon: metadata
+       ---
        Returns the attached stack trace of the error.
-
-       The ordering of the resulting vector is such that the top stack frame is the
-       first element.
+       The ordering of the resulting vector is such that the top stack frame is
+       the first element.
     stack_trace : Vector Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 
-    ## GROUP Errors
-       ICON error
+    ## ---
+       group: Errors
+       icon: error
+       ---
        Checks if `self` is an error.
 
-       > Example
-         Checking if the value 1 is an error.
+       ## Examples
+       ### Checking if the value 1 is an error.
 
+       ```
              1.is_error
+       ```
     is_error : Boolean
     is_error self = True
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Returns the provided `other` value, unless `self` is an error.
-
-       Arguments:
-       - other: The value to return if `self` is not an error.
 
        The primary application of this function is to introduce a dataflow
        dependency between two otherwise unrelated operations. Very useful if one
        of the operations is performing a side-effect.
-
        Aside from ensuring that any dataflow errors are propagated, the result
        will also inherit any warnings attached to any of the two inputs.
 
-       > Example
-         Writing to a file and returning the file object if all went well, or an
+       ## Arguments
+        - `other`: The value to return if `self` is not an error.
+
+       ## Examples
+       ### Writing to a file and returning the file object if all went well, or an
          error if it failed.
 
+       ```
              file.write "foo" . if_not_error file
+       ```
     if_not_error : Any -> Any
     if_not_error self ~other =
         const self other
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Unwrap a wrapped error 0 or more times until the specified type is found.
    Returns None if it is not found.
 look_for_wrapped_error : Any -> Any -> Maybe Any

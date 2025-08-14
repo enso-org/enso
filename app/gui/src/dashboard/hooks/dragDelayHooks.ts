@@ -1,6 +1,7 @@
 /** @file Hooks to trigger an action on drag delay. */
 import type { DropEnterEvent, DropOptions } from '#/components/aria'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useUnmount } from '#/hooks/unmountHooks'
 import type { DOMAttributes, DragEvent } from 'react'
 import { useRef } from 'react'
 
@@ -31,6 +32,19 @@ export function useDragDelayAction<T>(
     handle.current = null
   })
 
+  useUnmount(cancelPreviousCallback)
+
+  const onDragLeave = useEventCallback((event: DragEvent<T>) => {
+    if (
+      event.currentTarget instanceof HTMLElement &&
+      event.relatedTarget instanceof HTMLElement &&
+      event.currentTarget.contains(event.relatedTarget)
+    ) {
+      return
+    }
+    cancelPreviousCallback()
+  })
+
   return {
     onDragEnter: useEventCallback((event: DragEvent<T>) => {
       if (
@@ -45,16 +59,8 @@ export function useDragDelayAction<T>(
         callback?.(event)
       }, delayMs)
     }),
-    onDragLeave: useEventCallback((event: DragEvent<T>) => {
-      if (
-        event.currentTarget instanceof HTMLElement &&
-        event.relatedTarget instanceof HTMLElement &&
-        event.currentTarget.contains(event.relatedTarget)
-      ) {
-        return
-      }
-      cancelPreviousCallback()
-    }),
+    onDragLeave,
+    onDrop: onDragLeave,
   } as const satisfies DOMAttributes<T>
 }
 
@@ -77,6 +83,8 @@ export function useAriaDragDelayAction(
     handle.current = null
   })
 
+  useUnmount(cancelPreviousCallback)
+
   return {
     onDropEnter: useEventCallback((event) => {
       cancelPreviousCallback()
@@ -84,6 +92,7 @@ export function useAriaDragDelayAction(
         callback?.(event)
       }, delayMs)
     }),
-    onDropExit: useEventCallback(cancelPreviousCallback),
+    onDropExit: cancelPreviousCallback,
+    onDrop: cancelPreviousCallback,
   } as const satisfies Omit<DropOptions, 'getDropOperationForPoint' | 'hasDropButton' | 'ref'>
 }

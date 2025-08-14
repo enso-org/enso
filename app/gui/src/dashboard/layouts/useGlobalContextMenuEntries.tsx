@@ -26,10 +26,6 @@ export interface GlobalContextMenuEntriesOptions {
 
 /** Context menu entries available everywhere in the directory. */
 export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOptions) {
-  // For some reason, applying the ReactCompiler for this component breaks the copy-paste functionality
-  // eslint-disable-next-line react-compiler/react-compiler
-  'use no memo'
-
   const { backend, category, directoryId = null, currentDirectoryId, doPaste } = options
 
   const isCloud = backend.type === BackendType.remote
@@ -48,15 +44,11 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
-  const newProject = useEventCallback(
-    async (templateId: string | null | undefined, templateName: string | null | undefined) => {
-      return await newProjectRaw({ templateName, templateId }, directoryId ?? currentDirectoryId)
-    },
-  )
+  const newProject = useEventCallback(() => newProjectRaw({}, directoryId ?? currentDirectoryId))
   const uploadFilesRaw = useUploadFiles(backend, category)
-  const uploadFiles = useEventCallback(async (files: readonly File[]) => {
-    await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
-  })
+  const uploadFiles = useEventCallback((files: readonly File[]) =>
+    uploadFilesRaw(files, directoryId ?? currentDirectoryId),
+  )
 
   return defineMenuEntries([
     {
@@ -68,7 +60,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     {
       action: 'newProject',
       doAction: () => {
-        void newProject(null, null)
+        void newProject()
       },
     },
     {

@@ -81,12 +81,12 @@ abstract class Argument {
     return false
   }
 
-  toWidgetInput(): WidgetInput {
+  toWidgetInput(callInfo: MethodCallInfo | undefined): WidgetInput {
     return {
       portId: this.portId,
       value: this.value,
       expectedType: this.argInfo?.reprType,
-      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId, callInfo },
       dynamicConfig: this.dynamicConfig,
     }
   }
@@ -569,6 +569,8 @@ declare module '@/providers/widgetRegistry' {
       appKind: ApplicationKind
       info: SuggestionEntryArgument | undefined
       argId: string | undefined
+      // Call info inherited from the parent function call.
+      callInfo: MethodCallInfo | undefined
     }
   }
 }

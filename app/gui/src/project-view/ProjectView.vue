@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Backend, { EnsoPath, ProjectId } from '#/services/Backend'
+import Backend, { ProjectId } from '#/services/Backend'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { injectOpenedProjects } from '$/providers/openedProjects'
 import GraphEditor from '@/components/GraphEditor.vue'
@@ -30,7 +30,7 @@ const props = defineProps<{
   readonly projectNamespace?: string
   readonly projectPath: string
   readonly engine: LsUrls
-  readonly renameProject: (newName: string) => void
+  readonly renameProject: (newName: string) => Promise<void>
   /** The current project's backend, which may be remote or local. */
   readonly projectBackend?: Opt<Backend>
   /**
@@ -82,7 +82,7 @@ onDeactivated(() => (visible.value = false))
       <!-- Key property is needed because of still many usages of deprecated useXStore 
        (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor
        will be no longer necessary -->
-      <GraphEditor v-if="projectId" :key="projectId" :tab="EnsoPath(projectPath)" />
+      <GraphEditor v-if="projectId" :key="projectId" />
     </WithCurrentProject>
   </div>
 </template>

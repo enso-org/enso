@@ -1689,25 +1689,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val responsesAfterEdit = context.receiveNIgnoreExpressionUpdates(2)
-      responsesAfterEdit should contain(
+      context.receiveNIgnoreExpressionUpdates(
+        1
+      ) should contain theSameElementsAs Seq(
         context.executionComplete(contextId)
       )
-      val Some(data2) = responsesAfterEdit.collectFirst {
-        case Api.Response(
-              None,
-              Api.VisualizationUpdate(
-                Api.VisualizationContext(
-                  `visualizationId`,
-                  `contextId`,
-                  `expectedExpressionId`
-                ),
-                data
-              )
-            ) =>
-          data
-      }
-      data2.sameElements("6".getBytes) shouldBe true
   }
 
   it should "not reorder visualization commands" in withContext() { context =>
@@ -1994,7 +1980,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(8)
+      val attachVisualizationResponses = context.receiveN(7)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
@@ -4248,7 +4234,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val afterIdMapUpdate = context.receiveN(3)
+      val afterIdMapUpdate = context.receiveNIgnorePendingExpressionUpdates(3)
 
       // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
       afterIdMapUpdate should contain allOf (

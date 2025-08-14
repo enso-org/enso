@@ -20,7 +20,6 @@ export function useLazyMemoHooks<T>(
     }
     // We assume that the callback should change only when the deps change.
     // Unavoidable, the dependency list is pased through transparently.
-    // eslint-disable-next-line react-compiler/react-compiler
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, dependencies)
 }

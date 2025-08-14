@@ -19,7 +19,7 @@ const props = defineProps<{
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
   extended: boolean
-  onUpdate: UpdateHandler
+  updateCallback: UpdateHandler
 }>()
 const emit = defineEmits<{
   currentEditChanged: [WidgetEditHandlerParent | undefined]
@@ -63,7 +63,7 @@ export const ICON_WIDTH = 16
 
 <template>
   <div class="WidgetTreeRoot widgetRounded" spellcheck="false" v-on="layoutTransitions.events">
-    <NodeWidget :input="input" :onUpdate="onUpdate" />
+    <NodeWidget :input="input" :updateCallback="updateCallback" />
   </div>
 </template>
 

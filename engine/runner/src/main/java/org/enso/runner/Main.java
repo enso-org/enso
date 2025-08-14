@@ -5,9 +5,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,12 +34,14 @@ import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
+import org.enso.common.PythonHomeFinder;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
 import org.enso.logger.Converter;
+import org.enso.logger.ObservedMessage;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -45,8 +49,7 @@ import org.enso.pkg.Template;
 import org.enso.polyglot.Module;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.debugger.DebuggerSessionManagerEndpoint;
-import org.enso.profiling.sampler.NoopSampler;
-import org.enso.profiling.sampler.OutputStreamSampler;
+import org.enso.profiling.sampler.MethodsSampler;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
@@ -63,7 +66,6 @@ import org.slf4j.event.Level;
 import scala.Option$;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
@@ -310,6 +312,22 @@ public class Main {
             .longOpt(LanguageServerApi.PROJECT_ID_OPTION)
             .desc("Project id.")
             .build();
+    var cloudProjectIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("id")
+            .longOpt(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)
+            .desc("Cloud project id (hybrid).")
+            .build();
+    var cloudProjectSessionIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("id")
+            .longOpt(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)
+            .desc("Cloud project session id (hybrid).")
+            .build();
     var pathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -526,6 +544,8 @@ public class Main {
         .addOption(secureDataPortOption)
         .addOption(uuidOption)
         .addOption(projectIdOption)
+        .addOption(cloudProjectIdOption)
+        .addOption(cloudProjectSessionIdOption)
         .addOption(pathOption)
         .addOption(inProjectOption)
         .addOption(version)
@@ -641,6 +661,7 @@ public class Main {
             nil(),
             "",
             Option$.MODULE$.empty(),
+            nil(),
             Option$.MODULE$.empty());
     throw exitSuccess();
   }
@@ -777,6 +798,11 @@ public class Main {
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
 
+    String pythonHome = null;
+    if (PythonHomeFinder.findPythonHome() instanceof Path p) {
+      pythonHome = p.toString();
+    }
+
     var factory =
         ContextFactory.create()
             .projectRoot(projectRoot)
@@ -784,6 +810,7 @@ public class Main {
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
+            .pythonHome(pythonHome)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
@@ -1288,30 +1315,41 @@ public class Main {
       java.util.concurrent.Callable<A> main)
       throws IOException {
     var path = profilingConfig.profilingPath();
-    var sampler =
-        path.isDefined() ? OutputStreamSampler.ofFile(path.get().toFile()) : new NoopSampler();
+    var events = profilingConfig.profilingEventsLogPath();
+    var pathOS = path.isEmpty() ? null : Files.newOutputStream(path.get());
+    var eventsOS = events.isEmpty() ? null : Files.newOutputStream(events.get());
+    var sampler = MethodsSampler.create(pathOS, eventsOS);
     sampler.start();
-    profilingConfig
-        .profilingTime()
-        .foreach(timeout -> sampler.scheduleStop(timeout.length(), timeout.unit(), executor));
+    profilingConfig.profilingTime().foreach(timeout -> sampler.scheduleStop(timeout));
     scala.sys.package$.MODULE$.addShutdownHook(
         () -> {
           try {
-            sampler.stop();
+            sampler.close();
           } catch (IOException ex) {
             LOGGER.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
 
-    try {
+    try (var _ =
+            ObservedMessage.observe(
+                LoggerFactory.getLogger("org.enso"),
+                (ev) -> {
+                  sampler.log(ev.getInstant(), ev.getFormattedMessage());
+                });
+        var _ =
+            ObservedMessage.observe(
+                LoggerFactory.getLogger("enso"),
+                (ev) -> {
+                  sampler.log(ev.getInstant(), ev.getFormattedMessage());
+                }); ) {
       return main.call();
     } catch (IOException | RuntimeException ex) {
       throw ex;
     } catch (Exception ex) {
       throw new IOException(ex);
     } finally {
-      sampler.stop();
+      sampler.close();
     }
   }
 
@@ -1351,11 +1389,11 @@ public class Main {
     } catch (InvalidPathException e) {
       throw new WrongOption("Profiling path is invalid");
     }
-    FiniteDuration profilingTime = null;
+    Duration profilingTime = null;
     try {
       var time = line.getOptionValue(PROFILING_TIME);
       if (time != null) {
-        profilingTime = FiniteDuration.apply(Integer.parseInt(time), TimeUnit.SECONDS);
+        profilingTime = Duration.of(Integer.parseInt(time), TimeUnit.SECONDS.toChronoUnit());
       }
     } catch (NumberFormatException e) {
       throw new WrongOption("Profiling time should be an integer");
@@ -1404,36 +1442,38 @@ public class Main {
    * Checks if JVM mode should be enabled in a project defined by arguments, based on a project's
    * config file, if any.
    *
+   * @param cwd current working directory or {@code null}
    * @param line parsed command line arguments
    * @return true, if project should be launched in JVM mode, false otherwise
    */
-  private boolean isJvmModeEnabled(CommandLine line) {
-    var target = line.getOptionValue(RUN_OPTION);
-    if (target == null) {
-      return false;
-    }
-
-    var f = new File(target);
-    // Guess project's root directory
-    File configFile = null;
-    while (configFile == null && f != null) {
-      var testFile = f.toPath().resolve(org.enso.pkg.Config.ensoPackageConfigName());
-      if (testFile.toFile().exists()) {
-        configFile = testFile.toFile();
-      } else {
-        f = f.getParentFile();
-      }
-    }
-    if (configFile == null) {
-      return false;
-    } else {
-      try (FileReader fileReader = new FileReader(configFile)) {
-        return org.enso.pkg.Config.fromYaml(fileReader)
-            .map(c -> c.jvm().getOrElse(() -> false))
-            .getOrElse(() -> false);
-      } catch (IOException e) {
+  private boolean isJvmModeEnabled(String cwd, CommandLine line) {
+    try {
+      var projectPath = line.getOptionValue(IN_PROJECT_OPTION);
+      var path = line.getOptionValue(RUN_OPTION);
+      if (path == null) {
         return false;
       }
+
+      var fileAndProject = Utils.findFileAndProject(cwd, path, projectPath);
+      if (fileAndProject._3() == null) {
+        return false;
+      } else {
+        var configFile =
+            new File(fileAndProject._3())
+                .toPath()
+                .resolve(org.enso.pkg.Config.ensoPackageConfigName());
+        if (!configFile.toFile().exists()) {
+          return false;
+        } else {
+          try (var fileReader = new FileReader(configFile.toFile())) {
+            return org.enso.pkg.Config.fromYaml(fileReader)
+                .map(c -> c.jvm().getOrElse(() -> false))
+                .getOrElse(() -> false);
+          }
+        }
+      }
+    } catch (IOException e) {
+      return false;
     }
   }
 
@@ -1548,7 +1588,7 @@ public class Main {
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     var hasJVMOption = line.hasOption(JVM_OPTION);
-    var jvmInProjectEnforced = isJvmModeEnabled(line);
+    var jvmInProjectEnforced = isJvmModeEnabled(originalCwdOrNull, line);
     if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
@@ -1556,35 +1596,29 @@ public class Main {
         jvm = current;
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
-      if (!shouldLaunchJvm) {
-        if (hasJVMOption) {
-          stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
-        }
-      } else {
-        if (jvm == null) {
-          var javaExe = JavaFinder.findJavaExecutable();
-          if (javaExe == null) {
-            // Try your best if `jvm` mode enabled in a project
-            if (!jvmInProjectEnforced) {
-              throw exitFail("Cannot find java executable");
-            }
-          } else {
-            launchJvm(originalCwdOrNull, line, props, component, javaExe);
-          }
-        } else {
-          var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
+      if (shouldLaunchJvm) {
+        var javaExecutable =
+            jvm != null
+                ? new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile()
+                : JavaFinder.findJavaExecutable();
+        if (javaExecutable != null) {
           launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
+          return;
         }
       }
     }
-
-    if (System.getProperty("java.home") == null) {
-      assert HostEnsoUtils.isAot() : "Otherwise java.home would be defined";
-      var exe = JavaFinder.findJavaExecutable();
-      if (exe != null) {
-        var path = exe.getParentFile().getParentFile().getAbsolutePath();
-        System.setProperty("java.home", path);
-        LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+    if (HostEnsoUtils.isAot()) {
+      if (jvmInProjectEnforced) {
+        throw exitFail("Cannot find java executable to run in JVM mode");
+      } else {
+        if (System.getProperty("java.home") == null) {
+          var exe = JavaFinder.findJavaExecutable();
+          if (exe != null) {
+            var path = exe.getParentFile().getParentFile().getAbsolutePath();
+            System.setProperty("java.home", path);
+            LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+          }
+        }
       }
     }
     handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
@@ -1628,8 +1662,15 @@ public class Main {
     } catch (IllegalArgumentException e) {
       projectId = "00000000-0000-0000-0000-000000000000";
     }
-
-    MDC.put("project.id", projectId);
+    if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
+      MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
+    }
+    if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
+      MDC.put(
+          "projectSessionId",
+          line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION));
+    }
+    MDC.put("projectLocalId", projectId);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
   }

@@ -161,6 +161,7 @@ public class PersistableProcessor extends AbstractProcessor {
       return true;
     }
     var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
+    var shallInline = "true".equals(readAnnoValue(anno, "allowInlining"));
     var richerConstructor =
         new Comparator<Object>() {
           @Override
@@ -259,7 +260,7 @@ public class PersistableProcessor extends AbstractProcessor {
               continue;
             }
             var name = findFqn(elem);
-            if (canInline && shouldInline(elem)) {
+            if (canInline && shouldInline(elem, shallInline)) {
               w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readInline(")
@@ -277,6 +278,9 @@ public class PersistableProcessor extends AbstractProcessor {
               case BOOLEAN -> w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readBoolean();\n");
+              case BYTE -> w.append("    var ")
+                  .append(v.getSimpleName())
+                  .append(" = in.readByte();\n");
               case INT -> w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readInt();\n");
@@ -342,7 +346,7 @@ public class PersistableProcessor extends AbstractProcessor {
               continue;
             }
             var name = findFqn(elem);
-            if (canInline && shouldInline(elem)) {
+            if (canInline && shouldInline(elem, shallInline)) {
               w.append("    out.writeInline(")
                   .append(name)
                   .append(".class, obj.")
@@ -354,6 +358,9 @@ public class PersistableProcessor extends AbstractProcessor {
           } else
             switch (v.asType().getKind()) {
               case BOOLEAN -> w.append("    out.writeBoolean(obj.")
+                  .append(v.getSimpleName())
+                  .append("());\n");
+              case BYTE -> w.append("    out.writeByte(obj.")
                   .append(v.getSimpleName())
                   .append("());\n");
               case INT -> w.append("    out.writeInt(obj.")
@@ -462,11 +469,11 @@ public class PersistableProcessor extends AbstractProcessor {
     return cnt;
   }
 
-  private boolean shouldInline(TypeElement elem) {
+  private boolean shouldInline(TypeElement elem, boolean shallInline) {
     var inline =
         switch (findFqn(elem)) {
               case "scala.collection.immutable.Seq" -> true;
-              default -> false;
+              default -> shallInline;
             }
             || !elem.getKind().isInterface();
     return inline;

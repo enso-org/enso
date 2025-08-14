@@ -62,7 +62,7 @@ const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
   usage: Usage
-  graphEditorRoot: HTMLElement | undefined
+  graphEditorRoot: Opt<HTMLElement>
 }>()
 
 const emit = defineEmits<{
@@ -394,7 +394,7 @@ const listsHandler = listBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      v-if="input.mode.mode === 'codeEditing' && isVisualizationVisible"
+      :show="input.mode.mode === 'codeEditing' && isVisualizationVisible"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"

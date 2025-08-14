@@ -16,7 +16,7 @@ import { newArgumentDefinition } from 'ydoc-shared/ast'
 import { assertUnreachable } from 'ydoc-shared/util/assert'
 import { renameArgumentInDefaultValue } from './WidgetFunctionDef/argumentAst'
 
-const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
+const { input, updateCallback } = defineProps(widgetProps(widgetDefinition))
 const openedProject = useCurrentProject().ref
 const tree = injectWidgetTree()
 
@@ -28,7 +28,7 @@ function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) =
   const edit = openedProject.value?.graph.startEdit()
   if (!edit) return
   editFn(edit.getVersion(input.value), edit)
-  onUpdate({ edit, directInteraction: true })
+  updateCallback({ edit, directInteraction: true })
 }
 
 function handleAddItem() {
@@ -129,7 +129,7 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
           :root="tree.rootElement"
           :portIdBase="syntheticPortId(input.portId, `argRow:${index}`)"
           :definition="item"
-          :onUpdate="onUpdate"
+          :updateCallback="updateCallback"
           @rename="handleRename(index, $event)"
           @updateType="handleUpdateType(index, $event)"
           @updateDefault="handleUpdateDefault(index, $event)"

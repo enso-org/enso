@@ -315,7 +315,7 @@ final class SuggestionBuilder[A: IndexedSource](
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      selfType      = methodArgs.head.reprType,
+      selfType      = selfType.fold(Any)(_.toString),
       returnType    = selfType.fold(Any)(_.toString),
       documentation = doc
     )

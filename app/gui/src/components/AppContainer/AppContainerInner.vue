@@ -2,18 +2,27 @@
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
-import { useContainerData, type LaunchedProject, type TabId } from '$/providers/container'
+import {
+  OpenedProject,
+  useContainerData,
+  type LaunchedProject,
+  type TabId,
+} from '$/providers/container'
 import { RightPanelDataProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
+import { appContainerBindings } from '@/bindings'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
+import { useEvent } from '@/composables/events'
+import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
-import { applyPureReactInVue } from 'veaury'
-import { reactive, shallowRef, toRefs, watch } from 'vue'
+import { reactComponent } from '@/util/react'
+import * as objects from 'enso-common/src/utilities/data/object'
+import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
 import { Drive, Editor, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
-const UserBar = applyPureReactInVue(UserBarReact)
+const UserBar = reactComponent(UserBarReact)
 
 /**
  * A part of `AppContainer` which needs some hooks passed from react by `Dashboard.tsx`.
@@ -37,7 +46,7 @@ const emit = defineEmits<{
 // with veaury's ref assignment implementation that runs during parent React component lifecycle.
 const fullscreenRoot = shallowRef<HTMLElement>()
 
-const { tab, openedProjects } = toRefs(useContainerData())
+const { tab, openingProjects, openedProjects } = toRefs(useContainerData())
 provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
@@ -53,10 +62,20 @@ function setProjectReady(project: ProjectId, projectTab: TabId, ready: boolean) 
   }
 }
 
-function loadingProjectSpinnerPhase(project: LaunchedProject) {
-  return project.hybrid != null || project.type === BackendType.local ?
+function loadingProjectSpinnerPhase(project: OpenedProject) {
+  return (
+      project.state === 'launched' && (project.hybrid != null || project.type === BackendType.local)
+    ) ?
       'loading-fast'
     : 'loading-slow'
+}
+
+function closeOpenedProject(project: OpenedProject) {
+  if (project.state === 'launched') {
+    emit('closeProject', project)
+  } else {
+    openingProjects.value.delete(project.id)
+  }
 }
 
 watch(openedProjects, (openedProjectsList) => {
@@ -73,6 +92,48 @@ watch(openedProjects, (openedProjectsList) => {
   }
 })
 
+function closeSettingsTab() {
+  // The settings tab autohide when not selected.
+  tab.value = 'drive'
+}
+
+function closeTab() {
+  switch (tab.value) {
+    case 'settings':
+      closeSettingsTab()
+      break
+    case 'drive':
+      break
+    default: {
+      // project id
+      const project = openedProjects.value.find((proj) => proj.ensoPath === tab.value)
+      if (project) closeOpenedProject(project)
+      break
+    }
+  }
+}
+
+onMounted(() => {
+  window.menuApi?.setMenuItemHandler('closeTab', closeTab)
+})
+
+const actionHandlers = registerHandlers({
+  'app.closeTab': {
+    action: closeTab,
+  },
+})
+
+useEvent(
+  window,
+  'keydown',
+  appContainerBindings.handler(
+    objects.mapEntries(
+      appContainerBindings.bindings,
+      (actionName) => actionHandlers[actionName].action,
+    ),
+  ),
+)
+
 const onSignOut = () => {
   emit('closeAllProjects')
 }
@@ -83,7 +144,6 @@ const onSignOut = () => {
     <div class="bar">
       <div role="tablist" class="tablist">
         <SelectableTab
-          selectionLayoutId="tab-highlight"
           :selected="tab === 'drive'"
           icon="drive"
           label="Data Catalog"
@@ -93,12 +153,11 @@ const onSignOut = () => {
           v-for="project in openedProjects"
           :key="project.id"
           data-testid="editor-tab-button"
-          selectionLayoutId="tab-highlight"
           :selected="project.shown.value"
           :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
           :label="projectNames.get(project.id)"
           @update:selected="$event && (tab = EnsoPath(project.ensoPath))"
-          @close="emit('closeProject', project)"
+          @close="closeOpenedProject(project)"
         >
           <GrowingSpinner
             v-if="!readyProjects.has(project.id)"
@@ -108,11 +167,10 @@ const onSignOut = () => {
         </SelectableTab>
         <SelectableTab
           v-if="tab === 'settings'"
-          selectionLayoutId="tab-highlight"
           :selected="true"
           icon="settings"
           label="Settings"
-          @close="tab = 'drive'"
+          @close="closeSettingsTab"
         />
       </div>
       <div class="filler" />
@@ -123,19 +181,21 @@ const onSignOut = () => {
         <KeepAlive>
           <Drive v-if="tab === 'drive'" />
         </KeepAlive>
-        <div
-          v-for="project in openedProjects"
-          :key="project.id"
-          class="editor"
-          :class="{ hidden: !project.shown.value }"
-        >
-          <Editor
-            :hidden="!project.shown.value"
-            :project="project"
-            @readyUpdate="setProjectReady(project.id, EnsoPath(project.ensoPath), $event)"
-            @nameUpdate="projectNames.set(project.id, $event)"
-          />
-        </div>
+        <template v-for="project in openedProjects">
+          <div
+            v-if="project.state === 'launched'"
+            :key="project.id"
+            class="editor"
+            :class="{ hidden: !project.shown.value }"
+          >
+            <Editor
+              :hidden="!project.shown.value"
+              :project="project"
+              @readyUpdate="setProjectReady(project.id, EnsoPath(project.ensoPath), $event)"
+              @nameUpdate="projectNames.set(project.id, $event)"
+            />
+          </div>
+        </template>
 
         <KeepAlive>
           <Settings v-if="tab === 'settings'" />

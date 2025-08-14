@@ -27,7 +27,7 @@ export interface ProjectProps {
   projectNamespace: string | undefined
   projectInitialName: string
   projectDisplayedName: string
-  renameProject: (newName: string) => void
+  renameProject: (newName: string) => Promise<void>
   engine: LsUrls
 }
 

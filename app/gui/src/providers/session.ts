@@ -1,7 +1,6 @@
 import { unsetModal } from '#/providers/ModalProvider'
 import { NotAuthorizedError } from '#/services/Backend'
 import { unreachable } from '#/utilities/error'
-import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
@@ -11,10 +10,12 @@ import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
 import { Err } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
+import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
+import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { computed, onScopeDispose, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
@@ -182,6 +183,7 @@ export function createSessionStore(
   const signInWithApple = useSignIn(() => authService.signInWithApple(), 'Apple')
   const signInWithGoogle = useSignIn(() => authService.signInWithGoogle(), 'Google')
   const signInWithGitHub = useSignIn(() => authService.signInWithGitHub(), 'GitHub')
+  const signInWithMicrosoft = useSignIn(() => authService.signInWithMicrosoft(), 'Microsoft')
 
   const confirmSignIn = async (
     user: cognito.CognitoUser,
@@ -324,12 +326,13 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    waitForSession: session.suspense,
+    waitForSession: () => waitForData(session),
     isLoggingOut,
     confirmSignUp,
     signInWithPassword,
     signInWithGitHub,
     signInWithGoogle,
+    signInWithMicrosoft,
     signInWithApple,
     confirmSignIn,
     forgotPassword,

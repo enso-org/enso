@@ -13,7 +13,6 @@ import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useAutoBlur } from '@/util/autoBlur'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
-import { useCompartment } from '@/util/codemirror/reactivity'
 import { testSupport } from '@/util/codemirror/testSupport'
 import { indentWithTab, insertNewlineKeepIndent } from '@codemirror/commands'
 import {
@@ -50,6 +49,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     highlightSelectionMatches(),
     ensoSyntax(toRef(graphStore, 'moduleRoot')),
     ensoHoverTooltip(graphStore, suggestionDbStore, vueHost),
+    () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
   ],
   vueHost: () => vueHost,
   lineMode: 'multi',
@@ -62,13 +62,7 @@ const { updateListener, connectModuleListener } = useEnsoSourceSync(
   editorView,
 )
 const ensoDiagnostics = useEnsoDiagnostics(projectStore, graphStore, editorView)
-setExtraExtensions([
-  updateListener,
-  ensoDiagnostics,
-  useCompartment(editorView, () =>
-    editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : [],
-  ),
-])
+setExtraExtensions([updateListener, ensoDiagnostics])
 connectModuleListener()
 
 onMounted(() => {

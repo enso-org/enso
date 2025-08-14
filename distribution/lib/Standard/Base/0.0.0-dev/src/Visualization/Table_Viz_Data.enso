@@ -1,12 +1,14 @@
 from project.Data.Json import JS_Object
 
 ## Type for generating the visualisation data for the "Table" visualisation
+   IMPORTANT - The types here must be kept in sync with those in
+   TableVisualisationTypes.ts if you want your type to support this visualisation
+   type you should provide a conversion to this type e.g.
 
-   IMPORTANT - The types here must be kept in sync with those in TableVisualisationTypes.ts
-
-   if you want your type to support this visualisation type you should provide a conversion to this type
-   e.g. ## PRIVATE
-              Table_Viz_Data.from (that:MyType) =
+   ```
+       ## PRIVATE
+       Table_Viz_Data.from (that:MyType) =
+   ```
 type Table_Viz_Data
     ## Temporary constructor for viz types that have not yet moved to this model
     Value js_object:JS_Object

@@ -13,7 +13,6 @@ members = [
     "lib/rust/launcher-shims",
     "lib/rust/macro-utils",
     "lib/rust/metamodel",
-    "lib/rust/parser/doc-parser",
     "lib/rust/parser/src/syntax/tree/visitor",
     "lib/rust/parser/jni",
     "lib/rust/parser/generate-java",

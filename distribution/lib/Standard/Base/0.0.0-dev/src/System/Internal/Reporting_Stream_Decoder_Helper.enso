@@ -16,7 +16,9 @@ from project.Data.Boolean import Boolean, False, True
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 polyglot java import org.enso.base.encoding.SimpleDecodingProblemAggregator
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Builds the `ReportingStreamDecoder`, consuming the `Input_Stream`.
    It will do any necessary encoding detection, as determined by the `Encoding`
 run (input_stream : Input_Stream) (encoding : Encoding) (on_problems : Problem_Behavior) (allow_usage_in_background_threads : Boolean) (continuation : ReportingStreamDecoder -> Any) =
@@ -33,7 +35,9 @@ run (input_stream : Input_Stream) (encoding : Encoding) (on_problems : Problem_B
         Encoding_Error.Error decoding_problem.message
     on_problems.attach_problems_after result problems
 
-## PRIVATE
+## ---
+   private: true
+   ---
 decode_bytes_to_text bytes (encoding : Encoding) (on_problems : Problem_Behavior) -> Text =
     Managed_Resource.bracket (Input_Stream.from_bytes bytes) (.close) input_stream->
         run input_stream encoding on_problems allow_usage_in_background_threads=False decoder->

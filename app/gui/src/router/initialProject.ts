@@ -5,11 +5,12 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { injectGuiConfig } from '@/providers/guiConfig'
+import { onlineManager } from '@tanstack/vue-query'
 import { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
-export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started_Reading`
-export const CLOUD_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Colorado COVID.project`
+export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started`
+export const CLOUD_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting Started with Enso Analytics.project`
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
@@ -32,7 +33,9 @@ export async function initialProjectPath(
   if (cliStartupProject) {
     path = `${localBackend?.rootPath()}/${cliStartupProject}`
   } else {
-    if (await shouldOpenInitialProject(localBackend, remoteBackend)) {
+    if (
+      await shouldOpenInitialProject(localBackend, user.plan === Plan.free ? null : remoteBackend)
+    ) {
       if (user.plan === Plan.free) {
         path = `${localBackend?.rootPath()}/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
       } else {
@@ -68,7 +71,7 @@ export async function maybeRedirectToInitialProject(
 
 async function shouldOpenInitialProject(
   localBackend: Pick<LocalBackend, 'listDirectory'> | null,
-  remoteBackend: Pick<RemoteBackend, 'listDirectory'>,
+  remoteBackend: Pick<RemoteBackend, 'listDirectory'> | null,
 ) {
   const navigatedInDrive =
     window.localStorage.getItem('enso-category-id') ||
@@ -81,10 +84,11 @@ async function shouldOpenInitialProject(
     console.error('Cannot read user home directory; will skip launching Welcome Project', err)
     return null
   }
-
   const homeContent = await Promise.all([
     localBackend?.listDirectory(homeDirQuery) ?? [],
-    remoteBackend.listDirectory(homeDirQuery, 'User Home'),
+    onlineManager.isOnline() && remoteBackend != null ?
+      remoteBackend.listDirectory(homeDirQuery, 'User Home')
+    : [],
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
