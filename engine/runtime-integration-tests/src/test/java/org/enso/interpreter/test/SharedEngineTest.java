@@ -24,6 +24,7 @@ public class SharedEngineTest {
         Engine.newBuilder()
             .allowExperimentalOptions(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(System.err)
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(

@@ -122,6 +122,7 @@ public class SerdeCompilerTest {
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(mockHandler)
             .option("log.enso.org.enso.compiler.Compiler.level", "FINE")
             .allowAllAccess(true)

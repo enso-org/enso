@@ -42,6 +42,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+      .option(RuntimeOptions.CHECK_CWD, "false")
       .option("engine.WarnInterpreterOnly", "false")
       .out(output)
       .in(System.in)
