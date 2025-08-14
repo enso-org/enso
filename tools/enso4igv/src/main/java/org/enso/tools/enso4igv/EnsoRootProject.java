@@ -84,16 +84,17 @@ final class EnsoRootProject implements Project {
     @Override
     public Set<? extends Project> getSubprojects() {
       var found = new TreeSet<Project>(this);
-      searchForProjects(getProjectDirectory(), found, 4);
+      searchForProjects(getProjectDirectory(), found, 6);
       return found;
     }
 
     private static void searchForProjects(FileObject fo, Collection<Project> found, int depth) {
-      if (fo.getName().startsWith("bazel")) {
+      if (fo.getName().contains("bazel")) {
           return;
       }
       if (fo.isFolder() && depth > 0) {
-        if (EnsoProjectFactory.isProjectCheck(fo) == 1) {
+        var type = EnsoProjectFactory.isProjectCheck(fo);
+        if (type == 1 || type == 3) {
           try {
             var p = ProjectManager.getDefault().findProject(fo);
             if (p != null) {
@@ -128,7 +129,6 @@ final class EnsoRootProject implements Project {
     @Override
     public Result getContainedProjects() {
       var result = new Result(getSubprojects(), false);
-      System.err.println("get contained fop: " + result.getProjects());
       return result;
     }
     
@@ -196,7 +196,7 @@ final class EnsoRootProject implements Project {
   private static class ContainerNode extends AbstractNode {
     ContainerNode(Children ch, Lookup l) {
       super(ch, l);
-      setIconBaseWithExtension("org/enso/tools/enso4igv/enso.svg");
+      setIconBaseWithExtension("org/enso/tools/enso4igv/enso-duke.svg");
     }
       
     @Override

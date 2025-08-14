@@ -65,7 +65,7 @@ final class EnsoLogicalView implements LogicalViewProvider  {
             super(Children.create(new EnsoRoots(p), true), Lookups.fixed(p));
             this.project = p;
             setDisplayName();
-            setIconBaseWithExtension("org/enso/tools/enso4igv/enso.svg");
+            setIconBaseWithExtension("org/enso/tools/enso4igv/enso-duke.svg");
         }
 
         private void setDisplayName() {
