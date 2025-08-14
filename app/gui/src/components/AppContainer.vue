@@ -20,7 +20,6 @@ import {
   ProjectId,
 } from 'enso-common/src/services/Backend'
 import { ref } from 'vue'
-import { onBeforeRouteUpdate } from 'vue-router'
 
 const Dashboard = reactComponent(DashboardReact)
 
@@ -29,7 +28,6 @@ async function getPropsFromPath(pathParam: string | readonly string[] | undefine
   const { localBackend, remoteBackend } = useBackends()
   const queryClient = useQueryClient()
 
-  console.log('!', pathParam)
   const path = EnsoPath(pathParam instanceof Array ? pathParam.join('/') : pathParam)
 
   if (!path) return {}
@@ -57,17 +55,11 @@ const props = defineProps<DashboardProps>()
 
 const dashboardProps = ref(props)
 
-onBeforeRouteUpdate(async (to) => {
-  console.log('HELLO???')
-  const { projectToOpen } = await getPropsFromPath(to.params.path)
-  console.log(':U hello?', projectToOpen)
-  dashboardProps.value = { projectToOpen }
-})
-
 const openedProjectsStore = provideOpenedProjects()
 provideAsyncResources(openedProjectsStore)
 provideContainerData()
 </script>
+
 <template>
   <div class="TabView">
     <ContainerDataProviderForReact>

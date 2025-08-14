@@ -41,6 +41,7 @@ import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
 import { useBackends, useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { toValue, type MaybeRef } from 'vue'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -83,6 +84,94 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
       let result = await (backend?.[method] as any)?.(...args)
+      // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+      switch (method) {
+        case 'listUsers': {
+          const { multiplyUserList } = flagsStore.getState().featureFlags
+          if (multiplyUserList) {
+            // eslint-disable-next-line no-restricted-syntax
+            const typedResult = result as readonly Omit<User, 'groups'>[]
+            const user = typedResult[0]
+            result = [
+              ...(user != null ?
+                [
+                  {
+                    email: backendModule.EmailAddress('test@example.com'),
+                    isEnabled: true,
+                    isEnsoTeamMember: false,
+                    isOrganizationAdmin: false,
+                    name: 'Test User',
+                    organizationId: user.organizationId,
+                    plan: backendModule.Plan.free,
+                    rootDirectoryId: user.rootDirectoryId,
+                    userId: user.userId,
+                    userGroups: [
+                      ...new Set(typedResult.flatMap((otherUser) => otherUser.userGroups ?? [])),
+                    ],
+                  } satisfies Omit<User, 'groups'>,
+                ]
+              : []),
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment
+              ...Array.from({ length: 10 }).flatMap(() => result),
+            ]
+          }
+          break
+        }
+        default: {
+          // No action needed.
+          break
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return result
+    },
+  })
+}
+
+/** Return a type with all of its values replaced by `MaybeRef`s. */
+type MaybeRefs<T> = { [K in keyof T]: MaybeRef<T[K]> }
+
+export function vueBackendQueryOptions<Method extends BackendQueryMethod>(
+  backend: Backend,
+  method: Method,
+  args: Readonly<MaybeRefs<Parameters<Backend[Method]>>>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UnusedSkipTokenOptions<
+  Awaited<ReturnType<Backend[Method]>>,
+  Error,
+  Awaited<ReturnType<Backend[Method]>>,
+  QueryKey
+>
+export function vueBackendQueryOptions<Method extends BackendQueryMethod>(
+  backend: Backend | null,
+  method: Method,
+  args: Readonly<MaybeRefs<Parameters<Backend[Method]>>>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UnusedSkipTokenOptions<
+  Awaited<ReturnType<Backend[Method]> | undefined>,
+  Error,
+  Awaited<ReturnType<Backend[Method]> | undefined>,
+  QueryKey
+>
+/** Wrap a backend method call in a React Query. */
+export function vueBackendQueryOptions<Method extends BackendQueryMethod>(
+  backend: Backend | null,
+  method: Method,
+  args: Readonly<MaybeRefs<Parameters<Backend[Method]>>>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+) {
+  return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
+    ...options,
+    queryKey: [backend, method, args, ...(options?.queryKey ?? [])],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+      let result = await (backend?.[method] as any)?.(
+        // eslint-disable-next-line no-restricted-syntax
+        ...args.map((maybeRef) => toValue(maybeRef as never)),
+      )
       // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
       switch (method) {
         case 'listUsers': {

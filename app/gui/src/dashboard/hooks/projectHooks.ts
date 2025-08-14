@@ -679,7 +679,7 @@ export function useCloseAllProjects() {
           project.type === backendModule.BackendType.remote || project.hybrid != null ?
             remoteBackend
           : localBackend
-        invariant(backend != null, 'Backend must not be async null')
+        invariant(backend != null, 'Backend must not be null')
         const projectDetails = await ensureQueryData(
           createGetProjectDetailsQuery({
             assetId: project.hybrid != null ? project.hybrid.cloudProjectId : project.id,

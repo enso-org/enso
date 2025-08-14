@@ -1,15 +1,34 @@
 <script setup lang="ts">
+import { vueBackendQueryOptions } from '#/hooks/backendHooks'
 import { unsetModal } from '#/providers/ModalProvider'
+import { AssetType, BackendType, EnsoPath, ProjectId } from '#/services/Backend'
+import { useBackends } from '$/providers/backends'
+import { useRightPanelData } from '$/providers/rightPanel'
 import StandaloneButton from '@/components/StandaloneButton.vue'
+import { useOpenProjectLocally } from '@/composables/project'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { useQuery } from '@tanstack/vue-query'
 import { AnimatePresence, motion } from 'motion-v'
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
 
 const props = defineProps<{ href: string }>()
 
-const router = useRouter()
+const path = computed(() => EnsoPath(props.href))
+
 const interaction = injectInteractionHandler()
+const openProjectLocally = useOpenProjectLocally()
+const rightPanelData = useRightPanelData()
+const { backendForType } = useBackends()
+const backendType = computed(() => rightPanelData.context?.category?.backend ?? BackendType.remote)
+const resolveEnsoPathQuery = useQuery(
+  vueBackendQueryOptions(backendForType(backendType.value), 'resolveEnsoPath', [path]),
+)
+const assetQuery = useQuery(
+  vueBackendQueryOptions(backendForType(backendType.value), 'getAssetDetails', [
+    computed(() => resolveEnsoPathQuery.data.value?.id as ProjectId),
+    undefined,
+  ]),
+)
 
 const modalInteraction: Interaction = {
   cancel() {
@@ -30,9 +49,11 @@ onMounted(() => {
   interaction.setCurrent(modalInteraction)
 })
 
-function openProjectInNewTab() {
+async function openProjectInNewTab() {
   closeModal()
-  router.push(`/${props.href}`)
+  const maybeProject = await assetQuery.promise.value
+  if (maybeProject?.type !== AssetType.project) return
+  openProjectLocally({ ...maybeProject, ensoPath: path.value }, backendType.value)
 }
 </script>
 

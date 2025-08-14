@@ -197,10 +197,10 @@ export default class RemoteBackend extends Backend {
     params: backend.UploadPictureRequestParams,
     file: Blob,
   ): Promise<backend.User> {
-    const paramsString = new URLSearchParams({
+    const paramsString = new URLSearchParams(
       // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
-    }).toString()
+      params.fileName != null ? { file_name: params.fileName } : {},
+    ).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.User>(path, file)
     if (!response.ok) {
@@ -268,10 +268,10 @@ export default class RemoteBackend extends Backend {
     params: backend.UploadPictureRequestParams,
     file: Blob,
   ): Promise<backend.OrganizationInfo> {
-    const paramsString = new URLSearchParams({
+    const paramsString = new URLSearchParams(
       // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
-    }).toString()
+      params.fileName != null ? { file_name: params.fileName } : {},
+    ).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.OrganizationInfo>(path, file)
     if (!response.ok) {
@@ -770,9 +770,9 @@ export default class RemoteBackend extends Backend {
     params: backend.GetProjectSessionLogsRequestParams,
     title: string,
   ): Promise<backend.ProjectSessionLogs> {
-    const queryParams = new URLSearchParams({
-      ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
-    })
+    const queryParams = new URLSearchParams(
+      params.scrollId != null ? { scrollId: params.scrollId } : {},
+    )
     const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
     const response = await this.get<backend.ProjectSessionLogs>(path, queryParams)
     if (!response.ok) {
@@ -1225,10 +1225,7 @@ export default class RemoteBackend extends Backend {
       {
         message,
         projectId,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          ...(metadata ?? {}),
-        },
+        metadata: { timestamp: new Date().toISOString(), ...metadata },
       },
       {
         keepalive: true,

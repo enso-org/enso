@@ -1,14 +1,18 @@
 <script setup lang="ts">
+import { vueBackendQueryOptions } from '#/hooks/backendHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { AssetType, IS_OPENING_OR_OPENED } from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
+import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { textEditorsBindings } from '@/bindings'
 import OpenProjectModal from '@/components/OpenProjectModal.vue'
+import { useOpenProjectLocally } from '@/composables/project'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
-import * as React from 'react'
+import { useQuery } from '@tanstack/vue-query'
+import { BackendType, EnsoPath, RealAssetId } from 'enso-common/src/services/Backend'
+import { createElement } from 'react'
 import { computed, toRef, useTemplateRef } from 'vue'
-import { useRouter } from 'vue-router'
 
 const props = defineProps<{
   referenceElement: HTMLElement
@@ -16,8 +20,21 @@ const props = defineProps<{
   popOut: boolean
 }>()
 
-const router = useRouter()
+const path = computed(() => EnsoPath(props.href))
+
 const rightPanelData = useRightPanelData()
+const openProjectLocally = useOpenProjectLocally()
+const { backendForType } = useBackends()
+const backendType = computed(() => rightPanelData.context?.category?.backend ?? BackendType.remote)
+const resolveEnsoPathQuery = useQuery(
+  vueBackendQueryOptions(backendForType(backendType.value), 'resolveEnsoPath', [path]),
+)
+const assetQuery = useQuery(
+  vueBackendQueryOptions(backendForType(backendType.value), 'getAssetDetails', [
+    computed(() => resolveEnsoPathQuery.data.value?.id as RealAssetId),
+    undefined,
+  ]),
+)
 
 const isProject = computed(() => rightPanelData.focusedAsset?.type === AssetType.project)
 
@@ -33,12 +50,13 @@ const OpenProjectModalReact = vueComponent(OpenProjectModal).default
 const floatingElement = useTemplateRef<HTMLElement>('floating')
 
 function openProjectModal() {
-  setModal(React.createElement(OpenProjectModalReact, { href: props.href }))
+  setModal(createElement(OpenProjectModalReact, { href: props.href }))
 }
 
-function openProjectInNewTab() {
-  console.log('WHAT', { name: 'dashboard', params: { path: props.href } })
-  router.push({ name: 'dashboard', params: { path: props.href } })
+async function openProjectInNewTab() {
+  const maybeProject = await assetQuery.promise.value
+  if (maybeProject?.type !== AssetType.project) return
+  openProjectLocally({ ...maybeProject, ensoPath: path.value }, backendType.value)
 }
 
 const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatingElement, {

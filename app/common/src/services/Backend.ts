@@ -631,11 +631,16 @@ export interface CreateCustomerPortalSessionResponse {
 /** Response from the "path/resolve" endpoint. */
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
+/** Whether a type is `any`. */
+type IsAny<T> = 0 extends 1 & T ? true : false
+
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
-  AnyAsset<RealAssetTypeId<Id>>,
-  'ensoPath'
-> | null
+export type AssetDetailsResponse<Id extends RealAssetId> =
+  // `T extends T` where `T` is a type parameter is a trick to distribute union values,
+  // evaluating the conditional type for each member of the union type,
+  // and then resolving to a union of the results of this operation.
+  IsAny<Id> extends true ? AssetDetailsResponse<RealAssetId>
+  : (Id extends Id ? Omit<AnyAsset<RealAssetTypeId<Id>>, 'ensoPath'> : never) | null
 
 /** Whether the user is on a plan associated with an organization. */
 export function isUserOnPlanWithOrganization(user: User) {
