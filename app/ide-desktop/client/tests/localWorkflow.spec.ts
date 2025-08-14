@@ -18,6 +18,59 @@ async function writeToFocusedComponentBrowser(page: Page, content: string): Prom
   await input.fill(content)
 }
 
+test('Project Duplicate', async ({ page, app, projectsDir }) => {
+  await loginAsTestUser(page)
+  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'New Project', exact: true }).click()
+  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+
+  await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
+  await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
+
+  // Returning back to the data catalog 
+  await expect(page.getByRole('tab', { name: 'Data Catalog' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Data Catalog' }).click();
+
+  // Try to duplicate the new project
+  await page.getByTestId('drive-view').getByText('New Project 1').click({ button: 'right' });
+  await expect(page.getByRole('button', { name: 'Duplicate' })).toBeVisible()
+  await page.getByRole('button', { name: 'Duplicate'}).click();
+
+  // Checking if the duplication was successful
+  expect(page.getByText('New Project 1 (copy)')).toBeVisible()
+})
+
+// A test created to see, if duplicating projects in Cloud dashboar works!
+
+// test('Cloud Project Duplicate', async ({ page, app, projectsDir }) => {
+//   await loginAsTestUser(page)
+
+//   // Switching to a private cloud folder
+//   await expect(page.getByRole('button', { name: 'Cloud', exact: true })).toBeVisible()
+//   await page.getByRole('button', { name: 'Cloud', exact: true }).click()
+
+
+//   // Creating a new project
+//   await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
+//   await page.getByRole('button', { name: 'New Project', exact: true }).click()
+//   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+
+//   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
+//   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
+
+//   // Returning back to the data catalog 
+//   await expect(page.getByRole('tab', { name: 'Data Catalog' })).toBeVisible()
+//   await page.getByRole('tab', { name: 'Data Catalog' }).click();
+
+//   // Try to duplicate the new project
+//   await page.getByTestId('drive-view').getByText('New Project 1').click({ button: 'right' });
+//   await expect(page.getByRole('button', { name: 'Duplicate' })).toBeVisible()
+//   await page.getByRole('button', { name: 'Duplicate'}).click();
+
+//   // Checking if the duplication was successful
+//   expect(page.getByText('New Project 1 (copy)')).toBeVisible()
+// })
+
 test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
