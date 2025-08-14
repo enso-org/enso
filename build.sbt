@@ -4676,6 +4676,9 @@ lazy val `library-manager` = project
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value
     ),
+    Test / internalModuleDependencies := Seq(
+      (`logging-service-logback` / Compile / exportedModule).value,
+    ),
     commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
