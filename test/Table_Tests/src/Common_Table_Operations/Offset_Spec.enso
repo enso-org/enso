@@ -4,7 +4,7 @@ from Standard.Table import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Dialects.Feature.Feature
-from Standard.Base.Errors.Common import Missing_Argument, Floating_Point_Equality
+from Standard.Base.Errors.Common import Floating_Point_Equality
 from Standard.Table.Errors import Missing_Input_Columns
 
 from project.Common_Table_Operations.Util import run_default_backend
