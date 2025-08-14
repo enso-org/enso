@@ -516,7 +516,8 @@ lazy val componentModulesPaths =
     (`scala-libs-wrapper` / Compile / exportedModuleBin).value,
     (`fansi-wrapper` / Compile / exportedModuleBin).value,
     (`edition-updater` / Compile / exportedModuleBin).value,
-    (`profiling-utils` / Compile / exportedModuleBin).value
+    (`profiling-utils` / Compile / exportedModuleBin).value,
+    (`process-utils` / Compile / exportedModuleBin).value
   )
   ourMods ++ thirdPartyModFiles
 }
@@ -3672,6 +3673,7 @@ lazy val `engine-runner` = project
       (`engine-runner-common` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value,
       (`runtime-version-manager` / Compile / exportedModule).value,
+      (`process-utils` / Compile / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
       (`engine-common` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
@@ -4770,6 +4772,7 @@ lazy val `runtime-version-manager` = project
       (`edition-updater` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
       (`pkg` / Compile / exportedModule).value,
+      (`process-utils` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value,

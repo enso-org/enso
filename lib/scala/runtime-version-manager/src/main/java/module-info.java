@@ -13,6 +13,7 @@ module org.enso.runtime.version.manager {
   requires org.enso.editions.updater;
   requires org.enso.logging.utils;
   requires org.enso.pkg;
+  requires org.enso.process.utils;
   requires org.enso.semver;
   requires org.enso.scala.yaml;
   // For com.typesafe.scalalogging.Logger
