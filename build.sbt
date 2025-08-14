@@ -3896,7 +3896,7 @@ lazy val `engine-runner` = project
                     Seq()
                   }),
             mainModule = Some("org.enso.runner"),
-            mainClass = Some("org.enso.runner.Main"),
+            mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
               "org.apache",
               "org.openxmlformats",
@@ -4679,7 +4679,7 @@ lazy val `library-manager` = project
       (`scala-yaml` / Compile / exportedModule).value
     ),
     Test / internalModuleDependencies := Seq(
-      (`logging-service-logback` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value
     ),
     commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions,
