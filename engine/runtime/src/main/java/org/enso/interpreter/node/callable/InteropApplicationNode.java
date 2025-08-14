@@ -35,6 +35,15 @@ public abstract class InteropApplicationNode extends Node {
   }
 
   /**
+   * Returns shared, uncached instance of this node
+   *
+   * @return shared interop application node
+   */
+  public static InteropApplicationNode getUncached() {
+    return InteropApplicationNodeGen.getUncached();
+  }
+
+  /**
    * Calls the function with given state and arguments.
    *
    * @param function the function to call.

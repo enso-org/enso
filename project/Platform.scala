@@ -1,6 +1,7 @@
 import sbt.singleFileFinder
 
 import java.io.File
+import java.util.Locale
 
 object Platform {
 
@@ -26,6 +27,33 @@ object Platform {
 
   def isArm64: Boolean =
     sys.props("os.arch").toLowerCase().contains("aarch64")
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  def osName(unixName: Boolean = false): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      "linux"
+    } else if (osName.contains("mac")) {
+      if (unixName) "darwin" else "osx"
+    } else if (osName.contains("windows")) {
+      if (unixName) "win32" else "windows"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  def arch(): String = {
+    val arch = System.getProperty("os.arch").toLowerCase(Locale.ENGLISH)
+    arch
+      .replace("amd64", "x86_64")
+  }
 
   /** Returns the dynamic library file name on the current platform.
     *

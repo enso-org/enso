@@ -1280,13 +1280,25 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
 }
 
+/**
+ * Extra parameters required when opening the project in hybrid mode.
+ */
+export interface OpenHybridProjectParameters {
+  /** Cloud project directory path. */
+  readonly cloudProjectDirectoryPath: EnsoPath
+  /** Cloud project id. */
+  readonly cloudProjectId: ProjectId
+  /** Cloud project session id. */
+  readonly cloudProjectSessionId: ProjectSessionId
+}
+
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
   /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
   readonly cognitoCredentials: CognitoCredentials | null
-  /** Required when running in hybrid mode. */
-  readonly cloudProjectDirectoryPath: string | null
+  /** Extra parameters required when running in hybrid mode. */
+  readonly openHybridProjectParameters: OpenHybridProjectParameters | null
 }
 
 /** HTTP request body for the "create project execution" endpoint. */

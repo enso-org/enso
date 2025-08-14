@@ -18,7 +18,7 @@ interface QueryResult<T> {
 export interface UserFiles {
   rootPath: ToValue<string>
   rootDirectoryId: ToValue<DirectoryId>
-  /** Path to the user's home, relative to `rootPath`. */
+  /** Path to the user's home. */
   home: ToValue<string[]>
 }
 

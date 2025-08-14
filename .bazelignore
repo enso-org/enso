@@ -15,6 +15,7 @@ app/ide-desktop/lib/ts-plugin-namespace-auto-import/node_modules
 app/ide-desktop/node_modules
 app/lang-markdown/node_modules
 app/lezer-markdown/node_modules
+app/project-manager-shim/node_modules
 app/table-expression/node_modules
 app/rust-ffi/node_modules
 app/ydoc-server/node_modules

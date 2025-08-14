@@ -8,3 +8,13 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+
+services:
+  - provides: Standard.Base.System.File.File_System_SPI
+    with: Standard.AWS.Internal.Services.Impl
+
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.AWS.Internal.Services.Impl
+
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
+    with: Standard.AWS.Internal.Services.Impl

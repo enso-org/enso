@@ -109,6 +109,7 @@ export type WidgetConfiguration =
   | FolderBrowse
   | FileBrowse
   | SecretBrowse
+  | AnyToTarget
   | FunctionCall
   | OneOfFunctionCalls
   | SomeOfFunctionCalls
@@ -158,6 +159,10 @@ export interface SingleChoice {
   kind: 'Single_Choice'
   label: string | null
   values: Choice[]
+}
+
+export interface AnyToTarget {
+  kind: 'Any_To_Target'
 }
 
 /**
@@ -236,6 +241,7 @@ export const widgetConfigurationSchema: z.ZodType<
       })
       .merge(withDisplay),
     z.object({ kind: z.literal('Secret_Browse') }).merge(withDisplay),
+    z.object({ kind: z.literal('Any_To_Target') }).merge(withDisplay),
     /* eslint-enable camelcase */
   ]),
 )

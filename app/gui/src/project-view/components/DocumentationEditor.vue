@@ -2,11 +2,13 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
+import { useDocumentViewId } from '@/components/DocumentationEditor/documentViewId'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
 import { useYTextSync } from '@/util/codemirror'
+import { editorPersistence } from '@/util/codemirror/persistence'
 import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
@@ -80,13 +82,23 @@ const editorMarkdown = computed(() =>
 const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
 
 const { syncExt, connectSync } = useYTextSync(editorContent)
+const editorPersistenceExt = editorPersistence({
+  documentViewId: useDocumentViewId({
+    projectId,
+    methodPointer: () => unwrapOr(currentProject.ref.value?.graph.currentMethod.pointer, undefined),
+    view: 'DocumentationEditor',
+  }),
+  scroll: { y: true, x: false },
+})
+
+const extensions = [syncExt, editorPersistenceExt]
 </script>
 
 <template>
   <div class="DocumentationEditor">
     <MarkdownEditor
       v-if="currentMethodAst.ok"
-      :extensions="syncExt"
+      :extensions="extensions"
       :readonly="currentMethodAst.value.readOnly"
       contentTestId="documentation-editor-content"
       scrollerTestId="documentation-editor-scroller"

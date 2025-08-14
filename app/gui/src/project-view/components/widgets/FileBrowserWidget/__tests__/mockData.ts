@@ -1,5 +1,5 @@
 import { AnyAsset, AssetType } from '#/services/Backend'
-import type { Directory } from '../fileBrowsing'
+import type { Directory } from '../pathBrowsing'
 
 interface MockAssetSpec {
   type: AssetType

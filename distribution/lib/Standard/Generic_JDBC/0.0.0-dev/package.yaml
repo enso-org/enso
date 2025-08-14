@@ -8,3 +8,7 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+
+services:
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
+    with: Standard.Generic_JDBC.Internal.Services.Impl
