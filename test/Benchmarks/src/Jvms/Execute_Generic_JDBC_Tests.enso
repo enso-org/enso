@@ -49,7 +49,7 @@ private copy_test_prj bin:File name:Text -> File =
     repo_root e =
         if e/".git" . exists then e else
             @Tail_Call repo_root e.parent
-            
+
     target = File.create_temporary_file
     target.delete
 
@@ -62,17 +62,17 @@ private copy_test_prj bin:File name:Text -> File =
             d.create_directory
             s.list . map f->
                 copy f d/f.name
-    
+
     copy prj target
-    
+
     yaml = target/"package.yaml"
     yaml_text = yaml.read_text
-    IO.println "Read in:"+yaml_text
     new_text = yaml_text . replace "jvm: true" ""
     replace = new_text.write path=yaml
-    IO.println "Replacing "+replace.to_text
+    IO.println "Replacing "+replace.to_text+" with:"
+    IO.println yaml.read_text
     IO.println "Enso project created at "+target.to_text
-    
+
     target
 
 
