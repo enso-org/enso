@@ -128,7 +128,7 @@ final class InvokeMethodImportResolver
 
   @Override
   protected EnsoObject createResolvedImport(UnresolvedSymbol imp, List<Object> exp, Module m) {
-    return m.getScopeBuilder().getAssociatedType();
+    return m.getScope().getAssociatedType();
   }
 
   @Override

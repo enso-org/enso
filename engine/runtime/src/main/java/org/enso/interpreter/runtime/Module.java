@@ -61,6 +61,7 @@ public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
   private ModuleScopeBuilder scopeBuilder;
+  private ModuleScope scope;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
@@ -94,11 +95,17 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = false;
+  }
+
+  private void updateModuleScope(ModuleScope scope) {
+    assert scope == scopeBuilder.asModuleScope();
+    this.scope = scope;
   }
 
   /**
@@ -113,7 +120,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -133,7 +141,8 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -160,7 +169,8 @@ public final class Module extends EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -173,7 +183,7 @@ public final class Module extends EnsoObject {
       }
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
     }
-    scopeBuilder.build();
+    scopeBuilder.finish();
   }
 
   private void ensureConsistentName(QualifiedName name, Package<TruffleFile> pkg) {
@@ -384,7 +394,9 @@ public final class Module extends EnsoObject {
       } catch (IOException ignored) {
       }
     }
-    return scopeBuilder.build();
+    scopeBuilder.finish();
+    assert scope == scopeBuilder.asModuleScope();
+    return scope;
   }
 
   /**
@@ -455,7 +467,7 @@ public final class Module extends EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = newScopeBuilder();
+    scopeBuilder = ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -530,18 +542,32 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * @return the runtime scope of this module.
+   * The current scope of the module. Module instance lives <em>"forever"</em> and its source code
+   * can change as a result of use operations in the Enso Studio. On the other hand the Enso
+   * language prefers immutability. To accomodate such a need for stability with a need for a
+   * change, there is an immutable {@link ModuleScope}. Each module is associated with a single
+   * scope instance at given time. Over time the scope instance may change as a result of {@link
+   * ModuleScopeBuilder#finish()} call.
+   *
+   * @return the current runtime scope of this module.
    */
-  public ModuleScope getScope() {
-    return scopeBuilder.asModuleScope();
+  public final ModuleScope getScope() {
+    return scope;
   }
 
-  public ModuleScopeBuilder getScopeBuilder() {
+  final ModuleScopeBuilder getScopeBuilder() {
     return scopeBuilder;
   }
 
-  public ModuleScopeBuilder newScopeBuilder() {
-    this.scopeBuilder = new ModuleScopeBuilder(this);
+  /**
+   * Resets scope builder of this module by a new one. Shall only be called from compiler interface
+   * - {@link TruffleCompilerContext}.
+   *
+   * @return new scope builder - same as {@link #getScopeBuilder()} since now
+   */
+  final ModuleScopeBuilder newScopeBuilder() {
+    this.scopeBuilder =
+        ModuleScopeAccessor.getInstance().newScopeBuilder(this, this::updateModuleScope);
     return this.scopeBuilder;
   }
 
@@ -715,7 +741,7 @@ public final class Module extends EnsoObject {
         throw UnsupportedTypeException.create(args, "First argument must be a string");
       }
       String expr = iop.asString(args[0]);
-      Builtins builtins = context.getBuiltins();
+      Builtins builtins = Builtins.get(context);
       BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
@@ -764,7 +790,7 @@ public final class Module extends EnsoObject {
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
           if (result == null || result.getSchema().isProjectPrivate()) {
-            return context.getBuiltins().nothing();
+            return Builtins.get(context).nothing();
           } else {
             return result;
           }
