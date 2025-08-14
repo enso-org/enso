@@ -3,7 +3,7 @@ package org.enso.interpreter.instrument.job
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import org.enso.common.{CachePreferences, CompilationStage}
+import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -287,11 +287,7 @@ class EnsureCompiledJob(
     idMapOpt: Option[IdMap] = None
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
     try {
-      val compilationStage = module.getCompilationStage
-      if (
-        !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)
-        || idMapOpt.isDefined
-      ) {
+      if (module.needsCompilation() || idMapOpt.isDefined) {
         logger.trace(s"Compiling ${module.getName}.")
         val compiler = ctx.executionService.getContext.getCompiler
 

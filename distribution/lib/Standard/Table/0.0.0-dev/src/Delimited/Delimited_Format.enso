@@ -266,3 +266,4 @@ private _catch_compatibility_changes ~action =
         Error.throw (Illegal_Argument.Error "The `keep_invalid_rows` argument has been renamed to `on_invalid_rows`.")
     Panic.catch Not_Invokable handler=on_not_invokable <|
         action
+

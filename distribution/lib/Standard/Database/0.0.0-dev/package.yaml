@@ -8,3 +8,16 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+
+services:
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Database.Internal.SQLite.SQLite_Services.Impl
+
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
+    with: Standard.Database.Internal.SQLite.SQLite_Services.Impl
+
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.Database.Internal.Postgres.Postgres_Services.Impl
+
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
+    with: Standard.Database.Internal.Postgres.Postgres_Services.Impl

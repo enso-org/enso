@@ -76,8 +76,13 @@ const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 
+/** Language support for a known syntax. */
 const languageExt = computed(() => languageExtension(syntaxLanguage.value))
-const extensions = computed(() => (languageExt.value ? [languageExt.value] : []))
+/** Extensions added when any language support is available, e.g. autocomplete (TODO: #12305). */
+const anyLanguageExt = computed(() => [])
+const extensions = computed(() =>
+  languageExt.value ? [languageExt.value, ...anyLanguageExt.value] : [],
+)
 
 function isTextMultiline(text: string) {
   return !!text.match(/[\r\n]/)

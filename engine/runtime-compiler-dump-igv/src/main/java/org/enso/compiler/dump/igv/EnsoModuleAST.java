@@ -233,6 +233,13 @@ final class EnsoModuleAST {
           var argNode = buildTree(arg);
           createEdge(node, argNode, "arg[" + i + "]");
         }
+        for (var i = 0; i < type.body().size(); i++) {
+          var bodyItem = type.body().apply(i);
+          if (bodyItem instanceof Expression bodyItemExpr) {
+            var bodyItemNode = buildTree(bodyItemExpr);
+            createEdge(node, bodyItemNode, "body[" + i + "]");
+          }
+        }
         yield node;
       }
       case Name.GenericAnnotation genericAnnotation -> {
@@ -326,12 +333,14 @@ final class EnsoModuleAST {
         }
         yield prefixAppNode;
       }
-      case Function.Lambda lambda -> {
-        var lambdaNode = newNode(lambda);
-        var bodyNode = buildTree(lambda.body());
+      case Function function -> {
+        Map<String, Object> props =
+            Map.of("canBeTCO", function.canBeTCO(), "isPrivate", function.isPrivate());
+        var lambdaNode = newNode(function, props);
+        var bodyNode = buildTree(function.body());
         createEdge(lambdaNode, bodyNode, "body");
-        for (var i = 0; i < lambda.arguments().size(); i++) {
-          var arg = lambda.arguments().apply(i);
+        for (var i = 0; i < function.arguments().size(); i++) {
+          var arg = function.arguments().apply(i);
           var argNode = buildTree(arg);
           createEdge(lambdaNode, argNode, "arg[" + i + "]");
         }
@@ -438,6 +447,8 @@ final class EnsoModuleAST {
                 "argName", specifiedArg.name().name(),
                 "suspended", specifiedArg.suspended());
         var node = newNode(specifiedArg, props);
+        var nameNode = newNode(specifiedArg.name());
+        createEdge(node, nameNode, "name");
         if (specifiedArg.ascribedType().isDefined()) {
           var ascribedTypeNode = buildTree(specifiedArg.ascribedType().get());
           createEdge(node, ascribedTypeNode, "ascribedType");

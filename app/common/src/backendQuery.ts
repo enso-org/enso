@@ -2,9 +2,9 @@
 
 import type * as queryCore from '@tanstack/query-core'
 
-import type Backend from './services/Backend'
-import * as backendModule from './services/Backend'
-import { type ExtractKeys, type MethodOf, omit } from './utilities/data/object'
+import type Backend from './services/Backend.js'
+import * as backendModule from './services/Backend.js'
+import { type ExtractKeys, type MethodOf, omit } from './utilities/data/object.js'
 
 /** The properties of the Backend type that are methods. */
 export type BackendMethods = ExtractKeys<Backend, MethodOf<Backend>>
@@ -40,6 +40,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteUser'
   | 'deleteUserGroup'
   | 'duplicateProject'
+  | 'exportArchive'
   | 'inviteUser'
   | 'logEvent'
   | 'openProject'

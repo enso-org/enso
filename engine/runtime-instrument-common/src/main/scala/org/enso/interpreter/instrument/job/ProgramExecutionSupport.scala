@@ -771,12 +771,10 @@ object ProgramExecutionSupport {
               p.getLocation().getEncapsulatingSourceSection() match {
                 case ss: SourceSection =>
                   logger.warn(
-                    "Error at {}-{} (e.g. `{}`) of {} with text:\n{}",
-                    ss.getCharIndex(),
-                    ss.getCharEndIndex(),
-                    ss.getCharacters(),
-                    visualizationId,
-                    ss.getSource().getCharacters()
+                    s"Error at ${ss.getCharIndex()}-${ss
+                      .getCharEndIndex()} in ${ss.getSource.getPath} (e.g. `${ss
+                      .getCharacters()}`) of visualization $visualizationId",
+                    p
                   )
                 case _ =>
               }
@@ -785,7 +783,7 @@ object ProgramExecutionSupport {
           }
         }
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -810,7 +808,7 @@ object ProgramExecutionSupport {
           expressionId
         )
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
