@@ -3893,7 +3893,8 @@ lazy val `engine-runner` = project
                   } else {
                     Seq()
                   }),
-            mainModule = Some("org.enso.runner/org.enso.runner.Main"),
+            mainModule = Some("org.enso.runner"),
+            mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
               "org.apache",
               "org.openxmlformats",
