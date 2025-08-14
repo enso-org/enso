@@ -9,8 +9,8 @@ import type * as accessToken from 'enso-common/src/accessToken'
 
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
-import type * as projectManagement from '@/projectManagement'
 import { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
+import type * as projectManagement from 'project-manager-shim'
 import { FileFilter } from './fileBrowser'
 
 // Even though this is already built as an mjs module, we are "faking" cjs format on preload script

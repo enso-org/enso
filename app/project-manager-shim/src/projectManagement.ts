@@ -18,12 +18,11 @@ import type * as stream from 'node:stream'
 
 import * as tar from 'tar'
 
-import * as common from 'enso-common'
-
-import * as desktopEnvironment from '@/desktopEnvironment'
-import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
+import { PRODUCT_NAME } from 'enso-common'
 import { Path, UUID } from 'enso-common/src/services/Backend'
 import { Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+
+import * as desktopEnvironment from './desktopEnvironment.js'
 
 const logger = console
 
@@ -36,6 +35,7 @@ export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 
 const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
 const SAMPLES_DIRECTORY_NAME = 'Samples'
+const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
 // ===================
 // === ProjectInfo ===
@@ -92,8 +92,7 @@ export function importProjectFromPath(
     // Check if the project root is under the projects directory. If it is, we can open it.
     // Otherwise, we need to install it first.
     if (rootPath == null) {
-      const productName = common.PRODUCT_NAME
-      const message = `File '${openedPath}' does not belong to the ${productName} project.`
+      const message = `File '${openedPath}' does not belong to the ${PRODUCT_NAME} project.`
       throw new Error(message)
     } else {
       return importDirectory(rootPath, directory, name)
@@ -344,7 +343,6 @@ function updateMetadata(
  */
 export function isProjectRoot(candidatePath: string): boolean {
   const projectJsonPath = pathModule.join(candidatePath, PROJECT_METADATA_RELATIVE_PATH)
-
   return fs.existsSync(projectJsonPath)
 }
 
@@ -417,13 +415,14 @@ export function getProjectRoot(subtreePath: string): string | null {
 export function getProjectsDirectory(): string {
   if (process.env.ENSO_TEST_PROJECTS_DIR) {
     return process.env.ENSO_TEST_PROJECTS_DIR
+  }
+
+  const documentsPath = desktopEnvironment.DOCUMENTS
+
+  if (documentsPath === undefined) {
+    return pathModule.join(os.homedir(), 'enso', 'projects')
   } else {
-    const documentsPath = desktopEnvironment.DOCUMENTS
-    if (documentsPath === undefined) {
-      return pathModule.join(os.homedir(), 'enso', 'projects')
-    } else {
-      return pathModule.join(documentsPath, 'enso-projects')
-    }
+    return pathModule.join(documentsPath, 'enso-projects')
   }
 }
 
@@ -516,7 +515,12 @@ export function bumpMetadata(
     id: generateId(),
     lastOpened: toRfc3339(new Date()),
   })).id
-  return { id, name, projectRoot: Path(projectRoot), parentDirectory }
+  return {
+    id,
+    name,
+    projectRoot: Path(projectRoot),
+    parentDirectory,
+  }
 }
 
 /** Download project templates GitHub repo into the Samples directory if one not exists. */

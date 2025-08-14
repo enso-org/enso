@@ -230,17 +230,19 @@ export function createProjectStore(
   })
 
   function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
-    const newId = () => crypto.randomUUID() as Uuid
-    const visId = ref(newId())
-    // Regenerate the visualization ID when the preprocessor changes.
-    watch(configuration, (a, b) => {
-      if (a != null && b != null && !visualizationConfigPreprocessorEqual(a, b))
-        visId.value = newId()
-    })
+    const visId = ref<Uuid>()
 
     watch(
-      [configuration, visId],
-      ([config, id], _, onCleanup) => {
+      configuration,
+      (config, oldConfig, onCleanup) => {
+        if (!config) {
+          visId.value = undefined
+          return
+        }
+        // Regenerate the visualization ID when the preprocessor changes.
+        if (!visualizationConfigPreprocessorEqual(config, oldConfig))
+          visId.value = crypto.randomUUID()
+        const id = visId.value!
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))
       },
@@ -249,7 +251,11 @@ export function createProjectStore(
       { immediate: true, flush: 'post' },
     )
 
-    return computed(() => parseVisualizationData(visualizationDataRegistry.getRawData(visId.value)))
+    return computed(() =>
+      visId.value == null ?
+        null
+      : parseVisualizationData(visualizationDataRegistry.getRawData(visId.value)),
+    )
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
@@ -273,7 +279,12 @@ export function createProjectStore(
       if (!visResult.ok) {
         visResult.error.log('Dataflow Error visualization evaluation failed')
         return undefined
-      } else if ('message' in visResult.value && typeof visResult.value.message === 'string') {
+      } else if (
+        visResult.value != null &&
+        typeof visResult.value === 'object' &&
+        'message' in visResult.value &&
+        typeof visResult.value.message === 'string'
+      ) {
         if ('kind' in visResult.value && visResult.value.kind === 'Dataflow')
           return { kind: visResult.value.kind, message: visResult.value.message }
         // Other kinds of error are not handled here
@@ -339,7 +350,7 @@ export function createProjectStore(
     expressionId: ExternalId,
     expression: string,
     timeoutMs: number = 5000,
-  ): Promise<Result<any> | null> {
+  ): Promise<Result<unknown> | null> {
     if (inProgress.value >= MAX_IN_PROGRESS) {
       queueLength.value += 1
       const pause = queueLength.value * 250
@@ -421,7 +432,7 @@ export function createProjectStore(
     })
   }
 
-  function parseVisualizationData(data: Result<string | null> | null): Result<any> | null {
+  function parseVisualizationData(data: Result<string | null> | null): Result<unknown> | null {
     if (!data?.ok) return data
     if (data.value == null) return null
     try {

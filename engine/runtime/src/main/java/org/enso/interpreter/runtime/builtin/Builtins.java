@@ -98,7 +98,6 @@ public final class Builtins {
             (scopeBuilder) -> {
               res[0] = new Builtins(context, scopeBuilder);
             });
-    module.compileScope(context); // Dummy compilation for an empty module
     // module has to be assigned only when constructor is over
     res[0].module = module;
     return res[0];

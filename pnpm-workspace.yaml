@@ -1,16 +1,17 @@
 packages:
-  - app/ide-desktop/client
-  - app/ide-desktop/icons
   - app/common
   - app/gui
+  - app/ide-desktop/client
+  - app/ide-desktop/icons
   - app/lang-markdown
   - app/lezer-markdown
-  - app/table-expression
+  - app/project-manager-shim
   - app/rust-ffi
+  - app/table-expression
   - app/ydoc-server
-  - app/ydoc-shared
   - app/ydoc-server-nodejs
   - app/ydoc-server-polyglot
+  - app/ydoc-shared
   - lib/js/runner
 catalog:
   typescript: ^5.7.2

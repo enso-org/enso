@@ -30,10 +30,18 @@ enso --no-compile-dependencies --no-global-cache --no-ir-caches --vm.D enso.comp
 ## Dumping IR
 
 The IR can be visualized using the `enso.compiler.dumpIr` system property. The
-value of the property is a substring of a module name to dump. IRs are dumped
-into the [IGV tool](https://www.graalvm.org/latest/tools/igv/) in a similar way
-to how GraalVM graphs are dumped, which is documented in
-[enso4igv](https://github.com/enso-org/enso/blob/2e714a70ddf12456e9f3fa9e132fd2ac43aa3b77/tools/enso4igv/IGV.md#using-the-igv).
+property value has format `<module-name>[:<dump-level>]`, where `module-name` is
+a substring of a module to dump and `dump-level` is an optional integer which
+can be:
+
+- `1` ... the default value.
+- `2` ... Does not chain mini passes. By default, mini passes are _chained_ into
+  a bigger mega pass. Use this if you want to see IR transformation done by all
+  mini passes.
+
+- IRs are dumped into the [IGV tool](https://www.graalvm.org/latest/tools/igv/)
+  in a similar way to how GraalVM graphs are dumped, which is documented in
+  [enso4igv](https://github.com/enso-org/enso/blob/2e714a70ddf12456e9f3fa9e132fd2ac43aa3b77/tools/enso4igv/IGV.md#using-the-igv).
 
 When using the `enso.compiler.dumpIr` property, one has to add
 `--add-exports jdk.graal.compiler/jdk.graal.compiler.graphio=org.enso.runtime.compiler.dump.igv`
