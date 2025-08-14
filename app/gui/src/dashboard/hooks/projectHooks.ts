@@ -445,6 +445,7 @@ function useOpenProject() {
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
   const addLaunchedProject = useAddLaunchedProject()
+  const removeLaunchedProject = useRemoveLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
 
@@ -471,9 +472,12 @@ function useOpenProject() {
         }
       }
 
+      addLaunchedProject(project)
+
       void openProjectMutation
         .mutateAsync(project)
         .catch(() => {
+          removeLaunchedProject(project.id)
           const newData = client.getQueryData(queryKey)
           // If state has not changed from optimistic state, then:
           if (OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA.safeParse(newData).success) {
@@ -495,8 +499,6 @@ function useOpenProject() {
         ...openingProjectMutation.options,
         scope: { id: project.id },
       })
-
-      addLaunchedProject(project)
     }
   })
 }

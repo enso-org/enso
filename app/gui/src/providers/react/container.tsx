@@ -90,6 +90,7 @@ export function useClearLaunchedProjects() {
   })
 }
 
+/** A function to add project to "opening projects" list */
 export function useAddOpeningProject() {
   const { openingProjects } = useContainerData()
   return useEventCallback((id: ProjectId, ensoPath: string) => {
@@ -97,6 +98,7 @@ export function useAddOpeningProject() {
   })
 }
 
+/** A function to remove project from "opening projects" list */
 export function useRemoveOpeningProject() {
   const { openingProjects } = useContainerData()
   return useEventCallback((id: ProjectId) => {

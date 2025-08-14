@@ -55,6 +55,17 @@ LocalStorage.registerKey('launchedProjects', {
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
 
+/**
+ * A project opened by user
+ *
+ * State "opening" means that we still do some processing before actually opening
+ * (like downloading project for hybrid run). Usually we don't have all information to construct
+ * {@link LaunchedProject} at this stage.
+ *
+ * State "launched" is a state where {@link LaunchedProject} is available. The project may still
+ * be initializing, though.
+ */
+// TODO[ao]: this is convoluted and shall be improved in https://github.com/enso-org/enso/issues/13491
 export type OpenedProject = (
   | { state: 'opening'; id: ProjectId; ensoPath: string }
   | ({ state: 'launched' } & LaunchedProject)
