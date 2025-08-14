@@ -41,6 +41,10 @@ add_text_columns_specs suite_builder setup =
             column.to_case ..Lower . to_vector . should_equal ["asdf", "zxcv ffff", "qwer gggg", "xomt"]
             column.to_case ..Title . to_vector . should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]
 
+        group_builder.specify "to_case respects locale" pending=db_pending <|
+            c = build_sorted_table [['x', ['i', 'a', 'b']]] . at 'x'
+            c.to_case Case.Upper (Locale.new "tr") . to_vector . should_equal ["İ", 'A', 'B']
+
         group_builder.specify "to_case column names are correct" pending=db_pending <|
             column = text_column.get
             column.to_case ..Upper . name . should_equal "to_case([X], 'Uppercase')"

@@ -1,8 +1,11 @@
 package org.enso.table.data.column.operation.unary;
 
 import com.ibm.icu.lang.UCharacter;
+
 import java.util.Locale;
 import java.util.function.Function;
+
+import org.enso.base.Text_Utils;
 import org.enso.base.text.Case;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -13,24 +16,14 @@ import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public final class CaseOperation implements UnaryOperation {
   public CaseOperation(Case caseOption, Locale locale) {
-    this(caseOptionToConverter(caseOption), locale);
+    this(Text_Utils.caseOptionToConverter(caseOption, locale));
   }
 
-  private CaseOperation(Function<String, String> converter, Locale locale) {
+  private CaseOperation(Function<String, String> converter) {
     this.converter = converter;
-    this.locale = locale;
-  }
-
-  private static Function<String, String> caseOptionToConverter(Case caseOption) {
-    return switch (caseOption) {
-      case LOWER -> s -> UCharacter.toLowerCase(Locale.getDefault(), s);
-      case UPPER -> s -> UCharacter.toUpperCase(Locale.getDefault(), s);
-      case TITLE -> s -> UCharacter.toTitleCase(Locale.getDefault(), s, null);
-    };
   }
 
   private Function<String, String> converter;
-  private final Locale locale;
 
   @Override
   public String getName() {

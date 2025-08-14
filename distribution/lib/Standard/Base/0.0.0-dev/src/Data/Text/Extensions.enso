@@ -1353,10 +1353,8 @@ Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
    implementation treats all words in the same way.
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
-Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case case_option of
-    Case.Lower -> UCharacter.toLowerCase locale.java_locale self
-    Case.Upper -> UCharacter.toUpperCase locale.java_locale self
-    Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
+Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default =
+    Text_Utils.toCase self case_option.to_java locale.java_locale
 
 ## ---
    group: Calculations
