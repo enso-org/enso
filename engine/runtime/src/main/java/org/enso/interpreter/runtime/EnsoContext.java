@@ -41,6 +41,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IRDumperConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
@@ -170,7 +171,8 @@ public final class EnsoContext {
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    var dumpModuleIR = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
+    var dumpModuleIR =
+        IRDumperConfig.parseFromProperty(System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP));
     var shouldRemoveUnusedImports =
         System.getProperty(RuntimeOptions.REMOVE_UNUSED_IMPORTS_SYSTEM_PROP) != null;
     this.compilerConfig =

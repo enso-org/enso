@@ -43,7 +43,8 @@ import { useBackends, useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { z } from 'zod'
 
-const PROJECT_EXECUTIONS_STALE_TIME = 60_000
+export const SHORT_CACHE_TIME_MS = 5_000
+const PROJECT_EXECUTIONS_STALE_TIME_MS = 60_000
 
 export function backendQueryOptions<Method extends BackendQueryMethod>(
   backend: Backend,
@@ -239,6 +240,8 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   } = options
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
   return queryOptions({
+    meta: { persist: false },
+    staleTime: SHORT_CACHE_TIME_MS,
     queryKey: [
       backend.type,
       'listDirectory',
@@ -577,7 +580,7 @@ export function listProjectExecutionsQueryOptions(
   return queryOptions({
     ...backendQueryOptions(backend, 'listProjectExecutions', [id, title]),
     select: (executions) => [...executions].reverse(),
-    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME_MS,
   })
 }
 
@@ -589,6 +592,6 @@ export function getProjectExecutionDetailsQueryOptions(
 ) {
   return queryOptions({
     ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
-    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME_MS,
   })
 }

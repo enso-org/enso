@@ -783,7 +783,7 @@ object ProgramExecutionSupport {
           }
         }
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -808,7 +808,7 @@ object ProgramExecutionSupport {
           expressionId
         )
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(

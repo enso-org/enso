@@ -6,7 +6,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.ArrayList;
 import java.util.function.Supplier;
-import org.enso.common.CompilationStage;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -61,8 +60,7 @@ public abstract class LookupServicesNode extends Node {
       throw new PanicException(err, this);
     }
     var scope = module.compileScope(ensoCtx);
-    var stage = module.getCompilationStage();
-    assert stage.isAtLeast(CompilationStage.AFTER_CODEGEN) : "Unsufficient stage " + stage;
+    assert !module.needsCompilation() : "Unsufficient stage of " + module;
 
     var typeName = fqn.item();
     var implType = scope.getType(typeName, true);

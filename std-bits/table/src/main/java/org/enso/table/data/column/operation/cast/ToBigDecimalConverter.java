@@ -37,7 +37,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     } else if (storage instanceof ColumnLongStorage longStorage) {
       return convertLongStorage(longStorage);
     } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      return convertDoubleStorage(doubleStorage);
+      return convertDoubleStorage(doubleStorage, problemAggregator);
     } else if (storageType instanceof BigIntegerType bigIntegerType) {
       return convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage));
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
@@ -50,11 +50,12 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     }
   }
 
-  private ColumnStorage<BigDecimal> convertDoubleStorage(ColumnDoubleStorage doubleStorage) {
+  private ColumnStorage<BigDecimal> convertDoubleStorage(
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
         Builder.getForBigDecimal(doubleStorage.getSize()),
-        (index, value, isNothing) -> BigDecimal.valueOf(value));
+        (index, value, isNothing) -> fromFloatWarnOnSpecial(value, problemAggregator));
   }
 
   private ColumnStorage<BigDecimal> convertLongStorage(ColumnLongStorage longStorage) {
@@ -88,7 +89,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
             switch (value) {
               case Boolean b -> booleanAsBigDecimal(b);
               case Long l -> BigDecimal.valueOf(l);
-              case Double d -> BigDecimal.valueOf(d);
+              case Double d -> fromFloatWarnOnSpecial(d, problemAggregator);
               case BigInteger bigInteger -> new BigDecimal(bigInteger);
               case BigDecimal bigDecimal -> bigDecimal;
               default -> {
@@ -100,5 +101,19 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
 
   private static BigDecimal booleanAsBigDecimal(boolean value) {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
+  }
+
+  /** For nan/inf, return null and report a wanring. */
+  private static BigDecimal fromFloatWarnOnSpecial(
+      double d, CastProblemAggregator problemAggregator) {
+    // According to the BigInteger Javadocs, valueOf is preferred because "the
+    // value returned is equal to that resulting from constructing a BigDecimal
+    // from the result of using Double.toString(double)."
+    if (Double.isFinite(d)) {
+      return BigDecimal.valueOf(d);
+    } else {
+      problemAggregator.reportConversionFailure(d);
+      return null;
+    }
   }
 }
