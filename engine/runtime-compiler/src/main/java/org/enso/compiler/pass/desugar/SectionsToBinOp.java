@@ -77,42 +77,43 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var loc = sectionLeft.location().isDefined() ? sectionLeft.location().get() : null;
           var passData = sectionLeft.passData();
           var rightArgName = freshNameSupply.newName(false, Option.empty());
-          var rightCallArg = CallArgument.Specified.builder()
-              .name(Option.empty())
-              .value(rightArgName)
-              .isSynthetic(true)
-              .build();
-          var rightDefArg = DefinitionArgument.Specified.builder()
-              .name(
-                  rightArgName.duplicate(true, true, true, false)
-              )
-              .ascribedType(Option.empty())
-              .defaultValue(Option.empty())
-              .suspended(false)
-              .build();
+          var rightCallArg =
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(rightArgName)
+                  .isSynthetic(true)
+                  .build();
+          var rightDefArg =
+              DefinitionArgument.Specified.builder()
+                  .name(rightArgName.duplicate(true, true, true, false))
+                  .ascribedType(Option.empty())
+                  .defaultValue(Option.empty())
+                  .suspended(false)
+                  .build();
 
           if (arg.value() instanceof Name.Blank) {
             var leftArgName = freshNameSupply.newName(false, Option.empty());
-            var leftCallArg = CallArgument.Specified.builder()
-                .name(Option.empty())
-                .value(leftArgName)
-                .isSynthetic(true)
-                .build();
-            var leftDefArg = DefinitionArgument.Specified.builder()
-                .name(
-                    leftArgName.duplicate(true, true, true, false)
-                )
-                .ascribedType(Option.empty())
-                .defaultValue(Option.empty())
-                .suspended(false)
-                .build();
-            var opCall = Application.Prefix.builder()
-                .function(op)
-                .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
-                .hasDefaultsSuspended(false)
-                .passData(passData)
-                .diagnostics(sectionLeft.diagnostics())
-                .build();
+            var leftCallArg =
+                CallArgument.Specified.builder()
+                    .name(Option.empty())
+                    .value(leftArgName)
+                    .isSynthetic(true)
+                    .build();
+            var leftDefArg =
+                DefinitionArgument.Specified.builder()
+                    .name(leftArgName.duplicate(true, true, true, false))
+                    .ascribedType(Option.empty())
+                    .defaultValue(Option.empty())
+                    .suspended(false)
+                    .build();
+            var opCall =
+                Application.Prefix.builder()
+                    .function(op)
+                    .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
+                    .hasDefaultsSuspended(false)
+                    .passData(passData)
+                    .diagnostics(sectionLeft.diagnostics())
+                    .build();
 
             var rightLam =
                 new Function.Lambda(cons(rightDefArg, nil()), opCall, null, true, meta());
@@ -135,42 +136,43 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var loc = sectionSides.location().isDefined() ? sectionSides.location().get() : null;
           var passData = sectionSides.passData();
           var leftArgName = freshNameSupply.newName(false, Option.empty());
-          var leftCallArg = CallArgument.Specified.builder()
-              .name(Option.empty())
-              .value(leftArgName)
-              .isSynthetic(true)
-              .build();
-          var leftDefArg = DefinitionArgument.Specified.builder()
-              .name(
-                  leftArgName.duplicate(true, true, true, false)
-              )
-              .ascribedType(Option.empty())
-              .defaultValue(Option.empty())
-              .suspended(false)
-              .build();
+          var leftCallArg =
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(leftArgName)
+                  .isSynthetic(true)
+                  .build();
+          var leftDefArg =
+              DefinitionArgument.Specified.builder()
+                  .name(leftArgName.duplicate(true, true, true, false))
+                  .ascribedType(Option.empty())
+                  .defaultValue(Option.empty())
+                  .suspended(false)
+                  .build();
 
           var rightArgName = freshNameSupply.newName(false, Option.empty());
-          var rightCallArg = CallArgument.Specified.builder()
-              .name(Option.empty())
-              .value(rightArgName)
-              .isSynthetic(true)
-              .build();
-          var rightDefArg = DefinitionArgument.Specified.builder()
-              .name(
-                  rightArgName.duplicate(true, true, true, false)
-              )
-              .ascribedType(Option.empty())
-              .defaultValue(Option.empty())
-              .suspended(false)
-              .build();
+          var rightCallArg =
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(rightArgName)
+                  .isSynthetic(true)
+                  .build();
+          var rightDefArg =
+              DefinitionArgument.Specified.builder()
+                  .name(rightArgName.duplicate(true, true, true, false))
+                  .ascribedType(Option.empty())
+                  .defaultValue(Option.empty())
+                  .suspended(false)
+                  .build();
 
-          var opCall = Application.Prefix.builder()
-              .function(op)
-              .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
-              .hasDefaultsSuspended(false)
-              .passData(passData)
-              .diagnostics(sectionSides.diagnostics())
-              .build();
+          var opCall =
+              Application.Prefix.builder()
+                  .function(op)
+                  .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
+                  .hasDefaultsSuspended(false)
+                  .passData(passData)
+                  .diagnostics(sectionSides.diagnostics())
+                  .build();
 
           var rightLambda =
               new Function.Lambda(cons(rightDefArg, nil()), opCall, null, true, meta());
@@ -203,56 +205,58 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var loc = sectionRight.location().isDefined() ? sectionRight.location().get() : null;
           var passData = sectionRight.passData();
           var leftArgName = freshNameSupply.newName(false, Option.empty());
-          var leftCallArg = CallArgument.Specified.builder()
-              .name(Option.empty())
-              .value(leftArgName)
-              .isSynthetic(true)
-              .build();
-          var leftDefArg = DefinitionArgument.Specified.builder()
-              .name(
-                  leftArgName.duplicate(true, true, true, false)
-              )
-              .ascribedType(Option.empty())
-              .defaultValue(Option.empty())
-              .suspended(false)
-              .build();
+          var leftCallArg =
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(leftArgName)
+                  .isSynthetic(true)
+                  .build();
+          var leftDefArg =
+              DefinitionArgument.Specified.builder()
+                  .name(leftArgName.duplicate(true, true, true, false))
+                  .ascribedType(Option.empty())
+                  .defaultValue(Option.empty())
+                  .suspended(false)
+                  .build();
 
           if (arg.value() instanceof Name.Blank) {
             // Note [Blanks in Sections]
             var rightArgName = freshNameSupply.newName(false, Option.empty());
-            var rightCallArg = CallArgument.Specified.builder()
-                .name(Option.empty())
-                .value(rightArgName)
-                .isSynthetic(true)
-                .build();
-            var rightDefArg = DefinitionArgument.Specified.builder()
-                .name(
-                    rightArgName.duplicate(true, true, true, false)
-                )
-                .ascribedType(Option.empty())
-                .defaultValue(Option.empty())
-                .suspended(false)
-                .build();
+            var rightCallArg =
+                CallArgument.Specified.builder()
+                    .name(Option.empty())
+                    .value(rightArgName)
+                    .isSynthetic(true)
+                    .build();
+            var rightDefArg =
+                DefinitionArgument.Specified.builder()
+                    .name(rightArgName.duplicate(true, true, true, false))
+                    .ascribedType(Option.empty())
+                    .defaultValue(Option.empty())
+                    .suspended(false)
+                    .build();
 
-            var opCall = Application.Prefix.builder()
-                .function(op)
-                .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
-                .hasDefaultsSuspended(false)
-                .passData(passData)
-                .diagnostics(sectionRight.diagnostics())
-                .build();
+            var opCall =
+                Application.Prefix.builder()
+                    .function(op)
+                    .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
+                    .hasDefaultsSuspended(false)
+                    .passData(passData)
+                    .diagnostics(sectionRight.diagnostics())
+                    .build();
 
             var leftLam = new Function.Lambda(cons(leftDefArg, nil()), opCall, null, true, meta());
 
             yield new Function.Lambda(cons(rightDefArg, nil()), leftLam, loc, true, meta());
           } else {
-            var opCall = Application.Prefix.builder()
-                .function(op)
-                .arguments(cons(leftCallArg, cons(arg, nil())))
-                .hasDefaultsSuspended(false)
-                .passData(passData)
-                .diagnostics(sectionRight.diagnostics())
-                .build();
+            var opCall =
+                Application.Prefix.builder()
+                    .function(op)
+                    .arguments(cons(leftCallArg, cons(arg, nil())))
+                    .hasDefaultsSuspended(false)
+                    .passData(passData)
+                    .diagnostics(sectionRight.diagnostics())
+                    .build();
 
             yield new Function.Lambda(cons(leftDefArg, nil()), opCall, loc, true, meta());
           }

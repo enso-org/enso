@@ -205,9 +205,7 @@ public final class MethodDefinitions implements MiniPassFactory {
         // added to avoid modifying the dispatch mechanism.
         var syntheticModuleSelfArg =
             DefinitionArgument.Specified.builder()
-                .name(
-                    new Name.Self(null, true, new MetadataStorage())
-                )
+                .name(new Name.Self(null, true, new MetadataStorage()))
                 .ascribedType(Option.empty())
                 .defaultValue(Option.empty())
                 .suspended(false)

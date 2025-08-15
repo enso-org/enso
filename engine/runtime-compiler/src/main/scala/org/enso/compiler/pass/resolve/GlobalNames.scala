@@ -222,11 +222,13 @@ case object GlobalNames extends IRPass {
                         name     = resolvedModuleMethod.method.name,
                         location = None
                       )
-                      val app = Application.Prefix.builder()
+                      val app = Application.Prefix
+                        .builder()
                         .function(fun)
                         .arguments(
                           List(
-                            CallArgument.Specified.builder()
+                            CallArgument.Specified
+                              .builder()
                               .name(None)
                               .value(self)
                               .isSynthetic(true)
@@ -364,7 +366,8 @@ case object GlobalNames extends IRPass {
                 )
               )
             )
-          val selfArg = CallArgument.Specified.builder()
+          val selfArg = CallArgument.Specified
+            .builder()
             .value(self)
             .isSynthetic(true)
             .name(None)

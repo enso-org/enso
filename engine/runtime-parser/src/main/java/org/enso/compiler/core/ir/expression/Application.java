@@ -181,7 +181,6 @@ public interface Application extends Expression {
       return new Builder();
     }
 
-
     @Override
     public String showCode(int indent) {
       var itemsStr = items().map(it -> it.showCode(indent)).mkString(" ");

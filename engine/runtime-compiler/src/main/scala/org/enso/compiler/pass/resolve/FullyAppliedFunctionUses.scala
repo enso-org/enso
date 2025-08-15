@@ -58,7 +58,8 @@ object FullyAppliedFunctionUses extends IRPass {
         meta match {
           case Some(Resolution(ResolvedConstructor(_, cons)))
               if cons.allFieldsDefaulted && cons.arity > 0 =>
-            Application.Prefix.builder()
+            Application.Prefix
+              .builder()
               .function(name)
               .arguments(List())
               .build()

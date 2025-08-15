@@ -77,17 +77,19 @@ class LambdaShorthandToLambdaMini(
 
         new Function.Lambda(
           List(
-            DefinitionArgument.Specified.builder()
-              .name(Name.Literal(
-                newName.name,
-                isMethod = false,
-                null
-              ))
+            DefinitionArgument.Specified
+              .builder()
+              .name(
+                Name.Literal(
+                  newName.name,
+                  isMethod = false,
+                  null
+                )
+              )
               .ascribedType(None)
               .defaultValue(None)
               .suspended(false)
               .build()
-
           ),
           newName,
           blank.location.orNull
@@ -155,7 +157,8 @@ class LambdaShorthandToLambdaMini(
         val resultExpr = if (functionIsShorthand) {
           new Function.Lambda(
             List(
-              DefinitionArgument.Specified.builder()
+              DefinitionArgument.Specified
+                .builder()
                 .name(
                   Name
                     .Literal(
@@ -197,7 +200,8 @@ class LambdaShorthandToLambdaMini(
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = DefinitionArgument.Specified.builder()
+          val defArg = DefinitionArgument.Specified
+            .builder()
             .name(bindingName)
             .ascribedType(None)
             .defaultValue(None)
@@ -286,7 +290,8 @@ class LambdaShorthandToLambdaMini(
             )
 
           Some(
-            DefinitionArgument.Specified.builder()
+            DefinitionArgument.Specified
+              .builder()
               .name(defArgName)
               .ascribedType(None)
               .defaultValue(None)
@@ -328,7 +333,8 @@ class LambdaShorthandToLambdaMini(
               diagnostics = nameBlank.diagnostics
             )
 
-        val lambdaArg = DefinitionArgument.Specified.builder()
+        val lambdaArg = DefinitionArgument.Specified
+          .builder()
           .name(scrutineeName.copy(id = null))
           .ascribedType(None)
           .defaultValue(None)

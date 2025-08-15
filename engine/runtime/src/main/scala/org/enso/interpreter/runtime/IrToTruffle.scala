@@ -1646,7 +1646,8 @@ class IrToTruffle(
               Option(asType(binding)) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    DefinitionArgument.Specified.builder()
+                    DefinitionArgument.Specified
+                      .builder()
                       .name(typePattern.name)
                       .ascribedType(None)
                       .defaultValue(None)
@@ -1683,7 +1684,8 @@ class IrToTruffle(
                   .get()
               if (polySymbol != null) {
                 val argOfType = List(
-                  DefinitionArgument.Specified.builder()
+                  DefinitionArgument.Specified
+                    .builder()
                     .name(typePattern.name)
                     .ascribedType(None)
                     .defaultValue(None)
@@ -1747,7 +1749,8 @@ class IrToTruffle(
       * @return `name` as a function definition argument.
       */
     private def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
-      DefinitionArgument.Specified.builder()
+      DefinitionArgument.Specified
+        .builder()
         .name(name.name)
         .ascribedType(None)
         .defaultValue(None)

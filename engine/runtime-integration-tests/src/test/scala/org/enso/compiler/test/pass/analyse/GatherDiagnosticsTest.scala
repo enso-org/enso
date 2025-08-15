@@ -39,8 +39,11 @@ class GatherDiagnosticsTest extends CompilerTest {
       .build()
     val lam = new Function.Lambda(
       List(
-        DefinitionArgument.Specified.builder()
-          .name(Name.Literal("bar", isMethod = false, identifiedLocation = null))
+        DefinitionArgument.Specified
+          .builder()
+          .name(
+            Name.Literal("bar", isMethod = false, identifiedLocation = null)
+          )
           .ascribedType(None)
           .defaultValue(None)
           .suspended(false)

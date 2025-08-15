@@ -190,7 +190,8 @@ case object DemandAnalysis extends IRPass {
           val newNameLocation =
             name.location.map(l => new IdentifiedLocation(l.location()))
           val newName = lit.copy(location = newNameLocation)
-          Application.Force.builder()
+          Application.Force
+            .builder()
             .target(newName)
             .location(name.identifiedLocation())
             .build()

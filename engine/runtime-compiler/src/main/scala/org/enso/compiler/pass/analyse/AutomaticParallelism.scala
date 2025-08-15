@@ -306,7 +306,8 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           _,
-          Application.Prefix.builder()
+          Application.Prefix
+            .builder()
             .function(Name.Special(Name.Special.NewRef, null))
             .arguments(List())
             .build(),
@@ -321,16 +322,19 @@ object AutomaticParallelism extends IRPass {
       val blockBody =
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
-            val refWrite = Application.Prefix.builder()
+            val refWrite = Application.Prefix
+              .builder()
               .function(Name.Special(Name.Special.WriteRef, null))
               .arguments(
                 List(
-                  CallArgument.Specified.builder()
+                  CallArgument.Specified
+                    .builder()
                     .name(None)
                     .value(refVars(bind.name).duplicate())
                     .isSynthetic(true)
                     .build(),
-                  CallArgument.Specified.builder()
+                  CallArgument.Specified
+                    .builder()
                     .name(None)
                     .value(bind.name.duplicate())
                     .isSynthetic(true)
@@ -341,15 +345,19 @@ object AutomaticParallelism extends IRPass {
             List(bind, refWrite)
           case other => List(other)
         }
-      val spawn = Application.Prefix.builder()
+      val spawn = Application.Prefix
+        .builder()
         .function(Name.Special(Name.Special.RunThread, null))
-        .arguments(List(
-          CallArgument.Specified.builder()
-            .name(None)
-            .value(Expression.Block(blockBody.init, blockBody.last, null))
-            .isSynthetic(true)
-            .build()
-        ))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(Expression.Block(blockBody.init, blockBody.last, null))
+              .isSynthetic(true)
+              .build()
+          )
+        )
         .build()
       Expression
         .Binding(freshNameSupply.newName(), spawn, null)
@@ -359,15 +367,19 @@ object AutomaticParallelism extends IRPass {
     }
 
     val threadJoins = threadSpawns.map { bind =>
-      Application.Prefix.builder()
+      Application.Prefix
+        .builder()
         .function(Name.Special(Name.Special.JoinThread, null))
-        .arguments(List(
-          CallArgument.Specified.builder()
-            .name(None)
-            .value(bind.name.duplicate())
-            .isSynthetic(true)
-            .build()
-        ))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(bind.name.duplicate())
+              .isSynthetic(true)
+              .build()
+          )
+        )
         .build()
     }
 
@@ -375,15 +387,19 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           name.duplicate(),
-          Application.Prefix.builder()
+          Application.Prefix
+            .builder()
             .function(Name.Special(Name.Special.ReadRef, null))
-            .arguments(List(
-              CallArgument.Specified.builder()
-                .name(None)
-                .value(ref.duplicate())
-                .isSynthetic(true)
-                .build()
-            ))
+            .arguments(
+              List(
+                CallArgument.Specified
+                  .builder()
+                  .name(None)
+                  .value(ref.duplicate())
+                  .isSynthetic(true)
+                  .build()
+              )
+            )
             .build(),
           null
         )
