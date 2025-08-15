@@ -356,7 +356,8 @@ object DistributionPackage {
     args: java.util.List[String],
     jvmOptName: String,
     pb: java.lang.ProcessBuilder,
-    appendJvmOpts: String = "-ea"
+    appendJvmOpts: String     = "-ea",
+    cwd: Option[java.io.File] = None
   ): java.lang.Process = {
     val envToFill: java.util.Map[String, String] = pb.environment()
     var atEnv                                    = args.indexOf("--env")
@@ -389,6 +390,9 @@ object DistributionPackage {
     }
 
     pb.command(args)
+    cwd.map { d =>
+      pb.directory(d)
+    }
     pb.inheritIO()
     log.info(
       s"Executing ${args.stream.collect(java.util.stream.Collectors.joining(" "))}"
@@ -408,7 +412,8 @@ object DistributionPackage {
   def runEnginePackage(
     distributionRoot: File,
     args: Seq[String],
-    log: Logger
+    log: Logger,
+    cwd: Option[java.io.File] = None
   ): Boolean = {
     import scala.collection.JavaConverters._
 
@@ -429,7 +434,7 @@ object DistributionPackage {
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
-    val p        = adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb)
+    val p        = adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb, cwd = cwd)
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)
