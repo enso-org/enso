@@ -222,20 +222,20 @@ case object GlobalNames extends IRPass {
                         name     = resolvedModuleMethod.method.name,
                         location = None
                       )
-                      val app = new Application.Prefix(
-                        fun,
-                        List(
-                          new CallArgument.Specified(
-                            None,
-                            self,
-                            true,
-                            identifiedLocation = null
+                      val app = Application.Prefix.builder()
+                        .function(fun)
+                        .arguments(
+                          List(
+                            CallArgument.Specified.builder()
+                              .name(None)
+                              .value(self)
+                              .isSynthetic(true)
+                              .build()
                           )
-                        ),
-                        hasDefaultsSuspended = false,
-                        lit.identifiedLocation,
-                        new MetadataStorage()
-                      )
+                        )
+                        .hasDefaultsSuspended(false)
+                        .location(lit.identifiedLocation)
+                        .build()
                       fun
                         .getMetadata(ExpressionAnnotations)
                         .foreach(annotationsMeta =>
@@ -364,13 +364,10 @@ case object GlobalNames extends IRPass {
                 )
               )
             )
-          val selfArg =
-            new CallArgument.Specified(
-              None,
-              self,
-              true,
-              identifiedLocation = null
-            )
+          val selfArg = CallArgument.Specified.builder()
+            .value(self)
+            .isSynthetic(true)
+            .name(None)
           processedFun.passData.remove(this) // Necessary for IrToTruffle
           app.copy(
             processedFun,

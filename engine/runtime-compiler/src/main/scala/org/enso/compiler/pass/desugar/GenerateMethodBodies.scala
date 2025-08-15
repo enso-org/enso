@@ -265,13 +265,12 @@ case object GenerateMethodBodies extends IRPass {
     * @return the `self` argument
     */
   private def genSyntheticSelf(): DefinitionArgument.Specified = {
-    new DefinitionArgument.Specified(
-      Name.Self(identifiedLocation = null, synthetic = true),
-      None,
-      None,
-      false,
-      null
-    )
+    DefinitionArgument.Specified.builder()
+      .name(Name.Self(identifiedLocation = null, synthetic = true))
+      .ascribedType(None)
+      .defaultValue(None)
+      .suspended(false)
+      .build()
   }
 
   /** Executes the pass on an expression.

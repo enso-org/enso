@@ -1646,15 +1646,15 @@ class IrToTruffle(
               Option(asType(binding)) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    new DefinitionArgument.Specified(
-                      typePattern.name,
-                      None,
-                      None,
-                      suspended = false,
-                      typePattern.identifiedLocation,
-                      passData    = typePattern.name.passData,
-                      diagnostics = typePattern.name.diagnostics
-                    )
+                    DefinitionArgument.Specified.builder()
+                      .name(typePattern.name)
+                      .ascribedType(None)
+                      .defaultValue(None)
+                      .suspended(false)
+                      .location(typePattern.identifiedLocation)
+                      .passData(typePattern.name.passData)
+                      .diagnostics(typePattern.name.diagnostics)
+                      .build()
                   )
 
                   val branchCodeNode = childProcessor.processFunctionBody(
@@ -1683,15 +1683,15 @@ class IrToTruffle(
                   .get()
               if (polySymbol != null) {
                 val argOfType = List(
-                  new DefinitionArgument.Specified(
-                    typePattern.name,
-                    None,
-                    None,
-                    suspended = false,
-                    typePattern.identifiedLocation,
-                    passData    = typePattern.name.passData,
-                    diagnostics = typePattern.name.diagnostics
-                  )
+                  DefinitionArgument.Specified.builder()
+                    .name(typePattern.name)
+                    .ascribedType(None)
+                    .defaultValue(None)
+                    .suspended(false)
+                    .location(typePattern.identifiedLocation)
+                    .passData(typePattern.name.passData)
+                    .diagnostics(typePattern.name.diagnostics)
+                    .build()
                 )
 
                 val branchCodeNode = childProcessor.processFunctionBody(
@@ -1747,15 +1747,15 @@ class IrToTruffle(
       * @return `name` as a function definition argument.
       */
     private def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
-      new DefinitionArgument.Specified(
-        name.name,
-        None,
-        None,
-        suspended = false,
-        name.identifiedLocation,
-        passData    = name.name.passData,
-        diagnostics = name.name.diagnostics
-      )
+      DefinitionArgument.Specified.builder()
+        .name(name.name)
+        .ascribedType(None)
+        .defaultValue(None)
+        .suspended(false)
+        .location(name.identifiedLocation)
+        .passData(name.name.passData)
+        .diagnostics(name.name.diagnostics)
+        .build()
     }
 
     /** Generates code for an Enso binding expression.

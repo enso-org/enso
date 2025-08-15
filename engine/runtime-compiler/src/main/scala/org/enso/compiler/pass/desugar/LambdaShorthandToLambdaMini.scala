@@ -77,17 +77,17 @@ class LambdaShorthandToLambdaMini(
 
         new Function.Lambda(
           List(
-            new DefinitionArgument.Specified(
-              Name.Literal(
+            DefinitionArgument.Specified.builder()
+              .name(Name.Literal(
                 newName.name,
                 isMethod = false,
                 null
-              ),
-              None,
-              None,
-              false,
-              null
-            )
+              ))
+              .ascribedType(None)
+              .defaultValue(None)
+              .suspended(false)
+              .build()
+
           ),
           newName,
           blank.location.orNull
@@ -155,14 +155,18 @@ class LambdaShorthandToLambdaMini(
         val resultExpr = if (functionIsShorthand) {
           new Function.Lambda(
             List(
-              new DefinitionArgument.Specified(
-                Name
-                  .Literal(
-                    updatedName.get,
-                    isMethod = false,
-                    p.function.location.orNull
-                  )
-              )
+              DefinitionArgument.Specified.builder()
+                .name(
+                  Name
+                    .Literal(
+                      updatedName.get,
+                      isMethod = false,
+                      p.function.location.orNull
+                    )
+                )
+                .defaultValue(None)
+                .ascribedType(None)
+                .build()
             ),
             appResult,
             null
@@ -193,7 +197,12 @@ class LambdaShorthandToLambdaMini(
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = new DefinitionArgument.Specified(bindingName)
+          val defArg = DefinitionArgument.Specified.builder()
+            .name(bindingName)
+            .ascribedType(None)
+            .defaultValue(None)
+            .suspended(false)
+            .build();
           new Function.Lambda(List(defArg), body, locWithoutId.orNull)
         }
 
@@ -277,15 +286,14 @@ class LambdaShorthandToLambdaMini(
             )
 
           Some(
-            new DefinitionArgument.Specified(
-              defArgName,
-              None,
-              None,
-              false,
-              null,
-              specified.passData.duplicate,
-              specified.diagnosticsCopy
-            )
+            DefinitionArgument.Specified.builder()
+              .name(defArgName)
+              .ascribedType(None)
+              .defaultValue(None)
+              .suspended(false)
+              .passData(specified.passData.duplicate)
+              .diagnostics(specified.diagnosticsCopy())
+              .build()
           )
       }
     } else None
@@ -320,13 +328,12 @@ class LambdaShorthandToLambdaMini(
               diagnostics = nameBlank.diagnostics
             )
 
-        val lambdaArg = new DefinitionArgument.Specified(
-          scrutineeName.copy(id = null),
-          None,
-          None,
-          false,
-          null
-        )
+        val lambdaArg = DefinitionArgument.Specified.builder()
+          .name(scrutineeName.copy(id = null))
+          .ascribedType(None)
+          .defaultValue(None)
+          .suspended(false)
+          .build()
 
         val newCaseExpr = caseExpr.copy(
           scrutineeName,
