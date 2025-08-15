@@ -52,7 +52,7 @@ public class InlineCompilerErrorBenchmark {
     ctx =
         Utils.createDefaultContextBuilder()
             .withModifiedContext(bldr -> bldr.option(RuntimeOptions.STRICT_ERRORS, "false"))
-            .withStdOutLogHandler(Level.SEVERE)
+            .withStdOutLogHandler(Level.WARNING)
             .build();
     var ensoCtx = ctx.ensoContext();
     compiler = ensoCtx.getCompiler();
