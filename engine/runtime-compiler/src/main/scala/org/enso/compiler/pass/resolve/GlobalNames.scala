@@ -373,12 +373,12 @@ case object GlobalNames extends IRPass {
             )
           processedFun.passData.remove(this) // Necessary for IrToTruffle
           app.copy(
-            function  = processedFun,
-            arguments = selfArg :: processedArgs
+            processedFun,
+            selfArg :: processedArgs
           )
         }
       case _ =>
-        app.copy(function = processedFun, arguments = processedArgs)
+        app.copy(processedFun, processedArgs)
     }
   }
 
@@ -431,7 +431,7 @@ case object GlobalNames extends IRPass {
       case _ => None
     }
     newApp.getOrElse(
-      app.copy(function = processedFun, arguments = processedArgs)
+      app.copy(processedFun, processedArgs)
     )
   }
 
@@ -446,7 +446,7 @@ case object GlobalNames extends IRPass {
     ) {
       newFun
     } else {
-      originalApp.copy(function = newFun, arguments = newArgs)
+      originalApp.copy(newFun, newArgs)
     }
   }
 

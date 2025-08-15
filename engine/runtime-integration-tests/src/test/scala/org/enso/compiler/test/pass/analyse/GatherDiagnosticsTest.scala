@@ -40,8 +40,8 @@ class GatherDiagnosticsTest extends CompilerTest {
           Name.Literal("bar", isMethod = false, identifiedLocation = null),
           None,
           None,
-          suspended          = false,
-          identifiedLocation = null
+          false,
+          null
         )
       ),
       plusApp,

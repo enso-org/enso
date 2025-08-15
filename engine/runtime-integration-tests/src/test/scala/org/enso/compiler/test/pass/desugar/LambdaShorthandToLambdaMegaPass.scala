@@ -219,8 +219,8 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         }
 
         val processedApp = p.copy(
-          function  = updatedFn,
-          arguments = updatedArgs
+          updatedFn,
+          updatedArgs
         )
 
         // Wrap the app in lambdas from right to left, 1 lambda per shorthand
@@ -342,7 +342,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
               diagnostics = s.value.diagnostics
             )
 
-          s.copy(value = newName)
+          s.copy(newName)
         } else s
     }
   }
@@ -429,8 +429,8 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         )
 
         val newCaseExpr = caseExpr.copy(
-          scrutinee = scrutineeName,
-          branches  = newBranches
+          scrutineeName,
+          newBranches
         )
 
         new Function.Lambda(
@@ -441,8 +441,8 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         )
       case x =>
         caseExpr.copy(
-          scrutinee = desugarExpression(x, freshNameSupply),
-          branches  = newBranches
+          desugarExpression(x, freshNameSupply),
+          newBranches
         )
     }
   }
