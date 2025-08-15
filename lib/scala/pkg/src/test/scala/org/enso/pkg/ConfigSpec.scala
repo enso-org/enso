@@ -105,7 +105,7 @@ class ConfigSpec
       parsed.moduleName shouldEqual "FooBar"
 
       val ser = parsed.toYaml(keepDevVersions = true)
-      ser shouldEqual "name: fooBar\nnamespace: local\n"
+      ser shouldEqual "name: fooBar\nnamespace: local\nedition: 0.0.0-dev\n"
     }
 
     "correctly de-serialize and serialize back the shortened edition syntax " +
