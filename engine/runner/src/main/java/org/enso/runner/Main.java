@@ -662,7 +662,8 @@ public class Main {
             "",
             Option$.MODULE$.empty(),
             nil(),
-            Option$.MODULE$.empty());
+            Option$.MODULE$.empty(),
+            false);
     throw exitSuccess();
   }
 

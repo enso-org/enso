@@ -28,9 +28,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import scala.concurrent.duration._
 
-class LibrariesTest
-    extends BaseServerTest
-    with ReportLogsOnFailure {
+class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   private val libraryRepositoryPort: Int = 47308
   private val defaultTimeout             = 30.seconds
 
@@ -327,7 +325,10 @@ class LibrariesTest
             componentGroups =
               Some(TestComponentGroups.testLibraryComponentGroups)
           )
-      Files.writeString(packageFile, packageConfig.toYaml)
+      Files.writeString(
+        packageFile,
+        packageConfig.toYaml(keepDevVersions = true)
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
