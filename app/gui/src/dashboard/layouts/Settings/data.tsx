@@ -456,7 +456,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: 'people',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithOrganization(user) && user.isOrganizationAdmin,
     feature: 'inviteUser',
     sections: [
       {
@@ -471,7 +471,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: 'people_settings',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithOrganization(user) && user.isOrganizationAdmin,
     feature: 'userGroups',
     sections: [
       {
