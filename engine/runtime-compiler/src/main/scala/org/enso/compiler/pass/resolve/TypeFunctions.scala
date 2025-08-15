@@ -140,8 +140,8 @@ case object TypeFunctions extends IRPass {
             )
           case _ =>
             pre.copy(
-              function  = resolveExpression(pre.function),
-              arguments = pre.arguments.map(resolveCallArgument)
+              resolveExpression(pre.function),
+              pre.arguments.map(resolveCallArgument)
             )
         }
       case force: Application.Force =>
