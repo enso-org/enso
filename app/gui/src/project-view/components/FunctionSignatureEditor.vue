@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
+import DraggableList from '@/components/widgets/DraggableList.vue'
 import { providePopoverRoot } from '@/providers/popoverRoot'
+import { syntheticPortId } from '@/providers/portInfo'
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
+import { assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { useYText } from '@/util/crdt'
 import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { computed, useTemplateRef } from 'vue'
+import { newArgumentDefinition } from 'ydoc-shared/ast'
 import FormContainer from './FormContainer.vue'
 import FormRow from './FormRow.vue'
+import { renameArgumentInDefaultValue } from './GraphEditor/widgets/WidgetFunctionDef/argumentAst'
+import ArgumentRow from './GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from './GraphEditor/widgets/WidgetFunctionName.vue'
 import { DisplayIcon } from './GraphEditor/widgets/WidgetIcon.vue'
 
@@ -61,14 +67,84 @@ const funcIconInput = computed(() => {
   return { input: widgetInput, externalId: nameAst.externalId, updateCallback: handleWidgetUpdates }
 })
 
-const funcArgsInput = computed(() => {
-  const widgetInput = WidgetInput.FromAst(functionAst)
-  return {
-    input: widgetInput,
-    externalId: functionAst.externalId,
-    updateCallback: handleWidgetUpdates,
+// === Editing arguments ===
+
+const functionArgs = computed(() => functionAst.argumentDefinitions)
+
+function handleAddItem() {
+  doEdit((ast) => {
+    ast.pushArgumentDefinition(
+      newArgumentDefinition(generateUniqueArgName(currentArgNames(ast), (i) => `arg${i}`)),
+    )
+  })
+}
+
+function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) => void) {
+  const edit = currentProject.ref.value?.graph.startEdit()
+  if (!edit) return
+  editFn(edit.getVersion(functionAst), edit)
+  handleWidgetUpdates({ edit, directInteraction: true })
+}
+
+const currentArgNames = (ast: Ast.FunctionDef) =>
+  new Set(ast.argumentDefinitions.map((a) => a.pattern.node.code()))
+
+function generateUniqueArgName(
+  existingNames: Set<string>,
+  indexToName: (index: number) => string,
+): string {
+  for (let i = 1; i < 10000; i++) {
+    const proposedName = indexToName(i)
+    if (!existingNames.has(proposedName)) return proposedName
   }
-})
+  // Technically reachable, but not in any reasonable operation.
+  // The loop exist condition is there only to prevent an infinite loop in case of a bug.
+  assertUnreachable()
+}
+
+function handleRemove(index: number) {
+  doEdit((ast) => ast.spliceArgumentDefinitions(index, 1))
+}
+
+function handleReorder(oldIndex: number, newIndex: number) {
+  doEdit((ast) => ast.moveArgumentDefinitions(oldIndex, newIndex))
+}
+
+function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) {
+  if (newName == null) return handleRemove(index)
+
+  doEdit((ast, edit) => {
+    const definition = ast.argumentDefinitions[index]
+    if (!definition) return
+    const oldNameString = definition.pattern.node.code()
+    const newNameString = newName.code()
+    if (newNameString == oldNameString) return
+    renameArgumentInDefaultValue(definition, edit, newNameString)
+    ast.visitRecursive((child) => {
+      if (child instanceof Ast.Ident && child.token.code() === oldNameString)
+        edit.replaceValue(child.id, newName)
+    })
+  })
+}
+
+function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression> | undefined) {
+  doEdit((ast) => ast.setArgumentType(index, typeExpr))
+}
+
+function handleUpdateDefault(
+  index: number,
+  typeExpr: Ast.Owned<Ast.MutableExpression> | undefined,
+) {
+  doEdit((ast) => ast.setArgumentDefault(index, typeExpr))
+}
+
+/** Make a unique ID for each argument row. It is also used to reactively update the list when the view when the argument AST changes. */
+function makeArgRowId(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>) {
+  const id = arg.pattern.node.id
+  const defaultValueId = arg.defaultValue?.expression?.node.id ?? 'none'
+  const typeId = arg.type?.type?.node.id ?? 'none'
+  return `${id}:${defaultValueId}:${typeId}`
+}
 </script>
 
 <template>
@@ -86,7 +162,30 @@ const funcArgsInput = computed(() => {
       <FormRow>
         <template #label>Arguments (Name : Type = Default)</template>
         <!-- TODO: inline arg list and delete WidgetFunctionDef -->
-        <WidgetTreeRoot class="widgetPill" v-bind="funcArgsInput" />
+        <!-- <WidgetTreeRoot class="widgetPill" v-bind="funcArgsInput" /> -->
+        <DraggableList
+          axis="y"
+          showHandles
+          class="ArgumentList widgetPill"
+          :items="functionArgs"
+          :getKey="makeArgRowId"
+          @addItem="handleAddItem"
+          @remove="handleRemove"
+          @reorder="handleReorder"
+        >
+          <template #default="{ item, index }">
+            <ArgumentRow
+              :root="rootElement"
+              :externalId="functionAst.externalId"
+              :portIdBase="syntheticPortId(functionAst.id, `argRow:${index}`)"
+              :definition="item"
+              :updateCallback="handleWidgetUpdates"
+              @rename="handleRename(index, $event)"
+              @updateType="handleUpdateType(index, $event)"
+              @updateDefault="handleUpdateDefault(index, $event)"
+            />
+          </template>
+        </DraggableList>
       </FormRow>
       <FormRow>
         <template #label>Documentation</template>
@@ -102,5 +201,10 @@ const funcArgsInput = computed(() => {
   --node-port-shadow: inset 0 0 0 1px black;
   --dropdown-item-hover-bg: var(--color-menu-entry-hover-bg);
   --dropdown-item-selected-bg: var(--color-menu-entry-selected-bg);
+}
+
+.ArgumentList {
+  padding: 8px;
+  gap: 4px;
 }
 </style>
