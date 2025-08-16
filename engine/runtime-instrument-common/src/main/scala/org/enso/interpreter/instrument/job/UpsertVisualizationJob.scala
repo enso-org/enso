@@ -388,7 +388,11 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] = {
     Try {
       val pending =
-        ctx.executionService.evaluateExpression(module, argumentExpression)
+        ctx.executionService.evaluateExpression(
+          module,
+          argumentExpression,
+          "evaluate args"
+        )
       pending.toCompletableFuture.get()
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
@@ -453,7 +457,8 @@ object UpsertVisualizationJob {
         case Api.VisualizationExpression.Text(_, expression, _) =>
           ctx.executionService.evaluateExpression(
             expressionModule,
-            expression
+            expression,
+            "evaluate visualization function"
           )
         case Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(_, definedOnType, name),

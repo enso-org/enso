@@ -799,7 +799,8 @@ object ProgramExecutionSupport {
                 )
               )
             )
-          }
+          },
+          logger
         )
 
       case Right(data) =>
@@ -822,7 +823,8 @@ object ProgramExecutionSupport {
                 )
               )
             )
-          }
+          },
+          logger
         )
     }
   }

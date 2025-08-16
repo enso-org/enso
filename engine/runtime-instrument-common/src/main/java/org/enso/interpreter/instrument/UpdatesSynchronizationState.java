@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
 
 /**
  * The synchronization state of runtime updates.
@@ -137,10 +138,11 @@ public class UpdatesSynchronizationState {
    *
    * @param key the visualization id.
    */
-  public void runAndSetVisualizationSync(UUID key, Runnable runnable) {
+  public void runAndSetVisualizationSync(UUID key, Runnable runnable, Logger logger) {
     synchronized (visualizationsState) {
-      runnable.run();
       if (!visualizationsState.contains(key)) {
+        logger.trace("Visualization {} is out-of-sync. Running.", key);
+        runnable.run();
         visualizationsState.add(key);
       }
     }

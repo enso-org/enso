@@ -310,8 +310,9 @@ public final class ExecutionService {
    * @param expression the expression to evaluate
    * @return a computation representing the evaluation of an expression
    */
-  public CompletionStage<Object> evaluateExpression(Module module, String expression) {
-    LOGGER.trace("evaluateExpression in {} code: {}", module.getName(), expression);
+  public CompletionStage<Object> evaluateExpression(
+      Module module, String expression, String context) {
+    LOGGER.trace("evaluateExpression in {} code ({}): {}", module.getName(), context, expression);
     return submitExecution(() -> invoke.getCallTarget().call(module, expression));
   }
 
