@@ -87,13 +87,6 @@ final class OtherJvmObject implements TruffleObject {
       var reply = channel.execute(OtherJvmResult.class, msg);
       channel.getConfig().profileMessage(message, args);
       var result = reply.value();
-
-      if (message == IS_META_OBJECT && result instanceof Boolean b) {
-        isMetaObject = b;
-      }
-      if (message == IS_NULL && result instanceof Boolean b) {
-        isNull = b;
-      }
       return result;
     }
   }
@@ -170,10 +163,14 @@ final class OtherJvmObject implements TruffleObject {
         yield new OtherJvmObject(null, -ex.delegate.id());
       }
       case TruffleObject foreign -> {
+        var iop = InteropLibrary.getUncached();
         var id = registerObject.apply(foreign);
         // our own truffle objects send to the other side should
         // have a positive ID
-        yield new OtherJvmObject(null, id);
+        var other = new OtherJvmObject(null, id);
+        other.isMetaObject = iop.isMetaObject(foreign);
+        other.isNull = iop.isNull(foreign);
+        yield other;
       }
       case null -> null;
       default -> obj;

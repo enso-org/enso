@@ -50,12 +50,17 @@ public final class OtherJvmPool extends Channel.Config {
     var withReadAndWrite =
         withRead.withWriteReplace(
             obj -> {
-              return OtherJvmObject.writeReplace(obj, this::registerObject);
+              var prev = enter(channel.isMaster(), null);
+              try {
+                return OtherJvmObject.writeReplace(obj, this::registerObject);
+              } finally {
+                leave(channel.isMaster(), null, prev);
+              }
             });
     return withReadAndWrite;
   }
 
-  Object enter(boolean master, Node node) {
+  final Object enter(boolean master, Node node) {
     if (master) {
       if (onEnter != null) {
         return onEnter.apply(node);
@@ -66,7 +71,7 @@ public final class OtherJvmPool extends Channel.Config {
     return null;
   }
 
-  void leave(boolean master, Node node, Object prev) {
+  final void leave(boolean master, Node node, Object prev) {
     if (master) {
       if (onLeave != null) {
         onLeave.accept(node, prev);
