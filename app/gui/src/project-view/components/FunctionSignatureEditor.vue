@@ -75,7 +75,7 @@ const funcArgsInput = computed(() => {
   <div ref="rootElement" class="FunctionSignatureEditor define-node-colors">
     <FormContainer>
       <FormRow>
-        <template #label>Collapsed Components Name</template>
+        <template #label>User-Defined Component Name</template>
         <WidgetTreeRoot v-bind="funcNameInput" />
       </FormRow>
       <FormRow inline>
@@ -100,5 +100,7 @@ const funcArgsInput = computed(() => {
   --node-group-color: white;
   --color-node-text: black;
   --node-port-shadow: inset 0 0 0 1px black;
+  --dropdown-item-hover-bg: var(--color-menu-entry-hover-bg);
+  --dropdown-item-selected-bg: var(--color-menu-entry-selected-bg);
 }
 </style>

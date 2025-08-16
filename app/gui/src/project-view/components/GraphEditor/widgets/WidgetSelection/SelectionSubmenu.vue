@@ -10,12 +10,7 @@ import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const {
-  extendUpwards = true,
-  backgroundColor = 'var(--color-node-background)',
-  color = 'var(--color-node-text)',
-  ...props
-} = defineProps<{
+const { extendUpwards = true, ...props } = defineProps<{
   floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
@@ -123,8 +118,6 @@ export interface SubmenuComponent {
           v-if="props.show"
           class="widgetPill"
           :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
-          :color="color"
-          :backgroundColor="backgroundColor"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
@@ -138,8 +131,6 @@ export interface SubmenuComponent {
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
-    :color="color"
-    :backgroundColor="backgroundColor"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>

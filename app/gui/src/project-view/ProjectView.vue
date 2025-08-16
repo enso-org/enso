@@ -108,40 +108,6 @@ onDeactivated(() => (visible.value = false))
   height: 16px;
 }
 
-/* Scrollbar style definitions for textual visualizations which need support for scrolling.
- *
- * The 11px width/height (depending on scrollbar orientation)
- * is set so that it resembles macOS default scrollbar.
- */
-
-:deep(.scrollable) {
-  scrollbar-color: rgba(190 190 190 / 50%) transparent;
-  &::-webkit-scrollbar {
-    -webkit-appearance: none;
-  }
-  &::-webkit-scrollbar-track {
-    -webkit-box-shadow: none;
-  }
-  &::-webkit-scrollbar:vertical {
-    width: 11px;
-  }
-  &::-webkit-scrollbar:horizontal {
-    height: 11px;
-  }
-  &::-webkit-scrollbar-thumb {
-    border-radius: 8px;
-    border: 1px solid rgba(220, 220, 220, 0.5);
-    background-color: rgba(190, 190, 190, 0.5);
-  }
-  &::-webkit-scrollbar-corner {
-    background: rgba(0, 0, 0, 0);
-  }
-  &::-webkit-scrollbar-button {
-    height: 8px;
-    width: 8px;
-  }
-}
-
 :deep(.draggable) {
   cursor: grab;
 }
