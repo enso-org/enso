@@ -3,6 +3,7 @@ package org.enso.jvm.interop.impl;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
@@ -33,12 +34,15 @@ final class OtherJvmObject implements TruffleObject {
 
   private static final Message IS_META_OBJECT =
       Message.resolve(InteropLibrary.class, "isMetaObject");
+  private static final Message GET_META_QUALIFIED_NAME =
+      Message.resolve(InteropLibrary.class, "getMetaQualifiedName");
   private static final Message IS_NULL = Message.resolve(InteropLibrary.class, "isNull");
 
   private final Channel<OtherJvmPool> channel;
   private final long id;
   private Boolean isMetaObject;
   private Boolean isNull;
+  private String metaQualifiedName;
 
   private OtherJvmObject(Channel<OtherJvmPool> channel, long id) {
     this.channel = channel;
@@ -78,6 +82,9 @@ final class OtherJvmObject implements TruffleObject {
       if (message == IS_META_OBJECT && isMetaObject != null) {
         return isMetaObject;
       }
+      if (message == GET_META_QUALIFIED_NAME && metaQualifiedName != null) {
+        return metaQualifiedName;
+      }
       if (message == IS_NULL && isNull != null) {
         return isNull;
       }
@@ -97,6 +104,7 @@ final class OtherJvmObject implements TruffleObject {
       assert toBind.channel == null;
       var other = new OtherJvmObject(ch, toBind.id);
       other.isMetaObject = toBind.isMetaObject;
+      other.metaQualifiedName = toBind.metaQualifiedName;
       other.isNull = toBind.isNull;
       return (T) other;
     } else {
@@ -110,6 +118,10 @@ final class OtherJvmObject implements TruffleObject {
     if (isMetaObject != null) {
       out.writeBoolean(isMetaObject);
     }
+    out.writeBoolean(metaQualifiedName != null);
+    if (metaQualifiedName != null) {
+      out.writeUTF(metaQualifiedName);
+    }
     out.writeBoolean(isNull != null);
     if (isNull != null) {
       out.writeBoolean(isNull);
@@ -120,6 +132,9 @@ final class OtherJvmObject implements TruffleObject {
     var other = new OtherJvmObject(null, in.readLong());
     if (in.readBoolean()) {
       other.isMetaObject = in.readBoolean();
+    }
+    if (in.readBoolean()) {
+      other.metaQualifiedName = in.readUTF();
     }
     if (in.readBoolean()) {
       other.isNull = in.readBoolean();
@@ -169,6 +184,13 @@ final class OtherJvmObject implements TruffleObject {
         // have a positive ID
         var other = new OtherJvmObject(null, id);
         other.isMetaObject = iop.isMetaObject(foreign);
+        if (other.isMetaObject) {
+          try {
+            other.metaQualifiedName = iop.asString(iop.getMetaQualifiedName(foreign));
+          } catch (UnsupportedMessageException ex) {
+            // go without qualified name
+          }
+        }
         other.isNull = iop.isNull(foreign);
         yield other;
       }
