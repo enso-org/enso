@@ -6,9 +6,9 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistance;
 
@@ -116,10 +116,12 @@ public final class OtherJvmPool extends Channel.Config {
   private static final int DUMP_MESSAGES_COUNT =
       Integer.getInteger("org.enso.jvm.interop.limit", -1);
 
+  private static final int DUMP_MESSAGE_STACK_SIZE = 8;
+
   /**
    * @GuardedBy("this")
    */
-  private Map<Message, AtomicInteger> histogram;
+  private Map<Message, WhereAndCount> histogram;
 
   /**
    * @GuardedBy("this")
@@ -138,15 +140,15 @@ public final class OtherJvmPool extends Channel.Config {
       countDown = DUMP_MESSAGES_COUNT;
       countSince = System.currentTimeMillis();
     }
-    var count = histogram.computeIfAbsent(message, (ignore) -> new AtomicInteger());
-    count.incrementAndGet();
+    var count = histogram.computeIfAbsent(message, (ignore) -> new WhereAndCount());
+    count.count++;
     if (countDown-- < 0) {
       dumpMessages();
       countDown = DUMP_MESSAGES_COUNT;
     }
   }
 
-  private synchronized Map<Message, AtomicInteger> clearMessages(StringBuilder sb) {
+  private synchronized Map<Message, WhereAndCount> clearMessages(StringBuilder sb) {
     var prev = histogram;
     histogram = null;
     long took = System.currentTimeMillis() - countSince;
@@ -163,12 +165,22 @@ public final class OtherJvmPool extends Channel.Config {
     prev.entrySet().stream()
         .sorted(
             (a, b) -> {
-              return b.getValue().intValue() - a.getValue().intValue();
+              return b.getValue().count - a.getValue().count;
             })
         .limit(10)
         .forEach(
             (e) -> {
-              sb.append("%8d %s\n".formatted(e.getValue().intValue(), e.getKey()));
+              sb.append("%8d %s\n".formatted(e.getValue().count, e.getKey()));
+              Stream.of(e.getValue().getStackTrace())
+                  .map(StackTraceElement::toString)
+                  .dropWhile(
+                      l ->
+                          l.contains("org.enso.jvm.interop")
+                              || l.contains("java.base")
+                              || l.contains("org.graalvm.truffle"))
+                  .limit(DUMP_MESSAGE_STACK_SIZE)
+                  .map("          at %s\n"::formatted)
+                  .forEach(sb::append);
             });
     var logger = System.getLogger("org.enso.jvm.interop");
     logger.log(System.Logger.Level.ERROR, sb);
@@ -178,5 +190,9 @@ public final class OtherJvmPool extends Channel.Config {
     if (DUMP_MESSAGES_COUNT >= 0) {
       incrementMessage(message);
     }
+  }
+
+  private static final class WhereAndCount extends Exception {
+    int count;
   }
 }
