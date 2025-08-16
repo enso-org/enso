@@ -73,7 +73,6 @@ defineExpose({
 .AutoSizedInput {
   position: relative;
   display: inline-block;
-  background: none;
   border: none;
   text-align: center;
   font-weight: 800;
