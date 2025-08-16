@@ -52,7 +52,6 @@ final class OtherJvmObject implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   Object send(Message message, Object[] args) throws Exception {
-    channel.getConfig().profileMessage(message, args);
     if (message == IS_IDENTICAL) {
       if (args[0] instanceof OtherJvmObject other) {
         if (id() == other.id()) {
@@ -86,6 +85,7 @@ final class OtherJvmObject implements TruffleObject {
       // proper dispatch to the other JVM
       var msg = new OtherJvmMessage(id, message, Arrays.asList(args));
       var reply = channel.execute(OtherJvmResult.class, msg);
+      channel.getConfig().profileMessage(message, args);
       var result = reply.value();
 
       if (message == IS_META_OBJECT && result instanceof Boolean b) {

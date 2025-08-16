@@ -121,11 +121,17 @@ public final class OtherJvmPool extends Channel.Config {
    */
   private int countDown;
 
+  /**
+   * @GuardedBy("this")
+   */
+  private long countSince;
+
   private synchronized void incrementMessage(Message message) {
     assert DUMP_MESSAGES_COUNT > 0;
     if (histogram == null) {
       histogram = new ConcurrentHashMap<>();
       countDown = DUMP_MESSAGES_COUNT;
+      countSince = System.currentTimeMillis();
     }
     var count = histogram.computeIfAbsent(message, (ignore) -> new AtomicInteger());
     count.incrementAndGet();
@@ -135,19 +141,20 @@ public final class OtherJvmPool extends Channel.Config {
     }
   }
 
-  private synchronized Map<Message, AtomicInteger> clearMessages() {
+  private synchronized Map<Message, AtomicInteger> clearMessages(StringBuilder sb) {
     var prev = histogram;
     histogram = null;
+    long took = System.currentTimeMillis() - countSince;
+    sb.append("\n======== Interop JVM Messages Chart in last %d ms ========\n".formatted(took));
     return prev;
   }
 
   private void dumpMessages() {
-    var prev = clearMessages();
+    var sb = new StringBuilder();
+    var prev = clearMessages(sb);
     if (prev == null) {
       return;
     }
-    var sb = new StringBuilder();
-    sb.append("\n======== Interop JVM Messages Chart ========\n");
     prev.entrySet().stream()
         .sorted(
             (a, b) -> {
