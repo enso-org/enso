@@ -43,6 +43,7 @@ final class OtherJvmObject implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   Object send(Message message, Object[] args) throws Exception {
+    channel.getConfig().profileMessage(message, args);
     if (message == IS_IDENTICAL) {
       if (args[0] instanceof OtherJvmObject other) {
         if (id() == other.id()) {

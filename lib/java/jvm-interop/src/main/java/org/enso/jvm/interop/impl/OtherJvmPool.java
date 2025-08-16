@@ -1,9 +1,12 @@
 package org.enso.jvm.interop.impl;
 
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
@@ -124,5 +127,79 @@ public final class OtherJvmPool extends Channel.Config {
       loader = new OtherJvmLoader();
     }
     return loader;
+  }
+
+  //
+  // Support for histogram of messages
+  //
+
+  /**
+   * Enable histogram of messages for example by:
+   *
+   * <pre>
+   * runEngineDistribution
+   *    --vm.D=org.enso.jvm.interop.limit=100000
+   *    --vm.D=polyglot.enso.classLoading=guest
+   *    --run test/Generic_JDBC_Tests
+   * </pre>
+   */
+  private static final int DUMP_MESSAGES_COUNT =
+      Integer.getInteger("org.enso.jvm.interop.limit", -1);
+
+  /**
+   * @GuardedBy("this")
+   */
+  private Map<Message, AtomicInteger> histogram;
+
+  /**
+   * @GuardedBy("this")
+   */
+  private int countDown;
+
+  private synchronized void incrementMessage(Message message) {
+    assert DUMP_MESSAGES_COUNT > 0;
+    if (histogram == null) {
+      histogram = new ConcurrentHashMap<>();
+      countDown = DUMP_MESSAGES_COUNT;
+    }
+    var count = histogram.computeIfAbsent(message, (ignore) -> new AtomicInteger());
+    count.incrementAndGet();
+    if (countDown-- < 0) {
+      dumpMessages();
+      countDown = DUMP_MESSAGES_COUNT;
+    }
+  }
+
+  private synchronized Map<Message, AtomicInteger> clearMessages() {
+    var prev = histogram;
+    histogram = null;
+    return prev;
+  }
+
+  private void dumpMessages() {
+    var prev = clearMessages();
+    if (prev == null) {
+      return;
+    }
+    var sb = new StringBuilder();
+    sb.append("\n======== Interop JVM Messages Chart ========\n");
+    prev.entrySet().stream()
+        .sorted(
+            (a, b) -> {
+              return b.getValue().intValue() - a.getValue().intValue();
+            })
+        .limit(10)
+        .forEach(
+            (e) -> {
+              sb.append("%8d %s\n".formatted(e.getValue().intValue(), e.getKey()));
+            });
+    var logger = System.getLogger("org.enso.jvm.interop");
+    logger.log(System.Logger.Level.ERROR, sb);
+  }
+
+  final void profileMessage(Message message, Object[] args) {
+    if (DUMP_MESSAGES_COUNT >= 0) {
+      incrementMessage(message);
+    }
   }
 }
