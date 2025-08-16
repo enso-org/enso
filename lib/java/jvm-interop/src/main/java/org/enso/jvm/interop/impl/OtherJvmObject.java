@@ -7,8 +7,11 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
+import org.enso.persist.Persistance;
 
 @ExportLibrary(ReflectionLibrary.class)
 final class OtherJvmObject implements TruffleObject {
@@ -28,10 +31,16 @@ final class OtherJvmObject implements TruffleObject {
   private static final Message GET_SOURCE_LOCATION =
       Message.resolve(InteropLibrary.class, "getSourceLocation");
 
+  private static final Message IS_META_OBJECT =
+      Message.resolve(InteropLibrary.class, "isMetaObject");
+  private static final Message IS_NULL = Message.resolve(InteropLibrary.class, "isNull");
+
   private final Channel<OtherJvmPool> channel;
   private final long id;
+  private Boolean isMetaObject;
+  private Boolean isNull;
 
-  OtherJvmObject(Channel<OtherJvmPool> channel, long id) {
+  private OtherJvmObject(Channel<OtherJvmPool> channel, long id) {
     this.channel = channel;
     this.id = id;
   }
@@ -67,19 +76,107 @@ final class OtherJvmObject implements TruffleObject {
       // hence provide POJO as a receiver
       return ReflectionLibrary.getUncached().send(POJO, message, args);
     } else {
+      if (message == IS_META_OBJECT && isMetaObject != null) {
+        return isMetaObject;
+      }
+      if (message == IS_NULL && isNull != null) {
+        return isNull;
+      }
+
       // proper dispatch to the other JVM
       var msg = new OtherJvmMessage(id, message, Arrays.asList(args));
       var reply = channel.execute(OtherJvmResult.class, msg);
-      return reply.value();
+      var result = reply.value();
+
+      if (message == IS_META_OBJECT && result instanceof Boolean b) {
+        isMetaObject = b;
+      }
+      if (message == IS_NULL && result instanceof Boolean b) {
+        isNull = b;
+      }
+      return result;
     }
   }
 
-  static Object bindToChannel(Object v, Channel<OtherJvmPool> ch) {
+  @SuppressWarnings("unchecked")
+  static <T> T bindToChannel(T v, Channel<OtherJvmPool> ch) {
     if (v instanceof OtherJvmObject toBind) {
       assert toBind.channel == null;
-      return new OtherJvmObject(ch, toBind.id);
+      var other = new OtherJvmObject(ch, toBind.id);
+      other.isMetaObject = toBind.isMetaObject;
+      other.isNull = toBind.isNull;
+      return (T) other;
     } else {
       return v;
     }
+  }
+
+  final void writeTo(Persistance.Output out) throws IOException {
+    out.writeLong(id());
+    out.writeBoolean(isMetaObject != null);
+    if (isMetaObject != null) {
+      out.writeBoolean(isMetaObject);
+    }
+    out.writeBoolean(isNull != null);
+    if (isNull != null) {
+      out.writeBoolean(isNull);
+    }
+  }
+
+  static OtherJvmObject readFrom(Persistance.Input in) throws IOException {
+    var other = new OtherJvmObject(null, in.readLong());
+    if (in.readBoolean()) {
+      other.isMetaObject = in.readBoolean();
+    }
+    if (in.readBoolean()) {
+      other.isNull = in.readBoolean();
+    }
+    return other;
+  }
+
+  static Object readResolve(
+      Channel<OtherJvmPool> channel, Object obj, Function<Long, TruffleObject> findObject) {
+    return switch (obj) {
+      case OtherJvmObject other -> {
+        if (other.id() < 0) {
+          // the other object with negative number came back
+          // it is our own object
+          var ourOwn = findObject.apply(-other.id());
+          assert ourOwn != null;
+          yield ourOwn;
+        } else {
+          // real truffle object in the other JVM
+          // need to keep it as OtherJvmObject proxy
+          // just associate channel to it
+          var proxy = OtherJvmObject.bindToChannel(other, channel);
+          yield proxy;
+        }
+      }
+      case null -> null;
+      default -> obj;
+    };
+  }
+
+  static Object writeReplace(Object obj, Function<TruffleObject, Long> registerObject) {
+    return switch (obj) {
+      case OtherJvmObject other -> {
+        // returning back their own OtherJvmObject - let
+        // them know it is theirs by using negative ID
+        yield new OtherJvmObject(null, -other.id());
+      }
+      case OtherJvmTruffleException ex -> {
+        // unwrap the exception to object reference
+        // and send it back as regular OtherJvmObject
+        yield new OtherJvmObject(null, -ex.delegate.id());
+      }
+      case TruffleObject foreign -> {
+        var id = registerObject.apply(foreign);
+        // our own truffle objects send to the other side should
+        // have a positive ID
+        yield new OtherJvmObject(null, id);
+      }
+      case null -> null;
+      default -> obj;
+    };
   }
 }

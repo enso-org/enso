@@ -43,50 +43,15 @@ public final class OtherJvmPool extends Channel.Config {
   public final Persistance.Pool createPool(Channel<?> channel) {
     var withRead =
         Persistables.POOL.withReadResolve(
-            (obj) ->
-                switch (obj) {
-                  case OtherJvmObject other -> {
-                    if (other.id() < 0) {
-                      // the other object with negative number came back
-                      // it is our own object
-                      var ourOwn = findObject(-other.id());
-                      assert ourOwn != null;
-                      yield ourOwn;
-                    } else {
-                      // real truffle object in the other JVM
-                      // need to keep it as OtherJvmObject proxy
-                      // just associate channel to it
-                      var proxy =
-                          OtherJvmObject.bindToChannel(other, (Channel<OtherJvmPool>) channel);
-                      yield proxy;
-                    }
-                  }
-                  case null -> null;
-                  default -> obj;
-                });
+            obj -> {
+              return OtherJvmObject.readResolve(
+                  (Channel<OtherJvmPool>) channel, obj, this::findObject);
+            });
     var withReadAndWrite =
         withRead.withWriteReplace(
-            (obj) ->
-                switch (obj) {
-                  case OtherJvmObject other -> {
-                    // returning back their own OtherJvmObject - let
-                    // them know it is theirs by using negative ID
-                    yield new OtherJvmObject(null, -other.id());
-                  }
-                  case OtherJvmTruffleException ex -> {
-                    // unwrap the exception to object reference
-                    // and send it back as regular OtherJvmObject
-                    yield new OtherJvmObject(null, -ex.delegate.id());
-                  }
-                  case TruffleObject foreign -> {
-                    var id = registerObject(foreign);
-                    // our own truffle objects send to the other side should
-                    // have a positive ID
-                    yield new OtherJvmObject(null, id);
-                  }
-                  case null -> null;
-                  default -> obj;
-                });
+            obj -> {
+              return OtherJvmObject.writeReplace(obj, this::registerObject);
+            });
     return withReadAndWrite;
   }
 

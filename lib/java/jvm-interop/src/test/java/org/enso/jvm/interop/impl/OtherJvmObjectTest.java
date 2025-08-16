@@ -258,7 +258,7 @@ public class OtherJvmObjectTest {
     var msg = new OtherJvmMessage.LoadClass(name);
     var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
     if (shortRaw instanceof OtherJvmObject other) {
-      shortRaw = new OtherJvmObject(CHANNEL, other.id());
+      shortRaw = OtherJvmObject.bindToChannel(other, CHANNEL);
     }
     var shortValue = ctx.asValue(shortRaw);
     return shortValue;
