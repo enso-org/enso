@@ -10,7 +10,7 @@ enum SortDirection {
   descending = 'descending',
 }
 
-const props = defineProps<{ color: string; backgroundColor: string; entries: Entry[] }>()
+const props = defineProps<{ entries: Entry[] }>()
 const emit = defineEmits<{
   clickEntry: [entry: Entry, keepOpen: boolean, htmlElement: HTMLElement]
   scroll: []
@@ -44,8 +44,6 @@ const sortedValues = computed<Entry[]>(() => {
 
 const styleVars = computed(() => {
   return {
-    '--dropdown-fg': props.color,
-    '--dropdown-bg': props.backgroundColor,
     // Slightly shift the top border of drawn dropdown away from node's top border by a fraction of
     // a pixel, to prevent it from poking through and disturbing node's siluette.
     '--extend-margin': `${0.2 / (graphNavigator?.scale ?? 1)}px`,
@@ -101,6 +99,8 @@ export interface DropdownEntry {
   background-color: var(--dropdown-bg);
   border-radius: calc(var(--item-height) / 2 + var(--dropdown-padding));
   color: var(--dropdown-fg);
+  /* Clip content, including selection highlight and scrollbar */
+  overflow: clip;
 }
 
 /** 
@@ -145,7 +145,7 @@ export interface DropdownEntry {
   align-items: center;
 
   &:hover {
-    background-color: color-mix(in oklab, var(--dropdown-bg) 50%, white 50%);
+    background-color: var(--dropdown-item-hover-bg);
     .itemContent {
       --text-scroll-max: calc(var(--dropdown-max-width) - 28px);
       will-change: transform;
@@ -154,7 +154,7 @@ export interface DropdownEntry {
   }
 
   &.selected {
-    background-color: var(--color-port-connected);
+    background-color: var(--dropdown-item-selected-bg);
 
     & + .selected {
       border-top-left-radius: 0;

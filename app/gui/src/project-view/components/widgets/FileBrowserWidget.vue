@@ -257,13 +257,22 @@ registerHandlers({
 .FileBrowserWidgetWrapper {
   --z-index: var(--z-index-file-browser, 0);
   --z-index-selection-submenu: calc(var(--z-index) - 1);
+  --background-color: var(--file-browser-background-color, var(--color-panel-accent));
+  --dropdown-bg: var(--background-color);
+  --dropdown-fg: var(--file-browser-text-color, white);
+  --dropdown-item-hover-bg: color-mix(in oklab, var(--dropdown-bg) 70%, white 30%);
+  --dropdown-item-selected-bg: color-mix(
+    in oklab,
+    var(--dropdown-bg) 80%,
+    var(--color-node-background) 20%
+  );
 }
 
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
-  background-color: var(--file-browser-background-color, var(--color-panel-accent));
   --corner-radius: var(--file-browser-corner-radius, var(--radius-default));
+  background-color: var(--background-color);
   padding: var(--border-width);
   border-radius: 0 0 var(--corner-radius) var(--corner-radius);
   min-width: var(--file-browser-min-width, 400px);
