@@ -26,7 +26,10 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OtherJvmObjectTest {
-  @ClassRule public static final ContextUtils ctx = ContextUtils.newBuilder("js").build();
+  @ClassRule
+  public static final ContextUtils ctx =
+      ContextUtils.newBuilder("host") // no dynamic languages needed
+          .build();
 
   private static Channel<OtherJvmPool> CHANNEL;
 
