@@ -126,7 +126,7 @@ public final class OtherJvmPool extends Channel.Config {
   /**
    * @GuardedBy("this")
    */
-  private int countDown;
+  private int countMessages;
 
   /**
    * @GuardedBy("this")
@@ -137,14 +137,15 @@ public final class OtherJvmPool extends Channel.Config {
     assert DUMP_MESSAGES_COUNT > 0;
     if (histogram == null) {
       histogram = new ConcurrentHashMap<>();
-      countDown = DUMP_MESSAGES_COUNT;
+      countMessages = 0;
       countSince = System.currentTimeMillis();
     }
     var count = histogram.computeIfAbsent(message, (ignore) -> new WhereAndCount());
     count.count++;
-    if (countDown-- < 0) {
-      dumpMessages();
-      countDown = DUMP_MESSAGES_COUNT;
+    if (++countMessages >= DUMP_MESSAGES_COUNT) {
+      var logger = System.getLogger("org.enso.jvm.interop");
+      logger.log(System.Logger.Level.ERROR, dumpMessages());
+      countMessages = 0;
     }
   }
 
@@ -156,11 +157,11 @@ public final class OtherJvmPool extends Channel.Config {
     return prev;
   }
 
-  private void dumpMessages() {
+  private String dumpMessages() {
     var sb = new StringBuilder();
     var prev = clearMessages(sb);
     if (prev == null) {
-      return;
+      return sb.toString();
     }
     prev.entrySet().stream()
         .sorted(
@@ -182,13 +183,28 @@ public final class OtherJvmPool extends Channel.Config {
                   .map("          at %s\n"::formatted)
                   .forEach(sb::append);
             });
-    var logger = System.getLogger("org.enso.jvm.interop");
-    logger.log(System.Logger.Level.ERROR, sb);
+    return sb.toString();
   }
 
   final void profileMessage(Message message, Object[] args) {
     if (DUMP_MESSAGES_COUNT >= 0) {
       incrementMessage(message);
+    }
+  }
+
+  final void assertMessagesCount(String msg, int cnt, Runnable run) {
+    assert DUMP_MESSAGES_COUNT == Integer.MAX_VALUE;
+    clearMessages(new StringBuilder());
+    run.run();
+    if (countMessages >= cnt) {
+      var txt =
+          msg
+              + ", expected at most "
+              + cnt
+              + " messages, but was "
+              + countMessages
+              + dumpMessages();
+      throw new AssertionError(txt);
     }
   }
 

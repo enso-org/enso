@@ -53,6 +53,11 @@ final class OtherJvmObject implements TruffleObject {
     return id;
   }
 
+  @Override
+  public String toString() {
+    return "OtherJvmObject{" + "id=" + id + '}';
+  }
+
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   Object send(Message message, Object[] args) throws Exception {

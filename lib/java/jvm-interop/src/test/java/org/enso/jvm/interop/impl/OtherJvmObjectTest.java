@@ -35,6 +35,7 @@ public class OtherJvmObjectTest {
 
   @BeforeClass
   public static void initializeChannel() {
+    System.setProperty("org.enso.jvm.interop.limit", "" + Integer.MAX_VALUE);
     CHANNEL = Channel.create(null, OtherJvmPool.class);
     CHANNEL
         .getConfig()
@@ -252,6 +253,28 @@ public class OtherJvmObjectTest {
 
     otherClass.invokeMember("callback", mockValue, "RealOther");
     mock.assertArgs("Called with Real", ctx.asValue("RealOther"));
+  }
+
+  @Test
+  public void metaObjectEgClassesAreImmutableInJVM() throws Exception {
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 0);
+    var clazz1 = other1.getMetaObject();
+    var other2 = otherClass.invokeMember("otherJvmInstances", 0);
+    var clazz2 = other2.getMetaObject();
+
+    CHANNEL
+        .getConfig()
+        .assertMessagesCount(
+            "Not too many messages neded for comparing classes",
+            5,
+            () -> {
+              assertEquals("Classes are the equal (obviously)", clazz1, clazz2);
+              var rawClass1 = ctx.unwrapValue(clazz1);
+              var rawClass2 = ctx.unwrapValue(clazz2);
+              //              assertSame("Represented by the same truffle object", rawClass1,
+              // rawClass2);
+            });
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
