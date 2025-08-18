@@ -4077,6 +4077,10 @@ lazy val `jvm-interop` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      // jvm-interop/test has to run with -ea enabled
+      // otherwise Truffle library support performs a lot of additional
+      // checks and they skew the message counts
+      // inConfig(Compile)(truffleRunOptionsSettings),
       autoScalaLibrary := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,

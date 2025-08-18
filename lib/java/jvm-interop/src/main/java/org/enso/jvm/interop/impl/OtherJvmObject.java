@@ -105,7 +105,7 @@ final class OtherJvmObject implements TruffleObject {
   }
 
   @SuppressWarnings("unchecked")
-  static <T> T bindToChannel(T v, Channel<OtherJvmPool> ch) {
+  private static <T> T bindToChannel(T v, Channel<OtherJvmPool> ch) {
     if (v instanceof OtherJvmObject toBind) {
       assert toBind.channel == null;
       var other = new OtherJvmObject(ch, toBind.id);
@@ -204,5 +204,9 @@ final class OtherJvmObject implements TruffleObject {
       case null -> null;
       default -> obj;
     };
+  }
+
+  final boolean assertChannel(Channel ch) {
+    return ch == channel;
   }
 }

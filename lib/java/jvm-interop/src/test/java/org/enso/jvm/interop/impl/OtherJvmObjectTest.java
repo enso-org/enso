@@ -182,13 +182,15 @@ public class OtherJvmObjectTest {
     assertFalse("Other JVM objects don't have type", noType);
   }
 
-  private static final Object IDENTICAL = new Object();
+  private static final class MockObject {}
+
+  private static final Object IDENTICAL = new MockObject();
 
   public static Object otherJvmInstances(int kind) {
     if (kind == 0) {
       return IDENTICAL;
     } else {
-      return new Object();
+      return new MockObject();
     }
   }
 
@@ -267,7 +269,7 @@ public class OtherJvmObjectTest {
     CHANNEL
         .getConfig()
         .assertMessagesCount(
-            "No messages neded for comparing classes",
+            "No messages needed for comparing classes",
             0,
             () -> {
               assertEquals("Classes are the equal (obviously)", clazz1, clazz2);
@@ -281,7 +283,7 @@ public class OtherJvmObjectTest {
     var msg = new OtherJvmMessage.LoadClass(name);
     var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
     if (shortRaw instanceof OtherJvmObject other) {
-      shortRaw = OtherJvmObject.bindToChannel(other, CHANNEL);
+      assertTrue(other.assertChannel(CHANNEL));
     }
     var shortValue = ctx.asValue(shortRaw);
     return shortValue;
