@@ -30,6 +30,11 @@ add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (fr
                 _illegal_if (group_count < 1) "group_count must be at least 1" <|
                     ordering = _prepare_ordering table problem_builder order_by
                     AddGroupNumber.numberGroupsEqualCount table.row_count group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
+            Grouping_Method.Equal_Sum on group_count order_by ->
+                _illegal_if (group_count < 1) "group_count must be at least 1" <|
+                    on_column = table.get on
+                    ordering = _prepare_ordering table problem_builder order_by
+                    AddGroupNumber.numberGroupsEqualSum table.row_count on_column group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
         In_Memory_Column.from_storage name new_storage
 
 add_flagged_group table:(Table & In_Memory_Table) column:(Nothing | Column & In_Memory_Column) predicate group_row (name:Text) (from:Integer) (step:Integer) (on_problems:Problem_Behavior) =
