@@ -12,8 +12,6 @@ export default defineConfig({
     toHaveScreenshot: { threshold: 0 },
   },
   use: {
-    // Disabled as it logs all environment variables, which may contain sensitive data.
-    trace: 'off',
     actionTimeout: 5000,
   },
 })
