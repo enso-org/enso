@@ -270,9 +270,15 @@ add_core_specs suite_builder setup =
 
         group_builder.specify "calling get_row with negative indexes, indexes from right" <|
             last_row = data.table.get_row -1
-            last_row . should_equal data.table.last_row
+            last_row . length . should_equal 3
+            last_row.at "X" . should_equal 4
+            last_row.at "Y" . should_equal 8
+            last_row.at "Z" . should_equal "D"
             first_row = data.table.get_row -4
-            first_row . should_equal data.table.first_row
+            first_row . length . should_equal 3
+            first_row.at "X" . should_equal 1
+            first_row.at "Y" . should_equal 5
+            first_row.at "Z" . should_equal "A"
 
         group_builder.specify "calling get_row with out of bounds should return if_missing" <|
             out_of_bounds_top_row = data.table.get_row 4 Nothing
