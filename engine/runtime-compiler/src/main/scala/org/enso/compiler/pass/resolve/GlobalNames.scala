@@ -7,7 +7,6 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Expression,
-  MetadataStorage,
   Module,
   Name,
   Type
@@ -371,6 +370,7 @@ case object GlobalNames extends IRPass {
             .value(self)
             .isSynthetic(true)
             .name(None)
+            .build()
           processedFun.passData.remove(this) // Necessary for IrToTruffle
           app.copy(
             processedFun,

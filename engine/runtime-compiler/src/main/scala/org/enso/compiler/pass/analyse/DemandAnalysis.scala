@@ -10,7 +10,6 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
-  MetadataStorage,
   Module,
   Name,
   Type

@@ -1517,14 +1517,12 @@ final class TreeToIr {
         callArgs = join(fnAsArg, join(arg, callArgs));
         yield translateBuiltinAnnotation(ir, null, callArgs);
       }
-      case null -> {
-        Application.Prefix.builder()
-            .function(ir)
-            .arguments(callArgs)
-            .hasDefaultsSuspended(false)
-            .location(ir.identifiedLocation())
-            .build();
-      }
+      case null -> Application.Prefix.builder()
+          .function(ir)
+          .arguments(callArgs)
+          .hasDefaultsSuspended(false)
+          .location(ir.identifiedLocation())
+          .build();
       default -> {
         var arg = translateCallArgument(expr);
         callArgs = join(arg, callArgs);
