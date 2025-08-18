@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistance;
@@ -170,7 +171,7 @@ final class OtherJvmObject implements TruffleObject {
     };
   }
 
-  static Object writeReplace(Object obj, Function<TruffleObject, Long> registerObject) {
+  static Object writeReplace(Object obj, BiFunction<TruffleObject, Boolean, Long> registerObject) {
     return switch (obj) {
       case OtherJvmObject other -> {
         // returning back their own OtherJvmObject - let
@@ -184,11 +185,12 @@ final class OtherJvmObject implements TruffleObject {
       }
       case TruffleObject foreign -> {
         var iop = InteropLibrary.getUncached();
-        var id = registerObject.apply(foreign);
+        var meta = iop.isMetaObject(foreign);
+        var id = registerObject.apply(foreign, meta);
         // our own truffle objects send to the other side should
         // have a positive ID
         var other = new OtherJvmObject(null, id);
-        other.isMetaObject = iop.isMetaObject(foreign);
+        other.isMetaObject = meta;
         if (other.isMetaObject) {
           try {
             other.metaQualifiedName = iop.asString(iop.getMetaQualifiedName(foreign));

@@ -15,6 +15,7 @@ import org.enso.persist.Persistance;
 /** Pool of Truffle objects associated with {@link Channel}. */
 public final class OtherJvmPool extends Channel.Config {
   private final Map<Long, TruffleObject> objectsById = new HashMap<>();
+  private final Map<TruffleObject, Long> objectsToId = new HashMap<>();
 
   /** context to use when entering tests */
   private OtherJvmLoader loader;
@@ -28,10 +29,16 @@ public final class OtherJvmPool extends Channel.Config {
     this.onLeave = onLeave;
   }
 
-  private synchronized long registerObject(TruffleObject obj) {
-    var size = objectsById.size() + 1;
-    objectsById.put((long) size, obj);
-    return size;
+  private synchronized long registerObject(TruffleObject obj, boolean cacheIds) {
+    var id = cacheIds ? objectsToId.get(obj) : null;
+    if (id == null) {
+      id = (long) objectsById.size() + 1;
+      objectsById.put(id, obj);
+      if (cacheIds) {
+        objectsToId.put(obj, id);
+      }
+    }
+    return id;
   }
 
   final synchronized TruffleObject findObject(long id) {
@@ -195,8 +202,9 @@ public final class OtherJvmPool extends Channel.Config {
   final void assertMessagesCount(String msg, int cnt, Runnable run) {
     assert DUMP_MESSAGES_COUNT == Integer.MAX_VALUE;
     clearMessages(new StringBuilder());
+    countMessages = 0;
     run.run();
-    if (countMessages >= cnt) {
+    if (countMessages > cnt) {
       var txt =
           msg
               + ", expected at most "

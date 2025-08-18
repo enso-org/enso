@@ -6,6 +6,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -266,14 +267,13 @@ public class OtherJvmObjectTest {
     CHANNEL
         .getConfig()
         .assertMessagesCount(
-            "Not too many messages neded for comparing classes",
-            5,
+            "No messages neded for comparing classes",
+            0,
             () -> {
               assertEquals("Classes are the equal (obviously)", clazz1, clazz2);
-              var rawClass1 = ctx.unwrapValue(clazz1);
-              var rawClass2 = ctx.unwrapValue(clazz2);
-              //              assertSame("Represented by the same truffle object", rawClass1,
-              // rawClass2);
+              var rawClass1 = (OtherJvmObject) ctx.unwrapValue(clazz1);
+              var rawClass2 = (OtherJvmObject) ctx.unwrapValue(clazz2);
+              assertSame("Represented by the same truffle object", rawClass1.id(), rawClass2.id());
             });
   }
 
