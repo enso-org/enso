@@ -29,7 +29,19 @@ public final class OtherJvmPool extends Channel.Config {
     this.onLeave = onLeave;
   }
 
+  /**
+   * Registers an instance of Truffle interop object before sending it to the "other JVM". The
+   * system can lookup existing ID for the object - useful for sharing IDs/instances of
+   * <em>immutable objects</em> like {@link Class}es.
+   *
+   * @param obj the object to find ID for
+   * @param cacheIds should the IDs be cached
+   * @return identification ID that can be fed into {@link #findObject} later
+   * @see #findObject
+   */
   private synchronized long registerObject(TruffleObject obj, boolean cacheIds) {
+    assert !(obj instanceof OtherJvmObject)
+        : "It should be real truffle object, not just a proxy: " + obj;
     var id = cacheIds ? objectsToId.get(obj) : null;
     if (id == null) {
       id = (long) objectsById.size() + 1;
@@ -41,6 +53,12 @@ public final class OtherJvmPool extends Channel.Config {
     return id;
   }
 
+  /**
+   * Looks an object registered by {@link #registerObject} up.
+   *
+   * @param id the ID to look up
+   * @return object with assigned ID or {@code null}
+   */
   final synchronized TruffleObject findObject(long id) {
     return objectsById.get(id);
   }
