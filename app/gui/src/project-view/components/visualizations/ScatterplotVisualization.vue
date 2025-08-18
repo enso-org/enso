@@ -716,7 +716,7 @@ watchPostEffect(() => {
   const allPlotData = getPlotData(data.value)
   const [circleData, symbolData] = partition(allPlotData, (p) => (p.shape || 'circle') === 'circle')
   const labelsData =
-    data.value.points.labels === VISIBLE_POINTS ?
+    data.value.points.labels !== VISIBLE_POINTS ?
       []
     : allPlotData.filter((d) => d.label != null && d.label !== '')
 
