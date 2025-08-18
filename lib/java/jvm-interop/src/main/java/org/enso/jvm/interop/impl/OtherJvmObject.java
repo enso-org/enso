@@ -34,6 +34,7 @@ final class OtherJvmObject implements TruffleObject {
   private static final Message GET_SOURCE_LOCATION =
       Message.resolve(InteropLibrary.class, "getSourceLocation");
 
+  private static final Message IS_STRING = Message.resolve(InteropLibrary.class, "isString");
   private static final Message IS_META_OBJECT =
       Message.resolve(InteropLibrary.class, "isMetaObject");
   private static final Message HAS_META_PARENTS =
@@ -85,6 +86,7 @@ final class OtherJvmObject implements TruffleObject {
       }
     }
     if (message.getLibraryClass() != InteropLibrary.class
+        || IS_STRING == message
         || HAS_LANGUAGE == message
         || GET_LANGUAGE == message
         || HAS_SOURCE_LOCATION == message
@@ -255,6 +257,13 @@ final class OtherJvmObject implements TruffleObject {
       }
       case TruffleObject foreign -> {
         var iop = InteropLibrary.getUncached();
+        if (iop.isString(foreign)) {
+          try {
+            yield iop.asString(foreign);
+          } catch (UnsupportedMessageException ex) {
+            // let it be and return normal delegate
+          }
+        }
         var meta = iop.isMetaObject(foreign);
         var id = registerObject.apply(foreign, meta);
         // our own truffle objects send to the other side should
