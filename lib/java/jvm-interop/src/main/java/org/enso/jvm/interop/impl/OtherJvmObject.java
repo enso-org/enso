@@ -35,6 +35,8 @@ final class OtherJvmObject implements TruffleObject {
 
   private static final Message IS_META_OBJECT =
       Message.resolve(InteropLibrary.class, "isMetaObject");
+  private static final Message HAS_META_PARENTS =
+      Message.resolve(InteropLibrary.class, "hasMetaParents");
   private static final Message GET_META_QUALIFIED_NAME =
       Message.resolve(InteropLibrary.class, "getMetaQualifiedName");
   private static final Message IS_NULL = Message.resolve(InteropLibrary.class, "isNull");
@@ -88,6 +90,9 @@ final class OtherJvmObject implements TruffleObject {
       if (message == IS_META_OBJECT && isMetaObject != null) {
         return isMetaObject;
       }
+      if (message == HAS_META_PARENTS && Boolean.TRUE.equals(isMetaObject)) {
+        return true;
+      }
       if (message == GET_META_QUALIFIED_NAME && metaQualifiedName != null) {
         return metaQualifiedName;
       }
@@ -105,16 +110,19 @@ final class OtherJvmObject implements TruffleObject {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> T bindToChannel(T v, Channel<OtherJvmPool> ch) {
-    if (v instanceof OtherJvmObject toBind) {
-      assert toBind.channel == null;
-      var other = new OtherJvmObject(ch, toBind.id);
-      other.isMetaObject = toBind.isMetaObject;
-      other.metaQualifiedName = toBind.metaQualifiedName;
-      other.isNull = toBind.isNull;
-      return (T) other;
+  private static OtherJvmObject bindToChannel(
+      OtherJvmObject toBind,
+      Channel<OtherJvmPool> ch,
+      Function<OtherJvmObject, OtherJvmObject> findCached) {
+    assert toBind.channel == null;
+    var other = new OtherJvmObject(ch, toBind.id);
+    other.isMetaObject = toBind.isMetaObject;
+    other.metaQualifiedName = toBind.metaQualifiedName;
+    other.isNull = toBind.isNull;
+    if (Boolean.TRUE.equals(toBind.isMetaObject)) {
+      return findCached.apply(other);
     } else {
-      return v;
+      return other;
     }
   }
 
@@ -149,7 +157,10 @@ final class OtherJvmObject implements TruffleObject {
   }
 
   static Object readResolve(
-      Channel<OtherJvmPool> channel, Object obj, Function<Long, TruffleObject> findObject) {
+      Channel<OtherJvmPool> channel,
+      Object obj,
+      Function<Long, TruffleObject> findObject,
+      Function<OtherJvmObject, OtherJvmObject> findCached) {
     return switch (obj) {
       case OtherJvmObject other -> {
         if (other.id() < 0) {
@@ -162,7 +173,7 @@ final class OtherJvmObject implements TruffleObject {
           // real truffle object in the other JVM
           // need to keep it as OtherJvmObject proxy
           // just associate channel to it
-          var proxy = OtherJvmObject.bindToChannel(other, channel);
+          var proxy = OtherJvmObject.bindToChannel(other, channel, findCached);
           yield proxy;
         }
       }

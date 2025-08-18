@@ -263,19 +263,22 @@ public class OtherJvmObjectTest {
     var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
     var other1 = otherClass.invokeMember("otherJvmInstances", 0);
     var clazz1 = other1.getMetaObject();
+    assertTrue("Has parents", clazz1.hasMetaParents());
     var other2 = otherClass.invokeMember("otherJvmInstances", 0);
     var clazz2 = other2.getMetaObject();
 
     CHANNEL
         .getConfig()
         .assertMessagesCount(
-            "No messages needed for comparing classes",
+            "No messages neded for comparing classes",
             0,
             () -> {
               assertEquals("Classes are the equal (obviously)", clazz1, clazz2);
+              assertTrue("First has parents", clazz1.hasMetaParents());
+              assertTrue("Second has parents", clazz2.hasMetaParents());
               var rawClass1 = (OtherJvmObject) ctx.unwrapValue(clazz1);
               var rawClass2 = (OtherJvmObject) ctx.unwrapValue(clazz2);
-              assertSame("Represented by the same truffle object", rawClass1.id(), rawClass2.id());
+              assertSame("Represented by the same truffle object", rawClass1, rawClass2);
             });
   }
 

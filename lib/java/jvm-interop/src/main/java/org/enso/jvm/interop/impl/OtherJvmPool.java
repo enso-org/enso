@@ -16,6 +16,7 @@ import org.enso.persist.Persistance;
 public final class OtherJvmPool extends Channel.Config {
   private final Map<Long, TruffleObject> objectsById = new HashMap<>();
   private final Map<TruffleObject, Long> objectsToId = new HashMap<>();
+  private final Map<Long, OtherJvmObject> incomming = new HashMap<>();
 
   /** context to use when entering tests */
   private OtherJvmLoader loader;
@@ -63,6 +64,16 @@ public final class OtherJvmPool extends Channel.Config {
     return objectsById.get(id);
   }
 
+  private final synchronized OtherJvmObject findCached(OtherJvmObject withId) {
+    var existing = incomming.get(withId.id());
+    if (existing == null) {
+      incomming.put(withId.id(), withId);
+      return withId;
+    } else {
+      return existing;
+    }
+  }
+
   @Override
   @SuppressWarnings("unchecked")
   public final Persistance.Pool createPool(Channel<?> channel) {
@@ -70,7 +81,7 @@ public final class OtherJvmPool extends Channel.Config {
         Persistables.POOL.withReadResolve(
             obj -> {
               return OtherJvmObject.readResolve(
-                  (Channel<OtherJvmPool>) channel, obj, this::findObject);
+                  (Channel<OtherJvmPool>) channel, obj, this::findObject, this::findCached);
             });
     var withReadAndWrite =
         withRead.withWriteReplace(
