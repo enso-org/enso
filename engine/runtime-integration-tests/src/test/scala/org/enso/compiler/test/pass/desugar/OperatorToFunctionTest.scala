@@ -8,7 +8,6 @@ import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
   Location,
-  MetadataStorage,
   Module,
   Name
 }
