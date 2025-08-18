@@ -46,19 +46,28 @@ final class OtherJvmObject implements TruffleObject {
   private static final Message IS_NULL = Message.resolve(InteropLibrary.class, "isNull");
   private static final Message HAS_ARRAY_ELEMENTS =
       Message.resolve(InteropLibrary.class, "hasArrayElements");
+  private static final Message HAS_HASH_ENTRIES =
+      Message.resolve(InteropLibrary.class, "hasHashEntries");
+
+  private static final Message IS_DATE = Message.resolve(InteropLibrary.class, "isDate");
+  private static final Message IS_TIME = Message.resolve(InteropLibrary.class, "isTime");
+  private static final Message IS_ZONE = Message.resolve(InteropLibrary.class, "isTimeZone");
+  private static final Message IS_DURATION = Message.resolve(InteropLibrary.class, "isDuration");
+
+  private static final Message FITS_IN_BIG_INTEGER =
+      Message.resolve(InteropLibrary.class, "fitsInBigInteger");
 
   private final Channel<OtherJvmPool> channel;
   private final long id;
-  private Boolean isMetaObject;
-  private Boolean isNull;
-  private Boolean hasArrayElements;
+  private final short mask;
   private String metaQualifiedName;
 
   private Object cachedMetaParents;
 
-  private OtherJvmObject(Channel<OtherJvmPool> channel, long id) {
+  private OtherJvmObject(Channel<OtherJvmPool> channel, long id, short mask) {
     this.channel = channel;
     this.id = id;
+    this.mask = mask;
   }
 
   long id() {
@@ -97,11 +106,11 @@ final class OtherJvmObject implements TruffleObject {
       // hence provide POJO as a receiver
       return ReflectionLibrary.getUncached().send(POJO, message, args);
     } else {
-      if (message == IS_META_OBJECT && isMetaObject != null) {
-        return isMetaObject;
+      if (message == IS_META_OBJECT) {
+        return OtherInteropType.isMetaObject(mask);
       }
       if (message == HAS_META_PARENTS || message == GET_META_PARENTS) {
-        if (!isMetaObject) {
+        if (!OtherInteropType.isMetaObject(mask)) {
           throw UnsupportedMessageException.create();
         }
         if (cachedMetaParents == null) {
@@ -141,11 +150,32 @@ final class OtherJvmObject implements TruffleObject {
       if (message == GET_META_QUALIFIED_NAME && metaQualifiedName != null) {
         return metaQualifiedName;
       }
-      if (message == IS_NULL && isNull != null) {
-        return isNull;
+      if (message == IS_NULL) {
+        return OtherInteropType.isNull(mask);
       }
-      if (message == HAS_ARRAY_ELEMENTS && hasArrayElements != null) {
-        return hasArrayElements;
+      if (message == HAS_ARRAY_ELEMENTS) {
+        return OtherInteropType.hasArrayElements(mask);
+      }
+      if (message == HAS_HASH_ENTRIES) {
+        return OtherInteropType.hasHashEntries(mask);
+      }
+      if (message == HAS_ARRAY_ELEMENTS) {
+        return OtherInteropType.hasArrayElements(mask);
+      }
+      if (message == IS_TIME) {
+        return OtherInteropType.isTime(mask);
+      }
+      if (message == IS_DATE) {
+        return OtherInteropType.isDate(mask);
+      }
+      if (message == IS_ZONE) {
+        return OtherInteropType.isZone(mask);
+      }
+      if (message == IS_DURATION) {
+        return OtherInteropType.isDuration(mask);
+      }
+      if (message == FITS_IN_BIG_INTEGER) {
+        return OtherInteropType.fitsBigInteger(mask);
       }
 
       // proper dispatch to the other JVM
@@ -168,12 +198,9 @@ final class OtherJvmObject implements TruffleObject {
       Channel<OtherJvmPool> ch,
       Function<OtherJvmObject, OtherJvmObject> findCached) {
     assert toBind.channel == null;
-    var other = new OtherJvmObject(ch, toBind.id);
-    other.isMetaObject = toBind.isMetaObject;
+    var other = new OtherJvmObject(ch, toBind.id, toBind.mask);
     other.metaQualifiedName = toBind.metaQualifiedName;
-    other.isNull = toBind.isNull;
-    other.hasArrayElements = toBind.hasArrayElements;
-    if (Boolean.TRUE.equals(toBind.isMetaObject)) {
+    if (OtherInteropType.isMetaObject(toBind.mask)) {
       return findCached.apply(other);
     } else {
       return other;
@@ -182,37 +209,17 @@ final class OtherJvmObject implements TruffleObject {
 
   final void writeTo(Persistance.Output out) throws IOException {
     out.writeLong(id());
-    out.writeBoolean(isMetaObject != null);
-    if (isMetaObject != null) {
-      out.writeBoolean(isMetaObject);
-    }
-    out.writeBoolean(metaQualifiedName != null);
+    out.writeShort(mask);
     if (metaQualifiedName != null) {
+      out.writeBoolean(true);
       out.writeUTF(metaQualifiedName);
-    }
-    out.writeBoolean(isNull != null);
-    if (isNull != null) {
-      out.writeBoolean(isNull);
-    }
-    out.writeBoolean(hasArrayElements != null);
-    if (hasArrayElements != null) {
-      out.writeBoolean(hasArrayElements);
     }
   }
 
   static OtherJvmObject readFrom(Persistance.Input in) throws IOException {
-    var other = new OtherJvmObject(null, in.readLong());
-    if (in.readBoolean()) {
-      other.isMetaObject = in.readBoolean();
-    }
+    var other = new OtherJvmObject(null, in.readLong(), in.readShort());
     if (in.readBoolean()) {
       other.metaQualifiedName = in.readUTF();
-    }
-    if (in.readBoolean()) {
-      other.isNull = in.readBoolean();
-    }
-    if (in.readBoolean()) {
-      other.hasArrayElements = in.readBoolean();
     }
     return other;
   }
@@ -248,12 +255,12 @@ final class OtherJvmObject implements TruffleObject {
       case OtherJvmObject other -> {
         // returning back their own OtherJvmObject - let
         // them know it is theirs by using negative ID
-        yield new OtherJvmObject(null, -other.id());
+        yield new OtherJvmObject(null, -other.id(), other.mask);
       }
       case OtherJvmTruffleException ex -> {
         // unwrap the exception to object reference
         // and send it back as regular OtherJvmObject
-        yield new OtherJvmObject(null, -ex.delegate.id());
+        yield new OtherJvmObject(null, -ex.delegate.id(), ex.delegate.mask);
       }
       case TruffleObject foreign -> {
         var iop = InteropLibrary.getUncached();
@@ -264,21 +271,19 @@ final class OtherJvmObject implements TruffleObject {
             // let it be and return normal delegate
           }
         }
-        var meta = iop.isMetaObject(foreign);
+        var mask = OtherInteropType.findType(foreign);
+        var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);
         // our own truffle objects send to the other side should
         // have a positive ID
-        var other = new OtherJvmObject(null, id);
-        other.isMetaObject = meta;
-        if (other.isMetaObject) {
+        var other = new OtherJvmObject(null, id, mask);
+        if (meta) {
           try {
             other.metaQualifiedName = iop.asString(iop.getMetaQualifiedName(foreign));
           } catch (UnsupportedMessageException ex) {
             // go without qualified name
           }
         }
-        other.isNull = iop.isNull(foreign);
-        other.hasArrayElements = iop.hasArrayElements(foreign);
         yield other;
       }
       case null -> null;
