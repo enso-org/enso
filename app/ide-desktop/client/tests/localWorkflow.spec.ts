@@ -20,6 +20,15 @@ async function writeToFocusedComponentBrowser(page: Page, content: string): Prom
 
 test('Project Duplicate', async ({ page, app, projectsDir }) => {
   await loginAsTestUser(page)
+
+  // If welcome project is to be opened, wait for it.
+  // If none for 3 seconds, we just move on.
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
+
   await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
@@ -44,6 +53,14 @@ test('Project Duplicate', async ({ page, app, projectsDir }) => {
 
 test('Cloud Project Duplicate', async ({ page, app, projectsDir }) => {
   await loginAsTestUser(page)
+
+  // If welcome project is to be opened, wait for it.
+  // If none for 3 seconds, we just move on.
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
 
   // Switching to a private cloud folder
   await expect(page.getByRole('button', { name: 'Cloud', exact: true })).toBeVisible()
