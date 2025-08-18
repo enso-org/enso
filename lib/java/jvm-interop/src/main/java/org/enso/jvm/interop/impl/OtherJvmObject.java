@@ -43,11 +43,14 @@ final class OtherJvmObject implements TruffleObject {
   private static final Message GET_META_QUALIFIED_NAME =
       Message.resolve(InteropLibrary.class, "getMetaQualifiedName");
   private static final Message IS_NULL = Message.resolve(InteropLibrary.class, "isNull");
+  private static final Message HAS_ARRAY_ELEMENTS =
+      Message.resolve(InteropLibrary.class, "hasArrayElements");
 
   private final Channel<OtherJvmPool> channel;
   private final long id;
   private Boolean isMetaObject;
   private Boolean isNull;
+  private Boolean hasArrayElements;
   private String metaQualifiedName;
 
   private Object cachedMetaParents;
@@ -139,6 +142,9 @@ final class OtherJvmObject implements TruffleObject {
       if (message == IS_NULL && isNull != null) {
         return isNull;
       }
+      if (message == HAS_ARRAY_ELEMENTS && hasArrayElements != null) {
+        return hasArrayElements;
+      }
 
       // proper dispatch to the other JVM
       var msg = new OtherJvmMessage(id, message, Arrays.asList(args));
@@ -164,6 +170,7 @@ final class OtherJvmObject implements TruffleObject {
     other.isMetaObject = toBind.isMetaObject;
     other.metaQualifiedName = toBind.metaQualifiedName;
     other.isNull = toBind.isNull;
+    other.hasArrayElements = toBind.hasArrayElements;
     if (Boolean.TRUE.equals(toBind.isMetaObject)) {
       return findCached.apply(other);
     } else {
@@ -185,6 +192,10 @@ final class OtherJvmObject implements TruffleObject {
     if (isNull != null) {
       out.writeBoolean(isNull);
     }
+    out.writeBoolean(hasArrayElements != null);
+    if (hasArrayElements != null) {
+      out.writeBoolean(hasArrayElements);
+    }
   }
 
   static OtherJvmObject readFrom(Persistance.Input in) throws IOException {
@@ -197,6 +208,9 @@ final class OtherJvmObject implements TruffleObject {
     }
     if (in.readBoolean()) {
       other.isNull = in.readBoolean();
+    }
+    if (in.readBoolean()) {
+      other.hasArrayElements = in.readBoolean();
     }
     return other;
   }
@@ -255,6 +269,7 @@ final class OtherJvmObject implements TruffleObject {
           }
         }
         other.isNull = iop.isNull(foreign);
+        other.hasArrayElements = iop.hasArrayElements(foreign);
         yield other;
       }
       case null -> null;
