@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
@@ -37,6 +38,8 @@ final class OtherJvmObject implements TruffleObject {
       Message.resolve(InteropLibrary.class, "isMetaObject");
   private static final Message HAS_META_PARENTS =
       Message.resolve(InteropLibrary.class, "hasMetaParents");
+  private static final Message GET_META_PARENTS =
+      Message.resolve(InteropLibrary.class, "getMetaParents");
   private static final Message GET_META_QUALIFIED_NAME =
       Message.resolve(InteropLibrary.class, "getMetaQualifiedName");
   private static final Message IS_NULL = Message.resolve(InteropLibrary.class, "isNull");
@@ -46,6 +49,8 @@ final class OtherJvmObject implements TruffleObject {
   private Boolean isMetaObject;
   private Boolean isNull;
   private String metaQualifiedName;
+
+  private Object cachedMetaParents;
 
   private OtherJvmObject(Channel<OtherJvmPool> channel, long id) {
     this.channel = channel;
@@ -90,8 +95,43 @@ final class OtherJvmObject implements TruffleObject {
       if (message == IS_META_OBJECT && isMetaObject != null) {
         return isMetaObject;
       }
-      if (message == HAS_META_PARENTS && Boolean.TRUE.equals(isMetaObject)) {
-        return true;
+      if (message == HAS_META_PARENTS || message == GET_META_PARENTS) {
+        if (!isMetaObject) {
+          throw UnsupportedMessageException.create();
+        }
+        if (cachedMetaParents == null) {
+          var msg = new OtherJvmMessage(id, GET_META_PARENTS, List.of());
+          var reply = executeMessage(msg, message, args);
+          try {
+            var arr = reply.value();
+            var iop = InteropLibrary.getUncached();
+            var len = Math.toIntExact(iop.getArraySize(arr));
+            var copy = new OtherJvmObject[len];
+            for (var i = 0; i < len; i++) {
+              copy[i] = (OtherJvmObject) iop.readArrayElement(arr, i);
+            }
+            cachedMetaParents = copy;
+          } catch (UnsupportedMessageException ex) {
+            cachedMetaParents = ex;
+          }
+        }
+        return switch (cachedMetaParents) {
+          case UnsupportedMessageException ex -> {
+            if (message == GET_META_PARENTS) {
+              yield new OtherArray();
+            } else {
+              yield false;
+            }
+          }
+          case OtherJvmObject[] arr -> {
+            if (message == GET_META_PARENTS) {
+              yield new OtherArray(arr);
+            } else {
+              yield true;
+            }
+          }
+          default -> throw new IllegalStateException();
+        };
       }
       if (message == GET_META_QUALIFIED_NAME && metaQualifiedName != null) {
         return metaQualifiedName;
@@ -102,11 +142,16 @@ final class OtherJvmObject implements TruffleObject {
 
       // proper dispatch to the other JVM
       var msg = new OtherJvmMessage(id, message, Arrays.asList(args));
-      var reply = channel.execute(OtherJvmResult.class, msg);
-      channel.getConfig().profileMessage(message, args);
+      var reply = executeMessage(msg, message, args);
       var result = reply.value();
       return result;
     }
+  }
+
+  private OtherJvmResult<?, ?> executeMessage(OtherJvmMessage msg, Message message, Object[] args) {
+    var reply = channel.execute(OtherJvmResult.class, msg);
+    channel.getConfig().profileMessage(message, args);
+    return reply;
   }
 
   @SuppressWarnings("unchecked")
