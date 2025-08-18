@@ -85,7 +85,8 @@ export default defineConfig({
   use: {
     actionTimeout: 5000,
 
-    trace: 'retain-on-failure',
+    // Disabled as it logs all environment variables, which may contain sensitive data.
+    trace: 'off',
     headless: !DEBUG,
     launchOptions:
       DEBUG ?
