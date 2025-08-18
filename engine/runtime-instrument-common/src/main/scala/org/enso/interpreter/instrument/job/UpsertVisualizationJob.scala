@@ -176,7 +176,7 @@ class UpsertVisualizationJob(
       .flatMap(c => Option(c.get(expressionId)))
     UpsertVisualizationJob.requireVisualizationSynchronization(
       stack,
-      expressionId
+      visualizationId
     )
     cachedValue match {
       case Some(value) =>
