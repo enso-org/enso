@@ -4654,13 +4654,16 @@ lazy val `edition-uploader` = project
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
   .enablePlugins(JPMSPlugin)
+  .enablePlugins(PackageListPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= logbackPkg ++ Seq(
+      "com.typesafe"                % "config"        % typesafeConfigVersion,
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.graalvm.polyglot"        % "polyglot"      % graalMavenPackagesVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     javaModuleName := "org.enso.librarymanager",
@@ -4668,19 +4671,47 @@ lazy val `library-manager` = project
       "org.yaml" % "snakeyaml" % snakeyamlVersion
     ),
     Compile / internalModuleDependencies := Seq(
+      (`cli` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
       (`downloader` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value,
-      (`pkg` / Compile / exportedModule).value,
-      (`semver` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
+      (`logging-config` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
+      (`logging-service` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value,
+      (`pkg` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
-      (`scala-yaml` / Compile / exportedModule).value
+      (`scala-yaml` / Compile / exportedModule).value,
+      (`semver` / Compile / exportedModule).value,
+      (`version-output` / Compile / exportedModule).value
+    ),
+    Compile / moduleDependencies ++= scalaReflect ++ slf4jApi ++ logbackPkg ++ Seq(
+      "com.typesafe"         % "config"           % typesafeConfigVersion,
+      "commons-io"           % "commons-io"       % commonsIoVersion,
+      "org.apache.commons"   % "commons-compress" % commonsCompressVersion,
+      "org.graalvm.polyglot" % "polyglot"         % graalMavenPackagesVersion
     ),
     Test / internalModuleDependencies := Seq(
-      (`logging-service-logback` / Compile / exportedModule).value
+      (Compile / exportedModule).value
     ),
+    Test / addModules := Seq(
+      javaModuleName.value
+    ),
+    Test / patchModules := {
+      // This is standard way to deal with the
+      // split package problem in unit tests. For example, Maven's surefire plugin does this.
+      val testClassesDir = (Test / productDirectories).value.head
+      val javaSrcDir     = (Test / javaSource).value
+      Map(
+        javaModuleName.value -> Seq(javaSrcDir, testClassesDir)
+      )
+    },
+    Test / addReads := {
+      Map(
+        javaModuleName.value -> Seq("ALL-UNNAMED")
+      )
+    },
     commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
