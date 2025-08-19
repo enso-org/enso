@@ -1,5 +1,11 @@
 private
 
+import project.System.File_Format.File_Format_SPI
+
+import project.System.File_Format.Bytes
+import project.System.File_Format.JSON_Format
+import project.System.File_Format.Plain_Text_Format
+
 ## Gets a file corresponding to the current working directory of the program.
 get_cwd = @Builtin_Method "File.get_cwd"
 
@@ -47,3 +53,11 @@ output_stream_builtin file options = @Builtin_Method "File.output_stream_builtin
       how to open the stream. These options set the access properties of the
       stream.
 input_stream_builtin file options = @Builtin_Method "File.input_stream_builtin"
+
+# registration of basic file format implementations
+type Default_File_Formats
+File_Format_SPI.from (_:Default_File_Formats) =
+  bytes = File_Format_SPI.new Bytes
+  json = File_Format_SPI.new JSON_Format "json"
+  plain = File_Format_SPI.new Plain_Text_Format
+  bytes+json+plain

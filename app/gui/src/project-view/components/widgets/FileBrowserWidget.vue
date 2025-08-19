@@ -9,7 +9,7 @@ import { useBackends } from '$/providers/backends'
 import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
-import { mapPath, useEnsoPaths } from '@/components/widgets/FileBrowserWidget/ensoPath'
+import { useEnsoPaths } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import {
   listDirectoryArgs,
   useCurrentPath,
@@ -26,6 +26,8 @@ import {
   usePathBrowsing,
   type Directory,
 } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import { useAcceptCurrentFile } from '@/components/widgets/FileBrowserWidget/useAcceptCurrentFile'
+import { useFileBrowserSync } from '@/components/widgets/FileBrowserWidget/useFileBrowserSync'
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { registerHandlers } from '@/providers/action'
@@ -33,7 +35,7 @@ import { providePopoverRoot } from '@/providers/popoverRoot'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
-import { computed, ref, toValue, useTemplateRef, watch, watchEffect } from 'vue'
+import { computed, ref, toValue, useTemplateRef, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -109,23 +111,25 @@ const { currentDirPath, chosenFilename, setPath, enterDir, popTo, append } = use
   home: () => ensoPath(toValue(userFiles.value?.home ?? [])),
   enteredPath,
 })
-watchEffect(() => setPath(parseEnsoPath(props.choosenPath)))
-watchEffect(() => currentDirPath.value && setBrowsingPath(currentDirPath.value))
-watchEffect(() => {
-  if (props.writeMode && unenteredPathSuffix.value) setFilename(unenteredPathSuffix.value)
+useFileBrowserSync({
+  writeMode: () => props.writeMode,
+  choosenPath: () => props.choosenPath,
+  parseEnsoPath,
+  currentDirPath,
+  chosenFilename,
+  setPath,
+  setBrowsingPath,
+  append,
+  setFilename,
+  unenteredPathSuffix,
 })
 
-watchEffect(() => {
-  if (chosenFilename.value) setFilename(chosenFilename.value)
-})
 const highlightedFilename = computed(
   () => (props.writeMode && fullFilePath.value) || chosenFilename.value,
 )
 
 // === Status ===
 
-const overwriteFilename = ref<string | null>(null)
-const warningText = ref<string | null>(null)
 const isBusy = computed(
   () => isBrowsingPending.value || isPending.value || commitSecretPending.value,
 )
@@ -145,52 +149,28 @@ async function createSecret(value: string, name: string) {
 
 // === Accepting Chosen File ===
 
-async function tryAcceptCurrentFile() {
-  if (!enteredPath.value) {
-    // We can only reach this if there was a root previously, but there isn't now. This might be
-    // possible if the session is lost.
-    warningText.value = 'Unable to access files'
-    return
-  }
-  const path = mapPath(enteredPath.value, append(...fullFilePath.value.split('/')))
-  const enteringResult = await setBrowsingPath(path)
-  currentDirPath.value = path
-  if (!enteringResult.ok) {
-    warningText.value = `${enteringResult.error.payload.toString()}`
-    return
-  }
-  setFilename(unenteredPathSuffix.value)
-  const assetInfo = await assetExists(fullFilePath.value)
-  if (
-    assetInfo.exists &&
-    assetInfo.type === AssetType.file &&
-    props.writeMode &&
-    !props.allowOverride
-  ) {
-    overwriteFilename.value = fullFilePath.value
-  } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
-    warningText.value = `'${fullFilePath.value}' is a directory, not a file`
-  } else {
-    acceptCurrentFile()
-    return
-  }
-}
-
-function acceptCurrentFile() {
-  acceptFile(fullFilePath.value)
-}
-
-function acceptFile(name: string) {
-  if (!enteredPath.value) return
-  const currentFilePath = printEnsoPath(mapPath(enteredPath.value, append(...name.split('/'))))
-  emit('pathAccepted', currentFilePath)
-}
+const { overwriteFilename, warningText, tryAcceptCurrentFile, acceptCurrentFile, acceptFile } =
+  useAcceptCurrentFile({
+    enteredPath,
+    fullFilePath,
+    currentDirPath,
+    setBrowsingPath,
+    append,
+    setFilename,
+    unenteredPathSuffix,
+    assetExists,
+    writeMode: () => props.writeMode,
+    allowOverride: () => props.allowOverride,
+    printEnsoPath,
+    pathAcceptedCallback: (p) => emit('pathAccepted', p),
+  })
 
 function chooseEntry(asset: AnyAsset, close: boolean) {
+  const name = asset.type === AssetType.datalink ? `${asset.title}.datalink` : asset.title
   if (props.writeMode) {
-    setFilename(asset.title)
+    setFilename(name)
   } else {
-    acceptFile(asset.title)
+    acceptFile(name)
     if (close) emit('close')
   }
 }

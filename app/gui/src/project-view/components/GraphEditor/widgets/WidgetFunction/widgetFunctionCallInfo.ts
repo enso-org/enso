@@ -213,5 +213,6 @@ export function useWidgetFunctionCallInfo(
   return {
     methodCallInfo,
     application,
+    subjectInfo,
   }
 }

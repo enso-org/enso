@@ -105,3 +105,4 @@ type Redshift_Details
             self.client_cert.properties
 
         credentials + ssl_properties + cert_properties
+

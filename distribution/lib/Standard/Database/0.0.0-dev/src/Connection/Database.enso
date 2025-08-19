@@ -10,8 +10,6 @@ import project.Connection.Connection_Options.Connection_Options
 import project.Internal.Telemetry
 from project.Errors import SQL_Error
 
-polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
-
 ## ---
    macros:
     - postgres: details=Postgres.Server
@@ -32,7 +30,7 @@ polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 connect : Connection_Details -> Connection_Options -> Connection ! SQL_Error
 connect details options:Connection_Options=..Value =
     result = case details of
-        _ : Function -> (resolve_constructor details) . connect options
+        _ : Function -> (Database_Connection_Details_SPI.resolve_constructor details) . connect options
         _ -> details.connect options
     result.if_not_error <|
         Telemetry.log "Database.connect" "Database connection opened: connection_type={}" [result.to Meta.Type . name]
@@ -43,8 +41,8 @@ connect details options:Connection_Options=..Value =
    ---
 connection_details_widget : Widget
 connection_details_widget =
-    default_constructors = Vector.from_polyglot_array <|
-        DatabaseConnectionDetailsSPI.get_default_constructors False
+    default_constructors =
+        Database_Connection_Details_SPI.get_default_constructors False
     choices = default_constructors.map pair->
         name = pair.first
         code = pair.second
@@ -54,12 +52,46 @@ connection_details_widget =
 ## ---
    private: true
    ---
-resolve_constructor : Function -> Any
-resolve_constructor constructor =
-    types = Vector.from_polyglot_array (DatabaseConnectionDetailsSPI.get_types False)
-    try_next idx =
-        if idx >= types.length then constructor else
-            db_type = types.at idx
-            resolved = db_type.resolve constructor
-            if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
-    try_next 0
+type Database_Connection_Details_SPI
+    private Single typ name:Text code:Text
+    private Few arr:(Vector Database_Connection_Details_SPI)
+
+    ##
+        `name` - The user facing name of the connection.
+        `code` - Default code that can be used to construct a default instance of the connection details.
+    new typ name:Text code:Text =
+        Database_Connection_Details_SPI.Single typ name code
+
+    ## Joins two registrations together
+    + self that:Database_Connection_Details_SPI =
+        Database_Connection_Details_SPI.Few self.to_vector+that.to_vector
+
+    private to_vector self = case self of
+        Database_Connection_Details_SPI.Few arr -> arr
+        single -> [single]
+
+    private resolve_constructor constructor:Function =
+        types = Database_Connection_Details_SPI.get_types False
+        try_next idx =
+            if idx >= types.length then constructor else
+                db_type = types.at idx
+                resolved = db_type.resolve constructor
+                if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
+        try_next 0
+
+    private get_simple_regs _:Boolean  -> Vector Database_Connection_Details_SPI =
+        reg = Meta.lookup_services Database_Connection_Details_SPI
+        arr = reg.map .to_vector
+        arr.flatten
+
+    private get_types b:Boolean -> Vector =
+        flat = Database_Connection_Details_SPI.get_simple_regs b
+        flat.map .typ
+
+    ##
+      Returns an array of pairs, where the first element is the user facing connection name and the
+      second element is a string representing the code to insert to create a default connection
+      instance. That code may contain `_` placeholders for expected arguments.
+    private get_default_constructors b:Boolean =
+        flat = Database_Connection_Details_SPI.get_simple_regs b
+        flat.map \r -> Pair.new r.name r.code

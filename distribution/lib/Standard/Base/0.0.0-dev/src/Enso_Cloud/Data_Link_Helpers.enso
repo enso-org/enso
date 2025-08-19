@@ -6,6 +6,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Data_Link.Data_Link_SPI
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
@@ -27,15 +28,13 @@ import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.File_Format
+import project.System.File_Format.File_Format_SPI
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Capabilities import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, File_Like_Data_Link, Writable_Data_Link
 from project.Enso_Cloud.Public_Utils import get_required_field
-
-polyglot java import org.enso.base.enso_cloud.DataLinkSPI
-polyglot java import org.enso.base.file_format.FileFormatSPI
 
 ## ---
    private: true
@@ -69,7 +68,7 @@ type Data_Link_Source_Metadata
    ---
 interpret_json_as_data_link json source:Data_Link_Source_Metadata=..Unknown =
     typ = get_required_field "type" json expected_type=Text
-    case DataLinkSPI.findDataLinkType typ of
+    case Data_Link_SPI.find_data_link_type typ of
         Nothing ->
             library_name = get_required_field "libraryName" json expected_type=Text
             Error.throw (Missing_Data_Link_Library.Error library_name typ)
@@ -193,7 +192,7 @@ parse_format (json : Any) -> Any ! Illegal_State = case json of
     _ : JS_Object -> case get_required_field "subType" json of
         "default" -> Auto_Detect
         sub_type : Text ->
-            format_type = FileFormatSPI.findFormatForDataLinkSubType sub_type
+            format_type = File_Format_SPI.find_format_for_data_link sub_type
             if format_type.is_nothing then Error.throw (Illegal_State.Error "Unknown format inside of a datalink: "+sub_type+". Perhaps the library providing that format needs to be imported?") else
                 format_type.from json
         other ->

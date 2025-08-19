@@ -20,9 +20,6 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import all
 
-polyglot java import org.enso.base.enso_cloud.DataLinkSPI
-polyglot java import org.enso.base.file_format.FileFormatSPI
-
 ## Helper methods allowing to manipulate the raw configuration of data links.
 type Data_Link
     ## ---
@@ -222,3 +219,25 @@ type Data_Link_From_File
    If they implement `Data_Link_From_File`, we want to inherit that
    implementation.
 Data_Link_From_File.from (that : File_Like) = Data_Link_From_File.from that.underlying
+
+## ---
+   private: true
+   ---
+   An interface for data link parser providers.
+   A service providing this type can register an
+   Enso type that defines how to `parse` a specific type of datalink.
+   The `parse` method on that
+   type should return a configured datalink instance that can later be `read`.
+
+type Data_Link_SPI
+    private Value typ name:Text
+
+    new typ link_type_name:Text =
+        Data_Link_SPI.Value typ link_type_name
+
+    private find_data_link_type name =
+        all = Meta.lookup_services Data_Link_SPI
+        found = all . filter (\spi -> spi.name == name)
+        if found.length == 0 then Nothing else
+            found.first.typ
+

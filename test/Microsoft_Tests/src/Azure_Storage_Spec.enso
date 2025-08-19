@@ -4,7 +4,7 @@ from Standard.Microsoft import all
 
 add_specs suite_builder =
     suite_builder.group "Azure_Storage" group_builder->
-        group_builder.specify "Connect to dummy blob storage should fail with authentication error" <|
+        group_builder.specify "Connect to dummy blob storage should fail with authentication error" pending="https://github.com/enso-org/enso/pull/13729" <|
             dummy_token = "sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2025-08-30T19:03:22Z&st=2025-06-24T11:03:22Z&spr=https&sig=z1Gm3CUR896qh1eBfebjkMhsTD4Mw8cB9c3W40kl5z9rzC"
             storage_ident = "ensostorage"
             container_ident = "test-container"

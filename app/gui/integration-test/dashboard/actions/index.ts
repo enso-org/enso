@@ -14,7 +14,7 @@ import {
   type LocalTrackedCalls,
 } from './localApi'
 import LoginPageActions from './LoginPageActions'
-import { passAgreementsDialog, TEXT, VALID_PASSWORD, type MockParams } from './utilities'
+import { passAgreementsDialog, TEXT, type MockParams } from './utilities'
 export * from './utilities'
 
 export const getText = (key: TextId, ...replacements: Replacements[TextId]) => {
@@ -28,35 +28,23 @@ export function getAuthFilePath() {
 }
 
 /** Perform a successful login. */
-async function login({ page }: MockParams, email = 'email@example.com', password = VALID_PASSWORD) {
+async function loginIfNeeded(page: Page, actions: LoginPageActions<Context>) {
   const authFile = getAuthFilePath()
-
-  await waitForLoaded(page)
   const isLoggedIn = (await page.getByTestId('before-auth-layout').count()) === 0
-
   if (isLoggedIn) {
     test.info().annotations.push({
       type: 'skip',
       description: 'Already logged in',
     })
-    return
-  }
-
-  return test.step('Login', async () => {
-    test.info().annotations.push({
-      type: 'Login',
-      description: 'Performing login',
-    })
-    await page.getByPlaceholder(TEXT.emailPlaceholder).fill(email)
-    await page.getByPlaceholder(TEXT.passwordPlaceholder).fill(password)
-    await page.getByRole('button', { name: TEXT.login, exact: true }).getByText(TEXT.login).click()
-
-    await expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
-
-    await passAgreementsDialog({ page })
-
+    const agreementModalVisible = (await page.locator('#agreements-modal').count()) > 0
+    if (agreementModalVisible) {
+      await passAgreementsDialog({ page })
+      await page.context().storageState({ path: authFile })
+    }
+  } else {
+    await actions.login()
     await page.context().storageState({ path: authFile })
-  })
+  }
 }
 
 /** Wait for the page to load. */
@@ -144,7 +132,7 @@ export function mockAllAndLogin({
   const actions = mockAll({ page, setupAPI, setupLocalAPI })
 
   const driveActions = actions
-    .step('Login', (page) => login({ page }))
+    .step('Pass login screen', (page, _ctx, actions) => loginIfNeeded(page, actions))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
     .into(DrivePageActions<Context>)
   return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
