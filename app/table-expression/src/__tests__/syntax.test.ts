@@ -70,6 +70,13 @@ test.each([
     code: 'open_paren_only(',
     expected: ['Expression', ['Function', ['Paren', '('], ['⚠', '']]],
   },
+  {
+    code: 'unclosed_column_in_function([Column 1)',
+    expected: [
+      'Expression',
+      ['Function', ['Paren', '('], ['Column', ['SquareBracket', '['], ['⚠', '']], ['⚠', '']],
+    ],
+  },
 ])('Syntax tree', ({ code, expected }) => {
   expect(debugTree(parser.parse(code), code)).toEqual(expected)
 })
