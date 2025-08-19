@@ -65,11 +65,6 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         ...secrets.map((secret) => secret.path),
       ]
     : null
-  const secretReverseMapping = new Map(
-    secretAutocompleteItems?.flatMap((secretPath) =>
-      /^~[/]/.test(secretPath) ? [[secretPath, secretPath.replace('~/', userPathPrefix)]] : [],
-    ),
-  )
   const isInvalid = !isAbsent && !getValidator(path)(value)
   const validationErrorClassName =
     isInvalid ? 'border border-danger focus:border-danger focus:outline-danger' : undefined
@@ -103,7 +98,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   }}
                   onChange={(_key, newValue) => {
                     if (newValue !== value) {
-                      onChange(secretReverseMapping.get(newValue) ?? newValue)
+                      onChange(newValue.replace(/^~[/]/, userPathPrefix))
                     }
                   }}
                 >
