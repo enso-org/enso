@@ -172,7 +172,7 @@ case class Config(
     *
     * @param keepDevVersion true if default dev versions should be stored
     */
-  def toYaml(keepDevVersions: Boolean): String = {
+  def toYaml(keepDevVersions: Boolean = false): String = {
     val config: Config =
       if (
         !keepDevVersions && edition.exists(
