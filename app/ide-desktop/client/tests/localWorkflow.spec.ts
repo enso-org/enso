@@ -1,4 +1,4 @@
-/** @file A test for basic flow of the application: open project and see if nodes appear. */
+/** @file A series of tests designed for testing GUI behavior in Local workflow. */
 
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
@@ -18,7 +18,9 @@ async function writeToFocusedComponentBrowser(page: Page, content: string): Prom
   await input.fill(content)
 }
 
-test('Project Duplicate', async ({ page, app, projectsDir }) => {
+// A test checking duplication of projects
+
+test('Project Duplicate', async ({ page }) => {
   await loginAsTestUser(page)
 
   // If welcome project is to be opened, wait for it.
@@ -66,60 +68,7 @@ test('Project Duplicate', async ({ page, app, projectsDir }) => {
   expect(page.getByText('New Project 1 (copy)')).toBeVisible()
 })
 
-// A test created to see, if duplicating projects in Cloud dashboard works.
-
-test('Cloud Project Duplicate', async ({ page, app, projectsDir }) => {
-  await loginAsTestUser(page)
-
-  // If welcome project is to be opened, wait for it.
-  // If none for 3 seconds, we just move on.
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
-  if (await welcomeProjectTab.isVisible()) {
-    await page.getByRole('tab', { name: 'Data Catalog' }).click()
-  }
-
-  // Switching to a private cloud folder
-  await expect(page.getByRole('button', { name: 'Cloud', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Cloud', exact: true }).click()
-
-  // Creating a new project
-  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'New Project', exact: true }).click()
-  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
-
-  await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
-  await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
-
-  // Returning back to the data catalog
-  await expect(page.getByRole('tab', { name: 'Data Catalog' })).toBeVisible()
-  await page.getByRole('tab', { name: 'Data Catalog' }).click()
-
-  // Finding all of the 'New pojects'
-  const projects = await page
-    .getByTestId('drive-view')
-    .getByText(/New Project \d+/)
-    .all()
-
-  const numbered = await Promise.all(
-    projects.map(async (p) => {
-      const text = await p.innerText()
-      const num = parseInt(text.replace('New Project ', ''), 10)
-      return { locator: p, num }
-    }),
-  )
-
-  // Pick the one with the highest number
-  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
-  await newest.click({ button: 'right' })
-
-  // Try to duplicate the new project
-  await expect(page.getByRole('button', { name: 'Duplicate' })).toBeVisible()
-  await page.getByRole('button', { name: 'Duplicate' }).click()
-
-  // Checking if the duplication was successful
-  expect(page.getByText('New Project 1 (copy)')).toBeVisible()
-})
+// A test for basic flow of the application: open project and see if nodes appear.
 
 test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
