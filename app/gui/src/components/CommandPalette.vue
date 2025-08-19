@@ -13,7 +13,6 @@ import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { reactComponent } from '@/util/react'
-import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref, watchEffect } from 'vue'
 
 const KeyboardShortcut = reactComponent(KeyboardShortcutReact)
@@ -135,54 +134,49 @@ function focusInputOnTextEvent(event: KeyboardEvent) {
 </script>
 
 <template>
-  <AnimatePresence>
-    <motion.div
-      v-if="visible"
-      class="CommandPalette"
-      :initial="{ opacity: 0, y: '-100px' }"
-      :animate="{ opacity: 1, y: '0' }"
-      :exit="{ opacity: 0, y: '-100px' }"
-      @click.stop="close"
-      @keydown="focusInputOnTextEvent"
-      @keydown.enter.stop
-      @keydown.arrow-up.prevent="focusPreviousAction"
-      @keydown.arrow-down.prevent="focusNextAction"
-    >
-      <div ref="container" class="container" @click.stop>
-        <input
-          ref="input"
-          v-model="query"
-          type="text"
-          placeholder="Search actions..."
-          @keydown.enter.prevent="trigger(actions[0])"
-        />
-        <div class="scroll-container">
-          <div v-for="actionsGroup in groupedActions" :key="actionsGroup.category">
-            <h3 class="category-heading">{{ actionsGroup.category }}</h3>
-            <ul>
-              <li v-for="(action, i) in actionsGroup.actions" :key="i" class="action-entry">
-                <button @click="trigger(action)">
-                  <SvgIcon v-if="action.icon" :name="action.icon" class="icon" />
-                  <div v-else class="icon-placeholder"></div>
-                  <!-- eslint-disable vue/no-v-html -->
-                  <span class="entry-content" v-html="action.highlighted.name"></span>
-                  <!-- eslint-enable -->
-                  <div class="shortcuts">
-                    <KeyboardShortcut
-                      v-for="(shortcut, j) in action.shortcuts"
-                      :key="j"
-                      :shortcut="shortcut"
-                    />
-                  </div>
-                </button>
-              </li>
-              <li v-if="!actions.length" class="disabled">No actions found</li>
-            </ul>
-          </div>
+  <div
+    v-if="visible"
+    class="CommandPalette"
+    @click.stop="close"
+    @keydown="focusInputOnTextEvent"
+    @keydown.enter.stop
+    @keydown.arrow-up.prevent="focusPreviousAction"
+    @keydown.arrow-down.prevent="focusNextAction"
+  >
+    <div ref="container" class="container" @click.stop>
+      <input
+        ref="input"
+        v-model="query"
+        type="text"
+        placeholder="Search actions..."
+        @keydown.enter.prevent="trigger(actions[0])"
+      />
+      <div class="scroll-container">
+        <div v-for="actionsGroup in groupedActions" :key="actionsGroup.category">
+          <h3 class="category-heading">{{ actionsGroup.category }}</h3>
+          <ul>
+            <li v-for="(action, i) in actionsGroup.actions" :key="i" class="action-entry">
+              <button @click="trigger(action)">
+                <SvgIcon v-if="action.icon" :name="action.icon" class="icon" />
+                <div v-else class="icon-placeholder"></div>
+                <!-- eslint-disable vue/no-v-html -->
+                <span class="entry-content" v-html="action.highlighted.name"></span>
+                <!-- eslint-enable -->
+                <div class="shortcuts">
+                  <KeyboardShortcut
+                    v-for="(shortcut, j) in action.shortcuts"
+                    :key="j"
+                    :shortcut="shortcut"
+                  />
+                </div>
+              </button>
+            </li>
+            <li v-if="!actions.length" class="disabled">No actions found</li>
+          </ul>
         </div>
       </div>
-    </motion.div>
-  </AnimatePresence>
+    </div>
+  </div>
 </template>
 
 <style scoped>
