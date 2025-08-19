@@ -36,7 +36,7 @@ json_from_table table bounds limit =
         core_table = if Nothing==col_row_number then with_color.add_row_number "row_number" else with_color.set col_row_number
 
         ## Find the data columns
-        data_columns = table.remove_columns core_table.column_names . columns . filter c-> c.value_type.is_numeric
+        data_columns = table.remove_columns core_table.column_names on_problems=..Ignore . columns . filter c-> c.value_type.is_numeric
         if data_columns.length == 0 then '{"data":[],"axis":{},"is_multi_series":false,"get_row_method":"get_row","x_value_type":"Integer","error_message":"At least one numeric (other than X) must be provided for a scatter plot."}' else
             merged_table = core_table.zip (Table.new data_columns)
 
