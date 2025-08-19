@@ -1,7 +1,4 @@
 import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
-import { syntaxTree } from '@codemirror/language'
-import type { EditorState, Text } from '@codemirror/state'
-import type { TreeCursor } from '@lezer/common'
 import { computed } from 'vue'
 import { completionTypeAt } from './completionType'
 
