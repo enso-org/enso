@@ -25,7 +25,7 @@ test('Remove Member', async ({ page }) => {
   try {
     await page.getByRole('button', { name: 'Members', exact: true }).click()
   } catch {
-    test.skip(true, 'Not a member of an organization.');
+    test.skip(true, 'Not a member of an organization.')
     return
   }
 
