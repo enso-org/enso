@@ -8,7 +8,6 @@ import StandaloneButton from '@/components/StandaloneButton.vue'
 import { useOpenProjectLocally } from '@/composables/project'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useQuery } from '@tanstack/vue-query'
-import { AnimatePresence, motion } from 'motion-v'
 import { computed, onMounted } from 'vue'
 
 const props = defineProps<{ href: string }>()
@@ -59,26 +58,19 @@ async function openProjectInNewTab() {
 
 <template>
   <teleport to="#floatingLayer">
-    <AnimatePresence>
-      <motion.div
-        class="modal"
-        :animate="{ opacity: 1, y: '0' }"
-        @keydown.esc="closeModal"
-        @mousedown.self.prevent="closeModal"
-      >
-        <div class="modal-container" @mousedown.stop.prevent>
-          <h2>Open Project</h2>
-          <p>
-            Would you like to open the project at '{{ decodeURIComponent(href) }}'? The current
-            project will be closed.
-          </p>
-          <div class="button-bar">
-            <StandaloneButton label="Cancel" @activate="closeModal" />
-            <StandaloneButton label="Open" variant="submit" @activate="openProjectInNewTab" />
-          </div>
+    <div class="modal" @keydown.esc="closeModal" @mousedown.self.prevent="closeModal">
+      <div class="modal-container" @mousedown.stop.prevent>
+        <h2>Open Project</h2>
+        <p>
+          Would you like to open the project at '{{ decodeURIComponent(href) }}'? The current
+          project will be closed.
+        </p>
+        <div class="button-bar">
+          <StandaloneButton label="Cancel" @activate="closeModal" />
+          <StandaloneButton label="Open" variant="submit" @activate="openProjectInNewTab" />
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </div>
   </teleport>
 </template>
 

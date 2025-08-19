@@ -17,6 +17,7 @@ import Backend, {
   type DirectoryId,
   type ProjectAsset,
 } from '#/services/Backend'
+import { noop } from '#/utilities/functions'
 import { MergeValuesOfObjectUnion } from '#/utilities/object'
 import { ConfirmCloseModal } from '#/utilities/preventNavigation'
 import { useVueEnsureQueryData } from '#/utilities/tanstackQuery'
@@ -34,7 +35,6 @@ import {
 } from '@tanstack/vue-query'
 import { isOnElectron } from 'enso-common/src/detect'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-import { noop } from 'motion-v'
 import { createElement } from 'react'
 import invariant from 'tiny-invariant'
 import { computed, MaybeRef, Ref, ref, toValue, watchEffect } from 'vue'
