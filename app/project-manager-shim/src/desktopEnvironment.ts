@@ -1,11 +1,12 @@
 /** @file This module contains the logic for the detection of user-specific desktop environment attributes. */
+
 import * as childProcess from 'node:child_process'
 import * as os from 'node:os'
 import * as path from 'node:path'
 
-export const DOCUMENTS = getDocumentsPath()
-
 const CHILD_PROCESS_TIMEOUT = 3000
+
+export const DOCUMENTS = getDocumentsPath()
 
 /** Detects path of the user documents directory depending on the operating system. */
 function getDocumentsPath(): string | undefined {
