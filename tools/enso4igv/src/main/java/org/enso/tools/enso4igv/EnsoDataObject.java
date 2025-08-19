@@ -3,7 +3,6 @@ package org.enso.tools.enso4igv;
 import java.io.IOException;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.text.MultiViewEditorElement;
 import org.netbeans.modules.textmate.lexer.api.GrammarRegistration;
@@ -151,7 +150,7 @@ public class EnsoDataObject extends MultiDataObject {
             var toSet = (Set<String>)get.invoke(mimeTypes);
             toSet.add(mime);
         } catch (ReflectiveOperationException ex) {
-            Installer.LOG.log(Level.WARNING, "Cannot register breakpoints for Enso", ex);
+            Installer.LOG.log(Level.FINE, "Cannot register breakpoints for Enso", ex);
         }
     }
 }

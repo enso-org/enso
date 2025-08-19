@@ -57,7 +57,7 @@ public class EnsoSbtProjectTest extends NbTestCase {
     var aggregateAndRest = text.stream().dropWhile(l -> !l.contains(".aggregate(")).toList();
     var aggregate = aggregateAndRest.stream().skip(1).takeWhile(l -> !l.contains(")")).toList();
 
-    assertSimilar("Aggregates are we searching for: " + aggregate, 96, aggregate.size(), 10);
+    assertSimilar(aggregate.size() + " aggregates are we searching for: " + aggregate, 96, aggregate.size(), 10);
 
     var inFiles = text.stream().filter(l -> l.contains(".in(file(") || l.contains("project in file(")).toList();
     assertSimilar("Same amount of in(file( as aggregates", aggregate.size(), inFiles.size(), 10);
