@@ -31,6 +31,7 @@
 /* eslint-disable vue/require-prop-types */
 /* eslint-disable vue/order-in-components */
 
+import { AG_GRID_LOCALE_EN } from '@ag-grid-community/locale'
 import {
   _combineAttributesAndGridOptions,
   _processOnChange,
@@ -45,7 +46,6 @@ import {
   type IRowNode,
   type Module,
 } from 'ag-grid-enterprise'
-import { AG_GRID_LOCALE_EN } from '@ag-grid-community/locale'
 import { defineComponent, getCurrentInstance, h, markRaw, toRaw, type PropType } from 'vue'
 import { convertToRaw, getAgGridProperties, type Properties } from './Utils'
 
@@ -87,7 +87,7 @@ const [props, computed, watch] = getAgGridProperties()
 const customLocale = {
   ...AG_GRID_LOCALE_EN,
   // Add any customizations to the locale here
-  loadingError: 'Error fetching data - close and reopen visualization to retry'
+  loadingError: 'Error fetching data - close and reopen visualization to retry',
 }
 
 export const AgGridVue = defineComponent({
