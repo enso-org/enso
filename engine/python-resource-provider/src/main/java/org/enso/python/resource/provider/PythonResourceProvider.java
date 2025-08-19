@@ -1,6 +1,5 @@
 package org.enso.python.resource.provider;
 
-import com.oracle.truffle.api.InternalResource;
 import com.oracle.truffle.api.provider.InternalResourceProvider;
 import java.nio.file.Path;
 
