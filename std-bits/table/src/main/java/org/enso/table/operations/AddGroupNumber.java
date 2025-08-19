@@ -122,7 +122,7 @@ public class AddGroupNumber {
   }
 
   public static record EqualSumResult(ColumnStorage<?> storage, long actualGroupCount) {}
-  )
+
   public static EqualSumResult numberGroupsEqualSum(
       long numRows,
       Column sumColumn,
