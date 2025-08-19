@@ -798,9 +798,9 @@ public class Main {
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
 
-    String pythonHome = null;
-    if (PythonHomeFinder.findPythonHome() instanceof Path p) {
-      pythonHome = p.toString();
+    String pythonResourceDir = null;
+    if (PythonHomeFinder.findPythonHome() instanceof Path pythonHome) {
+      pythonResourceDir = pythonHome.getParent().toFile().getCanonicalPath();
     }
 
     var factory =
@@ -810,7 +810,7 @@ public class Main {
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
-            .pythonHome(pythonHome)
+            .pythonResourceDir(pythonResourceDir)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
