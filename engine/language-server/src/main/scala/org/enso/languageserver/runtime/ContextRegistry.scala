@@ -397,8 +397,8 @@ final class ContextRegistry(
     expressions match {
       case InvalidatedExpressions.All =>
         Api.InvalidatedExpressions.All()
-      case InvalidatedExpressions.Expressions(es) =>
-        Api.InvalidatedExpressions.Expressions(es)
+      case InvalidatedExpressions.Expressions(es, reason) =>
+        Api.InvalidatedExpressions.Expressions(es, reason)
     }
 
 }
