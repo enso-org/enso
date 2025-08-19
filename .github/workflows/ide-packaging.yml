@@ -343,17 +343,28 @@ jobs:
         with:
           name: ide-linux
           path: dist/ide/enso-*.AppImage
-      - run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" >> app/ide-desktop/client/playwright/.auth/user.json'
+      - name: Prepare Package Tests
+        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" >> app/ide-desktop/client/playwright/.auth/user.json'
         env:
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: xvfb-run corepack pnpm -r --filter enso ide-integration-test
+      - name: Run Package Tests
+        run: xvfb-run corepack pnpm -r --filter enso ide-integration-test
         env:
           DEBUG: "pw:browser log:"
           ENSO_TEST_APP_ARGS: --no-sandbox
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm $HOME/.enso/credentials
+      - if: failure()
+        name: Upload Test Traces
+        uses: actions/upload-artifact@v4
+        with:
+          compression-level: 0
+          name: test-traces-linux-amd64
+          path: app/ide-desktop/client/test-traces
+      - if: always()
+        name: Remove Credentials File
+        run: rm -f $HOME/.enso/credentials
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
@@ -436,16 +447,27 @@ jobs:
         with:
           name: ide-windows
           path: dist/ide/enso-*.exe
-      - run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" >> app/ide-desktop/client/playwright/.auth/user.json'
+      - name: Prepare Package Tests
+        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" >> app/ide-desktop/client/playwright/.auth/user.json'
         env:
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: corepack pnpm -r --filter enso ide-integration-test
+      - name: Run Package Tests
+        run: corepack pnpm -r --filter enso ide-integration-test
         env:
           DEBUG: "pw:browser log:"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm $HOME/.enso/credentials
+      - if: failure()
+        name: Upload Test Traces
+        uses: actions/upload-artifact@v4
+        with:
+          compression-level: 0
+          name: test-traces-windows-amd64
+          path: app/ide-desktop/client/test-traces
+      - if: always()
+        name: Remove Credentials File
+        run: rm -f $HOME/.enso/credentials
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"

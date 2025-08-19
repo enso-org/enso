@@ -19,6 +19,7 @@ use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
+use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -987,6 +988,8 @@ rm dist/backend/project-manager.tar"
                     .with_secret_exposed_as(
                         secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
                         "ENSO_TEST_USER_PASSWORD",
+                    ).with_name(
+                        "Prepare Package Tests"
                     );
                 steps.push(test_prepare_step);
 
@@ -1002,9 +1005,23 @@ rm dist/backend/project-manager.tar"
                     _ => shell(TEST_COMMAND),
                 };
                 let test_step = test_step
-                    .with_env("DEBUG", "pw:browser log:");
+                    .with_env("DEBUG", "pw:browser log:")
+                    .with_name("Run Package Tests");
                     
                 steps.push(test_step);
+
+                let upload_test_traces_step = Step {
+                    r#if: Some("failure()".into()),
+                    name: Some("Upload Test Traces".into()),
+                    uses: Some("actions/upload-artifact@v4".into()),
+                    with: Some(Argument::Other(BTreeMap::from_iter([
+                        ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
+                        ("path".into(), "app/ide-desktop/client/test-traces".into()),
+                        ("compression-level".into(), 0.into()), // The traces are in zip already.
+                    ]))),
+                    ..Default::default()
+                };
+                steps.push(upload_test_traces_step);
 
                 // After the E2E tests run, they create a credentials file in user home directory.
                 // If that file is not cleaned up, future runs of our tests may randomly get
@@ -1012,7 +1029,12 @@ rm dist/backend/project-manager.tar"
                 // user only when we explicitly set that up, not randomly. So we clean the
                 // credentials file.
                 let cloud_credentials_path = "$HOME/.enso/credentials";
-                let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+                let cleanup_credentials_step = Step {
+                    r#if: Some("always()".into()),
+                    ..shell(format!("rm -f {cloud_credentials_path}"))
+                    .with_name("Remove Credentials File")
+                };
+                    
                 steps.push(cleanup_credentials_step);
 
                 steps
