@@ -23,7 +23,7 @@ public record CachePreferences(Map<UUID, Kind> preferences) {
   /** A kind of cached value. */
   public enum Kind {
     BINDING_EXPRESSION,
-    SELF_ARGUMENT
+    ARGUMENT
   }
 
   /**

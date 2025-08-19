@@ -108,7 +108,7 @@ public final class PassPersistance {
         var id = in.readInline(UUID.class);
         var kind =
             switch (in.readByte()) {
-              case 1 -> CachePreferences.Kind.SELF_ARGUMENT;
+              case 1 -> CachePreferences.Kind.ARGUMENT;
               case 2 -> CachePreferences.Kind.BINDING_EXPRESSION;
               default -> throw new IOException();
             };
@@ -126,7 +126,7 @@ public final class PassPersistance {
         out.writeInline(UUID.class, entry.getKey());
         out.writeByte(
             switch (entry.getValue()) {
-              case SELF_ARGUMENT -> 1;
+              case ARGUMENT -> 1;
               case BINDING_EXPRESSION -> 2;
               default -> throw new IOException();
             });

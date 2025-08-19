@@ -396,7 +396,7 @@ class EnsureCompiledJob(
       CacheInvalidation(
         CacheInvalidation.StackSelector.Tail,
         CacheInvalidation.Command.InvalidateByKind(
-          Seq(CachePreferences.Kind.SELF_ARGUMENT)
+          Seq(CachePreferences.Kind.ARGUMENT)
         )
       )
     )

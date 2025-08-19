@@ -28,7 +28,7 @@ public class PassPersistanceTest {
     var idSelf = UUID.randomUUID();
     var idBind = UUID.randomUUID();
     var pref = new CachePreferences(new HashMap<>());
-    pref.set(idSelf, CachePreferences.Kind.SELF_ARGUMENT);
+    pref.set(idSelf, CachePreferences.Kind.ARGUMENT);
     pref.set(idBind, CachePreferences.Kind.BINDING_EXPRESSION);
 
     var out = serde(CachePreferences.class, pref, -1);

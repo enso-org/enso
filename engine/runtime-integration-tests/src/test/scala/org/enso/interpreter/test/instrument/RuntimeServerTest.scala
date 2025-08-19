@@ -7134,6 +7134,7 @@ class RuntimeServerTest
         contextId,
         `y_x`,
         ConstantsGen.INTEGER,
+        fromCache   = true,
         typeChanged = false
       ),
       TestMessages.update(
