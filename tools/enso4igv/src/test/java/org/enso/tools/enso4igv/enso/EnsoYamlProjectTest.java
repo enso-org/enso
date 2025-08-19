@@ -55,6 +55,7 @@ public class EnsoYamlProjectTest extends NbTestCase {
     var stdlib = repoRoot.getFileObject("distribution/lib/Standard");
     assertNotNull("distribution/lib/Standard found", stdlib);
 
+    var stdlibCount = 0;
     for (var ch : stdlib.getChildren()) {
         var prj = ProjectManager.getDefault().findProject(ch);
         assertNotNull("Project for " + ch + " found", prj);
@@ -83,7 +84,11 @@ public class EnsoYamlProjectTest extends NbTestCase {
         assertTrue("Found main among: " + Arrays.toString(srcNodes), foundMain.isPresent());
         assertEquals("Main", foundMain.get().getName());
         assertEquals("represents the Main.enso file", main, foundMain.get().getLookup().lookup(FileObject.class));
+        
+        stdlibCount++;
     }
+    
+    assertTrue("Found enough libs in " + stdlib + " was: " + stdlibCount, stdlibCount > 5);
   }
 
   private static File findRepoRoot() throws URISyntaxException, IllegalArgumentException {
