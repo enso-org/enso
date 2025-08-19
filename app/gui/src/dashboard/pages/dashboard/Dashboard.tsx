@@ -85,7 +85,7 @@ export function Dashboard(props: DashboardProps) {
     (lp) => lp.id === props.projectToOpen?.asset.id,
   )
   const initialAlreadyLaunchedHybridProject = launchedProjects.find(
-    (lp) => lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
+    (lp) => lp.state === 'launched' && lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
   )
 
   const closeProject = projectHooks.useCloseProject()

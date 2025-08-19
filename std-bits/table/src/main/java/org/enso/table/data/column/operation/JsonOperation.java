@@ -173,6 +173,17 @@ public class JsonOperation {
   }
 
   private static String toJson(double value) {
+    if (Double.isNaN(value)) {
+      return "{\"_display_text_\":\"NaN\",\"type\":\"Float\",\"value\":\"NaN\"}";
+    }
+    if (Double.isInfinite(value)) {
+      var txtValue = value > 0 ? "Infinity" : "-Infinity";
+      return "{\"_display_text_\":\""
+          + txtValue
+          + "\",\"type\":\"Float\",\"value\":\""
+          + txtValue
+          + "\"}";
+    }
     return String.valueOf(value);
   }
 

@@ -10,6 +10,7 @@ import org.enso.distribution.locking.{
 import org.enso.logger.Converter
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
+import org.enso.profiling.events.EventsMonitor
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
@@ -56,7 +57,6 @@ import org.enso.common.{
 import org.enso.filewatcher.WatcherFactory
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
-import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.version.BuildVersion
@@ -187,9 +187,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
-        new RuntimeEventsMonitor(out) -> Some(())
+        def logInstantMsg(at: java.time.Instant, msg: String) = {
+          out.println(s"$at $msg")
+        }
+        new RuntimeEventsMonitor(logInstantMsg) -> Some(())
       case None =>
-        new NoopEventsMonitor() -> None
+        EventsMonitor.NOOP -> None
     }
   log.trace(
     "Started runtime events monitor [{}]",

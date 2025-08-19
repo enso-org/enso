@@ -136,6 +136,18 @@ class IrToTruffle(
 
   val language: EnsoLanguage = context.getLanguage
 
+  def this(
+    context: EnsoContext,
+    source: Source,
+    mod: CompilerContext.Module,
+    compilerConfig: CompilerConfig
+  ) = this(
+    context,
+    source,
+    TruffleCompilerModuleScopeBuilder.fromCompilerModule(mod),
+    compilerConfig
+  )
+
   // ==========================================================================
   // === Top-Level Runners ====================================================
   // ==========================================================================
@@ -196,7 +208,7 @@ class IrToTruffle(
 
     val builderAlgorithm = new BuildModuleScopeFromModule
     builderAlgorithm.processModule(module, bindingsMap)
-    scopeBuilder.build()
+    scopeBuilder.finish()
   }
 
   final private class BuildModuleScopeFromModule
@@ -2548,24 +2560,22 @@ class IrToTruffle(
   }
 
   private def asScope(module: CompilerContext.Module): ModuleScopeBuilder = {
-    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScopeBuilder()
+    TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
   }
 
   private def asType(
     typ: BindingsMap.ResolvedType
   ): Type = {
-    val m = org.enso.interpreter.runtime.Module
-      .fromCompilerModule(typ.module.unsafeAsModule())
-    val sb = m.getScopeBuilder()
+    val sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(
+      typ.module.unsafeAsModule()
+    )
     sb.getType(typ.tp.name, true)
   }
 
   private def asAssociatedType(
     module: CompilerContext.Module
   ): Type = {
-    val m  = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    val sb = m.getScopeBuilder()
+    val sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
     sb.getAssociatedType()
   }
 
