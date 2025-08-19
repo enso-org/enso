@@ -1,18 +1,26 @@
 package org.enso.tools.enso4igv.enso;
 
+import java.beans.BeanInfo;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import javax.swing.Action;
+import javax.swing.Icon;
 import org.netbeans.api.project.Project;
+import org.netbeans.api.project.SourceGroup;
+import org.netbeans.spi.java.project.support.ui.PackageView;
 import org.netbeans.spi.project.ProjectState;
 import org.netbeans.spi.project.ui.LogicalViewProvider;
 import org.netbeans.spi.project.ui.support.CommonProjectActions;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.loaders.DataObject;
 import org.openide.loaders.DataObjectNotFoundException;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
+import org.openide.nodes.FilterNode;
 import org.openide.nodes.Node;
 import org.openide.util.Exceptions;
+import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.lookup.Lookups;
@@ -37,7 +45,7 @@ public final class EnsoYamlProject implements Project {
         new LogicalView()
     );
   }
-  
+
   public static Project create(FileObject fo, ProjectState ps) throws IOException {
       var dev000 = fo;
       if (fo.getFileObject("package.yaml") == null) {
@@ -68,6 +76,56 @@ public final class EnsoYamlProject implements Project {
     return "EnsoYamlProject{prj=" + prj + "}";
   }
 
+    private static class JavaLibsChildren extends FilterNode.Children {
+        public JavaLibsChildren(Node node) {
+            super(node);
+        }
+
+        @Override
+        protected Node copyNode(Node node) {
+            var jar = node.getLookup().lookup(FileObject.class);
+            if (jar != null && FileUtil.isArchiveFile(jar)) {
+                var root = FileUtil.getArchiveRoot(jar);
+                var group = new SourceGroup() {
+                    @Override
+                    public FileObject getRootFolder() {
+                        return root;
+                    }
+
+                    @Override
+                    public String getName() {
+                        return node.getName();
+                    }
+
+                    @Override
+                    public String getDisplayName() {
+                        return node.getDisplayName();
+                    }
+
+                    @Override
+                    public Icon getIcon(boolean opened) {
+                        return ImageUtilities.image2Icon(opened ? node.getOpenedIcon(BeanInfo.ICON_COLOR_32x32) : node.getIcon(BeanInfo.ICON_COLOR_32x32));
+                    }
+
+                    @Override
+                    public boolean contains(FileObject file) {
+                        return true;
+                    }
+
+                    @Override
+                    public void addPropertyChangeListener(PropertyChangeListener listener) {
+                    }
+
+                    @Override
+                    public void removePropertyChangeListener(PropertyChangeListener listener) {
+                    }
+                };
+                return PackageView.createPackageView(group);
+            }
+            return node.cloneNode();
+        }
+    }
+
   private final class LogicalView implements LogicalViewProvider {
 
     LogicalView() {
@@ -93,7 +151,7 @@ public final class EnsoYamlProject implements Project {
       super(ch, l);
       setIconBaseWithExtension("org/enso/tools/enso4igv/enso.svg");
     }
-      
+
     @Override
     public String getHtmlDisplayName() {
       return null;
@@ -114,8 +172,8 @@ public final class EnsoYamlProject implements Project {
       var nameDir = p.getProjectDirectory();
       setName(nameDir.getNameExt());
     }
-    
-    
+
+
     private static Children createChildren(EnsoYamlProject p) {
         var ch = new Children.Array();
         try {
@@ -129,7 +187,17 @@ public final class EnsoYamlProject implements Project {
         try {
             var poly = p.root.getFileObject("polyglot", true);
             if (poly != null) {
-                var polyNode = DataObject.find(poly).getNodeDelegate().cloneNode();
+                var polyOrigNode = DataObject.find(poly).getNodeDelegate();
+                var polyNode = new FilterNode(polyOrigNode, new FilterNode.Children(polyOrigNode) {
+                    @Override
+                    protected Node copyNode(Node node) {
+                        if ("java".equals(node.getName()) && node.getLookup().lookup(FileObject.class) instanceof FileObject folder) {
+                            return new FilterNode(node, new JavaLibsChildren(node));
+                        } else {
+                            return node.cloneNode();
+                        }
+                    }
+                });
                 polyNode.setDisplayName(Bundle.LAB_EnsoPolyglot());
                 ch.add(new Node[]{polyNode});
             }

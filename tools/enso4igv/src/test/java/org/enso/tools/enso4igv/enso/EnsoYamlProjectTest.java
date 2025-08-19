@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+import junit.framework.TestCase;
 import static junit.framework.TestCase.assertNotNull;
 import org.enso.tools.enso4igv.EnsoSbtProjectTest;
 import org.netbeans.api.project.ProjectManager;
@@ -99,7 +100,11 @@ public class EnsoYamlProjectTest extends NbTestCase {
   public void testPolyglot() throws Exception {
     var yaml = FileUtil.createData(root, "poly/package.yaml");
     var main = FileUtil.createData(root, "poly/src/Main.enso");
-    var jar = FileUtil.createData(root, "poly/polyglot/java/fake.jar");
+    var jar = FileUtil.createData(root, "poly/polyglot/java/junit.jar");
+    var origJunitUrl = TestCase.class.getProtectionDomain().getCodeSource().getLocation();
+    try (java.io.OutputStream os = jar.getOutputStream()) {
+      FileUtil.copy(origJunitUrl.openStream(), os);
+    }
     var js = FileUtil.createData(root, "poly/polyglot/js/test.js");
     var python = FileUtil.createData(root, "poly/polyglot/python/run.py");
     var libSo = FileUtil.createData(root, "poly/polyglot/lib/dummy.so");
@@ -129,6 +134,15 @@ public class EnsoYamlProjectTest extends NbTestCase {
 
     var polyTypeNames = Stream.of(polyNodes).map(n -> n.getName()).distinct().sorted().toList();
     assertEquals(polyTypeNames, List.of("java", "js", "lib", "python"));
+
+    var javaNode = Stream.of(polyNodes).filter(n -> "java".equals(n.getName())).findAny().get();
+    var javaLibs = javaNode.getChildren().getNodes(true);
+    assertEquals("There is one library", 1, javaLibs.length);
+    assertEquals("junit.jar", javaLibs[0].getName());
+
+    var packages = javaLibs[0].getChildren().getNodes(true);
+    var testCasePkg = Stream.of(packages).filter(n -> TestCase.class.getPackageName().equals(n.getName())).findAny();
+    assertTrue("junit framework package is found among " + Arrays.toString(packages), testCasePkg.isPresent());
   }
 
   private static File findRepoRoot() throws URISyntaxException, IllegalArgumentException {
