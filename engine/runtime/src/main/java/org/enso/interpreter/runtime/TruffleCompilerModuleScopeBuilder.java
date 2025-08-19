@@ -1,14 +1,12 @@
 package org.enso.interpreter.runtime;
 
+import java.util.function.Consumer;
 import org.enso.compiler.context.CompilerContext;
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
-final class TruffleCompilerModuleScopeBuilder extends CompilerContext.ModuleScopeBuilder {
-  private final org.enso.interpreter.runtime.scope.ModuleScopeBuilder scopeBuilder;
-
-  TruffleCompilerModuleScopeBuilder(
-      org.enso.interpreter.runtime.scope.ModuleScopeBuilder scopeBuilder) {
-    this.scopeBuilder = scopeBuilder;
+final class TruffleCompilerModuleScopeBuilder extends ModuleScopeBuilder {
+  TruffleCompilerModuleScopeBuilder(Module module, Consumer<ModuleScope> onFinish) {
+    super(module, onFinish);
   }
 
   static ModuleScopeBuilder fromCompilerModuleScopeBuilder(
@@ -20,11 +18,7 @@ final class TruffleCompilerModuleScopeBuilder extends CompilerContext.ModuleScop
     return fromCompilerModuleScopeBuilder(module.getScopeBuilder());
   }
 
-  org.enso.interpreter.runtime.scope.ModuleScopeBuilder unsafeScopeBuilder() {
-    return scopeBuilder;
-  }
-
-  final void finish() {
-    this.scopeBuilder.finish();
+  org.enso.interpreter.runtime.ModuleScopeBuilder unsafeScopeBuilder() {
+    return this;
   }
 }

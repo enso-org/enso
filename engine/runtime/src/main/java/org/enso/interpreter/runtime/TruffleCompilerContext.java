@@ -870,9 +870,7 @@ final class TruffleCompilerContext implements CompilerContext {
      */
     final TruffleCompilerModuleScopeBuilder getScopeBuilder(boolean reset) {
       if (reset || sb == null) {
-        var scopeBuilder =
-            ModuleScopeAccessor.getInstance().newScopeBuilder(module, module::updateModuleScope);
-        sb = new TruffleCompilerModuleScopeBuilder(scopeBuilder);
+        sb = new TruffleCompilerModuleScopeBuilder(module, module::updateModuleScope);
       }
       return sb;
     }

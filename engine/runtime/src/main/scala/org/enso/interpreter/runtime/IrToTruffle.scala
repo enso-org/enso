@@ -98,7 +98,6 @@ import org.enso.interpreter.runtime.callable.{
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.scope.ImportExportScope
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder
 import org.enso.interpreter.{Constants, EnsoLanguage}
 import org.enso.interpreter.runtime.builtin.Builtins
 
@@ -532,7 +531,7 @@ class IrToTruffle(
       val fieldNames = atomDefn.arguments.map(_.name.name).toArray
       atomCons.initializeFields(
         language,
-        scopeBuilder,
+        scopeBuilder.toCompilerBuilder(),
         initializationBuilderSupplier,
         fieldNames
       )

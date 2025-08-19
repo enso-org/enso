@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.scope;
+package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -9,25 +9,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.ModuleScopeAccessor;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
+import org.enso.interpreter.runtime.scope.ImportExportScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** Builder to create an instance of {@link ModuleScope}. */
-public final class ModuleScopeBuilder {
-  private static final ModuleScopeAccessor IMPL =
-      new ModuleScopeAccessor() {
-        @Override
-        protected final ModuleScopeBuilder newScopeBuilder(
-            Module m, Consumer<ModuleScope> onFinish) {
-          return new ModuleScopeBuilder(m, onFinish);
-        }
-      };
-
+public abstract class ModuleScopeBuilder extends CompilerContext.ModuleScopeBuilder {
   private final Consumer<ModuleScope> onFinish;
   private ModuleScope moduleScope;
   private final Module module;
@@ -39,7 +31,8 @@ public final class ModuleScopeBuilder {
   private final Set<ImportExportScope> imports;
   private final Set<ImportExportScope> exports;
 
-  private ModuleScopeBuilder(Module module, Consumer<ModuleScope> onFinish) {
+  /** Only for TruffleCompilerModuleScopeBuilder */
+  ModuleScopeBuilder(Module module, Consumer<ModuleScope> onFinish) {
     this.module = module;
     this.onFinish = onFinish;
     this.polyglotSymbols = new LinkedHashMap<>();
@@ -57,6 +50,10 @@ public final class ModuleScopeBuilder {
     return current == null ? type : current;
   }
 
+  public TruffleCompilerModuleScopeBuilder toCompilerBuilder() {
+    return (TruffleCompilerModuleScopeBuilder) this;
+  }
+
   /**
    * Returns a map of methods defined in this module for a given type.
    *
@@ -64,7 +61,7 @@ public final class ModuleScopeBuilder {
    * @return a map containing all the defined methods by name
    */
   private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
-    Type tpeKey = type == null ? ModuleScopeUtils.noTypeKey : type;
+    Type tpeKey = type == null ? Type.noType() : type;
     return methods.computeIfAbsent(tpeKey, k -> new LinkedHashMap<>());
   }
 
@@ -149,7 +146,7 @@ public final class ModuleScopeBuilder {
    */
   public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScopeBuilder scope) {
     // FIXME: because of Builtins can't enable 'assert moduleScope == null;'
-    Type tpeKey = tpe == null ? ModuleScopeUtils.noTypeKey : tpe;
+    Type tpeKey = tpe == null ? Type.noType() : tpe;
     java.util.Map<
             java.lang.String,
             java.util.function.Supplier<org.enso.interpreter.runtime.callable.function.Function>>
@@ -196,16 +193,7 @@ public final class ModuleScopeBuilder {
    */
   private ModuleScope build() {
     if (moduleScope == null) {
-      moduleScope =
-          new ModuleScope(
-              module,
-              associatedType,
-              Collections.unmodifiableMap(polyglotSymbols),
-              Collections.unmodifiableMap(types),
-              Collections.unmodifiableMap(methods),
-              Collections.unmodifiableMap(conversions),
-              Collections.unmodifiableSet(imports),
-              Collections.unmodifiableSet(exports));
+      moduleScope = createModuleScope();
       onFinish.accept(moduleScope);
     }
     return moduleScope;
@@ -223,11 +211,12 @@ public final class ModuleScopeBuilder {
   }
 
   public Supplier<TruffleObject> getPolyglotSymbolSupplier(String symbolName) {
-    return ModuleScopeUtils.findPolyglotSymbolSupplier(polyglotSymbols, symbolName);
+    return ModuleScopeAccessor.getInstance()
+        .findPolyglotSymbolSupplier(polyglotSymbols, symbolName);
   }
 
   public Function getMethodForType(Type tpe, String name) {
-    return ModuleScopeUtils.findMethodForType(tpe, methods, name);
+    return ModuleScopeAccessor.getInstance().findMethodForType(tpe, methods, name);
   }
 
   /**
@@ -246,15 +235,16 @@ public final class ModuleScopeBuilder {
 
   @CompilerDirectives.TruffleBoundary
   private ModuleScope createModuleScope() {
-    return new ModuleScope(
-        module,
-        associatedType,
-        Collections.unmodifiableMap(polyglotSymbols),
-        Collections.unmodifiableMap(types),
-        Collections.unmodifiableMap(methods),
-        Collections.unmodifiableMap(conversions),
-        Collections.unmodifiableSet(imports),
-        Collections.unmodifiableSet(exports));
+    return ModuleScopeAccessor.getInstance()
+        .newModuleScope(
+            module,
+            associatedType,
+            Collections.unmodifiableMap(polyglotSymbols),
+            Collections.unmodifiableMap(types),
+            Collections.unmodifiableMap(methods),
+            Collections.unmodifiableMap(conversions),
+            Collections.unmodifiableSet(imports),
+            Collections.unmodifiableSet(exports));
   }
 
   @Override
