@@ -20,6 +20,8 @@ My_Type.my_method self = self.a + self.b + self.c
 type Wrap
     Value foo
 
+    materialize v -> Wrap = v
+
 f x _ = Warning.attach "Baz!" x
 
 type My_Fancy_Collection
@@ -460,6 +462,15 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         panic_text = Panic.catch Standard.Base.Errors.Common.Type_Error (Warning.set 1 2) caught_panic->
             caught_panic.payload.to_text
         panic_text . should_equal "Type error: expected `warnings` to be Vector, but got Integer."
+
+    group_builder.specify "warning & auto constructor" <|
+        three = Warning.attach "warn!!!" 3
+        wrap = Wrap.materialize (..Value three)
+
+        Warning.get_all wrap . should_equal [ "warn!!!" ]
+
+        wrap.foo . should_equal 3
+        Warning.get_all wrap.foo . should_equal [ "warn!!!" ]
 
 main filter=Nothing =
     suite = Test.build suite_builder->
