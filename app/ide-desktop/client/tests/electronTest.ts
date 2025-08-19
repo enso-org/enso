@@ -19,6 +19,12 @@ const TEXT = TEXTS.english
 export const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
 
+const credentials = JSON.parse(
+  await fs.readFile(TEST_USER_FILE, { encoding: 'utf-8' }).catch((err) => {
+    throw Error('Cannot read Test User credentials.', { cause: err })
+  }),
+)
+
 const electronExecutablePath = await (async () => {
   const POSSIBLE_EXEC_PATHS = [
     '../../../../dist/ide/linux-unpacked/enso',
@@ -64,6 +70,11 @@ export const test = base.extend<{
       args,
       env: { ...process.env, ENSO_TEST: 'true', ENSO_TEST_PROJECTS_DIR: projectsDir },
     })
+    // Set the password as global var before turning on tracing.
+    // This way it will be not disclosed to anyone downloading traces of failed tests.
+    ;(await app.firstWindow()).evaluate((password) => {
+      ;(window as any).passwordOverride = password
+    }, credentials.password)
     await app.context().tracing.start({ screenshots: true, snapshots: true, sources: true })
     await use(app)
     await app.context().tracing.stop({ path: `test-traces/${testRunId}.zip` })
@@ -85,18 +96,9 @@ export async function loginAsTestUser(page: Page) {
   await expect(page.getByText('Login to your account')).toBeVisible({ timeout: LOADING_TIMEOUT })
   await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
-  const credentials = JSON.parse(
-    await fs.readFile(TEST_USER_FILE, { encoding: 'utf-8' }).catch((err) => {
-      throw Error('Cannot read Test User credentials.', { cause: err })
-    }),
-  )
   await page.getByRole('textbox', { name: 'email' }).fill(credentials.user)
-  // await page.getByRole('textbox', { name: 'password' }).fill(credentials.password)
-  await page
-    .getByRole('textbox', { name: 'password' })
-    .evaluate((input: HTMLInputElement, password) => {
-      input.value = password
-    }, credentials.password)
+  // Put some placeholder - the actual password was set in fixture (see above).
+  await page.getByRole('textbox', { name: 'password' }).fill('mellon')
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
   await page

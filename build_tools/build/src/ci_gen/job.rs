@@ -974,6 +974,21 @@ rm dist/backend/project-manager.tar"
                         format!("dist/ide/enso-*.{}", target.0.package_extension()),
                     );
                 steps.push(upload_ide);
+                
+                let test_prepare_step = shell("\
+                    mkdir -p app/ide-desktop/client/playwright/.auth && \
+                    touch app/ide-desktop/client/playwright/.auth/user.json && \
+                    chmod 600 app/ide-desktop/client/playwright/.auth/user.json && \
+                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" >> app/ide-desktop/client/playwright/.auth/user.json\
+                    ").with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+                        "ENSO_TEST_USER",
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                        "ENSO_TEST_USER_PASSWORD",
+                    );
+                steps.push(test_prepare_step);
 
                 const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
@@ -987,15 +1002,8 @@ rm dist/backend/project-manager.tar"
                     _ => shell(TEST_COMMAND),
                 };
                 let test_step = test_step
-                    .with_env("DEBUG", "pw:browser log:")
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
-                        "ENSO_TEST_USER",
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
-                        "ENSO_TEST_USER_PASSWORD",
-                    );
+                    .with_env("DEBUG", "pw:browser log:");
+                    
                 steps.push(test_step);
 
                 // After the E2E tests run, they create a credentials file in user home directory.
