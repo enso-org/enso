@@ -41,17 +41,22 @@ test('Project Duplicate', async ({ page, app, projectsDir }) => {
   await page.getByRole('tab', { name: 'Data Catalog' }).click()
 
   // Finding all of the 'New pojects'
-  const projects = await page.getByTestId('drive-view').getByText(/New Project \d+/).all();
+  const projects = await page
+    .getByTestId('drive-view')
+    .getByText(/New Project \d+/)
+    .all()
 
-  const numbered = await Promise.all(projects.map(async (p) => {
-    const text = await p.innerText();
-    const num = parseInt(text.replace('New Project ', ''), 10);
-    return { locator: p, num };
-  }));
+  const numbered = await Promise.all(
+    projects.map(async (p) => {
+      const text = await p.innerText()
+      const num = parseInt(text.replace('New Project ', ''), 10)
+      return { locator: p, num }
+    }),
+  )
 
   // Pick the one with the highest number
-  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator;
-  await newest.click({ button: 'right' });
+  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+  await newest.click({ button: 'right' })
 
   // Try to duplicate the new project
   await expect(page.getByRole('button', { name: 'Duplicate' })).toBeVisible()
@@ -91,17 +96,22 @@ test('Cloud Project Duplicate', async ({ page, app, projectsDir }) => {
   await page.getByRole('tab', { name: 'Data Catalog' }).click()
 
   // Finding all of the 'New pojects'
-  const projects = await page.getByTestId('drive-view').getByText(/New Project \d+/).all();
+  const projects = await page
+    .getByTestId('drive-view')
+    .getByText(/New Project \d+/)
+    .all()
 
-  const numbered = await Promise.all(projects.map(async (p) => {
-    const text = await p.innerText();
-    const num = parseInt(text.replace('New Project ', ''), 10);
-    return { locator: p, num };
-  }));
+  const numbered = await Promise.all(
+    projects.map(async (p) => {
+      const text = await p.innerText()
+      const num = parseInt(text.replace('New Project ', ''), 10)
+      return { locator: p, num }
+    }),
+  )
 
   // Pick the one with the highest number
-  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator;
-  await newest.click({ button: 'right' });
+  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+  await newest.click({ button: 'right' })
 
   // Try to duplicate the new project
   await expect(page.getByRole('button', { name: 'Duplicate' })).toBeVisible()
