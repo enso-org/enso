@@ -84,7 +84,7 @@ final class EnsoRootProject implements Project {
     @Override
     public Set<? extends Project> getSubprojects() {
       var found = new TreeSet<Project>(this);
-      searchForProjects(getProjectDirectory(), found, 6);
+      searchForProjects(getProjectDirectory(), found, 5);
       return found;
     }
 
@@ -131,7 +131,7 @@ final class EnsoRootProject implements Project {
       var result = new Result(getSubprojects(), false);
       return result;
     }
-    
+
     private final class Factory extends ChildFactory<FileObject>  {
       private final String[] prepend;
       private final FileObject under;
@@ -140,7 +140,7 @@ final class EnsoRootProject implements Project {
         this.prepend = prepend;
         this.under = under;
       }
-        
+
       @Override
       protected boolean createKeys(List<FileObject> list) {
         for (String fileName : prepend) {
@@ -192,13 +192,13 @@ final class EnsoRootProject implements Project {
     }
 
   }
-  
+
   private static class ContainerNode extends AbstractNode {
     ContainerNode(Children ch, Lookup l) {
       super(ch, l);
       setIconBaseWithExtension("org/enso/tools/enso4igv/enso-duke.svg");
     }
-      
+
     @Override
     public String getHtmlDisplayName() {
       return null;
