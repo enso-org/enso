@@ -141,7 +141,8 @@ final class BuiltinsRegistry {
                   meth.isAutoRegister ? (!meth.isStatic() ? type : type.getEigentype()) : null;
               if (tpe != null) {
                 Optional<BuiltinFunction> fun = meth.toFunction(language, false);
-                fun.ifPresent(f -> scope.registerMethod(tpe, key, f.getFunction()));
+                fun.ifPresent(
+                    f -> scope.registerMethod(tpe, key, CachingSupplier.forValue(f.getFunction())));
               }
             });
       }

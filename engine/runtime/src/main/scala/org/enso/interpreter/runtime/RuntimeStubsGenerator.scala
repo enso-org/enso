@@ -7,19 +7,21 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.ModuleScopeBuilder
 
 /** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
   * fully generated yet.
   */
-class RuntimeStubsGenerator(builtins: Builtins) {
+private[runtime] class RuntimeStubsGenerator(builtins: Builtins) {
 
   /** Runs the stage on the given module.
     *
     * @param module the module to generate stubs in.
     */
-  private[runtime] def run(ir: IR, scope: ModuleScopeBuilder): Unit = {
+  private[runtime] def run(
+    ir: IR,
+    scope: TruffleCompilerModuleScopeBuilder
+  ): Unit = {
     val localBindings = ir.unsafeGetMetadata(
       BindingAnalysis,
       "Non-parsed module used in stubs generator"

@@ -126,7 +126,7 @@ import scala.jdk.OptionConverters._
 class IrToTruffle(
   val context: EnsoContext,
   val source: Source,
-  val scopeBuilder: ModuleScopeBuilder,
+  val scopeBuilder: TruffleCompilerModuleScopeBuilder,
   val compilerConfig: CompilerConfig
 ) {
   private def getBuiltins: Builtins = {
@@ -2558,7 +2558,9 @@ class IrToTruffle(
       }
   }
 
-  private def asScope(module: CompilerContext.Module): ModuleScopeBuilder = {
+  private def asScope(
+    module: CompilerContext.Module
+  ): TruffleCompilerModuleScopeBuilder = {
     TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
   }
 
