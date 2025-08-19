@@ -147,7 +147,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @Override
     protected void writeObject(TruffleObject obj, Output out) throws IOException {
       if (obj instanceof OtherJvmObject other) {
-        out.writeLong(other.id());
+        other.writeTo(out);
       } else {
         throw new IOException("No other subclasses of TruffleObject should get here: " + obj);
       }
@@ -156,7 +156,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @Override
     protected TruffleObject readObject(Input in) throws IOException, ClassNotFoundException {
       // OtherJvmObject instance ready to be "read resolved"
-      return new OtherJvmObject(null, in.readLong());
+      return OtherJvmObject.readFrom(in);
     }
   }
 
