@@ -3,6 +3,7 @@ package org.enso.tools.enso4igv.enso;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 import static junit.framework.TestCase.assertNotNull;
 import org.enso.tools.enso4igv.EnsoSbtProjectTest;
@@ -73,9 +74,9 @@ public class EnsoYamlProjectTest extends NbTestCase {
 
         assertEquals(ch.getName(), node.getName());
         var prjNodes = node.getChildren().getNodes(true);
-        assertEquals("Two nodes", 2, prjNodes.length);
-        assertEquals("package.yaml", prjNodes[1].getName());
-        assertEquals("represents the package.yaml file", yaml, prjNodes[1].getLookup().lookup(FileObject.class));
+        assertTrue("Two or three (if with polyglot) nodes", prjNodes.length >= 2 && prjNodes.length <= 3);
+        assertEquals("package.yaml", prjNodes[prjNodes.length - 1].getName());
+        assertEquals("represents the package.yaml file", yaml, prjNodes[prjNodes.length - 1].getLookup().lookup(FileObject.class));
         assertEquals("src", prjNodes[0].getName());
         var srcNodes = prjNodes[0].getChildren().getNodes(true);
         var foundMain = Stream.of(srcNodes)
@@ -84,11 +85,47 @@ public class EnsoYamlProjectTest extends NbTestCase {
         assertTrue("Found main among: " + Arrays.toString(srcNodes), foundMain.isPresent());
         assertEquals("Main", foundMain.get().getName());
         assertEquals("represents the Main.enso file", main, foundMain.get().getLookup().lookup(FileObject.class));
-        
+
         stdlibCount++;
     }
-    
+
     assertTrue("Found enough libs in " + stdlib + " was: " + stdlibCount, stdlibCount > 5);
+  }
+
+
+  public void testPolyglot() throws Exception {
+    var yaml = FileUtil.createData(root, "poly/package.yaml");
+    var main = FileUtil.createData(root, "poly/src/Main.enso");
+    var jar = FileUtil.createData(root, "poly/polyglot/java/fake.jar");
+    var js = FileUtil.createData(root, "poly/polyglot/js/test.js");
+    var python = FileUtil.createData(root, "poly/polyglot/python/run.py");
+    var libSo = FileUtil.createData(root, "poly/polyglot/lib/dummy.so");
+    var libDll = FileUtil.createData(root, "poly/polyglot/lib/windows/dummy.dll");
+
+    var rootFO = root.getFileObject("poly");
+    var poly = ProjectManager.getDefault().findProject(rootFO);
+    assertNotNull("Project found", poly);
+    var lvp = poly.getLookup().lookup(LogicalViewProvider.class);
+
+    var node = lvp.createLogicalView();
+
+    assertEquals("poly", node.getName());
+    var prjNodes = node.getChildren().getNodes(true);
+    assertEquals("Three nodes", 3, prjNodes.length);
+
+    assertEquals("package.yaml", prjNodes[2].getName());
+    assertEquals("represents the package.yaml file", yaml, prjNodes[2].getLookup().lookup(FileObject.class));
+
+    assertEquals("src", prjNodes[0].getName());
+    assertEquals("Enso Sources", prjNodes[0].getDisplayName());
+
+    assertEquals("polyglot", prjNodes[1].getName());
+    assertEquals("Polyglot Sources", prjNodes[1].getDisplayName());
+    var polyNodes = prjNodes[1].getChildren().getNodes(true);
+    assertEquals("Few nodes: " + Arrays.toString(polyNodes), 4, polyNodes.length);
+
+    var polyTypeNames = Stream.of(polyNodes).map(n -> n.getName()).distinct().sorted().toList();
+    assertEquals(polyTypeNames, List.of("java", "js", "lib", "python"));
   }
 
   private static File findRepoRoot() throws URISyntaxException, IllegalArgumentException {

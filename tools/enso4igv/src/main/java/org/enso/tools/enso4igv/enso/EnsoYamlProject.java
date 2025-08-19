@@ -3,7 +3,6 @@ package org.enso.tools.enso4igv.enso;
 import java.io.IOException;
 import javax.swing.Action;
 import org.netbeans.api.project.Project;
-import org.netbeans.api.project.ProjectUtils;
 import org.netbeans.spi.project.ProjectState;
 import org.netbeans.spi.project.ui.LogicalViewProvider;
 import org.netbeans.spi.project.ui.support.CommonProjectActions;
@@ -19,7 +18,8 @@ import org.openide.util.NbBundle;
 import org.openide.util.lookup.Lookups;
 
 @NbBundle.Messages({
-    "LAB_EnsoSources=Enso Sources"
+    "LAB_EnsoSources=Enso Sources",
+    "LAB_EnsoPolyglot=Polyglot Sources"
 })
 public final class EnsoYamlProject implements Project {
 
@@ -119,6 +119,16 @@ public final class EnsoYamlProject implements Project {
             var srcNode = DataObject.find(src).getNodeDelegate().cloneNode();
             srcNode.setDisplayName(Bundle.LAB_EnsoSources());
             ch.add(new Node[]{srcNode});
+        } catch (DataObjectNotFoundException ex) {
+            Exceptions.printStackTrace(ex);
+        }
+        try {
+            var poly = p.root.getFileObject("polyglot", true);
+            if (poly != null) {
+                var polyNode = DataObject.find(poly).getNodeDelegate().cloneNode();
+                polyNode.setDisplayName(Bundle.LAB_EnsoPolyglot());
+                ch.add(new Node[]{polyNode});
+            }
         } catch (DataObjectNotFoundException ex) {
             Exceptions.printStackTrace(ex);
         }
