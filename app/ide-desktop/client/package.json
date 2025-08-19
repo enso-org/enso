@@ -44,7 +44,7 @@
     "@playwright/test": "^1.50.1",
     "@types/gunzip-maybe": "^1.4.2",
     "@types/mime-types": "^2.1.4",
-    "@types/node": "^22.10.4",
+    "@types/node": "catalog:",
     "@types/opener": "^1.4.3",
     "@types/semver": "^7.5.8",
     "@types/tar": "^6.1.13",

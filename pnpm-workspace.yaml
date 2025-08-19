@@ -15,7 +15,8 @@ packages:
   - lib/js/runner
 catalog:
   typescript: ^5.7.2
-  vite: ^6.2.4
+  "@types/node": ^24.2.1
+  vite: ^7.1.2
   vitest: ^3.2.4
   playwright: 1.50.1
   "@codemirror/autocomplete": ^6.18.6

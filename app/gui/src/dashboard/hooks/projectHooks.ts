@@ -10,15 +10,16 @@ import type { LaunchedProject, LaunchedProjectId } from '$/providers/container'
 import * as authProvider from '$/providers/react'
 import {
   useAddLaunchedProject,
+  useAddOpeningProject,
   useContainerData,
   useRemoveLaunchedProject,
+  useRemoveOpeningProject,
   useUpdateLaunchedProjects,
 } from '$/providers/react/container'
 
 import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useAddOpeningProject, useRemoveOpeningProject } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useBackends } from '$/providers/react'
@@ -206,7 +207,7 @@ createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project'
 
 const OPEN_PROJECT_MUTATION_KEY = ['openProject'] as const
 
-/** A mutation to open a project. */
+/** A mutation to open a project in backend. */
 export function useOpenProjectMutation() {
   const client = reactQuery.useQueryClient()
   const session = authProvider.useFullUserSession()
@@ -225,8 +226,9 @@ export function useOpenProjectMutation() {
       hybrid,
       inBackground = false,
       suppressHybridProjectOpen: _ = false,
+      ensoPath,
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
-      addOpeningProject(hybrid?.cloudProjectId ?? id)
+      addOpeningProject(hybrid?.cloudProjectId ?? id, ensoPath)
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -460,7 +462,7 @@ function useOpenProject() {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
-      addOpeningProject(project.hybrid?.cloudProjectId ?? project.id)
+      addOpeningProject(project.hybrid?.cloudProjectId ?? project.id, project.ensoPath)
 
       if (!enableMultitabs) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
@@ -516,7 +518,7 @@ function useOpenHybridProject() {
 
       try {
         invariant(localBackend != null, 'Local Backend is null')
-        addOpeningProject(asset.id)
+        addOpeningProject(asset.id, asset.ensoPath)
         const projectSessionId = await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
         const cloudProjectDirectoryPath = backendModule.EnsoPath(
@@ -537,7 +539,6 @@ function useOpenHybridProject() {
           }
         }
 
-        removeOpeningProject(asset.id)
         invariant(project, 'Downloaded cloud project does not exist in Local Backend.')
         launchedProject = {
           id: project.id,
@@ -555,12 +556,13 @@ function useOpenHybridProject() {
         }
         await openProject(launchedProject)
       } catch (error) {
-        removeOpeningProject(asset.id)
         toastAndLog('openProjectError', error, asset.title)
         await Promise.allSettled([
           closeProject({ ...asset, type: backendModule.BackendType.remote }),
           ...(launchedProject ? [closeProject(launchedProject)] : []),
         ])
+      } finally {
+        removeOpeningProject(asset.id)
       }
     },
   )
@@ -667,6 +669,7 @@ export function useCloseAllProjects() {
   const closeProject = useCloseProject()
   const containerData = useContainerData()
   const removeLaunchedProject = useRemoveLaunchedProject()
+  const removeOpeningProject = useRemoveOpeningProject()
   const { remoteBackend, localBackend } = useBackends()
   const ensureQueryData = useEnsureQueryData()
 
@@ -675,21 +678,25 @@ export function useCloseAllProjects() {
 
     await Promise.all(
       launchedProjects.map(async (project) => {
-        const backend =
-          project.type === backendModule.BackendType.remote || project.hybrid != null ?
-            remoteBackend
-          : localBackend
-        invariant(backend != null, 'Backend must not be async null')
-        const projectDetails = await ensureQueryData(
-          createGetProjectDetailsQuery({
-            assetId: project.hybrid != null ? project.hybrid.cloudProjectId : project.id,
-            backend,
-          }),
-        )
-        if (backendModule.IS_OPENING_OR_OPENED[projectDetails.state.type]) {
-          await closeProject(project)
+        if (project.state === 'launched') {
+          const backend =
+            project.type === backendModule.BackendType.remote || project.hybrid != null ?
+              remoteBackend
+            : localBackend
+          invariant(backend != null, 'Backend must not be async null')
+          const projectDetails = await ensureQueryData(
+            createGetProjectDetailsQuery({
+              assetId: project.hybrid != null ? project.hybrid.cloudProjectId : project.id,
+              backend,
+            }),
+          )
+          if (backendModule.IS_OPENING_OR_OPENED[projectDetails.state.type]) {
+            await closeProject(project)
+          } else {
+            removeLaunchedProject(project.id)
+          }
         } else {
-          removeLaunchedProject(project.id)
+          removeOpeningProject(project.id)
         }
       }),
     )
