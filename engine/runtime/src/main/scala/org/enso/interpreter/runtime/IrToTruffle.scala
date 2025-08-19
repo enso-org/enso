@@ -1649,8 +1649,6 @@ class IrToTruffle(
                     DefinitionArgument.Specified
                       .builder()
                       .name(typePattern.name)
-                      .ascribedType(None)
-                      .defaultValue(None)
                       .suspended(false)
                       .location(typePattern.identifiedLocation)
                       .passData(typePattern.name.passData)
@@ -1752,8 +1750,6 @@ class IrToTruffle(
       DefinitionArgument.Specified
         .builder()
         .name(name.name)
-        .ascribedType(None)
-        .defaultValue(None)
         .suspended(false)
         .location(name.identifiedLocation)
         .passData(name.name.passData)

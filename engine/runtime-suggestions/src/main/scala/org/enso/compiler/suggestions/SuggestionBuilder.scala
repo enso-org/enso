@@ -429,8 +429,6 @@ final class SuggestionBuilder[A: IndexedSource](
     val thisArg = DefinitionArgument.Specified
       .builder()
       .name(Name.Self(identifiedLocation = null))
-      .ascribedType(None)
-      .defaultValue(None)
       .suspended(false)
       .build()
     buildMethod(

@@ -206,8 +206,6 @@ public final class MethodDefinitions implements MiniPassFactory {
         var syntheticModuleSelfArg =
             DefinitionArgument.Specified.builder()
                 .name(new Name.Self(null, true, new MetadataStorage()))
-                .ascribedType(Option.empty())
-                .defaultValue(Option.empty())
                 .suspended(false)
                 .build();
         var newBody =

@@ -44,8 +44,6 @@ class GatherDiagnosticsTest extends CompilerTest {
           .name(
             Name.Literal("bar", isMethod = false, identifiedLocation = null)
           )
-          .ascribedType(None)
-          .defaultValue(None)
           .suspended(false)
           .build()
       ),
@@ -98,7 +96,6 @@ class GatherDiagnosticsTest extends CompilerTest {
               DefinitionArgument.Specified
                 .builder()
                 .name(fooName)
-                .ascribedType(None)
                 .defaultValue(Some(error2))
                 .suspended(false)
                 .build()

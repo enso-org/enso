@@ -44,7 +44,7 @@ public interface DefinitionArgument extends IR {
     }
 
     public static Builder builder() {
-      return new Builder();
+      return new Builder().ascribedType(Option.empty()).defaultValue(Option.empty());
     }
 
     public static Builder builder(Specified original) {

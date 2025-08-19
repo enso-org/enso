@@ -268,8 +268,6 @@ case object GenerateMethodBodies extends IRPass {
     DefinitionArgument.Specified
       .builder()
       .name(Name.Self(identifiedLocation = null, synthetic = true))
-      .ascribedType(None)
-      .defaultValue(None)
       .suspended(false)
       .build()
   }

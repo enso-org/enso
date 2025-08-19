@@ -86,8 +86,6 @@ class LambdaShorthandToLambdaMini(
                   null
                 )
               )
-              .ascribedType(None)
-              .defaultValue(None)
               .suspended(false)
               .build()
           ),
@@ -167,8 +165,6 @@ class LambdaShorthandToLambdaMini(
                       p.function.location.orNull
                     )
                 )
-                .defaultValue(None)
-                .ascribedType(None)
                 .build()
             ),
             appResult,
@@ -203,8 +199,6 @@ class LambdaShorthandToLambdaMini(
           val defArg = DefinitionArgument.Specified
             .builder()
             .name(bindingName)
-            .ascribedType(None)
-            .defaultValue(None)
             .suspended(false)
             .build();
           new Function.Lambda(List(defArg), body, locWithoutId.orNull)
@@ -293,8 +287,6 @@ class LambdaShorthandToLambdaMini(
             DefinitionArgument.Specified
               .builder()
               .name(defArgName)
-              .ascribedType(None)
-              .defaultValue(None)
               .suspended(false)
               .passData(specified.passData.duplicate)
               .diagnostics(specified.diagnosticsCopy())
@@ -336,8 +328,6 @@ class LambdaShorthandToLambdaMini(
         val lambdaArg = DefinitionArgument.Specified
           .builder()
           .name(scrutineeName.copy(id = null))
-          .ascribedType(None)
-          .defaultValue(None)
           .suspended(false)
           .build()
 

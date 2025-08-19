@@ -86,8 +86,6 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var rightDefArg =
               DefinitionArgument.Specified.builder()
                   .name(rightArgName.duplicate(true, true, true, false))
-                  .ascribedType(Option.empty())
-                  .defaultValue(Option.empty())
                   .suspended(false)
                   .build();
 
@@ -102,8 +100,6 @@ public final class SectionsToBinOp implements MiniPassFactory {
             var leftDefArg =
                 DefinitionArgument.Specified.builder()
                     .name(leftArgName.duplicate(true, true, true, false))
-                    .ascribedType(Option.empty())
-                    .defaultValue(Option.empty())
                     .suspended(false)
                     .build();
             var opCall =
@@ -145,8 +141,6 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var leftDefArg =
               DefinitionArgument.Specified.builder()
                   .name(leftArgName.duplicate(true, true, true, false))
-                  .ascribedType(Option.empty())
-                  .defaultValue(Option.empty())
                   .suspended(false)
                   .build();
 
@@ -160,8 +154,6 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var rightDefArg =
               DefinitionArgument.Specified.builder()
                   .name(rightArgName.duplicate(true, true, true, false))
-                  .ascribedType(Option.empty())
-                  .defaultValue(Option.empty())
                   .suspended(false)
                   .build();
 
@@ -214,8 +206,6 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var leftDefArg =
               DefinitionArgument.Specified.builder()
                   .name(leftArgName.duplicate(true, true, true, false))
-                  .ascribedType(Option.empty())
-                  .defaultValue(Option.empty())
                   .suspended(false)
                   .build();
 
@@ -231,8 +221,6 @@ public final class SectionsToBinOp implements MiniPassFactory {
             var rightDefArg =
                 DefinitionArgument.Specified.builder()
                     .name(rightArgName.duplicate(true, true, true, false))
-                    .ascribedType(Option.empty())
-                    .defaultValue(Option.empty())
                     .suspended(false)
                     .build();
 

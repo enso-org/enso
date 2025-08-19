@@ -228,7 +228,6 @@ trait CompilerRunner {
               Name
                 .Literal("arg", isMethod = false, identifiedLocation = null)
             )
-            .ascribedType(None)
             .defaultValue(Some(ir))
             .suspended(false)
             .build()
