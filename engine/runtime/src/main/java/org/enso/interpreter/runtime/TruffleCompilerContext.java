@@ -246,6 +246,7 @@ final class TruffleCompilerContext implements CompilerContext {
       CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
     var m = ((Module) module).unsafeModule();
     stubsGenerator.run(m.getIr(), (TruffleCompilerModuleScopeBuilder) scopeBuilder);
+    m.unsafeSetCompilationStage(CompilationStage.AFTER_RUNTIME_STUBS);
   }
 
   @Override
