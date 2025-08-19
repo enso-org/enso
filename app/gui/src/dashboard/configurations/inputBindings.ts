@@ -52,7 +52,7 @@ const BINDINGS_AND_CATEGORIES = inputBindings.defineBindings(
     label: { bindings: ['Mod+L'], icon: 'tag', category: 'collaboration' },
     duplicate: { bindings: ['Mod+D'], icon: 'duplicate', category: 'fileManagement' },
     copy: { bindings: ['Mod+C'], icon: 'copy', category: 'fileManagement' },
-    copyAsPath: { bindings: ['Mod+Shift+C'], icon: 'copy_as_path', category: 'other' },
+    copyAsPath: { bindings: ['Mod+Shift+C'], icon: 'copy_as_path', category: 'fileManagement' },
     cut: { bindings: ['Mod+X'], icon: 'scissors', category: 'fileManagement' },
     paste: { bindings: ['Mod+V'], icon: 'paste', category: 'fileManagement' },
     download: { bindings: ['Mod+Shift+S'], icon: 'data_download', category: 'fileManagement' },
