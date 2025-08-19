@@ -46,17 +46,4 @@ public final class PythonResourceProvider extends InternalResourceProvider {
   protected Object createInternalResource() {
     throw new IllegalStateException(ERR_MSG);
   }
-
-  public static final class PythonHome implements InternalResource {
-
-    @Override
-    public void unpackFiles(Env env, Path targetDirectory) {
-      throw new IllegalStateException(ERR_MSG);
-    }
-
-    @Override
-    public String versionHash(Env env) {
-      throw new IllegalStateException(ERR_MSG);
-    }
-  }
 }
