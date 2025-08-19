@@ -1,6 +1,6 @@
 import { type TreeCursor } from '@lezer/common'
 import { expect, test } from 'vitest'
-import { parser } from '..'
+import { parser } from '../generated/parser'
 
 /** Represents the structure of a @{link Tree} in a JSON-compatible format. */
 type DebugTree = (string | DebugTree)[]

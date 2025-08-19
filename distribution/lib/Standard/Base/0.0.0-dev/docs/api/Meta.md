@@ -44,6 +44,7 @@
 - is_polyglot value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - is_same_object value_1:Standard.Base.Any.Any value_2:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - is_type value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
+- lookup_services spi_type:Standard.Base.Any.Any -> Standard.Base.Data.Vector.Vector
 - meta ~value:Standard.Base.Any.Any -> (Standard.Base.Meta.Atom|Standard.Base.Meta.Constructor|Standard.Base.Meta.Primitive|Standard.Base.Meta.Polyglot|Standard.Base.Meta.Unresolved|Standard.Base.Meta.Error|Standard.Base.Meta.Type|Standard.Base.Meta.Function)!Standard.Base.Errors.Common.Private_Access
 - type_of value:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Any.Any.is_a self typ:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean

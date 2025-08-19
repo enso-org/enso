@@ -115,7 +115,7 @@ fetch_big_integer rs i =
 big_decimal_fetcher : Column_Fetcher
 big_decimal_fetcher =
     fetch_value rs i =
-        big_decimal = rs.getBigDecimal i
+        big_decimal = JDBCUtils.getBigDecimalHandleSpecialFloats rs i
         if rs.wasNull then Nothing else
             big_decimal
     make_builder initial_size java_problem_aggregator =

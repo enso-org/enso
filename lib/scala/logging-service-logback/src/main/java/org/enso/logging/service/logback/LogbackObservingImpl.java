@@ -36,7 +36,12 @@ public final class LogbackObservingImpl extends ObservedMessage.Service {
     protected void append(ILoggingEvent ev) {
       var level = findLevel(ev.getLevel());
       var record =
-          newMessage(level, ev.getMessage(), ev.getArgumentArray(), ev::getFormattedMessage);
+          newMessage(
+              level,
+              ev.getInstant(),
+              ev.getMessage(),
+              ev.getArgumentArray(),
+              ev::getFormattedMessage);
       observer.accept(record);
     }
 

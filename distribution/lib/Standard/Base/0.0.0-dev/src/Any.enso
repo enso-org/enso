@@ -10,6 +10,7 @@ from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Function import const
 from project.Internal.Ordering_Helpers import assert_same_comparators
+from project.Metadata import Widget
 
 ## Any is the universal top-type, with all other types being subsumed by it.
    If a value of type Any is expected in a given location, _any value_ can be
@@ -63,6 +64,7 @@ type Any
              yields_5 = Complex.Value 3 4 . to Number ignore_im=False
              default5 = Complex.Value 3 4 . to Number
        ```
+    @target_type Widget.Any_To_Target
     to : Any -> Any ! No_Such_Conversion
     to self target_type = target_type.from self ...
 

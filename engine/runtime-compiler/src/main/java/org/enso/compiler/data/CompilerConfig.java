@@ -24,7 +24,7 @@ public record CompilerConfig(
     boolean privateCheckEnabled,
     boolean staticAnalysisEnabled,
     boolean treatWarningsAsErrors,
-    Option<String> dumpModuleIR,
+    Option<IRDumperConfig> dumpModuleIR,
     boolean isStrictErrors,
     boolean isLintingDisabled,
     Option<PrintStream> outputRedirect,
@@ -44,7 +44,7 @@ public record CompilerConfig(
     private boolean privateCheckEnabled = true;
     private boolean staticAnalysisEnabled = false;
     private boolean treatWarningsAsErrors = false;
-    private Option<String> dumpModuleIR = Option.empty();
+    private Option<IRDumperConfig> dumpModuleIR = Option.empty();
     private boolean isStrictErrors = false;
     private boolean isLintingDisabled = false;
     private Option<PrintStream> outputRedirect = Option.empty();
@@ -76,7 +76,7 @@ public record CompilerConfig(
       return this;
     }
 
-    public Builder dumpModuleIR(Option<String> dumpModuleIR) {
+    public Builder dumpModuleIR(Option<IRDumperConfig> dumpModuleIR) {
       this.dumpModuleIR = dumpModuleIR;
       return this;
     }

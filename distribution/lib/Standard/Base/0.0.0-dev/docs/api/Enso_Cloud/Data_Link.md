@@ -14,4 +14,7 @@
 - type Data_Link_From_File
     - Value underlying:Standard.Base.Any.Any
     - is_data_link self -> Standard.Base.Data.Boolean.Boolean
+- Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI.new typ:Standard.Base.Any.Any link_type_name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
 - Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File.from that:Standard.Base.System.File.Generic.File_Like.File_Like -> Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File
+- type Data_Link_SPI
+    - new typ:Standard.Base.Any.Any link_type_name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any

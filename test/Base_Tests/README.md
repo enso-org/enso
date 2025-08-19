@@ -13,6 +13,12 @@ To run the test server, you may use the following command:
 sbt 'http-test-helper/run localhost 8080'
 ```
 
+Then execute the tests in another terminal as
+
+```bash
+sbt 'runEngineDistribution --env ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080 --run test/Base_Tests'
+```
+
 You can stop the server via Ctrl-C.
 
 See [the server's documentation](../../tools/http-test-helper/README.md) for

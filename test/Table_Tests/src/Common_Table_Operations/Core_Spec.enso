@@ -261,6 +261,38 @@ add_core_specs suite_builder setup =
             last_row.at "Y" . should_equal 8
             last_row.at "Z" . should_equal "D"
 
+        group_builder.specify "should let you get an indexed row using get_row" <|
+            row = data.table.get_row 0
+            row . length . should_equal 3
+            row.at "X" . should_equal 1
+            row.at "Y" . should_equal 5
+            row.at "Z" . should_equal "A"
+
+        group_builder.specify "calling get_row with negative indexes, indexes from right" <|
+            last_row = data.table.get_row -1
+            last_row . length . should_equal 3
+            last_row.at "X" . should_equal 4
+            last_row.at "Y" . should_equal 8
+            last_row.at "Z" . should_equal "D"
+            first_row = data.table.get_row -4
+            first_row . length . should_equal 3
+            first_row.at "X" . should_equal 1
+            first_row.at "Y" . should_equal 5
+            first_row.at "Z" . should_equal "A"
+
+        group_builder.specify "calling get_row with out of bounds should return if_missing" <|
+            out_of_bounds_top_row = data.table.get_row 4 Nothing
+            out_of_bounds_top_row . should_equal Nothing
+            out_of_bounds_bottom_row = data.table.get_row -5 Nothing
+            out_of_bounds_bottom_row . should_equal Nothing
+
+        group_builder.specify "empty table get_row should return if_missing" <|
+            empty_table = data.table.take 0
+            empty_table.get_row -2 . should_equal Nothing
+            empty_table.get_row -1 . should_equal Nothing
+            empty_table.get_row 0 . should_equal Nothing
+            empty_table.get_row 1 . should_equal Nothing
+
         group_builder.specify "should fetch rows up to the specified limit" <|
             data.table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
 

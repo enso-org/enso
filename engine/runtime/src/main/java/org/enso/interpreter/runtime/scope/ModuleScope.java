@@ -8,7 +8,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.enso.common.CompilationStage;
 import org.enso.compiler.common.MethodResolutionAlgorithm;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -80,7 +79,7 @@ public final class ModuleScope extends EnsoObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    assert getModule().getCompilationStage().isAtLeast(CompilationStage.AFTER_CODEGEN);
+    assert !getModule().needsCompilation();
     return RuntimeMethodResolution.INSTANCE.lookupMethodDefinition(this, type, name);
   }
 
@@ -171,7 +170,7 @@ public final class ModuleScope extends EnsoObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupConversionDefinition(Type source, Type target) {
-    assert getModule().getCompilationStage().isAtLeast(CompilationStage.AFTER_CODEGEN);
+    assert !getModule().needsCompilation();
     return RuntimeMethodResolution.INSTANCE.lookupConversionDefinition(this, source, target);
   }
 
