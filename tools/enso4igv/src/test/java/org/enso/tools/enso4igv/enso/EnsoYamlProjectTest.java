@@ -68,6 +68,9 @@ public class EnsoYamlProjectTest extends NbTestCase {
         var main = FileUtil.createData(ch, "0.0.0-dev/src/Main.enso");
         assertNotNull("There is Main.enso in the project " + ch, main);
 
+        var noPrj = ProjectManager.getDefault().findProject(yaml.getParent());
+        assertNull("No project for 0.0.0-dev directory: " + noPrj, noPrj);
+
         var lvp = prj.getLookup().lookup(LogicalViewProvider.class);
 
         var node = lvp.createLogicalView();

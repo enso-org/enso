@@ -45,6 +45,10 @@ public final class EnsoYamlProject implements Project {
           if (dev000 == null) {
               throw new IOException();
           }
+      } else {
+          if (fo.getNameExt().equals("0.0.0-dev")) {
+              throw new IOException();
+          }
       }
       return new EnsoYamlProject(fo, dev000, ps);
   }

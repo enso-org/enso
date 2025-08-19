@@ -19,7 +19,7 @@ public final class EnsoProjectFactory implements ProjectFactory2 {
       return 0;
     }
     var yaml = fo.getFileObject("package.yaml");
-    if (yaml != null) {
+    if (yaml != null && !fo.getNameExt().equals("0.0.0-dev")) {
         return 3;
     }
     var dev000 = fo.getFileObject("0.0.0-dev/package.yaml");
