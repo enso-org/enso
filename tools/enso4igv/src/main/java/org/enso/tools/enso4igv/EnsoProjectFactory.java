@@ -22,6 +22,10 @@ public final class EnsoProjectFactory implements ProjectFactory2 {
     if (yaml != null) {
         return 3;
     }
+    var dev000 = fo.getFileObject("0.0.0-dev/package.yaml");
+    if (dev000 != null) {
+        return 3;
+    }
     if (fo.getFileObject(".enso-sources") != null) {
       return 1;
     } else if (
@@ -35,7 +39,7 @@ public final class EnsoProjectFactory implements ProjectFactory2 {
     }
   }
 
-  private static Project createProjectOrNull(FileObject fo, ProjectState ps) {
+  private static Project createProjectOrNull(FileObject fo, ProjectState ps) throws IOException {
     return switch (isProjectCheck(fo)) {
       case 1 -> new EnsoSbtProject(fo, ps);
       case 2 -> new EnsoRootProject(fo, ps);
@@ -48,7 +52,7 @@ public final class EnsoProjectFactory implements ProjectFactory2 {
   public boolean isProject(FileObject fo) {
     return isProjectCheck(fo) != 0;
   }
-  
+
   @Override
   public Project loadProject(FileObject fo, ProjectState ps) throws IOException {
     return createProjectOrNull(fo, ps);
@@ -71,5 +75,5 @@ public final class EnsoProjectFactory implements ProjectFactory2 {
             default -> null;
         };  return img;
     }
-  
+
 }

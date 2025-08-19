@@ -1,5 +1,6 @@
 package org.enso.tools.enso4igv.enso;
 
+import java.io.IOException;
 import javax.swing.Action;
 import org.netbeans.api.project.Project;
 import org.netbeans.api.project.ProjectUtils;
@@ -23,11 +24,13 @@ import org.openide.util.lookup.Lookups;
 public final class EnsoYamlProject implements Project {
 
   private final FileObject prj;
+  private final FileObject root;
   private final ProjectState ps;
   private final Lookup lkp;
 
-  EnsoYamlProject(FileObject fo, ProjectState ps) {
+  EnsoYamlProject(FileObject fo, FileObject root, ProjectState ps) {
     this.prj = fo;
+    this.root = root;
     this.ps = ps;
     this.lkp = Lookups.fixed(
         this,
@@ -35,8 +38,15 @@ public final class EnsoYamlProject implements Project {
     );
   }
   
-  public static Project create(FileObject fo, ProjectState ps) {
-      return new EnsoYamlProject(fo, ps);
+  public static Project create(FileObject fo, ProjectState ps) throws IOException {
+      var dev000 = fo;
+      if (fo.getFileObject("package.yaml") == null) {
+          dev000 = fo.getFileObject("0.0.0-dev");
+          if (dev000 == null) {
+              throw new IOException();
+          }
+      }
+      return new EnsoYamlProject(fo, dev000, ps);
   }
 
   @Override
@@ -98,9 +108,6 @@ public final class EnsoYamlProject implements Project {
       super(createChildren(p), Lookups.fixed(p));
       this.project = p;
       var nameDir = p.getProjectDirectory();
-      if ("0.0.0-dev".equals(nameDir.getNameExt())) {
-          nameDir = nameDir.getParent();
-      }
       setName(nameDir.getNameExt());
     }
     
@@ -108,7 +115,7 @@ public final class EnsoYamlProject implements Project {
     private static Children createChildren(EnsoYamlProject p) {
         var ch = new Children.Array();
         try {
-            var src = p.getProjectDirectory().getFileObject("src", false);
+            var src = p.root.getFileObject("src", false);
             var srcNode = DataObject.find(src).getNodeDelegate().cloneNode();
             srcNode.setDisplayName(Bundle.LAB_EnsoSources());
             ch.add(new Node[]{srcNode});
@@ -116,7 +123,7 @@ public final class EnsoYamlProject implements Project {
             Exceptions.printStackTrace(ex);
         }
         try {
-            var yaml = p.getProjectDirectory().getFileObject("package.yaml", false);
+            var yaml = p.root.getFileObject("package.yaml", false);
             var srcNode = DataObject.find(yaml).getNodeDelegate().cloneNode();
             ch.add(new Node[]{srcNode});
         } catch (DataObjectNotFoundException ex) {
