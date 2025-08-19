@@ -602,6 +602,10 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
   const { isCloud, query, setQuery, backend, querySource, baseQuery } = props
 
   const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
+  const sortedLabels = React.useMemo(
+    () => [...labels].sort((a, b) => string.compareCaseInsensitive(a.value, b.value)),
+    [labels],
+  )
 
   const labelOnPress = useEventCallback(
     (event: aria.PressEvent | React.MouseEvent<HTMLButtonElement>, label?: BackendLabel) => {
@@ -622,33 +626,26 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
     },
   )
 
+  if (!isCloud || labels.length === 0) return null
+
   return (
-    isCloud &&
-    labels.length !== 0 && (
-      <div data-testid="asset-search-labels" className="pointer-events-auto flex gap-2 px-1.5">
-        {[...labels]
-          .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
-          .map((label) => {
-            const negated = query.negativeLabels.some((term) =>
-              array.shallowEqual(term, [label.value]),
-            )
-            return (
-              <Label
-                key={label.id}
-                color={label.color}
-                label={label}
-                active={
-                  negated || query.labels.some((term) => array.shallowEqual(term, [label.value]))
-                }
-                negated={negated}
-                onPress={labelOnPress}
-              >
-                {label.value}
-              </Label>
-            )
-          })}
-      </div>
-    )
+    <div data-testid="asset-search-labels" className="pointer-events-auto flex gap-2 px-1.5">
+      {sortedLabels.map((label) => {
+        const negated = query.negativeLabels.some((term) => array.shallowEqual(term, [label.value]))
+        return (
+          <Label
+            key={label.id}
+            color={label.color}
+            label={label}
+            active={negated || query.labels.some((term) => array.shallowEqual(term, [label.value]))}
+            negated={negated}
+            onPress={labelOnPress}
+          >
+            {label.value}
+          </Label>
+        )
+      })}
+    </div>
   )
 })
 
