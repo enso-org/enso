@@ -47,38 +47,34 @@ function updateDescription(
 }
 
 const onFocusOut = ref<() => void>()
-const { syncExt, connectSync } = useStringSync()
+const { syncExt, setText, getText } = useStringSync({
+  onTextEdited: () => (descriptionEdited = true),
+})
 const scope = effectScope()
 
 function editorReadyCallback(view: EditorView) {
-  const { setText, getText, onTextEdited } = connectSync(view)
-
   // We want to run watch before DOM update, because the DescriptionEditor may be disposed as
   // part of it. Therefore it must be in the DescriptionEditor effect scope, not MarkdownEditor.
   scope.run(() => {
     watch(
       () => rightPanel.focusedAssetDetails,
       (newAsset, oldAsset) => {
-        updateDescription(oldAsset, getText())
+        updateDescription(oldAsset, getText(view))
         const pendingDescription =
           newAsset != null && editDescriptionMutation.variables.value?.[0] === newAsset.id ?
             editDescriptionMutation.variables.value[1].description
           : undefined
 
-        setText(pendingDescription ?? newAsset?.description ?? '')
+        setText(view, pendingDescription ?? newAsset?.description ?? '')
       },
       { immediate: true },
     )
 
-    onTextEdited(() => {
-      descriptionEdited = true
-    })
-
     onFocusOut.value = () => {
-      updateDescription(rightPanel.focusedAssetDetails, getText())
+      updateDescription(rightPanel.focusedAssetDetails, getText(view))
     }
 
-    onScopeDispose(() => updateDescription(rightPanel.focusedAssetDetails, getText()))
+    onScopeDispose(() => updateDescription(rightPanel.focusedAssetDetails, getText(view)))
 
     useEvent(window, 'beforeunload', (event) => {
       if (descriptionEdited) {
@@ -86,7 +82,9 @@ function editorReadyCallback(view: EditorView) {
         // While browser displays "unsaved changes" warning, electron does nothing for
         // preventDefault. That gives us a chance to save changes and close manually.
         if (isOnElectron()) {
-          updateDescription(rightPanel.focusedAssetDetails, getText()).then(() => window.close())
+          updateDescription(rightPanel.focusedAssetDetails, getText(view)).then(() =>
+            window.close(),
+          )
         }
       }
     })

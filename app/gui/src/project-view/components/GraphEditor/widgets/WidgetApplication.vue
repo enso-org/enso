@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { CallInfo } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -28,7 +29,10 @@ const targetMaybePort = computed(() => {
     if (!definition.ok) return input
     return input
   } else {
-    return { ...target.toWidgetInput(), forcePort: !(target instanceof ArgumentApplication) }
+    return {
+      ...target.toWidgetInput(props.input[CallInfo]),
+      forcePort: !(target instanceof ArgumentApplication),
+    }
   }
 })
 
@@ -55,7 +59,9 @@ const infixWidgetInput = computed(() =>
   mapOrUndefined(application.value.infixOperator, WidgetInput.FromAst),
 )
 const showArgument = computed(() => tree.extended || !application.value.argument.hideByDefault)
-const argumentWidgetInput = computed(() => application.value.argument.toWidgetInput())
+const argumentWidgetInput = computed(() => {
+  return application.value.argument.toWidgetInput(props.input[CallInfo])
+})
 </script>
 
 <script lang="ts">

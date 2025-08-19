@@ -11,9 +11,10 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
-import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
+import * as projectManagement from 'project-manager-shim'
+import { handleFilesystemCommand } from 'project-manager-shim'
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
@@ -1064,25 +1065,49 @@ export class Server {
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
         .end('Command arguments must be an array of strings.')
     } else {
-      const commandOutput = (() => {
-        try {
-          return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
-        } catch {
-          const readableStream = new stream.Readable()
-          readableStream.push(
-            JSON.stringify({
-              error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
-            }),
-          )
-          readableStream.push(null)
-          return readableStream
+      // Check if it's a filesystem command
+      if (cliArguments[0]?.startsWith('--filesystem-')) {
+        const result = await handleFilesystemCommand(cliArguments, request)
+
+        if (typeof result === 'string') {
+          const resultData = Buffer.from(result)
+          response
+            .writeHead(HTTP_STATUS_OK, {
+              'Content-Length': String(resultData.byteLength),
+              'Content-Type': 'application/json',
+              ...COOP_COEP_CORP_HEADERS,
+            })
+            .end(resultData)
+        } else {
+          const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+            'Content-Type': 'application/octet-stream',
+            ...COOP_COEP_CORP_HEADERS,
+          })
+          result.pipe(responseWithHead, { end: true })
         }
-      })()
-      response.writeHead(HTTP_STATUS_OK, [
-        ['Content-Type', 'application/json'],
-        ...COOP_COEP_CORP_HEADERS,
-      ])
-      commandOutput.pipe(response, { end: true })
+      } else {
+        // For non-filesystem commands, fallback to the project manager
+        const commandOutput = (() => {
+          try {
+            return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
+          } catch {
+            const readableStream = new stream.Readable()
+            readableStream.push(
+              JSON.stringify({
+                error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+              }),
+            )
+            readableStream.push(null)
+            return readableStream
+          }
+        })()
+
+        response.writeHead(HTTP_STATUS_OK, [
+          ['Content-Type', 'application/json'],
+          ...COOP_COEP_CORP_HEADERS,
+        ])
+        commandOutput.pipe(response, { end: true })
+      }
     }
   }
 }

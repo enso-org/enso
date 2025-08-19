@@ -426,6 +426,13 @@ add_specs suite_builder =
         group_builder.specify "will resolve empty path to the current working directory" <|
             File.new "" . should_equal File.current_directory
 
+        group_builder.specify "try enso:// URL" <|
+            f = File.new 'enso://'
+            # got some value
+            f.is_nothing . should_be_false
+            # the value is of type Enso_File(!?) currently
+            f.should_be_a Standard.Base.Enso_Cloud.Enso_File.Enso_File
+
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
             contents = sample_file.read_text

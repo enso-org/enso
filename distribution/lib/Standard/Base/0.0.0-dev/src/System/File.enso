@@ -17,6 +17,7 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Path_Helpers
+import project.Internal.Meta_Helpers
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -47,13 +48,6 @@ polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.base.file_system.File_Utils
-polyglot java import org.enso.base.file_system.FileSystemSPI
-
-## ---
-   private: true
-   ---
-file_types : Vector
-file_types = Vector.from_polyglot_array (FileSystemSPI.get_types False)
 
 ## Represents a file or folder on the filesystem.
 @Builtin_Type
@@ -85,13 +79,13 @@ type File
     new path = case path of
         _ : Text -> if path.contains "://" . not then resolve_local_file path else
             protocol = path.split "://" . first
-            file_system = FileSystemSPI.get_type protocol False
+            file_system = File_System_SPI.get_type protocol False
             if file_system.is_nothing then Error.throw (Illegal_Argument.Error "Unsupported protocol "+protocol) else
                 file_system.new path
         _ : File -> path
         _ ->
             ## Check to see if a valid "File" type.
-            if (file_types.any file_type-> path.is_a file_type) then path else
+            if ((File_System_SPI.get_types False).any file_type-> path.is_a file_type) then path else
                 Error.throw (Illegal_Argument.Error "The provided path is neither a Text, nor any recognized File-like type.")
 
 
@@ -1143,3 +1137,29 @@ private _local_file_move (source : File) (destination : File) (replace_existing 
 private handle_invalid_path ~path ~action =
     Panic.catch InvalidPathException action caught_panic->
         Error.throw (Illegal_Argument.Error "The path "+path.to_display_text+" is invalid: "+caught_panic.payload.getMessage)
+
+## Interface for service providers willing to extend file system capabilities.
+   Register your implementation by adding following into your `package.yaml`:
+   ```yaml
+   services:
+   - provides: Standard.Base.System.File.File_System_SPI
+     with: <<fully qualified name of your implementation module>>
+   ```
+   In your module then define conversion of its associated type singleton
+   into `File_System_SPI` via its `new` static method.
+
+type File_System_SPI
+    private Entry protocol:Text typ
+
+    new protocol:Text typ = File_System_SPI.Entry protocol typ
+
+    private get_type protocol:Text b:Boolean =
+        all = Self.get_regs b
+        vec = all . filter \e -> (e.protocol == protocol)
+        if vec . not_empty then vec.first.typ else Nothing
+
+    private get_regs _:Boolean =
+        Meta.lookup_services File_System_SPI
+
+    private get_types b:Boolean =
+        Self.get_regs b . map .typ

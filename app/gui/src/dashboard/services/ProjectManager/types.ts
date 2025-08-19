@@ -185,12 +185,21 @@ interface OpenedProjectState {
  */
 export type ProjectState = OpenedProjectState | OpenInProgressProjectState
 
+/**
+ * Extra parameters required for cloud projects.
+ */
+export interface CloudParams {
+  readonly cloudProjectDirectoryPath: string
+  readonly cloudProjectId: string
+  readonly cloudProjectSessionId: string
+}
+
 /** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
   readonly projectId: UUID
   readonly missingComponentAction: MissingComponentAction
-  readonly cloudProjectDirectoryPath?: string
   readonly projectsDirectory: Path
+  readonly cloud?: CloudParams
 }
 
 /** Parameters for the "close project" endpoint. */

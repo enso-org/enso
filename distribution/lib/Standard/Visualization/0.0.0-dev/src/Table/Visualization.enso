@@ -89,7 +89,7 @@ make_json_for_vector vector max_rows =
     all_rows = ["all_rows_count", vector.length]
     get_child_node_action = ["get_child_node_action", "at"]
     truncated = vector.take max_rows
-    some_values = truncated.any (v->v.is_nothing.not)
+    some_values = truncated.any (v-> Nothing!=v)
     if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map _make_json_for_value], get_child_node_action] else
         matrix = make_json_for_matrix (Builder.new truncated.length) truncated
         if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length], get_child_node_action] else

@@ -301,7 +301,10 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
     val mod =
-      runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
+      runtime.Module.empty(
+        QualifiedName.simpleName("Test_Module"),
+        null
+      )
     ModuleTestUtils.unsafeSetIr(
       mod,
       Module(List(), List(), List(), false, identifiedLocation = null)

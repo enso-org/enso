@@ -113,10 +113,9 @@ type DB_Table_Implementation
 
     get_row (this_table : Table & DB_Table) index:Integer ~if_missing:Any =
         Feature.Sample.if_supported_else_throw this_table.connection.dialect "get_row" <|
-            if index == -1 then this_table.last_row else
-                real_row = (if index < 0 then index + this_table.row_count else index)
-                if real_row < 0 then if_missing else
-                    this_table.rows real_row+1 . get real_row if_missing
+            real_row = (if index < 0 then index + this_table.row_count else index)
+            if real_row < 0 then if_missing else
+                this_table.rows real_row+1 . get real_row if_missing
 
     first_value (this_table : Table & DB_Table) =
         Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "first_value" <|
