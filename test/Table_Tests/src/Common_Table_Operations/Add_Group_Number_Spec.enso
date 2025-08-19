@@ -189,6 +189,12 @@ add_group_number_specs suite_builder setup =
             g1 = t.add_group_number (..Equal_Sum "x" 3 order_by="y") "g"
             g1.at 'g' . to_vector . should_equal [0, 1, 1, 0, 2, 0, 0, 1, 1]
 
+        group_builder.specify "add group number by equal sums should work for Float" <|
+            t = table_builder [['x', [3.0, 4.0, 5.0, 4.0, 3.0, 5.0, 10.0, 4.0, 3.0]], ['y', [1.0, 2.0, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0]]]
+
+            g0 = t.add_group_number (..Equal_Sum "x" 3) "g"
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 0, 1, 1, 1, 2, 2]
+
         group_builder.specify "should report a warning if not enough groups are generated" <|
             t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [4, 4, 4, 4, 4]]]
 
