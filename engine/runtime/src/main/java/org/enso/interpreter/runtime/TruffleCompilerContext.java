@@ -8,12 +8,15 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -156,10 +159,8 @@ final class TruffleCompilerContext implements CompilerContext {
       CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    var s =
-        org.enso.interpreter.runtime.scope.ModuleScopeBuilder.fromCompilerModuleScopeBuilder(
-            scopeBuilder);
-    new IrToTruffle(context, m.getSource(), s, config).run(module.getIr());
+    var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModuleScopeBuilder(scopeBuilder);
+    new IrToTruffle(context, m.getSource(), sb, config).run(module.getIr());
   }
 
   // module related
@@ -244,9 +245,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public void runStubsGenerator(
       CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
     var m = ((Module) module).unsafeModule();
-    var s =
-        ((org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder) scopeBuilder)
-            .unsafeScopeBuilder();
+    var s = ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
     stubsGenerator.run(m.getIr(), s);
   }
 
@@ -740,7 +739,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.newScopeBuilder();
+        module.newScopeBuilder();
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
@@ -748,12 +747,25 @@ final class TruffleCompilerContext implements CompilerContext {
     }
   }
 
-  public static final class Module extends CompilerContext.Module {
+  private static final Map<org.enso.interpreter.runtime.Module, Reference<Module>>
+      COMPILER_MODULES = new WeakHashMap<>();
 
+  static synchronized Module findCompilerModule(org.enso.interpreter.runtime.Module module) {
+    var ref = COMPILER_MODULES.get(module);
+    var cm = ref == null ? null : ref.get();
+    if (cm == null) {
+      cm = new Module(module);
+      COMPILER_MODULES.put(module, new WeakReference<>(cm));
+    }
+    return cm;
+  }
+
+  public static final class Module extends CompilerContext.Module {
     private final org.enso.interpreter.runtime.Module module;
     private BindingsMap bindings;
+    private TruffleCompilerModuleScopeBuilder sb;
 
-    public Module(org.enso.interpreter.runtime.Module module) {
+    private Module(org.enso.interpreter.runtime.Module module) {
       this.module = module;
     }
 
@@ -841,16 +853,38 @@ final class TruffleCompilerContext implements CompilerContext {
       return module.isPrivate();
     }
 
-    @Override
-    public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
-      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.getScopeBuilder());
+    final void compile(Compiler compiler) throws IOException {
+      Source source = module.getSource();
+      if (source != null) {
+        this.newScopeBuilder();
+        module.unsafeSetCompilationStage(CompilationStage.INITIAL);
+        compiler.run(this);
+      }
+    }
+
+    /**
+     * Gets current or reset builder for this module.
+     *
+     * @param reset should any existing builder be reset?
+     * @return
+     */
+    final TruffleCompilerModuleScopeBuilder getScopeBuilder(boolean reset) {
+      if (reset || sb == null) {
+        var scopeBuilder =
+            ModuleScopeAccessor.getInstance().newScopeBuilder(module, module::updateModuleScope);
+        sb = new TruffleCompilerModuleScopeBuilder(scopeBuilder);
+      }
+      return sb;
     }
 
     @Override
-    public ModuleScopeBuilder newScopeBuilder() {
-      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.newScopeBuilder());
+    public TruffleCompilerModuleScopeBuilder getScopeBuilder() {
+      return getScopeBuilder(false);
+    }
+
+    @Override
+    public TruffleCompilerModuleScopeBuilder newScopeBuilder() {
+      return getScopeBuilder(true);
     }
 
     @Override

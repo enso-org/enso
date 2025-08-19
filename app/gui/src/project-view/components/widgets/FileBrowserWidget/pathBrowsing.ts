@@ -94,11 +94,8 @@ export function usePathBrowsing({
         const result = await getChildDirectory(title, prevDir)
         if (!result.ok) {
           const breakReason = result.error.payload.reason
-          if (
-            breakReason === 'notDir' ||
-            (breakReason === 'notFound' && i === path.segments.length - 1)
-          ) {
-            unenteredPathSuffix.value = title
+          if (breakReason === 'notDir' || breakReason === 'notFound') {
+            unenteredPathSuffix.value = path.segments.slice(i).join('/')
             break
           } else {
             return result

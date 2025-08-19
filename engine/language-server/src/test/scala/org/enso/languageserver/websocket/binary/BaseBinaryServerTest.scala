@@ -53,7 +53,7 @@ abstract class BaseBinaryServerTest extends BinaryServerTestKit {
     PathWatcherConfig(),
     ExecutionContextConfig(requestTimeout = 3.seconds),
     ProjectDirectoriesConfig.initialize(testContentRoot.file),
-    ProfilingConfig(),
+    ProfilingConfig.none(),
     StartupConfig(),
     None
   )

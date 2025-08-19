@@ -1,7 +1,6 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
 import * as mkcert from 'mkcert'
-import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
@@ -11,11 +10,11 @@ import createServer from 'create-servers'
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
-import * as yaml from 'yaml'
 
-import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
+import * as projectManagement from 'project-manager-shim'
+import { handleFilesystemCommand } from 'project-manager-shim'
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
@@ -1067,246 +1066,49 @@ export class Server {
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
         .end('Command arguments must be an array of strings.')
     } else {
-      if (
-        (cliArguments[0] === '--filesystem-list' ||
-          cliArguments[0] === '--filesystem-list-recursive') &&
-        cliArguments[1] != null
-      ) {
-        try {
-          const entries = await apiPmListDirectory(
-            cliArguments[1],
-            cliArguments[0] === '--filesystem-list-recursive',
-          )
-          response.writeHead(HTTP_STATUS_OK, [
-            ['Content-Type', 'application/json'],
+      // Check if it's a filesystem command
+      if (cliArguments[0]?.startsWith('--filesystem-')) {
+        const result = await handleFilesystemCommand(cliArguments, request)
+
+        if (typeof result === 'string') {
+          const resultData = Buffer.from(result)
+          response
+            .writeHead(HTTP_STATUS_OK, {
+              'Content-Length': String(resultData.byteLength),
+              'Content-Type': 'application/json',
+              ...COOP_COEP_CORP_HEADERS,
+            })
+            .end(resultData)
+        } else {
+          const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+            'Content-Type': 'application/octet-stream',
             ...COOP_COEP_CORP_HEADERS,
-          ])
-          response.end(JSON.stringify({ jsonrpc: '2.0', id: 0, result: { entries } }))
-        } catch {
-          response.writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
-          response.end(
-            JSON.stringify({
-              jsonrpc: '2.0',
-              id: 0,
-              error: { code: 0, message: `Could not list directory '${cliArguments[1]}'` },
-            }),
-          )
+          })
+          result.pipe(responseWithHead, { end: true })
         }
-        return
-      }
-      const commandOutput = (() => {
-        try {
-          return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
-        } catch {
-          const readableStream = new stream.Readable()
-          readableStream.push(
-            JSON.stringify({
-              error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
-            }),
-          )
-          readableStream.push(null)
-          return readableStream
-        }
-      })()
-      response.writeHead(HTTP_STATUS_OK, [
-        ['Content-Type', 'application/json'],
-        ...COOP_COEP_CORP_HEADERS,
-      ])
-      commandOutput.pipe(response, { end: true })
-    }
-  }
-}
-
-/** Details of a project. */
-interface ProjectMetadata {
-  /** The name of the project. */
-  readonly name: string
-  /** The namespace of the project. */
-  readonly namespace: string
-  /** The project id. */
-  readonly id: string
-  /**
-   * The Enso Engine version to use for the project, represented by a semver version
-   * string.
-   *
-   * If the edition associated with the project could not be resolved, the
-   * engine version may be missing.
-   */
-  readonly engineVersion?: string
-  /** The project creation time. */
-  readonly created: string
-  /** The last opened datetime. */
-  readonly lastOpened?: string
-}
-
-/** Attributes of a file or folder. */
-interface Attributes {
-  readonly creationTime: string
-  readonly lastAccessTime: string
-  readonly lastModifiedTime: string
-  readonly byteSize: number
-}
-
-/** Metadata for an arbitrary file system entry. */
-type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
-
-/** Metadata for a file. */
-interface FileEntry {
-  readonly type: 'FileEntry'
-  readonly path: string
-  readonly attributes: Attributes
-}
-
-/** Metadata for a directory. */
-interface DirectoryEntry {
-  readonly type: 'DirectoryEntry'
-  readonly path: string
-  readonly attributes: Attributes
-}
-
-/** Metadata for a project. */
-interface ProjectEntry {
-  readonly type: 'ProjectEntry'
-  readonly path: string
-  readonly metadata: ProjectMetadata
-  readonly attributes: Attributes
-}
-
-/** A regex for matching hybrid project directories. */
-export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
-
-/**
- * Checks if files that start with the dot.
- * Note on Windows does not check the hidden property.
- */
-function isFileHidden(filePath: string): boolean {
-  const dotfile = /(^|[\\/])\.[^\\/]+$/g
-  return dotfile.test(filePath)
-}
-
-async function apiPmListDirectory(directoryPath: string, recursive = false) {
-  const directoryPathQueue = [directoryPath]
-  const entries: FileSystemEntry[] = []
-  while (true) {
-    const currentDirectoryPath = directoryPathQueue.shift()
-    if (currentDirectoryPath == null) break
-    const entryNames = await fs.readdir(currentDirectoryPath)
-    for (const entryName of entryNames) {
-      const entryPath = path.join(currentDirectoryPath, entryName)
-      if (isFileHidden(entryPath)) continue
-      const stat = await fs.stat(entryPath)
-      const attributes: Attributes = {
-        byteSize: stat.size,
-        creationTime: new Date(stat.ctimeMs).toISOString(),
-        lastAccessTime: new Date(stat.atimeMs).toISOString(),
-        lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
-      }
-      if (stat.isFile()) {
-        entries.push({
-          type: 'FileEntry',
-          path: entryPath,
-          attributes,
-        } satisfies FileEntry)
       } else {
-        if (recursive) {
-          directoryPathQueue.push(entryPath)
-        }
-        try {
-          const packageMetadataPath = path.join(entryPath, 'package.yaml')
-          const projectMetadataPath = path.join(
-            entryPath,
-            projectManagement.PROJECT_METADATA_RELATIVE_PATH,
-          )
-          const packageMetadataContents = await fs.readFile(packageMetadataPath)
-          const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
-          let projectMetadataJson
+        // For non-filesystem commands, fallback to the project manager
+        const commandOutput = (() => {
           try {
-            const projectMetadataContents = await fs.readFile(projectMetadataPath)
-            projectMetadataJson = JSON.parse(projectMetadataContents.toString())
-          } catch (e) {
-            if ('name' in packageMetadataYaml && typeof packageMetadataYaml.name === 'string') {
-              projectMetadataJson = {
-                id: crypto.randomUUID(),
-                kind: 'UserProject',
-                created: new Date().toISOString(),
-                lastOpened: null,
-              }
-              await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
-              await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
-            } else {
-              throw e
-            }
+            return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
+          } catch {
+            const readableStream = new stream.Readable()
+            readableStream.push(
+              JSON.stringify({
+                error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+              }),
+            )
+            readableStream.push(null)
+            return readableStream
           }
-          const metadata = extractProjectMetadata(packageMetadataYaml, projectMetadataJson)
-          if (metadata != null) {
-            // This is a project.
-            entries.push({
-              type: 'ProjectEntry',
-              path: entryPath,
-              attributes,
-              metadata,
-            } satisfies ProjectEntry)
-          } else {
-            // This error moves control flow to the
-            // `catch` clause directly below.
-            throw new Error('Invalid project metadata.')
-          }
-        } catch {
-          // This is a regular directory, not a project.
-          entries.push({
-            type: 'DirectoryEntry',
-            path: entryPath,
-            attributes,
-          } satisfies DirectoryEntry)
-        }
-      }
-    }
-  }
-  return entries
-}
+        })()
 
-/**
- * Return a {@link ProjectMetadata} if the metadata is a valid metadata object,
- * else return `null`.
- */
-function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMetadata | null {
-  if (
-    typeof yamlObj !== 'object' ||
-    yamlObj == null ||
-    typeof jsonObj !== 'object' ||
-    jsonObj == null
-  ) {
-    return null
-  } else {
-    const validDateString = (string: string) => {
-      const date = new Date(string)
-      return !Number.isNaN(Number(date)) ? date.toString() : null
-    }
-    const name = 'name' in yamlObj && typeof yamlObj.name === 'string' ? yamlObj.name : null
-    const namespace =
-      'namespace' in yamlObj && typeof yamlObj.namespace === 'string' ? yamlObj.namespace : 'local'
-    const engineVersion =
-      'edition' in yamlObj && typeof yamlObj.edition === 'string' ? yamlObj.edition : null
-    const id = 'id' in jsonObj && typeof jsonObj.id === 'string' ? jsonObj.id : null
-    const created =
-      'created' in jsonObj && typeof jsonObj.created === 'string' ?
-        validDateString(jsonObj.created)
-      : null
-    const lastOpened =
-      'lastOpened' in jsonObj && typeof jsonObj.lastOpened === 'string' ?
-        validDateString(jsonObj.lastOpened)
-      : null
-    if (name != null && id != null && created != null) {
-      return {
-        name,
-        namespace,
-        id,
-        ...(engineVersion != null ? { engineVersion } : {}),
-        created,
-        ...(lastOpened != null ? { lastOpened } : {}),
-      } satisfies ProjectMetadata
-    } else {
-      return null
+        response.writeHead(HTTP_STATUS_OK, [
+          ['Content-Type', 'application/json'],
+          ...COOP_COEP_CORP_HEADERS,
+        ])
+        commandOutput.pipe(response, { end: true })
+      }
     }
   }
 }

@@ -47,7 +47,7 @@ const PAYLOAD_CONSTRUCTOR = {
 export type DataServerEvents = {
   [K in keyof typeof PAYLOAD_CONSTRUCTOR as `${K}`]: (
     payload: InstanceType<(typeof PAYLOAD_CONSTRUCTOR)[K]>,
-    uuid: Uuid | null,
+    uuid: Uuid,
   ) => void
 }
 
@@ -77,18 +77,21 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       const payloadType = binaryMessage.payloadType()
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
       if (!payload) return
-      this.emit(`${payloadType}`, [payload, null])
-      const id = binaryMessage.correlationId()
-      if (id != null) {
-        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-        this.emit(`${payloadType}`, [payload, uuid])
-        const callback = this.resolveCallbacks.get(uuid)
-        callback?.(payload)
-      } else if (payload instanceof VisualizationUpdate) {
+      if (payload instanceof VisualizationUpdate) {
         const id = payload.visualizationContext()?.visualizationId()
         if (!id) return
         const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
         this.emit(`${payloadType}`, [payload, uuid])
+      } else {
+        const id = binaryMessage.correlationId()
+        if (id == null) {
+          console.error('BUG: Data message with no correlation id', payloadType, payload)
+          return
+        }
+        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+        this.emit(`${payloadType}`, [payload, uuid])
+        const callback = this.resolveCallbacks.get(uuid)
+        callback?.(payload)
       }
     })
     websocket.addEventListener('error', (error) =>

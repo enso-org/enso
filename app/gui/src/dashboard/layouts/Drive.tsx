@@ -153,18 +153,18 @@ function DriveAssetsView() {
             <AssetsTableAssetsUnselector />
           </div>
 
-          <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
-            <DriveBar query={query} setQuery={setQuery} />
+          <Suspense>
+            <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
+              <DriveBar query={query} setQuery={setQuery} />
 
-            {isInaccessible && <OfflineMessage />}
-            {!isInaccessible && (
-              <Suspense>
+              {isInaccessible && <OfflineMessage />}
+              {!isInaccessible && (
                 <ErrorBoundary>
                   <AssetsTable query={query} setQuery={setQuery} />
                 </ErrorBoundary>
-              </Suspense>
-            )}
-          </div>
+              )}
+            </div>
+          </Suspense>
         </div>
       </div>
     </div>

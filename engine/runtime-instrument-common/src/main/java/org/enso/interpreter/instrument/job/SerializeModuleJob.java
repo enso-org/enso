@@ -1,9 +1,7 @@
 package org.enso.interpreter.instrument.job;
 
-import org.enso.common.CompilationStage;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.pkg.QualifiedName;
-import org.slf4j.LoggerFactory;
 
 /** The job that serializes module. */
 public final class SerializeModuleJob extends BackgroundJob<Void> {
@@ -31,14 +29,8 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   .findModule(moduleName.toString())
                   .ifPresent(
                       module -> {
-                        if (module.getCompilationStage().isBefore(CompilationStage.AFTER_CODEGEN)) {
-                          LoggerFactory.getLogger(SerializeModuleJob.class)
-                              .warn(
-                                  "Attempt to serialize the module [{}] at stage [{}].",
-                                  module.getName(),
-                                  module.getCompilationStage());
-                          return;
-                        }
+                        assert !module.needsCompilation()
+                            : "Attempt to serialize the module that needs compilation: " + module;
                         compiler
                             .context()
                             .serializeModule(

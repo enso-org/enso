@@ -95,7 +95,7 @@ export function useCurrentPath({
 
   const chosenFilename = computed(
     () =>
-      (!!chosenFile.value &&
+      (chosenFile.value != null &&
         ensoPathEqual(currentDirPath.value, chosenFile.value.path) &&
         chosenFile.value.name) ||
       null,

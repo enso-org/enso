@@ -46,7 +46,9 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
                 clue . should_contain expected_version
-                clue . should_contain "OpenJDK"
+                # Should be true for both GraalVM CE and GraalVM EE
+                is_expected_name = clue.contains "OpenJDK" || clue.contains "Java HotSpot"
+                is_expected_name . should_be_true
                 clue . should_contain "Server VM"
 
     group_builder.specify "package.yaml JVM mode (relative)" <|

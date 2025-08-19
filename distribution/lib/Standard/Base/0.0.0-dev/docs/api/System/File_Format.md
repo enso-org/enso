@@ -24,6 +24,9 @@
     - read self file:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
     - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type File_Format_SPI
+    - + self that:Standard.Base.System.File_Format.File_Format_SPI -> Standard.Base.Any.Any
+    - new typ:Standard.Base.Any.Any name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.System.File_Format.File_Format_SPI
 - type File_Name_Pattern
     - Value display_name:Standard.Base.Data.Text.Text patterns:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
 - type Infer
@@ -45,7 +48,6 @@
     - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata= -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - resolve_encoding self metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
-- format_types -> Standard.Base.Any.Any
 - get_format callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - parse_boolean_with_infer field_name:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) -> (Standard.Base.Data.Boolean.Boolean|Standard.Base.System.File_Format.Infer)
 - Standard.Base.System.File_Format.JSON_Format.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.System.File_Format.JSON_Format

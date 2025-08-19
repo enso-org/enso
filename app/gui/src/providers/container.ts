@@ -1,9 +1,9 @@
-import { BackendType, DirectoryId, EnsoPath, ProjectId } from '#/services/Backend'
+import { BackendType, DirectoryId, EnsoPath, ProjectId, ProjectSessionId } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import { computed } from 'vue'
+import { computed, reactive, Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'
 
@@ -18,9 +18,13 @@ declare module '#/utilities/LocalStorage' {
 const PROJECT_ID_SCHEMA = z.custom<ProjectId>(
   (x) => typeof x === 'string' && x.startsWith('project-'),
 )
+const PROJECT_SESSION_ID_SCHEMA = z.custom<ProjectSessionId>(
+  (x) => typeof x === 'string' && x.startsWith('projectsession-'),
+)
 const DIRECTORY_ID_SCHEMA = z.custom<DirectoryId>(
   (x) => typeof x === 'string' && x.startsWith('directory-'),
 )
+const ENSO_PATH_SCHEMA = z.custom<EnsoPath>((x) => typeof x === 'string')
 const PROJECT_SCHEMA = z
   .object({
     id: PROJECT_ID_SCHEMA,
@@ -31,9 +35,10 @@ const PROJECT_SCHEMA = z
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
+        cloudProjectSessionId: PROJECT_SESSION_ID_SCHEMA,
         cloudParentId: DIRECTORY_ID_SCHEMA,
         parentId: DIRECTORY_ID_SCHEMA,
-        cloudProjectDirectoryPath: z.string(),
+        cloudProjectDirectoryPath: ENSO_PATH_SCHEMA,
       }),
     ),
   })
@@ -49,6 +54,22 @@ LocalStorage.registerKey('launchedProjects', {
   isUserSpecific: true,
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
+
+/**
+ * A project opened by user
+ *
+ * State "opening" means that we still do some processing before actually opening
+ * (like downloading project for hybrid run). Usually we don't have all information to construct
+ * {@link LaunchedProject} at this stage.
+ *
+ * State "launched" is a state where {@link LaunchedProject} is available. The project may still
+ * be initializing, though.
+ */
+// TODO[ao]: this is convoluted and shall be improved in https://github.com/enso-org/enso/issues/13491
+export type OpenedProject = (
+  | { state: 'opening'; id: ProjectId; ensoPath: string }
+  | ({ state: 'launched' } & LaunchedProject)
+) & { shown: Ref<boolean> }
 
 /** Tab identifier, equal to the path of the view's URL. */
 export type TabId = 'drive' | 'settings' | EnsoPath
@@ -73,13 +94,27 @@ export const [provideContainerData, useContainerData] = createContextStore(
     const route = useRoute()
     const localStorage = LocalStorage.getInstance()
 
-    const openedProjects = computed(
-      () =>
-        localStorage.get('launchedProjects')?.map((lp) => ({
-          ...lp,
-          shown: computed(() => tab.value === lp.ensoPath),
-        })) ?? [],
-    )
+    const launchedProjects = computed(() => localStorage.get('launchedProjects') ?? [])
+
+    const openingProjects = reactive(new Map<ProjectId, EnsoPath>())
+
+    const openedProjects = computed<OpenedProject[]>(() => {
+      const launched = launchedProjects.value.map(
+        (project) => ({ state: 'launched', ...project }) as Omit<OpenedProject, 'shown'>,
+      )
+      const opened = [...openingProjects.entries()]
+        .map(
+          ([id, ensoPath]) => ({ state: 'opening', id, ensoPath }) as Omit<OpenedProject, 'shown'>,
+        )
+        .filter(({ ensoPath }) => launched.find((project) => project.ensoPath === ensoPath) == null)
+      return launched.concat(opened).map(
+        (project) =>
+          ({
+            ...project,
+            shown: computed(() => tab.value === project.ensoPath),
+          }) as OpenedProject,
+      )
+    })
 
     const isValidTab = (name: string | undefined): name is TabId =>
       name === 'drive' ||
@@ -114,6 +149,7 @@ export const [provideContainerData, useContainerData] = createContextStore(
 
     return proxyRefs({
       openedProjects,
+      openingProjects,
       tab,
       addLaunchedProject,
       removeLaunchedProject,
