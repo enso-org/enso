@@ -556,7 +556,7 @@ public final class Module extends EnsoObject {
    */
   final ModuleScopeBuilder getScopeBuilder(boolean reset) {
     var sb = TruffleCompilerContext.findCompilerModule(this).getScopeBuilder(reset);
-    return sb.unsafeScopeBuilder();
+    return sb;
   }
 
   /**
