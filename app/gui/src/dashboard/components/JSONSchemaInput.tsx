@@ -56,15 +56,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     backendQueryOptions(remoteBackend, 'listSecrets', [], { enabled: isSecret }),
   )
   const userPathPrefix = `enso://Users/${user.name}/`
-  const secretAutocompleteItems =
-    secrets ?
-      [
-        ...secrets.flatMap((secret) =>
-          secret.path.startsWith(userPathPrefix) ? [secret.path.replace(userPathPrefix, '~/')] : [],
-        ),
-        ...secrets.map((secret) => secret.path),
-      ]
-    : null
+  const secretAutocompleteItems = secrets ? secrets.map((secret) => secret.path) : null
   const isInvalid = !isAbsent && !getValidator(path)(value)
   const validationErrorClassName =
     isInvalid ? 'border border-danger focus:border-danger focus:outline-danger' : undefined
@@ -94,11 +86,11 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 <Form
                   schema={(z) => z.object({ path: z.string() })}
                   defaultValues={{
-                    path: typeof value === 'string' ? value.replace(userPathPrefix, '~/') : '',
+                    path: typeof value === 'string' ? value : '',
                   }}
                   onChange={(_key, newValue) => {
                     if (newValue !== value) {
-                      onChange(newValue.replace(/^~[/]/, userPathPrefix))
+                      onChange(newValue)
                     }
                   }}
                 >
@@ -107,10 +99,20 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                       form={form}
                       name="path"
                       items={secretAutocompleteItems ?? []}
+                      toKey={(item) => item}
+                      toTextValue={(item) => {
+                        const shorthand =
+                          item.startsWith(userPathPrefix) ?
+                            item.replace(userPathPrefix, '~/')
+                          : item
+                        return shorthand === item ? item : `${shorthand} (${item})`
+                      }}
                       placeholder={getText('enterSecretPath')}
                       className={twMerge('rounded-2xl', validationErrorClassName)}
                     >
-                      {(item) => item}
+                      {(item) =>
+                        item.startsWith(userPathPrefix) ? item.replace(userPathPrefix, '~/') : item
+                      }
                     </ComboBox>
                   )}
                 </Form>
