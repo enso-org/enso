@@ -4510,7 +4510,9 @@ lazy val `edition-updater` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     Compile / internalModuleDependencies := Seq(
+      (`cli` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
+      (`downloader` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value
     )
   )
