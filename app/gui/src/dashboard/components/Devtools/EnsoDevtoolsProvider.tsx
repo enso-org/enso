@@ -5,9 +5,7 @@
 import { PAYWALL_FEATURES, type PaywallFeatureName } from '#/hooks/billing'
 import { unsafeEntries, unsafeFromEntries } from '#/utilities/object'
 import * as zustand from '#/utilities/zustand'
-import { flagsStore } from '$/providers/featureFlags'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
-import { MotionGlobalConfig } from 'framer-motion'
 
 /** Configuration for a paywall feature. */
 export interface PaywallDevtoolsFeatureConfiguration {
@@ -24,7 +22,6 @@ interface EnsoDevtoolsStore {
   readonly paywallFeatures: Record<PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
   readonly setPaywallFeature: (feature: PaywallFeatureName, isForceEnabled: boolean | null) => void
   readonly setEnableVersionChecker: (showVersionChecker: boolean | null) => void
-  readonly setAnimationsDisabled: (animationsDisabled: boolean) => void
 }
 
 export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()((set) => ({
@@ -48,16 +45,6 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()((set) 
   setEnableVersionChecker: (showVersionChecker) => {
     set({ showVersionChecker })
   },
-  setAnimationsDisabled: (animationsDisabled) => {
-    if (animationsDisabled) {
-      MotionGlobalConfig.skipAnimations = true
-      document.documentElement.classList.add('disable-animations')
-    } else {
-      MotionGlobalConfig.skipAnimations = false
-      document.documentElement.classList.remove('disable-animations')
-    }
-    flagsStore.getState().setFeatureFlag('disableAnimations', animationsDisabled)
-  },
 }))
 
 /** A function to set whether the version checker is forcibly shown/hidden. */
@@ -70,13 +57,6 @@ export function useEnableVersionChecker() {
 /** A function to set whether the version checker is forcibly shown/hidden. */
 export function useSetEnableVersionChecker() {
   return zustand.useStore(ensoDevtoolsStore, (state) => state.setEnableVersionChecker, {
-    unsafeEnableTransition: true,
-  })
-}
-
-/** A function to set whether animations are disabled. */
-export function useSetAnimationsDisabled() {
-  return zustand.useStore(ensoDevtoolsStore, (state) => state.setAnimationsDisabled, {
     unsafeEnableTransition: true,
   })
 }

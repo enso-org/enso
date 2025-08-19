@@ -1,14 +1,13 @@
 /** @file A selection brush to indicate the area being selected by the mouse drag action. */
-import * as React from 'react'
-
 import Portal from '#/components/Portal'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useRafThrottle } from '#/hooks/throttleHooks'
-import type * as geometry from '#/utilities/geometry'
+import { noop } from '#/utilities/functions'
+import type { Coordinate2D, DetailedRectangle, Rectangle } from '#/utilities/geometry'
 import { getDetailedRectangle, getDetailedRectangleFromRectangle } from '#/utilities/geometry'
 import { findScrollContainers, type HTMLOrSVGElement } from '#/utilities/scrollContainers'
-import { motion, useMotionValue } from 'framer-motion'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 
 /**
  * Defines the minimal distance that the mouse must move before
@@ -16,79 +15,27 @@ import { motion, useMotionValue } from 'framer-motion'
  */
 const DEAD_ZONE_SIZE = 24
 
-// eslint-disable-next-line no-restricted-syntax
-const noop = () => {}
-
-/**
- * Parameters for the onDrag callback.
- */
+/** Parameters for the `onDrag` callback. */
 export interface OnDragParams {
-  readonly diff: geometry.Coordinate2D
-  readonly start: geometry.Coordinate2D
-  readonly current: geometry.Coordinate2D
-  readonly rectangle: geometry.DetailedRectangle
+  readonly diff: Coordinate2D
+  readonly start: Coordinate2D
+  readonly current: Coordinate2D
+  readonly rectangle: DetailedRectangle
   readonly event: PointerEvent
 }
 
-/**
- * Props for a {@link SelectionBrush}.
- */
+/** Props for a {@link SelectionBrush}. */
 export interface SelectionBrushV2Props {
   readonly onDragStart?: (event: PointerEvent) => void
   readonly onDrag?: (params: OnDragParams) => void
   readonly onDragEnd?: (event: PointerEvent) => void
   readonly onDragCancel?: () => void
-
-  readonly targetRef: React.RefObject<HTMLElement>
+  readonly targetRef: RefObject<HTMLElement>
   readonly isDisabled?: boolean
   readonly preventDrag?: (event: PointerEvent) => boolean
 }
 
-/**
- * The direction of the Drag/Scroll.
- */
-const enum DIRECTION {
-  /**
-   * •
-   */
-  NONE = 0,
-  /**
-   * ⬅️
-   */
-  LEFT = 1,
-  /**
-   * ➡️
-   */
-  RIGHT = 2,
-  /**
-   * ⬆️
-   */
-  TOP = 3,
-  /**
-   * ⬇️
-   */
-  BOTTOM = 4,
-  /**
-   * ↙️
-   */
-  BOTTOM_LEFT = 5,
-  /**
-   * ↘️
-   */
-  BOTTOM_RIGHT = 6,
-  /**
-   * ↖️
-   */
-  TOP_LEFT = 7,
-  /**
-   * ↗️
-   */
-  TOP_RIGHT = 8,
-}
-
-/**
- * A selection brush to indicate the area being selected by the mouse drag action.
- */
+/** A selection brush to indicate the area being selected by the mouse drag action. */
 export function SelectionBrush(props: SelectionBrushV2Props) {
   const {
     targetRef,
@@ -100,7 +47,7 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
     isDisabled = false,
   } = props
 
-  const [isDragging, setIsDragging] = React.useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   /**
    * Whether the pointer has passed the dead zone,
@@ -108,21 +55,23 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
    * This is used to prevent the selection brush from being
    * invoked when user clicks on the element with tiny movement.
    */
-  const hasPassedDeadZoneRef = React.useRef<boolean>(false)
+  const hasPassedDeadZoneRef = useRef<boolean>(false)
 
-  const startPositionRef = React.useRef<geometry.Coordinate2D | null>(null)
-  const previousPositionRef = React.useRef<geometry.Coordinate2D | null>(null)
-  const currentPositionRef = React.useRef<geometry.Coordinate2D>({ left: 0, top: 0 })
-  const currentRectangleRef = React.useRef<geometry.DetailedRectangle | null>(null)
+  const startPositionRef = useRef<Coordinate2D | null>(null)
+  const previousPositionRef = useRef<Coordinate2D | null>(null)
+  const currentPositionRef = useRef<Coordinate2D>({ left: 0, top: 0 })
+  const currentRectangleRef = useRef<DetailedRectangle | null>(null)
 
-  const scrollContainersLastScrollPositionRef = React.useRef<
+  const scrollContainersLastScrollPositionRef = useRef<
     Map<HTMLOrSVGElement, { left: number; top: number }>
   >(new Map())
 
-  const left = useMotionValue<geometry.DetailedRectangle['left'] | null>(null)
-  const top = useMotionValue<geometry.DetailedRectangle['top'] | null>(null)
-  const width = useMotionValue<geometry.DetailedRectangle['width'] | null>(null)
-  const height = useMotionValue<geometry.DetailedRectangle['height'] | null>(null)
+  const [box, setBox] = useState<{
+    left: number
+    top: number
+    width: number
+    height: number
+  } | null>(null)
 
   const preventDragStableCallback = useEventCallback(preventDrag)
   const onDragStartStableCallback = useEventCallback(onDragStart)
@@ -139,11 +88,13 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
     document.documentElement.style.userSelect = 'none'
   })
 
-  const applyBrushPosition = useEventCallback((rectangle: geometry.DetailedRectangle) => {
-    left.set(rectangle.left)
-    top.set(rectangle.top)
-    width.set(rectangle.width)
-    height.set(rectangle.height)
+  const applyBrushPosition = useEventCallback((rectangle: DetailedRectangle) => {
+    setBox({
+      left: rectangle.left,
+      top: rectangle.top,
+      width: rectangle.width,
+      height: rectangle.height,
+    })
   })
 
   const resetState = useEventCallback(() => {
@@ -155,14 +106,11 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
     currentPositionRef.current = { left: 0, top: 0 }
     previousPositionRef.current = null
     currentRectangleRef.current = null
-    left.set(null)
-    top.set(null)
-    width.set(null)
-    height.set(null)
+    setBox(null)
     document.documentElement.style.userSelect = ''
   })
 
-  const updateBrush = useEventCallback((rectangle: geometry.DetailedRectangle) => {
+  const updateBrush = useEventCallback((rectangle: DetailedRectangle) => {
     if (!isDragging) {
       startDragging()
     }
@@ -170,10 +118,8 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
     applyBrushPosition(rectangle)
   })
 
-  React.useEffect(() => {
-    if (!isDragging) {
-      return
-    }
+  useEffect(() => {
+    if (!isDragging) return
 
     const scrollContainers = findScrollContainers(targetRef.current)
 
@@ -312,7 +258,7 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
         }
 
         if (hasPassedDeadZoneRef.current) {
-          const diff: geometry.Coordinate2D = {
+          const diff: Coordinate2D = {
             left: current.left - previous.left,
             top: current.top - previous.top,
           }
@@ -368,13 +314,23 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
     { isDisabled, capture: true, passive: true },
   )
 
+  const brushStyle =
+    box == null ?
+      {}
+    : {
+        left: `${box.left}px`,
+        top: `${box.top}px`,
+        width: `${box.width}px`,
+        height: `${box.height}px`,
+      }
+
   return (
     <Portal>
-      <motion.div
+      <div
         data-testid="selection-brush"
         data-is-dragging={isDragging}
         className="pointer-events-none absolute before:absolute before:-inset-1 before:rounded-xl before:border-2 before:border-primary/5 before:bg-primary/5"
-        style={{ left, top, width, height, opacity: isDragging ? 1 : 0 }}
+        style={{ ...brushStyle, opacity: isDragging ? 1 : 0 }}
       />
     </Portal>
   )
@@ -388,8 +344,8 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
  * @returns Whether the current position is in the dead zone.
  */
 function isInDeadZone(
-  initialPosition: geometry.Coordinate2D,
-  currentPosition: geometry.Coordinate2D,
+  initialPosition: Coordinate2D,
+  currentPosition: Coordinate2D,
   deadZoneSize: number,
 ) {
   const horizontalDistance = Math.abs(initialPosition.left - currentPosition.left)
@@ -399,45 +355,35 @@ function isInDeadZone(
 }
 
 /**
+ *
+ */
+type Direction =
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'bottom'
+  | 'left'
+  | 'none'
+  | 'right'
+  | 'top-left'
+  | 'top-right'
+  | 'top'
+
+/**
  * Get the direction from the scroll difference.
  * @param diffX - The difference in the x direction.
  * @param diffY - The difference in the y direction.
  * @returns The direction.
  */
-function getDirectionFromScrollDiff(diffX: number, diffY: number): DIRECTION {
-  if (diffX > 0 && diffY === 0) {
-    return DIRECTION.RIGHT
-  }
-
-  if (diffX < 0 && diffY === 0) {
-    return DIRECTION.LEFT
-  }
-
-  if (diffX === 0 && diffY > 0) {
-    return DIRECTION.BOTTOM
-  }
-
-  if (diffX === 0 && diffY < 0) {
-    return DIRECTION.TOP
-  }
-
-  if (diffX > 0 && diffY > 0) {
-    return DIRECTION.BOTTOM_RIGHT
-  }
-
-  if (diffX < 0 && diffY > 0) {
-    return DIRECTION.BOTTOM_LEFT
-  }
-
-  if (diffX < 0 && diffY < 0) {
-    return DIRECTION.TOP_LEFT
-  }
-
-  if (diffX > 0 && diffY < 0) {
-    return DIRECTION.TOP_RIGHT
-  }
-
-  return DIRECTION.NONE
+function getDirectionFromScrollDiff(diffX: number, diffY: number): Direction {
+  if (diffX > 0 && diffY === 0) return 'right'
+  if (diffX < 0 && diffY === 0) return 'left'
+  if (diffX === 0 && diffY > 0) return 'bottom'
+  if (diffX === 0 && diffY < 0) return 'top'
+  if (diffX > 0 && diffY > 0) return 'bottom-right'
+  if (diffX < 0 && diffY > 0) return 'bottom-left'
+  if (diffX < 0 && diffY < 0) return 'top-left'
+  if (diffX > 0 && diffY < 0) return 'top-right'
+  return 'none'
 }
 
 /**
@@ -448,56 +394,28 @@ function getDirectionFromScrollDiff(diffX: number, diffY: number): DIRECTION {
  * @returns The rectangle.
  */
 function calculateRectangleFromScrollDirection(
-  start: geometry.Rectangle,
-  direction: DIRECTION,
-  diff: geometry.Coordinate2D,
-): geometry.Rectangle {
+  start: Rectangle,
+  direction: Direction,
+  diff: Coordinate2D,
+): Rectangle {
   switch (direction) {
-    case DIRECTION.LEFT:
-      return {
-        ...start,
-        right: start.right - diff.left,
-      }
-    case DIRECTION.RIGHT:
-      return {
-        ...start,
-        left: start.left + diff.left,
-      }
-    case DIRECTION.TOP:
-      return {
-        ...start,
-        bottom: start.bottom - diff.top,
-      }
-    case DIRECTION.BOTTOM:
-      return {
-        ...start,
-        top: start.top - diff.top,
-      }
-    case DIRECTION.BOTTOM_LEFT:
-      return {
-        ...start,
-        right: start.right + diff.left,
-        top: start.top - diff.top,
-      }
-    case DIRECTION.BOTTOM_RIGHT:
-      return {
-        ...start,
-        left: start.left - diff.left,
-        top: start.top - diff.top,
-      }
-    case DIRECTION.TOP_LEFT:
-      return {
-        ...start,
-        right: start.right + diff.left,
-        bottom: start.bottom - diff.top,
-      }
-    case DIRECTION.TOP_RIGHT:
-      return {
-        ...start,
-        bottom: start.bottom - diff.top,
-        left: start.left - diff.left,
-      }
-    case DIRECTION.NONE:
+    case 'left':
+      return { ...start, right: start.right - diff.left }
+    case 'right':
+      return { ...start, left: start.left + diff.left }
+    case 'top':
+      return { ...start, bottom: start.bottom - diff.top }
+    case 'bottom':
+      return { ...start, top: start.top - diff.top }
+    case 'bottom-left':
+      return { ...start, right: start.right + diff.left, top: start.top - diff.top }
+    case 'bottom-right':
+      return { ...start, left: start.left - diff.left, top: start.top - diff.top }
+    case 'top-left':
+      return { ...start, right: start.right + diff.left, bottom: start.bottom - diff.top }
+    case 'top-right':
+      return { ...start, bottom: start.bottom - diff.top, left: start.left - diff.left }
+    case 'none':
     default:
       return start
   }
@@ -511,52 +429,28 @@ function calculateRectangleFromScrollDirection(
  * @returns The new start position.
  */
 function calculateNewStartPositionFromScrollDirection(
-  start: geometry.Coordinate2D,
-  current: geometry.Coordinate2D,
-  rectangle: geometry.Rectangle,
+  start: Coordinate2D,
+  current: Coordinate2D,
+  rectangle: Rectangle,
 ) {
   const cursorPositionInRectangle = (() => {
-    if (start.left < current.left && start.top < current.top) {
-      return DIRECTION.BOTTOM_RIGHT
-    }
-
-    if (start.left > current.left && start.top > current.top) {
-      return DIRECTION.TOP_LEFT
-    }
-
-    if (start.left < current.left && start.top > current.top) {
-      return DIRECTION.BOTTOM_LEFT
-    }
-
-    if (start.left > current.left && start.top < current.top) {
-      return DIRECTION.TOP_RIGHT
-    }
-
-    return DIRECTION.NONE
+    if (start.left < current.left && start.top < current.top) return 'bottom-right'
+    if (start.left > current.left && start.top > current.top) return 'top-left'
+    if (start.left < current.left && start.top > current.top) return 'bottom-left'
+    if (start.left > current.left && start.top < current.top) return 'top-right'
+    return 'none'
   })()
 
   switch (cursorPositionInRectangle) {
-    case DIRECTION.TOP_LEFT:
-      return {
-        top: rectangle.top,
-        left: rectangle.left,
-      }
-    case DIRECTION.BOTTOM_RIGHT:
-      return {
-        top: rectangle.bottom,
-        left: rectangle.right,
-      }
-    case DIRECTION.TOP_RIGHT:
-      return {
-        top: rectangle.top,
-        left: rectangle.right,
-      }
-    case DIRECTION.BOTTOM_LEFT:
-      return {
-        top: rectangle.bottom,
-        left: rectangle.left,
-      }
-    case DIRECTION.NONE:
+    case 'top-left':
+      return { top: rectangle.top, left: rectangle.left }
+    case 'bottom-right':
+      return { top: rectangle.bottom, left: rectangle.right }
+    case 'top-right':
+      return { top: rectangle.top, left: rectangle.right }
+    case 'bottom-left':
+      return { top: rectangle.bottom, left: rectangle.left }
+    case 'none':
     default:
       return start
   }

@@ -81,7 +81,6 @@
     "dotenv": "^16.4.7",
     "enso-common": "workspace:*",
     "events": "^3.3.0",
-    "framer-motion": "11.3.0",
     "hash-sum": "^2.0.0",
     "idb-keyval": "^6.2.1",
     "input-otp": "1.2.4",

@@ -1,21 +1,14 @@
-/**
- * @file
- *
- * A hook that synchronizes callbacks with the RAF loop.
- */
+/** @file A hook that synchronizes callbacks with the RAF loop. */
 import * as React from 'react'
-
 import { useEventCallback } from './eventCallbackHooks.ts'
 import { useUnmount } from './unmountHooks.ts'
 
-/**
- * Adds a callback to the RAF loop.
- */
+/** Adds a callback to the RAF loop. */
 export function useRAF() {
   const callbacksRef = React.useRef<Set<FrameRequestCallback>>(new Set())
   const lastRafRef = React.useRef<ReturnType<typeof requestAnimationFrame> | null>(null)
 
-  const cancelRAF = useEventCallback(() => {
+  const cancelRaf = useEventCallback(() => {
     if (lastRafRef.current != null) {
       cancelAnimationFrame(lastRafRef.current)
       lastRafRef.current = null
@@ -23,7 +16,7 @@ export function useRAF() {
     }
   })
 
-  const scheduleRAF = useEventCallback((callback: FrameRequestCallback) => {
+  const scheduleRaf = useEventCallback((callback: FrameRequestCallback) => {
     if (lastRafRef.current == null) {
       lastRafRef.current = requestAnimationFrame((time) => {
         const lastCallbacks = [...callbacksRef.current]
@@ -43,7 +36,7 @@ export function useRAF() {
     }
   })
 
-  useUnmount(cancelRAF)
+  useUnmount(cancelRaf)
 
-  return { scheduleRAF, cancelRAF } as const
+  return { scheduleRaf, cancelRaf } as const
 }

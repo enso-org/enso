@@ -23,10 +23,9 @@ import {
 } from '$/providers/featureFlags'
 import { useLocalStorage, useText } from '$/providers/react'
 import { useUserSession } from '$/providers/react/auth'
-import { useFeatureFlag, useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
+import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
-import { motion } from 'framer-motion'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
@@ -34,7 +33,6 @@ import { Icon } from '../Icon'
 import {
   useEnableVersionChecker,
   usePaywallDevtools,
-  useSetAnimationsDisabled,
   useSetEnableVersionChecker,
   useShowEnsoDevtools,
   useToggleEnsoDevtools,
@@ -71,7 +69,6 @@ export function EnsoDevStatus() {
   const queryClient = useQueryClient()
   const { getText } = useText()
   const showEnsoDevtools = useShowEnsoDevtools()
-  const setAnimationsDisabled = useSetAnimationsDisabled()
   const versionCheckerEnabled = useEnableVersionChecker() ?? false
   const setVersionCheckerEnabled = useSetEnableVersionChecker()
   const {
@@ -84,7 +81,6 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
-    disableAnimations,
     fileChunkUploadPoolSize,
     unsafeDarkTheme,
   } = useFeatureFlags()
@@ -113,21 +109,16 @@ export function EnsoDevStatus() {
     showDeveloperIds ||
     overrideProfilePicture ||
     multiplyUserList ||
-    disableAnimations ||
     enableMultitabs ||
     enableAdvancedProjectExecutionOptions ||
     fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE ||
     unsafeDarkTheme
+  if (!isOverridden) return null
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
-  if (!isOverridden) {
-    return null
-  }
-
   return (
-    <motion.div
-      layout
+    <div
       className={styles.base({
         className: twJoin('absolute left-3', showEnsoDevtools ? 'bottom-[4.25rem]' : 'bottom-3'),
       })}
@@ -140,15 +131,6 @@ export function EnsoDevStatus() {
             }}
           >
             {getText('planOverriddenToX', planName)}
-          </DeveloperOverrideEntry>
-        )}
-        {disableAnimations && (
-          <DeveloperOverrideEntry
-            reset={() => {
-              setAnimationsDisabled(false)
-            }}
-          >
-            {getText('animationsDisabled')}
           </DeveloperOverrideEntry>
         )}
         {versionCheckerEnabled && (
@@ -258,7 +240,7 @@ export function EnsoDevStatus() {
           </DeveloperOverrideEntry>
         )}
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -279,9 +261,6 @@ export function EnsoDevtools() {
 
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
-
-  const animationsDisabled = useFeatureFlag('disableAnimations')
-  const setAnimationsDisabled = useSetAnimationsDisabled()
 
   const localStorage = useLocalStorage()
   const localStorageState = useLocalStorageValues(localStorage)
@@ -374,39 +353,19 @@ export function EnsoDevtools() {
         </Text>
 
         <Form
-          schema={(schema) =>
-            schema.object({
-              enableVersionChecker: schema.boolean(),
-              disableAnimations: schema.boolean(),
-            })
-          }
-          defaultValues={{
-            enableVersionChecker: enableVersionChecker ?? !IS_DEV_MODE,
-            disableAnimations: animationsDisabled,
-          }}
+          schema={(schema) => schema.object({ enableVersionChecker: schema.boolean() })}
+          defaultValues={{ enableVersionChecker: enableVersionChecker ?? !IS_DEV_MODE }}
         >
           {({ form }) => (
-            <>
-              <Switch
-                form={form}
-                name="disableAnimations"
-                label={getText('disableAnimations')}
-                description={getText('disableAnimationsDescription')}
-                onChange={(value) => {
-                  setAnimationsDisabled(value)
-                }}
-              />
-
-              <Switch
-                form={form}
-                name="enableVersionChecker"
-                label={getText('enableVersionChecker')}
-                description={getText('enableVersionCheckerDescription')}
-                onChange={(value) => {
-                  setEnableVersionChecker(value)
-                }}
-              />
-            </>
+            <Switch
+              form={form}
+              name="enableVersionChecker"
+              label={getText('enableVersionChecker')}
+              description={getText('enableVersionCheckerDescription')}
+              onChange={(value) => {
+                setEnableVersionChecker(value)
+              }}
+            />
           )}
         </Form>
 

@@ -29,7 +29,6 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   developerPlanOverride: z.nativeEnum(Plan).optional(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
-  disableAnimations: z.boolean(),
   fileChunkUploadPoolSize: z.number().int().min(1),
   unsafeDarkTheme: z.boolean(),
 })
@@ -64,7 +63,6 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         developerPlanOverride: undefined,
         overrideProfilePicture: false,
         multiplyUserList: false,
-        disableAnimations: false,
         fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
         unsafeDarkTheme: false,
       },

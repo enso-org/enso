@@ -1,5 +1,4 @@
 /** @file A modal to select labels for an asset. */
-import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Button } from '#/components/Button'
 import { Check } from '#/components/Check'
 import ColorPicker from '#/components/ColorPicker'
@@ -22,6 +21,7 @@ import {
   type Label,
   type LChColor,
 } from '#/services/Backend'
+import { twJoin } from '#/utilities/tailwindMerge'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
@@ -324,71 +324,70 @@ function AllLabels(props: AllLabelsProps) {
   const filteredLabels = labels.filter((label) => filter.contains(label.value, query))
 
   return (
-    <AnimatedBackground>
-      <ListBox
-        items={filteredLabels}
-        className="flex max-h-72 flex-col overflow-y-auto overflow-x-hidden scroll-offset-edge-0"
-        aria-label={getText('manageLabelsModal.allLabels')}
-        selectionMode="multiple"
-        selectedKeys={selectedLabels}
-        defaultSelectedKeys={defaultSelectedKeys}
-        onSelectionChange={onSelectionChange}
-        dependencies={[query]}
-        renderEmptyState={() => (
-          <NotFoundLabel
-            query={query}
-            onCreateLabel={onCreateLabel}
-            leastUsedColor={leastUsedColor}
-            colors={colors}
-          />
-        )}
-      >
-        {(label) => (
-          <ListBoxItem
-            key={label.id}
-            id={label.id}
-            textValue={label.value}
-            className="group rounded-3xl pressed:bg-primary/5"
-          >
-            {({ isSelected, isPressed, isHovered }) => (
-              <AnimatedBackground.Item
-                className="flex w-full items-center gap-2 px-2 py-0.5"
-                isSelected={isHovered || isPressed}
-                animationClassName="bg-primary/5 rounded-3xl"
-              >
-                <Check isSelected={isSelected} isPressed={isPressed} />
+    <ListBox
+      items={filteredLabels}
+      className="flex max-h-72 flex-col overflow-y-auto overflow-x-hidden scroll-offset-edge-0"
+      aria-label={getText('manageLabelsModal.allLabels')}
+      selectionMode="multiple"
+      selectedKeys={selectedLabels}
+      defaultSelectedKeys={defaultSelectedKeys}
+      onSelectionChange={onSelectionChange}
+      dependencies={[query]}
+      renderEmptyState={() => (
+        <NotFoundLabel
+          query={query}
+          onCreateLabel={onCreateLabel}
+          leastUsedColor={leastUsedColor}
+          colors={colors}
+        />
+      )}
+    >
+      {(label) => (
+        <ListBoxItem
+          key={label.id}
+          id={label.id}
+          textValue={label.value}
+          className="group rounded-3xl pressed:bg-primary/5"
+        >
+          {({ isSelected, isPressed, isHovered }) => (
+            <div
+              className={twJoin(
+                'flex w-full items-center gap-2 px-2 py-0.5',
+                (isHovered || isPressed) && 'rounded-3xl bg-primary/5',
+              )}
+            >
+              <Check isSelected={isSelected} />
 
-                <div
-                  className="aspect-square w-4 flex-none rounded-full"
-                  style={{ backgroundColor: lChColorToCssColor(label.color) }}
+              <div
+                className="aspect-square w-4 flex-none rounded-full"
+                style={{ backgroundColor: lChColorToCssColor(label.color) }}
+              />
+
+              <Text truncate nowrap textSelection="none">
+                {label.value}
+              </Text>
+
+              <Dialog.Trigger>
+                <Button
+                  variant="icon"
+                  aria-label={getText('delete')}
+                  icon="trash_small"
+                  size="small"
+                  className="ml-auto opacity-0 transition-opacity duration-75 group-hover:opacity-100"
                 />
 
-                <Text truncate nowrap textSelection="none">
-                  {label.value}
-                </Text>
-
-                <Dialog.Trigger>
-                  <Button
-                    variant="icon"
-                    aria-label={getText('delete')}
-                    icon="trash_small"
-                    size="small"
-                    className="ml-auto opacity-0 transition-opacity duration-75 group-hover:opacity-100"
-                  />
-
-                  <ConfirmDeleteModal
-                    cannotUndo
-                    actionText={getText('deleteLabelActionText', label.value)}
-                    actionButtonLabel={getText('delete')}
-                    onConfirm={() => onDeleteLabel(label)}
-                  />
-                </Dialog.Trigger>
-              </AnimatedBackground.Item>
-            )}
-          </ListBoxItem>
-        )}
-      </ListBox>
-    </AnimatedBackground>
+                <ConfirmDeleteModal
+                  cannotUndo
+                  actionText={getText('deleteLabelActionText', label.value)}
+                  actionButtonLabel={getText('delete')}
+                  onConfirm={() => onDeleteLabel(label)}
+                />
+              </Dialog.Trigger>
+            </div>
+          )}
+        </ListBoxItem>
+      )}
+    </ListBox>
   )
 }
 

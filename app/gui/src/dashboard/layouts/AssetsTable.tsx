@@ -1257,7 +1257,7 @@ function AssetsTable(props: AssetsTableProps) {
           </div>
         )}
 
-        <IsolateLayout className="isolate h-full w-full" useRAF>
+        <IsolateLayout className="isolate h-full w-full">
           <div
             tabIndex={-1}
             className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"

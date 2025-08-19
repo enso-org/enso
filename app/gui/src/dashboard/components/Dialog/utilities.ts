@@ -1,16 +1,8 @@
-/**
- * @file
- *
- * This file contains a function that checks if the element is a part of a component that should ignore the interact outside event.
- */
-
-import * as React from 'react'
-
-import * as eventCallback from '#/hooks/eventCallbackHooks'
-
+/** @file Utility functions for dialogs. */
 import * as aria from '#/components/aria'
-
-import * as dialogStackProvider from './DialogStackProvider'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useRef, type RefObject } from 'react'
+import { useIsLatestDialogStackItem } from './DialogStackProvider'
 
 const IGNORE_INTERACT_OUTSIDE_ELEMENTS = [
   // Toastify toasts
@@ -30,7 +22,7 @@ export function shouldIgnoreInteractOutside(element: HTMLElement) {
 
 /** Props for {@link useInteractOutside} */
 export interface UseInteractOutsideProps {
-  readonly ref: React.RefObject<HTMLElement>
+  readonly ref: RefObject<HTMLElement>
   readonly id: string
   readonly onInteractOutside?: ((e: PointerEvent) => void) | null
   readonly isDisabled?: boolean
@@ -39,15 +31,15 @@ export interface UseInteractOutsideProps {
 /** Hook that handles the interact outside event for the dialog */
 export function useInteractOutside(props: UseInteractOutsideProps) {
   const { ref, id, onInteractOutside, isDisabled = false } = props
-  const shouldCloseOnInteractOutsideRef = React.useRef(false)
+  const shouldCloseOnInteractOutsideRef = useRef(false)
 
-  const isLatest = dialogStackProvider.useIsLatestDialogStackItem(id)
+  const isLatest = useIsLatestDialogStackItem(id)
 
-  const onInteractOutsideStartCb = eventCallback.useEventCallback((e: MouseEvent) => {
+  const onInteractOutsideStartCb = useEventCallback((e: MouseEvent) => {
     // eslint-disable-next-line no-restricted-syntax
     shouldCloseOnInteractOutsideRef.current = !shouldIgnoreInteractOutside(e.target as HTMLElement)
   })
-  const onInteractOutsideCb = eventCallback.useEventCallback((e: PointerEvent) => {
+  const onInteractOutsideCb = useEventCallback((e: PointerEvent) => {
     if (shouldCloseOnInteractOutsideRef.current) {
       onInteractOutside?.(e)
       shouldCloseOnInteractOutsideRef.current = false
@@ -64,15 +56,4 @@ export function useInteractOutside(props: UseInteractOutsideProps) {
     onInteractOutsideStart: onInteractOutsideStartCb,
     onInteractOutside: onInteractOutsideCb,
   })
-}
-
-/**
- * Animates the scale of the element.
- */
-export function animateScale(element: HTMLElement, scale: number) {
-  const duration = 200
-  element.animate(
-    [{ transform: 'scale(1)' }, { transform: `scale(${scale})` }, { transform: 'scale(1)' }],
-    { duration, iterations: 1, direction: 'alternate' },
-  )
 }

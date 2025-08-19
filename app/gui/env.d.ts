@@ -136,13 +136,6 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken?: () => string
-    /**
-     * If set to `true`, animations will be disabled.
-     * Used by playwright tests to speed up execution.
-     *
-     * ATM only affects the framer-motion animations.
-     */
-    readonly DISABLE_ANIMATIONS?: boolean
     readonly featureFlags: FeatureFlags
     readonly setFeatureFlags: (flags: Partial<FeatureFlags>) => void
     /**
