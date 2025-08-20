@@ -5,6 +5,7 @@
  */
 
 import * as crypto from 'node:crypto'
+import { type EnsoRunner } from './ensoRunner'
 
 import { UUID } from 'enso-common/src/services/Backend'
 
@@ -119,15 +120,6 @@ interface ProjectRepository {
   getPackageName(projectId: string): Promise<string>
   getPackageNamespace(projectId: string): Promise<string>
   tryLoadProject(directory: string): Promise<Project | null>
-}
-
-interface EnsoRunner {
-  createProject(
-    path: string,
-    name: string,
-    engineVersion?: string,
-    projectTemplate?: string,
-  ): Promise<void>
 }
 
 interface LanguageServerGateway {
