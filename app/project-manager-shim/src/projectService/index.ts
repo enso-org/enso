@@ -5,26 +5,14 @@
  */
 
 import * as crypto from 'node:crypto'
-import { type Runner, EnsoRunner } from './ensoRunner'
+import { type Runner } from './ensoRunner'
+import { type Project, type ProjectRepository } from './projectRepository'
 
 import { UUID } from 'enso-common/src/services/Backend'
 
 // ==================
 // === Data Types ===
 // ==================
-
-export interface Project {
-  readonly id: UUID
-  readonly name: string
-  readonly namespace: string
-  readonly kind: 'UserProject'
-  readonly created: string // ISO DateTime
-  readonly edition?: string // Raw edition string
-  readonly jvmModeEnabled?: boolean
-  readonly path: string // Absolute file path
-  readonly lastOpened?: string // ISO DateTime
-  readonly directoryCreationTime?: string // File timestamp
-}
 
 export interface RunningLanguageServerInfo {
   readonly engineVersion: string // SemVer format
@@ -50,14 +38,6 @@ export interface CloudParams {
   readonly cloudProjectDirectoryPath: string
   readonly cloudProjectId: string
   readonly cloudProjectSessionId: string
-}
-
-export interface ProjectMetadata {
-  readonly name: string
-  readonly namespace: string
-  readonly id: string // UUID
-  readonly created: string // ISO DateTime
-  readonly lastOpened?: string // ISO DateTime
 }
 
 /** Parameters for the "create project" endpoint. */
@@ -104,23 +84,6 @@ export class LanguageServerFailure extends ProjectServiceFailure {}
 // =========================
 // === Helper Interfaces ===
 // =========================
-
-interface ProjectRepository {
-  exists(name: string): Promise<boolean>
-  findPathForNewProject(moduleName: string): Promise<string>
-  update(project: Project): Promise<void>
-  delete(projectId: string): Promise<void>
-  moveToTrash(projectId: string): Promise<boolean>
-  rename(projectId: string, name: string): Promise<void>
-  findById(projectId: string): Promise<Project | null>
-  find(predicate: (project: Project) => boolean): Promise<Project[]>
-  getAll(): Promise<Project[]>
-  moveProject(projectId: string, newName: string): Promise<string>
-  copyProject(project: Project, newName: string, newMetadata: ProjectMetadata): Promise<Project>
-  getPackageName(projectId: string): Promise<string>
-  getPackageNamespace(projectId: string): Promise<string>
-  tryLoadProject(directory: string): Promise<Project | null>
-}
 
 interface LanguageServerGateway {
   isRunning(projectId: string): Promise<[boolean, boolean]>
