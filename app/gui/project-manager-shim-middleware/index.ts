@@ -50,6 +50,7 @@ import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
+import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 
 // =================
@@ -70,6 +71,8 @@ const COOP_COEP_CORP_HEADERS = [
   ['Cross-Origin-Opener-Policy', 'same-origin'],
   ['Cross-Origin-Resource-Policy', 'same-origin'],
 ]
+
+const PROJECT_SERVICE = ProjectService.getInstance()
 
 // ====================================
 // === projectManagerShimMiddleware ===
@@ -196,6 +199,27 @@ export default function projectManagerShimMiddleware(
         break
       }
     }
+  } else if (requestPath.startsWith('/api/project-service/')) {
+    switch (`${request.method} ${requestPath}`) {
+      case 'POST /api/project-service/project/create': {
+        interface ResponseBody {
+          readonly name: string
+          readonly projectsDirectory: string
+        }
+        bodyJson<ResponseBody>(request)
+          .then((body) => {
+            PROJECT_SERVICE.createProject(body.name, undefined, undefined, body.projectsDirectory)
+          })
+          .then((project) => {
+            response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(JSON.stringify(project))
+          })
+          .catch((err) => {
+            console.error(err)
+            response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+          })
+        break
+      }
+    }
   } else if (requestPath.startsWith('/api/')) {
     switch (`${request.method} ${requestPath}`) {
       case `POST /api/${EXPORT_ARCHIVE_PATH}`: {
@@ -305,6 +329,16 @@ export default function projectManagerShimMiddleware(
   } else {
     next()
   }
+}
+
+/** Read JSON from an HTTP request body. */
+async function bodyJson<T>(request: http.IncomingMessage): Promise<T> {
+  const chunks: Buffer[] = []
+  for await (const chunk of request) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
+  }
+  const body = Buffer.concat(chunks).toString('utf-8')
+  return JSON.parse(body) as T
 }
 
 /** Return whether a file exists. */

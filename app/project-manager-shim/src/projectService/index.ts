@@ -15,7 +15,6 @@ import { UUID } from 'enso-common/src/services/Backend'
 export interface Project {
   readonly id: UUID
   readonly name: string
-  readonly module: string // Normalized project name
   readonly namespace: string
   readonly kind: 'UserProject'
   readonly created: string // ISO DateTime
@@ -58,6 +57,22 @@ export interface ProjectMetadata {
   readonly id: string // UUID
   readonly created: string // ISO DateTime
   readonly lastOpened?: string // ISO DateTime
+}
+
+/** Parameters for the "create project" endpoint. */
+export interface CreateProjectParams {
+  readonly name: string
+  readonly projectTemplate?: string
+  readonly version?: string
+  readonly projectsDirectory?: string
+}
+
+/** The return value of the "create project" endpoint. */
+export interface CreateProject {
+  readonly projectId: UUID
+  readonly projectName: string
+  readonly projectPath: string
+  readonly projectNormalizedName: string
 }
 
 // ===================
@@ -110,7 +125,7 @@ interface EnsoRunner {
   createProject(
     path: string,
     name: string,
-    engineVersion: string,
+    engineVersion?: string,
     projectTemplate?: string,
   ): Promise<void>
 }
@@ -148,12 +163,16 @@ export class ProjectService {
     private readonly logger: Console = console,
   ) {}
 
+  static getInstance(): ProjectService {
+    throw new Error('Unimplemented ProjectService.getInstance()')
+  }
+
   /**
    * Creates a new user project with the specified configuration.
    */
-  async createUserProject(
+  async createProject(
     projectName: string,
-    engineVersion: string,
+    engineVersion?: string,
     projectTemplate?: string,
     projectsDirectory?: string,
   ): Promise<Project> {
@@ -187,7 +206,6 @@ export class ProjectService {
     const project: Project = {
       id: projectId,
       name: actualName,
-      module: moduleName,
       namespace: this.DEFAULT_NAMESPACE,
       kind: 'UserProject',
       created: creationTime,
