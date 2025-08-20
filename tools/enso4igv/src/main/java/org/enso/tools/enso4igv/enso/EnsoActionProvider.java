@@ -11,6 +11,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.prefs.Preferences;
 import org.enso.tools.enso4igv.EnsoDataObject;
 import org.netbeans.api.debugger.jpda.JPDADebugger;
@@ -42,8 +43,6 @@ import org.openide.util.RequestProcessor;
 import org.openide.windows.IOProvider;
 
 @NbBundle.Messages({
-    "CTL_EnsoWhere=Enso Executable Location",
-    "CTL_EnsoExecutable=enso/enso.bat",
     "# {0} - executable file",
     "MSG_CannotExecute=Cannot execute {0}",
     "# {0} - executable file",
@@ -54,10 +53,10 @@ import org.openide.windows.IOProvider;
     "MSG_EnableIgvModeDone=Run Enso file again to get compiler graphs.",
     "MSG_ExeLastUsed=Last used executable",
     "# {0} - name of project",
-    "MSG_ExeBy=Provided by {0}",
+    "MSG_ExeBy=Provided by {0} project",
     "MSG_ExeOther=Other...",
     "MSG_ExeManual=Select manually...",
-    "MSG_ExeText=Choose executable to run the file with",
+    "MSG_ExeText=Choose executable to execute with",
     "MSG_ExeTitle=Select Enso Executable"
 })
 @ServiceProvider(service = ActionProvider.class)
@@ -107,16 +106,24 @@ public final class EnsoActionProvider implements ActionProvider {
         var exe = prefs.get(exeKey, "");
 
         var items = new ArrayList<NotifyDescriptor.QuickPick.Item>();
+        Consumer<NotifyDescriptor.QuickPick.Item> addIfNewExecutable = (item) -> {
+            for (var e : items) {
+                if (e.getDescription().equals(item.getDescription())) {
+                    return;
+                }
+            }
+            items.add(item);
+        };
         if (!exe.isBlank()) {
-          var last = new NotifyDescriptor.QuickPick.Item(exe, Bundle.MSG_ExeLastUsed());
-          items.add(last);
+          var last = new NotifyDescriptor.QuickPick.Item(Bundle.MSG_ExeLastUsed(), exe);
+          addIfNewExecutable.accept(last);
         }
         for (var openPrj : OpenProjects.getDefault().getOpenProjects()) {
           if (openPrj.getLookup().lookup(EnsoExecutableProvider.class) instanceof EnsoExecutableProvider p) {
             var prjExe = p.getEnsoBin();
             if (prjExe != null) {
-              var prjItem = new NotifyDescriptor.QuickPick.Item(prjExe.getPath(), Bundle.MSG_ExeBy(ProjectUtils.getInformation(openPrj).getDisplayName()));
-              items.add(prjItem);
+              var prjItem = new NotifyDescriptor.QuickPick.Item(Bundle.MSG_ExeBy(ProjectUtils.getInformation(openPrj).getDisplayName()), prjExe.getPath());
+              addIfNewExecutable.accept(prjItem);
             }
           }
         }
@@ -129,16 +136,16 @@ public final class EnsoActionProvider implements ActionProvider {
           for (var item : items) {
             if (item.isSelected()) {
               if (item == manual) {
-                var select = new NotifyDescriptor.InputLine(Bundle.CTL_EnsoExecutable(), Bundle.CTL_EnsoWhere());
-                select.setInputText(exe);
-                return dd.notifyFuture(select).thenApply(exec -> exec.getInputText());
+                return selectManually(exe, dd);
+              } else {
+                return CompletableFuture.completedFuture(item.getDescription());
               }
-              return CompletableFuture.completedFuture(item.getLabel());
             }
           }
           return CompletableFuture.completedFuture("");
         });
-        var builderFuture = selectedExe.thenApply(exec -> {
+
+        var builderFuture = (items.size() > 1 ? selectedExe : selectManually(exe, dd)).thenApply(exec -> {
             var file = new File(exec);
             if (file.canExecute()) {
                 prefs.put(exeKey, file.getPath());
@@ -226,6 +233,13 @@ public final class EnsoActionProvider implements ActionProvider {
             dd.notifyLater(new NotifyDescriptor.Message(ex.getMessage(), NotifyDescriptor.ERROR_MESSAGE));
             return null;
         });
+    }
+
+    private CompletableFuture<String> selectManually(String exe, DialogDisplayer dd) {
+        var line = new NotifyDescriptor.InputLine(Bundle.MSG_ExeText(), Bundle.MSG_ExeText());
+        line.setInputText(exe);
+        var selectManually = dd.notifyFuture(line).thenApply(exec -> exec.getInputText());
+        return selectManually;
     }
 
     record IgvInfo(boolean igvMode, boolean networkOn, int networkPort) {
