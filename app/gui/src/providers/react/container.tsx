@@ -1,8 +1,9 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { EnsoPath, ProjectId } from '#/services/Backend'
 import { ContainerData, useContainerData as useContainerDataVue } from '$/providers/container'
 import { RightPanelData, useRightPanelData as useRightPanelDataVue } from '$/providers/rightPanel'
+import { reactComponent } from '@/util/react'
 import * as react from 'react'
-import { applyPureReactInVue } from 'veaury'
 import { useInReactFunction, useVueValue } from './common'
 
 const RightPanelDataContext = react.createContext<RightPanelData | null>(null)
@@ -11,7 +12,7 @@ export const useRightPanelData = useInReactFunction(RightPanelDataContext)
 const ContainerDataContext = react.createContext<ContainerData | null>(null)
 export const useContainerData = useInReactFunction(ContainerDataContext)
 
-export const ContainerDataProviderForReact = applyPureReactInVue(
+export const ContainerDataProviderForReact = reactComponent(
   ({ value, children }: react.PropsWithChildren<{ value: ContainerData }>) => {
     return <ContainerDataContext.Provider value={value}>{children}</ContainerDataContext.Provider>
   },
@@ -24,9 +25,9 @@ export const ContainerDataProviderForReact = applyPureReactInVue(
       return () => result
     },
   },
-)
+) as any
 
-export const RightPanelDataProviderForReact = applyPureReactInVue(
+export const RightPanelDataProviderForReact = reactComponent(
   ({ value, children }: react.PropsWithChildren<{ value: RightPanelData }>) => {
     return <RightPanelDataContext.Provider value={value}>{children}</RightPanelDataContext.Provider>
   },
@@ -39,7 +40,7 @@ export const RightPanelDataProviderForReact = applyPureReactInVue(
       return () => result
     },
   },
-)
+) as any
 
 /**
  * A hook to read currently focused asset for right panel, e.g. the currently selected asset
@@ -86,5 +87,21 @@ export function useClearLaunchedProjects() {
 
   return useEventCallback(() => {
     updateLaunchedProjects(() => [])
+  })
+}
+
+/** A function to add project to "opening projects" list */
+export function useAddOpeningProject() {
+  const { openingProjects } = useContainerData()
+  return useEventCallback((id: ProjectId, ensoPath: string) => {
+    openingProjects.set(id, EnsoPath(ensoPath))
+  })
+}
+
+/** A function to remove project from "opening projects" list */
+export function useRemoveOpeningProject() {
+  const { openingProjects } = useContainerData()
+  return useEventCallback((id: ProjectId) => {
+    openingProjects.delete(id)
   })
 }

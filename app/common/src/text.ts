@@ -1,6 +1,6 @@
 /** @file Functions related to displaying text. */
 import ENGLISH from './text/english.json' with { type: 'json' }
-import { unsafeKeys } from './utilities/data/object'
+import { unsafeKeys } from './utilities/data/object.js'
 
 /** Possible languages in which to display text. */
 export enum Language {
@@ -181,6 +181,10 @@ interface PlaceholderOverrides {
   readonly xHoursLeftInTrial: [hoursLeft: number]
   readonly yourSubscriptionExpiresAtX: [endDate: string]
   readonly commercialUseNotice: [originalTitle: string]
+  readonly downgradedWarning: [daysLeft: number, hoursLeft: number]
+
+  readonly welcomeToTeam: [organizationName: string]
+  readonly invitationText: [organizationName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

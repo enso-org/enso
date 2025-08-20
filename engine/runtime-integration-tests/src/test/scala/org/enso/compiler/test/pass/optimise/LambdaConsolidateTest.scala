@@ -229,32 +229,37 @@ class LambdaConsolidateTest extends CompilerTest {
 
       val ir: Function.Lambda = new Function.Lambda(
         List(
-          new DefinitionArgument.Specified(
-            Name
-              .Literal("a", isMethod = false, identifiedLocation = null),
-            None,
-            None,
-            suspended          = false,
-            identifiedLocation = null
-          ),
-          new DefinitionArgument.Specified(
-            Name.Literal("b", isMethod = false, identifiedLocation = null),
-            None,
-            None,
-            suspended          = false,
-            identifiedLocation = null
-          )
+          DefinitionArgument.Specified
+            .builder()
+            .name(
+              Name
+                .Literal("a", isMethod = false, identifiedLocation = null)
+            )
+            .suspended(false)
+            .build(),
+          DefinitionArgument.Specified
+            .builder()
+            .name(
+              Name
+                .Literal("b", isMethod = false, identifiedLocation = null)
+            )
+            .suspended(false)
+            .build()
         ),
         new Function.Lambda(
           List(
-            new DefinitionArgument.Specified(
-              Name
-                .Literal("c", isMethod = false, identifiedLocation = null),
-              None,
-              None,
-              suspended          = false,
-              identifiedLocation = null
-            )
+            DefinitionArgument.Specified
+              .builder()
+              .name(
+                Name
+                  .Literal(
+                    "c",
+                    isMethod           = false,
+                    identifiedLocation = null
+                  )
+              )
+              .suspended(false)
+              .build()
           ),
           Name.Literal("c", isMethod = false, identifiedLocation = null),
           identifiedLocation = null

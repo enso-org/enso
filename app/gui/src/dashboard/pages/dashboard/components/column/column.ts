@@ -36,6 +36,11 @@ export interface AssetColumnProps {
   readonly openProject: (projectId: ProjectId) => Promise<void>
 }
 
+/** Props for the name column of an arbitrary variant of {@link Asset}. */
+export interface AssetNameColumnProps extends Omit<AssetColumnProps, 'state'> {
+  readonly state: Pick<AssetsTableState, 'backend'>
+}
+
 /** Props for a {@link AssetColumn}. */
 export interface AssetColumnHeadingProps {
   readonly category: Category
@@ -54,7 +59,7 @@ export interface AssetColumn {
 
 /** React components for every column. */
 export const COLUMN_RENDERER: Readonly<
-  Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element>>
+  Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element | null>>
 > = {
   [Column.name]: memo(NameColumn),
   [Column.modified]: memo(ModifiedColumn),

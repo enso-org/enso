@@ -121,7 +121,7 @@ object ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
 
-    executionFrame match {
+    val pendingResult = executionFrame match {
       case ExecutionFrame(
             ExecutionItem.Method(module, cons, function),
             cache,
@@ -145,7 +145,7 @@ object ProgramExecutionSupport {
             )
         }
 
-        val pending = ctx.executionService.execute(
+        ctx.executionService.execute(
           module.toString,
           cons.item,
           function,
@@ -160,7 +160,6 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        pending.toCompletableFuture.get()
       case ExecutionFrame(
             ExecutionItem.CallData(expressionId, callData),
             cache,
@@ -189,7 +188,7 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
-        val pending = ctx.executionService.execute(
+        ctx.executionService.execute(
           ctx.contextManager.getVisualizationHolder(contextId),
           module,
           callData,
@@ -203,9 +202,10 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        pending.toCompletableFuture.get()
     }
 
+    // ensure it is finished
+    pendingResult.toCompletableFuture.get()
     callStack match {
       case Nil =>
         val notExecuted =
@@ -771,12 +771,10 @@ object ProgramExecutionSupport {
               p.getLocation().getEncapsulatingSourceSection() match {
                 case ss: SourceSection =>
                   logger.warn(
-                    "Error at {}-{} (e.g. `{}`) of {} with text:\n{}",
-                    ss.getCharIndex(),
-                    ss.getCharEndIndex(),
-                    ss.getCharacters(),
-                    visualizationId,
-                    ss.getSource().getCharacters()
+                    s"Error at ${ss.getCharIndex()}-${ss
+                      .getCharEndIndex()} in ${ss.getSource.getPath} (e.g. `${ss
+                      .getCharacters()}`) of visualization $visualizationId",
+                    p
                   )
                 case _ =>
               }
@@ -785,7 +783,7 @@ object ProgramExecutionSupport {
           }
         }
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -810,7 +808,7 @@ object ProgramExecutionSupport {
           expressionId
         )
         syncState.runAndSetVisualizationSync(
-          expressionId,
+          visualizationId,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(

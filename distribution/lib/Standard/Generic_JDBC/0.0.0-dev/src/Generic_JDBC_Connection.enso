@@ -20,7 +20,7 @@ from Standard.Database.Internal.Result_Set import read_column, result_set_to_tab
 polyglot java import java.sql.DatabaseMetaData
 
 type Generic_JDBC_Connection
-    private Value jdbc_connection:JDBC_Connection.JDBC_Connection quote_char:Text=""
+    private Value jdbc_connection:JDBC_Connection.JDBC_Connection url:Text quote_char:Text
 
     ## ---
        advanced: true
@@ -58,7 +58,7 @@ type Generic_JDBC_Connection
     @properties (Vector_Editor item_editor=(Single_Choice [Option "Text" "['', '']", Option "Secret" "['', Enso_Secret.get '']"]) item_default="['', '']")
     connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] quote_char:Text="" -> Generic_JDBC_Connection =
         jdbc_connection = JDBC_Connection.create url properties
-        Generic_JDBC_Connection.Value jdbc_connection quote_char
+        Generic_JDBC_Connection.Value jdbc_connection url quote_char
 
     ## ---
        advanced: true
@@ -93,6 +93,12 @@ type Generic_JDBC_Connection
         self.jdbc_connection.with_metadata metadata->
             metadata.getDatabaseProductName + " (" + metadata.getDatabaseProductVersion + ")"
 
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Generic_JDBC_Connection"], ["driver", self.jdbc_connection.driver], ["url", self.url]]
 
     ## ---
        aliases: [catalog schema database]

@@ -205,5 +205,8 @@ final class EnsoPolyglotJava {
   private static final class CtxData {
     private EnsoPolyglotJava hosted = new EnsoPolyglotJava(true);
     private EnsoPolyglotJava guest = new EnsoPolyglotJava(false);
+
+    CtxData(EnsoContext ctx) {
+    }
   }
 }

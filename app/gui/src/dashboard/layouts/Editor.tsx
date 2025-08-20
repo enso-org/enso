@@ -1,9 +1,10 @@
 /** @file The container that launches the IDE. */
 import { Button } from '#/components/Button'
-import * as errorBoundary from '#/components/ErrorBoundary'
+import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
-import * as suspense from '#/components/Suspense'
+import { Loader } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useMount } from '#/hooks/mountHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import * as backendModule from '#/services/Backend'
@@ -33,9 +34,18 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
+  return (
+    <ErrorBoundary>
+      <EditorContents {...props} />
+    </ErrorBoundary>
+  )
+}
+
+/** The container that launches the IDE. */
+function EditorContents(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
   const preventAutoReopen =
-    project.type !== backendModule.BackendType.local || project.hybrid == null
+    project.type !== backendModule.BackendType.local || project.hybrid != null
   const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
@@ -100,7 +110,11 @@ export default function Editor(props: EditorProps) {
     })
   })
 
-  React.useEffect(() => {
+  // TODO[ao]: We open project on mount only, so changing `project` property will not autoopen
+  // anything. This is not a problem, because project id is key property of AppContainer,
+  // but it leaves a bad taste. Nevertheless, it will be refined anyway as part of
+  // https://github.com/enso-org/enso/issues/13491
+  useMount(() => {
     if (
       // Open project unless it is not supposed to be reopened.
       (isProjectClosed && !preventAutoReopen) ||
@@ -109,7 +123,7 @@ export default function Editor(props: EditorProps) {
     ) {
       void startProject({ ...project, suppressHybridProjectOpen: isHybridOpened })
     }
-  }, [isProjectClosed, startProject, project, preventAutoReopen, isHybridOpened])
+  })
 
   React.useEffect(() => {
     stableOnNameUpdate(name)
@@ -155,7 +169,7 @@ export default function Editor(props: EditorProps) {
 
   if (openProjectMutation.isError) {
     return (
-      <errorBoundary.ErrorDisplay
+      <ErrorDisplay
         error={openProjectMutation.error}
         resetErrorBoundary={async () => {
           if (isProjectClosed) {
@@ -173,7 +187,7 @@ export default function Editor(props: EditorProps) {
         switch (true) {
           case projectQuery.isError:
             return (
-              <errorBoundary.ErrorDisplay
+              <ErrorDisplay
                 error={projectQuery.error}
                 resetErrorBoundary={() => projectQuery.refetch()}
               />
@@ -182,7 +196,7 @@ export default function Editor(props: EditorProps) {
           case isProjectClosed:
           case isProjectClosing:
           case isProjectOpening:
-            return <suspense.Loader minHeight="full" />
+            return <Loader minHeight="full" />
 
           case isProjectOpened:
             return (
@@ -207,7 +221,7 @@ export default function Editor(props: EditorProps) {
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {
   readonly openedProject: backendModule.Project
   readonly backendType: backendModule.BackendType
-  readonly renameProject: (newName: string) => void
+  readonly renameProject: (newName: string) => Promise<void>
   readonly projectName: string
 }
 
@@ -227,8 +241,8 @@ function EditorInternal(props: EditorInternalProps) {
     }
   }, [hidden])
 
-  const onRenameProject = useEventCallback((newName: string) => {
-    renameProject(newName)
+  const onRenameProject = useEventCallback(async (newName: string) => {
+    await renameProject(newName)
   })
 
   const jsonAddress = openedProject.jsonAddress

@@ -315,7 +315,7 @@ final class SuggestionBuilder[A: IndexedSource](
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      selfType      = methodArgs.head.reprType,
+      selfType      = selfType.fold(Any)(_.toString),
       returnType    = selfType.fold(Any)(_.toString),
       documentation = doc
     )
@@ -426,13 +426,11 @@ final class SuggestionBuilder[A: IndexedSource](
     argument: DefinitionArgument
   ): Suggestion = {
     val getterName = argument.name.name
-    val thisArg = new DefinitionArgument.Specified(
-      name               = Name.Self(identifiedLocation = null),
-      ascribedType       = None,
-      defaultValue       = None,
-      suspended          = false,
-      identifiedLocation = null
-    )
+    val thisArg = DefinitionArgument.Specified
+      .builder()
+      .name(Name.Self(identifiedLocation = null))
+      .suspended(false)
+      .build()
     buildMethod(
       externalId         = None,
       module             = module,

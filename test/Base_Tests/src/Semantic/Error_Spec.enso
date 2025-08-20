@@ -467,6 +467,19 @@ add_specs suite_builder =
             r = Test.expect_panic Type_Error <| neg (c.to_num c=3)
             r.to_display_text . should_contain "Try to apply a, b arguments"
 
+        group_builder.specify "not fully applied auto scope constructor" <|
+            materialize v -> My_Type = v
+
+            materialize (..Multi_Value 1 2) . bar . should_equal 2
+
+            r = Test.expect_panic Type_Error <|
+                materialize (..Multi_Value 3)
+            r.to_display_text . should_contain "Try to apply bar argument"
+
+            r2 = Test.expect_panic Type_Error <|
+                materialize (..Multi_Value bar=3)
+            r2.to_display_text . should_contain "Try to apply foo argument"
+
     suite_builder.group "Wrapped errors" group_builder->
         group_builder.specify ".catch unwraps an error when the inner error is explicitly specified" <|
             e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error

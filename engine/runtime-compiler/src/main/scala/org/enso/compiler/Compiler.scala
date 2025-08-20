@@ -23,7 +23,7 @@ import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.data.{CompilerConfig, IRDumperWithConfig}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
@@ -31,7 +31,7 @@ import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
 import org.enso.compiler.docs.{DocsGenerate, DocsVisit}
-import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumper}
+import org.enso.compiler.dump.service.IRDumper
 import org.enso.compiler.pass.lint.unusedimports.UnusedImportsRemover
 import org.enso.compiler.phase.exports.{
   ExportCycleException,
@@ -274,12 +274,37 @@ class Compiler(
     generateDocs: Boolean
   ): List[Module] = {
     initialize()
+
+    var moduleIrDumpers: HashMap[Module, IRDumperWithConfig] = new HashMap()
+
+    def getOrCreateDumper(module: Module): Option[IRDumperWithConfig] = {
+      config.dumpModuleIR.flatMap(irDumperConfig => {
+        if (module.getName().toString.contains(irDumperConfig.getModuleName)) {
+          moduleIrDumpers.get(module) match {
+            case Some(existing) => Some(existing)
+            case None =>
+              val dumper        = IRDumper.create(module.getName.toString)
+              val dumperWithCfg = new IRDumperWithConfig(dumper, irDumperConfig)
+              moduleIrDumpers = moduleIrDumpers.updated(module, dumperWithCfg)
+              Some(dumperWithCfg)
+          }
+        } else {
+          None
+        }
+      })
+    }
+
+    def closeAllDumpers(): Unit = {
+      moduleIrDumpers.foreach { case (_, dumper) => dumper.irDumper().close() }
+    }
+
     modules.foreach(m =>
       try {
         parseModule(
           m,
           irCachingEnabled && !context.isInteractive(m),
-          generateDocs
+          generateDocs,
+          irDumper = getOrCreateDumper(m)
         )
       } catch {
         case e: Throwable =>
@@ -296,28 +321,6 @@ class Compiler(
           )
       }
     )
-
-    var moduleIrDumpers: HashMap[Module, IRDumper] = new HashMap()
-    def getOrCreateDumper(module: Module): Option[IRDumper] = {
-      config.dumpModuleIR.flatMap(pattern => {
-        if (module.getName().toString.contains(pattern)) {
-          moduleIrDumpers.get(module) match {
-            case Some(existing) => Some(existing)
-            case None =>
-              val dumper =
-                IRDumpFactoryService.DEFAULT.create(module.getName.toString)
-              moduleIrDumpers = moduleIrDumpers.updated(module, dumper)
-              Some(dumper)
-          }
-        } else {
-          None
-        }
-      })
-    }
-
-    def closeAllDumpers(): Unit = {
-      moduleIrDumpers.foreach { case (_, dumper) => dumper.close() }
-    }
 
     val requiredModules = modules.flatMap { module =>
       val isLoadedFromSource =
@@ -387,11 +390,17 @@ class Compiler(
           isGeneratingDocs = generateDocs
         )
         val compilerOutput =
-          runGlobalTypingPasses(
-            module.getIr(),
-            moduleContext,
-            irDumper = getOrCreateDumper(module)
-          )
+          try {
+            runGlobalTypingPasses(
+              module.getIr(),
+              moduleContext,
+              irDumper = getOrCreateDumper(module)
+            )
+          } catch {
+            case err: CompilerError =>
+              err.attachInfo("At " + moduleContext.getName())
+              throw err
+          }
 
         context.updateModule(
           module,
@@ -471,6 +480,7 @@ class Compiler(
       runErrorHandling(requiredModules)
 
       val requiredModulesWithScope = requiredModules.map { module =>
+        val moduleScopeBuilder = module.getScopeBuilder()
         if (
           !module
             .getCompilationStage()
@@ -478,18 +488,9 @@ class Compiler(
               CompilationStage.AFTER_RUNTIME_STUBS
             )
         ) {
-          val moduleScopeBuilder = module.getScopeBuilder()
           context.runStubsGenerator(module, moduleScopeBuilder)
-          context.updateModule(
-            module,
-            { u =>
-              u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
-            }
-          )
-          (module, moduleScopeBuilder)
-        } else {
-          (module, module.getScopeBuilder)
         }
+        (module, moduleScopeBuilder)
       }
 
       requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
@@ -670,7 +671,7 @@ class Compiler(
     module: Module,
     useCaches: Boolean,
     generateDocs: Boolean,
-    irDumper: Option[IRDumper] = None
+    irDumper: Option[IRDumperWithConfig] = None
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -706,7 +707,7 @@ class Compiler(
   private def uncachedParseModule(
     module: Module,
     generateDocs: Boolean,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -891,7 +892,7 @@ class Compiler(
   private def recognizeBindings(
     module: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     passManager.runPassesOnModule(
       module,
@@ -909,7 +910,7 @@ class Compiler(
   private def runMethodBodyPasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -927,7 +928,7 @@ class Compiler(
   private def runGlobalTypingPasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -949,7 +950,7 @@ class Compiler(
   private def runFinalTypeInferencePasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumperWithConfig]
   ): IRModule = {
     passManager.runPassesOnModule(
       ir,

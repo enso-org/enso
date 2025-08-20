@@ -12,7 +12,7 @@ import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
-import { type IdentifierOrOperatorIdentifier, type QualifiedName } from '@/util/qualifiedName'
+import { Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
@@ -61,7 +61,7 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
   () => props.input,
   graph,
   suggestionDb.entries,
-  props.onUpdate,
+  props.updateCallback,
 )
 
 // Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
@@ -159,7 +159,7 @@ export const widgetDefinition = defineWidget(
       'Standard.Table' as QualifiedName,
       'Table.Table' as QualifiedName,
     ),
-    name: 'input' as IdentifierOrOperatorIdentifier,
+    name: 'input' as Identifier,
   }),
   {
     priority: 999,
@@ -178,7 +178,7 @@ export const widgetDefinition = defineWidget(
       :input="input"
       metadataKey="WidgetTableEditor"
       :config="config"
-      :onUpdate="onUpdate"
+      :updateCallback="updateCallback"
     >
       <Suspense>
         <AgGridTableView

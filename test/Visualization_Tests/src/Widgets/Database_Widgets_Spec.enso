@@ -30,7 +30,7 @@ add_specs suite_builder =
         group_builder.specify "works for `query` and `read`" <|
             table_choices = ['a_table', 'another', 'mock_table'] . map n-> Choice.Option n n.pretty
             choices = table_choices + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
-            expect = [["query", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            expect = '[["query",' + Widget.Single_Choice choices Nothing Display.Always . to_json + ']]'
             Widgets.get_widget_json connection .query ["query"] . should_equal expect
             Widgets.get_widget_json connection .read ["query"] . should_equal expect
 
@@ -39,13 +39,13 @@ add_specs suite_builder =
 
         group_builder.specify "works for `get` and `at`" <|
             choices = mock_table.column_names . map n-> Choice.Option n n.pretty
-            expect = [["selector", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            expect = '[["selector",' + Widget.Single_Choice choices Nothing Display.Always . to_json + ']]'
             Widgets.get_widget_json mock_table .get ["selector"] . should_equal expect
             Widgets.get_widget_json mock_table .at ["selector"] . should_equal expect
 
         group_builder.specify "works for `filter`" <|
             choices = [Choice.Option "<Expression>" "(expr '[A]')"] + mock_table.column_names . map n-> Choice.Option n n.pretty
-            expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            expect = '[["column",' + Widget.Single_Choice choices Nothing Display.Always . to_json + ']]'
             Widgets.get_widget_json mock_table .filter ["column"] . should_equal expect
 
     suite_builder.group "Widgets for Database" group_builder->

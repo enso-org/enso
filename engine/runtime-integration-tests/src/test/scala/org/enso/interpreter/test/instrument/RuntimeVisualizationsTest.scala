@@ -529,7 +529,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,
@@ -1558,7 +1559,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,
@@ -1689,25 +1691,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val responsesAfterEdit = context.receiveNIgnoreExpressionUpdates(2)
-      responsesAfterEdit should contain(
+      context.receiveNIgnoreExpressionUpdates(
+        1
+      ) should contain theSameElementsAs Seq(
         context.executionComplete(contextId)
       )
-      val Some(data2) = responsesAfterEdit.collectFirst {
-        case Api.Response(
-              None,
-              Api.VisualizationUpdate(
-                Api.VisualizationContext(
-                  `visualizationId`,
-                  `contextId`,
-                  `expectedExpressionId`
-                ),
-                data
-              )
-            ) =>
-          data
-      }
-      data2.sameElements("6".getBytes) shouldBe true
   }
 
   it should "not reorder visualization commands" in withContext() { context =>
@@ -1994,7 +1982,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(8)
+      val attachVisualizationResponses = context.receiveN(7)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
@@ -4248,7 +4236,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val afterIdMapUpdate = context.receiveN(3)
+      val afterIdMapUpdate = context.receiveNIgnorePendingExpressionUpdates(3)
 
       // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
       afterIdMapUpdate should contain allOf (
@@ -5341,6 +5329,123 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       new String(data2) shouldEqual "22"
+  }
+
+  it should "emit visualization update of ascribed expression" in withContext() {
+    context =>
+      val contextId       = UUID.randomUUID()
+      val requestId       = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
+      val moduleName      = "Enso_Test.Test.Main"
+      val metadata        = new Metadata
+
+      val code =
+        """from Standard.Base.Data.Numbers import Number
+          |
+          |main =
+          |    v = 22 : Number
+          |    v
+          |""".stripMargin.linesIterator.mkString("\n")
+      val idV = metadata.addItem(62, 11)
+      val idR = metadata.addItem(78, 1)
+
+      val contents = metadata.appendToCode(code)
+      val mainFile = context.writeMain(contents)
+      val visualizationFile =
+        context.writeInSrcDir("Visualization", context.Visualization.code)
+
+      // create context
+      context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+      context.receive shouldEqual Some(
+        Api.Response(requestId, Api.CreateContextResponse(contextId))
+      )
+
+      // open files
+      context.send(
+        Api.Request(
+          requestId,
+          Api.OpenFileRequest(
+            visualizationFile,
+            context.Visualization.code
+          )
+        )
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // Open the new file
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // push main
+      val item1 = Api.StackItem.ExplicitCall(
+        Api.MethodPointer(moduleName, moduleName, "main"),
+        None,
+        Vector()
+      )
+      context.send(
+        Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      )
+      context.receiveNIgnorePendingExpressionUpdates(
+        4
+      ) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        TestMessages.update(
+          contextId,
+          idV,
+          ConstantsGen.INTEGER
+        ),
+        TestMessages.update(
+          contextId,
+          idR,
+          ConstantsGen.INTEGER
+        ),
+        context.executionComplete(contextId)
+      )
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idV,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                "Enso_Test.Test.Visualization",
+                "encode",
+                Vector()
+              ),
+              "Enso_Test.Test.Visualization"
+            )
+          )
+        )
+      )
+      val attachVisualizationResponses = context.receiveN(2)
+      attachVisualizationResponses should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+      val Some(data) = attachVisualizationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idV`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data) shouldEqual "22"
   }
 
   it should "update the value when self argument changes" in withContext() {

@@ -31,7 +31,7 @@ const {
   extensions = [],
   contentTestId,
   scrollerTestId,
-  onEditorReady = () => {},
+  editorReadyCallback = () => {},
 } = defineProps<{
   toolbar?: boolean | undefined
   readonly?: boolean | undefined
@@ -47,7 +47,7 @@ const {
    * component's setup, allowing creating watches bound to the editor view (that's why its not
    * defined as signal)
    */
-  onEditorReady?: ((view: EditorView) => void) | undefined
+  editorReadyCallback?: ((view: EditorView) => void) | undefined
 }>()
 defineOptions({ inheritAttrs: false })
 
@@ -120,7 +120,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   scrollerTestId,
 })
 
-useLinkTitles(editorView, { readonly })
+useLinkTitles(editorView, { readonly: () => readonly })
 
 const { focused, focusHandlers } = useEditorFocus(editorView)
 watch(focused, (focused) => {
@@ -144,7 +144,7 @@ const { actions, formatBindings } = useFormatActions({
 })
 setExtraExtensions([formatBindings])
 
-onEditorReady(editorView)
+editorReadyCallback(editorView)
 
 const blockType = computed({
   get: () => formatting.blockType.value ?? 'Unknown',

@@ -1,0 +1,9 @@
+private
+
+import Standard.Base.System.File_Format.File_Format_SPI
+
+import project.Tableau_Format.Tableau_Format
+
+type Impl
+
+File_Format_SPI.from (_:Impl) = File_Format_SPI.new Tableau_Format "tableau"

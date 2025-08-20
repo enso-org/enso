@@ -4,7 +4,6 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.filter.ThresholdFilter;
-import ch.qos.logback.classic.net.SocketAppender;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.FileAppender;
@@ -27,10 +26,10 @@ import org.enso.logging.config.*;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-@org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public final class LogbackSetup extends LoggerSetup {
 
   private static final String CONSOLE_APPENDER_NAME = "enso-console";
+  private static final String TELEMETRY_ROOT_LOGGER = "org.enso.telemetry";
 
   private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
     this.config = config;
@@ -131,9 +130,8 @@ public final class LogbackSetup extends LoggerSetup {
 
     org.enso.logging.config.SocketAppender appenderConfig = config.getSocketAppender();
 
-    SocketAppender socketAppender = new DeferredProcessingSocketAppender();
+    DeferredProcessingSocketAppender socketAppender = new DeferredProcessingSocketAppender();
     socketAppender.setName("enso-socket");
-    socketAppender.setIncludeCallerData(false);
     socketAppender.setRemoteHost(hostname);
     socketAppender.setPort(port);
     if (appenderConfig != null) {
@@ -141,8 +139,26 @@ public final class LogbackSetup extends LoggerSetup {
           Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
     }
 
+    acceptAllTelemetryEvents(socketAppender);
     env.finalizeAppender(socketAppender);
     return true;
+  }
+
+  private static void acceptAllTelemetryEvents(
+      ch.qos.logback.core.Appender<ILoggingEvent> appender) {
+    // This filter lets all the telemetry log events through.
+    var telemetryAcceptingFilter =
+        new Filter<ILoggingEvent>() {
+          @Override
+          public FilterReply decide(ILoggingEvent event) {
+            if (event.getLoggerName().startsWith(TELEMETRY_ROOT_LOGGER)) {
+              return FilterReply.ACCEPT;
+            } else {
+              return FilterReply.NEUTRAL;
+            }
+          }
+        };
+    appender.addFilter(telemetryAcceptingFilter);
   }
 
   @Override
@@ -291,7 +307,7 @@ public final class LogbackSetup extends LoggerSetup {
     var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     telemetryAppender.setExecutor(executor);
 
-    var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
+    var telemetryLogger = env.ctx.getLogger(TELEMETRY_ROOT_LOGGER);
     telemetryLogger.addAppender(telemetryAppender);
     telemetryLogger.setLevel(ch.qos.logback.classic.Level.ALL);
 
@@ -326,7 +342,7 @@ public final class LogbackSetup extends LoggerSetup {
           @Override
           public FilterReply decide(ILoggingEvent event) {
             var exclude =
-                event.getLoggerName().startsWith("org.enso.telemetry")
+                event.getLoggerName().startsWith(TELEMETRY_ROOT_LOGGER)
                     || event.getLoggerName().startsWith("org.enso.logging.service");
             return exclude ? FilterReply.DENY : FilterReply.NEUTRAL;
           }

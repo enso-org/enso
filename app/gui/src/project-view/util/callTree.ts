@@ -81,12 +81,12 @@ abstract class Argument {
     return false
   }
 
-  toWidgetInput(): WidgetInput {
+  toWidgetInput(callInfo: MethodCallInfo | undefined): WidgetInput {
     return {
       portId: this.portId,
       value: this.value,
       expectedType: this.argInfo?.reprType,
-      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId, callInfo },
       dynamicConfig: this.dynamicConfig,
     }
   }
@@ -474,23 +474,23 @@ export class ArgumentApplication {
 
     const argsExternalIds: Record<string, ExternalId> = {}
     let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
-    for (const nameAndExtenalId of namesAndExternalIds) {
+    for (const { uuid } of namesAndExternalIds) {
       const notApplied = mci?.methodCall.notAppliedArguments ?? []
       while (notApplied.indexOf(index) != -1) {
         index++
       }
-      if (nameAndExtenalId.uuid) {
-        argsExternalIds['' + index] = nameAndExtenalId.uuid
-      }
-      const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
-      if (suggestedName && nameAndExtenalId.uuid) {
-        argsExternalIds[suggestedName] = nameAndExtenalId.uuid
+      if (uuid) {
+        argsExternalIds['' + index] = uuid
+        const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
+        if (suggestedName) {
+          argsExternalIds[suggestedName] = uuid
+        }
       }
       index++
     }
-    for (const nameAndExternalId of namesAndExternalIds) {
-      if (nameAndExternalId.name && nameAndExternalId.uuid) {
-        argsExternalIds[nameAndExternalId.name] = nameAndExternalId.uuid
+    for (const { name, uuid } of namesAndExternalIds) {
+      if (name && uuid) {
+        argsExternalIds[name] = uuid
       }
     }
     return argsExternalIds
@@ -569,6 +569,8 @@ declare module '@/providers/widgetRegistry' {
       appKind: ApplicationKind
       info: SuggestionEntryArgument | undefined
       argId: string | undefined
+      // Call info inherited from the parent function call.
+      callInfo: MethodCallInfo | undefined
     }
   }
 }

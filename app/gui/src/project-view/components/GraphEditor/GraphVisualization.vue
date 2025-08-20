@@ -28,6 +28,7 @@ const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150
 
 const props = defineProps<{
+  show: boolean
   currentType?: Opt<VisualizationIdentifier>
   isFullscreenAllowed: boolean
   isResizable: boolean
@@ -72,6 +73,7 @@ const {
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
   typename: toRef(props, 'typename'),
+  typeinfo: toRef(props, 'typeinfo'),
 })
 
 // ===========
@@ -134,7 +136,7 @@ const keydownHandler = visualizationBindings.handler({
 
 // TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
 //  (deselectAllNodes in particular). But this is quick workaround, the proper solution
-//  should be soon delivered as part of https://github.com/enso-org/enso/issues/13002
+//  should be soon delivered as part of https://github.com/enso-org/enso/issues/13695
 useEvent(document, 'keydown', keydownHandler)
 
 // =============================
@@ -231,11 +233,12 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 
 <template>
   <div
+    v-if="props.show"
     class="GraphVisualization"
     :style="style"
     :class="{ isFocused }"
-    @pointerenter="emit('update:hovered', false)"
-    @pointerleave="emit('update:hovered', true)"
+    @pointerenter="emit('update:hovered', true)"
+    @pointerleave="emit('update:hovered', false)"
   >
     <WithFullscreenMode
       v-model="isFullscreen"

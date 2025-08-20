@@ -101,9 +101,6 @@
         "name": "org.enso.base.enso_cloud.CloudRequestCache"
     },
     {
-        "name": "org.enso.base.enso_cloud.DataLinkSPI"
-    },
-    {
         "name": "org.enso.base.enso_cloud.EnsoHTTPResponseCache",
         "methods": [
             {
@@ -174,12 +171,6 @@
             }
         ],
         "allPublicMethods": true
-    },
-    {
-        "name": "org.enso.base.file_format.FileFormatSPI"
-    },
-    {
-        "name": "org.enso.base.file_system.FileSystemSPI"
     },
     {
         "name": "org.enso.base.file_system.File_Utils"

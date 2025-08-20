@@ -1,3 +1,17 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [Register and `lookup_services` in package.yaml][11868]
+- [Open type check `Type&Any` lets all visible types thru][13225]
+- [The documentation panel opens to the scroll position at last close][13647]
+- [Autocompletion for Column methods in table expressions][13797]
+
+[11868]: https://github.com/enso-org/enso/pull/11868
+[13225]: https://github.com/enso-org/enso/pull/13225
+[13647]: https://github.com/enso-org/enso/pull/13647
+[13797]: https://github.com/enso-org/enso/pull/13797
+
 # Next Release
 
 #### Enso IDE
@@ -18,6 +32,8 @@
 - [Add keyboard shortcuts for formatting documentation][13134]
 - [New right-side panel][13135], unified between tabs.
 - [Allow selecting expected types for arguments of grouped components.][13161]
+- [Component documentation now uses Markdown instead of a custom Markdown-like
+  format][13203]
 - [Methods for ‘intersection’ types are now visible in Component
   Browser.][13266]
 - [Allow marking grouped component arguments as required or providing a default
@@ -29,12 +45,17 @@
 - ["Grouped Components" are renamed to "User Defined Components"][13389]
 - [Allow displaying cloud images using enso:// url in documentation][13419]
 - [File Browser Widget is used when editing file paths to datalinks][13439]
+- [When creating a node using the button on the port, the button can be dragged
+  to set its location][13598]
 - [Graph is not moved when showing/resizing side panels.][13557]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
 - ["Welcome Project" is automatically opened for new users][13479]
-- [Project and Setting tab may be now closed with shortcut][13498]. On
+- [Project and Setting tab may be now closed with shortcut][13498][13604]. On
   Windows/Linux <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>;
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
+- [Allow selecting target type for Any.to method][13685].
+- [Improved Graph Editor's Top Bar responsiveness to width change.][13726]
+- [Changed animation of tabs highlight.][13726]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -50,6 +71,7 @@
 [13134]: https://github.com/enso-org/enso/pull/13134
 [13135]: https://github.com/enso-org/enso/pull/13135
 [13161]: https://github.com/enso-org/enso/pull/13161
+[13203]: https://github.com/enso-org/enso/pull/13203
 [13266]: https://github.com/enso-org/enso/pull/13266
 [13254]: https://github.com/enso-org/enso/pull/13254
 [13347]: https://github.com/enso-org/enso/pull/13347
@@ -58,10 +80,14 @@
 [13389]: https://github.com/enso-org/enso/pull/13389
 [13419]: https://github.com/enso-org/enso/pull/13419
 [13439]: https://github.com/enso-org/enso/pull/13439
+[13598]: https://github.com/enso-org/enso/pull/13598
 [13557]: https://github.com/enso-org/enso/pull/13557
 [13522]: https://github.com/enso-org/enso/pull/13522
 [13479]: https://github.com/enso-org/enso/pull/13479
 [13498]: https://github.com/enso-org/enso/pull/13498
+[13604]: https://github.com/enso-org/enso/pull/13604
+[13685]: https://github.com/enso-org/enso/pull/13685
+[13726]: https://github.com/enso-org/enso/pull/13726
 
 #### Enso Standard Library
 
@@ -83,6 +109,8 @@
 - [Remane Google_Api library to Google][13436]
 - [Data.read_many now returns the read path as a char field][13475]
 - [Add prototype `find_group_number` function to Table][13487]
+- [Add support for custom and empty line endings to the fixed-width file format]
+  [13554]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -99,6 +127,7 @@
 [13443]: https://github.com/enso-org/enso/pull/13443
 [13475]: https://github.com/enso-org/enso/pull/13475
 [13487]: https://github.com/enso-org/enso/pull/13487
+[13554]: https://github.com/enso-org/enso/pull/13554
 
 #### Enso Language & Runtime
 
@@ -110,6 +139,7 @@
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
 - [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 - [Use JAVA_TOOL_OPTIONS env variable to alter JVM arguments][13256]
+- [Check private access at resolution, not on invocation][13392]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
 [12976]: https://github.com/enso-org/enso/pull/12976
@@ -117,6 +147,7 @@
 [12905]: https://github.com/enso-org/enso/pull/12905
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13256]: https://github.com/enso-org/enso/pull/13256
+[13392]: https://github.com/enso-org/enso/pull/13392
 
 # Enso 2025.1
 

@@ -4,6 +4,7 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
+from project.Helpers import time_visualization
 
 ## ---
    private: true
@@ -19,7 +20,7 @@ import project.Helpers
    ## Arguments
     - `table`: The database table to prepare for visualization.
 prepare_visualization : DB_Table -> Text
-prepare_visualization table =
+prepare_visualization table = time_visualization Visualization ("prepare_visualization: " + table.to_display_text) <|
     prepared = (table:DB_Table|DB_Column).to_sql.prepare
     code = prepared.first
     interpolations = prepared.second

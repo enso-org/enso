@@ -50,6 +50,7 @@ import { Token, TokenType, isIdentifier, isToken, isTokenChild, isTokenId } from
 export type DeepReadonly<T> =
   T extends Builtin ? T
   : T extends FixedMap<infer V> ? FixedMapView<V>
+  : T extends Y.Map<infer V> ? ReadonlyMap<string, DeepReadonly<V>>
   : T extends Map<infer K, infer V> ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
   : T extends ReadonlyMap<infer K, infer V> ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
   : T extends WeakMap<infer K, infer V> ? WeakMap<DeepReadonly<K>, DeepReadonly<V>>
@@ -59,8 +60,9 @@ export type DeepReadonly<T> =
   : T extends Promise<infer U> ? Promise<DeepReadonly<U>>
   : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
   : Readonly<T>
+
 type Primitive = string | number | boolean | bigint | symbol | undefined | null
-type AnyFunction = () => void
+type AnyFunction = (...args: any[]) => unknown
 type Builtin = Primitive | AnyFunction | Date | Error | RegExp
 // Note that typescript doesn't consider this assignable to `DeepReadonly<T>`, so the intersection type can be useful.
 type DeepReadonlyExceptY<T> =

@@ -1,0 +1,28 @@
+{
+  "name": "project-manager-shim",
+  "version": "0.1.0",
+  "description": "Shared operations and types for project manager shim",
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "compile": "tsc",
+    "lint": "eslint . --cache --max-warnings=0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.4",
+    "@types/tar": "^6.1.13",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "enso-common": "workspace:*",
+    "tar": "^6.2.1",
+    "yaml": "^2.7.0"
+  }
+}

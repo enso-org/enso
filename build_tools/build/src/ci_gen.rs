@@ -124,7 +124,7 @@ pub mod secret {
     pub const ENSO_CLOUD_COGNITO_USER_POOL_ID: &str = "ENSO_CLOUD_COGNITO_USER_POOL_ID";
     pub const ENSO_CLOUD_COGNITO_REGION: &str = "ENSO_CLOUD_COGNITO_REGION";
     pub const ENSO_CLOUD_TEST_ACCOUNT_USERNAME: &str = "ENSO_CLOUD_TEST_ACCOUNT_USERNAME";
-    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASS";
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";
@@ -161,6 +161,10 @@ pub mod secret {
     // === OAuth Integrations ===
     /// The client ID for the Google OAuth integration used for Google Credentials.
     pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Strava OAuth integration used for Strava Credentials.
+    pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -955,6 +959,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Google",
         "Image",
         "Microsoft",
+        "Saas",
         "Snowflake",
         "Table",
         "Tableau",

@@ -306,10 +306,11 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           _,
-          new Application.Prefix(
-            Name.Special(Name.Special.NewRef, null),
-            List()
-          ),
+          Application.Prefix
+            .builder()
+            .function(Name.Special(Name.Special.NewRef, null))
+            .arguments(List())
+            .build(),
           null
         )
         .updateMetadata(
@@ -321,37 +322,43 @@ object AutomaticParallelism extends IRPass {
       val blockBody =
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
-            val refWrite = new Application.Prefix(
-              Name.Special(Name.Special.WriteRef, null),
-              List(
-                new CallArgument.Specified(
-                  None,
-                  refVars(bind.name).duplicate(),
-                  true,
-                  null
-                ),
-                new CallArgument.Specified(
-                  None,
-                  bind.name.duplicate(),
-                  true,
-                  null
+            val refWrite = Application.Prefix
+              .builder()
+              .function(Name.Special(Name.Special.WriteRef, null))
+              .arguments(
+                List(
+                  CallArgument.Specified
+                    .builder()
+                    .name(None)
+                    .value(refVars(bind.name).duplicate())
+                    .isSynthetic(true)
+                    .build(),
+                  CallArgument.Specified
+                    .builder()
+                    .name(None)
+                    .value(bind.name.duplicate())
+                    .isSynthetic(true)
+                    .build()
                 )
               )
-            )
+              .build()
             List(bind, refWrite)
           case other => List(other)
         }
-      val spawn = new Application.Prefix(
-        Name.Special(Name.Special.RunThread, null),
-        List(
-          new CallArgument.Specified(
-            None,
-            Expression.Block(blockBody.init, blockBody.last, null),
-            true,
-            null
+      val spawn = Application.Prefix
+        .builder()
+        .function(Name.Special(Name.Special.RunThread, null))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(Expression.Block(blockBody.init, blockBody.last, null))
+              .isSynthetic(true)
+              .build()
           )
         )
-      )
+        .build()
       Expression
         .Binding(freshNameSupply.newName(), spawn, null)
         .updateMetadata(
@@ -360,22 +367,40 @@ object AutomaticParallelism extends IRPass {
     }
 
     val threadJoins = threadSpawns.map { bind =>
-      new Application.Prefix(
-        Name.Special(Name.Special.JoinThread, null),
-        List(
-          new CallArgument.Specified(None, bind.name.duplicate(), true, null)
+      Application.Prefix
+        .builder()
+        .function(Name.Special(Name.Special.JoinThread, null))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(bind.name.duplicate())
+              .isSynthetic(true)
+              .build()
+          )
         )
-      )
+        .build()
     }
 
     val varReads = refVars.map { case (name, ref) =>
       Expression
         .Binding(
           name.duplicate(),
-          new Application.Prefix(
-            Name.Special(Name.Special.ReadRef, null),
-            List(new CallArgument.Specified(None, ref.duplicate(), true, null))
-          ),
+          Application.Prefix
+            .builder()
+            .function(Name.Special(Name.Special.ReadRef, null))
+            .arguments(
+              List(
+                CallArgument.Specified
+                  .builder()
+                  .name(None)
+                  .value(ref.duplicate())
+                  .isSynthetic(true)
+                  .build()
+              )
+            )
+            .build(),
           null
         )
         .updateMetadata(

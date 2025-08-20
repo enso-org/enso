@@ -9,80 +9,99 @@ from project.Data.Boolean import Boolean
 polyglot java import org.enso.base.Text_Utils
 
 ## Enso's text type.
+   Enso's text type is natively unicode aware, and will handle arbitrary textual
+   data.
 
-   Enso's text type is natively unicode aware, and will handle arbitrary
-   textual data.
+   ## Remarks
 
-   ? Concatenation
-     Enso's text type uses a rope-based structure under the hood to provide
-     users with efficient concatenation operations.
+   ### Concatenation
+   Enso's text type uses a rope-based structure under the hood to provide users
+   with efficient concatenation operations.
 @Builtin_Type
 type Text
-    ## ALIAS count
-       GROUP Metadata
-       ICON metadata
+    ## ---
+       aliases: [count]
+       group: Metadata
+       icon: metadata
+       ---
        Computes the number of characters in the text.
 
-       ! What is a Character?
-          A character is defined as an Extended Grapheme Cluster, see Unicode
-          Standard Annex 29. This is the smallest unit that still has semantic
-          meaning in most text-processing applications.
+       ## Examples
+       ### Getting the length of the string "건반(Korean)".
 
-       > Example
-          Getting the length of the string "건반(Korean)".
-
+       ```
               "건반(Korean)".length
+       ```
+
+       ## Remarks
+
+       ### What is a Character?
+       A character is defined as an Extended Grapheme Cluster, see Unicode
+       Standard Annex 29. This is the smallest unit that still has semantic
+       meaning in most text-processing applications.
     length : Integer
     length self = @Builtin_Method "Text.length"
 
-    ## ALIAS concatenate
-       GROUP Operators
-       ICON text
+    ## ---
+       aliases: [concatenate]
+       group: Operators
+       icon: text
+       ---
        Concatenates the text that to the right side of this.
 
-       Arguments:
-       - that: The text to concatenate to this.
+       ## Arguments
+        - `that`: The text to concatenate to this.
 
-       > Example
-         Concatenating two texts.
+       ## Examples
+       ### Concatenating two texts.
 
+       ```
              "Hello" + ", world!"
+       ```
     + : Text -> Text
     + self that = @Builtin_Method "Text.+"
 
-    ## GROUP Logical
-       ICON operators
+    ## ---
+       group: Logical
+       icon: operators
+       ---
        Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
-       Arguments:
-       - that: The text to compare `self` for case-insensitive equality with.
-       - locale: The locale to use for case-insensitive comparison.
+       Two texts are considered equal ignoring case if they are of the same
+       length and corresponding characters are equal ignoring case.
 
-       Two texts are considered equal ignoring case if they are of the same length
-       and corresponding characters are equal ignoring case.
+       ## Arguments
+        - `that`: The text to compare `self` for case-insensitive equality with.
+        - `locale`: The locale to use for case-insensitive comparison.
 
-       ! Unicode Equality
-         The definition of equality includes Unicode canonicalization. I.e. two
-         texts are equal if they are identical after canonical decomposition. This
-         ensures that different ways of expressing the same character in the
-         underlying binary representation are considered equal.
-
-       > Example
-         The string 'É' (i.e. U+00C9, LATIN CAPITAL LETTER E WITH ACUTE) is
+       ## Examples
+       ### The string 'É' (i.e. U+00C9, LATIN CAPITAL LETTER E WITH ACUTE) is
          equal to the string 'é' (i.e. U+00E9, LATIN SMALL LETTER E WITH ACUTE)
          ignoring case, which is canonically the same as the string 'e\u0301'
          (i.e. the letter `e` followed by U+0301, COMBINING ACUTE ACCENT).
          Therefore:
 
+       ```
              (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
+       ```
+
+       ## Remarks
+
+       ### Unicode Equality
+       The definition of equality includes Unicode canonicalization. I.e. two
+       texts are equal if they are identical after canonical decomposition. This
+       ensures that different ways of expressing the same character in the
+       underlying binary representation are considered equal.
     @locale Locale.default_widget
     equals_ignore_case : Text -> Locale -> Boolean
     equals_ignore_case self (that : Text) (locale : Locale = Locale.default) =
         Text_Utils.equals_ignore_case self that locale.java_locale
 
-    ## PRIVATE
-       ADVANCED
-       UNSTABLE
+    ## ---
+       private: true
+       advanced: true
+       unstable: true
+       ---
        Unifies the case of all letters in the text, generating a key which can be
        used to perform case-insensitive comparisons.
     @locale Locale.default_widget
@@ -90,16 +109,20 @@ type Text
     to_case_insensitive_key self (locale : Locale = Locale.default) =
         Text_Utils.case_insensitive_key self locale.java_locale
 
-    ## ICON text
+    ## ---
+       icon: text
+       ---
        Compare two texts to discover their ordering.
 
-       Arguments:
-       - that: The text to order `self` with respect to.
+       ## Arguments
+        - `that`: The text to order `self` with respect to.
 
-       > Example
-         Checking how "a" orders in relation to "b".
+       ## Examples
+       ### Checking how "a" orders in relation to "b".
 
+       ```
              "a".compare_to_ignore_case "b"
+       ```
     @locale Locale.default_widget
     compare_to_ignore_case : Text -> Locale -> Ordering
     compare_to_ignore_case self that locale=Locale.default =
@@ -107,62 +130,83 @@ type Text
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Check if `self` is empty.
 
-       ! What is Empty?
-         Text is considered to be empty when its length is zero.
+       ## Examples
+       ### Check if the text "aaa" is empty.
 
-       > Example
-         Check if the text "aaa" is empty.
-
+       ```
              "aaa".is_empty
+       ```
+
+       ## Remarks
+
+       ### What is Empty?
+       Text is considered to be empty when its length is zero.
     is_empty : Boolean
     is_empty self = self == ""
 
-    ## GROUP Logical
-       ICON metadata
+    ## ---
+       group: Logical
+       icon: metadata
+       ---
        Check if `self` is not empty.
 
-       ! What is Not Empty?
-         Text is considered to be not empty when its length is greater than zero.
+       ## Examples
+       ### Check if the text "aaa" is not empty.
 
-       > Example
-         Check if the text "aaa" is not empty.
-
+       ```
              "aaa".not_empty
+       ```
+
+       ## Remarks
+
+       ### What is Not Empty?
+       Text is considered to be not empty when its length is greater than zero.
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
 
-    ## ADVANCED
-       ICON metadata
+    ## ---
+       advanced: true
+       icon: metadata
+       ---
        Checks where this Text is in FCD normalized form.
 
-       > Example
-         Check if the string is normalized
+       ## Examples
+       ### Check if the string is normalized
 
+       ```
              "14.95€".is_normalized
+       ```
     is_normalized : Boolean
     is_normalized self = @Builtin_Method "Text.is_normalized"
 
-    ## ALIAS normalise
-       ICON convert
-
+    ## ---
+       aliases: [normalise]
+       icon: convert
+       ---
        Perform Unicode normalization on the string, using the specified method.
 
-       Arguments:
-       - normalization: The `Normalization` method to use.
+       ## Arguments
+        - `normalization`: The `Normalization` method to use.
 
-       > Example
-         Normalize a string.
+       ## Examples
+       ### Normalize a string.
 
+       ```
              'aśb'.normalize == 'as\u0301b'
+       ```
     normalize : Normalization -> Text
     normalize self normalization=Normalization.NFD =
         mode = normalization.get_java_mode

@@ -10,5 +10,5 @@ import { type Ref } from 'vue'
  */
 export const [providePopoverRoot, usePopoverRoot] = createContextStore(
   'popoverRoot',
-  identity<Ref<HTMLElement | undefined | null>>,
+  identity<Readonly<Ref<HTMLElement | undefined | null>>>,
 )

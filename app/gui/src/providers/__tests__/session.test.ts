@@ -1,4 +1,3 @@
-import HttpClient from '#/utilities/HttpClient'
 import type {
   AmplifyError,
   ConfirmSignUpError,
@@ -9,6 +8,7 @@ import type {
   UserSession,
 } from '$/authentication/cognito'
 import { withSetup } from '@/util/testing'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'
@@ -49,6 +49,7 @@ class MockAuthService implements ISessionProvider {
   getMFAPreference = vi.fn(() => Promise.resolve(Result.wrap<MfaType, AmplifyError>(() => 'NOMFA')))
   signInWithGitHub = vi.fn(() => Promise.resolve())
   signInWithGoogle = vi.fn(() => Promise.resolve())
+  signInWithMicrosoft = vi.fn(() => Promise.resolve())
   signInWithApple = vi.fn(() => Promise.resolve())
   signOut = vi.fn(() => Promise.resolve())
   signUp = vi.fn(() => Promise.resolve(Result.wrap<undefined, SignUpError>(() => {})))

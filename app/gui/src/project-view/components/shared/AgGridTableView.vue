@@ -77,6 +77,7 @@ import type {
   CellEditingStoppedEvent,
   ColDef,
   ColGroupDef,
+  ColumnMovedEvent,
   ColumnResizedEvent,
   ColumnVisibleEvent,
   FirstDataRenderedEvent,
@@ -144,7 +145,8 @@ const emit = defineEmits<{
   rowEditingStopped: [event: RowEditingStoppedEvent]
   rowDataUpdated: [event: RowDataUpdatedEvent]
   sortOrFilterUpdated: [event: SortChangedEvent]
-  columnStateChanged: [event: ColumnVisibleEvent]
+  columnVisibleChanged: [event: ColumnVisibleEvent]
+  columnMoved: [event: ColumnMovedEvent]
 }>()
 
 const widths = reactive(new Map<string, number>())
@@ -366,7 +368,12 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>
-  <div ref="wrapper" @keydown="handler" @keydown.capture="suppressCopy">
+  <div
+    ref="wrapper"
+    @keydown="handler($event) || stopIfPrevented($event)"
+    @keydown.capture="suppressCopy"
+    @keydown.space.stop
+  >
     <AgGridVue
       v-bind="$attrs"
       ref="grid"
@@ -405,8 +412,8 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       @rowEditingStopped="emit('rowEditingStopped', $event)"
       @sortChanged="emit('sortOrFilterUpdated', $event)"
       @filterChanged="emit('sortOrFilterUpdated', $event)"
-      @columnVisible="emit('columnStateChanged', $event)"
-      @columnMoved="emit('columnStateChanged', $event)"
+      @columnVisible="emit('columnVisibleChanged', $event)"
+      @columnMoved="emit('columnMoved', $event)"
       @contextmenu="stopIfPrevented"
     />
     <VueComponentHost :host="vueHost" />

@@ -33,6 +33,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
@@ -40,6 +41,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IRDumperConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
@@ -93,7 +95,6 @@ public final class EnsoContext {
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
   private final boolean shouldWaitForPendingSerializationJobs;
-  private final Builtins builtins;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
@@ -139,6 +140,11 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
+    if (isPrivateCheckDisabled && !isIrCachingDisabled) {
+      throw new IllegalStateException(
+          "Both private check is disabled and IR caching is enabled. "
+              + "Either keep private check enabled or disable IR caching.");
+    }
     this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     this.isHostClassLoading =
         switch (getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY)) {
@@ -150,7 +156,8 @@ public final class EnsoContext {
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    var dumpModuleIR = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
+    var dumpModuleIR =
+        IRDumperConfig.parseFromProperty(System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP));
     var shouldRemoveUnusedImports =
         System.getProperty(RuntimeOptions.REMOVE_UNUSED_IMPORTS_SYSTEM_PROP) != null;
     this.compilerConfig =
@@ -165,7 +172,6 @@ public final class EnsoContext {
             .isLintingDisabled(getOption(RuntimeOptions.DISABLE_LINTING_KEY))
             .removeUnusedImports(shouldRemoveUnusedImports)
             .build();
-    this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
     this.lockManager = lockManager;
     this.distributionManager = distributionManager;
@@ -194,6 +200,7 @@ public final class EnsoContext {
     var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
+    var builtins = Builtins.get(this);
     packageRepository =
         DefaultPackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
@@ -677,8 +684,8 @@ public final class EnsoContext {
    *
    * @return an object containing the builtin functions
    */
-  public Builtins getBuiltins() {
-    return this.builtins;
+  public final Builtins getBuiltins() {
+    return Builtins.get(this);
   }
 
   /**
@@ -1025,11 +1032,11 @@ public final class EnsoContext {
     return singleStateProfile.profile(language.currentState());
   }
 
-  private Object extraValues(int index, Supplier<?> init) {
+  private Object extraValues(int index, Function<EnsoContext, ?> init) {
     if (index >= extraValues.length || extraValues[index] == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
-      extraValues[index] = init.get();
+      extraValues[index] = init.apply(this);
       assert extraValues[index] != null;
     }
     return extraValues[index];
@@ -1046,7 +1053,7 @@ public final class EnsoContext {
     private static final AtomicInteger COUNTER = new AtomicInteger();
     private final int index;
     private final Class<T> type;
-    private final Supplier<T> init;
+    private final Function<EnsoContext, T> init;
 
     /**
      * Defines new value associated with the context.Use as:
@@ -1058,7 +1065,7 @@ public final class EnsoContext {
      * @param type the type of the value to {@link #set} and {@link #get}.
      * @param initialValue function to use to compute initial value
      */
-    public Extra(Class<T> type, Supplier<T> initialValue) {
+    public Extra(Class<T> type, Function<EnsoContext, T> initialValue) {
       this.type = type;
       this.index = COUNTER.getAndIncrement();
       this.init = initialValue;

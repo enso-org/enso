@@ -333,7 +333,7 @@ class SuggestionsHandlerSpec
           DeliverToJsonController(
             clientId,
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              (updates1.size + updates2.size).toLong - 1,
+              (updates1.size + updates2.size).toLong,
               updates2
             )
           )
@@ -994,7 +994,7 @@ class SuggestionsHandlerSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig(),
+      ProfilingConfig.none(),
       StartupConfig(),
       None
     )

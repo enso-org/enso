@@ -194,7 +194,9 @@ jobs:
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
+          ENSO_IDE_MICROSOFT_SIGN_OUT_URL: ${{ vars.ENSO_CLOUD_MICROSOFT_SIGN_OUT_URL }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload gui
@@ -260,7 +262,9 @@ jobs:
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
+          ENSO_IDE_MICROSOFT_SIGN_OUT_URL: ${{ vars.ENSO_CLOUD_MICROSOFT_SIGN_OUT_URL }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
@@ -332,7 +336,9 @@ jobs:
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
+          ENSO_IDE_MICROSOFT_SIGN_OUT_URL: ${{ vars.ENSO_CLOUD_MICROSOFT_SIGN_OUT_URL }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: xvfb-run corepack pnpm -r --filter enso ide-integration-test
@@ -340,15 +346,8 @@ jobs:
           DEBUG: "pw:browser log:"
           ENSO_TEST_APP_ARGS: --no-sandbox
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
-          ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
+          ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASS }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure()
-        name: Upload Test Traces
-        uses: actions/upload-artifact@v4
-        with:
-          compression-level: 0
-          name: test-traces-linux-amd64
-          path: app/ide-desktop/client/test-traces
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:
@@ -426,7 +425,9 @@ jobs:
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
+          ENSO_IDE_MICROSOFT_SIGN_OUT_URL: ${{ vars.ENSO_CLOUD_MICROSOFT_SIGN_OUT_URL }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
@@ -435,15 +436,8 @@ jobs:
         env:
           DEBUG: "pw:browser log:"
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
-          ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
+          ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASS }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure()
-        name: Upload Test Traces
-        uses: actions/upload-artifact@v4
-        with:
-          compression-level: 0
-          name: test-traces-windows-amd64
-          path: app/ide-desktop/client/test-traces
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:

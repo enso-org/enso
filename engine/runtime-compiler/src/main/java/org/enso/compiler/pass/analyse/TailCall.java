@@ -378,7 +378,7 @@ public final class TailCall implements MiniPassFactory {
     private void collectTailCandicateFunction(
         Function function, java.util.Map<IR, Boolean> tailCandidates) {
       var canBeTCO = function.canBeTCO();
-      var markAsTail = (!canBeTCO && isInTailPos) || canBeTCO;
+      var markAsTail = canBeTCO || isInTailPos;
       switch (function) {
         case Function.Lambda l -> {
           if (markAsTail) {

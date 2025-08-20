@@ -1,5 +1,6 @@
 package org.enso.database;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -76,5 +77,28 @@ public class JDBCUtils {
       throws SQLException {
 
     stmt.setObject(columnIndex, localDate, Types.DATE);
+  }
+
+  /**
+   * Gets a BigDecimal from a ResultSet, but handles the case of databases without direct support
+   * for BigDecimals, which may return a float or double. In the case of nan / inf values, return
+   * null.
+   */
+  public static BigDecimal getBigDecimalHandleSpecialFloats(ResultSet rs, int columnIndex)
+      throws SQLException {
+    try {
+      return rs.getBigDecimal(columnIndex);
+    } catch (SQLException e) {
+      try {
+        double d = rs.getDouble(columnIndex);
+        if (Double.isNaN(d) || Double.isInfinite(d)) {
+          return null;
+        } else {
+          throw e;
+        }
+      } catch (SQLException eIgnore) {
+        throw e;
+      }
+    }
   }
 }

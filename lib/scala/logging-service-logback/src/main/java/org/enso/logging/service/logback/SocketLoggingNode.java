@@ -1,13 +1,18 @@
 package org.enso.logging.service.logback;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.net.server.HardenedLoggingEventInputStream;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.LoggingEvent;
+import ch.qos.logback.classic.spi.ThrowableProxy;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 // Contributors: Moses Hohman <mmhohman@rainbow.uchicago.edu>
@@ -47,6 +52,7 @@ public class SocketLoggingNode implements Runnable {
   volatile State state = State.NOT_STARTED;
   SocketServer socketServer;
   UUID projectId;
+  Map<String, String> localMdc;
 
   public SocketLoggingNode(SocketServer socketServer, Socket socket, LoggerContext context) {
     this.socketServer = socketServer;
@@ -55,6 +61,7 @@ public class SocketLoggingNode implements Runnable {
     this.context = context;
     logger = context.getLogger(SocketLoggingNode.class);
     projectId = null;
+    localMdc = null;
   }
 
   public void run() {
@@ -72,25 +79,46 @@ public class SocketLoggingNode implements Runnable {
     try {
       while (state != State.CLOSED) {
         // read an event from the wire
-        // System.out.println("Reading event?");
-        event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
-        if (projectId == null) {
-          try {
-            var property = event.getMDCPropertyMap().get("project.id");
-            if (property != null) {
-              projectId = UUID.fromString(property);
+        try {
+          event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
+          if (projectId == null) {
+            try {
+              var property = event.getMDCPropertyMap().get("projectLocalId");
+              if (property != null) {
+                projectId = UUID.fromString(property);
+                localMdc = event.getMDCPropertyMap();
+              }
+            } catch (IllegalArgumentException e) {
+              // ignore
             }
-          } catch (IllegalArgumentException e) {
-            // ignore
           }
-        }
-        // get a logger from the hierarchy. The name of the logger is taken to
-        // be the name contained in the event.
-        remoteLogger = context.getLogger(event.getLoggerName());
-        // apply the logger-level filter
-        if (remoteLogger.isEnabledFor(event.getLevel())) {
-          // finally log the event as if was generated locally
-          remoteLogger.callAppenders(event);
+          // get a logger from the hierarchy. The name of the logger is taken to
+          // be the name contained in the event.
+          remoteLogger = context.getLogger(event.getLoggerName());
+          // apply the logger-level filter
+          if (remoteLogger.isEnabledFor(event.getLevel())) {
+            // Ensure MDC properties are set
+            // event.getMDCPropertyMap() returns an immutable map that can't be updated
+            var event1 = localMdc != null ? new ProxyLoggingEvent(event, localMdc) : event;
+            // finally log the event as if was generated locally
+            remoteLogger.callAppenders(event1);
+          }
+        } catch (IOException e) {
+          throw e;
+        } catch (Throwable e) {
+          var loggingEvent = new LoggingEvent();
+          loggingEvent.setLevel(Level.ERROR);
+          if (e.getStackTrace().length > 0) {
+            var name = e.getStackTrace()[0].getClassName();
+            var nestedClassIdx = name.indexOf("$");
+            if (nestedClassIdx > 0) name = name.substring(0, nestedClassIdx);
+            loggingEvent.setLoggerName(name);
+          } else loggingEvent.setLoggerName(DeferredProcessingSocketAppender.class.getName());
+          loggingEvent.setInstant(Instant.now());
+          loggingEvent.setThrowableProxy(new ThrowableProxy(e));
+          loggingEvent.setMessage("Internal error during deserialization: " + e.getMessage());
+          remoteLogger = context.getLogger(loggingEvent.getLoggerName());
+          remoteLogger.callAppenders(loggingEvent);
         }
       }
     } catch (java.io.EOFException e) {

@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{Module => IRModule}
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.StringUtils
+import org.enso.common.MethodNames
 import org.enso.editions.LibraryVersion
 import org.enso.interpreter.caches.ImportExportCache
 import org.enso.interpreter.runtime.util.TruffleFileSystem
@@ -81,8 +82,14 @@ private class DefaultPackageRepository(
     */
   private val loadedPackages
     : collection.mutable.Map[LibraryName, Option[Package[TruffleFile]]] = {
-    val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
     collection.mutable.LinkedHashMap(builtinsName -> None)
+  }
+
+  private def builtinsName: LibraryName = {
+    LibraryName(
+      MethodNames.Builtins.NAMESPACE,
+      MethodNames.Builtins.PACKAGE_NAME
+    )
   }
 
   /** The mapping containing loaded modules.
@@ -96,7 +103,7 @@ private class DefaultPackageRepository(
   private val loadedModules
     : collection.concurrent.Map[String, CompilerContext.Module] =
     collection.concurrent.TrieMap(
-      Builtins.MODULE_NAME -> builtins.getModule.asCompilerModule()
+      MethodNames.Builtins.MODULE_NAME -> builtins.getModule.asCompilerModule()
     )
 
   /** The mapping containing loaded component groups.
@@ -107,7 +114,6 @@ private class DefaultPackageRepository(
     */
   private val loadedComponents
     : collection.mutable.Map[LibraryName, ComponentGroups] = {
-    val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
     collection.mutable.LinkedHashMap(builtinsName -> ComponentGroups.empty)
   }
 

@@ -10,16 +10,22 @@ import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
-import { computed, ref } from 'vue'
+import { computed, type CSSProperties, ref } from 'vue'
 
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
 
-const { edge, maskSource, animateFromSourceHover } = defineProps<{
+const {
+  edge,
+  maskSource,
+  animateFromSourceHover,
+  arrow = true,
+} = defineProps<{
   edge: Edge
   maskSource?: boolean
   animateFromSourceHover?: boolean
+  arrow?: boolean
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -270,6 +276,7 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
 const arrowHeight = 9
 const arrowYOffset = 0
 const arrowTransform = computed<string | undefined>(() => {
+  if (!arrow) return
   const arrowTopOffset = 1
   const arrowWidth = 12
   const target = targetPos.value
@@ -289,14 +296,23 @@ const arrowPath = [
   'Z',
 ].join('')
 
-const sourceHoverAnimationStyle = computed(() => {
-  if (!animateFromSourceHover || !base.value || !sourceNode.value) return {}
-  const progress = graph.nodeOutputAnimations.get(sourceNode.value) ?? 0
-  if (progress === 1) return {}
-  const currentLength = progress * base.value.getTotalLength()
-  return {
-    strokeDasharray: `${currentLength}px 1000000px`,
-  }
+const VISIBILITY_HIDDEN = {
+  visibility: 'hidden',
+} as const
+
+function truncateStrokeToLength(lengthPx: number) {
+  return { strokeDasharray: `${lengthPx}px 1000000px` }
+}
+
+const sourceHoverAnimationStyle = computed((): CSSProperties => {
+  if (!animateFromSourceHover) return {}
+  if (!base.value || !sourceNode.value) return VISIBILITY_HIDDEN
+  const progress = graph.nodeOutputAnimations.get(sourceNode.value)
+  return (
+    !progress ? VISIBILITY_HIDDEN
+    : progress === 1 ? {}
+    : truncateStrokeToLength(progress * base.value.getTotalLength())
+  )
 })
 
 const baseClass = computed(() => {

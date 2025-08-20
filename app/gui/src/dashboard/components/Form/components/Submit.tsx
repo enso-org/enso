@@ -79,8 +79,6 @@ export function Submit<
           form.setValue(name, value)
         }
 
-        void form.submit()
-
         return onPress?.(event)
       }}
       testId={testId}

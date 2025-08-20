@@ -24,21 +24,28 @@ import { isSome, type Opt } from './opt'
  * In more complex cases, adding contextual information to errors may be useful - see
  * {@link withContext}.
  */
-export type Result<T = undefined, E = unknown> =
-  | { ok: true; value: T }
-  | { ok: false; error: ResultError<E> }
+export type Result<T = undefined, E = unknown> = Ok<T> | Err<E>
+
+export interface Ok<in out T> {
+  ok: true
+  value: T
+}
+export interface Err<in out E> {
+  ok: false
+  error: ResultError<E>
+}
 
 /** Constructor of success {@link Result}. */
-export function Ok(): Result<undefined, never>
-export function Ok<const T>(data: T): Result<T, never>
+export function Ok(): Ok<undefined>
+export function Ok<const T>(data: T): Ok<T>
 /** Implementation of `Ok` constructor. */
-export function Ok<T>(data?: T): Result<T | undefined, never> {
+export function Ok<T>(data?: T): Ok<T | undefined> {
   return { ok: true, value: data }
 }
 
 /** Constructor of error {@link Result}. */
-export function Err<E>(error: E) {
-  return { ok: false, error: new ResultError(error) } as const satisfies Result<never, E>
+export function Err<E>(error: E): Err<E> {
+  return { ok: false, error: new ResultError(error) }
 }
 
 /** Helper function for converting optional value to {@link Result}. */
@@ -54,9 +61,8 @@ export function unwrap<T, E>(result: Result<T, E>): T {
 }
 
 /** Unwraps the {@link Result} value. If the result is error, an alternative is returned. */
-export function unwrapOr<T, A>(result: Result<T, unknown>, alternative: A): T | A {
-  if (result.ok) return result.value
-  else return alternative
+export function unwrapOr<T, A>(result: Result<T> | undefined, alternative: A): T | A {
+  return result?.ok ? result.value : alternative
 }
 
 /** Unwraps the {@link Result} value. If the result is error, it is logged and alternative is returned. */
@@ -76,6 +82,21 @@ export function unwrapOrWithLog<T, A>(
 export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result<U, E> {
   if (result.ok) return Ok(f(result.value))
   else return result
+}
+
+export function mapOkOr<T, U, A>(result: Opt<Result<T>>, f: (value: T) => U, alternative: A): U | A
+export function mapOkOr<T, U, A>(
+  result: Opt<Result<T>>,
+  f: (value: T) => U,
+  alternative?: A,
+): U | A | undefined
+/** Maps the {@link Result} value if present, otherwise returns `alternative`. */
+export function mapOkOr<T, U, A>(
+  result: Opt<Result<T>>,
+  f: (value: T) => U,
+  alternative?: A,
+): U | A | undefined {
+  return result && result.ok ? f(result.value) : alternative
 }
 
 /** Maps the {@link Result} value with a function that returns a result. */
@@ -137,8 +158,20 @@ export class ResultError<E = unknown> {
   message(preamble: string = 'error') {
     const ctx =
       this.context.length > 0 ? `\n${Array.from(this.context, (ctx) => ctx()).join('\n')}` : ''
-    return `${preamble}${preamble ? ': ' : ''}${this.payload}${ctx}`
+    const payload = coercePayloadToString(this.payload)
+    return `${preamble}${preamble ? ': ' : ''}${payload}${ctx}`
   }
+}
+
+function coercePayloadToString(payload: unknown) {
+  if (payload == null) return 'unknown error'
+  if (payload instanceof Error) return payload.message
+  if (payload != null && typeof payload === 'object') {
+    if ('code' in payload && 'message' in payload) {
+      return `[${payload.code}] ${payload.message}`
+    } else return JSON.stringify(payload)
+  }
+  return payload
 }
 
 /**
