@@ -713,6 +713,7 @@ function toField(
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
+    sortable: valueType?.constructor !== 'Mixed',
   }
   if (valueType && ['Date', 'Date_Time', 'Time'].includes(valueType.constructor)) {
     return {

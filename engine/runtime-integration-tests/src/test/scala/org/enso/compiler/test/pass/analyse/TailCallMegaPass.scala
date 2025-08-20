@@ -269,9 +269,8 @@ case object TailCallMegaPass extends IRPass {
       case app: Application.Prefix =>
         app
           .copy(
-            function =
-              analyseExpression(app.function, isInTailPosition = false),
-            arguments = app.arguments.map(analyseCallArg)
+            analyseExpression(app.function, isInTailPosition = false),
+            app.arguments.map(analyseCallArg)
           )
       case force: Application.Force =>
         force
@@ -361,11 +360,9 @@ case object TailCallMegaPass extends IRPass {
       case caseExpr: Case.Expr =>
         caseExpr
           .copy(
-            scrutinee =
-              analyseExpression(caseExpr.scrutinee, isInTailPosition = false),
+            analyseExpression(caseExpr.scrutinee, isInTailPosition = false),
             // Note [Analysing Branches in Case Expressions]
-            branches =
-              caseExpr.branches.map(analyseCaseBranch(_, isInTailPosition))
+            caseExpr.branches.map(analyseCaseBranch(_, isInTailPosition))
           )
       case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
