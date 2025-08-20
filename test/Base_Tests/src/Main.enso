@@ -89,6 +89,7 @@ import project.System.File_Spec
 import project.System.File_Read_Spec
 import project.System.Input_Stream_Spec
 import project.System.Process_Spec
+import project.System.Python_Resource_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
 import project.System.Runner_Spec
@@ -187,5 +188,6 @@ main filter=Nothing =
         XML_Spec.add_specs suite_builder
         Decimal_Spec.add_specs suite_builder
         Runner_Spec.add_specs suite_builder
+        Python_Resource_Spec.add_specs suite_builder
 
     suite.run_with_filter filter
