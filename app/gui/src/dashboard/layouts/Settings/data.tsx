@@ -15,7 +15,6 @@ import {
   EmailAddress,
   HttpsUrl,
   isUserOnPlanWithMultipleSeats,
-  Path,
   Plan,
   type OrganizationInfo,
   type User,
