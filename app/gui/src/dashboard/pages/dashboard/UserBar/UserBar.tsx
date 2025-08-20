@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AnimatePresence, motion } from 'framer-motion'
+import { twJoin } from 'tailwind-merge'
 import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
 import { UserMenu } from './UserMenu'
@@ -109,14 +110,6 @@ export function UserBar(props: UserBarProps) {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="flex sm:hidden">
-          <Popover.Trigger>
-            <Button variant="icon" icon="help" aria-label={getText('help')} />
-            <Popover size="auto">
-              <UserBarHelpSection items={topbarLinks.items} className="flex-col" />
-            </Popover>
-          </Popover.Trigger>
-        </div>
         {trialProgress && subscription?.trialEnd != null && (
           <VisualTooltip
             className="relative px-2"
@@ -135,7 +128,26 @@ export function UserBar(props: UserBarProps) {
             <Text className="absolute inset-0 mx-2 cursor-help text-center">{trialText}</Text>
           </VisualTooltip>
         )}
-        <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
+        <div
+          className={twJoin(
+            'flex',
+            trialProgress && subscription?.trialEnd != null ? 'md:hidden' : 'sm:hidden',
+          )}
+        >
+          <Popover.Trigger>
+            <Button variant="icon" icon="help" aria-label={getText('help')} />
+            <Popover size="auto">
+              <UserBarHelpSection items={topbarLinks.items} className="flex-col" />
+            </Popover>
+          </Popover.Trigger>
+        </div>
+        <UserBarHelpSection
+          items={topbarLinks.items}
+          className={twJoin(
+            'hidden',
+            trialProgress && subscription?.trialEnd != null ? 'md:flex' : 'sm:flex',
+          )}
+        />
         {shouldShowInviteButton && (
           <Dialog.Trigger>
             <Button size="medium" variant="outline">
