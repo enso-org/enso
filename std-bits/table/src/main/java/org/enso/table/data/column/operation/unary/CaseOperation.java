@@ -1,10 +1,7 @@
 package org.enso.table.data.column.operation.unary;
 
-import com.ibm.icu.lang.UCharacter;
-
 import java.util.Locale;
 import java.util.function.Function;
-
 import org.enso.base.Text_Utils;
 import org.enso.base.text.Case;
 import org.enso.table.data.column.builder.Builder;

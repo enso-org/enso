@@ -1,9 +1,6 @@
 package org.enso.base;
 
-import java.util.function.Function;
-
 import com.ibm.icu.lang.UCharacter;
-import org.enso.base.text.Case;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
@@ -13,6 +10,7 @@ import com.ibm.icu.text.StringSearch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.text.Case;
@@ -753,7 +751,8 @@ public class Text_Utils {
     return Core_Text_Utils.prettyPrint(str);
   }
 
-  public static Function<String, String> caseOptionToConverter(Case caseOption, final Locale locale) {
+  public static Function<String, String> caseOptionToConverter(
+      Case caseOption, final Locale locale) {
     final Locale localeOrDefault = locale == null ? Locale.getDefault() : locale;
 
     return switch (caseOption) {
