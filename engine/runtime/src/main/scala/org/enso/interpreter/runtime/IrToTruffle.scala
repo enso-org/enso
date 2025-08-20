@@ -124,7 +124,7 @@ import scala.jdk.OptionConverters._
   * @param scopeBuilder   the scope's builder of the module for which code is being generated
   * @param compilerConfig the configuration for the compiler
   */
-class IrToTruffle(
+private[runtime] class IrToTruffle(
   val context: EnsoContext,
   val pkg: org.enso.pkg.Package[_],
   val source: Source,
