@@ -60,7 +60,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     secrets ?
       secrets.map((secret) =>
         secret.path.startsWith(userPathPrefix) ?
-          secret.path.replace(userPathPrefix, '~/')
+          secret.path.replace(userPathPrefix, 'enso://~/')
         : secret.path,
       )
     : null
@@ -96,7 +96,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     path:
                       typeof value === 'string' ?
                         value.startsWith(userPathPrefix) ?
-                          value.replace(userPathPrefix, '~/')
+                          value.replace(userPathPrefix, 'enso://~/')
                         : value
                       : '',
                   }}
