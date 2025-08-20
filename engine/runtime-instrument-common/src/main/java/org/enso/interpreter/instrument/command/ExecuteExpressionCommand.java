@@ -61,7 +61,11 @@ public final class ExecuteExpressionCommand extends SynchronousCommand {
           .flatMap(
               executable ->
                   ctx.jobProcessor()
-                      .run(ExecuteJob.apply(executable, scala.Option.apply(expressionId))),
+                      .run(
+                          ExecuteJob.apply(
+                              executable,
+                              "execute expression (visualization id=" + visualizationId + ")",
+                              scala.Option.apply(expressionId))),
               ec);
       reply(new Runtime$Api$VisualizationAttached(), ctx);
     } else {

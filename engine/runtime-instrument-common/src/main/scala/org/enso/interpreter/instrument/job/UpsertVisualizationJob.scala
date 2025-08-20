@@ -82,6 +82,7 @@ class UpsertVisualizationJob(
           )
           ctx.locking.withWriteCompilationLock(
             classOf[UpsertVisualizationJob],
+            "visualizationId=" + visualizationId + ",expressionId=" + expressionId,
             () =>
               evaluateAndExecuteVisualization(
                 hasWriteLock = true
@@ -153,7 +154,7 @@ class UpsertVisualizationJob(
   )(implicit ctx: RuntimeContext): Option[Executable] = {
     val EvaluationResult(module, callable, arguments) = evaluatedVisualization
     UpsertVisualizationJob.logger.trace(
-      "Executing visalization {} for expression {}",
+      "Executing visualization {} for expression {}",
       visualizationId,
       expressionId
     )
@@ -175,7 +176,7 @@ class UpsertVisualizationJob(
       .flatMap(c => Option(c.get(expressionId)))
     UpsertVisualizationJob.requireVisualizationSynchronization(
       stack,
-      expressionId
+      visualizationId
     )
     cachedValue match {
       case Some(value) =>
@@ -189,6 +190,10 @@ class UpsertVisualizationJob(
         )
         None
       case None =>
+        UpsertVisualizationJob.logger.trace(
+          "Cached value for expresion {}: missing",
+          expressionId
+        )
         Some(Executable(config.executionContextId, stack))
     }
   }
@@ -388,7 +393,11 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] = {
     Try {
       val pending =
-        ctx.executionService.evaluateExpression(module, argumentExpression)
+        ctx.executionService.evaluateExpression(
+          module,
+          argumentExpression,
+          "evaluate args"
+        )
       pending.toCompletableFuture.get()
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
@@ -453,7 +462,8 @@ object UpsertVisualizationJob {
         case Api.VisualizationExpression.Text(_, expression, _) =>
           ctx.executionService.evaluateExpression(
             expressionModule,
-            expression
+            expression,
+            "evaluate visualization function"
           )
         case Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(_, definedOnType, name),
@@ -752,7 +762,10 @@ object UpsertVisualizationJob {
                           CacheInvalidation(
                             CacheInvalidation.StackSelector.Top,
                             CacheInvalidation.Command
-                              .InvalidateKeys(Seq(firstDependent))
+                              .InvalidateKeys(
+                                Seq(firstDependent),
+                                "first dependendent of " + expressionId + " in upsert"
+                              )
                           )
                         )
                       }

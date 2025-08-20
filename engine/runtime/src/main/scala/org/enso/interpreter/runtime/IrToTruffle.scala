@@ -98,7 +98,6 @@ import org.enso.interpreter.runtime.callable.{
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.scope.ImportExportScope
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder
 import org.enso.interpreter.{Constants, EnsoLanguage}
 import org.enso.interpreter.runtime.builtin.Builtins
 
@@ -127,7 +126,7 @@ import scala.jdk.OptionConverters._
 class IrToTruffle(
   val context: EnsoContext,
   val source: Source,
-  val scopeBuilder: ModuleScopeBuilder,
+  val scopeBuilder: TruffleCompilerModuleScopeBuilder,
   val compilerConfig: CompilerConfig
 ) {
   private def getBuiltins: Builtins = {
@@ -532,7 +531,7 @@ class IrToTruffle(
       val fieldNames = atomDefn.arguments.map(_.name.name).toArray
       atomCons.initializeFields(
         language,
-        scopeBuilder,
+        scopeBuilder.toCompilerBuilder(),
         initializationBuilderSupplier,
         fieldNames
       )
@@ -1646,15 +1645,14 @@ class IrToTruffle(
               Option(asType(binding)) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    new DefinitionArgument.Specified(
-                      typePattern.name,
-                      None,
-                      None,
-                      suspended = false,
-                      typePattern.identifiedLocation,
-                      passData    = typePattern.name.passData,
-                      diagnostics = typePattern.name.diagnostics
-                    )
+                    DefinitionArgument.Specified
+                      .builder()
+                      .name(typePattern.name)
+                      .suspended(false)
+                      .location(typePattern.identifiedLocation)
+                      .passData(typePattern.name.passData)
+                      .diagnostics(typePattern.name.diagnostics)
+                      .build()
                   )
 
                   val branchCodeNode = childProcessor.processFunctionBody(
@@ -1683,15 +1681,16 @@ class IrToTruffle(
                   .get()
               if (polySymbol != null) {
                 val argOfType = List(
-                  new DefinitionArgument.Specified(
-                    typePattern.name,
-                    None,
-                    None,
-                    suspended = false,
-                    typePattern.identifiedLocation,
-                    passData    = typePattern.name.passData,
-                    diagnostics = typePattern.name.diagnostics
-                  )
+                  DefinitionArgument.Specified
+                    .builder()
+                    .name(typePattern.name)
+                    .ascribedType(None)
+                    .defaultValue(None)
+                    .suspended(false)
+                    .location(typePattern.identifiedLocation)
+                    .passData(typePattern.name.passData)
+                    .diagnostics(typePattern.name.diagnostics)
+                    .build()
                 )
 
                 val branchCodeNode = childProcessor.processFunctionBody(
@@ -1747,15 +1746,14 @@ class IrToTruffle(
       * @return `name` as a function definition argument.
       */
     private def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
-      new DefinitionArgument.Specified(
-        name.name,
-        None,
-        None,
-        suspended = false,
-        name.identifiedLocation,
-        passData    = name.name.passData,
-        diagnostics = name.name.diagnostics
-      )
+      DefinitionArgument.Specified
+        .builder()
+        .name(name.name)
+        .suspended(false)
+        .location(name.identifiedLocation)
+        .passData(name.name.passData)
+        .diagnostics(name.name.diagnostics)
+        .build()
     }
 
     /** Generates code for an Enso binding expression.
@@ -2559,7 +2557,9 @@ class IrToTruffle(
       }
   }
 
-  private def asScope(module: CompilerContext.Module): ModuleScopeBuilder = {
+  private def asScope(
+    module: CompilerContext.Module
+  ): TruffleCompilerModuleScopeBuilder = {
     TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
   }
 

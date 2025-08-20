@@ -230,9 +230,8 @@ case object IgnoredBindings extends IRPass {
 
           spec
             .copy(
-              name = newName,
-              defaultValue =
-                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+              newName,
+              spec.defaultValue.map(resolveExpression(_, freshNameSupply))
             )
             .updateMetadata(new MetadataPair(this, State.Ignored))
         } else {
@@ -281,8 +280,8 @@ case object IgnoredBindings extends IRPass {
     cse match {
       case expr: Case.Expr =>
         expr.copy(
-          scrutinee = resolveExpression(expr.scrutinee, supply),
-          branches  = expr.branches.map(resolveCaseBranch(_, supply))
+          resolveExpression(expr.scrutinee, supply),
+          expr.branches.map(resolveCaseBranch(_, supply))
         )
       case _: Case.Branch =>
         throw new CompilerError(

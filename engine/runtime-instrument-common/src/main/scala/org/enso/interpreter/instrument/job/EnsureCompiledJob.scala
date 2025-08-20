@@ -368,16 +368,19 @@ class EnsureCompiledJob(
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
     * @param ir the IR of compiled module
+    * @param reason human-readable explanation for invalidation
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    ir: IR
+    ir: IR,
+    reason: String
   ): Seq[CacheInvalidation] = {
     val resolutionErrors = findNodesWithResolutionErrors(ir)
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(
-        changeset.invalidated ++ resolutionErrors
+        changeset.invalidated ++ resolutionErrors,
+        reason
       )
     val moduleIds = getModuleIds(ir)
     val invalidateStaleCommand =
@@ -454,7 +457,7 @@ class EnsureCompiledJob(
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
-      buildCacheInvalidationCommands(changeset, module.getIr)
+      buildCacheInvalidationCommands(changeset, module.getIr, "changeset")
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
