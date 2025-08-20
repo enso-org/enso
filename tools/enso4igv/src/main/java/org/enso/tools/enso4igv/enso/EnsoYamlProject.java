@@ -32,6 +32,7 @@ import org.openide.util.lookup.Lookups;
 
 @NbBundle.Messages({
   "LAB_EnsoSources=Enso Sources",
+  "LAB_EnsoDocumentation=Documentation",
   "LAB_EnsoPolyglot=Polyglot Sources"
 })
 public final class EnsoYamlProject implements Project {
@@ -227,6 +228,16 @@ public final class EnsoYamlProject implements Project {
           });
           polyNode.setDisplayName(Bundle.LAB_EnsoPolyglot());
           ch.add(new Node[]{polyNode});
+        }
+      } catch (DataObjectNotFoundException ex) {
+        Exceptions.printStackTrace(ex);
+      }
+      try {
+        var docs = p.root.getFileObject("docs", true);
+        if (docs != null) {
+          var docsNode = DataObject.find(docs).getNodeDelegate().cloneNode();
+          docsNode.setDisplayName(Bundle.LAB_EnsoDocumentation());
+          ch.add(new Node[]{docsNode});
         }
       } catch (DataObjectNotFoundException ex) {
         Exceptions.printStackTrace(ex);

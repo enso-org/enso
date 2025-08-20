@@ -78,10 +78,10 @@ public class EnsoYamlProjectTest extends NbTestCase {
 
         assertEquals(ch.getName(), node.getName());
         var prjNodes = node.getChildren().getNodes(true);
-        assertTrue("Two or three (if with polyglot) nodes", prjNodes.length >= 2 && prjNodes.length <= 3);
-        assertEquals("package.yaml", prjNodes[prjNodes.length - 1].getName());
+        var prjNames = Stream.of(prjNodes).map(n -> n.getName()).toList();
+        assertEquals("package.yaml", prjNames.get(prjNames.size() - 1));
         assertEquals("represents the package.yaml file", yaml, prjNodes[prjNodes.length - 1].getLookup().lookup(FileObject.class));
-        assertEquals("src", prjNodes[0].getName());
+        assertEquals("First node represents sources", "src", prjNames.get(0));
         var srcNodes = prjNodes[0].getChildren().getNodes(true);
         var foundMain = Stream.of(srcNodes)
             .filter(n -> "Main".equals(n.getName()))
@@ -143,6 +143,43 @@ public class EnsoYamlProjectTest extends NbTestCase {
     var packages = javaLibs[0].getChildren().getNodes(true);
     var testCasePkg = Stream.of(packages).filter(n -> TestCase.class.getPackageName().equals(n.getName())).findAny();
     assertTrue("junit framework package is found among " + Arrays.toString(packages), testCasePkg.isPresent());
+  }
+
+  public void testDocumentation() throws Exception {
+    var yaml = FileUtil.createData(root, "document/package.yaml");
+    var main = FileUtil.createData(root, "document/src/Main.enso");
+    var md = FileUtil.createData(root, "document/docs/md/README.md");
+    var api = FileUtil.createData(root, "document/docs/api/Main.md");
+
+    var rootFO = root.getFileObject("document");
+    var document = ProjectManager.getDefault().findProject(rootFO);
+    assertNotNull("Project found", document);
+    var lvp = document.getLookup().lookup(LogicalViewProvider.class);
+
+    var node = lvp.createLogicalView();
+
+    assertEquals("document", node.getName());
+    var prjNodes = node.getChildren().getNodes(true);
+    assertEquals("Three nodes: " + Arrays.toString(prjNodes), 3, prjNodes.length);
+
+    assertEquals("package.yaml", prjNodes[2].getName());
+    assertEquals("represents the package.yaml file", yaml, prjNodes[2].getLookup().lookup(FileObject.class));
+
+    assertEquals("src", prjNodes[0].getName());
+    assertEquals("Enso Sources", prjNodes[0].getDisplayName());
+
+    assertEquals("docs", prjNodes[1].getName());
+    assertEquals("Documentation", prjNodes[1].getDisplayName());
+    var docsNodes = prjNodes[1].getChildren().getNodes(true);
+    assertEquals("Few nodes: " + Arrays.toString(docsNodes), 2, docsNodes.length);
+
+    var polyTypeNames = Stream.of(docsNodes).map(n -> n.getName()).distinct().sorted().toList();
+    assertEquals(polyTypeNames, List.of("api", "md"));
+
+    var javaNode = Stream.of(docsNodes).filter(n -> "api".equals(n.getName())).findAny().get();
+    var javaLibs = javaNode.getChildren().getNodes(true);
+    assertEquals("There is one library", 1, javaLibs.length);
+    assertEquals("Main.md", javaLibs[0].getName());
   }
 
   private static File findRepoRoot() throws URISyntaxException, IllegalArgumentException {
