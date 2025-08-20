@@ -6,6 +6,7 @@ import {
   isUserSelectableType,
   SuggestionKind,
   type CallableSuggestionEntry,
+  type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
@@ -17,7 +18,7 @@ import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
-import { filter } from 'enso-common/src/utilities/data/iter'
+import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
@@ -47,17 +48,15 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return []
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
-  readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
+  private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
 
   /** Constructor. */
   constructor() {
     super()
   }
 
-  /**
-   * Retreive all suggestions of given kind stored in the suggestion database.
-   */
-  *getAllEntriesOfKind<K extends SuggestionKind>(
+  /** Retrieve all suggestions of the given kind stored in the suggestion database. */
+  private *getAllEntriesOfKind<K extends SuggestionKind>(
     kind: K,
   ): IterableIterator<SuggestionEntry & { kind: K }> {
     const ids = this.suggestionsByKind.lookup(kind)
@@ -70,8 +69,16 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
 
   selectableTypes = computed(() => {
     const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
-    return [...filter(allTypeEntries, isUserSelectableType)]
+    return [...iter.filter(allTypeEntries, isUserSelectableType)]
   })
+
+  /** Returns methods with the specified `self` type that are not private. */
+  selectableMethods(selfType: ProjectPath): IterableIterator<MethodSuggestionEntry> {
+    return iter.filter(
+      this.getAllEntriesOfKind(SuggestionKind.Method),
+      (method) => !method.isPrivate && selfType.equals(method.selfType),
+    )
+  }
 
   dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
     return Array.from(this.selectableTypes.value, (ty) => ExpressionTag.FromEntry(this, ty))

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -26,12 +27,16 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OtherJvmObjectTest {
-  @ClassRule public static final ContextUtils ctx = ContextUtils.newBuilder("js").build();
+  @ClassRule
+  public static final ContextUtils ctx =
+      ContextUtils.newBuilder("host") // no dynamic languages needed
+          .build();
 
   private static Channel<OtherJvmPool> CHANNEL;
 
   @BeforeClass
   public static void initializeChannel() {
+    System.setProperty("org.enso.jvm.interop.limit", "" + Integer.MAX_VALUE);
     CHANNEL = Channel.create(null, OtherJvmPool.class);
     CHANNEL
         .getConfig()
@@ -177,13 +182,15 @@ public class OtherJvmObjectTest {
     assertFalse("Other JVM objects don't have type", noType);
   }
 
-  private static final Object IDENTICAL = new Object();
+  private static final class MockObject {}
+
+  private static final Object IDENTICAL = new MockObject();
 
   public static Object otherJvmInstances(int kind) {
     if (kind == 0) {
       return IDENTICAL;
     } else {
-      return new Object();
+      return new MockObject();
     }
   }
 
@@ -251,11 +258,35 @@ public class OtherJvmObjectTest {
     mock.assertArgs("Called with Real", ctx.asValue("RealOther"));
   }
 
+  @Test
+  public void metaObjectEgClassesAreImmutableInJVM() throws Exception {
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 0);
+    var clazz1 = other1.getMetaObject();
+    assertTrue("Has parents", clazz1.hasMetaParents());
+    var other2 = otherClass.invokeMember("otherJvmInstances", 0);
+    var clazz2 = other2.getMetaObject();
+
+    CHANNEL
+        .getConfig()
+        .assertMessagesCount(
+            "No messages neded for comparing classes",
+            0,
+            () -> {
+              assertEquals("Classes are the equal (obviously)", clazz1, clazz2);
+              assertTrue("First has parents", clazz1.hasMetaParents());
+              assertTrue("Second has parents", clazz2.hasMetaParents());
+              var rawClass1 = (OtherJvmObject) ctx.unwrapValue(clazz1);
+              var rawClass2 = (OtherJvmObject) ctx.unwrapValue(clazz2);
+              assertSame("Represented by the same truffle object", rawClass1, rawClass2);
+            });
+  }
+
   private static Value loadOtherJvmClass(String name) throws Exception {
     var msg = new OtherJvmMessage.LoadClass(name);
     var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
     if (shortRaw instanceof OtherJvmObject other) {
-      shortRaw = new OtherJvmObject(CHANNEL, other.id());
+      assertTrue(other.assertChannel(CHANNEL));
     }
     var shortValue = ctx.asValue(shortRaw);
     return shortValue;

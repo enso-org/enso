@@ -204,13 +204,10 @@ public final class MethodDefinitions implements MiniPassFactory {
         // is
         // added to avoid modifying the dispatch mechanism.
         var syntheticModuleSelfArg =
-            new DefinitionArgument.Specified(
-                new Name.Self(null, true, new MetadataStorage()),
-                Option.empty(),
-                Option.empty(),
-                false,
-                null,
-                new MetadataStorage());
+            DefinitionArgument.Specified.builder()
+                .name(new Name.Self(null, true, new MetadataStorage()))
+                .suspended(false)
+                .build();
         var newBody =
             new Function.Lambda(
                 // This is the synthetic Self argument that gets the static module

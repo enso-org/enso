@@ -21,4 +21,7 @@ define_env_var! {
 
     /// Type of the launcher - either 'native', 'debugnative' or 'shell'
     ENSO_LAUNCHER, engine::EngineLauncher;
+
+    //// path to JUnit output directory
+    ENSO_TEST_JUNIT_DIR, String;
 }

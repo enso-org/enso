@@ -138,7 +138,6 @@ public abstract class LogJobsProcessor {
   }
 
   private void notifyJobsAboutSuccess(List<LogJob> logJobs) {
-    logger.trace("Successfully sent {} log messages", logJobs.size());
     for (var logJob : logJobs) {
       if (logJob.completionNofitication() != null) {
         logJob.completionNofitication().complete(null);
@@ -211,11 +210,13 @@ public abstract class LogJobsProcessor {
     var inEarlyFuture = now.plus(TOKEN_EARLY_REFRESH_PERIOD);
     var expiration = authenticationData.expireAt();
     var res = inEarlyFuture.compareTo(expiration) > 0;
-    logger.trace(
-        "Token needs refresh: {}. Current time (plus early refresh period): {}, expiration: {}",
-        res,
-        inEarlyFuture,
-        expiration);
+    if (res) {
+      logger.trace(
+          "Token needs refresh: {}. Current time (plus early refresh period): {}, expiration: {}",
+          res,
+          inEarlyFuture,
+          expiration);
+    }
     return res;
   }
 

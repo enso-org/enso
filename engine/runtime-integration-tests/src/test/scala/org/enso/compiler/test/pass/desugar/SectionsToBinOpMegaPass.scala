@@ -104,45 +104,39 @@ case object SectionsToBinOpMegaPass extends IRPass {
     section match {
       case sectionLeft @ Section.Left(arg, op, loc, passData) =>
         val rightArgName = freshNameSupply.newName()
-        val rightCallArg =
-          new CallArgument.Specified(
-            None,
-            rightArgName,
-            true,
-            identifiedLocation = null
-          )
-        val rightDefArg = new DefinitionArgument.Specified(
-          rightArgName.duplicate(),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val rightCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(rightArgName)
+          .isSynthetic(true)
+          .build()
+        val rightDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(rightArgName.duplicate())
+          .suspended(false)
+          .build()
 
         if (arg.value.isInstanceOf[Name.Blank]) {
           val leftArgName = freshNameSupply.newName()
-          val leftCallArg =
-            new CallArgument.Specified(
-              None,
-              leftArgName,
-              true,
-              identifiedLocation = null
-            )
-          val leftDefArg = new DefinitionArgument.Specified(
-            leftArgName.duplicate(),
-            None,
-            None,
-            suspended = false,
-            null
-          )
-          val opCall = new Application.Prefix(
-            function             = op,
-            arguments            = List(leftCallArg, rightCallArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = null,
-            passData             = passData,
-            diagnostics          = sectionLeft.diagnostics
-          )
+          val leftCallArg = CallArgument.Specified
+            .builder()
+            .name(None)
+            .value(leftArgName)
+            .isSynthetic(true)
+            .build()
+          val leftDefArg = DefinitionArgument.Specified
+            .builder()
+            .name(leftArgName.duplicate())
+            .suspended(false)
+            .build()
+          val opCall = Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(leftCallArg, rightCallArg))
+            .hasDefaultsSuspended(false)
+            .passData(passData)
+            .diagnostics(sectionLeft.diagnostics)
+            .build()
 
           val rightLam = new Function.Lambda(
             List(rightDefArg),
@@ -158,57 +152,52 @@ case object SectionsToBinOpMegaPass extends IRPass {
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          new Application.Prefix(
-            function             = op,
-            arguments            = List(newArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = loc,
-            passData             = passData,
-            diagnostics          = sectionLeft.diagnostics
-          )
+          Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(newArg))
+            .hasDefaultsSuspended(false)
+            .location(loc)
+            .passData(passData)
+            .diagnostics(sectionLeft.diagnostics)
+            .build()
         }
 
       case sectionSides @ Section.Sides(op, loc, passData) =>
         val leftArgName = freshNameSupply.newName()
-        val leftCallArg =
-          new CallArgument.Specified(
-            None,
-            leftArgName,
-            true,
-            identifiedLocation = null
-          )
-        val leftDefArg = new DefinitionArgument.Specified(
-          leftArgName.duplicate(),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val leftCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(leftArgName)
+          .isSynthetic(true)
+          .build()
+        val leftDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(leftArgName.duplicate())
+          .suspended(false)
+          .build()
 
         val rightArgName = freshNameSupply.newName()
-        val rightCallArg =
-          new CallArgument.Specified(
-            None,
-            rightArgName,
-            true,
-            identifiedLocation = null
-          )
-        val rightDefArg = new DefinitionArgument.Specified(
-          rightArgName.duplicate(),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val rightCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(rightArgName)
+          .isSynthetic(true)
+          .build()
+        val rightDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(rightArgName.duplicate())
+          .suspended(false)
+          .build()
 
-        val opCall = new Application.Prefix(
-          function             = op,
-          arguments            = List(leftCallArg, rightCallArg),
-          hasDefaultsSuspended = false,
-          identifiedLocation   = null,
-          passData             = passData,
-          diagnostics          = sectionSides.diagnostics
-        )
+        val opCall = Application.Prefix
+          .builder()
+          .function(op)
+          .arguments(List(leftCallArg, rightCallArg))
+          .hasDefaultsSuspended(false)
+          .passData(passData)
+          .diagnostics(sectionSides.diagnostics)
+          .build()
 
         val rightLambda = new Function.Lambda(
           List(rightDefArg),
@@ -243,48 +232,41 @@ case object SectionsToBinOpMegaPass extends IRPass {
 
       case sectionRight @ Section.Right(op, arg, loc, passData) =>
         val leftArgName = freshNameSupply.newName()
-        val leftCallArg =
-          new CallArgument.Specified(
-            None,
-            leftArgName,
-            true,
-            identifiedLocation = null
-          )
-        val leftDefArg =
-          new DefinitionArgument.Specified(
-            leftArgName.duplicate(),
-            None,
-            None,
-            suspended = false,
-            null
-          )
+        val leftCallArg = CallArgument.Specified
+          .builder()
+          .name(None)
+          .value(leftArgName)
+          .isSynthetic(true)
+          .build()
+        val leftDefArg = DefinitionArgument.Specified
+          .builder()
+          .name(leftArgName.duplicate())
+          .suspended(false)
+          .build()
 
         if (arg.value.isInstanceOf[Name.Blank]) {
           // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
-          val rightCallArg =
-            new CallArgument.Specified(
-              None,
-              rightArgName,
-              true,
-              identifiedLocation = null
-            )
-          val rightDefArg = new DefinitionArgument.Specified(
-            rightArgName.duplicate(),
-            None,
-            None,
-            suspended = false,
-            null
-          )
+          val rightCallArg = CallArgument.Specified
+            .builder()
+            .name(None)
+            .value(rightArgName)
+            .isSynthetic(true)
+            .build()
+          val rightDefArg = DefinitionArgument.Specified
+            .builder()
+            .name(rightArgName.duplicate())
+            .suspended(false)
+            .build()
 
-          val opCall = new Application.Prefix(
-            function             = op,
-            arguments            = List(leftCallArg, rightCallArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = null,
-            passData             = passData,
-            diagnostics          = sectionRight.diagnostics
-          )
+          val opCall = Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(leftCallArg, rightCallArg))
+            .hasDefaultsSuspended(false)
+            .passData(passData)
+            .diagnostics(sectionRight.diagnostics)
+            .build()
 
           val leftLam = new Function.Lambda(
             List(leftDefArg),
@@ -300,14 +282,14 @@ case object SectionsToBinOpMegaPass extends IRPass {
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
-          val opCall = new Application.Prefix(
-            function             = op,
-            arguments            = List(leftCallArg, newArg),
-            hasDefaultsSuspended = false,
-            identifiedLocation   = null,
-            passData             = passData,
-            diagnostics          = sectionRight.diagnostics
-          )
+          val opCall = Application.Prefix
+            .builder()
+            .function(op)
+            .arguments(List(leftCallArg, newArg))
+            .hasDefaultsSuspended(false)
+            .passData(passData)
+            .diagnostics(sectionRight.diagnostics)
+            .build()
 
           new Function.Lambda(
             List(leftDefArg),

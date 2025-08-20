@@ -30,17 +30,8 @@ public interface Application extends Expression {
       super(function, arguments, hasDefaultsSuspended, identifiedLocation, passData, diagnostics);
     }
 
-    public Prefix(
-        Expression function,
-        List<CallArgument> arguments,
-        boolean hasDefaultsSuspended,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      this(function, arguments, hasDefaultsSuspended, identifiedLocation, passData, null);
-    }
-
-    public Prefix(Expression function, List<CallArgument> arguments) {
-      this(function, arguments, false, null, new MetadataStorage(), null);
+    public static Builder builder() {
+      return new Builder();
     }
 
     public Prefix copy(Expression function, List<CallArgument> arguments) {
@@ -102,9 +93,8 @@ public interface Application extends Expression {
       super(target, identifiedLocation, passData, diagnostics);
     }
 
-    public Force(
-        Expression target, IdentifiedLocation identifiedLocation, MetadataStorage passData) {
-      this(target, identifiedLocation, passData, null);
+    public static Builder builder() {
+      return new Builder();
     }
 
     @Override
@@ -187,9 +177,8 @@ public interface Application extends Expression {
       super(items, identifiedLocation, passData, diagnostics);
     }
 
-    public Sequence(
-        List<Expression> items, IdentifiedLocation identifiedLocation, MetadataStorage passData) {
-      this(items, identifiedLocation, passData, null);
+    public static Builder builder() {
+      return new Builder();
     }
 
     @Override

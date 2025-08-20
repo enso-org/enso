@@ -345,8 +345,8 @@ case object DataflowAnalysis extends IRPass {
 
         prefix
           .copy(
-            function  = analyseExpression(prefix.function, info),
-            arguments = prefix.arguments.map(analyseCallArgument(_, info))
+            analyseExpression(prefix.function, info),
+            prefix.arguments.map(analyseCallArgument(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
       case force: Application.Force =>

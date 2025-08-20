@@ -103,7 +103,7 @@ object MethodCalls extends IRPass {
                         app.arguments.map(
                           _.mapExpressions(doExpression(_))
                         )
-                      app.copy(function = newName, arguments = newArgs)
+                      app.copy(newName, newArgs)
                     case _ => fallback
                   }
                 case _ => fallback
