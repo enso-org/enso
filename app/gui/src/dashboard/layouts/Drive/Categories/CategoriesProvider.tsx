@@ -19,8 +19,7 @@ export function CategoriesProvider(props: CategoriesProviderProps) {
   const categoryId = useCategoryId() ?? (localBackend != null ? 'local' : 'cloud')
   const category = findCategoryById(categoryId)
 
-  // This usually doesn't happen but if so,
-  // We reset the category to the default.
+  // This usually doesn't happen but if so, we reset the category to the default.
   if (category == null) {
     setDriveLocation(null, null)
     return null

@@ -10,6 +10,7 @@ import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -34,6 +35,7 @@ export function DriveBarNavigation() {
   const { associatedBackend, category } = useCategoriesAPI()
 
   const { rootDirectoryId, currentDirectoryId } = useDirectoryIds({ category })
+  const currentDirectoryIdRef = useSyncRef(currentDirectoryId)
 
   const rightPanel = useRightPanelData()
 
@@ -59,7 +61,10 @@ export function DriveBarNavigation() {
     queryFn: () => associatedBackend.getAssetDetails(currentDirectoryId),
     meta: { persist: false },
     retry: (count, error) => {
-      if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
+      if (
+        (error instanceof AssetDoesNotExistError || error instanceof NetworkError) &&
+        currentDirectoryId === currentDirectoryIdRef.current
+      ) {
         setDriveLocation(null, null)
         return false
       }
