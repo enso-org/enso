@@ -2378,7 +2378,9 @@ type Table
         self.implementation.remove_all_rows self.underlying
 
     ## ---
-       aliases: [add index column, rank, record id]
+       aliases: [add index column, record id]
+       macros:
+        - rank: "Rank" 1
        group: Standard.Base.Values
        icon: column_add
        suggested: 6
