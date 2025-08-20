@@ -1,5 +1,6 @@
 package org.enso.tools.enso4igv;
 
+import java.awt.GraphicsEnvironment;
 import java.util.Collections;
 import java.util.Set;
 import javax.swing.event.ChangeListener;
@@ -43,7 +44,11 @@ final class EnsoSbtProject implements Project {
     private final class OwnSubproject implements ProjectContainerProvider, SubprojectProvider {
         @Override
         public Set<? extends Project> getSubprojects() {
-            return Collections.singleton(EnsoSbtProject.this);
+            if (GraphicsEnvironment.isHeadless()) {
+                return Collections.emptySet();
+            } else {
+                return Collections.singleton(EnsoSbtProject.this);
+            }
         }
 
         @Override

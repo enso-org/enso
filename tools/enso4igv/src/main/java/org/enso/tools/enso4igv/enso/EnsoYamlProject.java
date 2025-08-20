@@ -1,5 +1,6 @@
 package org.enso.tools.enso4igv.enso;
 
+import java.awt.GraphicsEnvironment;
 import java.beans.BeanInfo;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
@@ -92,7 +93,11 @@ public final class EnsoYamlProject implements Project {
 
     @Override
     public Set<? extends Project> getSubprojects() {
-      return Collections.singleton(EnsoYamlProject.this);
+      if (GraphicsEnvironment.isHeadless()) {
+        return Collections.emptySet();
+      } else {
+        return Collections.singleton(EnsoYamlProject.this);
+      }
     }
 
     @Override
