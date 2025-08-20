@@ -1,5 +1,5 @@
 import * as child_process from 'node:child_process'
-import * as fs from 'node:fs/promises'
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 export interface Runner {
@@ -61,10 +61,10 @@ export class EnsoRunner implements Runner {
 }
 
 /** Find the path to the `enso` executable. */
-export async function findEnsoPath(workDir: string): Promise<string | undefined> {
-  const checkExecutable = async (filePath: string) => {
+export function findEnsoPath(workDir: string): string | undefined {
+  const checkExecutable = (filePath: string) => {
     try {
-      await fs.access(filePath, fs.constants.X_OK)
+      fs.accessSync(filePath, fs.constants.X_OK)
     } catch {
       throw new Error(`Enso executable at ${filePath} is not executable`)
     }
@@ -75,8 +75,8 @@ export async function findEnsoPath(workDir: string): Promise<string | undefined>
   const envPath = process.env.ENSO_RUNNER_PATH
   if (envPath) {
     try {
-      await fs.access(envPath)
-      return await checkExecutable(envPath)
+      fs.accessSync(envPath)
+      return checkExecutable(envPath)
     } catch {
       // File doesn't exist, continue searching
     }
@@ -85,14 +85,14 @@ export async function findEnsoPath(workDir: string): Promise<string | undefined>
   // Check resources/enso/dist/*/bin/enso
   const resourcesDir = path.join(workDir, 'resources', 'enso', 'dist')
   try {
-    const stat = await fs.stat(resourcesDir)
+    const stat = fs.statSync(resourcesDir)
     if (stat.isDirectory()) {
-      const distDirs = await fs.readdir(resourcesDir)
+      const distDirs = fs.readdirSync(resourcesDir)
       for (const distDir of distDirs) {
         const ensoPath = path.join(resourcesDir, distDir, 'bin', 'enso')
         try {
-          await fs.access(ensoPath)
-          return await checkExecutable(ensoPath)
+          fs.accessSync(ensoPath)
+          return checkExecutable(ensoPath)
         } catch {
           // File doesn't exist, continue searching
         }
@@ -105,18 +105,18 @@ export async function findEnsoPath(workDir: string): Promise<string | undefined>
   // Check built-distribution/*/*/bin/enso
   const builtDistDir = path.join(workDir, 'built-distribution')
   try {
-    const stat = await fs.stat(builtDistDir)
+    const stat = fs.statSync(builtDistDir)
     if (stat.isDirectory()) {
-      const topLevelDirs = await fs.readdir(builtDistDir)
+      const topLevelDirs = fs.readdirSync(builtDistDir)
       for (const topDir of topLevelDirs) {
         const topPath = path.join(builtDistDir, topDir)
-        const topStat = await fs.stat(topPath)
+        const topStat = fs.statSync(topPath)
         if (topStat.isDirectory()) {
-          const subDirs = await fs.readdir(topPath)
+          const subDirs = fs.readdirSync(topPath)
           for (const subDir of subDirs) {
             const ensoPath = path.join(topPath, subDir, 'bin', 'enso')
             try {
-              await fs.access(ensoPath)
+              fs.accessSync(ensoPath)
               return checkExecutable(ensoPath)
             } catch {
               // File doesn't exist, continue searching

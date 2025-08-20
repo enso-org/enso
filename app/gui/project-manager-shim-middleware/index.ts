@@ -72,7 +72,7 @@ const COOP_COEP_CORP_HEADERS = [
   ['Cross-Origin-Resource-Policy', 'same-origin'],
 ]
 
-const PROJECT_SERVICE = ProjectService.getInstance()
+const PROJECT_SERVICE = ProjectService.default()
 
 // ====================================
 // === projectManagerShimMiddleware ===
@@ -208,7 +208,7 @@ export default function projectManagerShimMiddleware(
         }
         bodyJson<ResponseBody>(request)
           .then((body) => {
-            PROJECT_SERVICE.createProject(body.name, undefined, undefined, body.projectsDirectory)
+            PROJECT_SERVICE.createProject(body.name, body.projectsDirectory)
           })
           .then((project) => {
             response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(JSON.stringify(project))

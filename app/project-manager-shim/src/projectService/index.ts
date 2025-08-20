@@ -5,10 +5,11 @@
  */
 
 import * as crypto from 'node:crypto'
-import { type Runner } from './ensoRunner'
-import { type Project, type ProjectRepository } from './projectRepository'
+import { type Runner, EnsoRunner, findEnsoPath } from './ensoRunner'
+import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository'
 
 import { UUID } from 'enso-common/src/services/Backend'
+import { find } from 'enso-common/src/utilities/data/iter'
 
 // ==================
 // === Data Types ===
@@ -104,21 +105,36 @@ interface LanguageServerGateway {
   ): Promise<void>
 }
 
+class Lazy<T> {
+  private _value?: T;
+
+  constructor(private readonly factory: () => T) {}
+
+  getValue(): T {
+    return this._value || (this._value = this.factory());
+  }
+}
+
 // =======================
 // === ProjectService ====
 // =======================
 
 export class ProjectService {
-  private readonly DEFAULT_NAMESPACE = 'local'
+  private static readonly DEFAULT_NAMESPACE = 'local'
+  private static ensoPath: Lazy<string | undefined> = new Lazy(() => findEnsoPath(__dirname))
 
   constructor(
-    private readonly projectRepository: ProjectRepository,
     private readonly runner: Runner,
     private readonly logger: Console = console,
   ) {}
 
-  static getInstance(): ProjectService {
-    throw new Error('Unimplemented ProjectService.getInstance()')
+  static default(): ProjectService {
+    const ensoPath = ProjectService.ensoPath.getValue()
+    if (!ensoPath) {
+      throw new Error('Enso executable not found')
+    }
+    const runner = new EnsoRunner(ensoPath)
+    return new ProjectService(runner)
   }
 
   /**
@@ -126,9 +142,9 @@ export class ProjectService {
    */
   async createProject(
     projectName: string,
+    projectsDirectory: string,
     engineVersion?: string,
     projectTemplate?: string,
-    projectsDirectory?: string,
   ): Promise<Project> {
     // Step 1: Generate Project ID
     const projectId = this.generateUUID()
@@ -139,7 +155,7 @@ export class ProjectService {
     )
 
     // Step 3: Get Repository
-    const repo = await this.getProjectRepository(projectsDirectory)
+    const repo = this.getProjectRepository(projectsDirectory)
 
     // Step 4: Name Resolution - ensure unique name
     const actualName = await this.getNameForNewProject(projectName, repo)
@@ -160,7 +176,7 @@ export class ProjectService {
     const project: Project = {
       id: projectId,
       name: actualName,
-      namespace: this.DEFAULT_NAMESPACE,
+      namespace: ProjectService.DEFAULT_NAMESPACE,
       kind: 'UserProject',
       created: creationTime,
       path: projectPath,
@@ -171,12 +187,7 @@ export class ProjectService {
     )
 
     // Step 9: Create Project Structure
-    await this.runner.createProject(
-      projectPath,
-      actualName,
-      engineVersion,
-      projectTemplate,
-    )
+    await this.runner.createProject(projectPath, actualName, engineVersion, projectTemplate)
 
     this.logger.debug(
       `Project [${projectId}] structure created with [${projectPath}, ${actualName}, ${moduleName}].`,
@@ -199,10 +210,8 @@ export class ProjectService {
     return UUID(crypto.randomUUID())
   }
 
-  private async getProjectRepository(projectsDirectory?: string): Promise<ProjectRepository> {
-    // TODO: Implement ProjectRepositoryFactory logic
-    // For now, return the injected repository
-    return this.projectRepository
+  private getProjectRepository(projectsDirectory: string): ProjectRepository {
+    return new ProjectFileRepository(projectsDirectory)
   }
 
   private async getNameForNewProject(
