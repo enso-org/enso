@@ -31,13 +31,10 @@ enso_bin -> Text =
 
 
 ## Runs an Enso subprocess.
-enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) (env : Dictionary Text Text = Dictionary.empty) -> Text =
+enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
     proc_bldr = J_ProcessBuilder.new [enso_bin]+args
     proc_bldr.redirectErrorStream True
     proc_bldr.directory (J_File.new cwd)
-    proc_env = proc_bldr.environment
-    env.each_with_key \k v ->
-        proc_env.put k v
     proc = proc_bldr.start
     retcode = proc.waitFor
     bytes = proc.getInputStream.readAllBytes
