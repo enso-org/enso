@@ -5,7 +5,7 @@
  */
 
 import * as crypto from 'node:crypto'
-import { type EnsoRunner } from './ensoRunner'
+import { type Runner, EnsoRunner } from './ensoRunner'
 
 import { UUID } from 'enso-common/src/services/Backend'
 
@@ -150,8 +150,7 @@ export class ProjectService {
 
   constructor(
     private readonly projectRepository: ProjectRepository,
-    private readonly ensoRunner: EnsoRunner,
-    private readonly languageServerGateway: LanguageServerGateway,
+    private readonly runner: Runner,
     private readonly logger: Console = console,
   ) {}
 
@@ -209,7 +208,7 @@ export class ProjectService {
     )
 
     // Step 9: Create Project Structure
-    await this.ensoRunner.createProject(
+    await this.runner.createProject(
       projectPath,
       actualName,
       engineVersion,

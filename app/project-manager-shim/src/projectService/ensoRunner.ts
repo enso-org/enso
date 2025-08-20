@@ -1,4 +1,8 @@
-export interface EnsoRunner {
+import * as child_process from 'node:child_process'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+
+export interface Runner {
   createProject(
     path: string,
     name: string,
@@ -7,11 +11,57 @@ export interface EnsoRunner {
   ): Promise<void>
 }
 
-import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
+export class EnsoRunner implements Runner {
+  constructor(private ensoPath: string) {}
+
+  async createProject(
+    projectPath: string,
+    name: string,
+    engineVersion?: string,
+    projectTemplate?: string,
+  ): Promise<void> {
+    if (!this.ensoPath) {
+      throw new Error('Enso executable not found')
+    }
+
+    const args: string[] = []
+    args.push('--new', projectPath)
+    args.push('--new-project-name', name)
+    if (projectTemplate) {
+      args.push('--new-project-template', projectTemplate)
+    }
+
+    return new Promise((resolve, reject) => {
+      const process = child_process.spawn(this.ensoPath, args)
+
+      let stdout = ''
+      let stderr = ''
+
+      process.stdout.on('data', (data) => {
+        stdout += data.toString()
+      })
+
+      process.stderr.on('data', (data) => {
+        stderr += data.toString()
+      })
+
+      process.on('error', (error) => {
+        reject(new Error(`Failed to spawn enso process: ${error.message}`))
+      })
+
+      process.on('close', (code) => {
+        if (code === 0) {
+          resolve()
+        } else {
+          reject(new Error(`Enso process exited with code ${code}. stderr: ${stderr}`))
+        }
+      })
+    })
+  }
+}
 
 /** Find the path to the `enso` executable. */
-export async function ensoPath(baseDirectory: string): Promise<string | undefined> {
+export async function findEnsoPath(workDir: string): Promise<string | undefined> {
   const checkExecutable = async (filePath: string) => {
     try {
       await fs.access(filePath, fs.constants.X_OK)
@@ -33,7 +83,7 @@ export async function ensoPath(baseDirectory: string): Promise<string | undefine
   }
 
   // Check resources/enso/dist/*/bin/enso
-  const resourcesDir = path.join(baseDirectory, 'resources', 'enso', 'dist')
+  const resourcesDir = path.join(workDir, 'resources', 'enso', 'dist')
   try {
     const stat = await fs.stat(resourcesDir)
     if (stat.isDirectory()) {
@@ -53,7 +103,7 @@ export async function ensoPath(baseDirectory: string): Promise<string | undefine
   }
 
   // Check built-distribution/*/*/bin/enso
-  const builtDistDir = path.join(baseDirectory, 'built-distribution')
+  const builtDistDir = path.join(workDir, 'built-distribution')
   try {
     const stat = await fs.stat(builtDistDir)
     if (stat.isDirectory()) {
