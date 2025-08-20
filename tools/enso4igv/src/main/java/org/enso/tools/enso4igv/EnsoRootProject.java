@@ -10,6 +10,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import javax.swing.Action;
 import javax.swing.event.ChangeListener;
+import org.enso.tools.enso4igv.enso.EnsoActionProvider;
 import org.netbeans.api.project.Project;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.ProjectUtils;
@@ -27,6 +28,7 @@ import org.openide.nodes.ChildFactory;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.util.Lookup;
+import org.openide.util.Utilities;
 import org.openide.util.lookup.Lookups;
 
 final class EnsoRootProject implements Project {
@@ -41,7 +43,8 @@ final class EnsoRootProject implements Project {
     this.lkp = Lookups.fixed(
             this,
             new LogicalView(),
-            new Subprojects()
+            new Subprojects(),
+            new BuiltDistributionEnsoBin()
     );
   }
 
@@ -218,6 +221,38 @@ final class EnsoRootProject implements Project {
       this.project = p;
       setName(p.getProjectDirectory().getNameExt());
       setDisplayName(ProjectUtils.getInformation(project).getDisplayName());
+    }
+  }
+
+  private final class BuiltDistributionEnsoBin implements EnsoActionProvider.EnsoExecutableProvider {
+    @Override
+    public FileObject getEnsoBin() {
+      var bd = getProjectDirectory().getFileObject("built-distribution");
+      var eed = findChild(bd, "enso-engine-");
+      var ed = findChild(eed, "enso-");
+      var bin = findChild(ed, "bin");
+      if (Utilities.isWindows()) {
+        var exe = bin.getFileObject("enso.exe");
+        if (exe != null) {
+          return exe;
+        } else {
+          return bin.getFileObject("enso.bat");
+        }
+      } else {
+        return bin.getFileObject("enso");
+      }
+    }
+
+    private FileObject findChild(FileObject dir, String prefix) {
+      if (dir == null) {
+        return null;
+      }
+      for (var ch : dir.getChildren()) {
+        if (ch.getNameExt().startsWith(prefix)) {
+          return ch;
+        }
+      }
+      return null;
     }
   }
 }

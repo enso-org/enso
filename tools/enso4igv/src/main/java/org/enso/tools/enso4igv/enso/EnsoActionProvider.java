@@ -28,6 +28,8 @@ import org.openide.util.lookup.ServiceProvider;
 import org.netbeans.api.extexecution.base.ProcessBuilder;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.platform.JavaPlatform;
+import org.netbeans.api.project.ProjectUtils;
+import org.netbeans.api.project.ui.OpenProjects;
 import org.netbeans.spi.project.ActionProgress;
 import org.openide.awt.Notification;
 import org.openide.awt.NotificationDisplayer;
@@ -49,7 +51,14 @@ import org.openide.windows.IOProvider;
     "MSG_ExecutionError=Process {0} finished with exit code {1}.",
     "MSG_IgvMode=Enso/IGV Integration",
     "MSG_EnableIgvMode=Send compiler graphs to IGV next time?",
-    "MSG_EnableIgvModeDone=Run Enso file again to get compiler graphs."
+    "MSG_EnableIgvModeDone=Run Enso file again to get compiler graphs.",
+    "MSG_ExeLastUsed=Last used executable",
+    "# {0} - name of project",
+    "MSG_ExeBy=Provided by {0}",
+    "MSG_ExeOther=Other...",
+    "MSG_ExeManual=Select manually...",
+    "MSG_ExeText=Choose executable to run the file with",
+    "MSG_ExeTitle=Select Enso Executable"
 })
 @ServiceProvider(service = ActionProvider.class)
 public final class EnsoActionProvider implements ActionProvider {
@@ -58,7 +67,7 @@ public final class EnsoActionProvider implements ActionProvider {
   public EnsoActionProvider() {
     this(null);
   }
-  
+
   EnsoActionProvider(EnsoYamlProject prj) {
     this.prj = prj;
   }
@@ -96,11 +105,41 @@ public final class EnsoActionProvider implements ActionProvider {
         var exeKey = "enso.executable";
 
         var exe = prefs.get(exeKey, "");
-        var nd = new NotifyDescriptor.InputLine(Bundle.CTL_EnsoExecutable(), Bundle.CTL_EnsoWhere());
-        nd.setInputText(exe);
 
-        var builderFuture = dd.notifyFuture(nd).thenApply(exec -> {
-            var file = new File(exec.getInputText());
+        var items = new ArrayList<NotifyDescriptor.QuickPick.Item>();
+        if (!exe.isBlank()) {
+          var last = new NotifyDescriptor.QuickPick.Item(exe, Bundle.MSG_ExeLastUsed());
+          items.add(last);
+        }
+        for (var openPrj : OpenProjects.getDefault().getOpenProjects()) {
+          if (openPrj.getLookup().lookup(EnsoExecutableProvider.class) instanceof EnsoExecutableProvider p) {
+            var prjExe = p.getEnsoBin();
+            if (prjExe != null) {
+              var prjItem = new NotifyDescriptor.QuickPick.Item(prjExe.getPath(), Bundle.MSG_ExeBy(ProjectUtils.getInformation(openPrj).getDisplayName()));
+              items.add(prjItem);
+            }
+          }
+        }
+        var manual = new NotifyDescriptor.QuickPick.Item(Bundle.MSG_ExeOther(), Bundle.MSG_ExeManual());
+        items.add(manual);
+        items.get(0).setSelected(true);
+
+        var nd = new NotifyDescriptor.QuickPick(Bundle.MSG_ExeText(), Bundle.MSG_ExeTitle(), items, false);
+        var selectedExe = dd.notifyFuture(nd).thenCompose(t -> {
+          for (var item : items) {
+            if (item.isSelected()) {
+              if (item == manual) {
+                var select = new NotifyDescriptor.InputLine(Bundle.CTL_EnsoExecutable(), Bundle.CTL_EnsoWhere());
+                select.setInputText(exe);
+                return dd.notifyFuture(select).thenApply(exec -> exec.getInputText());
+              }
+              return CompletableFuture.completedFuture(item.getLabel());
+            }
+          }
+          return CompletableFuture.completedFuture("");
+        });
+        var builderFuture = selectedExe.thenApply(exec -> {
+            var file = new File(exec);
             if (file.canExecute()) {
                 prefs.put(exeKey, file.getPath());
 
@@ -291,5 +330,16 @@ public final class EnsoActionProvider implements ActionProvider {
 
             return Integer.toString(port);
         }
+    }
+
+    /**
+     * Interface for projects that wish to supply executable to use.
+     */
+    public static interface EnsoExecutableProvider {
+      /** The executable suggested by the project.
+       *
+       * @return location of executable to use or {@code null}
+       */
+      public FileObject getEnsoBin();
     }
 }
