@@ -49,8 +49,13 @@ public final class EnsoYamlProject implements Project {
     this.lkp = Lookups.fixed(
       this,
       new LogicalView(),
-      new OwnSubproject()
+      new OwnSubproject(),
+      new EnsoActionProvider(this)
     );
+  }
+  
+  final FileObject getRoot() {
+    return root;
   }
 
   public static Project create(FileObject fo, ProjectState ps) throws IOException {
@@ -196,7 +201,7 @@ public final class EnsoYamlProject implements Project {
     private final EnsoYamlProject project;
 
     private LogicalNode(EnsoYamlProject p) {
-      super(createChildren(p), Lookups.fixed(p));
+      super(createChildren(p), p.getLookup());
       this.project = p;
       var nameDir = p.getProjectDirectory();
       setName(nameDir.getNameExt());

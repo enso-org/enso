@@ -1,4 +1,4 @@
-package org.enso.tools.enso4igv;
+package org.enso.tools.enso4igv.enso;
 
 import com.sun.jdi.connect.Connector;
 import java.awt.GraphicsEnvironment;
@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 import java.util.prefs.Preferences;
+import org.enso.tools.enso4igv.EnsoDataObject;
 import org.netbeans.api.debugger.jpda.JPDADebugger;
 import org.netbeans.api.debugger.jpda.ListeningDICookie;
 import org.netbeans.api.extexecution.ExecutionDescriptor;
@@ -52,6 +53,15 @@ import org.openide.windows.IOProvider;
 })
 @ServiceProvider(service = ActionProvider.class)
 public final class EnsoActionProvider implements ActionProvider {
+  private final EnsoYamlProject prj;
+
+  public EnsoActionProvider() {
+    this(null);
+  }
+  
+  EnsoActionProvider(EnsoYamlProject prj) {
+    this.prj = prj;
+  }
 
     @Override
     public String[] getSupportedActions() {
@@ -66,7 +76,17 @@ public final class EnsoActionProvider implements ActionProvider {
         var enableDebug = COMMAND_DEBUG_SINGLE.equals(action) || COMMAND_DEBUG.equals(action);
         var process = ActionProgress.start(lkp);
         var params = ExplicitProcessParameters.buildExplicitParameters(lkp);
-        var fo = lkp.lookup(FileObject.class);
+        FileObject fileOrProject;
+        {
+          fileOrProject = lkp.lookup(FileObject.class);
+          if (fileOrProject == null && prj != null) {
+            fileOrProject = prj.getRoot();
+          }
+          if (fileOrProject == null) {
+            return;
+          }
+        }
+        var fo = fileOrProject;
         var script = FileUtil.toFile(fo);
 
         var io = IOProvider.getDefault().getIO(script.getName(), false);
@@ -214,8 +234,10 @@ public final class EnsoActionProvider implements ActionProvider {
     @Override
     public boolean isActionEnabled(String action, Lookup lkp) throws IllegalArgumentException {
         return switch (action) {
-            case COMMAND_RUN_SINGLE, COMMAND_DEBUG_SINGLE, COMMAND_RUN, COMMAND_DEBUG ->
+            case COMMAND_RUN_SINGLE, COMMAND_DEBUG_SINGLE ->
                 lkp.lookup(EnsoDataObject.class) != null;
+            case COMMAND_RUN, COMMAND_DEBUG ->
+                lkp.lookup(EnsoDataObject.class) != null || lkp.lookup(EnsoYamlProject.class) != null;
             default -> false;
         };
     }
