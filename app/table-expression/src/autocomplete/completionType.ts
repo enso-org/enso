@@ -5,7 +5,15 @@ import type { TreeCursor } from '@lezer/common'
 export interface NameCompletion {
   type: 'functionName' | 'columnName'
   pos: number
+  /**
+   * True if the completion dialog shoud be opened automatically; otherwise, the user must manually
+   * trigger it.
+   */
   auto: boolean
+  /**
+   * True if a delimiter should be inserted after the completion; false if it is not needed, e.g.
+   * when editing a name already followed by a delimiter.
+   */
   insertDelim: boolean
 }
 
@@ -50,11 +58,9 @@ export function completionTypeAt(pos: number, state: EditorState): CompletionTyp
           })),
         ),
     })
-  {
-    if (IGNORED_LEAF_NAMES.includes(cursor.name)) cursor.parent()
-    const completion = parseNode()
-    if (completion) return completion
-  }
+  if (IGNORED_LEAF_NAMES.includes(cursor.name)) cursor.parent()
+  const completion = parseNode()
+  if (completion) return completion
   if (cursor.moveTo(pos, -1)) {
     const completion = parseNode()
     if (completion) return completion

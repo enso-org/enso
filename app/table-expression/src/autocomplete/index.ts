@@ -11,7 +11,6 @@ export interface MethodCompletionInfo {
 function getMethodOptions(infos: MethodCompletionInfo[]) {
   const methods: Completion[] = []
   const binaryOperators: Completion[] = []
-  const unaryOperators: Completion[] = []
   for (const { name, description } of infos) {
     if (/^[a-z]/.test(name)) {
       methods.push({
@@ -28,7 +27,6 @@ function getMethodOptions(infos: MethodCompletionInfo[]) {
     methods,
     methodsWithParens: methods.map((method) => ({ ...method, apply: `${method.apply}(` })),
     binaryOperators,
-    unaryOperators,
   }
 }
 

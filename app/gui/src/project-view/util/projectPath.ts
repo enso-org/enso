@@ -63,7 +63,7 @@ export class ProjectPath {
 
   /** Checks for equality */
   equals(b: Opt<ProjectPath>): boolean {
-    return !!b && this.path === b.path && this.project === b.project
+    return b != null && this.path === b.path && this.project === b.project
   }
 
   /** Returns the path with the given qualified name appended */
