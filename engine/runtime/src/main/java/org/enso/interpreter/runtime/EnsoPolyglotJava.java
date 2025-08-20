@@ -37,20 +37,29 @@ final class EnsoPolyglotJava {
 
   static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkg) {
     var data = KEY.get(ctx);
+    var useGuest = true;
+    var pkgName = pkg.libraryName().qualifiedName();
     if (ctx.isHostClassLoading()) {
       if (isHostClassLoadingFor(pkg)) {
-        return data.hosted;
+        useGuest = false;
+      } else {
+        pkg.warnAotReady(
+            () -> {
+              logger.log(
+                  Level.WARNING,
+                  "Package {0} forced to guest classloading. Use --jvm when encountering problems.",
+                  pkgName);
+            });
       }
-      pkg.warnAotReady(
-          () -> {
-            logger.log(
-                Level.WARNING,
-                "Package {0} forced to guest classloading. Use --jvm when encountering problems.",
-                pkg.libraryName().qualifiedName());
-            return null;
-          });
     }
-    return data.guest;
+
+    if (useGuest) {
+      logger.log(Level.DEBUG, "Using guest JVM for {0}", pkgName);
+      return data.guest;
+    } else {
+      logger.log(Level.DEBUG, "Using host JVM for {0}", pkgName);
+      return data.hosted;
+    }
   }
 
   private static boolean isHostClassLoadingFor(Package<?> pkg) {
@@ -206,7 +215,6 @@ final class EnsoPolyglotJava {
     private EnsoPolyglotJava hosted = new EnsoPolyglotJava(true);
     private EnsoPolyglotJava guest = new EnsoPolyglotJava(false);
 
-    CtxData(EnsoContext ctx) {
-    }
+    CtxData(EnsoContext ctx) {}
   }
 }
