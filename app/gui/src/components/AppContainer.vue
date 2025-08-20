@@ -38,7 +38,7 @@ export const dataLoader: DataLoader<DashboardProps> = {
     const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
     const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
     if (typedAsset?.type !== AssetType.project) return Ok({})
-    const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
+    const options = backendQueryOptions('getAssetDetails', [typedAsset.id], backend)
     const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
     if (!assetResponse) return Ok({})
     const asset: ProjectAsset = { ...assetResponse, ensoPath: path }
