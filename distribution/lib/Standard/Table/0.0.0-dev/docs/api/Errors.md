@@ -155,6 +155,9 @@
 - type Not_All_Rows_Downloaded
     - Warning max_rows:Standard.Base.Data.Numbers.Integer
     - to_display_text self -> Standard.Base.Any.Any
+- type Not_Enough_Groups
+    - Error expected_count:Standard.Base.Data.Numbers.Integer actual_count:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
 - type Nothing_Value_In_Filter_Condition
     - Error filter_condition:Standard.Base.Data.Filter_Condition.Filter_Condition
     - to_display_text self -> Standard.Base.Any.Any
