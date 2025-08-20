@@ -16,7 +16,7 @@ import static org.enso.tools.enso4igv.enso.EnsoYamlActions.PATH;
     // textual actions
     @ActionReference(position = 4100, separatorBefore = 4000, id = @ActionID(category = "Edit", id = "org.openide.actions.FindAction"), path = PATH),
     // project manipulation
-    // @ActionReference(position = 4200, id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.actions.OpenSubprojects"), path = PATH),
+    @ActionReference(position = 4200, id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.actions.OpenSubprojects"), path = PATH),
     @ActionReference(position = 4300, id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.CloseProject"), path = PATH),
     // customizer
     @ActionReference(position = 5100, separatorBefore = 5000, id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.CustomizeProject"), path = PATH)
