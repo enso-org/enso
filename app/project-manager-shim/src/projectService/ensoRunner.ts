@@ -71,6 +71,8 @@ export function findEnsoPath(workDir: string): string | undefined {
     return filePath
   }
 
+  console.log("DEBUG findEnsoPath workDir=", workDir)
+
   // Check ENSO_RUNNER_PATH environment variable first
   const envPath = process.env.ENSO_RUNNER_PATH
   if (envPath) {

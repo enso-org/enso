@@ -5,11 +5,11 @@
  */
 
 import * as crypto from 'node:crypto'
-import { type Runner, EnsoRunner, findEnsoPath } from './ensoRunner'
-import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository'
+import * as path from 'node:path'
 
 import { UUID } from 'enso-common/src/services/Backend'
-import { find } from 'enso-common/src/utilities/data/iter'
+import { type Runner, EnsoRunner, findEnsoPath } from './ensoRunner.js'
+import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
 
 // ==================
 // === Data Types ===
@@ -106,12 +106,12 @@ interface LanguageServerGateway {
 }
 
 class Lazy<T> {
-  private _value?: T;
+  private value?: T
 
   constructor(private readonly factory: () => T) {}
 
   getValue(): T {
-    return this._value || (this._value = this.factory());
+    return this.value || (this.value = this.factory())
   }
 }
 
@@ -121,7 +121,9 @@ class Lazy<T> {
 
 export class ProjectService {
   private static readonly DEFAULT_NAMESPACE = 'local'
-  private static ensoPath: Lazy<string | undefined> = new Lazy(() => findEnsoPath(__dirname))
+  private static ensoPath: Lazy<string | undefined> = new Lazy(() =>
+    findEnsoPath(path.join(process.cwd(), '..', '..')),
+  )
 
   constructor(
     private readonly runner: Runner,

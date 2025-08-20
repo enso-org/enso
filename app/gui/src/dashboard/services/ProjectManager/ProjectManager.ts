@@ -7,7 +7,7 @@ import * as backend from '#/services/Backend'
 import { getFileName, getFolderPath } from '#/utilities/fileInfo'
 import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
@@ -196,14 +196,15 @@ export class ProjectManager {
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
     const enableProjectService = useFeatureFlag('enableProjectService')
+    console.info('createProject enableProjectService', enableProjectService.value)
     let result: Omit<CreateProject, 'projectPath'>
-    if (enableProjectService) {
+    if (enableProjectService.value) {
+      result = await this.runProjectServiceCommandJson('project/create', { ...params })
+    } else {
       result = await this.sendRequest('project/create', {
         missingComponentAction: MissingComponentAction.install,
         ...params,
       })
-    } else {
-      result = await this.runProjectServiceCommandJson('project/create', { ...params })
     }
     const directoryPath = params.projectsDirectory ?? this.rootDirectory
     // Update `internalDirectories` by listing the project's parent directory, because the
