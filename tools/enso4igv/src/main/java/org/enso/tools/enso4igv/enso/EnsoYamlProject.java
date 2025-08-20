@@ -11,6 +11,9 @@ import org.netbeans.spi.java.project.support.ui.PackageView;
 import org.netbeans.spi.project.ProjectState;
 import org.netbeans.spi.project.ui.LogicalViewProvider;
 import org.netbeans.spi.project.ui.support.CommonProjectActions;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionReferences;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.loaders.DataObject;
@@ -126,6 +129,7 @@ public final class EnsoYamlProject implements Project {
         }
     }
 
+
   private final class LogicalView implements LogicalViewProvider {
 
     LogicalView() {
@@ -159,7 +163,7 @@ public final class EnsoYamlProject implements Project {
 
     @Override
     public Action[] getActions(boolean context) {
-      return CommonProjectActions.forType("ensoprj"); // NOI18N
+      return CommonProjectActions.forType(EnsoYamlActions.ID);
     }
   }
 

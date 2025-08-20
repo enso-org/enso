@@ -183,7 +183,7 @@ final class EnsoRootProject implements Project {
             node.setName(key.getNameExt());
             return node;
           } else {
-            return DataObject.find(key).getNodeDelegate();
+            return DataObject.find(key).getNodeDelegate().cloneNode();
           }
         } catch (DataObjectNotFoundException ex) {
           return null;
@@ -206,7 +206,7 @@ final class EnsoRootProject implements Project {
 
     @Override
     public Action[] getActions(boolean context) {
-      return CommonProjectActions.forType("ensosbtprj"); // NOI18N
+      return CommonProjectActions.forType(EnsoJavaActions.ID);
     }
   }
 

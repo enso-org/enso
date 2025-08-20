@@ -21,10 +21,6 @@ import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.util.lookup.Lookups;
 
-@ActionReferences({
-    @ActionReference(position = 3100, id = @ActionID(category = "Project", id = "org.netbeans,modules.project.ui.CloseProject"), path = "Projects/ensosbtprj/Actions", separatorBefore = 3000),
-    @ActionReference(position = 3200, id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.actions.OpenSubprojects"), path = "Projects/ensosbtprj/Actions"),
-})
 final class EnsoLogicalView implements LogicalViewProvider  {
     private final EnsoSbtProject p;
 
@@ -79,7 +75,7 @@ final class EnsoLogicalView implements LogicalViewProvider  {
 
         @Override
         public Action[] getActions(boolean context) {
-            return CommonProjectActions.forType("ensosbtprj"); // NOI18N
+            return CommonProjectActions.forType(EnsoJavaActions.ID);
         }
     }
 
