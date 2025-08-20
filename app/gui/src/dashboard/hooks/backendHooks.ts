@@ -276,9 +276,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   })
 }
 
-/**
- * Options for {@link unsafe_assetFromCacheQueryOptions}.
- */
+/** Options for {@link unsafe_assetFromCacheQueryOptions}. */
 export interface AssetFromCacheQueryOptions {
   readonly backend: Backend
   readonly assetId: AssetId

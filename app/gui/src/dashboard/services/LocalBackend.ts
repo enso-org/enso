@@ -278,7 +278,9 @@ export default class LocalBackend extends Backend {
           }
         })
         .sort(backend.compareAssets)
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-restricted-properties
+      console.error(`Could not find directory '${parentIdRaw}':`, error)
       // Failed so check if exists
       if (!(await this.projectManager.exists(parentIdRaw))) {
         if (parentIdRaw === this.projectManager.rootDirectory) {

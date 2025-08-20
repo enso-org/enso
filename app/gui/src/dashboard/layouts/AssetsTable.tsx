@@ -20,6 +20,7 @@ import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
@@ -241,6 +242,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({
     category,
   })
+  const currentDirectoryIdRef = useSyncRef(currentDirectoryId)
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
   const { data: assets = [] } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
@@ -250,6 +252,7 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
+      if (currentDirectoryId !== currentDirectoryIdRef.current) return true
       setDriveLocation(null, category.id)
       return false
     },
