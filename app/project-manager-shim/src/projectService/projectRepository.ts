@@ -1,4 +1,8 @@
 import { UUID } from 'enso-common/src/services/Backend'
+import * as crypto from 'node:crypto'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+import * as yaml from 'yaml'
 
 export interface Project {
   readonly id: UUID
@@ -38,3 +42,308 @@ export interface ProjectRepository {
   tryLoadProject(directory: string): Promise<Project | null>
 }
 
+const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
+const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
+
+interface PackageYaml {
+  name?: string
+  namespace?: string
+  edition?: string
+  jvmModeEnabled?: boolean
+}
+
+interface ProjectJson {
+  id?: string
+  kind?: string
+  created?: string
+  lastOpened?: string | null
+}
+
+export class ProjectFileRepository implements ProjectRepository {
+  constructor(private readonly projectsPath: string) {}
+
+  async exists(name: string): Promise<boolean> {
+    const projects = await this.getAll()
+    return projects.some((p) => p.name === name)
+  }
+
+  async findPathForNewProject(moduleName: string): Promise<string> {
+    const normalizedName = this.normalizeName(moduleName)
+    return this.findTargetPath(normalizedName)
+  }
+
+  async update(project: Project): Promise<void> {
+    const metadataPath = path.join(project.path, PROJECT_METADATA_RELATIVE_PATH)
+    const metadata: ProjectJson = {
+      id: project.id,
+      kind: project.kind,
+      created: project.created,
+      lastOpened: project.lastOpened ?? null,
+    }
+    await fs.mkdir(path.dirname(metadataPath), { recursive: true })
+    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
+  }
+
+  async delete(projectId: string): Promise<void> {
+    const project = await this.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    await fs.rm(project.path, { recursive: true, force: true })
+  }
+
+  async moveToTrash(projectId: string): Promise<boolean> {
+    const project = await this.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    // Simple implementation: move to a .trash directory
+    // In production, this should use platform-specific trash APIs
+    const trashPath = path.join(this.projectsPath, '.trash', path.basename(project.path))
+    await fs.mkdir(path.dirname(trashPath), { recursive: true })
+    await fs.rename(project.path, trashPath)
+    return true
+  }
+
+  async rename(projectId: string, name: string): Promise<void> {
+    const project = await this.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    await this.renamePackage(project.path, name)
+  }
+
+  async findById(projectId: string): Promise<Project | null> {
+    const projects = await this.getAll()
+    return projects.find((p) => p.id === projectId) ?? null
+  }
+
+  async find(predicate: (project: Project) => boolean): Promise<Project[]> {
+    const projects = await this.getAll()
+    return projects.filter(predicate)
+  }
+
+  async getAll(): Promise<Project[]> {
+    try {
+      const entries = await fs.readdir(this.projectsPath, { withFileTypes: true })
+      const directories = entries.filter((e) => e.isDirectory() && !e.name.startsWith('.'))
+
+      const projects: (Project | null)[] = await Promise.all(
+        directories.map((dir) => this.tryLoadProject(path.join(this.projectsPath, dir.name))),
+      )
+
+      const validProjects = projects.filter((p): p is Project => p !== null)
+      return this.resolveClashingIds(validProjects)
+    } catch (error) {
+      if ((error as any).code === 'ENOENT') {
+        return []
+      }
+      throw error
+    }
+  }
+
+  async moveProject(projectId: string, newName: string): Promise<string> {
+    const project = await this.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    const normalizedName = this.normalizeName(newName)
+    const targetPath = await this.findTargetPath(normalizedName)
+    await fs.rename(project.path, targetPath)
+    return targetPath
+  }
+
+  async copyProject(
+    project: Project,
+    newName: string,
+    newMetadata: ProjectMetadata,
+  ): Promise<Project> {
+    const normalizedName = this.normalizeName(newName)
+    const targetPath = await this.findTargetPath(normalizedName)
+
+    await this.copyDirectory(project.path, targetPath)
+
+    // Update metadata
+    const metadataPath = path.join(targetPath, PROJECT_METADATA_RELATIVE_PATH)
+    const metadata: ProjectJson = {
+      id: newMetadata.id,
+      kind: 'UserProject',
+      created: newMetadata.created,
+      lastOpened: newMetadata.lastOpened ?? null,
+    }
+    await fs.mkdir(path.dirname(metadataPath), { recursive: true })
+    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
+
+    // Update package name
+    await this.renamePackage(targetPath, newName)
+
+    const newProject = await this.tryLoadProject(targetPath)
+    if (!newProject) {
+      throw new Error('Failed to load copied project')
+    }
+    return newProject
+  }
+
+  async getPackageName(projectId: string): Promise<string> {
+    const project = await this.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    const packagePath = path.join(project.path, PACKAGE_METADATA_RELATIVE_PATH)
+    const content = await fs.readFile(packagePath, 'utf-8')
+    const pkg = yaml.parse(content) as PackageYaml
+    return pkg.name ?? ''
+  }
+
+  async getPackageNamespace(projectId: string): Promise<string> {
+    const project = await this.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    const packagePath = path.join(project.path, PACKAGE_METADATA_RELATIVE_PATH)
+    const content = await fs.readFile(packagePath, 'utf-8')
+    const pkg = yaml.parse(content) as PackageYaml
+    return pkg.namespace ?? 'local'
+  }
+
+  async tryLoadProject(directory: string): Promise<Project | null> {
+    try {
+      const packagePath = path.join(directory, PACKAGE_METADATA_RELATIVE_PATH)
+      const metadataPath = path.join(directory, PROJECT_METADATA_RELATIVE_PATH)
+
+      // Load package.yaml
+      const packageContent = await fs.readFile(packagePath, 'utf-8')
+      const pkg = yaml.parse(packageContent) as PackageYaml
+
+      if (!pkg.name) {
+        return null
+      }
+
+      // Load or create project metadata
+      let metadata: ProjectJson
+      try {
+        const metadataContent = await fs.readFile(metadataPath, 'utf-8')
+        metadata = JSON.parse(metadataContent)
+      } catch {
+        // Create new metadata if it doesn't exist
+        metadata = {
+          id: crypto.randomUUID(),
+          kind: 'UserProject',
+          created: new Date().toISOString(),
+          lastOpened: null,
+        }
+        await fs.mkdir(path.dirname(metadataPath), { recursive: true })
+        await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
+      }
+
+      if (!metadata.id || !metadata.created) {
+        return null
+      }
+
+      // Get directory creation time
+      const stats = await fs.stat(directory)
+
+      return {
+        id: metadata.id as UUID,
+        name: pkg.name,
+        namespace: pkg.namespace ?? 'local',
+        kind: 'UserProject',
+        created: metadata.created,
+        path: directory,
+        directoryCreationTime: stats.birthtime.toISOString(),
+        ...(pkg.edition ? { edition: pkg.edition } : {}),
+        ...(pkg.jvmModeEnabled ? { jvmModeEnabled: pkg.jvmModeEnabled } : {}),
+        ...(metadata.lastOpened ? { lastOpened: metadata.lastOpened } : {}),
+      }
+    } catch {
+      return null
+    }
+  }
+
+  private async renamePackage(projectPath: string, newName: string): Promise<void> {
+    const packagePath = path.join(projectPath, PACKAGE_METADATA_RELATIVE_PATH)
+    const content = await fs.readFile(packagePath, 'utf-8')
+    const pkg = yaml.parse(content) as PackageYaml
+    pkg.name = newName
+    await fs.writeFile(packagePath, yaml.stringify(pkg))
+  }
+
+  private async findTargetPath(moduleName: string): Promise<string> {
+    let suffix = 0
+    while (true) {
+      const candidatePath = path.join(
+        this.projectsPath,
+        moduleName + (suffix === 0 ? '' : `_${suffix}`),
+      )
+      try {
+        await fs.access(candidatePath)
+        suffix++
+      } catch {
+        return candidatePath
+      }
+    }
+  }
+
+  private normalizeName(name: string): string {
+    // Simple normalization - replace spaces and special chars with underscores
+    return name.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase()
+  }
+
+  private async copyDirectory(source: string, destination: string): Promise<void> {
+    await fs.mkdir(destination, { recursive: true })
+    const entries = await fs.readdir(source, { withFileTypes: true })
+
+    for (const entry of entries) {
+      const sourcePath = path.join(source, entry.name)
+      const destPath = path.join(destination, entry.name)
+
+      if (entry.isDirectory()) {
+        await this.copyDirectory(sourcePath, destPath)
+      } else {
+        await fs.copyFile(sourcePath, destPath)
+      }
+    }
+  }
+
+  private async resolveClashingIds(projects: Project[]): Promise<Project[]> {
+    const idGroups = new Map<string, Project[]>()
+
+    for (const project of projects) {
+      const group = idGroups.get(project.id) ?? []
+      group.push(project)
+      idGroups.set(project.id, group)
+    }
+
+    const result: Project[] = []
+
+    for (const group of idGroups.values()) {
+      if (group.length === 1) {
+        result.push(group[0]!)
+      } else {
+        // Sort by directory creation time, keep oldest
+        group.sort((a, b) => {
+          const timeA = a.directoryCreationTime ? new Date(a.directoryCreationTime).getTime() : 0
+          const timeB = b.directoryCreationTime ? new Date(b.directoryCreationTime).getTime() : 0
+          return timeA - timeB
+        })
+
+        result.push(group[0]!)
+
+        // Assign new IDs to clashing projects
+        for (let i = 1; i < group.length; i++) {
+          const project = group[i]!
+          const newId = crypto.randomUUID() as UUID
+          const updatedProject = { ...project, id: newId }
+          await this.update(updatedProject)
+          result.push(updatedProject)
+        }
+      }
+    }
+
+    return result
+  }
+}
