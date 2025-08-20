@@ -23,26 +23,29 @@ class GatherDiagnosticsTest extends CompilerTest {
   "Error Gathering" should {
     val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
     val plusOp = Name.Literal("+", isMethod = true, identifiedLocation = null)
-    val plusApp = new Application.Prefix(
-      plusOp,
-      List(
-        new CallArgument.Specified(
-          None,
-          error1,
-          false,
-          identifiedLocation = null
+    val plusApp = Application.Prefix
+      .builder()
+      .function(plusOp)
+      .arguments(
+        List(
+          CallArgument.Specified
+            .builder()
+            .name(None)
+            .value(error1)
+            .isSynthetic(false)
+            .build()
         )
       )
-    )
+      .build()
     val lam = new Function.Lambda(
       List(
-        new DefinitionArgument.Specified(
-          Name.Literal("bar", isMethod = false, identifiedLocation = null),
-          None,
-          None,
-          suspended          = false,
-          identifiedLocation = null
-        )
+        DefinitionArgument.Specified
+          .builder()
+          .name(
+            Name.Literal("bar", isMethod = false, identifiedLocation = null)
+          )
+          .suspended(false)
+          .build()
       ),
       plusApp,
       identifiedLocation = null
@@ -90,13 +93,12 @@ class GatherDiagnosticsTest extends CompilerTest {
           Definition.Type(
             typeName,
             List(
-              new DefinitionArgument.Specified(
-                fooName,
-                None,
-                Some(error2),
-                suspended          = false,
-                identifiedLocation = null
-              )
+              DefinitionArgument.Specified
+                .builder()
+                .name(fooName)
+                .defaultValue(Some(error2))
+                .suspended(false)
+                .build()
             ),
             List(),
             identifiedLocation = null

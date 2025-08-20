@@ -7,7 +7,6 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Expression,
-  MetadataStorage,
   Module,
   Name,
   Type
@@ -222,20 +221,22 @@ case object GlobalNames extends IRPass {
                         name     = resolvedModuleMethod.method.name,
                         location = None
                       )
-                      val app = new Application.Prefix(
-                        fun,
-                        List(
-                          new CallArgument.Specified(
-                            None,
-                            self,
-                            true,
-                            identifiedLocation = null
+                      val app = Application.Prefix
+                        .builder()
+                        .function(fun)
+                        .arguments(
+                          List(
+                            CallArgument.Specified
+                              .builder()
+                              .name(None)
+                              .value(self)
+                              .isSynthetic(true)
+                              .build()
                           )
-                        ),
-                        hasDefaultsSuspended = false,
-                        lit.identifiedLocation,
-                        new MetadataStorage()
-                      )
+                        )
+                        .hasDefaultsSuspended(false)
+                        .location(lit.identifiedLocation)
+                        .build()
                       fun
                         .getMetadata(ExpressionAnnotations)
                         .foreach(annotationsMeta =>
@@ -364,21 +365,20 @@ case object GlobalNames extends IRPass {
                 )
               )
             )
-          val selfArg =
-            new CallArgument.Specified(
-              None,
-              self,
-              true,
-              identifiedLocation = null
-            )
+          val selfArg = CallArgument.Specified
+            .builder()
+            .value(self)
+            .isSynthetic(true)
+            .name(None)
+            .build()
           processedFun.passData.remove(this) // Necessary for IrToTruffle
           app.copy(
-            function  = processedFun,
-            arguments = selfArg :: processedArgs
+            processedFun,
+            selfArg :: processedArgs
           )
         }
       case _ =>
-        app.copy(function = processedFun, arguments = processedArgs)
+        app.copy(processedFun, processedArgs)
     }
   }
 
@@ -431,7 +431,7 @@ case object GlobalNames extends IRPass {
       case _ => None
     }
     newApp.getOrElse(
-      app.copy(function = processedFun, arguments = processedArgs)
+      app.copy(processedFun, processedArgs)
     )
   }
 
@@ -446,7 +446,7 @@ case object GlobalNames extends IRPass {
     ) {
       newFun
     } else {
-      originalApp.copy(function = newFun, arguments = newArgs)
+      originalApp.copy(newFun, newArgs)
     }
   }
 

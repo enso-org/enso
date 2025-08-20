@@ -7,19 +7,21 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder
 
 /** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
   * fully generated yet.
   */
-class RuntimeStubsGenerator(builtins: Builtins) {
+private[runtime] class RuntimeStubsGenerator(builtins: Builtins) {
 
   /** Runs the stage on the given module.
     *
     * @param module the module to generate stubs in.
     */
-  def run(ir: IR, scope: ModuleScopeBuilder): Unit = {
+  private[runtime] def run(
+    ir: IR,
+    scope: TruffleCompilerModuleScopeBuilder
+  ): Unit = {
     val localBindings = ir.unsafeGetMetadata(
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
@@ -27,6 +29,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     val types = localBindings.definedEntities.collect {
       case t: BindingsMap.Type => t
     }
+    val compilerScope = scope.toCompilerBuilder()
     types.foreach { tp =>
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
@@ -46,7 +49,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         scope.registerType(builtinType.getType)
         builtinType.getType.setShadowDefinitions(
           builtins.getLanguage(),
-          scope,
+          compilerScope,
           true
         )
       } else {
@@ -57,7 +60,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
             Type.create(
               builtins.getLanguage(),
               tp.name,
-              scope,
+              compilerScope,
               builtins.any(),
               builtins.any(),
               false,
@@ -66,7 +69,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           } else {
             Type.createSingleton(
               tp.name,
-              scope,
+              compilerScope,
               builtins.any(),
               false,
               hasAllConstructorsPrivate

@@ -637,8 +637,8 @@ export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
   'ensoPath'
 > | null
 
-/** Whether the user is on a plan associated with an organization. */
-export function isUserOnPlanWithOrganization(user: User) {
+/** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
+export function isUserOnPlanWithMultipleSeats(user: User) {
   switch (user.plan) {
     case undefined:
     case Plan.free:

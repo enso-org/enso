@@ -47,7 +47,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -174,7 +173,7 @@ public final class Module extends EnsoObject {
       this.compilationStage = CompilationStage.INITIAL;
     } else {
       if (fillWith != null) {
-        fillWith.accept(scopeBuilder.unsafeScopeBuilder());
+        fillWith.accept(scopeBuilder);
       }
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
     }
@@ -557,7 +556,7 @@ public final class Module extends EnsoObject {
    */
   final ModuleScopeBuilder getScopeBuilder(boolean reset) {
     var sb = TruffleCompilerContext.findCompilerModule(this).getScopeBuilder(reset);
-    return sb.unsafeScopeBuilder();
+    return sb;
   }
 
   /**

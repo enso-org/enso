@@ -13,7 +13,7 @@ import scala.collection.mutable
   * This plugin injects all the module-specific options to `javaOptions`, based on
   * the settings of this plugin.
   *
-  * Note that the settings of this plugin are *scoped* to `Compile` and `Test` configurations, so
+  * Note that the settings of this plugin are *scoped* to `Compile`, `Test`, and `Runtime` configurations, so
   * you need to always specify the configuration, for example, `Compile / moduleDependencies` instead
   * of just `moduleDependencies`.
   *
@@ -151,13 +151,24 @@ object JPMSPlugin extends AutoPlugin {
       "DO NOT USE DIRECTLY."
     )
 
+    val constructOptionsTask = taskKey[Seq[String]](
+      """
+        |Constructs cmdline options for `java` based on the settings of this plugin.
+        |Usually, this is done automatically by this plugin. More specifically, this
+        |plugin fills in the `javaOptions` and `javacOptions`. Use this task if you are
+        |not satisfied with the options that this plugin generates. For example, sbt by
+        |default appends all `Runtime/javaOptions` to `Test/javaOptions`, which may not
+        |be the desired behavior.
+        |""".stripMargin
+    )
+
   }
 
   import autoImport._
 
   override lazy val projectSettings: Seq[Setting[_]] = {
     // All the settings are scoped for Compile and Test
-    Seq(Compile, Test).flatMap { config: Configuration =>
+    Seq(Compile, Test, Runtime).flatMap { config: Configuration =>
       Seq(
         config / addModules := Seq.empty,
         config / moduleDependencies := Seq.empty,
@@ -290,7 +301,19 @@ object JPMSPlugin extends AutoPlugin {
         ),
         config / javaOptions := joinModulePathOption(
           (config / javaOptions).value
-        )
+        ),
+        config / constructOptionsTask := {
+          constructOptions(
+            streams.value.log,
+            moduleName.value,
+            (config / modulePath).value,
+            (config / addModules).value,
+            (config / patchModules).value,
+            (config / addExports).value,
+            (config / addReads).value,
+            (config / addOpens).value
+          )
+        }
       )
     }
   }
@@ -460,7 +483,7 @@ object JPMSPlugin extends AutoPlugin {
     * @param opts Current value of cmd line options
     * @return
     */
-  private def joinModulePathOption(
+  def joinModulePathOption(
     opts: Seq[String]
   ): Seq[String] = {
     val modulePathOpt  = new StringBuilder()

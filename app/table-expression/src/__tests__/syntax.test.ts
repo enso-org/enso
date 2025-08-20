@@ -46,6 +46,37 @@ test.each([
     code: '[Column 1]',
     expected: ['Expression', ['Column', ['SquareBracket', '['], ['SquareBracket', ']']]],
   },
+  {
+    code: 'number(1)',
+    expected: ['Expression', ['Function', ['Paren', '('], ['Number', '1'], ['Paren', ')']]],
+  },
+  {
+    code: 'text_length([Column 1])',
+    expected: [
+      'Expression',
+      [
+        'Function',
+        ['Paren', '('],
+        ['Column', ['SquareBracket', '['], ['SquareBracket', ']']],
+        ['Paren', ')'],
+      ],
+    ],
+  },
+  {
+    code: 'without_parens',
+    expected: ['Expression', ['Function', ['⚠', '']]],
+  },
+  {
+    code: 'open_paren_only(',
+    expected: ['Expression', ['Function', ['Paren', '('], ['⚠', '']]],
+  },
+  {
+    code: 'unclosed_column_in_function([Column 1)',
+    expected: [
+      'Expression',
+      ['Function', ['Paren', '('], ['Column', ['SquareBracket', '['], ['⚠', '']], ['⚠', '']],
+    ],
+  },
 ])('Syntax tree', ({ code, expected }) => {
   expect(debugTree(parser.parse(code), code)).toEqual(expected)
 })

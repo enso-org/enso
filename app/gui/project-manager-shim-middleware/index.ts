@@ -60,7 +60,7 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
-const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
+const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
 
 const COMMON_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
