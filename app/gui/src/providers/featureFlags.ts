@@ -68,7 +68,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         disableAnimations: false,
         fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
         unsafeDarkTheme: false,
-        enableProjectService: IS_DEV_MODE
+        enableProjectService: IS_DEV_MODE,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))
@@ -87,7 +87,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         }) {
           const newFeatureFlags = { ...newState.featureFlags }
           for (const [k, v] of unsafeEntries(flags)) {
-            if (v !== undefined) {
+            if (!(k in newFeatureFlags) && v !== undefined) {
               unsafeWriteValue(newFeatureFlags, k, v)
             }
           }
