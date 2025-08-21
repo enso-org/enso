@@ -158,9 +158,14 @@ final class OtherJvmObject implements TruffleObject {
 
       // proper dispatch to the other JVM
       var msg = new OtherJvmMessage(id, message, Arrays.asList(args));
-      var reply = executeMessage(msg, message, args);
-      var result = reply.value();
-      return result;
+      try {
+        var reply = executeMessage(msg, message, args);
+        var result = reply.value();
+        return result;
+      } catch (IllegalStateException ex) {
+        CompilerDirectives.transferToInterpreter();
+        throw new OtherJvmException(ex);
+      }
     }
   }
 
