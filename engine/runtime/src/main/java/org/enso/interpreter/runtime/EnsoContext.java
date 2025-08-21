@@ -25,7 +25,6 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -596,32 +595,6 @@ public final class EnsoContext {
     return false;
   }
 
-  interface ClassLookup {
-    Object loadClass(String name) throws ClassNotFoundException, InteropException;
-
-    static Object lookupJavaClass(
-        String className, ClassLookup fn, Collection<? super Exception> collectExceptions) {
-      var binaryName = new StringBuilder(className);
-      for (; ; ) {
-        var fqn = binaryName.toString();
-        try {
-          var hostSymbol = fn.loadClass(fqn);
-          if (hostSymbol != null) {
-            return hostSymbol;
-          }
-        } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
-          collectExceptions.add(ex);
-        }
-        var at = fqn.lastIndexOf('.');
-        if (at < 0) {
-          break;
-        }
-        binaryName.setCharAt(at, '$');
-      }
-      return null;
-    }
-  }
-
   /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
@@ -635,17 +608,10 @@ public final class EnsoContext {
   @TruffleBoundary
   public TruffleObject lookupJavaClass(Package<?> who, String className) {
     var collectedExceptions = new ArrayList<Exception>();
-    var hostSymbol =
-        ClassLookup.lookupJavaClass(
-            className, // name to search for
-            (fqn) -> {
-              var polyglotJava = EnsoPolyglotJava.find(this, who);
-              return polyglotJava.loadClass(this, fqn);
-            }, // pluggable polyglot searches
-            collectedExceptions // collect exceptions
-            );
-    if (hostSymbol instanceof TruffleObject) {
-      return (TruffleObject) hostSymbol;
+    var polyglotJava = EnsoPolyglotJava.find(this, who);
+    var hostSymbol = polyglotJava.lookupJavaClass(className, collectedExceptions);
+    if (hostSymbol instanceof TruffleObject obj) {
+      return obj;
     }
     var level = Level.WARNING;
     for (var ex : collectedExceptions) {

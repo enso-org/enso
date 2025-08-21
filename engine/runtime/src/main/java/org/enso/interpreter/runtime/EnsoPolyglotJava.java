@@ -12,6 +12,7 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.enso.common.HostEnsoUtils;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
@@ -27,12 +28,46 @@ final class EnsoPolyglotJava {
   private static final EnsoContext.Extra<CtxData> KEY =
       new EnsoContext.Extra<>(CtxData.class, CtxData::new);
 
+  private final EnsoContext ctx;
   private final boolean isHostClassLoading;
   private final List<File> pendingPath = new ArrayList<>();
   private Object polyglotJava = this;
 
-  private EnsoPolyglotJava(boolean isHostClassLoading) {
+  private EnsoPolyglotJava(EnsoContext ctx, boolean isHostClassLoading) {
+    this.ctx = ctx;
     this.isHostClassLoading = isHostClassLoading;
+  }
+
+  /**
+   * Performs a lookup for a Java class.
+   *
+   * @param className the {@code .} separated class name to look for
+   * @param collectExceptions reported exceptions are put into this array
+   * @return {@code null} on failure or an object representing the {@code className}
+   */
+  final TruffleObject lookupJavaClass(
+      String className, Collection<? super Exception> collectExceptions) {
+    var binaryName = new StringBuilder(className);
+    for (; ; ) {
+      var fqn = binaryName.toString();
+      try {
+
+        var hostSymbol = loadClass(fqn);
+
+        if (hostSymbol != null) {
+          return hostSymbol;
+        }
+
+      } catch (RuntimeException | InteropException ex) {
+        collectExceptions.add(ex);
+      }
+      var at = fqn.lastIndexOf('.');
+      if (at < 0) {
+        break;
+      }
+      binaryName.setCharAt(at, '$');
+    }
+    return null;
   }
 
   static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkgOrNull) {
@@ -88,7 +123,7 @@ final class EnsoPolyglotJava {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private synchronized Object findPolyglotJava(EnsoContext ctx) throws InteropException {
+  private synchronized Object findPolyglotJava() throws InteropException {
     if (polyglotJava != this) {
       return polyglotJava;
     }
@@ -184,8 +219,8 @@ final class EnsoPolyglotJava {
     return null;
   }
 
-  final TruffleObject loadClass(EnsoContext ctx, String fqn) throws InteropException {
-    var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(ctx), fqn);
+  final TruffleObject loadClass(String fqn) throws InteropException {
+    var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
     return (TruffleObject) raw;
   }
 
@@ -218,9 +253,12 @@ final class EnsoPolyglotJava {
   }
 
   private static final class CtxData {
-    private EnsoPolyglotJava hosted = new EnsoPolyglotJava(true);
-    private EnsoPolyglotJava guest = new EnsoPolyglotJava(false);
+    private final EnsoPolyglotJava hosted;
+    private final EnsoPolyglotJava guest;
 
-    CtxData(EnsoContext ctx) {}
+    CtxData(EnsoContext ctx) {
+      this.hosted = new EnsoPolyglotJava(ctx, true);
+      this.guest = new EnsoPolyglotJava(ctx, false);
+    }
   }
 }
