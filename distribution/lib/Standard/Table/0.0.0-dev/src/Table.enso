@@ -2380,7 +2380,7 @@ type Table
     ## ---
        aliases: [add index column, record id]
        macros:
-        - rank: "Rank" 1
+        - rank: '"Rank" 1'
        group: Standard.Base.Values
        icon: column_add
        suggested: 6
