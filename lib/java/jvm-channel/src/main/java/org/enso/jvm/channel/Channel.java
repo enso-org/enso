@@ -37,6 +37,9 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private static final long ISOLATE_MOCK_MASTER = -2;
   private static final long ISOLATE_MOCK_SLAVE = -3;
 
+  private static final long RET_CODE_EXCEPTION = -2;
+  private static final long RET_CODE_OVERFLOW = -3;
+
   /**
    * @GuardedBy("Channel.class")
    */
@@ -46,6 +49,16 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
    * @GuardedBy("Channel.class")
    */
   private static long idCounter = 1;
+
+  /**
+   * prevent the buffer from being GCed too soon. Keep it until next call. By default the buffers
+   * are allocated by callers. After the call is made the caller then deallocates the buffer.
+   *
+   * <p>However, when there is an overflow, the buffer must be allocated by the callee. We need the
+   * buffer to survive "a while" before the caller reads it. For now, the callee stores the buffer
+   * here. The value gets cleared on next call.
+   */
+  private static ThreadLocal<ByteBuffer> keepLastOverflowBuffer = new ThreadLocal<>();
 
   /** data associated with the channel */
   private final Data data;
@@ -276,18 +289,33 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       var buf = asNativeByteBuffer(data, size);
       buf.putInt(bytes.length);
       buf.put(bytes);
-      return -2L;
+      return RET_CODE_EXCEPTION;
     }
   }
 
   private static long handleWithChannel(Channel channel, ByteBuffer buf) throws IOException {
+    // clean any previous overflow buffer
+    keepLastOverflowBuffer.set(null);
+
     var ref = channel.pool.read(buf);
     var msg = ref.get(Function.class);
     @SuppressWarnings("unchecked")
     var res = msg.apply(channel);
     var bytes = channel.pool.write(res);
-    buf.put(0, bytes);
-    return bytes.length;
+    if (bytes.length <= buf.limit()) {
+      buf.put(0, bytes);
+      return bytes.length;
+    } else {
+      var ownBuffer = ByteBuffer.allocateDirect(bytes.length);
+      ownBuffer.put(0, bytes);
+      var ownSeg = MemorySegment.ofBuffer(ownBuffer);
+      buf.position(0); // at begining put
+      buf.limit(16); // two longs
+      buf.putLong(bytes.length);
+      buf.putLong(ownSeg.address());
+      keepLastOverflowBuffer.set(buf);
+      return RET_CODE_OVERFLOW;
+    }
   }
 
   private long toHotSpotMessage(long address, long size) {
@@ -370,7 +398,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         address = memory.address();
         len = isDirect() ? toDirectMessage(buffer) : toSubstrateMessage(memory);
       }
-      if (len == -2) {
+      if (len == RET_CODE_EXCEPTION) {
         // signals exception
         buffer.position(0);
         var msgLen = buffer.getInt();
@@ -378,6 +406,14 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         buffer.get(msgBytes);
         var exceptionMessage = new String(msgBytes);
         throw new IllegalStateException(exceptionMessage);
+      }
+      if (len == RET_CODE_OVERFLOW) {
+        buffer.position(0);
+        // read length
+        len = buffer.getLong();
+        // read address
+        var overflowSegment = MemorySegment.ofAddress(buffer.getLong()).reinterpret(len);
+        buffer = overflowSegment.asByteBuffer();
       }
       assert len >= 0;
       buffer.position(0);
