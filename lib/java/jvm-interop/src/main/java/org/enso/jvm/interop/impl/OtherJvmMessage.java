@@ -6,6 +6,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
@@ -62,6 +63,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       kinds.put(ClassNotFoundException.class, 1);
       kinds.put(UnsupportedMessageException.class, 2);
       kinds.put(UnknownIdentifierException.class, 3);
+      kinds.put(UnsupportedTypeException.class, 4);
     }
 
     @SuppressWarnings("unchecked")
@@ -87,6 +89,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
         case 1 -> throw (E) new ClassNotFoundException(msg);
         case 2 -> throw (E) UnsupportedMessageException.create();
         case 3 -> throw (E) UnknownIdentifierException.create(msg);
+        case 4 -> throw (E) UnsupportedTypeException.create(new Object[0], msg);
         default -> throw new OtherJvmException(msg);
       }
     }

@@ -141,6 +141,36 @@ public class OtherJvmObjectTest {
   }
 
   @Test
+  public void parsingWithGoodArguments() throws Exception {
+    var longClass1 = ctx.asValue(java.lang.Long.class).getMember("static");
+    var longClass2 = loadOtherJvmClass(java.lang.Long.class.getName());
+
+    var valid1 = longClass1.invokeMember("parseLong", "42");
+    var valid2 = longClass2.invokeMember("parseLong", "42");
+    assertEquals(42L, valid1.asLong());
+    assertEquals(42L, valid2.asLong());
+  }
+
+  @Test
+  public void parsingWithWrongArguments() throws Exception {
+    var longClass1 = ctx.asValue(java.lang.Long.class).getMember("static");
+    var longClass2 = loadOtherJvmClass(java.lang.Long.class.getName());
+
+    try {
+      var valid1 = longClass1.invokeMember("parseLong", 42.0);
+      fail("Expecting failure: " + valid1);
+    } catch (IllegalArgumentException e) {
+      // OK
+    }
+    try {
+      var valid2 = longClass2.invokeMember("parseLong", 42.0);
+      fail("Expecting failure: " + valid2);
+    } catch (IllegalArgumentException e) {
+      // OK
+    }
+  }
+
+  @Test
   public void unsupportedOperation() throws Exception {
     var shortClass1 = ctx.asValue(java.lang.Short.class).getMember("static");
     try {
