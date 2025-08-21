@@ -147,7 +147,7 @@ export class ProjectService {
     projectsDirectory: string,
     engineVersion?: string,
     projectTemplate?: string,
-  ): Promise<Project> {
+  ): Promise<CreateProject> {
     // Step 1: Generate Project ID
     const projectId = this.generateUUID()
 
@@ -201,7 +201,12 @@ export class ProjectService {
 
     // Step 11: Return created project
     this.logger.info(`Project created [${JSON.stringify(project)}].`)
-    return project
+    return {
+      projectId,
+      projectName: actualName,
+      projectNormalizedName: moduleName,
+      projectPath,
+    }
   }
 
   // ========================

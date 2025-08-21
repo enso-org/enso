@@ -196,7 +196,6 @@ export class ProjectManager {
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
     const enableProjectService = useFeatureFlag('enableProjectService')
-    console.info('createProject enableProjectService', enableProjectService.value)
     let result: Omit<CreateProject, 'projectPath'>
     if (enableProjectService.value) {
       result = await this.runProjectServiceCommandJson('project/create', { ...params })

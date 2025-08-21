@@ -85,12 +85,12 @@ export interface ProjectEntry {
 // ================
 
 /** JSON-RPC result wrapper */
-function toJSONRPCResult(result: unknown): string {
+export function toJSONRPCResult(result: unknown): string {
   return JSON.stringify({ jsonrpc: '2.0', id: 0, result })
 }
 
 /** JSON-RPC error wrapper */
-function toJSONRPCError(message: string, data?: unknown): string {
+export function toJSONRPCError(message: string, data?: unknown): string {
   return JSON.stringify({
     jsonrpc: '2.0',
     id: 0,

@@ -9,7 +9,6 @@ import * as https from 'node:https'
 import * as path from 'node:path'
 
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
-import { handleFilesystemCommand } from 'project-manager-shim'
 
 import {
   AssetType,
@@ -50,6 +49,7 @@ import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
+import { handleFilesystemCommand, toJSONRPCError, toJSONRPCResult } from 'project-manager-shim'
 import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 
@@ -208,14 +208,16 @@ export default function projectManagerShimMiddleware(
         }
         bodyJson<ResponseBody>(request)
           .then((body) => {
-            PROJECT_SERVICE.createProject(body.name, body.projectsDirectory)
+            return PROJECT_SERVICE.createProject(body.name, body.projectsDirectory)
           })
-          .then((project) => {
-            response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(JSON.stringify(project))
+          .then((result) => {
+            response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(result))
           })
           .catch((err) => {
             console.error(err)
-            response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+            response
+              .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+              .end(toJSONRPCError('project/create failed', err))
           })
         break
       }
