@@ -81,17 +81,17 @@ class LambdaShorthandToLambdaMini(
           .arguments(
             List(
               DefinitionArgument.Specified
-              .builder()
-              .name(
-                Name.Literal(
-                  newName.name,
-                  isMethod = false,
-                  null
-                )
+                .builder()
+                .name(
+                  Name.Literal(
+                    newName.name,
+                    isMethod = false,
+                    null
+                  )
                 )
                 .suspended(false)
                 .build(
-              )
+                )
             )
           )
           .bodyReference(Persistance.Reference.of(newName, true))
@@ -168,13 +168,15 @@ class LambdaShorthandToLambdaMini(
               List(
                 DefinitionArgument.Specified
                   .builder()
-                .name(Name
-                    .Literal(
-                      updatedName.get,
-                      isMethod = false,
-                      p.function.location.orNull
-                    )
-                ).build()
+                  .name(
+                    Name
+                      .Literal(
+                        updatedName.get,
+                        isMethod = false,
+                        p.function.location.orNull
+                      )
+                  )
+                  .build()
               )
             )
             .bodyReference(Persistance.Reference.of(appResult, true))
