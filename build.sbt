@@ -4664,7 +4664,8 @@ lazy val `std-base` = project
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
       "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
+      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion,
+      "org.slf4j"                  % "slf4j-api"               % slf4jVersion
     ),
     Compile / packageBin := {
       val result = (Compile / packageBin).value

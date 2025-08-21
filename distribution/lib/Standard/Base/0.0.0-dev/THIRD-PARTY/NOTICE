@@ -40,3 +40,8 @@ Copyright notices related to this dependency can be found in the directory `org.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-24.2.0`.
 
+
+'slf4j-api', licensed under the MIT License, is distributed with the Base.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-2.0.16`.
+
