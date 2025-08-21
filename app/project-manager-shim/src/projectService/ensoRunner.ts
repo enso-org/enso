@@ -82,14 +82,14 @@ export function findEnsoPath(workDir: string): string | undefined {
     }
   }
 
-  // Check resources/enso/dist/*/bin/enso
-  const resourcesDir = path.join(workDir, 'resources', 'enso', 'dist')
+  // Check enso/dist/*/bin/enso
+  const ensoDistPath = path.join(workDir, 'enso', 'dist')
   try {
-    const stat = fs.statSync(resourcesDir)
+    const stat = fs.statSync(ensoDistPath)
     if (stat.isDirectory()) {
-      const distDirs = fs.readdirSync(resourcesDir)
+      const distDirs = fs.readdirSync(ensoDistPath)
       for (const distDir of distDirs) {
-        const ensoPath = path.join(resourcesDir, distDir, 'bin', 'enso')
+        const ensoPath = path.join(ensoDistPath, distDir, 'bin', 'enso')
         try {
           fs.accessSync(ensoPath)
           return checkExecutable(ensoPath)
@@ -99,7 +99,7 @@ export function findEnsoPath(workDir: string): string | undefined {
       }
     }
   } catch {
-    // Directory doesn't exist, continue to next check
+    // Directory doesn't exist, continue to next directory
   }
 
   // Check built-distribution/*/*/bin/enso
