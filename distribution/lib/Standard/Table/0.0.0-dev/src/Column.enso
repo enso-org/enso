@@ -2512,19 +2512,6 @@ type Column
         self.implementation.compute self statistic
 
     ## ---
-       aliases:
-        - count
-        - kurtosis
-        - maximum
-        - mean
-        - median
-        - minimum
-        - mode
-        - skew
-        - standard_deviation
-        - statistic
-        - sum
-        - variance
        icon: transform4
        ---
        Compute statistics on the column.
