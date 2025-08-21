@@ -17,13 +17,15 @@
   },
   "main": "src/index.ts",
   "scripts": {
+    "test:unit": "vitest run",
     "compile": "tsc",
     "lint": "eslint . --cache --max-warnings=0"
   },
   "devDependencies": {
     "@types/node": "^22.10.4",
     "@types/tar": "^6.1.13",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "enso-common": "workspace:*",
