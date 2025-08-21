@@ -1,8 +1,17 @@
 package org.enso.logger;
 
-import static java.util.logging.Level.*;
+import static java.util.logging.Level.ALL;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINER;
+import static java.util.logging.Level.FINEST;
+import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.SEVERE;
+import static java.util.logging.Level.WARNING;
 
-import java.util.logging.*;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.SimpleFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +45,7 @@ public final class JulHandler extends Handler {
       msg = formattter.formatMessage(record);
     } else {
       hasThrowable = false;
-      msg = record.getMessage().replaceAll("\\{\\d+\\}", "{}");
+      msg = record.getMessage() == null ? null : record.getMessage().replaceAll("\\{\\d+\\}", "{}");
     }
     if (julLevel.intValue() == SEVERE.intValue()) {
       if (hasThrowable) logger.error(msg, record.getThrown());
