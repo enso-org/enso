@@ -152,7 +152,6 @@ SRCS = STDLIB_SOURCES + [
     "std-bits/base/src/**",
     "std-bits/benchmarks/src/**",
     "std-bits/database/src/**",
-    "std-bits/generic-jdbc/src/**",
     "std-bits/google/src/**",
     "std-bits/image/src/**",
     "std-bits/microsoft/src/**",
