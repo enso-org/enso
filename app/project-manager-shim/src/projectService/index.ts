@@ -9,8 +9,8 @@ import * as path from 'node:path'
 
 import { UUID } from 'enso-common/src/services/Backend'
 import { type Runner, EnsoRunner, findEnsoPath } from './ensoRunner.js'
-import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
 import * as nameValidation from './nameValidation.js'
+import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
 
 // ==================
 // === Data Types ===
@@ -149,32 +149,22 @@ export class ProjectService {
     engineVersion?: string,
     projectTemplate?: string,
   ): Promise<CreateProject> {
-    // Step 1: Generate Project ID
     const projectId = this.generateUUID()
-
-    // Step 2: Log Creation
-    this.logger.debug(
-      `Creating project [${projectName}, ${projectId}, ${projectTemplate}, ${projectsDirectory}].`,
-    )
-
-    // Step 3: Get Repository
     const repo = this.getProjectRepository(projectsDirectory)
 
-    // Step 4: Name Resolution - ensure unique name
+    // Ensure unique name
     const actualName = await this.getNameForNewProject(projectName, repo)
-    this.logger.info(`Created project with actual name [${actualName}].`)
 
-    // Step 5: Validation
+    // Validation
     await this.validateProjectName(actualName)
     await this.checkIfNameExists(actualName, repo)
 
-    // Step 6: Normalize Project Name
+    // Normalize project name
     const normalizedName = nameValidation.normalizedName(actualName)
 
-    // Step 7: Find Path for new project
+    // Find path for new project
     const projectPath = await repo.findPathForNewProject(normalizedName)
 
-    // Step 8: Create Project Object
     const creationTime = new Date().toISOString()
     const project: Project = {
       id: projectId,
@@ -185,23 +175,14 @@ export class ProjectService {
       path: projectPath,
     }
 
-    this.logger.debug(
-      `Found a path [${projectPath}] for a new project [${actualName}, ${projectId}].`,
-    )
-
-    // Step 9: Create Project Structure
+    // Create project structure
     await this.runner.createProject(projectPath, actualName, engineVersion, projectTemplate)
 
-    this.logger.debug(
-      `Project [${projectId}] structure created with [${projectPath}, ${actualName}, ${normalizedName}].`,
-    )
-
-    // Step 10: Update Repository
+    // Update metadata
     await repo.update(project)
-    this.logger.debug(`Project [${projectId}] updated in repository.`)
 
-    // Step 11: Return created project
-    this.logger.info(`Project created [${JSON.stringify(project)}].`)
+    this.logger.debug('Created project', projectPath)
+
     return {
       projectId,
       projectName: actualName,
@@ -248,7 +229,6 @@ export class ProjectService {
     if (name.trim().length === 0) {
       throw new ValidationFailure('Project name cannot be empty.')
     }
-    this.logger.debug(`Project name [${name}] validated.`)
   }
 
   private async checkIfNameExists(name: string, repo: ProjectRepository): Promise<void> {
@@ -256,7 +236,6 @@ export class ProjectService {
     if (exists) {
       throw new ProjectExists(`Project with name '${name}' already exists.`)
     }
-    this.logger.debug(`Checked if the project name [${name}] exists in repository.`)
   }
 
   async deleteUserProject(projectId: string, projectsDirectory?: string): Promise<void> {

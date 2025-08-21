@@ -99,8 +99,8 @@ export class ProjectFileRepository implements ProjectRepository {
       throw new Error(`Project not found: ${projectId}`)
     }
 
-    // Simple implementation: move to a .trash directory
-    // In production, this should use platform-specific trash APIs
+    // TODO: Simple implementation: move to a .trash directory
+    // This should use platform-specific trash APIs
     const trashPath = path.join(this.projectsPath, '.trash', path.basename(project.path))
     await fs.mkdir(path.dirname(trashPath), { recursive: true })
     await fs.rename(project.path, trashPath)
