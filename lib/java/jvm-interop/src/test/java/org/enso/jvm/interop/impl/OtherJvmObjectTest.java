@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.function.Consumer;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
@@ -217,11 +218,12 @@ public class OtherJvmObjectTest {
   private static final Object IDENTICAL = new MockObject();
 
   public static Object otherJvmInstances(int kind) {
-    if (kind == 0) {
-      return IDENTICAL;
-    } else {
-      return new MockObject();
-    }
+    return switch (kind) {
+      case 0 -> IDENTICAL;
+      case 1 -> new MockObject();
+      case 2 -> Duration.ofSeconds(42);
+      default -> null;
+    };
   }
 
   @Test
@@ -248,6 +250,21 @@ public class OtherJvmObjectTest {
     var other1 = otherClass.invokeMember("otherJvmInstances", 1);
     var other2 = otherClass.invokeMember("otherJvmInstances", 1);
     assertNotEquals(other1, other2);
+  }
+
+  @Test
+  public void isDuration() throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", 2);
+    assertTrue("Recognized as duration", local1.isDuration());
+    var ld = local1.asDuration();
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 2);
+    assertTrue("Recognized as duration", other1.isDuration());
+    var od = other1.asDuration();
+
+    assertEquals(ld, od);
   }
 
   public static void callback(Consumer<Object> cb, Object value) {

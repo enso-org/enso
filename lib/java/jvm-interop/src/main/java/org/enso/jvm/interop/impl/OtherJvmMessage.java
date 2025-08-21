@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -515,6 +516,27 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       } else {
         return Optional.empty();
       }
+    }
+  }
+
+  @Persistable(id = 126)
+  static final class PersistDuration extends Persistance<Duration> {
+
+    public PersistDuration() {
+      super(Duration.class, true, 126);
+    }
+
+    @Override
+    protected void writeObject(Duration obj, Output out) throws IOException {
+      out.writeLong(obj.getSeconds());
+      out.writeInt(obj.getNano());
+    }
+
+    @Override
+    protected Duration readObject(Input in) throws IOException, ClassNotFoundException {
+      var s = in.readLong();
+      var n = in.readInt();
+      return Duration.ofSeconds(s, n);
     }
   }
 }
