@@ -264,7 +264,7 @@ export function useOpenProjectMutation() {
       }))
     },
     onSuccess: async (_, { title, hybrid, suppressHybridProjectOpen = false }) => {
-      await client.cancelQueries({ queryKey: ['project'] })
+      await client.invalidateQueries({ queryKey: ['project'] })
       if (hybrid && !suppressHybridProjectOpen) {
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
