@@ -35,37 +35,43 @@ final class EnsoPolyglotJava {
     this.isHostClassLoading = isHostClassLoading;
   }
 
-  static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkg) {
+  static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkgOrNull) {
     var data = KEY.get(ctx);
     var useGuest = true;
-    var pkgName = pkg.libraryName().qualifiedName();
     if (ctx.isHostClassLoading()) {
-      if (isHostClassLoadingFor(pkg)) {
+      if (isHostClassLoadingFor(pkgOrNull)) {
         useGuest = false;
       } else {
-        pkg.warnAotReady(
-            () -> {
-              logger.log(
-                  Level.WARNING,
-                  "Package {0} forced to guest classloading. Use --jvm when encountering problems.",
-                  pkgName);
-            });
+        if (pkgOrNull != null) {
+          pkgOrNull.warnAotReady(
+              () -> {
+                logger.log(
+                    Level.WARNING,
+                    "Package {0} forced to guest classloading. Use --jvm when encountering"
+                        + " problems.",
+                    logNameForPkg(pkgOrNull));
+              });
+        }
       }
     }
 
     if (useGuest) {
-      logger.log(Level.DEBUG, "Using guest JVM for {0}", pkgName);
+      logger.log(Level.DEBUG, "Using guest JVM for {0}", logNameForPkg(pkgOrNull));
       return data.guest;
     } else {
-      logger.log(Level.DEBUG, "Using host JVM for {0}", pkgName);
+      logger.log(Level.DEBUG, "Using host JVM for {0}", logNameForPkg(pkgOrNull));
       return data.hosted;
     }
   }
 
-  private static boolean isHostClassLoadingFor(Package<?> pkg) {
+  private static String logNameForPkg(Package<?> pkgOrNull) {
+    return pkgOrNull == null ? "<none>" : pkgOrNull.libraryName().qualifiedName();
+  }
+
+  private static boolean isHostClassLoadingFor(Package<?> pkgOrNull) {
     if (HostEnsoUtils.isAot()) {
-      if (pkg != null && pkg.isAotReady()) {
-        // if the package has been "compiled in" AOT binary
+      if (pkgOrNull != null && pkgOrNull.isAotReady()) {
+        // if the package has been "compiled into" AOT binary
         return true;
       }
     } else {
