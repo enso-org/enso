@@ -274,7 +274,7 @@ export function useOpenProjectMutation() {
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
     meta: {
-      invalidates: [['listDirectory'], ['project'], ['getAssetDetails']],
+      invalidates: [['listDirectory'], ['getAssetDetails']],
       awaitInvalidates: true,
     },
   })
