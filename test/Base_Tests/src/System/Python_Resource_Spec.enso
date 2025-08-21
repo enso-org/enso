@@ -66,7 +66,13 @@ add_specs suite_builder = suite_builder.group "Python resources" group_builder->
             clue_3 = with_string_builder \sb ->
                 sb.append "Second reported Python language home should be in the extracted directory. "
                 sb.append "Instead got: "
+                sb.append "'"
                 sb.append updated_home.to_text
+                sb.append "'. "
+                sb.append "The entire output is: "
+                lines.each \line ->
+                    sb.append line
+                    sb.append "\n"
                 sb.append " : "
             Test.with_clue clue_3 <|
                 updated_home.contains "built-distribution" . should_be_true
