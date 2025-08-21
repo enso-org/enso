@@ -368,7 +368,12 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>
-  <div ref="wrapper" @keydown="handler" @keydown.capture="suppressCopy" @keydown.space.stop>
+  <div
+    ref="wrapper"
+    @keydown="handler($event) || stopIfPrevented($event)"
+    @keydown.capture="suppressCopy"
+    @keydown.space.stop
+  >
     <AgGridVue
       v-bind="$attrs"
       ref="grid"

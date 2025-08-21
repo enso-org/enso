@@ -162,8 +162,6 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
                     null
                   )
                 )
-                .ascribedType(None)
-                .defaultValue(None)
                 .suspended(false)
                 .build()
             )
@@ -255,8 +253,6 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
                       p.function.location.orNull
                     )
                   )
-                  .ascribedType(None)
-                  .defaultValue(None)
                   .build()
               )
             )
@@ -293,8 +289,6 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           val defArg = DefinitionArgument.Specified
             .builder()
             .name(bindingName)
-            .ascribedType(None)
-            .defaultValue(None)
             .suspended(false)
             .build()
           Function.Lambda
@@ -392,8 +386,6 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
             DefinitionArgument.Specified
               .builder()
               .name(defArgName)
-              .ascribedType(None)
-              .defaultValue(None)
               .suspended(false)
               .passData(specified.passData().duplicate())
               .diagnostics(specified.diagnosticsCopy())
@@ -441,8 +433,6 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         val lambdaArg = DefinitionArgument.Specified
           .builder()
           .name(scrutineeName.copy(id = null))
-          .ascribedType(None)
-          .defaultValue(None)
           .suspended(false)
           .build()
 

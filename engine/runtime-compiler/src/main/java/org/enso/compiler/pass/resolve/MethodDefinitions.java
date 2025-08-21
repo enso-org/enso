@@ -205,13 +205,10 @@ public final class MethodDefinitions implements MiniPassFactory {
         // is
         // added to avoid modifying the dispatch mechanism.
         var syntheticModuleSelfArg =
-            new DefinitionArgument.Specified(
-                new Name.Self(null, true, new MetadataStorage()),
-                Option.empty(),
-                Option.empty(),
-                false,
-                null,
-                new MetadataStorage());
+            DefinitionArgument.Specified.builder()
+                .name(new Name.Self(null, true, new MetadataStorage()))
+                .suspended(false)
+                .build();
         // Here we add the type ascription ensuring that the 'proper' self argument only
         // accepts _instances_ of the type (or triggers conversions)
         var newBodyRef =

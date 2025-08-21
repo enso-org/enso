@@ -202,7 +202,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
       var ctx = EpbContext.get(null);
       return ctx.getEnv().asHostSymbol(clazz);
     } catch (ClassNotFoundException ex) {
-      logger.log(Level.ERROR, "Cannot find class {0} in host class loader", member);
+      logger.log(Level.DEBUG, "Cannot find class {0} in host class loader", member);
       throw UnknownIdentifierException.create(member);
     }
   }

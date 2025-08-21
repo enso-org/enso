@@ -44,37 +44,11 @@ public interface DefinitionArgument extends IR {
     }
 
     public static Builder builder() {
-      return new Builder();
+      return new Builder().ascribedType(Option.empty()).defaultValue(Option.empty());
     }
 
-    public Specified(
-        Name name,
-        Option<Expression> ascribedType,
-        Option<Expression> defaultValue,
-        boolean suspended,
-        IdentifiedLocation identifiedLocation) {
-      this(
-          name,
-          ascribedType,
-          defaultValue,
-          suspended,
-          identifiedLocation,
-          new MetadataStorage(),
-          null);
-    }
-
-    public Specified(
-        Name name,
-        Option<Expression> ascribedType,
-        Option<Expression> defaultValue,
-        boolean suspended,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      this(name, ascribedType, defaultValue, suspended, identifiedLocation, passData, null);
-    }
-
-    public Specified(Name name) {
-      this(name, Option.empty(), Option.empty(), false, null, new MetadataStorage());
+    public static Builder builder(Specified original) {
+      return new Builder(original);
     }
 
     @Override

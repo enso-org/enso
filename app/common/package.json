@@ -30,7 +30,7 @@
     "@internationalized/date": "3.7.0",
     "@tanstack/query-persist-client-core": "5.59.20",
     "@tanstack/vue-query": "5.59.20",
-    "@types/node": "^20.11.21",
+    "@types/node": "catalog:",
     "is-network-error": "^1.1.0",
     "lib0": "^0.2.99",
     "vitest": "catalog:",

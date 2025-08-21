@@ -1,4 +1,5 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { EnsoPath, ProjectId } from '#/services/Backend'
 import { ContainerData, useContainerData as useContainerDataVue } from '$/providers/container'
 import { RightPanelData, useRightPanelData as useRightPanelDataVue } from '$/providers/rightPanel'
 import { reactComponent } from '@/util/react'
@@ -86,5 +87,21 @@ export function useClearLaunchedProjects() {
 
   return useEventCallback(() => {
     updateLaunchedProjects(() => [])
+  })
+}
+
+/** A function to add project to "opening projects" list */
+export function useAddOpeningProject() {
+  const { openingProjects } = useContainerData()
+  return useEventCallback((id: ProjectId, ensoPath: string) => {
+    openingProjects.set(id, EnsoPath(ensoPath))
+  })
+}
+
+/** A function to remove project from "opening projects" list */
+export function useRemoveOpeningProject() {
+  const { openingProjects } = useContainerData()
+  return useEventCallback((id: ProjectId) => {
+    openingProjects.delete(id)
   })
 }

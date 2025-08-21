@@ -114,8 +114,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
         val rightDefArg = DefinitionArgument.Specified
           .builder()
           .name(rightArgName.duplicate())
-          .ascribedType(None)
-          .defaultValue(None)
           .suspended(false)
           .build()
 
@@ -130,8 +128,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
           val leftDefArg = DefinitionArgument.Specified
             .builder()
             .name(leftArgName.duplicate())
-            .ascribedType(None)
-            .defaultValue(None)
             .suspended(false)
             .build()
           val opCall = Application.Prefix
@@ -180,8 +176,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
         val leftDefArg = DefinitionArgument.Specified
           .builder()
           .name(leftArgName.duplicate())
-          .ascribedType(None)
-          .defaultValue(None)
           .suspended(false)
           .build()
 
@@ -196,8 +190,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
           .builder()
           .name(rightArgName.duplicate())
           .suspended(false)
-          .ascribedType(None)
-          .defaultValue(None)
           .build()
 
         val opCall = Application.Prefix
@@ -254,8 +246,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
         val leftDefArg = DefinitionArgument.Specified
           .builder()
           .name(leftArgName.duplicate())
-          .ascribedType(None)
-          .defaultValue(None)
           .suspended(false)
           .build()
 
@@ -271,8 +261,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
           val rightDefArg = DefinitionArgument.Specified
             .builder()
             .name(rightArgName.duplicate())
-            .ascribedType(None)
-            .defaultValue(None)
             .suspended(false)
             .build()
 

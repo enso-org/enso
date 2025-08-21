@@ -8,7 +8,6 @@ import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
   Location,
-  MetadataStorage,
   Module,
   Name
 }
@@ -65,20 +64,32 @@ class OperatorToFunctionTest extends MiniPassTest {
   ): (Operator.Binary, Application.Prefix) = {
     val loc = new IdentifiedLocation(new Location(1, 33))
 
-    val leftArg =
-      new CallArgument.Specified(None, left, false, left.identifiedLocation())
+    val leftArg = CallArgument.Specified
+      .builder()
+      .name(None)
+      .value(left)
+      .isSynthetic(false)
+      .location(left.identifiedLocation())
+      .build()
+
     val rightArg =
-      new CallArgument.Specified(None, right, false, right.identifiedLocation())
+      CallArgument.Specified
+        .builder()
+        .name(None)
+        .value(right)
+        .isSynthetic(false)
+        .location(right.identifiedLocation())
+        .build()
 
     val binOp =
       Operator.Binary(leftArg, name, rightArg, loc)
-    val opFn = new Application.Prefix(
-      name,
-      List(leftArg, rightArg),
-      false,
-      loc,
-      new MetadataStorage()
-    )
+    val opFn = Application.Prefix
+      .builder()
+      .function(name)
+      .arguments(List(leftArg, rightArg))
+      .hasDefaultsSuspended(false)
+      .location(loc)
+      .build()
 
     (binOp, opFn)
   }
@@ -86,43 +97,61 @@ class OperatorToFunctionTest extends MiniPassTest {
   // === The Tests ============================================================
   val opName =
     Name.Literal("=:=", isMethod = true, null)
-  val left     = new Empty(null)
-  val right    = new Empty(null)
-  val rightArg = new CallArgument.Specified(None, new Empty(null), false, null)
+  val left  = new Empty(null)
+  val right = new Empty(null)
+  val rightArg = CallArgument.Specified
+    .builder()
+    .name(None)
+    .value(new Empty(null))
+    .isSynthetic(false)
+    .build()
 
   val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
-  val oprArg   = new CallArgument.Specified(None, operator, false, null)
-  val oprFnArg = new CallArgument.Specified(None, operatorFn, false, null)
+  val oprArg =
+    CallArgument.Specified
+      .builder()
+      .name(None)
+      .value(operator)
+      .isSynthetic(false)
+      .build()
+  val oprFnArg =
+    CallArgument.Specified
+      .builder()
+      .name(None)
+      .value(operatorFn)
+      .isSynthetic(false)
+      .build()
 
   "Operators" should {
     val opName =
       Name.Literal("=:=", isMethod = true, identifiedLocation = null)
     val left  = new Empty(null)
     val right = new Empty(null)
-    val rightArg = new CallArgument.Specified(
-      None,
-      new Empty(null),
-      false,
-      identifiedLocation = null
-    )
+    val rightArg =
+      CallArgument.Specified
+        .builder()
+        .name(None)
+        .value(new Empty(null))
+        .isSynthetic(false)
+        .build()
 
     val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
     val oprArg =
-      new CallArgument.Specified(
-        None,
-        operator,
-        false,
-        identifiedLocation = null
-      )
+      CallArgument.Specified
+        .builder()
+        .name(None)
+        .value(operator)
+        .isSynthetic(false)
+        .build()
     val oprFnArg =
-      new CallArgument.Specified(
-        None,
-        operatorFn,
-        false,
-        identifiedLocation = null
-      )
+      CallArgument.Specified
+        .builder()
+        .name(None)
+        .value(operatorFn)
+        .isSynthetic(false)
+        .build()
 
     "be translated to functions" in {
       OperatorToFunctionTestPass.runExpression(
@@ -134,10 +163,11 @@ class OperatorToFunctionTest extends MiniPassTest {
     "be translated recursively in synthetic IR" in {
       val recursiveIR =
         Operator.Binary(oprArg, opName, rightArg, null)
-      val recursiveIRResult = new Application.Prefix(
-        opName,
-        List(oprFnArg, rightArg)
-      )
+      val recursiveIRResult = Application.Prefix
+        .builder()
+        .function(opName)
+        .arguments(List(oprFnArg, rightArg))
+        .build()
 
       OperatorToFunctionTestPass.runExpression(
         recursiveIR,
@@ -180,10 +210,11 @@ class OperatorToFunctionTest extends MiniPassTest {
     "be translated recursively" in {
       val recursiveIR =
         Operator.Binary(oprArg, opName, rightArg, identifiedLocation = null)
-      val recursiveIRResult = new Application.Prefix(
-        opName,
-        List(oprFnArg, rightArg)
-      )
+      val recursiveIRResult = Application.Prefix
+        .builder()
+        .function(opName)
+        .arguments(List(oprFnArg, rightArg))
+        .build()
 
       val miniPass = OperatorToFunction.createForInlineCompilation(ctx)
       val miniRes =
@@ -255,17 +286,20 @@ case object OperatorToFunctionTestPass extends IRPass {
     inlineContext: InlineContext
   ): Expression = {
     ir.transformExpressions { case operatorBinary: Operator.Binary =>
-      new Application.Prefix(
-        operatorBinary.operator,
-        List(
-          operatorBinary.left.mapExpressions(runExpression(_, inlineContext)),
-          operatorBinary.right.mapExpressions(runExpression(_, inlineContext))
-        ),
-        hasDefaultsSuspended = false,
-        operatorBinary.location.orNull,
-        operatorBinary.passData,
-        operatorBinary.diagnostics
-      )
+      Application.Prefix
+        .builder()
+        .function(operatorBinary.operator)
+        .arguments(
+          List(
+            operatorBinary.left.mapExpressions(runExpression(_, inlineContext)),
+            operatorBinary.right.mapExpressions(runExpression(_, inlineContext))
+          )
+        )
+        .hasDefaultsSuspended(false)
+        .location(operatorBinary.location().orNull)
+        .passData(operatorBinary.passData)
+        .diagnostics(operatorBinary.diagnostics)
+        .build()
     }
   }
 }

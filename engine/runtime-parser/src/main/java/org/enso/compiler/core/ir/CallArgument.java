@@ -58,23 +58,6 @@ public interface CallArgument extends IR {
       return new Builder();
     }
 
-    public Specified(
-        Option<Name> name,
-        Expression value,
-        boolean isSynthetic,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      this(name, value, isSynthetic, identifiedLocation, passData, null);
-    }
-
-    public Specified(
-        Option<Name> name,
-        Expression value,
-        boolean isSynthetic,
-        IdentifiedLocation identifiedLocation) {
-      this(name, value, isSynthetic, identifiedLocation, new MetadataStorage(), null);
-    }
-
     public Specified copy(Expression value) {
       return new Builder(this).value(value).build();
     }

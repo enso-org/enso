@@ -2,7 +2,12 @@
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
-import { useContainerData, type LaunchedProject, type TabId } from '$/providers/container'
+import {
+  OpenedProject,
+  useContainerData,
+  type LaunchedProject,
+  type TabId,
+} from '$/providers/container'
 import { RightPanelDataProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import { appContainerBindings } from '@/bindings'
@@ -41,7 +46,7 @@ const emit = defineEmits<{
 // with veaury's ref assignment implementation that runs during parent React component lifecycle.
 const fullscreenRoot = shallowRef<HTMLElement>()
 
-const { tab, openedProjects } = toRefs(useContainerData())
+const { tab, openingProjects, openedProjects } = toRefs(useContainerData())
 provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
@@ -57,10 +62,20 @@ function setProjectReady(project: ProjectId, projectTab: TabId, ready: boolean) 
   }
 }
 
-function loadingProjectSpinnerPhase(project: LaunchedProject) {
-  return project.hybrid != null || project.type === BackendType.local ?
+function loadingProjectSpinnerPhase(project: OpenedProject) {
+  return (
+      project.state === 'launched' && (project.hybrid != null || project.type === BackendType.local)
+    ) ?
       'loading-fast'
     : 'loading-slow'
+}
+
+function closeOpenedProject(project: OpenedProject) {
+  if (project.state === 'launched') {
+    emit('closeProject', project)
+  } else {
+    openingProjects.value.delete(project.id)
+  }
 }
 
 watch(openedProjects, (openedProjectsList) => {
@@ -92,7 +107,7 @@ function closeTab() {
     default: {
       // project id
       const project = openedProjects.value.find((proj) => proj.ensoPath === tab.value)
-      if (project) emit('closeProject', project)
+      if (project) closeOpenedProject(project)
       break
     }
   }
@@ -142,7 +157,7 @@ const onSignOut = () => {
           :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
           :label="projectNames.get(project.id)"
           @update:selected="$event && (tab = EnsoPath(project.ensoPath))"
-          @close="emit('closeProject', project)"
+          @close="closeOpenedProject(project)"
         >
           <GrowingSpinner
             v-if="!readyProjects.has(project.id)"
@@ -166,19 +181,21 @@ const onSignOut = () => {
         <KeepAlive>
           <Drive v-if="tab === 'drive'" />
         </KeepAlive>
-        <div
-          v-for="project in openedProjects"
-          :key="project.id"
-          class="editor"
-          :class="{ hidden: !project.shown.value }"
-        >
-          <Editor
-            :hidden="!project.shown.value"
-            :project="project"
-            @readyUpdate="setProjectReady(project.id, EnsoPath(project.ensoPath), $event)"
-            @nameUpdate="projectNames.set(project.id, $event)"
-          />
-        </div>
+        <template v-for="project in openedProjects">
+          <div
+            v-if="project.state === 'launched'"
+            :key="project.id"
+            class="editor"
+            :class="{ hidden: !project.shown.value }"
+          >
+            <Editor
+              :hidden="!project.shown.value"
+              :project="project"
+              @readyUpdate="setProjectReady(project.id, EnsoPath(project.ensoPath), $event)"
+              @nameUpdate="projectNames.set(project.id, $event)"
+            />
+          </div>
+        </template>
 
         <KeepAlive>
           <Settings v-if="tab === 'settings'" />

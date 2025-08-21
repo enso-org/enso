@@ -529,7 +529,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,
@@ -1558,7 +1559,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,

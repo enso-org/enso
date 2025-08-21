@@ -5,6 +5,7 @@ import org.enso.common.CachePreferences
 import java.util.UUID
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.polyglot.runtime.Runtime.Api
+import org.slf4j.LoggerFactory
 
 import scala.jdk.CollectionConverters._
 
@@ -25,6 +26,8 @@ case class CacheInvalidation(
 )
 
 object CacheInvalidation {
+
+  private val logger = LoggerFactory.getLogger(classOf[CacheInvalidation])
 
   /** Selector of the cache index. */
   sealed trait IndexSelector
@@ -55,8 +58,10 @@ object CacheInvalidation {
     /** A command to invalidate provided cache keys.
       *
       * @param keys a list of keys that should be invalidated
+      * @param reason human-readable explanation for invalidation
       */
-    case class InvalidateKeys(keys: Iterable[UUID]) extends Command
+    case class InvalidateKeys(keys: Iterable[UUID], reason: String)
+        extends Command
 
     /** A command to invalidate cache entries by preference kinds.
       *
@@ -87,8 +92,8 @@ object CacheInvalidation {
       expressions match {
         case Api.InvalidatedExpressions.All() =>
           InvalidateAll
-        case Api.InvalidatedExpressions.Expressions(ids) =>
-          InvalidateKeys(ids)
+        case Api.InvalidatedExpressions.Expressions(ids, reason) =>
+          InvalidateKeys(ids, reason)
       }
   }
 
@@ -216,9 +221,11 @@ object CacheInvalidation {
   ): Unit =
     command match {
       case Command.InvalidateAll =>
+        logger.trace("Cache - clear all")
         cache.clear()
         indexes.foreach(clearIndex(_, cache))
-      case Command.InvalidateKeys(keys) =>
+      case Command.InvalidateKeys(keys, reason) =>
+        logger.trace("Cache - clear keys: {}, reason: {}", keys, reason)
         keys.foreach { key =>
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
@@ -226,12 +233,14 @@ object CacheInvalidation {
       case Command.InvalidateByKind(kinds) =>
         kinds.foreach { kind =>
           val keys = cache.clear(kind)
+          logger.trace("Cache - clear keys in kind {}: {}", kind, keys)
           keys.forEach { key =>
             indexes.foreach(clearIndexKey(key, _, cache))
           }
         }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
+        logger.trace("Cache - clear stale keys: {}", staleKeys)
         staleKeys.foreach { key =>
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))

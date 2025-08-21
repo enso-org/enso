@@ -10,7 +10,6 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
-  MetadataStorage,
   Module,
   Name,
   Type
@@ -192,11 +191,11 @@ case object DemandAnalysis extends IRPass {
           val newNameLocation =
             name.location.map(l => new IdentifiedLocation(l.location()))
           val newName = lit.copy(location = newNameLocation)
-          new Application.Force(
-            newName,
-            name.identifiedLocation(),
-            new MetadataStorage()
-          )
+          Application.Force
+            .builder()
+            .target(newName)
+            .location(name.identifiedLocation())
+            .build()
         case _ => name
       }
     }
