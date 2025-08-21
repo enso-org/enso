@@ -22,13 +22,14 @@ export interface FunctionInfoCompletion {
   functionName: string
 }
 
-export type CompletionType = NameCompletion | FunctionInfoCompletion
+export interface ValueCompletion {
+  type: 'value'
+}
+
+export type CompletionType = NameCompletion | FunctionInfoCompletion | ValueCompletion
 
 const INITIAL_COMPLETION_TYPE: CompletionType = {
-  type: 'functionName',
-  pos: 0,
-  auto: true,
-  insertDelim: true,
+  type: 'value',
 }
 
 /** Returns information about the completion at the given position. */
@@ -41,7 +42,7 @@ export function completionTypeAt(pos: number, state: EditorState): CompletionTyp
   const parseNode = () =>
     match<CompletionType | null>({
       Function: (func) =>
-        childOpt('Paren', (paren) =>
+        childOpt('OpenParen', (paren) =>
           paren ?
             pos <= paren.from ?
               { type: 'functionName', pos: func.from, auto: pos === paren.from, insertDelim: false }
@@ -49,8 +50,8 @@ export function completionTypeAt(pos: number, state: EditorState): CompletionTyp
           : { type: 'functionName', pos: func.from, auto: pos === func.to, insertDelim: true },
         ),
       Column: (column) =>
-        child('SquareBracket', (open) =>
-          siblingOpt('SquareBracket', (close) => ({
+        child('OpenBracket', (open) =>
+          siblingOpt('CloseBracket', (close) => ({
             type: 'columnName',
             pos: open.to,
             auto: pos === (close?.from ?? column.to),
@@ -58,17 +59,19 @@ export function completionTypeAt(pos: number, state: EditorState): CompletionTyp
           })),
         ),
     })
-  if (IGNORED_LEAF_NAMES.includes(cursor.name)) cursor.parent()
+  if (LEAFS_IGNORED_TO_RIGHT_OF_CURSOR.includes(cursor.name)) cursor.parent()
   const completion = parseNode()
   if (completion) return completion
   if (cursor.moveTo(pos, -1)) {
+    if (LEAFS_IGNORED_TO_LEFT_OF_CURSOR.includes(cursor.name)) cursor.parent()
     const completion = parseNode()
     if (completion) return completion
   }
   return null
 }
 
-const IGNORED_LEAF_NAMES = ['Paren', 'Number', 'SquareBracket']
+const LEAFS_IGNORED_TO_RIGHT_OF_CURSOR = ['CloseParen', 'Number', 'OpenBracket', 'CloseBracket']
+const LEAFS_IGNORED_TO_LEFT_OF_CURSOR = ['OpenParen']
 
 interface Range {
   from: number

@@ -32,7 +32,7 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
       return id
     })
 
-    const ref = computed(() => {
+    const ref = computed((): OpenedProject | undefined => {
       const id = hybridResolvedProjectId.value
       return id != null ? openedProjects.get(id) : undefined
     })

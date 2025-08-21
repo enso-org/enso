@@ -18,11 +18,6 @@ function completionTypeCase(source: string) {
 
 test.each([
   {
-    source: '|',
-    auto: true,
-    insertDelim: true,
-  },
-  {
     source: '|a_function(1, 2, 3)',
     auto: false,
     insertDelim: false,
@@ -73,7 +68,7 @@ test.each([
   expect(completion).toStrictEqual({ type: 'functionInfo', functionName: 'a_function' })
 })
 
-test.each(['a_function(1, 2, 3)|'])('Non-completable position: $source', (source) =>
+test.each(['a_function(1, 2, 3)|'])('Non-completable position: %s', (source) =>
   expect(completionTypeCase(source).completion).toBeNull(),
 )
 test.each([
@@ -99,4 +94,9 @@ test.each([
 ])('Column completion: $source', ({ source, auto, insertDelim }) => {
   const { completion, anchor } = completionTypeCase(source)
   expect(completion).toStrictEqual({ type: 'columnName', pos: anchor, auto, insertDelim })
+})
+
+test.each(['|'])('Any-value completion: %s', (source) => {
+  const { completion } = completionTypeCase(source)
+  expect(completion).toStrictEqual({ type: 'value' })
 })

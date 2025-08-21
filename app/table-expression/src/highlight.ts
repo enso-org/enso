@@ -14,7 +14,8 @@ export const highlight = styleTags({
   LogicOp: t.logicOperator,
   ControlOp: t.controlOperator,
   Punctuation: t.punctuation,
-  Paren: t.paren,
+  OpenParen: t.paren,
+  CloseParen: t.paren,
   SquareBracket: t.squareBracket,
   Quote: t.quote,
 })

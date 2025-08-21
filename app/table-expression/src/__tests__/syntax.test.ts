@@ -48,7 +48,10 @@ test.each([
   },
   {
     code: 'number(1)',
-    expected: ['Expression', ['Function', ['Paren', '('], ['Number', '1'], ['Paren', ')']]],
+    expected: [
+      'Expression',
+      ['Function', ['OpenParen', '('], ['Number', '1'], ['CloseParen', ')']],
+    ],
   },
   {
     code: 'text_length([Column 1])',
@@ -56,9 +59,9 @@ test.each([
       'Expression',
       [
         'Function',
-        ['Paren', '('],
+        ['OpenParen', '('],
         ['Column', ['SquareBracket', '['], ['SquareBracket', ']']],
-        ['Paren', ')'],
+        ['CloseParen', ')'],
       ],
     ],
   },
@@ -68,13 +71,13 @@ test.each([
   },
   {
     code: 'open_paren_only(',
-    expected: ['Expression', ['Function', ['Paren', '('], ['⚠', '']]],
+    expected: ['Expression', ['Function', ['OpenParen', '('], ['⚠', '']]],
   },
   {
     code: 'unclosed_column_in_function([Column 1)',
     expected: [
       'Expression',
-      ['Function', ['Paren', '('], ['Column', ['SquareBracket', '['], ['⚠', '']], ['⚠', '']],
+      ['Function', ['OpenParen', '('], ['Column', ['SquareBracket', '['], ['⚠', '']], ['⚠', '']],
     ],
   },
 ])('Syntax tree', ({ code, expected }) => {
