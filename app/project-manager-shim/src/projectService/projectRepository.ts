@@ -1,4 +1,5 @@
 import { UUID } from 'enso-common/src/services/Backend'
+import * as nameValidation from './nameValidation.js'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -27,7 +28,7 @@ export interface ProjectMetadata {
 
 export interface ProjectRepository {
   exists(name: string): Promise<boolean>
-  findPathForNewProject(moduleName: string): Promise<string>
+  findPathForNewProject(normalizedName: string): Promise<string>
   update(project: Project): Promise<void>
   delete(projectId: string): Promise<void>
   moveToTrash(projectId: string): Promise<boolean>
@@ -67,8 +68,8 @@ export class ProjectFileRepository implements ProjectRepository {
     return projects.some((p) => p.name === name)
   }
 
-  async findPathForNewProject(moduleName: string): Promise<string> {
-    const normalizedName = this.normalizeName(moduleName)
+  async findPathForNewProject(projectName: string): Promise<string> {
+    const normalizedName = nameValidation.normalizedName(projectName)
     return this.findTargetPath(normalizedName)
   }
 
@@ -149,7 +150,7 @@ export class ProjectFileRepository implements ProjectRepository {
       throw new Error(`Project not found: ${projectId}`)
     }
 
-    const normalizedName = this.normalizeName(newName)
+    const normalizedName = nameValidation.normalizedName(newName)
     const targetPath = await this.findTargetPath(normalizedName)
     await fs.rename(project.path, targetPath)
     return targetPath
@@ -160,7 +161,7 @@ export class ProjectFileRepository implements ProjectRepository {
     newName: string,
     newMetadata: ProjectMetadata,
   ): Promise<Project> {
-    const normalizedName = this.normalizeName(newName)
+    const normalizedName = nameValidation.normalizedName(newName)
     const targetPath = await this.findTargetPath(normalizedName)
 
     await this.copyDirectory(project.path, targetPath)
@@ -286,11 +287,6 @@ export class ProjectFileRepository implements ProjectRepository {
         return candidatePath
       }
     }
-  }
-
-  private normalizeName(name: string): string {
-    // Simple normalization - replace spaces and special chars with underscores
-    return name.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase()
   }
 
   private async copyDirectory(source: string, destination: string): Promise<void> {

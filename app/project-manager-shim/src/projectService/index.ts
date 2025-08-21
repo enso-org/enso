@@ -10,6 +10,7 @@ import * as path from 'node:path'
 import { UUID } from 'enso-common/src/services/Backend'
 import { type Runner, EnsoRunner, findEnsoPath } from './ensoRunner.js'
 import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
+import * as nameValidation from './nameValidation.js'
 
 // ==================
 // === Data Types ===
@@ -167,11 +168,11 @@ export class ProjectService {
     await this.validateProjectName(actualName)
     await this.checkIfNameExists(actualName, repo)
 
-    // Step 6: Normalize Module Name
-    const moduleName = this.normalizeProjectName(actualName)
+    // Step 6: Normalize Project Name
+    const normalizedName = nameValidation.normalizedName(actualName)
 
     // Step 7: Find Path for new project
-    const projectPath = await repo.findPathForNewProject(moduleName)
+    const projectPath = await repo.findPathForNewProject(normalizedName)
 
     // Step 8: Create Project Object
     const creationTime = new Date().toISOString()
@@ -192,7 +193,7 @@ export class ProjectService {
     await this.runner.createProject(projectPath, actualName, engineVersion, projectTemplate)
 
     this.logger.debug(
-      `Project [${projectId}] structure created with [${projectPath}, ${actualName}, ${moduleName}].`,
+      `Project [${projectId}] structure created with [${projectPath}, ${actualName}, ${normalizedName}].`,
     )
 
     // Step 10: Update Repository
@@ -204,7 +205,7 @@ export class ProjectService {
     return {
       projectId,
       projectName: actualName,
-      projectNormalizedName: moduleName,
+      projectNormalizedName: normalizedName,
       projectPath,
     }
   }
@@ -256,26 +257,6 @@ export class ProjectService {
       throw new ProjectExists(`Project with name '${name}' already exists.`)
     }
     this.logger.debug(`Checked if the project name [${name}] exists in repository.`)
-  }
-
-  private normalizeProjectName(name: string): string {
-    // TODO: Implement proper name normalization logic from NameValidation.normalizeName
-    // For now, basic normalization:
-    // - Replace spaces and special characters with underscores
-    // - Convert to lowercase
-    // - Ensure starts with letter or underscore
-    let normalized = name
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, '_')
-      .replace(/^[0-9]/, '_$&') // Prefix numbers with underscore
-
-    // Remove consecutive underscores
-    normalized = normalized.replace(/_+/g, '_')
-
-    // Remove trailing underscores
-    normalized = normalized.replace(/_+$/, '')
-
-    return normalized || 'Project'
   }
 
   async deleteUserProject(projectId: string, projectsDirectory?: string): Promise<void> {
