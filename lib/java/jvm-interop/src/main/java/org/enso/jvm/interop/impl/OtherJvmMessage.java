@@ -3,6 +3,7 @@ package org.enso.jvm.interop.impl;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -65,6 +66,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       kinds.put(UnsupportedMessageException.class, 2);
       kinds.put(UnknownIdentifierException.class, 3);
       kinds.put(UnsupportedTypeException.class, 4);
+      kinds.put(InvalidArrayIndexException.class, 5);
     }
 
     @SuppressWarnings("unchecked")
@@ -91,6 +93,16 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
         case 2 -> throw (E) UnsupportedMessageException.create();
         case 3 -> throw (E) UnknownIdentifierException.create(msg);
         case 4 -> throw (E) UnsupportedTypeException.create(new Object[0], msg);
+        case 5 -> {
+          int index;
+          try {
+            var words = msg.split("[ \\.]");
+            index = Integer.parseInt(words[3]);
+          } catch (NullPointerException | NumberFormatException | IndexOutOfBoundsException ex) {
+            index = -1;
+          }
+          throw (E) InvalidArrayIndexException.create(index);
+        }
         default -> throw new OtherJvmException(msg);
       }
     }

@@ -223,6 +223,7 @@ public class OtherJvmObjectTest {
       case 0 -> IDENTICAL;
       case 1 -> new MockObject();
       case 2 -> Duration.ofSeconds(42);
+      case 3 -> new int[20];
       default -> null;
     };
   }
@@ -281,6 +282,33 @@ public class OtherJvmObjectTest {
     var od = other1.asDuration();
 
     assertEquals(ld, od);
+  }
+
+  @Test
+  public void arrayIndexOutOfBounds() throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", 3);
+    assertTrue("Recognized as duration", local1.hasArrayElements());
+    assertEquals(20, local1.getArraySize());
+    try {
+      var res = local1.getArrayElement(200);
+      fail("Expecting a failure: " + res);
+    } catch (ArrayIndexOutOfBoundsException ex) {
+      assertThat(
+          ex.getMessage(), StringContains.containsString("Invalid array index 200 for array"));
+    }
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 3);
+    assertTrue("Recognized as duration", other1.hasArrayElements());
+    assertEquals(20, other1.getArraySize());
+    try {
+      var res = other1.getArrayElement(200);
+      fail("Expecting a failure: " + res);
+    } catch (ArrayIndexOutOfBoundsException ex) {
+      assertThat(
+          ex.getMessage(), StringContains.containsString("Invalid array index 200 for array"));
+    }
   }
 
   public static void callback(Consumer<Object> cb, Object value) {
