@@ -96,8 +96,6 @@ final class OtherJvmObject implements TruffleObject {
     }
     if (message.getLibraryClass() != InteropLibrary.class
         || IS_STRING == message
-        || HAS_LANGUAGE == message
-        || GET_LANGUAGE == message
         || HAS_SOURCE_LOCATION == message
         || GET_SOURCE_LOCATION == message
         || IS_IDENTICAL_OR_UNDEFINED == message) {
@@ -154,6 +152,12 @@ final class OtherJvmObject implements TruffleObject {
       }
       if (message == FITS_IN_BIG_INTEGER) {
         return OtherInteropType.fitsBigInteger(mask);
+      }
+      if (HAS_LANGUAGE == message) {
+        return true;
+      }
+      if (GET_LANGUAGE == message) {
+        return OtherLanguage.class;
       }
 
       // proper dispatch to the other JVM

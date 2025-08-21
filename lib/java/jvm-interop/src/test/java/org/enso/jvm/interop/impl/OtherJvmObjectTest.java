@@ -10,6 +10,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.function.Consumer;
@@ -250,6 +251,21 @@ public class OtherJvmObjectTest {
     var other1 = otherClass.invokeMember("otherJvmInstances", 1);
     var other2 = otherClass.invokeMember("otherJvmInstances", 1);
     assertNotEquals(other1, other2);
+  }
+
+  @Test
+  public void languageCheck() throws Exception {
+    var iop = InteropLibrary.getUncached();
+
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = ctx.unwrapValue(localClass.invokeMember("otherJvmInstances", 1));
+    assertTrue("it has language", iop.hasLanguage(local1));
+    assertEquals("HostLanguage", iop.getLanguage(local1).getSimpleName());
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = ctx.unwrapValue(otherClass.invokeMember("otherJvmInstances", 1));
+    assertTrue("it has language", iop.hasLanguage(other1));
+    assertEquals("OtherLanguage", iop.getLanguage(other1).getSimpleName());
   }
 
   @Test

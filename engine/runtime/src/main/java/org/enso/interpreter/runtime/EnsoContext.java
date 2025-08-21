@@ -541,7 +541,7 @@ public final class EnsoContext {
    * @return {@code true} or {@code false}
    */
   public boolean isJavaPolyglotObject(Object obj) {
-    return environment.isHostObject(obj);
+    return environment.isHostObject(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
   }
 
   /**
@@ -551,7 +551,7 @@ public final class EnsoContext {
    * @return {@code true} or {@code false}
    */
   public boolean isJavaPolyglotFunction(Object obj) {
-    return environment.isHostFunction(obj);
+    return environment.isHostFunction(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
   }
 
   /**

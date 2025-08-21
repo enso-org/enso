@@ -5,6 +5,7 @@ import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -51,7 +52,6 @@ final class EnsoPolyglotJava {
     for (; ; ) {
       var fqn = binaryName.toString();
       try {
-
         var hostSymbol = loadClass(fqn);
 
         if (hostSymbol != null) {
@@ -70,8 +70,31 @@ final class EnsoPolyglotJava {
     return null;
   }
 
+  @CompilerDirectives.TruffleBoundary
+  boolean isOtherObject(Object obj) {
+    try {
+      var iop = InteropLibrary.getUncached();
+      return obj != null
+          && iop.hasLanguage(obj)
+          && iop.getLanguage(obj).getSimpleName().equals("OtherLanguage");
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  boolean isOtherFunction(Object obj) {
+    return isOtherObject(obj) && InteropLibrary.getUncached().isExecutable(obj);
+  }
+
+  /**
+   * Finds proper "polyglot Java" for given package - e.g. Enso library/project.
+   *
+   * @param ctx the context to query for
+   * @param pkgOrNull the library or {@code null} for code outside of any library
+   * @return instance of "polyglot Java" for further queries
+   */
   static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkgOrNull) {
-    var data = KEY.get(ctx);
     var useGuest = true;
     if (ctx.isHostClassLoading()) {
       if (isHostClassLoadingFor(pkgOrNull)) {
@@ -89,12 +112,14 @@ final class EnsoPolyglotJava {
         }
       }
     }
+    return find(ctx, useGuest);
+  }
 
-    if (useGuest) {
-      logger.log(Level.DEBUG, "Using guest JVM for {0}", logNameForPkg(pkgOrNull));
+  static EnsoPolyglotJava find(EnsoContext ctx, boolean guestJava) {
+    var data = KEY.get(ctx);
+    if (guestJava) {
       return data.guest;
     } else {
-      logger.log(Level.DEBUG, "Using host JVM for {0}", logNameForPkg(pkgOrNull));
       return data.hosted;
     }
   }
