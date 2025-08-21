@@ -264,14 +264,15 @@ export function useOpenProjectMutation() {
       }))
     },
     onSuccess: async (_, { title, hybrid, suppressHybridProjectOpen = false }) => {
-      await client.invalidateQueries({ queryKey: ['project'] })
       if (hybrid && !suppressHybridProjectOpen) {
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
     },
     onError: async (_, { type, parentId }) => {
-      await client.invalidateQueries({ queryKey: ['project'] })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
+    onSettled: async () => {
+      await client.invalidateQueries({ queryKey: ['project'] })
     },
     meta: {
       invalidates: [['listDirectory'], ['getAssetDetails']],
