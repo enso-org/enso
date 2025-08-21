@@ -81,7 +81,7 @@ final class OtherJvmObject implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
-  Object send(Message message, Object[] args) throws Exception {
+  final Object send(Message message, Object[] args) throws Exception {
     if (message == IS_IDENTICAL) {
       if (args[0] instanceof OtherJvmObject other) {
         if (id() == other.id()) {
@@ -109,42 +109,20 @@ final class OtherJvmObject implements TruffleObject {
       if (message == IS_META_OBJECT) {
         return OtherInteropType.isMetaObject(mask);
       }
-      if (message == HAS_META_PARENTS || message == GET_META_PARENTS) {
+      if (message == HAS_META_PARENTS) {
+        return switch (metaParents(message, args)) {
+          case OtherJvmObject[] _ -> true;
+          default -> false;
+        };
+      }
+      if (message == GET_META_PARENTS) {
         if (!OtherInteropType.isMetaObject(mask)) {
           throw UnsupportedMessageException.create();
         }
-        if (cachedMetaParents == null) {
-          var msg = new OtherJvmMessage(id, GET_META_PARENTS, List.of());
-          var reply = executeMessage(msg, message, args);
-          try {
-            var arr = reply.value();
-            var iop = InteropLibrary.getUncached();
-            var len = Math.toIntExact(iop.getArraySize(arr));
-            var copy = new OtherJvmObject[len];
-            for (var i = 0; i < len; i++) {
-              copy[i] = (OtherJvmObject) iop.readArrayElement(arr, i);
-            }
-            cachedMetaParents = copy;
-          } catch (UnsupportedMessageException ex) {
-            cachedMetaParents = ex;
-          }
-        }
-        return switch (cachedMetaParents) {
-          case UnsupportedMessageException ex -> {
-            if (message == GET_META_PARENTS) {
-              yield new OtherArray();
-            } else {
-              yield false;
-            }
-          }
-          case OtherJvmObject[] arr -> {
-            if (message == GET_META_PARENTS) {
-              yield new OtherArray(arr);
-            } else {
-              yield true;
-            }
-          }
-          default -> throw new IllegalStateException();
+        return switch (metaParents(message, args)) {
+          case UnsupportedMessageException _ -> new OtherArray();
+          case OtherJvmObject[] arr -> new OtherArray(arr);
+          default -> throw UnsupportedMessageException.create();
         };
       }
       if (message == GET_META_QUALIFIED_NAME && metaQualifiedName != null) {
@@ -184,6 +162,26 @@ final class OtherJvmObject implements TruffleObject {
       var result = reply.value();
       return result;
     }
+  }
+
+  private Object metaParents(Message message, Object[] args) throws Exception {
+    if (cachedMetaParents == null) {
+      var msg = new OtherJvmMessage(id, GET_META_PARENTS, List.of());
+      var reply = executeMessage(msg, message, args);
+      try {
+        var arr = reply.value();
+        var iop = InteropLibrary.getUncached();
+        var len = Math.toIntExact(iop.getArraySize(arr));
+        var copy = new OtherJvmObject[len];
+        for (var i = 0; i < len; i++) {
+          copy[i] = (OtherJvmObject) iop.readArrayElement(arr, i);
+        }
+        cachedMetaParents = copy;
+      } catch (UnsupportedMessageException ex) {
+        cachedMetaParents = ex;
+      }
+    }
+    return cachedMetaParents;
   }
 
   private OtherJvmResult<?, ?> executeMessage(OtherJvmMessage msg, Message message, Object[] args) {
