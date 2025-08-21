@@ -220,6 +220,8 @@ final class OtherJvmObject implements TruffleObject {
     if (metaQualifiedName != null) {
       out.writeBoolean(true);
       out.writeUTF(metaQualifiedName);
+    } else {
+      out.writeBoolean(false);
     }
   }
 
