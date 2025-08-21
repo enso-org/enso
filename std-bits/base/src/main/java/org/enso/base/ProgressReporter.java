@@ -4,8 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Raise progress steps to Logging framework.
- * Does not check Context.safepoint as it is expected to be handled by Enso.
+ * Raise progress steps to Logging framework. Does not check Context.safepoint as it is expected to
+ * be handled by Enso.
  */
 public final class ProgressReporter implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
