@@ -9,6 +9,7 @@ STDLIB_NAMES = [
     "Google_Api",
     "Image",
     "Microsoft",
+    "Saas",
     "Searcher",
     "Snowflake",
     "Table",
