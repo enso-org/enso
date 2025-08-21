@@ -1,9 +1,9 @@
 import { UUID } from 'enso-common/src/services/Backend'
-import * as nameValidation from './nameValidation.js'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as yaml from 'yaml'
+import * as nameValidation from './nameValidation.js'
 
 export interface Project {
   readonly id: UUID
