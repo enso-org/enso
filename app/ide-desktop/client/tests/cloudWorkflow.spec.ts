@@ -3,7 +3,7 @@
 import { expect } from 'playwright/test'
 import { loginAsTestUser, test } from './electronTest'
 
- // A test controlling if project session logs aren't empty
+// A test controlling if project session logs aren't empty
 
 test('Session logs', async ({ page }) => {
   await loginAsTestUser(page)
@@ -19,7 +19,7 @@ test('Session logs', async ({ page }) => {
   // Switching to a private cloud folder and creating new project
   await expect(page.getByRole('button', { name: 'Cloud', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Cloud', exact: true }).click()
-  
+
   await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
@@ -48,23 +48,22 @@ test('Session logs', async ({ page }) => {
     }),
   )
 
-   // Pick the one with the highest number
+  // Pick the one with the highest number
   const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
   await newest.click()
 
   await page.getByLabel('Sessions').click()
 
   // Navigating into the last log
-  try{
-    const firstRow = page.locator('div.flex.flex-row.gap-4.rounded-2xl.p-2').first();
-    const button = firstRow.getByRole('button', { name: /show logs/i });
-    await button.click();
-    }
-  catch{
-    console.log("No session logs available")
+  try {
+    const firstRow = page.locator('div.flex.flex-row.gap-4.rounded-2xl.p-2').first()
+    const button = firstRow.getByRole('button', { name: /show logs/i })
+    await button.click()
+  } catch {
+    console.log('No session logs available')
   }
 
-  await expect(page.getByText("Starting Language Server...")).toBeVisible()
+  await expect(page.getByText('Starting Language Server...')).toBeVisible()
 })
 
 // Test designed to see, if removing a member from Enso organisation shows imediately in GUI
