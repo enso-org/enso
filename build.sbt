@@ -188,9 +188,6 @@ ThisBuild / javacOptions ++= Seq(
 )
 
 ThisBuild / javaOptions ++= Seq(
-  // Needed for migration from JDK 21 to JDK 24
-  // See https://github.com/oracle/graal/blob/master/sdk/CHANGELOG.md#version-2420
-  "--enable-native-access=org.graalvm.truffle",
   // Truffle calls terminally deprecated methods from sun.misc.Unsafe in JDK24.
   // This removes the warnings at runtime.
   // TODO: Remove this until JDK 26
@@ -767,6 +764,7 @@ lazy val `python-extract` = project
       "org.graalvm.python" % "python-resources" % graalMavenPackagesVersion
     ),
     Compile / run / mainClass := Some("org.enso.pyextract.PythonExtract"),
+    Compile / run / javaOptions ++= Seq("--enable-native-access=ALL-UNNAMED"),
     Compile / run / fork := true,
     extractPythonResources := {
       val outDir          = target.value / "python-resources"
