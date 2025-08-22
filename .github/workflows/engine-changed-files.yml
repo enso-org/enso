@@ -28,6 +28,7 @@ jobs:
         uses: step-security/changed-files@v45
         with:
           files: |
+            build_tools/cli/**
             distribution/**
             engine/**
             lib/**
