@@ -107,16 +107,6 @@ final class CacheUtils {
     }
   }
 
-  public static String computeDigestFromSuggestions(List<Suggestion> suggestions) {
-    var digest = messageDigest();
-    for (var suggestion : suggestions) {
-      digest.update(suggestion.module().getBytes());
-      digest.update(suggestion.name().getBytes());
-      digest.update(suggestion.returnType().getBytes());
-    }
-    return Hex.toHexString(digest.digest());
-  }
-
   public static String computeDigestFromLibName(LibraryName libName) {
     var digest = messageDigest();
     digest.update(libName.qualifiedName().getBytes());
