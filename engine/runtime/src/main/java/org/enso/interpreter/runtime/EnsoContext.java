@@ -81,7 +81,6 @@ public final class EnsoContext {
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticAnalysisEnabled;
-  private final boolean isHostClassLoading;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -145,12 +144,6 @@ public final class EnsoContext {
               + "Either keep private check enabled or disable IR caching.");
     }
     this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
-    this.isHostClassLoading =
-        switch (getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY)) {
-          case "hosted" -> true;
-          case "guest" -> false;
-          case String unknown -> throw new IllegalStateException(unknown);
-        };
     this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -509,10 +502,6 @@ public final class EnsoContext {
         .findFirst();
   }
 
-  final boolean isHostClassLoading() {
-    return isHostClassLoading;
-  }
-
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
@@ -721,6 +710,10 @@ public final class EnsoContext {
    */
   public boolean isInteractiveMode() {
     return getOption(RuntimeOptions.INTERACTIVE_MODE_KEY);
+  }
+
+  final String getHostClassLoading() {
+    return getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
   }
 
   /**

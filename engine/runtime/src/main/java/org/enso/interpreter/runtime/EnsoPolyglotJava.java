@@ -14,8 +14,11 @@ import java.io.File;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.enso.common.HostEnsoUtils;
+import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
@@ -96,7 +99,8 @@ final class EnsoPolyglotJava {
    */
   static EnsoPolyglotJava find(EnsoContext ctx, org.enso.pkg.Package<?> pkgOrNull) {
     var useGuest = true;
-    if (ctx.isHostClassLoading()) {
+    var data = KEY.get(ctx);
+    if (data.isHostClassLoading(pkgOrNull)) {
       if (isHostClassLoadingFor(pkgOrNull)) {
         useGuest = false;
       } else {
@@ -280,10 +284,37 @@ final class EnsoPolyglotJava {
   private static final class CtxData {
     private final EnsoPolyglotJava hosted;
     private final EnsoPolyglotJava guest;
+    private final Map<String, String> hostClassLoading;
 
     CtxData(EnsoContext ctx) {
       this.hosted = new EnsoPolyglotJava(ctx, true);
       this.guest = new EnsoPolyglotJava(ctx, false);
+      this.hostClassLoading = new LinkedHashMap<>();
+      for (var entry : ctx.getHostClassLoading().split(",")) {
+        var libState = entry.split(":");
+        switch (libState.length) {
+          case 2 -> hostClassLoading.putIfAbsent(libState[0], libState[1]);
+          case 1 -> hostClassLoading.putIfAbsent("", libState[0]);
+          default -> throw new IllegalStateException(
+              "Expecting [<namespace.name>]:hosted|guest, but was: " + entry);
+        }
+      }
+      assert hostClassLoading.containsKey("");
+    }
+
+    private boolean isHostClassLoading(Package<?> pkgOrNull) {
+      return RuntimeOptions.HOST_CLASS_LOADING_HOSTED.equals(find(pkgOrNull));
+    }
+
+    private String find(Package<?> pkgOrNull) {
+      if (pkgOrNull != null) {
+        var fqn = pkgOrNull.libraryName().toString();
+        var set = hostClassLoading.get(fqn);
+        if (set != null) {
+          return set;
+        }
+      }
+      return hostClassLoading.get("");
     }
   }
 }
