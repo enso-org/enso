@@ -7,6 +7,7 @@
 import * as crypto from 'node:crypto'
 
 import { UUID } from 'enso-common/src/services/Backend'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { type Runner, EnsoRunner, findEnsoExecutable } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
 import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
@@ -105,8 +106,7 @@ export class ProjectService {
 
     // Find path for new project
     const projectPath = await repo.findPathForNewProject(normalizedName)
-
-    const creationTime = new Date().toISOString()
+    const creationTime = toRfc3339(new Date())
     const project: Project = {
       id: projectId,
       name: actualName,

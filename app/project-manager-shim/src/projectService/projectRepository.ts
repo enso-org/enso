@@ -1,4 +1,5 @@
 import { UUID } from 'enso-common/src/services/Backend'
+import { type Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -10,20 +11,20 @@ export interface Project {
   readonly name: string
   readonly namespace: string
   readonly kind: 'UserProject'
-  readonly created: string // ISO DateTime
-  readonly edition?: string // Raw edition string
+  readonly created: Rfc3339DateTime
+  readonly edition?: string
   readonly jvmModeEnabled?: boolean
   readonly path: string // Absolute file path
-  readonly lastOpened?: string // ISO DateTime
-  readonly directoryCreationTime?: string // File timestamp
+  readonly lastOpened?: Rfc3339DateTime
+  readonly directoryCreationTime?: Rfc3339DateTime
 }
 
 export interface ProjectMetadata {
   readonly name: string
   readonly namespace: string
   readonly id: UUID
-  readonly created: string // ISO DateTime
-  readonly lastOpened?: string // ISO DateTime
+  readonly created: Rfc3339DateTime
+  readonly lastOpened?: Rfc3339DateTime
 }
 
 export interface ProjectRepository {
@@ -56,8 +57,8 @@ interface PackageYaml {
 interface ProjectJson {
   id?: string
   kind?: string
-  created?: string
-  lastOpened?: string | null
+  created?: Rfc3339DateTime
+  lastOpened?: Rfc3339DateTime | null
 }
 
 /** File-based implementation of ProjectRepository. */
@@ -250,7 +251,7 @@ export class ProjectFileRepository implements ProjectRepository {
         metadata = {
           id: crypto.randomUUID(),
           kind: 'UserProject',
-          created: new Date().toISOString(),
+          created: toRfc3339(new Date()),
           lastOpened: null,
         }
         await fs.mkdir(path.dirname(metadataPath), { recursive: true })
@@ -271,7 +272,7 @@ export class ProjectFileRepository implements ProjectRepository {
         kind: 'UserProject',
         created: metadata.created,
         path: directory,
-        directoryCreationTime: stats.birthtime.toISOString(),
+        directoryCreationTime: toRfc3339(stats.birthtime),
         ...(pkg.edition ? { edition: pkg.edition } : {}),
         ...(pkg.jvmModeEnabled ? { jvmModeEnabled: pkg.jvmModeEnabled } : {}),
         ...(metadata.lastOpened ? { lastOpened: metadata.lastOpened } : {}),
