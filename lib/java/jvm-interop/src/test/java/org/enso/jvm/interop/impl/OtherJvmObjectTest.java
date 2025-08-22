@@ -224,6 +224,8 @@ public class OtherJvmObjectTest {
       case 1 -> new MockObject();
       case 2 -> Duration.ofSeconds(42);
       case 3 -> new int[20];
+      case 4 -> "Hello";
+      case 5 -> "Hello".repeat(100000);
       default -> null;
     };
   }
@@ -280,6 +282,30 @@ public class OtherJvmObjectTest {
     var other1 = otherClass.invokeMember("otherJvmInstances", 2);
     assertTrue("Recognized as duration", other1.isDuration());
     var od = other1.asDuration();
+
+    assertEquals(ld, od);
+  }
+
+  @Test
+  public void isStringShort() throws Exception {
+    checkString(4);
+  }
+
+  @Test
+  public void isStringLong() throws Exception {
+    checkString(5);
+  }
+
+  private void checkString(int kind) throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", kind);
+    assertTrue("Recognized as string", local1.isString());
+    var ld = local1.asString();
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", kind);
+    assertTrue("Recognized as string", other1.isString());
+    var od = other1.asString();
 
     assertEquals(ld, od);
   }

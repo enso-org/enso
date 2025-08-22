@@ -12,6 +12,7 @@ import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -400,12 +401,17 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
     @Override
     protected void writeObject(String obj, Output out) throws IOException {
-      out.writeUTF(obj);
+      var bytes = obj.getBytes(StandardCharsets.UTF_8);
+      out.writeInt(bytes.length);
+      out.write(bytes);
     }
 
     @Override
     protected String readObject(Input in) throws IOException, ClassNotFoundException {
-      return in.readUTF();
+      var len = in.readInt();
+      var bytes = new byte[len];
+      in.readFully(bytes);
+      return new String(bytes, StandardCharsets.UTF_8);
     }
   }
 
