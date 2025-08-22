@@ -1,7 +1,11 @@
 import { Path } from 'enso-common/src/utilities/file'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
+import { createWriteStream } from 'node:fs'
+import * as os from 'node:os'
 import * as path from 'node:path'
+import { pipeline } from 'node:stream/promises'
+import { extract } from 'tar'
 
 export interface Runner {
   createProject(
@@ -135,4 +139,105 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
 
   // No enso executable found
   return undefined
+}
+
+export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
+  console.log('Downloading latest Enso engine...')
+
+  // Determine platform and architecture
+  const platform = os.platform()
+  const arch = os.arch()
+
+  let platformString: string
+  if (platform === 'darwin') {
+    platformString = 'macos'
+  } else if (platform === 'linux') {
+    platformString = 'linux'
+  } else if (platform === 'win32') {
+    platformString = 'windows'
+  } else {
+    throw new Error(`Unsupported platform: ${platform}`)
+  }
+
+  let archString: string
+  if (arch === 'x64') {
+    archString = 'amd64'
+  } else if (arch === 'arm64') {
+    archString = 'aarch64'
+  } else {
+    throw new Error(`Unsupported architecture: ${arch}`)
+  }
+
+  // Fetch all releases from GitHub API and find the latest prerelease
+  const releasesUrl = 'https://api.github.com/repos/enso-org/enso/releases'
+  const releasesResponse = await fetch(releasesUrl)
+
+  if (!releasesResponse.ok) {
+    throw new Error(`Failed to fetch releases: ${releasesResponse.statusText}`)
+  }
+
+  const releases = await releasesResponse.json()
+
+  // Find the latest prerelease
+  const latestPrerelease = releases.find((release: any) => release.prerelease)
+
+  if (!latestPrerelease) {
+    throw new Error('No prerelease found')
+  }
+
+  const releaseData = latestPrerelease
+  const version = releaseData.tag_name
+
+  // Find the matching asset
+  const assetName = `enso-engine-${version}-${platformString}-${archString}.tar.gz`
+  const asset = releaseData.assets.find((a: any) => a.name === assetName)
+
+  if (!asset) {
+    throw new Error(`Could not find asset: ${assetName}`)
+  }
+
+  console.log(`Downloading ${assetName}...`)
+
+  // Download the asset
+  const downloadResponse = await fetch(asset.browser_download_url)
+
+  if (!downloadResponse.ok) {
+    throw new Error(`Failed to download asset: ${downloadResponse.statusText}`)
+  }
+
+  // Create the built-distribution directory if it doesn't exist
+  const distDir = path.join(projectRoot, 'built-distribution')
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true })
+  }
+
+  // Save and extract the archive
+  const archivePath = path.join(distDir, assetName)
+  const extractDir = path.join(distDir, assetName.replace('.tar.gz', ''))
+
+  // Create extract directory if it doesn't exist
+  if (!fs.existsSync(extractDir)) {
+    fs.mkdirSync(extractDir, { recursive: true })
+  }
+
+  // Download and save the file
+  const fileStream = createWriteStream(archivePath)
+  await pipeline(downloadResponse.body as any, fileStream)
+
+  console.log(`Extracting to ${extractDir}...`)
+
+  // Extract the archive
+  await pipeline(
+    fs.createReadStream(archivePath),
+    extract({
+      cwd: extractDir,
+    }),
+  )
+
+  // Clean up the archive file
+  fs.unlinkSync(archivePath)
+
+  console.log(`Enso engine downloaded and extracted to ${extractDir}`)
+
+  return extractDir
 }
