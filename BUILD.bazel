@@ -62,6 +62,7 @@ SRCS = STDLIB_SOURCES + [
     "distribution/enso.bundle.template",
     "distribution/bin/enso",
     "distribution/bin/enso.bat",
+    "//lib/java/python-extract:extract_python_resources",
     "//lib/rust/parser/jni:enso_parser_jni",
     "//lib/rust/parser:generate_java",
     "//lib/rust/parser/generate-java:enso_parser_generate_java_srcs",
@@ -198,6 +199,7 @@ EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.home=$(BINDIR)/home",
     "-Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)",
     "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
+    "-Denso.BazelSupport.python.resourceDir=$(location //lib/java/python-extract:extract_python_resources)",
 ]
 
 ENV = {

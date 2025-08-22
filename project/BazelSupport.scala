@@ -20,6 +20,7 @@ object BazelSupport extends AutoPlugin {
   val OUT_DIR_PROP                  = "enso.BazelSupport.outDir"
   val RUST_PARSER_JAVA_SRC_DIR_PROP = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP          = "enso.BazelSupport.parser.lib"
+  val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -45,6 +46,9 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val rustParserLib = taskKey[File](
       "Rust native parser DLL"
+    )
+    lazy val extractedPythonResourceDir = taskKey[File](
+      "Directory containing extracted Python resources"
     )
     lazy val Bazel = config("Bazel")
   }
@@ -127,6 +131,23 @@ object BazelSupport extends AutoPlugin {
           )
         }
         parserLib
+      },
+      Bazel / extractedPythonResourceDir := {
+        val logger = streams.value.log
+        val prop = System.getProperty(EXTRACTED_PYTHON_RESOURCES_PROP)
+        if (prop == null) {
+          logger.error(
+            s"Extracted Python resources directory not set in ${EXTRACTED_PYTHON_RESOURCES_PROP} property."
+          )
+        }
+        val dir = new File(prop)
+        if (!dir.exists()) {
+          logger.warn(
+            s"Extracted Python resources directory not found at $dir. " +
+              "Make sure to extract the resources with `bazel build //lib/java/python-extract:extract_python_resources`."
+          )
+        }
+        dir
       }
     )
   }

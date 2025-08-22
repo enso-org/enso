@@ -836,27 +836,33 @@ lazy val `python-extract` = project
     ),
     Compile / run / mainClass := Some("org.enso.pyextract.PythonExtract"),
     Compile / run / fork := true,
-    extractPythonResources := {
-      val outDir          = target.value / "python-resources"
-      val pyResourcesGlob = target.value.toGlob / "python-resources" / ** / *
-      val logger          = streams.value.log
-      val outs            = FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1)
-      val main            = (Compile / run / mainClass).value
-      val classPath       = (Compile / fullClasspath).value
-      val args = Seq(
-        outDir.getPath
-      )
-      val javaRunner = (Compile / run / runner).value
-      if (outs.isEmpty) {
-        javaRunner.run(
-          main.get,
-          classPath.files,
-          args,
-          logger
+    extractPythonResources := Def.taskIf {
+      if ((Bazel / wasStartedFromBazel).value) {
+        val resDir = (Bazel / extractedPythonResourceDir).value
+        val glob = resDir.toGlob / ** / *
+        FileTreeView.default.list(Seq(glob)).map(_._1.toFile)
+      } else {
+        val outDir          = target.value / "python-resources"
+        val pyResourcesGlob = target.value.toGlob / "python-resources" / ** / *
+        val logger          = streams.value.log
+        val outs            = FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1)
+        val main            = (Compile / run / mainClass).value
+        val classPath       = (Compile / fullClasspath).value
+        val args = Seq(
+          outDir.getPath
         )
+        val javaRunner = (Compile / run / runner).value
+        if (outs.isEmpty) {
+          javaRunner.run(
+            main.get,
+            classPath.files,
+            args,
+            logger
+          )
+        }
+        FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1.toFile)
       }
-      FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1.toFile)
-    },
+    }.value,
     clean := {
       val _      = clean.value
       val outDir = target.value / "python-resources"
