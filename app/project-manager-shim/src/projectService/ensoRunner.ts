@@ -1,4 +1,4 @@
-import * as child_process from 'node:child_process'
+import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
@@ -32,7 +32,7 @@ export class EnsoRunner implements Runner {
     }
 
     return new Promise((resolve, reject) => {
-      const process = child_process.spawn(this.ensoPath, args)
+      const process = childProcess.spawn(this.ensoPath, args)
 
       let stdout = ''
       let stderr = ''

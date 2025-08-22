@@ -58,73 +58,12 @@ export interface CreateProject {
   readonly projectNormalizedName: string
 }
 
-// ===================
-// === Error Types ===
-// ===================
-
-export abstract class ProjectServiceFailure extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = this.constructor.name
-  }
-}
-
-export class ValidationFailure extends ProjectServiceFailure {}
-export class ProjectExists extends ProjectServiceFailure {}
-export class ProjectNotFound extends ProjectServiceFailure {}
-export class DataStoreFailure extends ProjectServiceFailure {}
-export class ProjectCreateFailed extends ProjectServiceFailure {}
-export class ProjectOpenFailed extends ProjectServiceFailure {}
-export class ProjectCloseFailed extends ProjectServiceFailure {}
-export class CannotRemoveOpenProject extends ProjectServiceFailure {}
-export class CannotRemoveClosingProject extends ProjectServiceFailure {}
-export class ProjectOperationTimeout extends ProjectServiceFailure {}
-export class ProjectNotOpen extends ProjectServiceFailure {}
-export class ProjectOpenByOtherPeers extends ProjectServiceFailure {}
-export class LanguageServerFailure extends ProjectServiceFailure {}
-
-// =========================
-// === Helper Interfaces ===
-// =========================
-
-interface LanguageServerGateway {
-  isRunning(projectId: string): Promise<[boolean, boolean]>
-  start(
-    progressTracker: any,
-    clientId: string,
-    project: Project,
-    version: string,
-    extraEnv: Array<[string, string]>,
-  ): Promise<LanguageServerSockets>
-  stop(clientId: string, projectId: string): Promise<void>
-  registerShutdownHook(projectId: string, command: any): Promise<void>
-  renameProject(
-    projectId: string,
-    namespace: string,
-    oldPackage: string,
-    newPackage: string,
-  ): Promise<void>
-}
-
-class Lazy<T> {
-  private value?: T
-
-  constructor(private readonly factory: () => T) {}
-
-  getValue(): T {
-    return this.value || (this.value = this.factory())
-  }
-}
-
 // =======================
 // === ProjectService ====
 // =======================
 
 export class ProjectService {
   private static readonly DEFAULT_NAMESPACE = 'local'
-  private static ensoPath: Lazy<string | undefined> = new Lazy(() =>
-    findEnsoPath(path.join(process.cwd(), '..', '..')),
-  )
 
   constructor(
     private readonly runner: Runner,
@@ -132,7 +71,7 @@ export class ProjectService {
   ) {}
 
   static default(): ProjectService {
-    const ensoPath = ProjectService.ensoPath.getValue()
+    const ensoPath = findEnsoPath('.')
     if (!ensoPath) {
       throw new Error('Enso executable not found')
     }
@@ -227,14 +166,14 @@ export class ProjectService {
 
   private async validateProjectName(name: string): Promise<void> {
     if (name.trim().length === 0) {
-      throw new ValidationFailure('Project name cannot be empty.')
+      throw new Error('Project name cannot be empty.')
     }
   }
 
   private async checkIfNameExists(name: string, repo: ProjectRepository): Promise<void> {
     const exists = await repo.exists(name)
     if (exists) {
-      throw new ProjectExists(`Project with name '${name}' already exists.`)
+      throw new Error(`Project with name '${name}' already exists.`)
     }
   }
 
