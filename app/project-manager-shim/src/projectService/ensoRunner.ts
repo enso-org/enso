@@ -1,10 +1,11 @@
+import { Path } from 'enso-common/src/utilities/file'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 export interface Runner {
   createProject(
-    path: string,
+    path: Path,
     name: string,
     engineVersion?: string,
     projectTemplate?: string,
@@ -14,11 +15,11 @@ export interface Runner {
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
   /** Creates a new EnsoRunner with the path to the Enso executable. */
-  constructor(private ensoPath: string) {}
+  constructor(private ensoPath: Path) {}
 
   /** Creates a new Enso project at the specified path. */
   async createProject(
-    projectPath: string,
+    projectPath: Path,
     name: string,
     engineVersion?: string,
     projectTemplate?: string,
@@ -64,14 +65,14 @@ export class EnsoRunner implements Runner {
 }
 
 /** Find the path to the `enso` executable. */
-export function findEnsoExecutable(workDir: string): string | undefined {
+export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   const checkExecutable = (filePath: string) => {
     try {
       fs.accessSync(filePath, fs.constants.X_OK)
     } catch {
       throw new Error(`Enso executable at ${filePath} is not executable`)
     }
-    return filePath
+    return Path(filePath)
   }
 
   // Check ENSO_RUNNER_PATH environment variable first

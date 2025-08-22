@@ -1,5 +1,6 @@
 import { UUID } from 'enso-common/src/services/Backend'
 import { type Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { Path } from 'enso-common/src/utilities/file'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -14,7 +15,7 @@ export interface Project {
   readonly created: Rfc3339DateTime
   readonly edition?: string
   readonly jvmModeEnabled?: boolean
-  readonly path: string // Absolute file path
+  readonly path: Path // Absolute file path
   readonly lastOpened?: Rfc3339DateTime
   readonly directoryCreationTime?: Rfc3339DateTime
 }
@@ -29,7 +30,7 @@ export interface ProjectMetadata {
 
 export interface ProjectRepository {
   exists(name: string): Promise<boolean>
-  findPathForNewProject(normalizedName: string): Promise<string>
+  findPathForNewProject(normalizedName: string): Promise<Path>
   update(project: Project): Promise<void>
   delete(projectId: string): Promise<void>
   moveToTrash(projectId: string): Promise<boolean>
@@ -37,11 +38,11 @@ export interface ProjectRepository {
   findById(projectId: string): Promise<Project | null>
   find(predicate: (project: Project) => boolean): Promise<Project[]>
   getAll(): Promise<Project[]>
-  moveProject(projectId: string, newName: string): Promise<string>
+  moveProject(projectId: string, newName: string): Promise<Path>
   copyProject(project: Project, newName: string, newMetadata: ProjectMetadata): Promise<Project>
   getPackageName(projectId: string): Promise<string>
   getPackageNamespace(projectId: string): Promise<string>
-  tryLoadProject(directory: string): Promise<Project | null>
+  tryLoadProject(directory: Path): Promise<Project | null>
 }
 
 const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
@@ -64,7 +65,7 @@ interface ProjectJson {
 /** File-based implementation of ProjectRepository. */
 export class ProjectFileRepository implements ProjectRepository {
   /** Creates a new ProjectFileRepository with the specified projects directory. */
-  constructor(private readonly projectsPath: string) {}
+  constructor(private readonly projectsPath: Path) {}
 
   /** Checks if a project with the given name exists. */
   async exists(name: string): Promise<boolean> {
@@ -73,7 +74,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Finds an available path for a new project. */
-  async findPathForNewProject(projectName: string): Promise<string> {
+  async findPathForNewProject(projectName: string): Promise<Path> {
     const normalizedName = nameValidation.normalizedName(projectName)
     return this.findTargetPath(normalizedName)
   }
@@ -143,7 +144,7 @@ export class ProjectFileRepository implements ProjectRepository {
       const directories = entries.filter((e) => e.isDirectory() && !e.name.startsWith('.'))
 
       const projects: (Project | null)[] = await Promise.all(
-        directories.map((dir) => this.tryLoadProject(path.join(this.projectsPath, dir.name))),
+        directories.map((dir) => this.tryLoadProject(Path(path.join(this.projectsPath, dir.name)))),
       )
 
       const validProjects = projects.filter((p): p is Project => p !== null)
@@ -157,7 +158,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Moves a project to a new location. */
-  async moveProject(projectId: string, newName: string): Promise<string> {
+  async moveProject(projectId: string, newName: string): Promise<Path> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project not found: ${projectId}`)
@@ -228,7 +229,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Attempts to load a project from a directory. */
-  async tryLoadProject(directory: string): Promise<Project | null> {
+  async tryLoadProject(directory: Path): Promise<Project | null> {
     try {
       const packagePath = path.join(directory, PACKAGE_METADATA_RELATIVE_PATH)
       const metadataPath = path.join(directory, PROJECT_METADATA_RELATIVE_PATH)
@@ -282,7 +283,7 @@ export class ProjectFileRepository implements ProjectRepository {
     }
   }
 
-  private async renamePackage(projectPath: string, newName: string): Promise<void> {
+  private async renamePackage(projectPath: Path, newName: string): Promise<void> {
     const packagePath = path.join(projectPath, PACKAGE_METADATA_RELATIVE_PATH)
     const content = await fs.readFile(packagePath, 'utf-8')
     const pkg = yaml.parse(content) as PackageYaml
@@ -290,7 +291,7 @@ export class ProjectFileRepository implements ProjectRepository {
     await fs.writeFile(packagePath, yaml.stringify(pkg))
   }
 
-  private async findTargetPath(moduleName: string): Promise<string> {
+  private async findTargetPath(moduleName: string): Promise<Path> {
     let suffix = 0
     while (true) {
       const candidatePath = path.join(
@@ -301,12 +302,12 @@ export class ProjectFileRepository implements ProjectRepository {
         await fs.access(candidatePath)
         suffix++
       } catch {
-        return candidatePath
+        return Path(candidatePath)
       }
     }
   }
 
-  private async copyDirectory(source: string, destination: string): Promise<void> {
+  private async copyDirectory(source: Path, destination: Path): Promise<void> {
     await fs.mkdir(destination, { recursive: true })
     const entries = await fs.readdir(source, { withFileTypes: true })
 
@@ -315,7 +316,7 @@ export class ProjectFileRepository implements ProjectRepository {
       const destPath = path.join(destination, entry.name)
 
       if (entry.isDirectory()) {
-        await this.copyDirectory(sourcePath, destPath)
+        await this.copyDirectory(Path(sourcePath), Path(destPath))
       } else {
         await fs.copyFile(sourcePath, destPath)
       }

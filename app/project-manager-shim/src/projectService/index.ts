@@ -8,6 +8,7 @@ import * as crypto from 'node:crypto'
 
 import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { Path } from 'enso-common/src/utilities/file'
 import { type Runner, EnsoRunner, findEnsoExecutable } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
 import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
@@ -37,7 +38,7 @@ export interface Socket {
 }
 
 export interface CloudParams {
-  readonly cloudProjectDirectoryPath: string
+  readonly cloudProjectDirectoryPath: Path
   readonly cloudProjectId: string
   readonly cloudProjectSessionId: string
 }
@@ -47,14 +48,14 @@ export interface CreateProjectParams {
   readonly name: string
   readonly projectTemplate?: string
   readonly version?: string
-  readonly projectsDirectory?: string
+  readonly projectsDirectory?: Path
 }
 
 /** The return value of the "create project" endpoint. */
 export interface CreateProject {
   readonly projectId: UUID
   readonly projectName: string
-  readonly projectPath: string
+  readonly projectPath: Path
   readonly projectNormalizedName: string
 }
 
@@ -74,7 +75,7 @@ export class ProjectService {
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
   static default(): ProjectService {
-    const ensoPath = findEnsoExecutable('.')
+    const ensoPath = findEnsoExecutable()
     if (!ensoPath) {
       throw new Error('Enso executable not found')
     }
@@ -87,7 +88,7 @@ export class ProjectService {
    */
   async createProject(
     projectName: string,
-    projectsDirectory: string,
+    projectsDirectory: Path,
     engineVersion?: string,
     projectTemplate?: string,
   ): Promise<CreateProject> {
@@ -140,7 +141,7 @@ export class ProjectService {
     return UUID(crypto.randomUUID())
   }
 
-  private getProjectRepository(projectsDirectory: string): ProjectRepository {
+  private getProjectRepository(projectsDirectory: Path): ProjectRepository {
     return new ProjectFileRepository(projectsDirectory)
   }
 
@@ -180,7 +181,7 @@ export class ProjectService {
   }
 
   /** Deletes a user project. */
-  async deleteUserProject(_projectId: string, _projectsDirectory?: string): Promise<void> {
+  async deleteUserProject(_projectId: string, _projectsDirectory?: Path): Promise<void> {
     // TODO: Implement deleteUserProject
     throw new Error('deleteUserProject not implemented yet')
   }
@@ -189,7 +190,7 @@ export class ProjectService {
   async renameProject(
     _projectId: string,
     _newName: string,
-    _projectsDirectory?: string,
+    _projectsDirectory?: Path,
   ): Promise<void> {
     // TODO: Implement renameProject
     throw new Error('renameProject not implemented yet')
@@ -201,7 +202,7 @@ export class ProjectService {
     _clientId: string,
     _projectId: string,
     _cloud?: CloudParams,
-    _projectsDirectory?: string,
+    _projectsDirectory?: Path,
   ): Promise<RunningLanguageServerInfo> {
     // TODO: Implement openProject
     throw new Error('openProject not implemented yet')
@@ -214,7 +215,7 @@ export class ProjectService {
   }
 
   /** Duplicates a user project. */
-  async duplicateUserProject(_projectId: string, _projectsDirectory?: string): Promise<Project> {
+  async duplicateUserProject(_projectId: string, _projectsDirectory?: Path): Promise<Project> {
     // TODO: Implement duplicateUserProject
     throw new Error('duplicateUserProject not implemented yet')
   }
