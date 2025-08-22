@@ -2,6 +2,8 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
+from enso_dev.Helpers.Enso_Bin_Utils import enso_bin
+
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
@@ -54,27 +56,5 @@ find_sibling name =
     f = enso_project.root / "src" / "Startup" / name
     if f.is_regular_file.not then Panic.throw "Cannot find "+f.to_text
     f
-
-enso_bin =
-    find_prefix dir prefix =
-        vec = dir.list name_filter=prefix+"*"
-        if vec.length == 1 then vec.at 0 else
-            msg = "Cannot find " + prefix + "* in " + dir.to_text + '\n'
-            err = dir.list.fold msg t-> f->
-                t + f.to_text + '\n'
-            Panic.throw err
-
-    project_root = File.new enso_project.root.to_text
-    repository_root = project_root . parent . parent
-    built_distribution = find_prefix repository_root "built-distribution"
-    enso_engine = find_prefix built_distribution "enso-engine-"
-    enso = find_prefix enso_engine "enso-"
-    bin = find_prefix enso "bin"
-
-    exe = File.new bin / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
-
-    if exe.is_regular_file.not then Panic.throw "Cannot find "+exe.to_text
-
-    exe
 
 main = collect_benches . run_main
