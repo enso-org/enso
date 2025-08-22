@@ -204,7 +204,7 @@ export default function projectManagerShimMiddleware(
       case 'POST /api/project-service/project/create': {
         interface ResponseBody {
           readonly name: string
-          readonly projectsDirectory: string
+          readonly projectsDirectory: Path
         }
         bodyJson<ResponseBody>(request)
           .then((body) => {

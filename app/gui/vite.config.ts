@@ -8,7 +8,7 @@ import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
-import { findEnsoPath } from 'project-manager-shim'
+import { findEnsoExecutable } from 'project-manager-shim'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { extract } from 'tar'
@@ -29,10 +29,10 @@ if (isDevMode) {
 
 if (isDevMode) {
   const projectRoot = fileURLToPath(new URL('../..', import.meta.url))
-  let ensoExecutable = findEnsoPath(projectRoot)
+  let ensoExecutable = findEnsoExecutable(projectRoot)
   if (ensoExecutable === undefined) {
     await downloadEnsoEngine(projectRoot)
-    ensoExecutable = findEnsoPath(projectRoot)
+    ensoExecutable = findEnsoExecutable(projectRoot)
   }
   if (ensoExecutable) {
     console.log('Found enso executable:', ensoExecutable)
