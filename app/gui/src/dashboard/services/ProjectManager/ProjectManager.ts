@@ -195,6 +195,7 @@ export class ProjectManager {
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const enableProjectService = useFeatureFlag('enableProjectService')
     let result: Omit<CreateProject, 'projectPath'>
     if (enableProjectService.value) {
