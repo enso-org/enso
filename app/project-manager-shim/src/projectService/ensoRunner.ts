@@ -11,9 +11,12 @@ export interface Runner {
   ): Promise<void>
 }
 
+/** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
+  /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: string) {}
 
+  /** Creates a new Enso project at the specified path. */
   async createProject(
     projectPath: string,
     name: string,
@@ -34,11 +37,11 @@ export class EnsoRunner implements Runner {
     return new Promise((resolve, reject) => {
       const process = childProcess.spawn(this.ensoPath, args)
 
-      let stdout = ''
+      let _stdout = ''
       let stderr = ''
 
       process.stdout.on('data', (data) => {
-        stdout += data.toString()
+        _stdout += data.toString()
       })
 
       process.stderr.on('data', (data) => {

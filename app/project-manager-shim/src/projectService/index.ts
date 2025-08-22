@@ -5,7 +5,6 @@
  */
 
 import * as crypto from 'node:crypto'
-import * as path from 'node:path'
 
 import { UUID } from 'enso-common/src/services/Backend'
 import { type Runner, EnsoRunner, findEnsoPath } from './ensoRunner.js'
@@ -62,14 +61,17 @@ export interface CreateProject {
 // === ProjectService ====
 // =======================
 
+/** Service for managing Enso projects. */
 export class ProjectService {
   private static readonly DEFAULT_NAMESPACE = 'local'
 
+  /** Creates a new ProjectService with the specified runner. */
   constructor(
     private readonly runner: Runner,
     private readonly logger: Console = console,
   ) {}
 
+  /** Creates a default ProjectService using the Enso executable found in the environment. */
   static default(): ProjectService {
     const ensoPath = findEnsoPath('.')
     if (!ensoPath) {
@@ -177,37 +179,42 @@ export class ProjectService {
     }
   }
 
-  async deleteUserProject(projectId: string, projectsDirectory?: string): Promise<void> {
+  /** Deletes a user project. */
+  async deleteUserProject(_projectId: string, _projectsDirectory?: string): Promise<void> {
     // TODO: Implement deleteUserProject
     throw new Error('deleteUserProject not implemented yet')
   }
 
+  /** Renames a project. */
   async renameProject(
-    projectId: string,
-    newName: string,
-    projectsDirectory?: string,
+    _projectId: string,
+    _newName: string,
+    _projectsDirectory?: string,
   ): Promise<void> {
     // TODO: Implement renameProject
     throw new Error('renameProject not implemented yet')
   }
 
+  /** Opens a project and starts its language server. */
   async openProject(
-    progressTracker: any,
-    clientId: string,
-    projectId: string,
-    cloud?: CloudParams,
-    projectsDirectory?: string,
+    _progressTracker: any,
+    _clientId: string,
+    _projectId: string,
+    _cloud?: CloudParams,
+    _projectsDirectory?: string,
   ): Promise<RunningLanguageServerInfo> {
     // TODO: Implement openProject
     throw new Error('openProject not implemented yet')
   }
 
-  async closeProject(clientId: string, projectId: string): Promise<void> {
+  /** Closes a project and stops its language server. */
+  async closeProject(_clientId: string, _projectId: string): Promise<void> {
     // TODO: Implement closeProject
     throw new Error('closeProject not implemented yet')
   }
 
-  async duplicateUserProject(projectId: string, projectsDirectory?: string): Promise<Project> {
+  /** Duplicates a user project. */
+  async duplicateUserProject(_projectId: string, _projectsDirectory?: string): Promise<Project> {
     // TODO: Implement duplicateUserProject
     throw new Error('duplicateUserProject not implemented yet')
   }

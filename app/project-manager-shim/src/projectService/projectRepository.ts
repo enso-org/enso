@@ -60,19 +60,24 @@ interface ProjectJson {
   lastOpened?: string | null
 }
 
+/** File-based implementation of ProjectRepository. */
 export class ProjectFileRepository implements ProjectRepository {
+  /** Creates a new ProjectFileRepository with the specified projects directory. */
   constructor(private readonly projectsPath: string) {}
 
+  /** Checks if a project with the given name exists. */
   async exists(name: string): Promise<boolean> {
     const projects = await this.getAll()
     return projects.some((p) => p.name === name)
   }
 
+  /** Finds an available path for a new project. */
   async findPathForNewProject(projectName: string): Promise<string> {
     const normalizedName = nameValidation.normalizedName(projectName)
     return this.findTargetPath(normalizedName)
   }
 
+  /** Updates project metadata. */
   async update(project: Project): Promise<void> {
     const metadataPath = path.join(project.path, PROJECT_METADATA_RELATIVE_PATH)
     const metadata: ProjectJson = {
@@ -85,6 +90,7 @@ export class ProjectFileRepository implements ProjectRepository {
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
+  /** Deletes a project by ID. */
   async delete(projectId: string): Promise<void> {
     const project = await this.findById(projectId)
     if (!project) {
@@ -93,6 +99,7 @@ export class ProjectFileRepository implements ProjectRepository {
     await fs.rm(project.path, { recursive: true, force: true })
   }
 
+  /** Moves a project to trash. */
   async moveToTrash(projectId: string): Promise<boolean> {
     const project = await this.findById(projectId)
     if (!project) {
@@ -107,6 +114,7 @@ export class ProjectFileRepository implements ProjectRepository {
     return true
   }
 
+  /** Renames a project. */
   async rename(projectId: string, name: string): Promise<void> {
     const project = await this.findById(projectId)
     if (!project) {
@@ -115,16 +123,19 @@ export class ProjectFileRepository implements ProjectRepository {
     await this.renamePackage(project.path, name)
   }
 
+  /** Finds a project by ID. */
   async findById(projectId: string): Promise<Project | null> {
     const projects = await this.getAll()
     return projects.find((p) => p.id === projectId) ?? null
   }
 
+  /** Finds projects matching a predicate. */
   async find(predicate: (project: Project) => boolean): Promise<Project[]> {
     const projects = await this.getAll()
     return projects.filter(predicate)
   }
 
+  /** Gets all projects. */
   async getAll(): Promise<Project[]> {
     try {
       const entries = await fs.readdir(this.projectsPath, { withFileTypes: true })
@@ -144,6 +155,7 @@ export class ProjectFileRepository implements ProjectRepository {
     }
   }
 
+  /** Moves a project to a new location. */
   async moveProject(projectId: string, newName: string): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
@@ -156,6 +168,7 @@ export class ProjectFileRepository implements ProjectRepository {
     return targetPath
   }
 
+  /** Copies a project with a new name and metadata. */
   async copyProject(
     project: Project,
     newName: string,
@@ -187,6 +200,7 @@ export class ProjectFileRepository implements ProjectRepository {
     return newProject
   }
 
+  /** Gets the package name for a project. */
   async getPackageName(projectId: string): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
@@ -199,6 +213,7 @@ export class ProjectFileRepository implements ProjectRepository {
     return pkg.name ?? ''
   }
 
+  /** Gets the package namespace for a project. */
   async getPackageNamespace(projectId: string): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
@@ -211,6 +226,7 @@ export class ProjectFileRepository implements ProjectRepository {
     return pkg.namespace ?? 'local'
   }
 
+  /** Attempts to load a project from a directory. */
   async tryLoadProject(directory: string): Promise<Project | null> {
     try {
       const packagePath = path.join(directory, PACKAGE_METADATA_RELATIVE_PATH)
