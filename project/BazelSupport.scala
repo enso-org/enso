@@ -4,22 +4,22 @@ import sbt.Keys.*
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 
 /** Basic support for Bazel, more specifically, being able to run `sbt` from bazel.
- * Ultimately, we would like to migrate the whole project to Bazel.
- * In the meantime, let's respect that the build entrypoint is bazel, and not sbt.
- *
- * All the Bazel-related settings are "hidden" inside `Bazel` configuration.
- *
- * If sbt is running from within bazel (i.e. as a subprocess of bazel), we cannot run
- * for example `cargo` or `pnpm` subprocesses from sbt.
- *
- * The basic support for Bazel was added in https://github.com/enso-org/enso/pull/13239
- */
+  * Ultimately, we would like to migrate the whole project to Bazel.
+  * In the meantime, let's respect that the build entrypoint is bazel, and not sbt.
+  *
+  * All the Bazel-related settings are "hidden" inside `Bazel` configuration.
+  *
+  * If sbt is running from within bazel (i.e. as a subprocess of bazel), we cannot run
+  * for example `cargo` or `pnpm` subprocesses from sbt.
+  *
+  * The basic support for Bazel was added in https://github.com/enso-org/enso/pull/13239
+  */
 object BazelSupport extends AutoPlugin {
-  val ENABLED_PROP                  = "enso.BazelSupport.enabled"
-  val HOME_DIR_PROP                 = "enso.BazelSupport.home"
-  val OUT_DIR_PROP                  = "enso.BazelSupport.outDir"
-  val RUST_PARSER_JAVA_SRC_DIR_PROP = "enso.BazelSupport.parser.javaSrcDir"
-  val RUST_PARSER_LIB_PROP          = "enso.BazelSupport.parser.lib"
+  val ENABLED_PROP                    = "enso.BazelSupport.enabled"
+  val HOME_DIR_PROP                   = "enso.BazelSupport.home"
+  val OUT_DIR_PROP                    = "enso.BazelSupport.outDir"
+  val RUST_PARSER_JAVA_SRC_DIR_PROP   = "enso.BazelSupport.parser.javaSrcDir"
+  val RUST_PARSER_LIB_PROP            = "enso.BazelSupport.parser.lib"
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
 
   object autoImport {
@@ -28,9 +28,9 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val homeDir = settingKey[Option[File]](
       "Path to $HOME directory. This is necessary to set because it is expected " +
-        "by various components when for example compiling standard libraries. " +
-        "Note that Bazel is not able to give us an absolute path to a directory inside a sandbox, " +
-        "so we resolve the relative path in sbt."
+      "by various components when for example compiling standard libraries. " +
+      "Note that Bazel is not able to give us an absolute path to a directory inside a sandbox, " +
+      "so we resolve the relative path in sbt."
     )
     lazy val outputDir = settingKey[Option[File]](
       """
@@ -109,8 +109,8 @@ object BazelSupport extends AutoPlugin {
         if (!srcDir.exists()) {
           logger.warn(
             s"Rust parser Java sources not found at $srcDir. " +
-              "Make sure to generate the Java sources with `bazel build //lib/rust/parser:generate_java`." +
-              "Passed via system property " + RUST_PARSER_JAVA_SRC_DIR_PROP + "."
+            "Make sure to generate the Java sources with `bazel build //lib/rust/parser:generate_java`." +
+            "Passed via system property " + RUST_PARSER_JAVA_SRC_DIR_PROP + "."
           )
         }
         FileUtils.listFiles(srcDir, Array("java"), true).asScala.toSeq
@@ -127,14 +127,14 @@ object BazelSupport extends AutoPlugin {
         if (!parserLib.exists()) {
           logger.warn(
             s"Rust parser library not found at $parserLib. " +
-              "Make sure to build the parser with `bazel build //lib/rust/parser:enso_parser`."
+            "Make sure to build the parser with `bazel build //lib/rust/parser:enso_parser`."
           )
         }
         parserLib
       },
       Bazel / extractedPythonResourceDir := {
         val logger = streams.value.log
-        val prop = System.getProperty(EXTRACTED_PYTHON_RESOURCES_PROP)
+        val prop   = System.getProperty(EXTRACTED_PYTHON_RESOURCES_PROP)
         if (prop == null) {
           logger.error(
             s"Extracted Python resources directory not set in ${EXTRACTED_PYTHON_RESOURCES_PROP} property."
@@ -144,7 +144,7 @@ object BazelSupport extends AutoPlugin {
         if (!dir.exists()) {
           logger.warn(
             s"Extracted Python resources directory not found at $dir. " +
-              "Make sure to extract the resources with `bazel build //lib/java/python-extract:extract_python_resources`."
+            "Make sure to extract the resources with `bazel build //lib/java/python-extract:extract_python_resources`."
           )
         }
         dir

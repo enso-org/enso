@@ -839,7 +839,7 @@ lazy val `python-extract` = project
     extractPythonResources := Def.taskIf {
       if ((Bazel / wasStartedFromBazel).value) {
         val resDir = (Bazel / extractedPythonResourceDir).value
-        val glob = resDir.toGlob / ** / *
+        val glob   = resDir.toGlob / ** / *
         FileTreeView.default.list(Seq(glob)).map(_._1.toFile)
       } else {
         val outDir          = target.value / "python-resources"
