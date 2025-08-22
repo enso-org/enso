@@ -122,7 +122,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 /* React panels rely on being inside columned flex. */
 .contentInner {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   background-color: rgb(254, 253, 252);
