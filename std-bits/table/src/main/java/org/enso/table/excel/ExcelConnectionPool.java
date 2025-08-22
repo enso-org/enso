@@ -20,6 +20,7 @@ import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
@@ -121,6 +122,11 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
               workbook.write(workbookOut);
             }
           }
+        }
+
+        // If we used the streaming workbook, ensure temp files are deleted.
+        if (workbook instanceof SXSSFWorkbook sxssf) {
+          sxssf.dispose();
         }
 
         return result;
@@ -353,7 +359,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   private static Workbook createEmptyWorkbook(ExcelFileFormat format) {
     return switch (format) {
       case XLS -> new HSSFWorkbook();
-      case XLSX, XLSX_FALLBACK -> new XSSFWorkbook();
+      case XLSX, XLSX_FALLBACK -> new SXSSFWorkbook();
     };
   }
 
