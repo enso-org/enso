@@ -17,6 +17,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Data_Read_Helpers
 import project.Internal.Telemetry
+import project.Logging.Progress
 import project.Meta
 import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
@@ -28,7 +29,6 @@ import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Runtime.Context
-import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
@@ -37,7 +37,6 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vector_Editor
 from project.System.File_Format import Auto_Detect, File_Format
 
-polyglot java import org.enso.base.ProgressReporter
 
 ## ---
    aliases: [load, open]
@@ -171,11 +170,12 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
 read_many : Many_Files_List -> File_Format -> Return_As -> Problem_Behavior -> Any ! File_Error
 read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto_Detect return=..As_Merged_Table (on_problems : Problem_Behavior = ..Report_Warning) =
     return_as = Return_As.resolve return
+    used_format = File_Format.resolve format
     if paths.paths_to_load.contains Nothing then Error.throw (Illegal_Argument.Error Illegal_Argument.Error "`paths` cannot contain `Nothing`. Use `filter` with `..Not_Nothing` to remove.") else
-        Managed_Resource.bracket (ProgressReporter.createWithStep 'Data.read_many' paths.paths_to_load.length 1) (_.close) pr->
+        Progress.execute 'Data.read_many' paths.paths_to_load.length 1 pr->
             loaded_objects = paths.paths_to_load.map on_problems=No_Wrap.Value path->
                 pr.advance
-                Data.read path format on_problems . catch Any error->
+                Data.read path used_format on_problems . catch Any error->
                     Failed_To_Load.Warning path error
             result = return_as.make_return paths loaded_objects on_problems
             result.if_not_error <|
