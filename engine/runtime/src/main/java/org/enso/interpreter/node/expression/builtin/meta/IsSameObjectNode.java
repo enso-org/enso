@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 
 @BuiltinMethod(
@@ -71,6 +72,12 @@ public abstract class IsSameObjectNode extends Node {
       } catch (UnsupportedMessageException ex) {
         // go on
       }
+    }
+    var ctx = EnsoContext.get(this);
+    if (ctx.isJavaPolyglotObject(left) && ctx.isJavaPolyglotObject(right)) {
+      var hostLeft = ctx.asJavaPolyglotObject(left);
+      var hostRight = ctx.asJavaPolyglotObject(right);
+      return hostLeft == hostRight;
     }
     return interop.isIdentical(left, right, interop);
   }
