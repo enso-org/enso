@@ -1,10 +1,18 @@
+load("@bazel_skylib//rules:run_binary.bzl", "run_binary")
+load("//:bazel_scripts/python_extract.bzl", "extract_python_resources")
 
 java_binary(
     name = "python_extract",
     srcs = glob(["src/main/java/**/*.java"]),
+    main_class = "org.enso.pyextract.PythonExtract",
     deps = [
         "@maven//:org_graalvm_python_python_language",
         "@maven//:org_graalvm_python_python_resources",
         "@maven//:org_graalvm_polyglot_polyglot",
     ],
+)
+
+extract_python_resources(
+    name = "extract_python_resources",
+    out_dir = "python_resources"
 )
