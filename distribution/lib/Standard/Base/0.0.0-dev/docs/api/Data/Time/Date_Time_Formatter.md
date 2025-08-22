@@ -1,7 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Time.Date_Time_Formatter
 - type Date_Time_Formatter
-    - Value underlying:Standard.Base.Data.Time.Date_Time_Formatter.EnsoDateTimeFormatter ~deferred_parsing_warnings:Standard.Base.Any.Any=
     - default_enso_zoned_date_time -> Standard.Base.Any.Any
     - format_date self date:Standard.Base.Data.Time.Date.Date -> Standard.Base.Any.Any
     - format_date_time self date_time:Standard.Base.Data.Time.Date_Time.Date_Time -> Standard.Base.Any.Any
@@ -14,6 +13,7 @@
     - iso_date -> Standard.Base.Any.Any
     - iso_local_date_time -> Standard.Base.Any.Any
     - iso_offset_date_time -> Standard.Base.Any.Any
+    - iso_ordinal_date -> Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter
     - iso_time -> Standard.Base.Any.Any
     - iso_zoned_date_time -> Standard.Base.Any.Any
     - parse_date self text:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
