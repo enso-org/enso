@@ -186,6 +186,8 @@ circe_libs = [
 
 circe = ["io.circe:%s_2.13:%s" % (x, circe_version) for x in circe_libs]
 
+graal_maven_packages_version = "24.2.0"
+
 commons_text_version = "1.10.0"
 
 http_components_version = "4.4.1"
@@ -215,6 +217,8 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 ## > bazel run @unpinned_maven//:pin
 maven.install(
     artifacts = [
+        "org.graalvm.python:python-language:%s" % graal_maven_packages_version,
+        "org.graalvm.python:python-resources:%s" % graal_maven_packages_version,
         "com.typesafe.scala-logging:scala-logging_2.13:%s" % scala_logging_version,
         "org.scalatest:scalatest_2.13:%s" % scalatest_version,
         "org.typelevel:cats-core_2.13:%s" % cats_version,
