@@ -84,7 +84,7 @@ private parse_lang_home_log prev_line:(Text|Nothing) line:Text -> (Text | Nothin
         case (prev_line.contains "Python3Core" && line.contains "Language home") of
             False -> Nothing
             True ->
-                lang_home = line.split ":" . at 1
+                lang_home = line.split "Language home:" . at 1 . trim
                 lang_home
 
 
