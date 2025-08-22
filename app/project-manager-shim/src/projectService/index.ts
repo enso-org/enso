@@ -7,7 +7,7 @@
 import * as crypto from 'node:crypto'
 
 import { UUID } from 'enso-common/src/services/Backend'
-import { type Runner, EnsoRunner, findEnsoPath } from './ensoRunner.js'
+import { type Runner, EnsoRunner, findEnsoExecutable } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
 import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
 
@@ -73,7 +73,7 @@ export class ProjectService {
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
   static default(): ProjectService {
-    const ensoPath = findEnsoPath('.')
+    const ensoPath = findEnsoExecutable('.')
     if (!ensoPath) {
       throw new Error('Enso executable not found')
     }

@@ -64,7 +64,7 @@ export class EnsoRunner implements Runner {
 }
 
 /** Find the path to the `enso` executable. */
-export function findEnsoPath(workDir: string): string | undefined {
+export function findEnsoExecutable(workDir: string): string | undefined {
   const checkExecutable = (filePath: string) => {
     try {
       fs.accessSync(filePath, fs.constants.X_OK)

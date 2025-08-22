@@ -1,3 +1,3 @@
 export * from './filesystem.js'
 export * from './projectManagement.js'
-export { findEnsoPath } from './projectService/ensoRunner.js'
+export { findEnsoExecutable as findEnsoPath } from './projectService/ensoRunner.js'
