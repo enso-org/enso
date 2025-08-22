@@ -55,8 +55,8 @@ export interface CreateProjectParams {
 export interface CreateProject {
   readonly projectId: UUID
   readonly projectName: string
-  readonly projectPath: Path
   readonly projectNormalizedName: string
+  readonly projectPath: Path
 }
 
 // =======================
@@ -133,6 +133,46 @@ export class ProjectService {
     }
   }
 
+  /** Deletes a user project. */
+  async deleteUserProject(_projectId: string, _projectsDirectory?: Path): Promise<void> {
+    // TODO: Implement deleteUserProject
+    throw new Error('deleteUserProject not implemented yet')
+  }
+
+  /** Renames a project. */
+  async renameProject(
+    _projectId: string,
+    _newName: string,
+    _projectsDirectory?: Path,
+  ): Promise<void> {
+    // TODO: Implement renameProject
+    throw new Error('renameProject not implemented yet')
+  }
+
+  /** Opens a project and starts its language server. */
+  async openProject(
+    _progressTracker: any,
+    _clientId: string,
+    _projectId: string,
+    _cloud?: CloudParams,
+    _projectsDirectory?: Path,
+  ): Promise<RunningLanguageServerInfo> {
+    // TODO: Implement openProject
+    throw new Error('openProject not implemented yet')
+  }
+
+  /** Closes a project and stops its language server. */
+  async closeProject(_clientId: string, _projectId: string): Promise<void> {
+    // TODO: Implement closeProject
+    throw new Error('closeProject not implemented yet')
+  }
+
+  /** Duplicates a user project. */
+  async duplicateUserProject(_projectId: string, _projectsDirectory?: Path): Promise<Project> {
+    // TODO: Implement duplicateUserProject
+    throw new Error('duplicateUserProject not implemented yet')
+  }
+
   // ========================
   // === Helper Functions ===
   // ========================
@@ -178,45 +218,5 @@ export class ProjectService {
     if (exists) {
       throw new Error(`Project with name '${name}' already exists.`)
     }
-  }
-
-  /** Deletes a user project. */
-  async deleteUserProject(_projectId: string, _projectsDirectory?: Path): Promise<void> {
-    // TODO: Implement deleteUserProject
-    throw new Error('deleteUserProject not implemented yet')
-  }
-
-  /** Renames a project. */
-  async renameProject(
-    _projectId: string,
-    _newName: string,
-    _projectsDirectory?: Path,
-  ): Promise<void> {
-    // TODO: Implement renameProject
-    throw new Error('renameProject not implemented yet')
-  }
-
-  /** Opens a project and starts its language server. */
-  async openProject(
-    _progressTracker: any,
-    _clientId: string,
-    _projectId: string,
-    _cloud?: CloudParams,
-    _projectsDirectory?: Path,
-  ): Promise<RunningLanguageServerInfo> {
-    // TODO: Implement openProject
-    throw new Error('openProject not implemented yet')
-  }
-
-  /** Closes a project and stops its language server. */
-  async closeProject(_clientId: string, _projectId: string): Promise<void> {
-    // TODO: Implement closeProject
-    throw new Error('closeProject not implemented yet')
-  }
-
-  /** Duplicates a user project. */
-  async duplicateUserProject(_projectId: string, _projectsDirectory?: Path): Promise<Project> {
-    // TODO: Implement duplicateUserProject
-    throw new Error('duplicateUserProject not implemented yet')
   }
 }
