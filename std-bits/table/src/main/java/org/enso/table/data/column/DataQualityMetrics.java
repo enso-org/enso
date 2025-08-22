@@ -51,7 +51,7 @@ public abstract class DataQualityMetrics {
   public static final String IS_INCOMPLETE = "_Is Incomplete";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
-  public static final String DISTINCT_JSON = "Distinct JSON";
+  public static final String DISTINCT_JSON = "_Distinct JSON";
   public static final String SINGLE_VALUE = "_Single Value";
   public static final String MINIMUM = "Minimum";
   public static final String MAXIMUM = "Maximum";
