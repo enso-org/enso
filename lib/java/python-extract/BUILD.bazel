@@ -3,6 +3,7 @@ load("//:bazel_scripts/python_extract.bzl", "extract_python_resources")
 
 java_binary(
     name = "python_extract",
+    visibility = ["//visibility:private"],
     srcs = glob(["src/main/java/**/*.java"]),
     main_class = "org.enso.pyextract.PythonExtract",
     deps = [
@@ -14,5 +15,6 @@ java_binary(
 
 extract_python_resources(
     name = "extract_python_resources",
-    out_dir = "python_resources"
+    out_dir = "python_resources",
+    visibility = ["//visibility:public"]
 )
