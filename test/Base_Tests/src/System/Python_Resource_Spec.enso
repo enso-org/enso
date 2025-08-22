@@ -69,7 +69,7 @@ add_specs suite_builder = suite_builder.group "Python resources" group_builder->
                 sb.append "'"
                 sb.append updated_home.to_text
                 sb.append "'. "
-                sb.append "The entire output is: "
+                sb.append "The entire output is:  "
                 lines.each \line ->
                     sb.append line
                     sb.append "\n"
