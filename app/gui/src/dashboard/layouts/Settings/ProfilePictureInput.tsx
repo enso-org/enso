@@ -26,7 +26,9 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
 
   return (
     <Form
-      schema={(z) => z.object({ picture: z.instanceof(File) })}
+      schema={(z) =>
+        z.object({ picture: z.instanceof(File).refine((file) => file.type.startsWith('image/')) })
+      }
       onSubmit={async ({ picture }) => {
         await uploadUserPicture.mutateAsync([{ fileName: picture.name }, picture])
       }}
@@ -50,7 +52,7 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
             size="large"
             className="pointer-events-none h-full w-full"
           />
-          <HiddenFile autoSubmit name="picture" />
+          <HiddenFile autoSubmit name="picture" accept="image/*" />
         </aria.Label>
       </FocusRing>
 
