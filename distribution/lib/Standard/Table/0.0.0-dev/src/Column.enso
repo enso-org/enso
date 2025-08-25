@@ -2485,19 +2485,22 @@ type Column
         self.implementation.pretty_implementation self
 
     ## ---
-       aliases:
-        - count
-        - kurtosis
-        - maximum
-        - mean
-        - median
-        - minimum
-        - mode
-        - skew
-        - standard_deviation
-        - statistic
-        - sum
-        - variance
+       macros:
+        - count: ..Count
+        - minimum: ..Minimum
+        - maximum: ..Maximum
+        - sum: ..Sum
+        - total: ..Sum
+        - product: ..Product
+        - mean: ..Mean
+        - variance: ..Variance
+        - standard deviation: ..Standard_Deviation
+        - skew: ..Skew
+        - kurtosis: ..Kurtosis
+        - covariance: ..Covariance
+        - pearson: ..Pearson
+        - spearman: ..Spearman
+        - r sqaured: ..R_Squared
        group: Standard.Base.Statistics
        icon: transform4
        ---
@@ -2509,19 +2512,6 @@ type Column
         self.implementation.compute self statistic
 
     ## ---
-       aliases:
-        - count
-        - kurtosis
-        - maximum
-        - mean
-        - median
-        - minimum
-        - mode
-        - skew
-        - standard_deviation
-        - statistic
-        - sum
-        - variance
        icon: transform4
        ---
        Compute statistics on the column.
@@ -2532,18 +2522,22 @@ type Column
         self.implementation.compute_bulk self statistics
 
     ## ---
-       aliases:
-        - count
-        - cumulative
-        - maximum
-        - mean
-        - minimum
-        - product
-        - standard deviation
-        - sum
-        - sum
-        - total
-        - variance
+       macros:
+        - count: ..Count
+        - minimum: ..Minimum
+        - maximum: ..Maximum
+        - sum: ..Sum
+        - total: ..Sum
+        - product: ..Product
+        - mean: ..Mean
+        - variance: ..Variance
+        - standard deviation: ..Standard_Deviation
+        - skew: ..Skew
+        - kurtosis: ..Kurtosis
+        - covariance: ..Covariance
+        - pearson: ..Pearson
+        - spearman: ..Spearman
+        - r sqaured: ..R_Squared
        group: Standard.Base.Statistics
        icon: transform4
        ---

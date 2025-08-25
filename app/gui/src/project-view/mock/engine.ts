@@ -79,7 +79,8 @@ func2 a =
 main =
     five = 5
     ten = 10
-    sum = five + ten
+    twenty = 20
+    sum = five + ten + twenty
     prod = sum * 3
     ## This node can be entered
     final = Main.func1 prod

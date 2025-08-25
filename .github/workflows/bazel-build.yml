@@ -16,6 +16,8 @@ jobs:
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
       - uses: actions/checkout@v4
+      - name: Lint bazel files
+        run: bazel run //:lint_bazel_files
       - name: Expose env variables
         run: |
           cat << END > app/gui/.env.production

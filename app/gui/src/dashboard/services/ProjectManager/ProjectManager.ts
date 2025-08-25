@@ -139,6 +139,10 @@ export class ProjectManager {
 
   /** Get the state of a project given its path. */
   async getProject(projectPath: Path) {
+    const existingProjectId = this.projectIds.get(projectPath)
+    if (existingProjectId) {
+      return this.projects.get(existingProjectId)
+    }
     await this.listDirectory(Path(getFolderPath(projectPath)))
     const projectId = this.projectIds.get(projectPath)
     invariant(projectId, `Unknown project id for project '${projectPath}'.`)

@@ -5,6 +5,7 @@ import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
 import { isIdentifier, moduleMethodNames } from '@/util/ast/abstract'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
+import { Vec2 } from '@/util/data/vec2'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
 import { frontmatter } from '../ComponentHelp/metadata'
@@ -110,7 +111,8 @@ export function prepareCollapsedInfo(
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code()
   assert(pattern != null && isIdentifier(pattern))
-  const inputs = Array.from(inputSet)
+
+  const inputs = sortInputs(graphDb, Array.from(inputSet))
 
   assert(selected.has(output.node))
   return Ok({
@@ -236,4 +238,21 @@ export function performCollapseImpl(
   topLevel.insert(currentMethodLine, collapsedFunction, undefined)
 
   return { collapsedCallRoot: collapsedCall.id, outputAstId: outputAst.id, collapsedNodeIds }
+}
+
+/** Sort identifiers by positions of their defining nodes in the graph. */
+function sortInputs(graphDb: GraphDb, inputs: Identifier[]): Identifier[] {
+  const definingNodePos = (input: Identifier) => {
+    const nodeId = graphDb.getIdentDefiningNode(input)
+    if (nodeId == null) return Vec2.Zero
+    const node = graphDb.nodeIdToNode.get(nodeId)
+    if (node == null) return Vec2.Zero
+    return node.position
+  }
+  return inputs.sort((a, b) => {
+    const aPos = definingNodePos(a)
+    const bPos = definingNodePos(b)
+    if (aPos.x === bPos.x) return aPos.y - bPos.y
+    return aPos.x - bPos.x
+  })
 }

@@ -1,4 +1,6 @@
 load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_test")
+load("@rules_java//java:java_library.bzl", "java_library")
+load("@rules_java//java:java_test.bzl", "java_test")
 
 java_library(
     name = "downloader",

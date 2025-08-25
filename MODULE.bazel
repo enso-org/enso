@@ -1,5 +1,15 @@
 "enso-org/enso"
 
+##########################################
+### Buildifier: checking bazel configs ###
+##########################################
+
+bazel_dep(
+    name = "buildifier_prebuilt",
+    version = "8.2.0.2",
+    dev_dependency = True,
+)
+
 ############################
 ### JavaScript ecosystem ###
 ############################
@@ -8,6 +18,7 @@ bazel_dep(name = "aspect_rules_js", version = "2.1.2")
 bazel_dep(name = "aspect_rules_ts", version = "3.3.2")
 bazel_dep(name = "rules_nodejs", version = "6.3.2")
 bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
 
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
@@ -15,6 +26,7 @@ node.toolchain(node_version = "22.11.0")
 
 tar_toolchain = use_extension("//toolchains:tar/extensions.bzl", "tar_toolchain")
 use_repo(tar_toolchain, "tar_toolchain")
+
 register_toolchains("//toolchains:windows_builtin_tar_toolchain")
 
 ## Npm
@@ -44,25 +56,24 @@ rust.toolchain(
     versions = ["nightly/2024-08-08"],
 )
 use_repo(rust, "rust_toolchains")
+
 register_toolchains("@rust_toolchains//:all")
 
 # Add wasm_bindgen toolchain, patch it to shorten the dirnames and avoid max_path issues
 bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.59.2")
-single_version_override(module_name = "rules_rust_wasm_bindgen", patches = ["wasm_bindgen.patch"])
+single_version_override(
+    module_name = "rules_rust_wasm_bindgen",
+    patches = ["wasm_bindgen.patch"],
+)
+
 register_toolchains("@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain")
 
 crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 crate.from_cargo(
     name = "crates",
-    supported_platform_triples = [
-        "aarch64-apple-darwin",
-        "wasm32-unknown-unknown",
-        "x86_64-pc-windows-msvc",
-        "x86_64-unknown-linux-gnu",
-        "x86_64-apple-darwin",
-    ],
     cargo_config = "//:.cargo/config.toml",
     cargo_lockfile = "//:Cargo.lock",
+    isolated = False,
     manifests = [
         "//:build_tools/ci-gen/Cargo.toml",
         "//:build_tools/cli/Cargo.toml",
@@ -90,32 +101,63 @@ crate.from_cargo(
         "//:tools/language-server/wstest/Cargo.toml",
         "//app/rust-ffi:Cargo.toml",
     ],
-    isolated = False,
+    supported_platform_triples = [
+        "aarch64-apple-darwin",
+        "wasm32-unknown-unknown",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+    ],
 )
 use_repo(crate, "crates")
+
+#############
+### Flatc ###
+#############
+
+flatc_ext = use_extension("//toolchains/flatc:extensions.bzl", "flatc_toolchain")
+use_repo(flatc_ext, "flatc_toolchain_linux_x86_64", "flatc_toolchain_macos_aarch64", "flatc_toolchain_macos_x86_64", "flatc_toolchain_windows_x86_64")
+
+register_toolchains(
+    "@flatc_toolchain_macos_x86_64//:toolchain",
+    "@flatc_toolchain_macos_aarch64//:toolchain",
+    "@flatc_toolchain_linux_x86_64//:toolchain",
+    "@flatc_toolchain_windows_x86_64//:toolchain",
+)
 
 ###########
 ### JVM ###
 ###########
-bazel_dep(name = "rules_java", version = "7.6.5")
-bazel_dep(name = "rules_graalvm", version = "0.11.1")  ## upgrade to 0.11.2 once available in bazel central
+
+bazel_dep(name = "rules_java", version = "8.11.0")
+bazel_dep(name = "rules_graalvm", version = "0.11.2")
+
+# The latest version of rules_graalvm does not support Java 24.
+git_override(
+    module_name = "rules_graalvm",
+    commit = "81fc9b2de33c0429b716f1bfcd3223a82c0e1085",
+    patch_strip = 1,
+    patches = ["patches/rules_graalvm.patch"],
+    remote = "https://github.com/sgammon/rules_graalvm.git",
+)
 
 gvm = use_extension("@rules_graalvm//:extensions.bzl", "graalvm")
 gvm.graalvm(
     name = "graalvm",
     distribution = "ce",  # `oracle`, `ce`, or `community`
-    java_version = "21",  # `17`, `20`, `21`, or `22` as supported by the version provided
-    version = "23.1.0",  # gvm sdk version format like `24.x.x` also supported
+    java_version = "24",  # `17`, `20`, `21`, or `22` as supported by the version provided
+    version = "24.0.1",  # gvm sdk version format like `24.x.x` also supported
 )
 use_repo(gvm, "graalvm")
 
-register_toolchains("@graalvm//:jvm")
+register_toolchains("@graalvm//:jvm", "@graalvm//:sdk", "@graalvm//:toolchain", "@graalvm//:bootstrap_runtime_toolchain")
 
-register_toolchains("@graalvm//:sdk")  ## Native-image
+bazel_dep(name = "rules_jvm_external", version = "6.3")
 
-register_toolchains("@graalvm//:toolchain")
+sbt_ext = use_extension("//toolchains/sbt:extensions.bzl", "sbt_ext")
+use_repo(sbt_ext, "sbt_repo")
 
-bazel_dep(name = "rules_jvm_external", version = "6.0")
+register_toolchains("@sbt_repo//:toolchain")
 
 scala_logging_version = "3.9.4"
 
@@ -190,6 +232,27 @@ use_repo(
     "maven",
     "unpinned_maven",
 )
+
+#############
+### Scala ###
+#############
+
+### TODO: This setup is untested and probably does not work.
+
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_scala", version = "7.0.0", repo_name = "io_bazel_rules_scala")
+
+scala_config = use_extension(
+    "@io_bazel_rules_scala//scala/extensions:config.bzl",
+    "scala_config",
+)
+scala_config.settings(scala_version = "2.13.16")
+
+scala_deps = use_extension(
+    "@io_bazel_rules_scala//scala/extensions:deps.bzl",
+    "scala_deps",
+)
+scala_deps.scala()
 
 ###################
 ### ENVIRONMENT ###

@@ -1,4 +1,4 @@
-package org.enso.tools.enso4igv;
+package org.enso.tools.enso4igv.enso;
 
 import com.sun.jdi.connect.Connector;
 import java.awt.GraphicsEnvironment;
@@ -11,7 +11,9 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.prefs.Preferences;
+import org.enso.tools.enso4igv.EnsoDataObject;
 import org.netbeans.api.debugger.jpda.JPDADebugger;
 import org.netbeans.api.debugger.jpda.ListeningDICookie;
 import org.netbeans.api.extexecution.ExecutionDescriptor;
@@ -27,6 +29,8 @@ import org.openide.util.lookup.ServiceProvider;
 import org.netbeans.api.extexecution.base.ProcessBuilder;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.platform.JavaPlatform;
+import org.netbeans.api.project.ProjectUtils;
+import org.netbeans.api.project.ui.OpenProjects;
 import org.netbeans.spi.project.ActionProgress;
 import org.openide.awt.Notification;
 import org.openide.awt.NotificationDisplayer;
@@ -39,8 +43,6 @@ import org.openide.util.RequestProcessor;
 import org.openide.windows.IOProvider;
 
 @NbBundle.Messages({
-    "CTL_EnsoWhere=Enso Executable Location",
-    "CTL_EnsoExecutable=enso/enso.bat",
     "# {0} - executable file",
     "MSG_CannotExecute=Cannot execute {0}",
     "# {0} - executable file",
@@ -48,10 +50,26 @@ import org.openide.windows.IOProvider;
     "MSG_ExecutionError=Process {0} finished with exit code {1}.",
     "MSG_IgvMode=Enso/IGV Integration",
     "MSG_EnableIgvMode=Send compiler graphs to IGV next time?",
-    "MSG_EnableIgvModeDone=Run Enso file again to get compiler graphs."
+    "MSG_EnableIgvModeDone=Run Enso file again to get compiler graphs.",
+    "MSG_ExeLastUsed=Last used executable",
+    "# {0} - name of project",
+    "MSG_ExeBy=Provided by {0} project",
+    "MSG_ExeOther=Other...",
+    "MSG_ExeManual=Select manually...",
+    "MSG_ExeText=Choose executable to execute with",
+    "MSG_ExeTitle=Select Enso Executable"
 })
 @ServiceProvider(service = ActionProvider.class)
 public final class EnsoActionProvider implements ActionProvider {
+  private final EnsoYamlProject prj;
+
+  public EnsoActionProvider() {
+    this(null);
+  }
+
+  EnsoActionProvider(EnsoYamlProject prj) {
+    this.prj = prj;
+  }
 
     @Override
     public String[] getSupportedActions() {
@@ -66,7 +84,17 @@ public final class EnsoActionProvider implements ActionProvider {
         var enableDebug = COMMAND_DEBUG_SINGLE.equals(action) || COMMAND_DEBUG.equals(action);
         var process = ActionProgress.start(lkp);
         var params = ExplicitProcessParameters.buildExplicitParameters(lkp);
-        var fo = lkp.lookup(FileObject.class);
+        FileObject fileOrProject;
+        {
+          fileOrProject = lkp.lookup(FileObject.class);
+          if (fileOrProject == null && prj != null) {
+            fileOrProject = prj.getRoot();
+          }
+          if (fileOrProject == null) {
+            return;
+          }
+        }
+        var fo = fileOrProject;
         var script = FileUtil.toFile(fo);
 
         var io = IOProvider.getDefault().getIO(script.getName(), false);
@@ -76,11 +104,49 @@ public final class EnsoActionProvider implements ActionProvider {
         var exeKey = "enso.executable";
 
         var exe = prefs.get(exeKey, "");
-        var nd = new NotifyDescriptor.InputLine(Bundle.CTL_EnsoExecutable(), Bundle.CTL_EnsoWhere());
-        nd.setInputText(exe);
 
-        var builderFuture = dd.notifyFuture(nd).thenApply(exec -> {
-            var file = new File(exec.getInputText());
+        var items = new ArrayList<NotifyDescriptor.QuickPick.Item>();
+        Consumer<NotifyDescriptor.QuickPick.Item> addIfNewExecutable = (item) -> {
+            for (var e : items) {
+                if (e.getDescription().equals(item.getDescription())) {
+                    return;
+                }
+            }
+            items.add(item);
+        };
+        if (!exe.isBlank()) {
+          var last = new NotifyDescriptor.QuickPick.Item(Bundle.MSG_ExeLastUsed(), exe);
+          addIfNewExecutable.accept(last);
+        }
+        for (var openPrj : OpenProjects.getDefault().getOpenProjects()) {
+          if (openPrj.getLookup().lookup(EnsoExecutableProvider.class) instanceof EnsoExecutableProvider p) {
+            var prjExe = p.getEnsoBin();
+            if (prjExe != null) {
+              var prjItem = new NotifyDescriptor.QuickPick.Item(Bundle.MSG_ExeBy(ProjectUtils.getInformation(openPrj).getDisplayName()), prjExe.getPath());
+              addIfNewExecutable.accept(prjItem);
+            }
+          }
+        }
+        var manual = new NotifyDescriptor.QuickPick.Item(Bundle.MSG_ExeOther(), Bundle.MSG_ExeManual());
+        items.add(manual);
+        items.get(0).setSelected(true);
+
+        var nd = new NotifyDescriptor.QuickPick(Bundle.MSG_ExeText(), Bundle.MSG_ExeTitle(), items, false);
+        var selectedExe = dd.notifyFuture(nd).thenCompose(t -> {
+          for (var item : items) {
+            if (item.isSelected()) {
+              if (item == manual) {
+                return selectManually(exe, dd);
+              } else {
+                return CompletableFuture.completedFuture(item.getDescription());
+              }
+            }
+          }
+          return CompletableFuture.completedFuture("");
+        });
+
+        var builderFuture = (items.size() > 1 ? selectedExe : selectManually(exe, dd)).thenApply(exec -> {
+            var file = new File(exec);
             if (file.canExecute()) {
                 prefs.put(exeKey, file.getPath());
 
@@ -169,6 +235,13 @@ public final class EnsoActionProvider implements ActionProvider {
         });
     }
 
+    private CompletableFuture<String> selectManually(String exe, DialogDisplayer dd) {
+        var line = new NotifyDescriptor.InputLine(Bundle.MSG_ExeText(), Bundle.MSG_ExeText());
+        line.setInputText(exe);
+        var selectManually = dd.notifyFuture(line).thenApply(exec -> exec.getInputText());
+        return selectManually;
+    }
+
     record IgvInfo(boolean igvMode, boolean networkOn, int networkPort) {
         static IgvInfo find() {
             if (Modules.getDefault().findCodeNameBase("org.graalvm.visualizer.settings") != null) {
@@ -214,8 +287,10 @@ public final class EnsoActionProvider implements ActionProvider {
     @Override
     public boolean isActionEnabled(String action, Lookup lkp) throws IllegalArgumentException {
         return switch (action) {
-            case COMMAND_RUN_SINGLE, COMMAND_DEBUG_SINGLE, COMMAND_RUN, COMMAND_DEBUG ->
+            case COMMAND_RUN_SINGLE, COMMAND_DEBUG_SINGLE ->
                 lkp.lookup(EnsoDataObject.class) != null;
+            case COMMAND_RUN, COMMAND_DEBUG ->
+                lkp.lookup(EnsoDataObject.class) != null || lkp.lookup(EnsoYamlProject.class) != null;
             default -> false;
         };
     }
@@ -269,5 +344,16 @@ public final class EnsoActionProvider implements ActionProvider {
 
             return Integer.toString(port);
         }
+    }
+
+    /**
+     * Interface for projects that wish to supply executable to use.
+     */
+    public static interface EnsoExecutableProvider {
+      /** The executable suggested by the project.
+       *
+       * @return location of executable to use or {@code null}
+       */
+      public FileObject getEnsoBin();
     }
 }
