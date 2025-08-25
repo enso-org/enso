@@ -203,22 +203,33 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   const releases = await releasesResponse.json()
 
-  // Find the latest prerelease
-  const latestPrerelease = releases.find((release: any) => release.prerelease)
+  // Find the latest prerelease with the matching asset
+  const prereleases = releases.filter((release: any) => release.prerelease)
 
-  if (!latestPrerelease) {
-    throw new Error('No prerelease found')
+  if (prereleases.length === 0) {
+    throw new Error('No prereleases found')
   }
 
-  const releaseData = latestPrerelease
-  const version = releaseData.tag_name
+  let releaseData: any = null
+  let asset: any = null
+  let assetName: string = ''
 
-  // Find the matching asset
-  const assetName = `enso-engine-${version}-${platformString}-${archString}${extensionString}`
-  const asset = releaseData.assets.find((a: any) => a.name === assetName)
+  // Iterate through prereleases to find one with matching asset
+  for (const prerelease of prereleases) {
+    const version = prerelease.tag_name
+    assetName = `enso-engine-${version}-${platformString}-${archString}${extensionString}`
+    asset = prerelease.assets.find((a: any) => a.name === assetName)
 
-  if (!asset) {
-    throw new Error(`Could not find asset: ${assetName}`)
+    if (asset) {
+      releaseData = prerelease
+      break
+    }
+  }
+
+  if (!releaseData || !asset) {
+    throw new Error(
+      `Could not find asset: enso-engine-*-${platformString}-${archString}${extensionString} in any prerelease`,
+    )
   }
 
   console.log(`Downloading ${assetName}...`)
