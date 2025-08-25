@@ -3,8 +3,10 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Internal.Meta_Helpers
 import project.Meta
+import project.Runtime.Managed_Resource.Managed_Resource
 
 polyglot java import org.slf4j.LoggerFactory
+polyglot java import org.enso.base.ProgressReporter
 
 ## ---
    private: true
@@ -30,6 +32,22 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
    facility](https://github.com/enso-org/enso/pull/12126).
 type Progress
     private Running label:Text max:Integer logger
+
+    ## Runs an action with progress reporting as a Managed Resource.
+       This means it will clean up the progress reporting when the action
+       finishes, even if it is aborted.
+
+         ## Arguments
+          - `label`: Overall description of the action
+          - `up_to`: how _"long"_ - e.g. how many steps the action is expected to
+             take. It has to be at least one or higher.
+          - `step`: how often the progress should be reported. It has to be at
+            least one or higher.
+          - `action`: function performing the computation while reporting its
+             `Progress`. Call `progress.advance` to report a single step.
+    execute label:Text up_to:Integer step:Integer action -> Any =
+        Managed_Resource.bracket (ProgressReporter.createWithStep label (up_to.max 1) (step.max 1)) (_.close) progress->
+            action progress
 
     ## Performs provided `action` while reporting its progress.
        The `action` is a function that takes a `Progress` handle and uses its

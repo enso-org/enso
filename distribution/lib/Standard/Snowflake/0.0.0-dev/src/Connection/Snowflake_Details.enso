@@ -4,7 +4,6 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Widget.Text_Input
 
-import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Errors.SQL_Error
@@ -117,5 +116,3 @@ private _enhance_connection_errors (details:Snowflake_Details) ~action =
 
         result
 
-Database_Connection_Details_SPI.from (_:Snowflake_Details) = 
-    Database_Connection_Details_SPI.new Snowflake_Details "Snowflake" "..Snowflake"
