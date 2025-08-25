@@ -141,6 +141,17 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
   return undefined
 }
 
+/**
+ * Downloads the latest Enso engine prerelease from GitHub.
+ *
+ * This function automatically detects the current platform (macOS, Linux, or Windows)
+ * and architecture (amd64 or aarch64) to download the appropriate engine binary.
+ * The engine is downloaded from the latest GitHub prerelease and extracted to
+ * the built-distribution directory.
+ *
+ * @param projectRoot - The root directory of the project where the engine will be installed
+ * @returns A promise that resolves to the path where the engine was extracted
+ */
 export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   console.log('Downloading latest Enso engine...')
 
