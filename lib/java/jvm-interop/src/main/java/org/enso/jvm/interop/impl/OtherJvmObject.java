@@ -1,5 +1,14 @@
 package org.enso.jvm.interop.impl;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import org.enso.jvm.channel.Channel;
+import org.enso.persist.Persistance;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -8,13 +17,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import org.enso.jvm.channel.Channel;
-import org.enso.persist.Persistance;
 
 @ExportLibrary(ReflectionLibrary.class)
 final class OtherJvmObject implements TruffleObject {
@@ -95,7 +97,6 @@ final class OtherJvmObject implements TruffleObject {
       }
     }
     if (message.getLibraryClass() != InteropLibrary.class
-        || IS_STRING == message
         || HAS_SOURCE_LOCATION == message
         || GET_SOURCE_LOCATION == message
         || IS_IDENTICAL_OR_UNDEFINED == message) {
@@ -106,6 +107,9 @@ final class OtherJvmObject implements TruffleObject {
     } else {
       if (message == IS_META_OBJECT) {
         return OtherInteropType.isMetaObject(mask);
+      }
+      if (message == IS_STRING) {
+        return OtherInteropType.isString(mask);
       }
       if (message == HAS_META_PARENTS) {
         return switch (metaParents(message, args)) {
@@ -273,13 +277,6 @@ final class OtherJvmObject implements TruffleObject {
       }
       case TruffleObject foreign -> {
         var iop = InteropLibrary.getUncached();
-        if (iop.isString(foreign)) {
-          try {
-            yield iop.asString(foreign);
-          } catch (UnsupportedMessageException ex) {
-            // let it be and return normal delegate
-          }
-        }
         var mask = OtherInteropType.findType(foreign);
         var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);

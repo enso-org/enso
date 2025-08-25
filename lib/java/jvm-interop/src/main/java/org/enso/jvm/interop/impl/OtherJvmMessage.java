@@ -113,20 +113,20 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
-    var node = ReflectionLibrary.getUncached();
-    var prev = t.getConfig().enter(t.isMaster(), node);
+    var lib = ReflectionLibrary.getUncached();
+    var prev = t.getConfig().enter(t.isMaster(), lib);
     try {
       var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;
       if (message == IS_IDENTICAL) {
         args.set(1, InteropLibrary.getUncached());
       }
-      var res = node.send(receiver, message, args.toArray());
+      var res = lib.send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
     } finally {
-      t.getConfig().leave(t.isMaster(), node, prev);
+      t.getConfig().leave(t.isMaster(), lib, prev);
     }
   }
 

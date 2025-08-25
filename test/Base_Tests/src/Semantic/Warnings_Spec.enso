@@ -353,26 +353,34 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
     group_builder.specify "should be better preserved around polyglot calls expecting a Value" <|
         x = Warning.attach "x" 1
 
-        f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
-        g x = Warning.attach "g("+x.to_text+")" x+10
-        h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
-        i x = Warning.attach "i("+x.to_text+")" Nothing
+        f x =
+            Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
+        g x =
+            Warning.attach "g("+x.to_text+")" x+10
+        h x =
+            Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
+        i x =
+            Warning.attach "i("+x.to_text+")" Nothing
 
         r1 = CallbackHelper.runCallbackInt f x
         r1.should_equal (Pair.new "A" 11)
-        Warning.get_all r1 . map .value . should_equal_ignoring_order ["f(1)", "x"]
+        w1 = Warning.get_all r1
+        w1 . map .value . should_equal_ignoring_order ["f(1)", "x"]
 
         r2 = CallbackHelper.runCallbackInt g x
         r2.should_equal 11
-        Warning.get_all r2 . map .value . should_equal_ignoring_order ["g(1)", "x"]
+        w2 = Warning.get_all r2
+        w2 . map .value . should_equal_ignoring_order ["g(1)", "x"]
 
         r3 = CallbackHelper.runCallbackInt h x
         r3.should_equal "{x=1}"
-        Warning.get_all r3 . map .value . should_equal_ignoring_order ["h(1)", "x"]
+        w3 = Warning.get_all r3
+        w3 . map .value . should_equal_ignoring_order ["h(1)", "x"]
 
         r4 = CallbackHelper.runCallbackInt i x
         r4.should_equal Nothing
-        Warning.get_all r4 . map .value . should_equal_ignoring_order ["i(1)", "x"]
+        w4 = Warning.get_all r4
+        w4 . map .value . should_equal_ignoring_order ["i(1)", "x"]
 
     group_builder.specify "should not affect method dispatch" <|
         a = My_Fancy_Collection.Value 42

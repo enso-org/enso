@@ -111,6 +111,10 @@ final class OtherInteropType {
     return v == IS_META_OBJECT;
   }
 
+  static boolean isString(int v) {
+    return v == IS_STRING;
+  }
+
   static boolean isDate(int v) {
     return (v & IS_DATE) == IS_DATE;
   }
