@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import all
 
+import project.Data.Locale_Spec
 import project.Input_Output_Spec
 import project.Instrumentor_Spec
 import project.Cloud_Credentials_Spec
@@ -14,13 +15,14 @@ import project.Types.Any_Intersection_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
-        Cloud_Credentials_Spec.add_specs suite_builder
+        Cloud_Credentials_Spec.add_specs suite_build
         Comparator_Spec.add_specs suite_builder
         Decimal_Constructor_Spec.add_specs suite_builder
         Grapheme_Spec.add_specs suite_builder
         Input_Output_Spec.add_specs suite_builder
         Instrumentor_Spec.add_specs suite_builder
         Github_Annotations_Spec.add_specs suite_builder
+        Locale_Spec.add_specs suite_builder
         Meta_Helpers_Spec.add_specs suite_builder
         Any_Intersection_Spec.add_specs suite_builder
 
