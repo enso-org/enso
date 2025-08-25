@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,11 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     static <T, E extends Exception> ReturnValue<T, E> create(T value) {
       return new ReturnValue<>(value);
     }
+
+    @Override
+    public T value(Node location) throws E {
+      return value();
+    }
   }
 
   @Persistable(id = 81909, allowInlining = false)
@@ -55,14 +61,14 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       implements OtherJvmResult<T, E> {
     @Override
     @SuppressWarnings("unchecked")
-    public T value() throws E {
+    public T value(Node location) throws E {
       var ex = exception();
       var msg = msg().isPresent() ? msg().get() : null;
       assert InteropLibrary.getUncached().isException(ex);
       if (ex instanceof AbstractTruffleException truffleEx) {
         throw truffleEx;
       } else {
-        throw new OtherJvmTruffleException(msg, (OtherJvmObject) ex);
+        throw new OtherJvmTruffleException(msg, (OtherJvmObject) ex, location);
       }
     }
   }
@@ -98,7 +104,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
     @Override
     @SuppressWarnings("unchecked")
-    public V value() throws E {
+    public V value(Node who) throws E {
       var msg = msg().isPresent() ? msg().get() : null;
       switch (kind) {
         case 1 -> throw (E) new ClassNotFoundException(msg);

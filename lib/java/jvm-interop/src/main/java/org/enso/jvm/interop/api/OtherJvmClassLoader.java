@@ -93,7 +93,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   private final TruffleObject loadClass(String name) throws ClassNotFoundException {
     var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
-    return result.value();
+    return result.value(null);
   }
 
   @CompilerDirectives.TruffleBoundary

@@ -10,6 +10,7 @@ import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistance;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -17,6 +18,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
+import com.oracle.truffle.api.nodes.Node;
 
 @ExportLibrary(ReflectionLibrary.class)
 final class OtherJvmObject implements TruffleObject {
@@ -83,7 +85,7 @@ final class OtherJvmObject implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
-  final Object send(Message message, Object[] args) throws Exception {
+  final Object send(Message message, Object[] args, @Bind("$node") Node self) throws Exception {
     if (message == IS_IDENTICAL) {
       if (args[0] instanceof OtherJvmObject other) {
         if (id() == other.id()) {
@@ -112,7 +114,7 @@ final class OtherJvmObject implements TruffleObject {
         return OtherInteropType.isString(mask);
       }
       if (message == HAS_META_PARENTS) {
-        return switch (metaParents(message, args)) {
+        return switch (metaParents(self, message, args)) {
           case OtherJvmObject[] _ -> true;
           default -> false;
         };
@@ -121,7 +123,7 @@ final class OtherJvmObject implements TruffleObject {
         if (!OtherInteropType.isMetaObject(mask)) {
           throw UnsupportedMessageException.create();
         }
-        return switch (metaParents(message, args)) {
+        return switch (metaParents(self, message, args)) {
           case UnsupportedMessageException _ -> new OtherArray();
           case OtherJvmObject[] arr -> new OtherArray(arr);
           default -> throw UnsupportedMessageException.create();
@@ -168,7 +170,7 @@ final class OtherJvmObject implements TruffleObject {
       var msg = new OtherJvmMessage(id, message, Arrays.asList(args));
       try {
         var reply = executeMessage(msg, message, args);
-        var result = reply.value();
+        var result = reply.value(self);
         return result;
       } catch (IllegalStateException ex) {
         CompilerDirectives.transferToInterpreter();
@@ -177,12 +179,12 @@ final class OtherJvmObject implements TruffleObject {
     }
   }
 
-  private Object metaParents(Message message, Object[] args) throws Exception {
+  private Object metaParents(Node who, Message message, Object[] args) throws Exception {
     if (cachedMetaParents == null) {
       var msg = new OtherJvmMessage(id, GET_META_PARENTS, List.of());
       var reply = executeMessage(msg, message, args);
       try {
-        var arr = reply.value();
+        var arr = reply.value(who);
         var iop = InteropLibrary.getUncached();
         var len = Math.toIntExact(iop.getArraySize(arr));
         var copy = new OtherJvmObject[len];
