@@ -6,11 +6,13 @@
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [The documentation panel opens to the scroll position at last close][13647]
 - [Autocompletion for Column methods in table expressions][13797]
+- [Autocompletion for Column names in table expressions][13848]
 
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13647]: https://github.com/enso-org/enso/pull/13647
 [13797]: https://github.com/enso-org/enso/pull/13797
+[13848]: https://github.com/enso-org/enso/pull/13848
 
 # Next Release
 
