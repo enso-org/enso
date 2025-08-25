@@ -2,15 +2,15 @@ load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 
 rust_shared_library(
-    name = "enso-parser-jni",
-    crate_name = "enso_parser",
+    name = "enso_parser_jni",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
+    crate_name = "enso_parser",
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
-        "//lib/rust/prelude:enso-prelude",
-        "//lib/rust/parser:enso-parser",
+        "//lib/rust/parser:enso_parser",
+        "//lib/rust/prelude:enso_prelude",
     ],
 )
