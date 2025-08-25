@@ -1,3 +1,5 @@
+import type { ProjectStore } from '@/stores/project'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { useTableExpressionExtension } from '@/util/codemirror/language/tableExpression'
 import type { ToValue } from '@/util/reactivity'
@@ -6,8 +8,6 @@ import { Prec, type Extension } from '@codemirror/state'
 import { keymap, ViewPlugin, type PluginValue, type ViewUpdate } from '@codemirror/view'
 import { computed, toValue, type Ref } from 'vue'
 import { mapOr, type Opt } from 'ydoc-shared/util/data/opt'
-import type { ProjectStore } from '@/stores/project'
-import type { ProjectNameStore } from '@/stores/projectNames'
 
 export interface LanguageSupportOptions {
   project: ToValue<Opt<ProjectStore>>
