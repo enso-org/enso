@@ -3,6 +3,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
+load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
@@ -219,4 +220,10 @@ run_sbt(
     out_dir = "built-distribution",
     system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
+)
+
+run_enso(
+    name = "run_enso_version",
+    distribution = ":sbt_build_engine_distribution",
+    run_args = ["--version"]
 )
