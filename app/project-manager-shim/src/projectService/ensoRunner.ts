@@ -149,12 +149,16 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   const arch = os.arch()
 
   let platformString: string
+  let extensionString: string
   if (platform === 'darwin') {
     platformString = 'macos'
+    extensionString = '.tar.gz'
   } else if (platform === 'linux') {
     platformString = 'linux'
+    extensionString = '.tar.gz'
   } else if (platform === 'win32') {
     platformString = 'windows'
+    extensionString = '.zip'
   } else {
     throw new Error(`Unsupported platform: ${platform}`)
   }
@@ -189,7 +193,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   const version = releaseData.tag_name
 
   // Find the matching asset
-  const assetName = `enso-engine-${version}-${platformString}-${archString}.tar.gz`
+  const assetName = `enso-engine-${version}-${platformString}-${archString}${extensionString}`
   const asset = releaseData.assets.find((a: any) => a.name === assetName)
 
   if (!asset) {
@@ -213,7 +217,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   // Save and extract the archive
   const archivePath = path.join(distDir, assetName)
-  const extractDir = path.join(distDir, assetName.replace('.tar.gz', ''))
+  const extractDir = path.join(distDir, assetName.replace(extensionString, ''))
 
   // Create extract directory if it doesn't exist
   if (!fs.existsSync(extractDir)) {
@@ -227,12 +231,30 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   console.log(`Extracting to ${extractDir}...`)
 
   // Extract the archive
-  await pipeline(
-    fs.createReadStream(archivePath),
-    extract({
-      cwd: extractDir,
-    }),
-  )
+  if (extensionString === '.tar.gz') {
+    await pipeline(
+      fs.createReadStream(archivePath),
+      extract({
+        cwd: extractDir,
+      }),
+    )
+  } else {
+    await new Promise<void>((resolve, reject) => {
+      const unzipProcess = childProcess.spawn('unzip', ['-o', archivePath, '-d', extractDir])
+
+      unzipProcess.on('error', (error) => {
+        reject(new Error(`Failed to extract zip: ${error.message}`))
+      })
+
+      unzipProcess.on('close', (code) => {
+        if (code === 0) {
+          resolve()
+        } else {
+          reject(new Error(`unzip process exited with code ${code}`))
+        }
+      })
+    })
+  }
 
   // Clean up the archive file
   fs.unlinkSync(archivePath)
