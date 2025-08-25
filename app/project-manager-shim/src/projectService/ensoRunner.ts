@@ -79,6 +79,13 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     return Path(filePath)
   }
 
+  let ensoExecutable: string
+  if (os.platform() === 'win32') {
+    ensoExecutable = 'enso.exe'
+  } else {
+    ensoExecutable = 'enso'
+  }
+
   // Check ENSO_RUNNER_PATH environment variable first
   const envPath = process.env.ENSO_RUNNER_PATH
   if (envPath) {
@@ -97,7 +104,7 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     if (stat.isDirectory()) {
       const distDirs = fs.readdirSync(ensoDistPath)
       for (const distDir of distDirs) {
-        const ensoPath = path.join(ensoDistPath, distDir, 'bin', 'enso')
+        const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
         try {
           fs.accessSync(ensoPath)
           return checkExecutable(ensoPath)
@@ -122,7 +129,7 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
         if (topStat.isDirectory()) {
           const subDirs = fs.readdirSync(topPath)
           for (const subDir of subDirs) {
-            const ensoPath = path.join(topPath, subDir, 'bin', 'enso')
+            const ensoPath = path.join(topPath, subDir, 'bin', ensoExecutable)
             try {
               fs.accessSync(ensoPath)
               return checkExecutable(ensoPath)
@@ -250,7 +257,9 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
     )
   } else {
     await new Promise<void>((resolve, reject) => {
-      const unzipProcess = childProcess.spawn('unzip', ['-o', archivePath, '-d', extractDir])
+      const unzipProcess = childProcess.spawn('unzip', ['-o', archivePath, '-d', extractDir], {
+        stdio: 'ignore',
+      })
 
       unzipProcess.on('error', (error) => {
         reject(new Error(`Failed to extract zip: ${error.message}`))
