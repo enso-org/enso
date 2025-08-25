@@ -191,7 +191,11 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   // Fetch all releases from GitHub API and find the latest prerelease
   const releasesUrl = 'https://api.github.com/repos/enso-org/enso/releases'
-  const releasesResponse = await fetch(releasesUrl)
+  const headers: HeadersInit = {}
+  if (process.env.GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
+  }
+  const releasesResponse = await fetch(releasesUrl, { headers })
 
   if (!releasesResponse.ok) {
     throw new Error(`Failed to fetch releases: ${releasesResponse.statusText}`)
@@ -220,7 +224,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   console.log(`Downloading ${assetName}...`)
 
   // Download the asset
-  const downloadResponse = await fetch(asset.browser_download_url)
+  const downloadResponse = await fetch(asset.browser_download_url, { headers })
 
   if (!downloadResponse.ok) {
     throw new Error(`Failed to download asset: ${downloadResponse.statusText}`)
