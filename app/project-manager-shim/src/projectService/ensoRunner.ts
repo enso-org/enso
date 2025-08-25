@@ -148,7 +148,6 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
  * and architecture (amd64 or aarch64) to download the appropriate engine binary.
  * The engine is downloaded from the latest GitHub prerelease and extracted to
  * the built-distribution directory.
- *
  * @param projectRoot - The root directory of the project where the engine will be installed
  * @returns A promise that resolves to the path where the engine was extracted
  */
