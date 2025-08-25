@@ -20,6 +20,16 @@ final class OtherJvmTruffleException extends AbstractTruffleException {
   }
 
   @ExportMessage
+  boolean isException() {
+    return true;
+  }
+
+  @ExportMessage
+  OtherJvmTruffleException throwException() {
+    throw this;
+  }
+
+  @ExportMessage
   boolean hasExceptionStackTrace() {
     return false;
   }
