@@ -3,7 +3,7 @@ package org.enso.database.fetchers;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 
-abstract class BaseColumnFetcher implements ColumnFetcher {
+public abstract class BaseColumnFetcher implements ColumnFetcher {
   protected static final int DEFAULT_SIZE = 1024;
 
   private final int index;

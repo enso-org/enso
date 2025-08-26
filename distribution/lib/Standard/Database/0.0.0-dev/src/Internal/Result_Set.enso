@@ -30,6 +30,7 @@ result_set_to_table result_set sql_type_to_value_type=(_->Nothing) type_override
                 Value_Type.Unsupported_Data_Type _ _ -> AnyObjectType.INSTANCE
                 Value_Type.Date_Time True -> DateTimeType.INSTANCE_NO_TZ
                 _       -> Storage.closest_storage_type value_type
+
         fetchers = ColumnFetcher.forResultSet result_set java_problem_aggregator storageTypeMapper
 
         java_table = if last_row_only then ColumnFetcher.readResultSet result_set fetchers row_limit else
