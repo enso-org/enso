@@ -1,19 +1,10 @@
-import type { ProjectStore } from '@/stores/project'
-import type { ProjectNameStore } from '@/stores/projectNames'
-import type { SuggestionDb } from '@/stores/suggestionDatabase'
-import { useTableExpressionExtension } from '@/util/codemirror/language/tableExpression'
+import { useLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
 import type { ToValue } from '@/util/reactivity'
 import { acceptCompletion, autocompletion, startCompletion } from '@codemirror/autocomplete'
 import { Prec, type Extension } from '@codemirror/state'
 import { keymap, ViewPlugin, type PluginValue, type ViewUpdate } from '@codemirror/view'
 import { computed, toValue, type Ref } from 'vue'
 import { mapOr, type Opt } from 'ydoc-shared/util/data/opt'
-
-export interface LanguageSupportOptions {
-  project: ToValue<Opt<ProjectStore>>
-  projectNames: ToValue<Opt<ProjectNameStore>>
-  suggestionDb: ToValue<Opt<SuggestionDb>>
-}
 
 const NULL_EXTENSION: Extension = []
 
@@ -60,23 +51,9 @@ const completionBindings = keymap.of([
 ])
 
 /** @returns a reactive syntax support extension for the specified language. */
-export function useLanguageSupport(
-  syntax: ToValue<Opt<string>>,
-  { project, projectNames, suggestionDb }: LanguageSupportOptions,
-) {
-  const extensions: Record<string, Readonly<Ref<Extension>>> = Object.assign(Object.create(null), {
-    'enso-table-expression': useTableExpressionExtension({
-      project,
-      projectNames,
-      suggestionDb,
-    }),
-  })
-  function languageExtension(languageName: string): Extension | undefined {
-    const extension = extensions[languageName]
-    DEV: if (!extension) console.warn(`Unknown WidgetText syntax: ${languageName}`)
-    return extension?.value
-  }
-
+export function useLanguageSupport(syntax: ToValue<Opt<string>>): Readonly<Ref<Extension>> {
+  const languageExtension = useLanguageSupportExtensions(true)
+  if (!languageExtension) return computed(() => NULL_EXTENSION)
   /** Language support for a known syntax. */
   const languageExt = computed((): Extension | undefined =>
     mapOr(toValue(syntax), undefined, languageExtension),
