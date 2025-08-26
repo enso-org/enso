@@ -1,13 +1,5 @@
 package org.enso.jvm.interop.impl;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.enso.jvm.channel.Channel;
-import org.enso.persist.Persistance;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
@@ -93,7 +85,7 @@ final class OtherJvmObject implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
-  final Object send(Message message, Object[] args, @Bind("$node") Node self) throws Exception {
+  final Object send(Message message, Object[] args, @Bind Node self) throws Exception {
     if (message == IS_IDENTICAL) {
       if (args[0] instanceof OtherJvmObject other) {
         if (id() == other.id()) {

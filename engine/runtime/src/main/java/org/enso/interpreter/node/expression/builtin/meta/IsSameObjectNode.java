@@ -67,9 +67,9 @@ public abstract class IsSameObjectNode extends Node {
       Object right,
       @Shared("interop") @CachedLibrary(limit = "2") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
-    if (ctx.isJavaPolyglotObject(left) && ctx.isJavaPolyglotObject(right)) {
-      var hostLeft = ctx.asJavaPolyglotObject(left);
-      var hostRight = ctx.asJavaPolyglotObject(right);
+    if (ctx.isHostObject(left) && ctx.isHostObject(right)) {
+      var hostLeft = ctx.asHostObject(left);
+      var hostRight = ctx.asHostObject(right);
       return hostLeft == hostRight;
     }
     return interop.isIdentical(left, right, interop);

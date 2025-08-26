@@ -523,6 +523,26 @@ public final class EnsoContext {
   }
 
   /**
+   * Checks whether the object is host Java object.
+   *
+   * @param obj the object to check
+   * @return true if {@code obj} is host object and call to {@link #asHostObject} will succeed
+   */
+  public boolean isHostObject(Object obj) {
+    return environment.isHostObject(obj);
+  }
+
+  /**
+   * Converts an interop object into underlying Java representation.
+   *
+   * @param obj object that {@link #isJavaPolyglotObject}
+   * @return underlying object
+   */
+  public Object asHostObject(Object obj) {
+    return environment.asHostObject(obj);
+  }
+
+  /**
    * Checks whether provided object comes from Java. Either Java system libraries or libraries added
    * by {@link #addToClassPath(TruffleFile)}.
    *
@@ -530,7 +550,7 @@ public final class EnsoContext {
    * @return {@code true} or {@code false}
    */
   public boolean isJavaPolyglotObject(Object obj) {
-    return environment.isHostObject(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
+    return isHostObject(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
   }
 
   /**
@@ -541,16 +561,6 @@ public final class EnsoContext {
    */
   public boolean isJavaPolyglotFunction(Object obj) {
     return environment.isHostFunction(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
-  }
-
-  /**
-   * Converts an interop object into underlying Java representation.
-   *
-   * @param obj object that {@link #isJavaPolyglotObject}
-   * @return underlying object
-   */
-  public Object asJavaPolyglotObject(Object obj) {
-    return environment.asHostObject(obj);
   }
 
   /**
