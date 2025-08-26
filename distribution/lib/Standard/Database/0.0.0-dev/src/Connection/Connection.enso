@@ -33,12 +33,13 @@ import project.SQL.SQL_Type
 import project.SQL_Query.SQL_Query
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
-from project.Internal.Result_Set import read_column, result_set_to_table
+from project.Internal.Result_Set import result_set_to_table
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from project.Internal.Upload.Operations.Create import create_table_implementation
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
+polyglot java import org.enso.database.JDBCUtils
 
 type Connection
     ## ---
@@ -100,7 +101,7 @@ type Connection
     databases : Vector Text
     databases self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getCatalogs "TABLE_CAT"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getCatalogs "TABLE_CAT"
 
     ## ---
        private: true
@@ -130,7 +131,7 @@ type Connection
     schemas : Vector Text
     schemas self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getSchemas "TABLE_SCHEM"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getSchemas "TABLE_SCHEM"
 
     ## ---
        private: true
@@ -159,7 +160,7 @@ type Connection
     table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getTableTypes "TABLE_TYPE"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getTableTypes "TABLE_TYPE"
 
     ## ---
        group: Standard.Base.Metadata
@@ -380,10 +381,10 @@ type Connection
        ---
        Internal helper method to run a query and read a single column from the
        result as a Vector.
-    read_single_column : Text -> Text -> Vector Text
-    read_single_column self query column_name = self.jdbc_connection.with_connection connection->
+    read_text_column : Text -> Text -> Vector Text
+    read_text_column self query column_name = self.jdbc_connection.with_connection connection->
         result_set = connection.createStatement.executeQuery query
-        read_column result_set column_name
+        Vector.from_polyglot_array <| JDBCUtils.readTextColumn result_set column_name
 
     ## ---
        private: true

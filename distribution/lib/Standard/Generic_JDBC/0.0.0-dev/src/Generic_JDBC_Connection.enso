@@ -15,9 +15,10 @@ import Standard.Database.Internal.SQL_Warning_Helper
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Connection.Connection import get_tables_advanced
-from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
+from Standard.Database.Internal.Result_Set import result_set_to_table
 
 polyglot java import java.sql.DatabaseMetaData
+polyglot java import org.enso.database.JDBCUtils
 
 type Generic_JDBC_Connection
     private Value jdbc_connection:JDBC_Connection.JDBC_Connection url:Text quote_char:Text
@@ -116,7 +117,7 @@ type Generic_JDBC_Connection
        ```
     databases self -> Vector Text =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getCatalogs "TABLE_CAT"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getCatalogs "TABLE_CAT"
 
     ## Returns the name of the current database (or catalog).
     database self -> Text | Nothing =
@@ -138,7 +139,7 @@ type Generic_JDBC_Connection
        ```
     schemas self -> Vector =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getSchemas "TABLE_SCHEM"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getSchemas "TABLE_SCHEM"
 
     ## Returns the name of the current schema.
     schema : Text
@@ -149,7 +150,7 @@ type Generic_JDBC_Connection
     table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getTableTypes "TABLE_TYPE"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getTableTypes "TABLE_TYPE"
 
     ## ---
        aliases: [delete, insert, query, update]

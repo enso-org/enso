@@ -12,23 +12,6 @@ polyglot java import java.sql.ResultSet
 ## ---
    private: true
    ---
-   Read a single column from a ResultSet into a Vector
-read_column : ResultSet -> Text -> Vector
-read_column result_set column_name =
-    # TODO use fetcher
-    if result_set.isClosed then [] else
-        index = result_set.findColumn column_name
-
-        Vector.build builder->
-            go has_next = if has_next.not then Nothing else
-                builder.append (result_set.getObject index)
-                @Tail_Call go result_set.next
-
-            go result_set.next
-
-## ---
-   private: true
-   ---
    Converts a ResultSet into a Table.
 result_set_to_table : ResultSet -> (SQL_Type -> Column_Fetcher) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
 result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_row_only=False row_limit=-1 =
