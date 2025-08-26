@@ -11,7 +11,6 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 public class JDBCUtils {
@@ -30,7 +29,6 @@ public class JDBCUtils {
     }
     return results.toArray(new String[0]);
   }
-
 
   /** Gets a LocalDate from a ResultSet. */
   public static LocalDate getLocalDate(ResultSet rs, int columnIndex) throws SQLException {

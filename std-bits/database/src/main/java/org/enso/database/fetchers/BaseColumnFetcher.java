@@ -1,0 +1,42 @@
+package org.enso.database.fetchers;
+
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.table.Column;
+
+abstract class BaseColumnFetcher implements ColumnFetcher {
+  protected static final int DEFAULT_SIZE = 1024;
+
+  private final int index;
+  private final String name;
+  protected final Builder builder;
+
+  protected BaseColumnFetcher(int index, String name, Builder builder) {
+    this.index = index;
+    this.name = name;
+    this.builder = builder;
+  }
+
+  protected int index() {
+    return index;
+  }
+
+  @Override
+  public String name() {
+    return name;
+  }
+
+  @Override
+  public org.enso.table.data.table.Column seal() {
+    return new Column(name(), builder.seal());
+  }
+
+  @Override
+  public Object getValue(java.sql.ResultSet resultSet) throws java.sql.SQLException {
+    return resultSet.getObject(index());
+  }
+
+  @Override
+  public void appendValue(Object value) {
+    builder.append(value);
+  }
+}
