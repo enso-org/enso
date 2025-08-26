@@ -15,7 +15,7 @@ import project.Types.Any_Intersection_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
-        Cloud_Credentials_Spec.add_specs suite_build
+        Cloud_Credentials_Spec.add_specs suite_builder
         Comparator_Spec.add_specs suite_builder
         Decimal_Constructor_Spec.add_specs suite_builder
         Grapheme_Spec.add_specs suite_builder
