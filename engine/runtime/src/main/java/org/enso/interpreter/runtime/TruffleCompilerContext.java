@@ -531,15 +531,10 @@ final class TruffleCompilerContext implements CompilerContext {
             (scala.collection.immutable.List<org.enso.compiler.context.CompilerContext.Module>)
                 it.tail();
       }
-      var snd =
-          context
-              .getPackageRepository()
-              .getPackageForLibraryJava(libraryName)
-              .map(x -> x.listSourcesJava());
 
       var bindingsCache =
           new ImportExportCache.CachedBindings(
-              libraryName, new ImportExportCache.MapToBindings(map), snd);
+              libraryName, new ImportExportCache.MapToBindings(map));
       try {
         boolean result =
             doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
