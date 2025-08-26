@@ -3266,7 +3266,9 @@ lazy val `runtime-compiler` =
         "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
         "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-        "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test
+        "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test,
+        "org.mockito"          % "mockito-core"            % mockitoJavaVersion        % Test,
+        "org.mockito"          % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
       ),
       libraryDependencies ++= logbackPkg.map(_ % Test),
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
