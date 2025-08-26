@@ -15,7 +15,6 @@ import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.editions.LibraryName;
 import org.enso.persist.Persistance;
 import org.enso.pkg.SourceFile;
-import org.enso.polyglot.Suggestion;
 import org.enso.text.Hex;
 
 final class CacheUtils {
@@ -86,7 +85,8 @@ final class CacheUtils {
    * @param pkgSources the list of package sources
    * @return string representation of bytes' hash
    */
-  static final String computeDigestOfLibrarySources(List<SourceFile<TruffleFile>> pkgSources) {
+  static final String computeDigestOfLibrarySources(
+      List<SourceFile<TruffleFile>> pkgSources, CacheCounters cacheCounters) {
     pkgSources.sort(Comparator.comparing(o -> o.qualifiedName().toString()));
 
     try {
@@ -99,6 +99,9 @@ final class CacheUtils {
             digest.update(buffer, 0, read);
             read = is.read(buffer, 0, BUFFER_SIZE);
           }
+        }
+        if (cacheCounters != null) {
+          cacheCounters.digestForSourceFile(source.file().getPath());
         }
       }
       return Hex.toHexString(digest.digest());

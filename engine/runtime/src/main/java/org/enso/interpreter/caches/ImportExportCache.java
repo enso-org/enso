@@ -27,14 +27,19 @@ public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
   private final LibraryName libraryName;
+  private final CacheCounters cacheCounters;
 
-  private ImportExportCache(LibraryName libraryName) {
+  private ImportExportCache(LibraryName libraryName, CacheCounters cacheCounters) {
     this.libraryName = libraryName;
+    this.cacheCounters = cacheCounters;
   }
 
+  /**
+   * @param cacheCounters nullable
+   */
   public static Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> create(
-      LibraryName libraryName) {
-    var impl = new ImportExportCache(libraryName);
+      LibraryName libraryName, CacheCounters cacheCounters) {
+    var impl = new ImportExportCache(libraryName, cacheCounters);
     return Cache.create(impl, Level.FINEST, libraryName.toString(), true, false);
   }
 
@@ -83,7 +88,9 @@ public final class ImportExportCache
 
   @Override
   public Optional<String> computeDigest(CachedBindings entry, TruffleLogger logger) {
-    return entry.sources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
+    return entry
+        .sources()
+        .map(sources -> CacheUtils.computeDigestOfLibrarySources(sources, cacheCounters));
   }
 
   @Override
@@ -92,7 +99,7 @@ public final class ImportExportCache
     return context
         .getPackageRepository()
         .getPackageForLibraryJava(libraryName)
-        .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
+        .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava(), cacheCounters));
   }
 
   @Override
