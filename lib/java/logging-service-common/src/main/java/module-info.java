@@ -1,4 +1,4 @@
-module org.enso.logging.service.remote {
+module org.enso.logging.service.common {
   requires java.net.http;
   requires scala.library;
   requires ch.qos.logback.classic;
@@ -8,5 +8,5 @@ module org.enso.logging.service.remote {
   requires org.enso.scala.wrapper;
   requires org.slf4j;
 
-  exports org.enso.logging.service;
+  exports org.enso.logging.service.common;
 }

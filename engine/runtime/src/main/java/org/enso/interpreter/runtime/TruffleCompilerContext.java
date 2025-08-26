@@ -245,8 +245,8 @@ final class TruffleCompilerContext implements CompilerContext {
   public void runStubsGenerator(
       CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
     var m = ((Module) module).unsafeModule();
-    var s = ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
-    stubsGenerator.run(m.getIr(), s);
+    stubsGenerator.run(m.getIr(), (TruffleCompilerModuleScopeBuilder) scopeBuilder);
+    m.unsafeSetCompilationStage(CompilationStage.AFTER_RUNTIME_STUBS);
   }
 
   @Override
@@ -870,9 +870,7 @@ final class TruffleCompilerContext implements CompilerContext {
      */
     final TruffleCompilerModuleScopeBuilder getScopeBuilder(boolean reset) {
       if (reset || sb == null) {
-        var scopeBuilder =
-            ModuleScopeAccessor.getInstance().newScopeBuilder(module, module::updateModuleScope);
-        sb = new TruffleCompilerModuleScopeBuilder(scopeBuilder);
+        sb = new TruffleCompilerModuleScopeBuilder(module, module::updateModuleScope);
       }
       return sb;
     }

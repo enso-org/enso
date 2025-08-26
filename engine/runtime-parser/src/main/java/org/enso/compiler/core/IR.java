@@ -7,25 +7,59 @@ import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.ProcessingPass.Metadata;
 import org.enso.compiler.debug.Debug;
 import scala.Option;
 import scala.collection.immutable.List;
 
 /**
- * [[IR]] is a temporary and fairly unsophisticated internal representation format for Enso
+ * {@link IR} is a temporary and fairly unsophisticated internal representation format for Enso
  * programs.
  *
  * <p>It is a purely tree-based representation to support basic desugaring and analysis passes that
- * do not rely on the ability to create cycles in the IR itself. Its existence is the natural
- * evolution of the older AstExpression format used during the initial development of the
- * interpreter.
+ * do not rely on the ability to create cycles in the IR itself.
  *
- * <p>Please note that all extensions of [[IR]] must reimplement `copy` to keep the id intact when
- * copying nodes. The copy implementation should provide a way to set the id for the copy, but
- * should default to being copied. Care must be taken to not end up with two nodes with the same ID.
- * When using `copy` to duplicate nodes, please ensure that a new ID is provided.
+ * <p>IR AST is generally immutable with the exception of {@link IR#passData() metadata} and {@link
+ * IR#diagnostics() diagnostics} that are mutable.
  *
- * <p>See also: Note [IR Equality and hashing]
+ * <p>The current IR hierarchy consist of old Scala case classes (for example {@link
+ * org.enso.compiler.core.ir.Name.Qualified}) and of new Java classes annotated with {@link
+ * org.enso.runtime.parser.dsl.GenerateIR} for which superclasses are generated. See {@link
+ * org.enso.runtime.parser.dsl.GenerateIR} javadoc for more information on the generation of IR
+ * classes. The desired state is to have the whole hierarchy in Java only.
+ *
+ * <h2>Copy</h2>
+ *
+ * The immutable nature of IR elements means that they cannot be modified in place. Modifications to
+ * IR are done by copying the old element and returning a new one. Usually, <i>shallow</i> copies
+ * are preferred.
+ *
+ * <h3>Shallow copy</h3>
+ *
+ * On old Scala case classes, various {@code copy} methods exist, like {@link
+ * org.enso.compiler.core.ir.Name.Qualified#copy(List, Option, MetadataStorage, DiagnosticStorage,
+ * UUID) Name.Qualified#copy}. The new Java classes also have generated {@code copy} methods as well
+ * as generated copy builders.
+ *
+ * <p>All the fields that are not changed in the {@code copy} methods will contain references to the
+ * original IR element. It the original IR element is not disposed and still referenced somewhere,
+ * all the mutable structures on the subtree will potentially be modified from two places.
+ * Therefore, <b>if you intend to keep the original IR element, use deep copy instead</b>.
+ *
+ * <p>When manually implementing {@code copy} methods (which is now discouraged with the
+ * introduction of {@link org.enso.runtime.parser.dsl.GenerateIR}), special care must be taken to
+ * keep the {@link IR#getId() UUID} intact. The copy implementation should provide a way to set the
+ * UUID for the copy, but should default to being copied from the original element. <b>There should
+ * never be two nodes with the same UUID</b>.
+ *
+ * <h3>Deep copy</h3>
+ *
+ * Deep copy is implemented by the {@link IR#duplicate(boolean, boolean, boolean, boolean)
+ * duplicate} method. Note that special care must be taken when duplicating {@link IR#passData()
+ * metadata}, as some {@link org.enso.compiler.core.ir.ProcessingPass compiler passes} may decide to
+ * not duplicate the metadata at all by returning {@code None} from {@link Metadata#duplicate()}
+ * method. In these cases, the newly duplicated IR element will have just a portion of the original
+ * metadata.
  */
 public interface IR {
   /**
@@ -65,10 +99,14 @@ public interface IR {
 
   /**
    * Maps the provided function over any expression defined as a child of the node this is called
-   * on.
+   * on. The child does not have to be a <emph>direct</emph> child, it can have an arbitrary number
+   * of intermediate non-expression nodes. The mapping traverses in DFS order, and it stops on first
+   * (non-direct) child that is an {@link Expression}.
+   *
+   * <p>The function is not applied on this IR, even if it is {@link Expression}.
    *
    * @param fn the function to transform the expressions
-   * @return `this`, potentially having had its children transformed by `fn`
+   * @return `this`, potentially having had its (non-direct) children transformed by `fn`
    */
   IR mapExpressions(Function<Expression, Expression> fn);
 
@@ -147,6 +185,11 @@ public interface IR {
    *
    * <p>You can choose to keep the location, metadata and diagnostic information in the duplicated
    * copy, as well as whether you want to generate new node identifiers or not.
+   *
+   * <p>Note that even with {@code keepMetadata} set to {@code true}, some compiler passes may
+   * choose to not duplicate their metadata, returning {@code None} from their {@link
+   * Metadata#duplicate()} method. In these cases, the newly duplicated IR will have just a portion
+   * of the original metadata.
    *
    * @param keepLocations whether locations should be kept in the duplicated IR
    * @param keepMetadata whether the pass metadata should be kept in the duplicated IR

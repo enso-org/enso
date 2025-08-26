@@ -22,6 +22,7 @@ class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
   val executionEnvironment: Option[Api.ExecutionEnvironment],
+  triggerContext: String,
   val visualizationTriggered: Option[UUID] = None
 ) extends Job[Unit](
       List(contextId),
@@ -53,8 +54,9 @@ class ExecuteJob(
     _threadName = Thread.currentThread().getName
     try {
       ExecuteJob.logger.debug(
-        "Starting ExecuteJob[{}]",
-        _jobId
+        "Starting ExecuteJob[{}, trigger={}]",
+        _jobId,
+        triggerContext
       )
       execute
     } catch {
@@ -173,16 +175,19 @@ object ExecuteJob {
     *
     * @param executable the executable to run
     * @param visualizationTriggered the UUID of an expression that triggered this execution when executing an expression, empty otherwise
+    * @param triggerContext human-readable explanation for execution job
     * @return the new execute job
     */
   def apply(
     executable: Executable,
+    triggerContext: String,
     visualizationTriggered: Option[UUID] = None
   ): ExecuteJob =
     new ExecuteJob(
       executable.contextId,
       executable.stack.toList,
       None,
+      triggerContext,
       visualizationTriggered
     )
 
@@ -190,8 +195,13 @@ object ExecuteJob {
     *
     * @param contextId the contextId to execute
     * @param stack the stack to execute
+    * @param triggerContext human-readable explanation for execution job
     * @return new execute job
     */
-  def apply(contextId: UUID, stack: List[InstrumentFrame]): ExecuteJob =
-    new ExecuteJob(contextId, stack, None)
+  def apply(
+    contextId: UUID,
+    stack: List[InstrumentFrame],
+    triggerContext: String
+  ): ExecuteJob =
+    new ExecuteJob(contextId, stack, None, triggerContext)
 }

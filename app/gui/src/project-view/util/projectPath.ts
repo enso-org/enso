@@ -7,6 +7,7 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { assert, assertDefined } from 'ydoc-shared/util/assert'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export type ProjectName = QualifiedName
 
@@ -61,8 +62,8 @@ export class ProjectPath {
   }
 
   /** Checks for equality */
-  equals(b: ProjectPath): boolean {
-    return this.path === b.path && this.project === b.project
+  equals(b: Opt<ProjectPath>): boolean {
+    return b != null && this.path === b.path && this.project === b.project
   }
 
   /** Returns the path with the given qualified name appended */

@@ -40,9 +40,13 @@ fn main() {
     let graph = java::to_syntax(&graph, enso_parser_generate_java::PACKAGE);
     let mut args = std::env::args();
     args.next().unwrap();
-    let dir = args.next().expect("Usage: generate-java <output-dir>");
+    let dir = std::path::PathBuf::from(args.next().expect("Usage: generate-java <output-dir>"));
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir).unwrap();
+    }
     for class in graph {
         let code = class.to_string();
-        std::fs::write(format!("{}/{}.java", &dir, &class.name), code).unwrap();
+        let path = dir.join(format!("{}.java", &class.name));
+        std::fs::write(path, code).unwrap();
     }
 }

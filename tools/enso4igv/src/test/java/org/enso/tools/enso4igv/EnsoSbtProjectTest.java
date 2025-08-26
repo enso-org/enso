@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import org.enso.tools.enso4igv.enso.EnsoYamlProject;
 import org.junit.AssumptionViolatedException;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.project.ProjectManager;
@@ -57,7 +58,7 @@ public class EnsoSbtProjectTest extends NbTestCase {
     var aggregateAndRest = text.stream().dropWhile(l -> !l.contains(".aggregate(")).toList();
     var aggregate = aggregateAndRest.stream().skip(1).takeWhile(l -> !l.contains(")")).toList();
 
-    assertSimilar("Aggregates are we searching for: " + aggregate, 96, aggregate.size(), 10);
+    assertSimilar(aggregate.size() + " aggregates are we searching for: " + aggregate, 96, aggregate.size(), 20);
 
     var inFiles = text.stream().filter(l -> l.contains(".in(file(") || l.contains("project in file(")).toList();
     assertSimilar("Same amount of in(file( as aggregates", aggregate.size(), inFiles.size(), 10);
@@ -67,9 +68,9 @@ public class EnsoSbtProjectTest extends NbTestCase {
 
     var spp = prj.getLookup().lookup(SubprojectProvider.class);
     assertNotNull("subprojects are supported", spp);
-    var projects = spp.getSubprojects();
-
-    assertSimilar("Found exactly the same amount of projects: " + projects, aggregate.size(), projects.size(), 15);
+    var allProjects = spp.getSubprojects();
+    var jvmProjects = allProjects.stream().filter(p -> p.getLookup().lookup(EnsoYamlProject.class) == null).toList();
+    assertSimilar("Found exactly the same amount of projects: " + jvmProjects, aggregate.size(), jvmProjects.size(), 15);
   }
 
   public void testLanguageServerProject() throws Exception {

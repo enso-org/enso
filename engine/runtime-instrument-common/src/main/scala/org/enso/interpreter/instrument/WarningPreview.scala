@@ -22,7 +22,8 @@ object WarningPreview {
     val visualizationExpressionFuture: CompletionStage[AnyRef] =
       ctx.executionService.evaluateExpression(
         ctx.executionService.getContext.getBuiltins.getModule,
-        METHOD
+        METHOD,
+        "warning preview"
       )
     val visualizationResultFuture =
       visualizationExpressionFuture.thenCompose(visualizationExpression =>

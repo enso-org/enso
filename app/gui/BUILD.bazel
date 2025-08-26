@@ -77,7 +77,11 @@ vite_bin.vite(
 
 vite_bin.vite_binary(
     name = "vite_preview",
-    args = ["preview", "--outDir", "../../$(rootpath :dist)"],
+    args = [
+        "preview",
+        "--outDir",
+        "../../$(rootpath :dist)",
+    ],
     chdir = package_name(),
     data = [
         "vite.config.ts",
