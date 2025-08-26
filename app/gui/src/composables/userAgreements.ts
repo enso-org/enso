@@ -24,7 +24,7 @@ LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 const latestTermsOfServiceQueryOptions = vueQuery.queryOptions({
   queryKey: ['termsOfService', 'currentVersion'],
   queryFn: async () => {
-    const response = await fetch(new URL('/eula.json', $config.ENSO_HOST))
+    const response = await fetch(new URL('/exula.json', $config.ENSO_HOST))
     if (!response.ok) {
       throw new Error('Failed to fetch Terms of Service')
     } else {
