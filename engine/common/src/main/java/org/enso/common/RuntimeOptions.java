@@ -153,11 +153,6 @@ public final class RuntimeOptions {
       OptionDescriptor.newBuilder(USE_GLOBAL_IR_CACHE_LOCATION_KEY, USE_GLOBAL_IR_CACHE_LOCATION)
           .build();
 
-  public static final String ENABLE_CACHE_COUNTERS = optionName("enableCacheCounters");
-  public static final OptionKey<Boolean> ENABLE_CACHE_COUNTERS_KEYS = new OptionKey<>(false);
-  public static final OptionDescriptor ENABLE_CACHE_COUNTERS_DESCRIPTOR =
-      OptionDescriptor.newBuilder(ENABLE_CACHE_COUNTERS_KEYS, ENABLE_CACHE_COUNTERS).build();
-
   public static final String ENABLE_EXECUTION_TIMER = optionName("enableExecutionTimer");
 
   /* Enables timer that counts down the execution time of expressions. */
@@ -206,8 +201,7 @@ public final class RuntimeOptions {
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
               USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR,
               ENABLE_EXECUTION_TIMER_DESCRIPTOR,
-              WARNINGS_LIMIT_DESCRIPTOR,
-              ENABLE_CACHE_COUNTERS_DESCRIPTOR));
+              WARNINGS_LIMIT_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

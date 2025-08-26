@@ -47,7 +47,6 @@ import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
-import org.enso.interpreter.caches.CacheCounters;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
@@ -85,7 +84,6 @@ public final class EnsoContext {
   private final boolean isStaticAnalysisEnabled;
   private final boolean isHostClassLoading;
   private final boolean isGuestClassLoading;
-  private final CacheCounters cacheCounters;
   /**
    * Right now there is just a single polyglot Java system.
    */
@@ -125,21 +123,18 @@ public final class EnsoContext {
    * @param notificationHandler a handler for notifications
    * @param lockManager the lock manager instance
    * @param distributionManager a distribution manager
-   * @param cacheCounters nullable.
    */
   public EnsoContext(
       EnsoLanguage language,
       Env environment,
       NotificationHandler notificationHandler,
       LockManager lockManager,
-      DistributionManager distributionManager,
-      CacheCounters cacheCounters) {
+      DistributionManager distributionManager) {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
-    this.cacheCounters = cacheCounters;
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     var threadExecutors = new ThreadExecutors(environment, logger);
     var guestParallelism = getOption(RuntimeOptions.GUEST_PARALLELISM_KEY);
@@ -863,13 +858,6 @@ public final class EnsoContext {
    */
   public DefaultPackageRepository getPackageRepository() {
     return packageRepository;
-  }
-
-  /**
-   * @return null if cache counters were {@link RuntimeOptions#ENABLE_CACHE_COUNTERS_KEYS disabled}.
-   */
-  public CacheCounters getCacheCounters() {
-    return cacheCounters;
   }
 
   /**

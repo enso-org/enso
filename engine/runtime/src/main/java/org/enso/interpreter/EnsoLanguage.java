@@ -35,7 +35,6 @@ import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
-import org.enso.interpreter.caches.CacheCounters;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -169,17 +168,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       env.registerService(lockManager);
     }
 
-    boolean cacheCountersEnabled = env.getOptions().get(RuntimeOptions.ENABLE_CACHE_COUNTERS_KEYS);
-    var cacheCounters = cacheCountersEnabled ? CacheCounters.create() : null;
-
     boolean isExecutionTimerEnabled =
         env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
     Timer timer = isExecutionTimerEnabled ? new Timer.Nanosecond() : new Timer.Disabled();
     env.registerService(timer);
 
     EnsoContext context =
-        new EnsoContext(
-            this, env, notificationHandler, lockManager, distributionManager, cacheCounters);
+        new EnsoContext(this, env, notificationHandler, lockManager, distributionManager);
 
     env.registerService(context.getThreadManager());
     return context;
