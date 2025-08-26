@@ -195,6 +195,15 @@ add_group_number_specs suite_builder setup =
             g0 = t.add_group_number (..Equal_Sum "x" 3) "g"
             g0.at 'g' . to_vector . should_equal [0, 0, 0, 0, 1, 1, 1, 2, 2]
 
+        group_builder.specify "should add group number by equal sums" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
+
+            g0 = t.add_group_number (..Standard_Deviation "x") "g"
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 0, 1, 1, 1, 2, 2]
+
+            g1 = t.add_group_number (..Standard_Deviation "y") "g"
+            g1.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 1, 2, 2, 2]
+
         group_builder.specify "should report a warning if not enough groups are generated" <|
             t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [4, 4, 4, 4, 4]]]
 

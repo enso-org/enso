@@ -224,6 +224,15 @@ public class AddGroupNumber {
     }
   }
 
+  public static ColumnStorage<?> numberGroupsStandardDeviation(
+      long numRows,
+      Column column,
+      bool population,
+      long start,
+      long step,
+      ProblemAggregator problemAggregator) {
+  }
+
   public static ColumnStorage<?> flaggedGroups(
       Table table,
       Column column,
