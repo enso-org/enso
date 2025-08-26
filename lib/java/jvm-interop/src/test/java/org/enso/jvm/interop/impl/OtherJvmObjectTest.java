@@ -200,11 +200,10 @@ public class OtherJvmObjectTest {
   }
 
   @Test
-  public void classNotFoundError() {
-    var msg = new OtherJvmMessage.LoadClass("java.lang.unknown.Clazz");
+  public void classNotFoundError() throws Exception {
     try {
-      var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
-      fail("Should yield an exception: " + shortRaw);
+      var raw = loadOtherJvmClass("java.lang.unknown.Clazz");
+      fail("Should yield an exception: " + raw);
     } catch (ClassNotFoundException ex) {
       assertThat(ex.getMessage(), StringContains.containsString("java.lang.unknown.Clazz"));
     }
@@ -432,12 +431,12 @@ public class OtherJvmObjectTest {
 
   private static Value loadOtherJvmClass(String name) throws Exception {
     var msg = new OtherJvmMessage.LoadClass(name);
-    var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
-    if (shortRaw instanceof OtherJvmObject other) {
+    var raw = CHANNEL.execute(OtherJvmResult.class, msg).value(null);
+    if (raw instanceof OtherJvmObject other) {
       assertTrue(other.assertChannel(CHANNEL));
     }
-    var shortValue = ctx.asValue(shortRaw);
-    return shortValue;
+    var value = ctx.asValue(raw);
+    return value;
   }
 
   private static void assertOtherJvmObject(String msg, Value value) {
