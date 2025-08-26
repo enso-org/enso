@@ -5,7 +5,6 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Storage
 from Standard.Table.In_Memory_Table import from_java_table
 
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.SQL.SQL_Type
 from project.Internal.SQL_Warning_Helper import extract_warnings_into_builder
@@ -19,13 +18,13 @@ polyglot java import org.enso.table.data.column.storage.type.DateTimeType
    private: true
    ---
    Converts a ResultSet into a Table.
-result_set_to_table : ResultSet -> SQL_Type_Mapping -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
-result_set_to_table result_set type_mapping type_overrides=Nothing last_row_only=False row_limit=-1 =
+result_set_to_table : ResultSet -> (SQL_Type -> Value_Type | Nothing) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
+result_set_to_table result_set sql_type_to_value_type=(_->Nothing) type_overrides=Nothing last_row_only=False row_limit=-1 =
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
         storageTypeMapper metadata index =
             sql_type = type_overrides.get index . if_nothing <|
                 SQL_Type.from_metadata metadata index+1
-            value_type = type_mapping.sql_type_to_value_type
+            value_type = sql_type_to_value_type sql_type
             case sql_type of
                 Nothing -> AnyObjectType.INSTANCE
                 Value_Type.Unsupported_Data_Type _ _ -> AnyObjectType.INSTANCE
