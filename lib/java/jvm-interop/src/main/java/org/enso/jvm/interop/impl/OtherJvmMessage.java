@@ -514,4 +514,17 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       }
     }
   }
+
+  /**
+   * Sent from the other JVM to report that it no longer keeps reference to object with ID {@code
+   * id}.
+   */
+  @Persistable(id = 81907)
+  public static record GC(long id) implements Function<Channel<OtherJvmPool>, Void> {
+    @Override
+    public Void apply(Channel<OtherJvmPool> t) {
+      t.getConfig().gc(id);
+      return null;
+    }
+  }
 }

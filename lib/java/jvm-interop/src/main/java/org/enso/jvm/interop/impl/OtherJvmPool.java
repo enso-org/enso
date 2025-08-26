@@ -64,6 +64,11 @@ public final class OtherJvmPool extends Channel.Config {
     return objectsById.get(id);
   }
 
+  final synchronized void gc(long id) {
+    var prev = objectsById.remove(id);
+    assert prev != null : "Each id is removed only once, but " + id;
+  }
+
   private final synchronized OtherJvmObject findCached(OtherJvmObject withId) {
     var existing = incomming.get(withId.id());
     if (existing == null) {
