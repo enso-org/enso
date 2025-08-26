@@ -47,7 +47,7 @@ type Grouping_Method
        contain the values that differ the most from the standard deviation.
 
        Arguments
-    Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (population:Boolean=False)
+    Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (group_count:Integer=5) (population:Boolean=False)
 
 ## Specifies the row representing a group.
 type Group_Row

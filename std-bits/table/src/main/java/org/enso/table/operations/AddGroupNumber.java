@@ -4,6 +4,7 @@ import java.util.function.BiFunction;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
+import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
@@ -227,10 +228,51 @@ public class AddGroupNumber {
   public static ColumnStorage<?> numberGroupsStandardDeviation(
       long numRows,
       Column column,
-      bool population,
+      int groupCount,
+      boolean population,
       long start,
       long step,
       ProblemAggregator problemAggregator) {
+      if (groupingColumns.length == 0) {
+        throw new IllegalArgumentException("At least one grouping column is required.");
+      }
+      ColumnStorage<Double> columnStorage = NumericColumnAdapter.DoubleColumnAdapter.INSTANCE.asTypedStorage(column.getStorage());
+      double mean = mean(columnStorage);
+      double stddev = standardDeviation(columnStorage, mean, population);
+      var builder = Builder.getForLong(IntegerType.INT_64, numRows, problemAggregator);
+      for (Double d : columnStorage) {
+        long groupNumber = calculateGroup(d, mean, stddev, groupCount, start, step);
+        builder.appendLong(groupNumber);
+      }
+      return builder.seal();
+  }
+
+  private static double mean(ColumnStorage<Double> storage) {
+    double sum = 0.0;
+    long count = 0;
+    for (Double d : storage) {
+      if (d != null) {
+        sum += d;
+        count++;
+      }
+    }
+    return count == 0 ? 0.0 : sum / count;
+  }
+
+  private static double standardDeviation(ColumnStorage<Double> storage, double mean, boolean population) {
+    double sumSquaredDiffs = 0.0;
+    long count = 0;
+    for (Double d : storage) {
+      if (d != null) {
+        double diff = d - mean;
+        sumSquaredDiffs += diff * diff;
+        count++;
+      }
+    }
+    if (count == 0) {
+      return 0.0;
+    }
+    return Math.sqrt(sumSquaredDiffs / (population ? count : count - 1));
   }
 
   public static ColumnStorage<?> flaggedGroups(
