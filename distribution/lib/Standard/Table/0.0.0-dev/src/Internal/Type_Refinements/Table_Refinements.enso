@@ -34,7 +34,9 @@ private _refine_numeric_column (table : In_Memory_Table) (column : Column & In_M
     _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column
 
 private _refine_text_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column & Text_Column = case column.length of
-    1 -> table : Table & In_Memory_Table & Column & In_Memory_Column & Text_Column & Text
+    1 -> case column.at 0 of
+        _ : Text -> table : Table & In_Memory_Table & Column & In_Memory_Column & Text_Column & Text
+        _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Text_Column
     _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Text_Column
 
 private _refine_other_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column =
