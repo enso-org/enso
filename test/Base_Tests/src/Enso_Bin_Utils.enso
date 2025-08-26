@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Test import all
 
 polyglot java import java.lang.ProcessBuilder as J_ProcessBuilder
+polyglot java import java.lang.Process as J_Process
 polyglot java import java.lang.String as J_String
 polyglot java import java.lang.System as J_System
 polyglot java import java.io.File as J_File
