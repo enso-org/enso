@@ -40,11 +40,11 @@ test.each([
   },
   {
     code: '[Column]',
-    expected: ['Expression', ['Column', ['SquareBracket', '['], ['SquareBracket', ']']]],
+    expected: ['Expression', ['Column', ['OpenBracket', '['], ['CloseBracket', ']']]],
   },
   {
     code: '[Column 1]',
-    expected: ['Expression', ['Column', ['SquareBracket', '['], ['SquareBracket', ']']]],
+    expected: ['Expression', ['Column', ['OpenBracket', '['], ['CloseBracket', ']']]],
   },
   {
     code: 'number(1)',
@@ -60,7 +60,7 @@ test.each([
       [
         'Function',
         ['OpenParen', '('],
-        ['Column', ['SquareBracket', '['], ['SquareBracket', ']']],
+        ['Column', ['OpenBracket', '['], ['CloseBracket', ']']],
         ['CloseParen', ')'],
       ],
     ],
@@ -77,7 +77,7 @@ test.each([
     code: 'unclosed_column_in_function([Column 1)',
     expected: [
       'Expression',
-      ['Function', ['OpenParen', '('], ['Column', ['SquareBracket', '['], ['⚠', '']], ['⚠', '']],
+      ['Function', ['OpenParen', '('], ['Column', ['OpenBracket', '['], ['⚠', '']], ['⚠', '']],
     ],
   },
 ])('Syntax tree', ({ code, expected }) => {
