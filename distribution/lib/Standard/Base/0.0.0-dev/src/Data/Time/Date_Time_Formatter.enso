@@ -23,7 +23,7 @@ polyglot java import org.enso.base.time.FormatterCacheKey
 polyglot java import org.enso.base.time.FormatterKind
 
 type Date_Time_Formatter
-    private Value (underlying : EnsoDateTimeFormatter) (~deferred_parsing_warnings = [])
+    Value (underlying : EnsoDateTimeFormatter) (~deferred_parsing_warnings = [])
 
     ## ---
        icon: convert
