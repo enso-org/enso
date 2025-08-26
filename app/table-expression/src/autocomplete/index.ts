@@ -52,7 +52,7 @@ export function useCompletions(
       label: column,
       type: 'variable',
       boost: 1,
-      apply: column,
+      apply: escapeColumn(column),
     })),
   )
   const columnsWithBracket = computed(() => columnOptions.value.map(closeBracketAfter))
@@ -81,6 +81,11 @@ export function useCompletions(
       : null
     )
   }
+}
+
+/** @internal */
+export function escapeColumn(column: string) {
+  return column.replace(/]/g, ']]')
 }
 
 function nameCompletions(
