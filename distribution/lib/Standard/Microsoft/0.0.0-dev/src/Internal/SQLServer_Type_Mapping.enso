@@ -113,6 +113,15 @@ type SQLServer_Type_Mapping
 
     ## ---
        private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for this backend.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        SQL_Type_Mapping.SQL_Type_Mapping.column_fetcher_factory
+
+    ## ---
+       private: true
        ---
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type

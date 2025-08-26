@@ -29,7 +29,8 @@ public interface ColumnFetcherFactory {
             index + 1, columnName, bi, problemAggregator) {
           @Override
           public Object getValue(ResultSet resultSet) throws SQLException {
-            return resultSet.getBigDecimal(index()).toBigIntegerExact();
+            var bigDecimal = resultSet.getBigDecimal(index());
+            return bigDecimal == null ? null : bigDecimal.toBigIntegerExact();
           }
         };
         case BigDecimalType bd -> new GenericColumnFetcher<>(

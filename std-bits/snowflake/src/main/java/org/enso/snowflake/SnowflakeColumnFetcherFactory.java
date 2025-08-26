@@ -15,7 +15,10 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
-public class SnowflakeColumnFetcherFactory extends ColumnFetcherFactory.DefaultColumnFetcherFactory {
+public class SnowflakeColumnFetcherFactory
+    extends ColumnFetcherFactory.DefaultColumnFetcherFactory {
+  public static final ColumnFetcherFactory INSTANCE = new SnowflakeColumnFetcherFactory();
+
   private static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.S[ XX][ XXXXX]";
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
       DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
@@ -27,7 +30,8 @@ public class SnowflakeColumnFetcherFactory extends ColumnFetcherFactory.DefaultC
 
     @Override
     public Object getValue(ResultSet resultSet) throws SQLException {
-      return resultSet.getBigDecimal(index()).toBigIntegerExact();
+      var bigDecimal = resultSet.getBigDecimal(index());
+      return bigDecimal == null ? null : bigDecimal.toBigIntegerExact();
     }
 
     @Override

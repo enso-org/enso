@@ -15,7 +15,7 @@ import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
-polyglot java import org.enso.snowflake.SnowflakeIntegerColumnMaterializer
+polyglot java import org.enso.snowflake.SnowflakeColumnFetcherFactory
 
 ## ---
    private: true
@@ -90,6 +90,15 @@ type Snowflake_Type_Mapping
             case complex_types_map.get sql_type.typeid Nothing of
                 Nothing -> on_unknown_type sql_type
                 builder -> builder sql_type
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for this backend.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        SnowflakeColumnFetcherFactory.INSTANCE
 
     ## ---
        private: true
