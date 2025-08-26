@@ -22,8 +22,8 @@ import org.enso.pkg.QualifiedName;
 import org.enso.version.BuildVersion;
 
 /**
- * A cache for import/export information about a library. import/export is represented by
- * {@link org.enso.compiler.core.ir.Module IR}.
+ * A cache for import/export information about a library. import/export is represented by {@link
+ * org.enso.compiler.core.ir.Module IR}.
  */
 public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
@@ -163,10 +163,7 @@ public final class ImportExportCache
     }
   }
 
-  public static record CachedBindings(
-      LibraryName libraryName,
-      MapToBindings bindings
-  ) {}
+  public static record CachedBindings(LibraryName libraryName, MapToBindings bindings) {}
 
   public record Metadata(String sourceHash, String blobHash) {
     byte[] toBytes() throws IOException {

@@ -15,7 +15,6 @@ import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.editions.LibraryName;
 import org.enso.persist.Persistance;
 import org.enso.pkg.SourceFile;
-import org.enso.polyglot.Suggestion;
 import org.enso.text.Hex;
 
 final class CacheUtils {
