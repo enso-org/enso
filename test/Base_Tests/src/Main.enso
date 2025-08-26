@@ -63,8 +63,6 @@ import project.Data.XML.XML_Spec
 
 import project.Data.Vector.Slicing_Helpers_Spec
 
-import project.Network.Enso_Cloud.Main as Enso_Cloud_Main
-
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http.Http_Auto_Parse_Spec
@@ -125,7 +123,6 @@ main filter=Nothing =
         Http_Spec.add_specs suite_builder
         Http_Auto_Parse_Spec.add_specs suite_builder
         Http_Data_Link_Spec.add_specs suite_builder
-        Enso_Cloud_Main.add_specs suite_builder
         Import_Loop_Spec.add_specs suite_builder
         Interval_Spec.add_specs suite_builder
         Java_Interop_Spec.add_specs suite_builder
