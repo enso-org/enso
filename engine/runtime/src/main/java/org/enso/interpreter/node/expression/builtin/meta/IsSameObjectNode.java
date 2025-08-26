@@ -36,38 +36,43 @@ public abstract class IsSameObjectNode extends Node {
     }
   }
 
+  @Specialization(
+      guards = {
+        "interop.isString(left)",
+        "interop.isString(right)",
+      })
+  boolean isSameString(
+      Object left,
+      Object right,
+      @Shared("interop") @CachedLibrary(limit = "2") InteropLibrary interop) {
+    try {
+      return interop.asString(left).equals(interop.asString(right));
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
+  }
+
   @Specialization
   boolean isSameType(Type typeLeft, Type typeRight) {
     return typeLeft == typeRight;
   }
 
-  /**
-   * Shortcut specialization for meta objects.
-   *
-   * <p>Note: Do not remove, as this is a workaround for an unexpected behavior of HostObject
-   * interop in GraalVM 22.3.0, where isIdentical(ArrayList.class, arrayListObject.getClass()) would
-   * return false.
-   *
-   * @return True if the qualified names of the meta objects are same.
-   */
   @Specialization(
       guards = {
-        "!interop.isNull(metaLeft)",
-        "interop.isMetaObject(metaLeft)",
-        "!interop.isNull(metaRight)",
-        "interop.isMetaObject(metaRight)"
+        "interop.isMetaObject(left)",
+        "interop.isMetaObject(right)",
       })
-  boolean isSameMetaObjects(
-      Object metaLeft,
-      Object metaRight,
+  boolean isSameMeta(
+      Object left,
+      Object right,
       @Shared("interop") @CachedLibrary(limit = "2") InteropLibrary interop) {
-    try {
-      Object metaLeftName = interop.getMetaQualifiedName(metaLeft);
-      Object metaRightName = interop.getMetaQualifiedName(metaRight);
-      return isIdenticalObjects(metaLeftName, metaRightName, interop);
-    } catch (UnsupportedMessageException e) {
-      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
+    var ctx = EnsoContext.get(this);
+    if (ctx.isJavaPolyglotObject(left) && ctx.isJavaPolyglotObject(right)) {
+      var hostLeft = ctx.asJavaPolyglotObject(left);
+      var hostRight = ctx.asJavaPolyglotObject(right);
+      return hostLeft == hostRight;
     }
+    return interop.isIdentical(left, right, interop);
   }
 
   @Fallback
@@ -77,13 +82,6 @@ public abstract class IsSameObjectNode extends Node {
       @Shared("interop") @CachedLibrary(limit = "2") InteropLibrary interop) {
     if (left == right) {
       return true;
-    }
-    if (interop.isString(left) && interop.isString(right)) {
-      try {
-        return interop.asString(left).equals(interop.asString(right));
-      } catch (UnsupportedMessageException ex) {
-        // go on
-      }
     }
     return interop.isIdentical(left, right, interop);
   }

@@ -18,7 +18,7 @@ import java.util.UUID
   * @param identifiedLocation the source location that the node corresponds to
   * @param passData the pass metadata associated with this node
   */
-final case class Module(
+case class Module(
   imports: List[Import],
   exports: List[Export],
   bindings: List[Definition],

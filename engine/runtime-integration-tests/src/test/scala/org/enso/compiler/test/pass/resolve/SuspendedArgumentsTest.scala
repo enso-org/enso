@@ -105,7 +105,7 @@ class SuspendedArgumentsTest extends CompilerTest {
         "the `self` argument is suspended"
       )
       assert(
-        bodyLam.arguments(1).suspended,
+        bodyLam.arguments().apply(1).suspended,
         "the `a` argument is not suspended"
       )
     }
@@ -151,8 +151,11 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       bodyLam.arguments.length shouldEqual 3
 
-      assert(!bodyLam.arguments(1).suspended, "open_options was suspended")
-      assert(!bodyLam.arguments(2).suspended, "action was suspended")
+      assert(
+        !bodyLam.arguments().apply(1).suspended,
+        "open_options was suspended"
+      )
+      assert(!bodyLam.arguments().apply(2).suspended, "action was suspended")
     }
 
     "work for conversion methods" in {
@@ -202,7 +205,7 @@ class SuspendedArgumentsTest extends CompilerTest {
         .asInstanceOf[Application.Prefix]
 
       lam.arguments.length shouldEqual 2
-      lam.arguments(1).suspended shouldBe true
+      lam.arguments().apply(1).suspended shouldBe true
       bodyBlock.arguments.length shouldEqual 2
     }
 
@@ -224,7 +227,7 @@ class SuspendedArgumentsTest extends CompilerTest {
         .expression
         .asInstanceOf[Function.Lambda]
       assert(!func.arguments.head.suspended, "a is suspended")
-      assert(func.arguments(1).suspended, "b is not suspended")
+      assert(func.arguments().apply(1).suspended, "b is not suspended")
     }
 
     "correctly mark arguments as suspended using inline expressions" in {
@@ -238,7 +241,7 @@ class SuspendedArgumentsTest extends CompilerTest {
       ir shouldBe an[Function.Lambda]
       val lam = ir.asInstanceOf[Function.Lambda]
       assert(lam.arguments.head.suspended, "x is not suspended")
-      assert(!lam.arguments(1).suspended, "y is suspended")
+      assert(!lam.arguments().apply(1).suspended, "y is suspended")
     }
 
     "work recursively" in {
@@ -264,7 +267,7 @@ class SuspendedArgumentsTest extends CompilerTest {
         .asInstanceOf[Function.Lambda]
 
       assert(!f.arguments.head.suspended, "a was suspended")
-      assert(f.arguments(1).suspended, "b was not suspended")
+      assert(f.arguments().apply(1).suspended, "b was not suspended")
     }
   }
 }

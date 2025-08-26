@@ -2,16 +2,16 @@ load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
 rust_library(
-    name = "enso-prelude",
+    name = "enso_prelude",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True) + [
-        "//lib/rust/prelude/macros:enso-macros",
+        "//lib/rust/prelude/macros:enso_macros",
     ],
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
-        "//lib/rust/reflect:enso-reflect",
-        "//lib/rust/zst:enso-zst",
+        "//lib/rust/reflect:enso_reflect",
+        "//lib/rust/zst:enso_zst",
     ],
 )

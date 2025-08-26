@@ -16,7 +16,6 @@ import project.Internal.Table_Helpers.Union_Result_Type
 import project.Match_Columns.Match_Columns
 import project.Table.Table
 import project.Value_Type.Value_Type
-from project.Column import make_storage_builder_for_type
 
 ## The implementation of common logic that is used by `Table.from_union`.
    The caller should ensure that `tables` contains only `Table` instances or

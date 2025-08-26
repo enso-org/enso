@@ -401,14 +401,13 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
-    val aliasInfo = name
-      .unsafeGetMetadata(
-        AliasAnalysis,
-        "no alias analysis info on a name"
-      )
-      .unsafeAs[AliasInfo.Occurrence]
-    val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
-    defLink.isDefined
+    name.getMetadata(AliasAnalysis) match {
+      case None => false
+      case Some(aliasMeta) =>
+        val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]
+        val defLink   = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        defLink.isDefined
+    }
   }
 
   /** The FQN resolution metadata for a node.

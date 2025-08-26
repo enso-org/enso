@@ -1212,25 +1212,30 @@ type Table
 
     ## ---
        aliases:
-        - average
-        - first
         - group by
-        - last
-        - longest
-        - maximum
-        - mean
-        - median
-        - minimum
-        - mode
-        - percentile
-        - shortest
-        - standard deviation
         - summarize
         - variance
        macros:
-        - sum: columns=[..Sum]
         - count: columns=[..Count]
+        - sum: columns=[..Sum]
+        - average: columns=[..Average]
+        - mean: columns=[..Mean]
+        - maximum: columns=[..Maximum]
+        - minimum: columns=[..Minimum]
         - count_distinct: columns=[..Count_Distinct]
+        - first: columns=[..First]
+        - last: columns=[..Last]
+        - count not nothing: columns=[..Count_Not_Nothing]
+        - count nothing: columns=[..Count_Nothing]
+        - count not empty: columns=[..Count_Not_Empty]
+        - count empty: columns=[..Count_Empty]
+        - concatenate: columns=[..Concatenate]
+        - shortest: columns=[..Shortest]
+        - longest: columns=[..Longest]
+        - median: columns=[..Median]
+        - percentile: columns=[..Percentile]
+        - mode: columns=[..Mode]
+        - standard deviation: columns=[..Standard_Deviation]
        group: Standard.Base.Calculations
        icon: transform4
        suggested: 7
@@ -2378,7 +2383,9 @@ type Table
         self.implementation.remove_all_rows self.underlying
 
     ## ---
-       aliases: [add index column, rank, record id]
+       aliases: [add index column, record id]
+       macros:
+        - rank: '"Rank" 1'
        group: Standard.Base.Values
        icon: column_add
        suggested: 6
@@ -3726,18 +3733,24 @@ type Table
             self.implementation.text_cleanse self.underlying columns remove
 
     ## ---
+       macros:
+        - count: ..Count
+        - minimum: ..Minimum
+        - maximum: ..Maximum
+        - sum: ..Sum
+        - total: ..Sum
+        - product: ..Product
+        - mean: ..Mean
+        - variance: ..Variance
+        - standard deviation: ..Standard_Deviation
+        - skew: ..Skew
+        - kurtosis: ..Kurtosis
+        - covariance: ..Covariance
+        - pearson: ..Pearson
+        - spearman: ..Spearman
+        - r sqaured: ..R_Squared
        aliases:
-        - count
         - cumulative
-        - maximum
-        - mean
-        - minimum
-        - product
-        - standard deviation
-        - sum
-        - sum
-        - total
-        - variance
        group: Standard.Base.Values
        icon: column_add
        ---

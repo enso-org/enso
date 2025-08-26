@@ -100,31 +100,11 @@ public interface Import extends Scope {
     }
 
     public Module copyWithNameAndRename(Name.Qualified name, Option<Name.Literal> rename) {
-      return copy(
-          diagnostics,
-          passData,
-          location,
-          id,
-          name,
-          rename,
-          isAll(),
-          onlyNames(),
-          hiddenNames(),
-          isSynthetic());
+      return new Builder(this).name(name).rename(rename).build();
     }
 
     public Module copyWithName(Name.Qualified name) {
-      return copy(
-          diagnostics,
-          passData,
-          location,
-          id,
-          name,
-          rename(),
-          isAll(),
-          onlyNames(),
-          hiddenNames(),
-          isSynthetic());
+      return new Builder(this).name(name).build();
     }
 
     @Override

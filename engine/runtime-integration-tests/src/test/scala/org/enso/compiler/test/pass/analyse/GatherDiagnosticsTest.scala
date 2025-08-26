@@ -17,6 +17,7 @@ import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
+import org.enso.persist.Persistance.Reference
 
 class GatherDiagnosticsTest extends CompilerTest {
 
@@ -37,19 +38,21 @@ class GatherDiagnosticsTest extends CompilerTest {
         )
       )
       .build()
-    val lam = new Function.Lambda(
-      List(
-        DefinitionArgument.Specified
-          .builder()
-          .name(
-            Name.Literal("bar", isMethod = false, identifiedLocation = null)
-          )
-          .suspended(false)
-          .build()
-      ),
-      plusApp,
-      identifiedLocation = null
-    )
+    val lam = Function.Lambda
+      .builder()
+      .arguments(
+        List(
+          DefinitionArgument.Specified
+            .builder()
+            .name(
+              Name.Literal("bar", isMethod = false, identifiedLocation = null)
+            )
+            .suspended(false)
+            .build()
+        )
+      )
+      .bodyReference(Reference.of(plusApp))
+      .build()
 
     "work with expression flow" in {
       val result = GatherDiagnostics.runExpression(lam, buildInlineContext())
@@ -116,7 +119,10 @@ class GatherDiagnosticsTest extends CompilerTest {
               error3,
               identifiedLocation = null
             ),
-            lam.copy(body = error3)
+            Function.Lambda
+              .builder(lam)
+              .bodyReference(Reference.of(error3))
+              .build()
           )
         ),
         false,

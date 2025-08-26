@@ -250,7 +250,11 @@ test('Editing list', async ({ page }) => {
   await expect(vectorElements).toHaveText(['..Group_By', '_', '_'])
 
   // Test drag: remove item
-  await vectorItems.nth(1).locator('[draggable]').dragTo(locate.graphEditor(page))
+  const secondItem = vectorItems.nth(1).locator('[draggable]')
+  await secondItem.dragTo(secondItem, {
+    force: true,
+    targetPosition: { x: 200, y: 0 },
+  })
   await expect(vectorElements).toHaveText(['..Group_By', '_'])
 
   // Test drag: reorder items
