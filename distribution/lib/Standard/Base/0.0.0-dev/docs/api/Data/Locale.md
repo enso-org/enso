@@ -1,6 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Locale
 - type Locale
+    - Value java_locale:Standard.Base.Any.Any
     - bangladesh -> Standard.Base.Any.Any
     - brazil -> Standard.Base.Any.Any
     - canada_english -> Standard.Base.Any.Any

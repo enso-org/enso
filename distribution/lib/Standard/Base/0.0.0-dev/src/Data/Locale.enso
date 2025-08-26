@@ -25,7 +25,15 @@ polyglot java import java.util.Locale as JavaLocale
    These are chosen as the union of the top 10 countries by population, and the
    top ten countries by total (nominal, not per-capita) GDP.
 type Locale
-    private Value java_locale
+    ## ---
+       private: true
+       ---
+       A type representing a locale.
+
+       ## Arguments
+        - `java_locale`: The Java locale representation used internally.
+    Value java_locale
+
 
     ## ---
        icon: text_input
