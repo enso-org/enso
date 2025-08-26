@@ -15,7 +15,7 @@ expr {
     | in
     | between
     | ifElse
-    | function
+    | Function
     | Column
 }
 
@@ -100,7 +100,7 @@ ifElse {
   !if ControlOp<IF> expr !if ControlOp<THEN> expr !if ControlOp<ELSE> expr !if ControlOp<END IF?>?
 }
 
-function {
+Function {
   identifier parenthesized<(expr (',' expr)*)?>
 }
 

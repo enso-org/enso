@@ -10,7 +10,7 @@ import {
   widgetProps,
 } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { languageExtension } from '@/util/codemirror/language'
+import { useLanguageSupport } from '@/util/codemirror/language'
 import { computed, ref, useTemplateRef } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
 
@@ -53,10 +53,6 @@ function acceptValue(text: string): HandledUpdate {
   }
 }
 
-const syntaxLanguage = computed(() =>
-  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig.syntax : undefined,
-)
-
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (props.input.value instanceof Ast.TextLiteral) return props.input.value
@@ -76,13 +72,12 @@ const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 
-/** Language support for a known syntax. */
-const languageExt = computed(() => languageExtension(syntaxLanguage.value))
-/** Extensions added when any language support is available, e.g. autocomplete (TODO: #12305). */
-const anyLanguageExt = computed(() => [])
-const extensions = computed(() =>
-  languageExt.value ? [languageExt.value, ...anyLanguageExt.value] : [],
+const textInputConfig = computed(() =>
+  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig : undefined,
 )
+const extensions = useLanguageSupport(() => textInputConfig.value?.syntax, {
+  suggestionDb: () => currentProject.value?.suggestionDb.entries,
+})
 
 function isTextMultiline(text: string) {
   return !!text.match(/[\r\n]/)

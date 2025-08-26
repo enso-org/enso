@@ -89,7 +89,7 @@ case object ExpressionAnnotations extends IRPass {
               }
               val recurArgs = args.map(_.mapExpressions(doExpression))
               app
-                .copy(function = finalFun, arguments = preArgs ++ recurArgs)
+                .copy(finalFun, preArgs ++ recurArgs)
                 .updateMetadata(new MetadataPair(this, Annotations(Seq(ann))))
           }
         } else {

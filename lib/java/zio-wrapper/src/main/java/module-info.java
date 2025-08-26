@@ -1,5 +1,6 @@
 module org.enso.zio.wrapper {
   requires scala.library;
+  requires org.enso.scala.wrapper;
 
   // dev.zio:zio_2.13:2.0.14
   // dev.zio:zio-internal-macros_2.13:2.0.14
@@ -17,9 +18,9 @@ module org.enso.zio.wrapper {
   exports zio.stacktracer;
 
   // dev.zio:zio-interop-cats_2.13:23.0.0.6
-  // exports zio.interop.console;
-  // exports zio.interop.stm;
-  // exports zio.stream.interop;
+  exports zio.interop.console;
+  exports zio.interop.stm;
+  exports zio.stream.interop;
 
   // dev.zio:izumi-reflect_2.13:2.3.8
   exports izumi.reflect;

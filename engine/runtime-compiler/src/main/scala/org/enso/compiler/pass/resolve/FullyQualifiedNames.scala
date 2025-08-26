@@ -343,7 +343,7 @@ case object FullyQualifiedNames extends IRPass {
     }
 
     processedApp.getOrElse(
-      app.copy(function = processedFun, arguments = processedArgs)
+      app.copy(processedFun, processedArgs)
     )
   }
 

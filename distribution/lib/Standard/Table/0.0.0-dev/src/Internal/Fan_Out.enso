@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
+import Standard.Base.Logging.Progress
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Column.Column
@@ -157,16 +158,18 @@ fan_out_to_rows_and_columns_fixed input_java_column function at_least_one_row:Bo
     empty_row = [Vector.fill num_output_columns Nothing]
     maybe_add_empty_row vecs = if vecs.is_empty && at_least_one_row then empty_row else vecs
 
-    0.up_to num_input_rows . each i->
-        input_value = input_java_column.getItem i
-        output_values = maybe_add_empty_row (function input_value)
+    Progress.execute "Fan_Out.fan_out_to_rows_and_columns_fixed" num_input_rows (num_input_rows.div 20) pr->
+        0.up_to num_input_rows . each i->
+            input_value = input_java_column.getItem i
+            output_values = maybe_add_empty_row (function input_value)
 
-        output_values.each row_unchecked->
-            row = uniform_length num_output_columns row_unchecked problem_builder
-            row.each_with_index i-> v-> output_column_builders.at i . append v
+            output_values.each row_unchecked->
+                row = uniform_length num_output_columns row_unchecked problem_builder
+                row.each_with_index i-> v-> output_column_builders.at i . append v
 
-        # Append n copies of the input row position, n = # of output values.
-        repeat_each output_values.length <| order_mask_positions.append i
+            # Append n copies of the input row position, n = # of output values.
+            repeat_each output_values.length <| order_mask_positions.append i
+            pr.advance
 
     output_columns = column_names.map_with_index i->n->
         In_Memory_Column.from_storage n (output_column_builders.at i . seal)
@@ -200,33 +203,35 @@ fan_out_to_rows_and_columns_dynamic input_java_column function at_least_one_row 
     maybe_add_empty_row vecs = if (vecs.is_empty && at_least_one_row).not then vecs else
         [Vector.fill output_column_builders.length Nothing]
 
-    0.up_to num_input_rows . each i->
-        input_value = input_java_column.getItem i
-        output_values = maybe_add_empty_row (function input_value)
+    Progress.execute "Fan_Out.fan_out_to_rows_and_columns_dynamic" num_input_rows (num_input_rows.div 20) pr->
+        0.up_to num_input_rows . each i->
+            input_value = input_java_column.getItem i
+            output_values = maybe_add_empty_row (function input_value)
 
-        # get the column names for the row.
-        row_column_names = column_names_for_row input_value
+            # get the column names for the row.
+            row_column_names = column_names_for_row input_value
 
-        # Add any missing columns.
-        row_column_names.each n->
-            if column_dict.get.contains_key n . not then
-                add_column n order_mask_positions.length
+            # Add any missing columns.
+            row_column_names.each n->
+                if column_dict.get.contains_key n . not then
+                    add_column n order_mask_positions.length
 
-        # Append each group of values to the builder.
-        current_columns = column_dict.get
-        output_values.each row_unchecked->
-            row = uniform_length row_column_names.length row_unchecked problem_builder
-            row_column_names.each_with_index i->n->
-                output_column_builders.at (current_columns.at n) . append (row.at i)
+            # Append each group of values to the builder.
+            current_columns = column_dict.get
+            output_values.each row_unchecked->
+                row = uniform_length row_column_names.length row_unchecked problem_builder
+                row_column_names.each_with_index i->n->
+                    output_column_builders.at (current_columns.at n) . append (row.at i)
 
-        # Fill in values for any column not present
-        if row_column_names.length != output_column_builders.length then
-            current_columns.each_with_key k->i->
-                if row_column_names.contains k . not then
-                    output_column_builders.at i . appendNulls output_values.length
+            # Fill in values for any column not present
+            if row_column_names.length != output_column_builders.length then
+                current_columns.each_with_key k->i->
+                    if row_column_names.contains k . not then
+                        output_column_builders.at i . appendNulls output_values.length
 
-        # Append n copies of the input row position, n = # of output values.
-        repeat_each output_values.length <| order_mask_positions.append i
+            # Append n copies of the input row position, n = # of output values.
+            repeat_each output_values.length <| order_mask_positions.append i
+            pr.advance
 
     # Build the output column
     output_columns = column_dict.get.to_vector.sort on=_.second . map pair->
