@@ -5,7 +5,7 @@ import org.enso.table.data.column.builder.BuilderForDouble;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.problems.ProblemAggregator;
 
-class DoubleColumnFetcher extends BaseColumnFetcher {
+final class DoubleColumnFetcher extends BaseColumnFetcher {
   private final BuilderForDouble doubleBuilder;
 
   DoubleColumnFetcher(

@@ -51,7 +51,7 @@ type SQL_Type_Mapping
        Gets the ColumnFetcherFactory to be used for this backend.
     column_fetcher_factory : Any
     column_fetcher_factory =
-        ColumnFetcherFactory.DEFAULT
+        Unimplemented.throw "This is an interface only."
 
     ## ---
        private: true
@@ -179,3 +179,9 @@ default_should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Valu
        or changing Float32 to Float64 are silently ignored.
        However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
     (Meta.meta db_type . constructor) != (Meta.meta in_memory_type . constructor)
+
+## ---
+   private: true
+   ---
+default_column_fetcher_factory =
+    ColumnFetcherFactory.DEFAULT

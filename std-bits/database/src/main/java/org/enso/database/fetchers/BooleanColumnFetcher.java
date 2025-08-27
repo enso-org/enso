@@ -3,7 +3,7 @@ package org.enso.database.fetchers;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 
-class BooleanColumnFetcher extends BaseColumnFetcher {
+final class BooleanColumnFetcher extends BaseColumnFetcher {
   private final BuilderForBoolean boolBuilder;
 
   BooleanColumnFetcher(int index, String name) {

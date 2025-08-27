@@ -92,8 +92,7 @@ type SQLite_Type_Mapping
        ---
        Gets the ColumnFetcherFactory to be used for this backend.
     column_fetcher_factory : Any
-    column_fetcher_factory =
-        SQL_Type_Mapping.SQL_Type_Mapping.column_fetcher_factory
+    column_fetcher_factory = SQL_Type_Mapping.default_column_fetcher_factory
 
     ## ---
        private: true

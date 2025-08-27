@@ -23,7 +23,7 @@ public class SnowflakeColumnFetcherFactory
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
       DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
 
-  private static class SnowflakeIntegerFetcher extends BaseColumnFetcher {
+  private static final class SnowflakeIntegerFetcher extends BaseColumnFetcher {
     SnowflakeIntegerFetcher(int index, String name) {
       super(index, name, new SnowflakeIntegerColumnMaterializer(DEFAULT_SIZE));
     }
@@ -32,11 +32,6 @@ public class SnowflakeColumnFetcherFactory
     public Object getValue(ResultSet resultSet) throws SQLException {
       var bigDecimal = resultSet.getBigDecimal(index());
       return bigDecimal == null ? null : bigDecimal.toBigIntegerExact();
-    }
-
-    @Override
-    public void append(java.sql.ResultSet resultSet) throws java.sql.SQLException {
-      appendValue(getValue(resultSet));
     }
   }
 

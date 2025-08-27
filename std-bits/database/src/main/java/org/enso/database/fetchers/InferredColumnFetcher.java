@@ -7,9 +7,4 @@ class InferredColumnFetcher extends BaseColumnFetcher {
   InferredColumnFetcher(int index, String name, ProblemAggregator problemAggregator) {
     super(index, name, Builder.getInferredBuilder(DEFAULT_SIZE, problemAggregator));
   }
-
-  @Override
-  public void append(java.sql.ResultSet resultSet) throws java.sql.SQLException {
-    appendValue(getValue(resultSet));
-  }
 }

@@ -5,7 +5,7 @@ import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.ProblemAggregator;
 
-class LongColumnFetcher extends BaseColumnFetcher {
+final class LongColumnFetcher extends BaseColumnFetcher {
   private final BuilderForLong longBuilder;
 
   LongColumnFetcher(

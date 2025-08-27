@@ -8,9 +8,4 @@ public class GenericColumnFetcher<T> extends BaseColumnFetcher {
       int index, String name, StorageType<T> storageType, ProblemAggregator problemAggregator) {
     super(index, name, storageType.makeBuilder(DEFAULT_SIZE, problemAggregator));
   }
-
-  @Override
-  public void append(java.sql.ResultSet resultSet) throws java.sql.SQLException {
-    appendValue(getValue(resultSet));
-  }
 }
