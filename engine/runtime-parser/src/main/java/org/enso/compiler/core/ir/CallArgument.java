@@ -59,14 +59,7 @@ public interface CallArgument extends IR {
     }
 
     public Specified copy(Expression value) {
-      return copy(
-          this.diagnostics,
-          this.passData,
-          this.location,
-          this.id,
-          this.name(),
-          value,
-          this.isSynthetic());
+      return new Builder(this).value(value).build();
     }
 
     @Override
