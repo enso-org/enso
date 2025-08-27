@@ -37,6 +37,10 @@ public abstract class BaseColumnFetcher implements ColumnFetcher {
 
   @Override
   public void appendValue(Object value) {
-    builder.append(value);
+    if (value == null) {
+      builder.appendNulls(1);
+    } else {
+      builder.append(value);
+    }
   }
 }

@@ -11,6 +11,6 @@ public class GenericColumnFetcher<T> extends BaseColumnFetcher {
 
   @Override
   public void append(java.sql.ResultSet resultSet) throws java.sql.SQLException {
-    builder.append(getValue(resultSet));
+    appendValue(getValue(resultSet));
   }
 }

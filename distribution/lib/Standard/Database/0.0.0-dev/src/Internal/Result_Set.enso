@@ -34,7 +34,7 @@ result_set_to_table result_set sql_type_to_value_type=(_->Nothing) column_fetche
 
         fetchers = ColumnFetcher.forResultSet result_set java_problem_aggregator storageTypeMapper column_fetcher_factory
 
-        java_table = if last_row_only then ColumnFetcher.readResultSet result_set fetchers row_limit else
-            ColumnFetcher.readLastRow result_set fetchers
+        java_table = if last_row_only then ColumnFetcher.readLastRow result_set fetchers else
+            ColumnFetcher.readResultSet result_set fetchers row_limit
 
         from_java_table java_table
