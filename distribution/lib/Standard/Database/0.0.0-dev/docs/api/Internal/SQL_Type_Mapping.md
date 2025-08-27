@@ -1,6 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Internal.SQL_Type_Mapping
 - type SQL_Type_Mapping
+    - column_fetcher_factory -> Standard.Base.Any.Any
     - infer_return_type infer_from_database_callback:Standard.Base.Any.Any op_name:Standard.Base.Any.Any arguments:Standard.Base.Any.Any expression:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - is_implicit_conversion source_type:Standard.Table.Value_Type.Value_Type target_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
     - is_integer_type value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
