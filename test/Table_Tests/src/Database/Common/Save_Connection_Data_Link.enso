@@ -9,8 +9,8 @@ from Standard.Database import all
 
 from Standard.Test import all
 
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 
 add_specs suite_builder prefix connection_details pending =
     cloud_setup = Cloud_Tests_Setup.prepare

@@ -1,0 +1,56 @@
+private
+
+from Standard.Base import all
+from Standard.Test import all
+
+polyglot java import java.lang.ProcessBuilder as J_ProcessBuilder
+polyglot java import java.lang.String as J_String
+polyglot java import java.lang.System as J_System
+polyglot java import java.io.File as J_File
+polyglot java import org.enso.base_test_helpers.ExecutableLocation as J_ExecutableLocation
+
+
+## Returns True if current process runs in AOT mode (Native Image).
+runs_in_aot =
+    prop = J_System.getProperty "org.graalvm.nativeimage.imagecode"
+    prop == "runtime"
+
+
+## Create temporary directory
+create_tmp_dir -> File =
+    tmp_file = File.create_temporary_file
+    tmp_path = tmp_file.path
+    tmp_file.delete
+    d = File.new tmp_path
+    d.create_directory
+    d
+
+## Absolute path to the Enso binary.
+enso_bin -> Text =
+    J_ExecutableLocation.getExecutableLocation
+
+
+## Runs an Enso subprocess.
+enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
+    proc_bldr = J_ProcessBuilder.new [enso_bin]+args
+    proc_bldr.redirectErrorStream True
+    proc_bldr.directory (J_File.new cwd)
+    proc = proc_bldr.start
+    retcode = proc.waitFor
+    bytes = proc.getInputStream.readAllBytes
+    out = J_String.new bytes
+    if retcode != 0 then
+        Test.fail out
+    out
+
+create_new_project parent_dir:File proj_name:Text main_src:Text -> File =
+    Runtime.assert parent_dir.exists
+    Runtime.assert parent_dir.is_directory
+    proj_dir = parent_dir / proj_name
+    args = ["--new", proj_dir.path, "--new-project-name", proj_name]
+    ret = Process.run enso_bin args
+    ret.exit_code . should_equal Exit_Code.Success
+    main = proj_dir / "src" / "Main.enso"
+    Runtime.assert main.exists
+    main_src.write main
+    proj_dir

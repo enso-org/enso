@@ -333,10 +333,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Running Language Server in JVM mode")
   }
 
-  private val pythonHome = if (PythonHomeFinder.findPythonHome() != null) {
-    PythonHomeFinder.findPythonHome().toString
-  } else {
-    null
+  private val pythonHome = PythonHomeFinder.findPythonHome() match {
+    case path if path != null =>
+      path.getParent.toFile.getCanonicalPath
+    case _ => null
   }
 
   private val builder = ContextFactory
@@ -349,7 +349,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
-    .pythonHome(pythonHome)
+    .pythonResourceDir(pythonHome)
     .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
