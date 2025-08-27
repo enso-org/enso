@@ -26,6 +26,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.persist.Persistance
 
 /** This pass handles the desugaring of long-form function and method
   * definitions into standard bindings using lambdas.
@@ -100,16 +101,22 @@ case object FunctionBinding extends IRPass {
         throw new CompilerError("The arguments list should not be empty.")
       }
 
-      val lambda = functionBinding.arguments
+      val lambdaBeforeCopy = functionBinding.arguments
         .map(_.mapExpressions(desugarExpression))
         .foldRight(desugarExpression(functionBinding.body))((arg, body) =>
-          new Function.Lambda(List(arg), body, null)
+          Function.Lambda
+            .builder()
+            .arguments(List(arg))
+            .bodyReference(Persistance.Reference.of(body, true))
+            .build()
         )
         .asInstanceOf[Function.Lambda]
-        .copy(
-          canBeTCO = functionBinding.canBeTCO,
-          location = functionBinding.location()
-        )
+
+      val lambda = Function.Lambda
+        .builder(lambdaBeforeCopy)
+        .canBeTCO(functionBinding.canBeTCO)
+        .location(functionBinding.identifiedLocation())
+        .build()
 
       Expression.Binding(
         name               = functionBinding.name,
@@ -167,7 +174,11 @@ case object FunctionBinding extends IRPass {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              new Function.Lambda(List(arg), body, null)
+              Function.Lambda
+                .builder()
+                .arguments(List(arg))
+                .bodyReference(Persistance.Reference.of(body, true))
+                .build()
             )
 
           new definition.Method.Explicit(methodBinding, newBody)
@@ -260,7 +271,11 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      new Function.Lambda(List(arg), body, null)
+                      Function.Lambda
+                        .builder()
+                        .arguments(List(arg))
+                        .bodyReference(Persistance.Reference.of(body, true))
+                        .build()
                     )
                   Right(
                     new definition.Method.Conversion(

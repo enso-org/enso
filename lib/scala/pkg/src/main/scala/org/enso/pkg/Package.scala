@@ -105,8 +105,10 @@ final class Package[F](
 
   /** Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
+    *
+    * @param keepDevVersion true if default dev versions should be stored
     */
-  def save(): Unit = {
+  def save(keepDevVersions: Boolean): Unit = {
     try {
       if (!root.exists) root.createDirectories()
       if (!sourceDir.exists) sourceDir.createDirectories()
@@ -114,7 +116,7 @@ final class Package[F](
       case NonFatal(e) => throw CouldNotCreateDirectory(e)
     }
 
-    saveConfig()
+    saveConfig(keepDevVersions)
   }
 
   /** Gets the cache root location within this package for a given Enso version.
@@ -176,15 +178,17 @@ final class Package[F](
     */
   def updateConfig(update: Config => Config): Package[F] = {
     val newPkg = new Package(root, update(config), fileSystem)
-    newPkg.saveConfig()
+    newPkg.saveConfig(false)
     newPkg
   }
 
   /** Saves the config metadata into the package configuration file.
+    *
+    * @param keepDevVersion true if default dev versions should be stored
     */
-  private def saveConfig(): Unit =
+  private def saveConfig(keepDevVersions: Boolean): Unit =
     Using(configFile.newBufferedWriter) { writer =>
-      writer.write(config.toYaml)
+      writer.write(config.toYaml(keepDevVersions))
     }
 
   /** Gets the location of the package's Main file.
@@ -281,17 +285,20 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
 
   /** Creates a new Package in a given location and with config file.
     *
-    * @param root the root location of the package.
-    * @param config the config for the new package.
-    * @return a package object representing the newly created package.
+    * @param root the root location of the package
+    * @param config the config for the new package
+    * @param template defines a template to use for the new package
+    * @param keepDevVersion true if default dev versions should be stored
+    * @return a package object representing the newly created package
     */
   def create(
     root: F,
     config: Config,
-    template: Template
+    template: Template,
+    keepDevVersions: Boolean
   ): Package[F] = {
     val pkg = new Package(root, config, fileSystem)
-    pkg.save()
+    pkg.save(keepDevVersions)
     copyResources(pkg, template)
     pkg
   }
@@ -308,6 +315,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     *                will not specify any, meaning that the current default one
     *                will be used
     * @param jvm should JVM mode be set for the package
+    * @param keepDevVersion true if default dev versions should be stored
     * @return a package object representing the newly created package.
     */
   def create(
@@ -323,7 +331,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     license: String                          = "",
     componentGroups: Option[ComponentGroups] = None,
     services: List[ProvidesWith]             = List(),
-    jvm: Option[Boolean]                     = None
+    jvm: Option[Boolean]                     = None,
+    keepDevVersions: Boolean                 = false
   ): Package[F] = {
     val config = Config(
       name                 = name,
@@ -339,7 +348,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       services             = services,
       jvm                  = jvm
     )
-    create(root, config, template)
+    create(root, config, template, keepDevVersions)
   }
 
   /** Tries to parse package structure from a given root location.
