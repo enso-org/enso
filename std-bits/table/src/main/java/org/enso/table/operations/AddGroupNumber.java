@@ -240,9 +240,8 @@ public class AddGroupNumber {
       var innerAggregator =
           new ColumnAggregatedProblemAggregator(problemAggregator);
 
-      ColumnStorage<Double> columnStorage = NumericColumnAdapter.DoubleColumnAdapter.INSTANCE.asTypedStorage(column.getStorage());
-      double mean = mean(columnStorage);
-      double stddev = standardDeviation(columnStorage, mean, population);
+      double mean = mean(column);
+      double stddev = standardDeviation(column, mean, population);
       var builder = Builder.getForLong(IntegerType.INT_64, numRows, problemAggregator);
 
       for (int row = 0; row < column.getSize(); ++row) {
@@ -256,31 +255,32 @@ public class AddGroupNumber {
           long groupNumber = calculateGroup(d, mean, stddev, groupCount, start, step);
           builder.appendLong(groupNumber);
         } else {
-          innerAggregator.reportColumnAggregatedProblem(
-            new IllegalArgumentError("Standard_Deviation", "Non-numeric value encountered in standard deviation column", row));
-          builder.appendNulls(1);
+          throw new IllegalArgumentException("add_group_number: non-numeric value encountered in standard deviation column" + row);
         }
       }
       return builder.seal();
   }
 
-  private static double mean(ColumnStorage<Double> storage) {
+  private static double mean(Column column) {
     double sum = 0.0;
     long count = 0;
-    for (Double d : storage) {
-      if (d != null) {
-        sum += d;
+    for (int row = 0; row < column.getSize(); ++row) {
+      var x = column.getItem(row);
+      if (x != null && x instanceof Number n) {
+        sum += n.doubleValue();
         count++;
       }
     }
     return count == 0 ? 0.0 : sum / count;
   }
 
-  private static double standardDeviation(ColumnStorage<Double> storage, double mean, boolean population) {
+  private static double standardDeviation(Column column, double mean, boolean population) {
     double sumSquaredDiffs = 0.0;
     long count = 0;
-    for (Double d : storage) {
-      if (d != null) {
+    for (int row = 0; row < column.getSize(); ++row) {
+      var x = column.getItem(row);
+      if (x != null && x instanceof Number n) {
+        double d = n.doubleValue();
         double diff = d - mean;
         sumSquaredDiffs += diff * diff;
         count++;

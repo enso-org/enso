@@ -39,10 +39,10 @@ add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (fr
                     result = AddGroupNumber.numberGroupsEqualSum table.row_count on_column.java_column group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
                     [result.storage, _warn_on_fewer_groups group_count result.actualGroupCount]
             Grouping_Method.Standard_Deviation on group_count population ->
-                _illegal_if (group_count < 1) "group_count must be at least 1" <|
+                _illegal_if (group_count < 1) "group_count must be at least 1" <| Illegal_Argument.handle_java_exception <|
                     on_column = _column_must_exist on <| table.get on
                     result = AddGroupNumber.numberGroupsStandardDeviation table.row_count on_column.java_column group_count population from step java_problem_aggregator
-                    [result.storage, identity]
+                    [result, identity]
 
         new_storage = new_storage_pair.at 0
         warning_adder = new_storage_pair.at 1
