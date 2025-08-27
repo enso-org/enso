@@ -7,6 +7,7 @@ polyglot java import java.lang.ProcessBuilder as J_ProcessBuilder
 polyglot java import java.lang.String as J_String
 polyglot java import java.lang.System as J_System
 polyglot java import java.io.File as J_File
+polyglot java import java.util.concurrent.TimeUnit as J_TimeUnit
 polyglot java import org.enso.base_test_helpers.ExecutableLocation as J_ExecutableLocation
 
 
@@ -31,17 +32,28 @@ enso_bin -> Text =
 
 
 ## Runs an Enso subprocess.
-enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
+   timeout is in seconds.
+enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) (timeout : Integer = 240) -> Text =
     proc_bldr = J_ProcessBuilder.new [enso_bin]+args
     proc_bldr.redirectErrorStream True
     proc_bldr.directory (J_File.new cwd)
     proc = proc_bldr.start
-    retcode = proc.waitFor
-    bytes = proc.getInputStream.readAllBytes
-    out = J_String.new bytes
-    if retcode != 0 then
-        Test.fail out
-    out
+    exited = proc.waitFor timeout J_TimeUnit.SECONDS
+    case exited of
+        True ->
+            # Process exited within the timeout
+            bytes = proc.getInputStream.readAllBytes
+            out = J_String.new bytes
+            retcode = proc.exitValue
+            if retcode != 0 then Test.fail out else out
+        False ->
+            # Timed out
+            dump = thread_dump proc.pid
+            dump_msg = if dump != Nothing then "\n\n=== Thread dump: ===\n" + dump else ""
+            bytes = proc.getInputStream.readAllBytes
+            out = J_String.new bytes
+            proc.destroyForcibly
+            Test.fail ("Process TIMED OUT after " + timeout.to_text + " seconds. Output:\n" + out + dump_msg)
 
 create_new_project parent_dir:File proj_name:Text main_src:Text -> File =
     Runtime.assert parent_dir.exists
@@ -54,3 +66,28 @@ create_new_project parent_dir:File proj_name:Text main_src:Text -> File =
     Runtime.assert main.exists
     main_src.write main
     proj_dir
+
+
+private thread_dump pid:Integer -> Text|Nothing =
+    jstack = jstack_exe
+    if jstack == Nothing then Nothing else
+        res = Process.run jstack.path [pid.to_text]
+        case res.exit_code of
+            Exit_Code.Success -> res.stdout
+            _ ->
+                "jstack failed: " + res.stdout + "\n" + res.stderr
+
+
+private jstack_exe -> File|Nothing =
+    j_home = java_home
+    if j_home == Nothing then Nothing else
+        jstack_exe = (File.new java_home) / "bin" / "jstack"
+        if jstack_exe.exists then jstack_exe else Nothing
+
+
+private java_home -> Text|Nothing =
+    java_home = Environment.get "JAVA_HOME"
+    if java_home != Nothing then java_home else
+        prop_home = J_System.getProperty "java.home"
+        if prop_home != Nothing then prop_home else Nothing
+
