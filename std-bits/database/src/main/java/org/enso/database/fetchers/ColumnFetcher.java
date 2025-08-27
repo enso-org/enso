@@ -10,7 +10,7 @@ import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 
 public interface ColumnFetcher {
-  static ColumnFetcher[] forResultSet(
+  private static ColumnFetcher[] forResultSet(
       ResultSet rs,
       ProblemAggregator problemAggregator,
       BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
@@ -28,8 +28,24 @@ public interface ColumnFetcher {
     return fetchers;
   }
 
-  static Table readResultSet(ResultSet rs, ColumnFetcher[] fetchers, int rowLimit)
+  private static Table getTable(ColumnFetcher[] fetchers) {
+    Column[] columns = new Column[fetchers.length];
+    for (int i = 0; i < fetchers.length; i++) {
+      columns[i] = fetchers[i].seal();
+    }
+    return new Table(columns);
+  }
+
+  static Table readResultSet(
+      ResultSet rs,
+      int rowLimit,
+      ProblemAggregator problemAggregator,
+      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      ColumnFetcherFactory factory)
       throws SQLException {
+    // Create the fetchers
+    var fetchers = forResultSet(rs, problemAggregator, storageTypeMapper, factory);
+
     while (rowLimit != 0 && rs.next()) {
       for (var fetcher : fetchers) {
         fetcher.append(rs);
@@ -41,20 +57,18 @@ public interface ColumnFetcher {
     return getTable(fetchers);
   }
 
-  private static Table getTable(ColumnFetcher[] fetchers) {
-    Column[] columns = new Column[fetchers.length];
-    for (int i = 0; i < fetchers.length; i++) {
-      columns[i] = fetchers[i].seal();
-    }
-    return new Table(columns);
-  }
+  static Table readLastRow(
+      ResultSet rs,
+      ProblemAggregator problemAggregator,
+      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      ColumnFetcherFactory factory)
+      throws SQLException {
+    // Create the fetchers
+    var fetchers = forResultSet(rs, problemAggregator, storageTypeMapper, factory);
 
-  static Table readLastRow(ResultSet rs, ColumnFetcher[] fetchers) throws SQLException {
-    if (rs.getType() != ResultSet.TYPE_FORWARD_ONLY) {
-      if (rs.last()) {
-        for (var fetcher : fetchers) {
-          fetcher.append(rs);
-        }
+    if (rs.getType() != ResultSet.TYPE_FORWARD_ONLY && rs.last()) {
+      for (var fetcher : fetchers) {
+        fetcher.append(rs);
       }
     } else {
       var lastValues = new Object[fetchers.length];
