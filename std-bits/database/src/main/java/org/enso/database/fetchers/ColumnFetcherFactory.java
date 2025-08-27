@@ -21,12 +21,14 @@ public interface ColumnFetcherFactory {
         int index,
         String columnName,
         ProblemAggregator problemAggregator) {
+      // JDBC column indices are 1-based.
+      int colIndex = index + 1;
       return switch (storageType) {
-        case BooleanType bt -> new BooleanColumnFetcher(index + 1, columnName);
-        case IntegerType it -> new LongColumnFetcher(index + 1, columnName, it, problemAggregator);
-        case FloatType ft -> new DoubleColumnFetcher(index + 1, columnName, ft, problemAggregator);
+        case BooleanType bt -> new BooleanColumnFetcher(colIndex, columnName);
+        case IntegerType it -> new LongColumnFetcher(colIndex, columnName, it, problemAggregator);
+        case FloatType ft -> new DoubleColumnFetcher(colIndex, columnName, ft, problemAggregator);
         case BigIntegerType bi -> new GenericColumnFetcher<>(
-            index + 1, columnName, bi, problemAggregator) {
+            colIndex, columnName, bi, problemAggregator) {
           @Override
           public Object getValue(ResultSet resultSet) throws SQLException {
             var bigDecimal = resultSet.getBigDecimal(index());
@@ -34,28 +36,28 @@ public interface ColumnFetcherFactory {
           }
         };
         case BigDecimalType bd -> new GenericColumnFetcher<>(
-            index + 1, columnName, bd, problemAggregator) {
+            colIndex, columnName, bd, problemAggregator) {
           @Override
           public Object getValue(ResultSet resultSet) throws SQLException {
             return JDBCUtils.getBigDecimalHandleSpecialFloats(resultSet, index());
           }
         };
         case TextType tt -> new GenericColumnFetcher<>(
-            index + 1, columnName, tt, problemAggregator) {
+            colIndex, columnName, tt, problemAggregator) {
           @Override
           public Object getValue(ResultSet resultSet) throws SQLException {
             return resultSet.getString(index());
           }
         };
         case TimeOfDayType todt -> new GenericColumnFetcher<>(
-            index + 1, columnName, todt, problemAggregator) {
+            colIndex, columnName, todt, problemAggregator) {
           @Override
           public Object getValue(ResultSet resultSet) throws SQLException {
             return JDBCUtils.getLocalTime(resultSet, index());
           }
         };
         case DateType dt -> new GenericColumnFetcher<>(
-            index + 1, columnName, dt, problemAggregator) {
+            colIndex, columnName, dt, problemAggregator) {
           @Override
           public Object getValue(ResultSet resultSet) throws SQLException {
             return JDBCUtils.getLocalDate(resultSet, index());
@@ -63,20 +65,20 @@ public interface ColumnFetcherFactory {
         };
         case DateTimeType dtt -> dtt.hasTimeZone()
             ? new GenericColumnFetcher<>(
-                index + 1, columnName, DateTimeType.INSTANCE, problemAggregator) {
+                colIndex, columnName, DateTimeType.INSTANCE, problemAggregator) {
               @Override
               public Object getValue(ResultSet resultSet) throws SQLException {
                 return JDBCUtils.getLocalDateTimeAsZoned(resultSet, index());
               }
             }
             : new GenericColumnFetcher<>(
-                index + 1, columnName, DateTimeType.INSTANCE, problemAggregator) {
+                colIndex, columnName, DateTimeType.INSTANCE, problemAggregator) {
               @Override
               public Object getValue(ResultSet resultSet) throws SQLException {
                 return JDBCUtils.getZonedDateTime(resultSet, index());
               }
             };
-        default -> new InferredColumnFetcher(index + 1, columnName, problemAggregator);
+        default -> new InferredColumnFetcher(colIndex, columnName, problemAggregator);
       };
     }
   }

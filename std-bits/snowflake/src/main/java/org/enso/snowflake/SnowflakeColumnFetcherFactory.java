@@ -41,9 +41,11 @@ public class SnowflakeColumnFetcherFactory
       int index,
       String columnName,
       ProblemAggregator problemAggregator) {
+    // JDBC column indices are 1-based.
+    int colIndex = index + 1;
     return switch (storageType) {
       case TimeOfDayType todt -> new GenericColumnFetcher<>(
-          index + 1, columnName, todt, problemAggregator) {
+          colIndex, columnName, todt, problemAggregator) {
         @Override
         public Object getValue(ResultSet resultSet) throws SQLException {
           var timeString = resultSet.getString(index());
@@ -53,7 +55,7 @@ public class SnowflakeColumnFetcherFactory
         }
       };
       case DateTimeType dtt -> new GenericColumnFetcher<>(
-          index + 1, columnName, dtt, problemAggregator) {
+          colIndex, columnName, dtt, problemAggregator) {
         @Override
         public Object getValue(ResultSet resultSet) throws SQLException {
           var timestampString = resultSet.getString(index());
@@ -62,13 +64,13 @@ public class SnowflakeColumnFetcherFactory
           }
 
           var normalised =
-              timestampString.charAt(10) == 'T'
+              timestampString.length() > 10 && timestampString.charAt(10) == 'T'
                   ? timestampString.substring(0, 10) + ' ' + timestampString.substring(11)
                   : timestampString;
           return ZonedDateTime.parse(normalised, DATE_TIME_FORMATTER);
         }
       };
-      case BigIntegerType bit -> new SnowflakeIntegerFetcher(index + 1, columnName);
+      case BigIntegerType bit -> new SnowflakeIntegerFetcher(colIndex, columnName);
       default -> super.forStorageType(storageType, index, columnName, problemAggregator);
     };
   }
