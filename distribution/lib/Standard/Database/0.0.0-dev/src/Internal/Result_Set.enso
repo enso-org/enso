@@ -25,7 +25,9 @@ result_set_to_table result_set sql_type_to_value_type=(_->Nothing) column_fetche
         value_type = sql_type_to_value_type sql_type
         case value_type of
             Nothing -> AnyObjectType.INSTANCE
+            Value_Type.Binary _ _ -> AnyObjectType.INSTANCE
             Value_Type.Unsupported_Data_Type _ _ -> AnyObjectType.INSTANCE
+            Value_Type.Mixed -> AnyObjectType.INSTANCE
             Value_Type.Date_Time True -> DateTimeType.INSTANCE_NO_TZ
             _       -> Storage.closest_storage_type value_type
 
