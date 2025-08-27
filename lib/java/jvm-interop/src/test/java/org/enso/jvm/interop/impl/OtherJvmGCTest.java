@@ -8,7 +8,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -63,14 +62,6 @@ public class OtherJvmGCTest {
     public final Obj toObj() {
       return ref.get();
     }
-
-    public final void assertThatItCannotGC(String msg) {
-      assertGC(msg, false, ref);
-    }
-
-    public final void assertThatItCanGC(String msg) {
-      assertGC(msg, true, ref);
-    }
   }
 
   public static Obj holdObj(int v) {
@@ -80,37 +71,28 @@ public class OtherJvmGCTest {
     return arr[0];
   }
 
+  public static Reference<Class<OtherJvmGCTest>> getClassReference() {
+    return new WeakReference<>(OtherJvmGCTest.class);
+  }
+
   @Test
   public void testGCBehavior() throws Exception {
     var gcClass = loadOtherJvmClass(OtherJvmGCTest.class.getName());
     var objValue = gcClass.invokeMember("holdObj", 34);
     var holdValue = objValue.invokeMember("toHolder");
-    holdValue.invokeMember("assertThatItCannotGC", "Shouldn't GC now");
+    assertGC("Cannot GC as we have a reference to objValue", false, holdValue, "toObj");
 
     var ref = new WeakReference<>(ctx.unwrapValue(objValue));
     objValue = null;
-    assertGC("Value can GC now", true, ref);
-
-    var countDown = 10;
-    for (int i = 1; i <= countDown; i++) {
-      try {
-        holdValue.invokeMember("assertThatItCanGC", "Now the ref should disappear");
-        break;
-      } catch (PolyglotException | AssertionError err) {
-        if (i > countDown / 2) {
-          throw err;
-        }
-      }
-    }
-    assertTrue("Now it the Obj object shall be GCed", holdValue.invokeMember("toObj").isNull());
+    assertGC("Now it the objValue shall be GCed", true, holdValue, "toObj");
+    assertNull("The raw objValue must be gone as well", ref.get());
   }
 
   @Test
   public void testClassCannotBeGCed() throws Exception {
     var gcClass = loadOtherJvmClass(OtherJvmGCTest.class.getName());
-    var ref = new WeakReference<>(ctx.unwrapValue(gcClass));
-    gcClass = null;
-    assertGC("Class cannot GC", false, ref);
+    var refClass = gcClass.invokeMember("getClassReference");
+    assertGC("Class cannot GC", false, refClass, "get");
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
@@ -123,14 +105,16 @@ public class OtherJvmGCTest {
     return value;
   }
 
-  private static void assertGC(String msg, boolean expectGC, Reference<?> ref) {
+  private static void assertGC(String msg, boolean expectGC, Value ref, String methodName) {
+    Object obj = null;
     for (var i = 1; i < Integer.MAX_VALUE / 2; i *= 2) {
-      if (ref.get() == null) {
+      var value = ref.invokeMember(methodName);
+      obj = value.isNull() ? null : ctx.unwrapValue(value);
+      if (obj == null) {
         break;
       }
       System.gc();
     }
-    var obj = ref.get();
     if (expectGC) {
       assertNull(msg + " ref still alive", obj);
     } else {
