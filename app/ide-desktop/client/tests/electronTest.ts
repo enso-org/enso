@@ -5,7 +5,13 @@ import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { _electron, test as base, ElectronApplication, expect, type Page } from 'playwright/test'
+import {
+  _electron,
+  test as base,
+  expect,
+  type ElectronApplication,
+  type Page,
+} from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
