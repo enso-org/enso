@@ -14,6 +14,8 @@ import org.enso.persist.Persistance;
 
 /** Pool of Truffle objects associated with {@link Channel}. */
 public final class OtherJvmPool extends Channel.Config {
+  /** @GuardedBy("this") */
+  private long idCounter;
   private final Map<Long, TruffleObject> objectsById = new HashMap<>();
   private final Map<TruffleObject, Long> objectsToId = new HashMap<>();
   private final Map<Long, OtherJvmObject> incomming = new HashMap<>();
@@ -45,7 +47,7 @@ public final class OtherJvmPool extends Channel.Config {
         : "It should be real truffle object, not just a proxy: " + obj;
     var id = cacheIds ? objectsToId.get(obj) : null;
     if (id == null) {
-      id = (long) objectsById.size() + 1;
+      id = ++idCounter;
       objectsById.put(id, obj);
       if (cacheIds) {
         objectsToId.put(obj, id);
