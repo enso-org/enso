@@ -100,7 +100,9 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     var prev = t.getConfig().enter(t.isMaster(), node);
     try {
       var receiver = t.getConfig().findObject(id);
-      assert receiver instanceof TruffleObject;
+      if (receiver == null) {
+        throw new NullPointerException("No object for " + id);
+      }
       if (message == IS_IDENTICAL) {
         args.set(1, InteropLibrary.getUncached());
       }
