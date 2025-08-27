@@ -1,4 +1,5 @@
-This is a set of tests for the `Base` library for Enso.
+This is a set of tests for the Enso Cloud functionality of the `Standard.Base`
+library of Enso.
 
 ## HTTP tests
 
@@ -16,7 +17,7 @@ sbt 'http-test-helper/run localhost 8080'
 Then execute the tests in another terminal as
 
 ```bash
-sbt 'runEngineDistribution --env ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080 --run test/Base_Tests'
+sbt 'runEngineDistribution --env ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080 --run test/Cloud_Tests'
 ```
 
 You can stop the server via Ctrl-C.
