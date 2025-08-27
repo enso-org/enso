@@ -233,16 +233,33 @@ public class AddGroupNumber {
       long start,
       long step,
       ProblemAggregator problemAggregator) {
-      if (groupingColumns.length == 0) {
-        throw new IllegalArgumentException("At least one grouping column is required.");
+      if (groupCount % 2 == 0) {
+        throw new IllegalArgumentException("group_count must be odd");
       }
+
+      var innerAggregator =
+          new ColumnAggregatedProblemAggregator(problemAggregator);
+
       ColumnStorage<Double> columnStorage = NumericColumnAdapter.DoubleColumnAdapter.INSTANCE.asTypedStorage(column.getStorage());
       double mean = mean(columnStorage);
       double stddev = standardDeviation(columnStorage, mean, population);
       var builder = Builder.getForLong(IntegerType.INT_64, numRows, problemAggregator);
-      for (Double d : columnStorage) {
-        long groupNumber = calculateGroup(d, mean, stddev, groupCount, start, step);
-        builder.appendLong(groupNumber);
+
+      for (int row = 0; row < column.getSize(); ++row) {
+        var x = column.getItem(row);
+        if (x == null) {
+          innerAggregator.reportColumnAggregatedProblem(
+            new IllegalArgumentError("Standard_Deviation", "Null value encountered in standard deviation column", row));
+          builder.appendNulls(1);
+        } else if (x instanceof Number n) {
+          double d = n.doubleValue();
+          long groupNumber = calculateGroup(d, mean, stddev, groupCount, start, step);
+          builder.appendLong(groupNumber);
+        } else {
+          innerAggregator.reportColumnAggregatedProblem(
+            new IllegalArgumentError("Standard_Deviation", "Non-numeric value encountered in standard deviation column", row));
+          builder.appendNulls(1);
+        }
       }
       return builder.seal();
   }
@@ -273,6 +290,20 @@ public class AddGroupNumber {
       return 0.0;
     }
     return Math.sqrt(sumSquaredDiffs / (population ? count : count - 1));
+  }
+
+  private static long calculateGroup(double value, double mean, double stddev, int groupCount, long start, long step) {
+    if (stddev == 0.0) {
+      return start; // Assign to the first group if value stddev is zero
+    }
+    double zScore = (value - mean) / stddev;
+    long groupIndex = (long) Math.floor(zScore + 0.5);
+
+    // Group numbers are centered around 0, and capped on either side by groupCount
+    long maxPosGroup = (groupCount - 1) / 2;
+    groupIndex = Math.max(-maxPosGroup, Math.min(maxPosGroup, groupIndex));
+
+    return Math.addExact(start, Math.multiplyExact(step, groupIndex));
   }
 
   public static ColumnStorage<?> flaggedGroups(
