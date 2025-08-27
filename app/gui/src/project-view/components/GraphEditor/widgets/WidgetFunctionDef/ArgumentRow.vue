@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
   type ArgumentDefaultKind,
@@ -9,7 +8,6 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetFunctionDef/argumentAst'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
-import WidgetTreeRootStyles from '@/components/GraphEditor/WidgetTreeRootStyles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { PortId, syntheticPortId } from '@/providers/portInfo'
@@ -20,23 +18,20 @@ import {
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { provideWidgetTree } from '@/providers/widgetTree'
-import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
-import { computed, toRef, useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
-import { ExternalId } from 'ydoc-shared/yjsModel'
+import WidgetTreeRoot from '../../WidgetTreeRoot.vue'
 
 const props = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
   updateCallback: UpdateHandler
   portIdBase: PortId
-  externalId: string & ExternalId
 }>()
 const { definition, updateCallback, portIdBase } = props
 const emit = defineEmits<{
@@ -44,14 +39,14 @@ const emit = defineEmits<{
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
-type WidgetProps = ComponentProps<typeof NodeWidget>
+type TreeProps = ComponentProps<typeof WidgetTreeRoot>
 const openedProject = useCurrentProject().ref
 
-function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
-  return { input: WidgetInput.FromAst(ast) }
+function defaultWidget(ast: Ast.Token | Ast.Ast): TreeProps {
+  return { input: WidgetInput.FromAst(ast), updateCallback: props.updateCallback }
 }
 
-function patternWidget(pattern: Ast.Expression): WidgetProps {
+function patternWidget(pattern: Ast.Expression): TreeProps {
   return {
     input: {
       portId: pattern.id,
@@ -73,14 +68,14 @@ function patternWidget(pattern: Ast.Expression): WidgetProps {
 
 function mkWidget<T extends Ast.Ast | Ast.Token>(
   child: () => Ast.NodeChild<T> | undefined,
-  toProps: (ast: T) => WidgetProps = defaultWidget,
+  toProps: (ast: T) => TreeProps = defaultWidget,
 ) {
   return computed(() => mapOrUndefined(child()?.node, toProps))
 }
 
 const nodeSuspension = mkWidget(() => definition.suspension)
 const nodePattern = mkWidget(() => definition.pattern, patternWidget)
-const nodeType = computed((): WidgetProps => {
+const nodeType = computed((): TreeProps => {
   const ty = definition.type?.type?.node
   const syntheticId = syntheticPortId(portIdBase, 'type')
   return {
@@ -115,7 +110,7 @@ function resolveType(typeExpr: Ast.Ast) {
 }
 
 const nodeDefaultPortId = computed(() => syntheticPortId(portIdBase, 'defaultExpr'))
-const nodeDefault = computed((): WidgetProps | undefined => {
+const nodeDefault = computed((): TreeProps | undefined => {
   if (defaultKind.value !== 'explicit') return
 
   let expr = Ast.unwrapGroups(definition.defaultValue?.expression?.node)
@@ -188,60 +183,44 @@ const defaultEntries = [
   mkDefaultEntry('required', 'required argument'),
   mkDefaultEntry('explicit', 'default value'),
 ] as const satisfies DropdownEntry[]
-
-/** Provide minimally viable widget tree for children NodeWidgets. */
-const extended = computed(() => false)
-const hasAnimations = computed(() => false)
-const conditionalPorts = computed(() => undefined)
-const primaryApplication = computed(() => emptyPrimaryApplication())
-provideWidgetTree(
-  toRef(props, 'externalId'),
-  toRef(props, 'root'),
-  conditionalPorts,
-  extended,
-  hasAnimations,
-  primaryApplication,
-)
 </script>
 
 <template>
-  <WidgetTreeRootStyles>
-    <div class="ArgumentRow pad-right">
-      <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
-      <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
-      <span class="tokenText">&nbsp;:&nbsp;</span>
-      <NodeWidget v-bind="nodeType" />
-      <span class="tokenText">&nbsp;=&nbsp;</span>
-      <div
-        ref="defaultValueRoot"
-        class="defaultValueRoot clickable"
-        @click.stop="defaultValueDropdownInteraction.start()"
-      >
-        <SvgIcon
-          name="arrow_right_head_only"
-          class="dropdownArrow widgetOutOfLayout"
-          :class="{ hovered: false }"
-        />
-        <SelectionSubmenu
-          ref="submenuRef"
-          :rootElement="root"
-          :floatReference="defaultValueRoot"
-          :show="defaultValueDropdownInteraction.isActive()"
-          :entries="defaultEntries"
-          :topLevel="true"
-          :extendUpwards="false"
-          @clickedEntry="defaultOnClick"
-        />
-        <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
-      </div>
-      <NodeWidget
-        v-if="nodeDefault"
-        v-bind="nodeDefault"
-        class="pad-left"
-        data-testid="missing-default-value"
+  <div class="ArgumentRow">
+    <WidgetTreeRoot v-if="nodeSuspension" v-bind="nodeSuspension" />
+    <WidgetTreeRoot v-if="nodePattern" v-bind="nodePattern" />
+    <span class="tokenText">&nbsp;:&nbsp;</span>
+    <WidgetTreeRoot v-bind="nodeType" />
+    <span class="tokenText">&nbsp;=&nbsp;</span>
+    <div
+      ref="defaultValueRoot"
+      class="defaultValueRoot clickable"
+      @click.stop="defaultValueDropdownInteraction.start()"
+    >
+      <SvgIcon
+        name="arrow_right_head_only"
+        class="dropdownArrow widgetOutOfLayout"
+        :class="{ hovered: false }"
       />
+      <SelectionSubmenu
+        ref="submenuRef"
+        :rootElement="root"
+        :floatReference="defaultValueRoot"
+        :show="defaultValueDropdownInteraction.isActive()"
+        :entries="defaultEntries"
+        :topLevel="true"
+        :extendUpwards="false"
+        @clickedEntry="defaultOnClick"
+      />
+      <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
     </div>
-  </WidgetTreeRootStyles>
+    <WidgetTreeRoot
+      v-if="nodeDefault"
+      v-bind="nodeDefault"
+      class="pad-left"
+      data-testid="missing-default-value"
+    />
+  </div>
 </template>
 
 <style scoped>

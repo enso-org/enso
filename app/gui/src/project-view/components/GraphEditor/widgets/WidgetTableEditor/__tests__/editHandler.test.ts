@@ -52,7 +52,7 @@ function fixture() {
       () => 'port' as PortId,
       () => undefined,
       hooks,
-      proxyRefs(useCurrentEdit()),
+      undefined,
       interactionHandler,
     ),
   )

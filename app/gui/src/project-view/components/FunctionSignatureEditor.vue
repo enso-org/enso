@@ -176,7 +176,6 @@ function makeArgRowId(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>) {
           <template #default="{ item, index }">
             <ArgumentRow
               :root="rootElement"
-              :externalId="functionAst.externalId"
               :portIdBase="syntheticPortId(functionAst.id, `argRow:${index}`)"
               :definition="item"
               :updateCallback="handleWidgetUpdates"
