@@ -51,7 +51,7 @@ final class PackageUtils {
     return forConfig(cfg)[INDEX_READY];
   }
 
-  static boolean warnAotReady(Config cfg) {
+  static boolean checkAotReady(Config cfg) {
     var arr = forConfig(cfg);
     var warned = arr[INDEX_WARNED];
     // next time return true

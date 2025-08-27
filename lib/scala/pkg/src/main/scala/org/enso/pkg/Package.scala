@@ -80,8 +80,8 @@ final class Package[F](
   /** Returns true, if one should print a warning about the library not being
     * AOT ready.
     */
-  final def warnAotReady(warn: Runnable): Unit = {
-    if (!PackageUtils.warnAotReady(getConfig())) {
+  final def checkAotReady(warn: Runnable): Unit = {
+    if (!PackageUtils.checkAotReady(getConfig())) {
       warn.run()
     }
   }

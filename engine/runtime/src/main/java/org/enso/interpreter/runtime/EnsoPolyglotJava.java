@@ -105,7 +105,7 @@ final class EnsoPolyglotJava {
         useGuest = false;
       } else {
         if (pkgOrNull != null) {
-          pkgOrNull.warnAotReady(
+          pkgOrNull.checkAotReady(
               () -> {
                 logger.log(
                     Level.WARNING,
