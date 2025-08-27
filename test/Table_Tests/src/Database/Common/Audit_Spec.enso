@@ -7,9 +7,9 @@ from Standard.Database import all
 
 from Standard.Test import all
 
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
-from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import get_audit_log_events
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+from enso_dev.Cloud_Tests.Network.Enso_Cloud.Audit_Log_Spec import get_audit_log_events
 
 import project.Database.Postgres_Spec.Temporary_Data_Link_File
 from project.Database.Postgres_Spec import get_configured_connection_details
