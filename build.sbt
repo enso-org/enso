@@ -2664,7 +2664,8 @@ lazy val `runtime-test-instruments` =
 lazy val runtime = (project in file("engine/runtime"))
   .enablePlugins(JPMSPlugin)
   .settings(
-    frgaalJavaCompilerSetting,
+    // Needed for `java.lang.Foreign`.
+    customFrgaalJavaCompilerSettings("24"),
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     annotationProcSetting,

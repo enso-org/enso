@@ -6,9 +6,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
+import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -42,6 +43,8 @@ public final class Cache<T, M> {
    */
   private final boolean needsSourceDigestVerification;
 
+  private final Arena memoryArena;
+
   /**
    * Flag indicating if the de-serialization process should compute the hash of the stored cache and
    * compare it with the stored metadata entry.
@@ -60,7 +63,7 @@ public final class Cache<T, M> {
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
   private Cache(
-      Cache.Spi<T, M> spi,
+      Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
@@ -70,6 +73,7 @@ public final class Cache<T, M> {
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
+    this.memoryArena = Arena.ofConfined();
   }
 
   /**
@@ -85,7 +89,7 @@ public final class Cache<T, M> {
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
    */
   static <T, M> Cache<T, M> create(
-      Cache.Spi<T, M> spi,
+      Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
@@ -158,6 +162,7 @@ public final class Cache<T, M> {
                 + "] to ["
                 + toMaskedPath(parentPath).applyMasking()
                 + "].");
+        memoryArena.close();
         return true;
       } else {
         // Clean up after ourselves if it fails.
@@ -260,8 +265,13 @@ public final class Cache<T, M> {
       var threeMbs = 3 * 1024 * 1024;
       if (file.exists() && file.length() > threeMbs) {
         logger.log(Level.FINEST, "Cache file " + file + " mmapped with " + file.length() + " size");
-        var raf = new RandomAccessFile(file, "r");
-        blobBytes = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length());
+        try (var chan = FileChannel.open(file.toPath())) {
+          var memSegment = chan.map(MapMode.READ_ONLY, 0, file.length(), memoryArena);
+          blobBytes = memSegment.asByteBuffer();
+        } catch (IOException e) {
+          logger.log(Level.SEVERE, "Failed to mmap cache file " + file, e);
+          throw e;
+        }
       } else {
         blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
       }
