@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -91,14 +92,14 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
       this.format = format;
     }
 
-    public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
+    public void writeWorkbook(File file, Consumer<Workbook> writeAction) throws IOException {
       boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
 
       try (Workbook workbook =
           preExistingFile
               ? ExcelConnectionPool.openWorkbook(file, format, true)
               : createEmptyWorkbook(format)) {
-        R result = writeAction.apply(workbook);
+        writeAction.accept(workbook);
 
         if (preExistingFile) {
           // Save the file in place.
@@ -128,8 +129,6 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         if (workbook instanceof SXSSFWorkbook sxssf) {
           sxssf.dispose();
         }
-
-        return result;
       }
     }
   }
