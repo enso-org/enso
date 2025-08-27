@@ -77,6 +77,17 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
 
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
+    java_headers = Excel_Reader.make_java_headers section.headers
+    java_limit = section.row_limit.rows_to_write
+    java_range = case section of
+        Excel_Section.Worksheet sheet _ _ _ ->
+            sheet
+        Excel_Section.Cell_Range address _ _ _ ->
+            case address of
+                _ : Excel_Range -> address.java_range
+                _ : Text -> address
+
     modification_strategy = prepare_file_modification_strategy table section on_existing_file match_columns
     is_dry_run = Context.Output.is_enabled.not
 
@@ -96,7 +107,7 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
                doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
             Panic.rethrow <|
                 if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
-            write_helper.writeWorkbook (file_as_java temp_file) modification_strategy
+            write_helper.writeWorkbook (file_as_java temp_file) java_range existing_data_mode section.skip_rows (table:In_Memory_Table).java_table java_limit java_headers
             result_file = if is_dry_run then temp_file else
                 needs_backup = on_existing_file == Existing_File_Behavior.Backup
                 if needs_backup && file.exists then

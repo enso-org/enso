@@ -24,8 +24,16 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.base.cache.ReloadDetector;
+import org.enso.table.data.table.Table;
 import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 import org.enso.table.util.FunctionWithException;
+import org.enso.table.write.ExcelWriter;
+import org.enso.table.write.ExistingDataMode;
+import org.enso.table.error.ColumnCountMismatchException;
+import org.enso.table.error.ColumnNameMismatchException;
+import org.enso.table.error.ExistingDataException;
+import org.enso.table.error.InvalidLocationException;
+import org.enso.table.error.RangeExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,14 +100,27 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
       this.format = format;
     }
 
-    public void writeWorkbook(File file, Consumer<Workbook> writeAction) throws IOException {
+    public void writeWorkbook(File file,
+      String sheetOrRange,
+      ExistingDataMode existingDataMode,
+      int firstRow,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers) throws IOException,
+          InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException {
       boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
 
       try (Workbook workbook =
           preExistingFile
               ? ExcelConnectionPool.openWorkbook(file, format, true)
               : createEmptyWorkbook(format)) {
-        writeAction.accept(workbook);
+        ExcelWriter.writeTableToSheet(workbook, sheetOrRange, existingDataMode, firstRow, table, rowLimit, headers);
 
         if (preExistingFile) {
           // Save the file in place.
