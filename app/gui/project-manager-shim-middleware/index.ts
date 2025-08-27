@@ -20,6 +20,8 @@ import * as projectManagement from './projectManagement'
 // === Constants ===
 // =================
 
+const FS_MAX_RETRIES = 3
+
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
@@ -164,7 +166,8 @@ export default function projectManagerShimMiddleware(
           const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
           const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
-          fs.mkdir(projectRootDirectory, { recursive: true })
+          fs.rm(parentDirectory, { recursive: true, force: true, maxRetries: FS_MAX_RETRIES })
+            .then(() => fs.mkdir(projectRootDirectory, { recursive: true }))
             .then(() => projectManagement.unpackBundle(actualResponse, projectRootDirectory))
             .then(() => {
               response
@@ -175,7 +178,7 @@ export default function projectManagerShimMiddleware(
               console.error(e)
               try {
                 if (fsSync.existsSync(parentDirectory)) {
-                  fsSync.rmdirSync(parentDirectory, { maxRetries: 3, recursive: true })
+                  fsSync.rmdirSync(parentDirectory, { maxRetries: FS_MAX_RETRIES, recursive: true })
                 }
               } catch (e) {
                 console.error(`Failed to cleanup directory ${parentDirectory}.`, e)

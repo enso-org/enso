@@ -249,6 +249,7 @@ export class Server {
             const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
             try {
+              await fs.rm(parentDirectory, { recursive: true, force: true, maxRetries: 3 })
               await fs.mkdir(projectRootDirectory, { recursive: true })
               await projectManagement.unpackBundle(actualResponse, projectRootDirectory)
               response
@@ -259,7 +260,7 @@ export class Server {
               await fs
                 .access(parentDirectory)
                 .then(() => {
-                  fs.rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+                  fs.rm(parentDirectory, { maxRetries: 3, recursive: true, force: true })
                 })
                 .catch((e) => {
                   logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
