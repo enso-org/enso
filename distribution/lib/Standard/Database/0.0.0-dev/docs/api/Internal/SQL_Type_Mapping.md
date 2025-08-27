@@ -11,5 +11,6 @@
     - sql_type_to_text sql_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - sql_type_to_value_type sql_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - value_type_to_sql value_type:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+- default_column_fetcher_factory -> Standard.Base.Any.Any
 - default_should_warn_on_materialize db_type:Standard.Table.Value_Type.Value_Type in_memory_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Any.Any
 - default_sql_type_to_text sql_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
