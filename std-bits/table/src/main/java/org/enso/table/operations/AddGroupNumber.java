@@ -286,10 +286,11 @@ public class AddGroupNumber {
         count++;
       }
     }
-    if (count == 0) {
+    long denominator = population ? count : count - 1;
+    if (denominator == 0) {
       return 0.0;
     }
-    return Math.sqrt(sumSquaredDiffs / (population ? count : count - 1));
+    return Math.sqrt(sumSquaredDiffs / denominator);
   }
 
   private static long calculateGroup(double value, double mean, double stddev, int groupCount, long start, long step) {
