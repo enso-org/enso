@@ -71,7 +71,7 @@ type Postgres_Connection
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self =
-        self.connection.read_single_column "select datname from pg_database where datname not in ('template0', 'template1')" "datname"
+        self.connection.read_text_column "select datname from pg_database where datname not in ('template0', 'template1')" "datname"
 
     ## ---
        icon: metadata

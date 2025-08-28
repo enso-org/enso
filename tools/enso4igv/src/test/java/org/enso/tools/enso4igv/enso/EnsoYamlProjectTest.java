@@ -50,6 +50,12 @@ public class EnsoYamlProjectTest extends NbTestCase {
     assertEquals("One source", 1, srcNodes.length);
     assertEquals("Main", srcNodes[0].getName());
     assertEquals("represents the Main.enso file", main, srcNodes[0].getLookup().lookup(FileObject.class));
+
+    var mainNode = lvp.findPath(node, main);
+    assertEquals("Finds Main.enso node", srcNodes[0], mainNode);
+
+    var yamlNode = lvp.findPath(node, yaml);
+    assertEquals("Finds package.yaml node", prjNodes[1], yamlNode);
   }
 
   public void testRecognizeStandardDistributionWith000dev() throws Exception {

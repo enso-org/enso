@@ -9,15 +9,15 @@ import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
-import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.SQL_Warning_Helper
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Connection.Connection import get_tables_advanced
-from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
+from Standard.Database.Internal.Result_Set import result_set_to_table
 
 polyglot java import java.sql.DatabaseMetaData
+polyglot java import org.enso.database.JDBCUtils
 
 type Generic_JDBC_Connection
     private Value jdbc_connection:JDBC_Connection.JDBC_Connection url:Text quote_char:Text
@@ -116,7 +116,7 @@ type Generic_JDBC_Connection
        ```
     databases self -> Vector Text =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getCatalogs "TABLE_CAT"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getCatalogs "TABLE_CAT"
 
     ## Returns the name of the current database (or catalog).
     database self -> Text | Nothing =
@@ -138,7 +138,7 @@ type Generic_JDBC_Connection
        ```
     schemas self -> Vector =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getSchemas "TABLE_SCHEM"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getSchemas "TABLE_SCHEM"
 
     ## Returns the name of the current schema.
     schema : Text
@@ -149,7 +149,7 @@ type Generic_JDBC_Connection
     table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getTableTypes "TABLE_TYPE"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getTableTypes "TABLE_TYPE"
 
     ## ---
        aliases: [delete, insert, query, update]
@@ -218,7 +218,7 @@ type Generic_JDBC_Connection
 
         self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
             rs = stmt.executeQuery
-            materialised = result_set_to_table rs make_fallback_fetcher row_limit=rows_read
+            materialised = result_set_to_table rs row_limit=rows_read
             table = limit.attach_warning materialised
             SQL_Warning_Helper.process_warnings stmt <|
                 table
@@ -266,7 +266,7 @@ type Generic_JDBC_Connection
         used_table_pattern = if name_like == "" then Nothing else name_like
         used_schema = if schema == "" then Nothing else schema
         used_table_types = if table_types.is_empty then Nothing else table_types
-        get_tables_advanced self.jdbc_connection used_table_pattern catalog used_schema used_table_types make_fallback_fetcher
+        get_tables_advanced self.jdbc_connection used_table_pattern catalog used_schema used_table_types
 
     ## ---
        private: true
@@ -345,10 +345,3 @@ type Generic_JDBC_Details
 private when_output_enabled_ ~action =
     if Context.Output.is_enabled then action else
         Error.throw (Forbidden_Operation.Error ("As writing is disabled, this operation was not executed. Press the Write button ▶ to execute it."))
-
-## ---
-   private: true
-   ---
-private make_fallback_fetcher c =
-    _ = c
-    Column_Fetcher_Module.fallback_fetcher
