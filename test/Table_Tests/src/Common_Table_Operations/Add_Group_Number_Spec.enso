@@ -213,8 +213,8 @@ add_group_number_specs suite_builder setup =
         group_builder.specify "should respect standard deviation 'population' parameter" <|
             t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]]]
 
-            q = -40.up_to 40 step=0.1 . map i->
-                n = i / 2
+            q = -400.up_to 400 . map i->
+                n = i / 10.0
                 v = [3, 4, 5, 4, 3, 5, n, 4, 3]
                 gt = t.add_group_number (..Standard_Deviation "x" 5 population=True) "g" . at 'g' . to_vector
                 gf = t.add_group_number (..Standard_Deviation "x" 5 population=False) "g" . at 'g' . to_vector
