@@ -150,4 +150,14 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       return null;
     }
   }
+
+  @Persistable(id = 81907)
+  public record FindLibraries(TruffleObject callback)
+      implements Function<Channel<OtherJvmPool>, Void> {
+    @Override
+    public Void apply(Channel<OtherJvmPool> t) {
+      t.getConfig().findLibraries(t.isMaster(), callback);
+      return null;
+    }
+  }
 }
