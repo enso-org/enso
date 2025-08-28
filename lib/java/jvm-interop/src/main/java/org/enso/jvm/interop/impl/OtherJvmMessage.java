@@ -99,9 +99,10 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     var node = ReflectionLibrary.getUncached();
     var prev = t.getConfig().enter(t.isMaster(), node);
     try {
-      var receiver = t.getConfig().findObject(id);
+      var receiver = t.getConfig().findObject(id());
       if (receiver == null) {
-        throw new NullPointerException("No object for " + id);
+        throw new NullPointerException(
+            "No object for " + id() + " message: " + message() + " args: " + args());
       }
       if (message == IS_IDENTICAL) {
         args.set(1, InteropLibrary.getUncached());
