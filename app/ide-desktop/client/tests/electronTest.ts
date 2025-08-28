@@ -103,3 +103,25 @@ export async function loginAsTestUser(page: Page) {
 
   await page.getByRole('button', { name: TEXT.accept }).click()
 }
+
+/* Create new project */
+export async function createNewProject(page: Page) {
+  const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
+
+  await expect(newProjectTab).toBeVisible()
+  await newProjectTab.click()
+  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+
+  const tableViz = page.locator('.TableVisualization')
+  await expect(tableViz).toBeVisible({ timeout: 30000 })
+  await expect(tableViz).toContainText('Welcome To Enso!')
+}
+
+/* Prevent staying in a welcome project */
+export async function closeWelcome(page: Page) {
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
+}

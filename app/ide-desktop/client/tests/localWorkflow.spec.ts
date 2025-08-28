@@ -3,7 +3,7 @@
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { type Page, expect } from 'playwright/test'
-import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
+import { CONTROL_KEY, closeWelcome, createNewProject, loginAsTestUser, test } from './electronTest'
 
 const startTimestamp = Date.now()
 let screenshotIndex = 0
@@ -19,30 +19,17 @@ async function writeToFocusedComponentBrowser(page: Page, content: string): Prom
 }
 
 // A test checking duplication of projects
-
 test('Project Duplicate', async ({ page }) => {
   await loginAsTestUser(page)
-
-  // If welcome project is to be opened, wait for it.
-  // If none for 3 seconds, we just move on.
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
-  if (await welcomeProjectTab.isVisible()) {
-    await page.getByRole('tab', { name: 'Data Catalog' }).click()
-  }
-
-  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'New Project', exact: true }).click()
-  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
-
-  await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
-  await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
+  await closeWelcome(page)
+  await createNewProject(page)
 
   // Returning back to the data catalog
-  await expect(page.getByRole('tab', { name: 'Data Catalog' })).toBeVisible()
-  await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
+  await expect(dataCatalogTab).toBeVisible()
+  await dataCatalogTab.click()
 
-  // Finding all of the 'New pojects'
+  // Finding all of the 'New projects'
   const projects = await page
     .getByTestId('drive-view')
     .getByText(/New Project \d+/)
@@ -61,28 +48,21 @@ test('Project Duplicate', async ({ page }) => {
   await newest.click({ button: 'right' })
 
   // Try to duplicate the new project
-  await expect(page.getByRole('button', { name: 'Duplicate' })).toBeVisible()
-  await page.getByRole('button', { name: 'Duplicate' }).click()
+  const duplicateButton = page.getByRole('button', { name: 'Duplicate' })
+  await expect(duplicateButton).toBeVisible()
+  await duplicateButton.click()
 
   // Checking if the duplication was successful
-  expect(page.getByText('New Project 1 (copy)')).toBeVisible()
+  await expect(page.getByText('New Project 1 (copy)')).toBeVisible()
 })
 
 // A test for basic flow of the application: open project and see if nodes appear.
-
 test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
 
   await loginAsTestUser(page)
-
-  // If welcome project is to be opened, wait for it.
-  // If none for 3 seconds, we just move on.
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
-  if (await welcomeProjectTab.isVisible()) {
-    await page.getByRole('tab', { name: 'Data Catalog' }).click()
-  }
+  await closeWelcome(page)
 
   await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible({
     timeout: 30000,
@@ -173,6 +153,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
 
   expect(await fs.readdir(PROJECT_PATH)).not.toContain(OUTPUT_FILE)
   await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
+
   // Press `Write once` button.
   await writeNode.locator('.More').click()
   await writeNode.getByTestId('action:component.recompute').click()
