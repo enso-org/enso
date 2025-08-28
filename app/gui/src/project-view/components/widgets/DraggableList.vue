@@ -37,6 +37,7 @@ const props = defineProps<{
   toDragPosition?: (p: Vec2) => Vec2
   showHandles: boolean
   axis: 'x' | 'y'
+  horizontalScroll?: boolean
 }>()
 const emit = defineEmits<{
   addItem: []
@@ -391,7 +392,7 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
     tag="ul"
     name="list"
     class="DraggableList"
-    :class="{ animate: dropInfo != null || draggedIndex != null, [`axis-${axis}`]: true }"
+    :class="{ animate: dropInfo != null || draggedIndex != null, [`axis-${axis}`]: true, horizontalScroll }"
     :css="dropInfo != null || draggedIndex != null"
     @pointerdown="
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
@@ -512,6 +513,10 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
   .list-leave-to {
     opacity: 0;
   }
+}
+
+.DraggableList.horizontalScroll {
+  overflow-x: auto;
 }
 
 .App.list-widget-dragging {

@@ -166,6 +166,7 @@ function makeArgRowId(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>) {
         <DraggableList
           axis="y"
           showHandles
+          horizontalScroll
           class="ArgumentList widgetPill"
           :items="functionArgs"
           :getKey="makeArgRowId"
