@@ -14,8 +14,11 @@ import org.enso.persist.Persistance;
 
 /** Pool of Truffle objects associated with {@link Channel}. */
 public final class OtherJvmPool extends Channel.Config {
-  /** @GuardedBy("this") */
+  /**
+   * @GuardedBy("this")
+   */
   private long idCounter;
+
   private final Map<Long, TruffleObject> objectsById = new HashMap<>();
   private final Map<TruffleObject, Long> objectsToId = new HashMap<>();
   private final Map<Long, OtherJvmObject> incomming = new HashMap<>();

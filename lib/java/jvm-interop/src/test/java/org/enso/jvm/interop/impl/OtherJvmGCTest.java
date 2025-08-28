@@ -1,11 +1,14 @@
 package org.enso.jvm.interop.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.util.function.Supplier;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
@@ -37,6 +40,56 @@ public class OtherJvmGCTest {
             });
   }
 
+  public static record Counter(short value) {
+    private static short counter;
+    private static Reference<Counter> lastCounted = new WeakReference<>(null);
+
+    public static synchronized Counter readCounter() {
+      var last = lastCounted.get();
+      if (last == null) {
+        last = new Counter(++counter);
+        lastCounted = new WeakReference<>(last);
+      }
+      return last;
+    }
+
+    public static void tryAndFailToGC() {
+      assertGC("This should not GC", false, lastCounted::get, null);
+    }
+
+    public static void tryAndSucceedWithGC() {
+      assertGC("Now we should GC", true, lastCounted::get, null);
+    }
+
+    public static void emptyCall() {}
+  }
+
+  @Test
+  public void getCounterGCAndGet() throws Exception {
+    var counterClass = loadOtherJvmClass(Counter.class.getName());
+    var counter = counterClass.invokeMember("readCounter");
+    var counterValue = counter.invokeMember("value").asShort();
+
+    counterClass.invokeMember("tryAndFailToGC");
+    var counterSame = counterClass.invokeMember("readCounter");
+    assertEquals(counter, counterSame);
+
+    counter = null;
+    counterSame = null;
+    globalFlush =
+        () -> {
+          counterClass.invokeMember("emptyCall");
+        };
+
+    counterClass.invokeMember("tryAndSucceedWithGC");
+
+    var counterDifferent = counterClass.invokeMember("readCounter");
+    assertNotEquals(counter, counterDifferent);
+
+    var counterDifferentValue = counterDifferent.invokeMember("value");
+    assertEquals(counterValue + 1, counterDifferentValue.asShort());
+  }
+
   public static final class Obj {
     final Holder hold;
     final int id;
@@ -62,6 +115,13 @@ public class OtherJvmGCTest {
     public final Obj toObj() {
       return ref.get();
     }
+
+    public final void flush() {}
+
+    @Override
+    public String toString() {
+      return "Holder{" + "ref=" + toObj() + '}';
+    }
   }
 
   public static Obj holdObj(int v) {
@@ -78,21 +138,27 @@ public class OtherJvmGCTest {
   @Test
   public void testGCBehavior() throws Exception {
     var gcClass = loadOtherJvmClass(OtherJvmGCTest.class.getName());
+    var holdValue = assertHolderHolds(gcClass);
+    assertGC("Now it the objValue shall be GCed", true, holdValue, "toObj", "flush");
+  }
+
+  private Value assertHolderHolds(Value gcClass) {
     var objValue = gcClass.invokeMember("holdObj", 34);
     var holdValue = objValue.invokeMember("toHolder");
-    assertGC("Cannot GC as we have a reference to objValue", false, holdValue, "toObj");
+    assertGC("Cannot GC as we have a reference to objValue", false, holdValue, "toObj", "flush");
 
     var ref = new WeakReference<>(ctx.unwrapValue(objValue));
     objValue = null;
-    assertGC("Now it the objValue shall be GCed", true, holdValue, "toObj");
-    assertNull("The raw objValue must be gone as well", ref.get());
+    assertGC("The raw objValue must be gone as well", true, ref::get, null);
+
+    return holdValue;
   }
 
   @Test
   public void testClassCannotBeGCed() throws Exception {
     var gcClass = loadOtherJvmClass(OtherJvmGCTest.class.getName());
     var refClass = gcClass.invokeMember("getClassReference");
-    assertGC("Class cannot GC", false, refClass, "get");
+    assertGC("Class cannot GC", false, refClass, "get", "get");
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
@@ -105,20 +171,43 @@ public class OtherJvmGCTest {
     return value;
   }
 
-  private static void assertGC(String msg, boolean expectGC, Value ref, String methodName) {
-    Object obj = null;
+  private static Runnable globalFlush;
+
+  private static void assertGC(
+      String msg, boolean expectGC, Value ref, String methodName, String flushName) {
+    assertGC(
+        msg,
+        expectGC,
+        () -> {
+          var value = ref.invokeMember(methodName);
+          return value.isNull() ? null : ctx.unwrapValue(value);
+        },
+        () -> {
+          ref.invokeMember(flushName);
+        });
+  }
+
+  private static void assertGC(String msg, boolean expectGC, Supplier<?> ref, Runnable flush) {
     for (var i = 1; i < Integer.MAX_VALUE / 2; i *= 2) {
-      var value = ref.invokeMember(methodName);
-      obj = value.isNull() ? null : ctx.unwrapValue(value);
-      if (obj == null) {
+      if (isNull(ref)) {
         break;
       }
       System.gc();
+      if (flush != null) {
+        flush.run();
+      }
+      if (globalFlush != null) {
+        globalFlush.run();
+      }
     }
     if (expectGC) {
-      assertNull(msg + " ref still alive", obj);
+      assertNull(msg + " ref still alive", ref.get());
     } else {
-      assertNotNull(msg + " ref has been cleaned", obj);
+      assertNotNull(msg + " ref has been cleaned", ref.get());
     }
+  }
+
+  private static boolean isNull(Supplier<?> ref) {
+    return ref.get() == null;
   }
 }

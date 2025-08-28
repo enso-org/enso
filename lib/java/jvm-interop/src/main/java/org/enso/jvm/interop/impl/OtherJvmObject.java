@@ -329,6 +329,11 @@ final class OtherJvmObject implements TruffleObject {
       this.id = referent.id();
     }
 
+    @Override
+    public String toString() {
+      return "Ref{" + "id=" + id + '}';
+    }
+
     private static synchronized void registerGCable(OtherJvmObject other) {
       KEEP.add(new Ref(other));
     }
@@ -339,9 +344,9 @@ final class OtherJvmObject implements TruffleObject {
         if (r == null) {
           break;
         }
+        channel.execute(Void.class, new OtherJvmMessage.GC(r.id));
         synchronized (Ref.class) {
           KEEP.remove(r);
-          channel.execute(Void.class, new OtherJvmMessage.GC(r.id));
         }
       }
     }
