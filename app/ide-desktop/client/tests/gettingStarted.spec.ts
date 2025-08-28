@@ -3,7 +3,6 @@
 import { expect } from 'playwright/test'
 import { loginAsTestUser, test } from './electronTest'
 
-
 // First excercise in Enso Analytics 101
 test('Exercise 1', async ({ page }) => {
   await loginAsTestUser(page)
@@ -45,7 +44,10 @@ test('Exercise 1', async ({ page }) => {
   // Wait for the file to be resolved or error message
   await Promise.race([
     page.getByLabel('Show visualization (Space)').waitFor({ state: 'visible', timeout: 5000 }),
-    page.getByText(/file not found/i).waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
+    page
+      .getByText(/file not found/i)
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => null),
   ])
 
   // Visualize
@@ -53,11 +55,10 @@ test('Exercise 1', async ({ page }) => {
   await expect(showViz).toBeVisible()
   await showViz.click()
 
-  try{
+  try {
     await expect(page.getByText('Sheet1')).toBeVisible()
     await page.getByText('Sheet1').dblclick()
-  }
-  catch{
+  } catch {
     console.log('Skipping test: Sample data file not found.')
     test.skip()
   }
@@ -76,13 +77,13 @@ test('Exercise 1', async ({ page }) => {
   await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
 
   await page.locator('.widgetApplyPadding', { hasText: 'input' }).click()
-  await page.getByRole('button', { name: 'currency_code' }).click()
+  await page.getByRole('button', { name: 'currency_code', exact: true }).click()
 
   await page.locator('.widgetApplyPadding', { hasText: 'operation' }).click()
-  await page.getByRole('button', { name: 'Text' }).click()
+  await page.getByRole('button', { name: 'Text', exact: true }).click()
 
   await page.locator('.widgetApplyPadding', { hasText: 'operation' }).click()
-  await page.getByRole('button', { name: 'length' }).click()
+  await page.getByRole('button', { name: 'length', exact: true }).click()
 
   // Typing in the column name
   const container = page.locator('.WidgetArgumentName.primary:has-text("as")')
@@ -124,8 +125,47 @@ test('Exercise 1', async ({ page }) => {
   await showViz.click()
 
   // Checking the total count equals to 1
-  await expect(page.locator('.ag-status-bar-right div > div', { hasText: 'Total Row Count:' })).toBeVisible()
+  await expect(
+    page.locator('.ag-status-bar-right div > div', { hasText: 'Total Row Count:' }),
+  ).toBeVisible()
   await expect(
     page.locator('.ag-status-bar-right div > div', { hasText: 'Total Row Count:' }),
   ).toHaveText(/ 1$/)
+
+  // Objective number 3
+  // Hover over the set
+  await page.hover('div.content:has-text("set")')
+
+  // Filtering dataframe
+  await page.getByTestId('more-button').getByRole('button', { name: 'More' }).click()
+  await page.keyboard.press('Enter')
+
+  await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
+  await page.locator('.WidgetSelection.clickable').filter({ hasText: 'column' }).click()
+
+  // Click with the assurance of component being in vision
+  const option2 = page.getByRole('button', { name: 'product_name', exact: true })
+  await option2.scrollIntoViewIfNeeded()
+  await expect(option2).toBeVisible()
+  await option2.click()
+
+  // Choosing the right filter
+  const filterContainer2 = page.locator('.WidgetArgumentName.primary', { hasText: 'filter' })
+  const filter2 = filterContainer2.locator('span.widgetApplyPadding', { hasText: /^filter$/ })
+  await expect(filter2).toBeVisible()
+  await filter2.click()
+
+  await page.getByRole('button', { name: '..Equal', exact: true }).click()
+
+  await page.locator('.WidgetSelection.clickable').filter({ hasText: /^to$/ }).click()
+  await page.getByRole('button', { name: '<Text Value>' }).click()
+
+  // Set the actual filtered number value
+  const textBox = page.locator('input.WidgetNumber')
+  await expect(textBox).toBeVisible()
+  await textBox.fill('Savings Account')
+
+  // Visualize it
+  await expect(showViz).toBeVisible()
+  await showViz.click()
 })
