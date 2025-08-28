@@ -341,6 +341,11 @@ jobs:
           ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-linux
+          path: dist/ide/enso-*.AppImage
       - run: xvfb-run corepack pnpm -r --filter enso ide-integration-test
         env:
           DEBUG: "pw:browser log:"
@@ -348,11 +353,6 @@ jobs:
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASS }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload ide
-        uses: actions/upload-artifact@v4
-        with:
-          name: ide-linux
-          path: dist/ide/enso-*.AppImage
       - run: rm $HOME/.enso/credentials
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -432,17 +432,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-windows
+          path: dist/ide/enso-*.exe
       - run: corepack pnpm -r --filter enso ide-integration-test
         env:
           DEBUG: "pw:browser log:"
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASS }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload ide
-        uses: actions/upload-artifact@v4
-        with:
-          name: ide-windows
-          path: dist/ide/enso-*.exe
       - run: rm $HOME/.enso/credentials
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -60,17 +60,7 @@ import {
   isFolderPath,
 } from 'enso-common/src/utilities/file'
 import { createReadStream, createWriteStream, statSync } from 'node:fs'
-import {
-  access,
-  mkdir,
-  mkdtemp,
-  readdir,
-  readFile,
-  rm,
-  rmdir,
-  stat,
-  writeFile,
-} from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
@@ -495,6 +485,7 @@ export class Server {
     const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
     const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
+    await rm(parentDirectory, { recursive: true, force: true, maxRetries: 3 })
     await mkdir(projectRootDirectory, { recursive: true })
     await projectManagement.unpackBundle(response, projectRootDirectory)
     return { projectRootDirectory, parentDirectory }
@@ -523,7 +514,7 @@ export class Server {
       const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
       await access(parentDirectory)
         .then(() => {
-          rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+          rm(parentDirectory, { maxRetries: 3, recursive: true, force: true })
         })
         .catch((e) => {
           logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
