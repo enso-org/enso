@@ -17,7 +17,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class CacheClosingTest {
+public class SaveAndLoadCacheTest {
 
   @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
 
