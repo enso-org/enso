@@ -7,5 +7,3 @@
 - from_value value:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - from_vector vector:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - process_to_json_text value:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- Standard.Table.Table.Table.first_numeric self -> Standard.Base.Any.Any
-- Standard.Table.Table.Table.value_column self -> Standard.Base.Any.Any
