@@ -3,7 +3,6 @@ package org.enso.snowflake;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalTime;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import org.enso.database.fetchers.BaseColumnFetcher;
