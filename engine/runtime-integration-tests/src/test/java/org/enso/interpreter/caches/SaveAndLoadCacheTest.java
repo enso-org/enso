@@ -29,15 +29,7 @@ public class SaveAndLoadCacheTest {
         method =
             42
         """, projDir);
-    try (var ctx =
-        ContextUtils.newBuilder()
-            .withModifiedContext(
-                bldr ->
-                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
-                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
-            .withProjectRoot(projDir)
-            .build()) {
+    try (var ctx = projCtx(projDir)) {
       var libName = LibraryName.apply("local", "Proj");
       compileAndAssertCreatedCaches(ctx, libName);
     }
@@ -53,28 +45,12 @@ public class SaveAndLoadCacheTest {
     var libName = LibraryName.apply("local", "Proj");
 
     // First, compile the project
-    try (var ctx =
-        ContextUtils.newBuilder()
-            .withModifiedContext(
-                bldr ->
-                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
-                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
-            .withProjectRoot(projDir)
-            .build()) {
+    try (var ctx = projCtx(projDir)) {
       compileAndAssertCreatedCaches(ctx, libName);
     }
 
     // Second, run the project. Caches should be loaded.
-    try (var ctx =
-        ContextUtils.newBuilder()
-            .withModifiedContext(
-                bldr ->
-                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
-                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
-            .withProjectRoot(projDir)
-            .build()) {
+    try (var ctx = projCtx(projDir)) {
       var res = runMain(ctx, projDir);
       assertThat("execution is OK", res.asInt(), is(42));
       var cacheEvents = ctx.ensoContext().getCacheStatistics().getCacheEvents();
@@ -93,15 +69,7 @@ public class SaveAndLoadCacheTest {
     var libName = LibraryName.apply("local", "Proj");
 
     int bindingsCacheSize;
-    try (var ctx =
-        ContextUtils.newBuilder()
-            .withModifiedContext(
-                bldr ->
-                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
-                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
-            .withProjectRoot(projDir)
-            .build()) {
+    try (var ctx = projCtx(projDir)) {
       compileAndAssertCreatedCaches(ctx, libName);
       var cacheEvents = ctx.ensoContext().getCacheStatistics().getCacheEvents();
       assertThat(cacheEvents, is(notNullValue()));
@@ -117,15 +85,7 @@ public class SaveAndLoadCacheTest {
     }
 
     // Run after compilation. Bindings cache should be mmapped.
-    try (var ctx =
-        ContextUtils.newBuilder()
-            .withModifiedContext(
-                bldr ->
-                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
-                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
-            .withProjectRoot(projDir)
-            .build()) {
+    try (var ctx = projCtx(projDir)) {
       var res = runMain(ctx, projDir);
       assertThat("execution is OK", res.asInt(), is(42));
       var cacheEvents = ctx.ensoContext().getCacheStatistics().getCacheEvents();
@@ -137,6 +97,17 @@ public class SaveAndLoadCacheTest {
               .orElseThrow(() -> new AssertionError("No mmap load events found"));
       assertThat("Loaded same cached as previously saved", mmapLoad.size(), is(bindingsCacheSize));
     }
+  }
+
+  private static ContextUtils projCtx(Path projDir) {
+    return ContextUtils.newBuilder()
+        .withModifiedContext(
+            bldr ->
+                bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                    .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
+                    .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
+        .withProjectRoot(projDir)
+        .build();
   }
 
   /**
@@ -187,6 +158,7 @@ public class SaveAndLoadCacheTest {
     }
   }
 
+  /** Creates executable big source file. */
   private static String createBigSource(int methodCount) {
     var sb = new StringBuilder();
     sb.append("""
