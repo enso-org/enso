@@ -19,10 +19,10 @@ import enso_dev.Table_Tests.Util
 from Standard.Test import all
 
 import enso_dev.Base_Tests.Data.Data_Spec
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.System.File_Spec as Local_File_Spec
-from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Data_Link_Spec import Symlink_Test_Setup, create_data_link_to_cloud, add_symlink_spec
+from enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Data_Link_Spec import Symlink_Test_Setup, create_data_link_to_cloud, add_symlink_spec
 
 test_credentials -> AWS_Credential ! Illegal_State =
     access_key_id = Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID" ""
