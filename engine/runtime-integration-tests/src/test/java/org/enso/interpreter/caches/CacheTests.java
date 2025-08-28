@@ -7,9 +7,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.logging.Level;
@@ -33,7 +31,7 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
-    var data = new CachedData(List.of((byte) 42));
+    var data = new CachedData(new byte[] {42});
     var ret = cache.save(data, ensoCtx, false);
     assertThat("was saved to local cache root", ret, is(cacheRoots.localCacheRoot()));
     var localCacheFile =
@@ -47,7 +45,7 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
-    var data = new CachedData(List.of((byte) 42));
+    var data = new CachedData(new byte[] {42});
     var ret = cache.save(data, ensoCtx, true);
     assertThat("was saved to global cache root", ret, is(cacheRoots.globalCacheRoot()));
     var globalCacheFile =
@@ -61,7 +59,7 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
-    var data = new CachedData(List.of((byte) 42));
+    var data = new CachedData(new byte[] {42});
     var ret = cache.save(data, ensoCtx, false);
     assertThat("was saved", ret, is(notNullValue()));
     var loaded = cache.load(ensoCtx);
@@ -77,10 +75,10 @@ public final class CacheTests {
     var cacheRoots = createCacheRoots();
     var localCacheFile =
         cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
-    var data = new CachedData(List.of((byte) 42));
+    var data = new CachedData(new byte[] {42});
     // Saving only data and no metadata
     try (var os = localCacheFile.newOutputStream()) {
-      os.write(data.toPrimitive());
+      os.write(data.bytes);
     }
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
@@ -139,7 +137,7 @@ public final class CacheTests {
     var localMetadataFile =
         cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.METADATA_SUFFIX);
     try (var os = localCacheFile.newOutputStream()) {
-      os.write(data.toPrimitive());
+      os.write(data.bytes);
     }
     try (var os = localMetadataFile.newOutputStream()) {
       os.write(42);
@@ -149,26 +147,10 @@ public final class CacheTests {
   private static CachedData randomData(int size) {
     byte[] primBytes = new byte[size];
     random.nextBytes(primBytes);
-    return CachedData.fromPrimitive(primBytes);
+    return new CachedData(primBytes);
   }
 
-  private record CachedData(List<Byte> bytes) {
-    private byte[] toPrimitive() {
-      byte[] primBytes = new byte[bytes.size()];
-      for (int i = 0; i < bytes.size(); i++) {
-        primBytes[i] = bytes.get(i);
-      }
-      return primBytes;
-    }
-
-    private static CachedData fromPrimitive(byte[] primBytes) {
-      var bytes = new ArrayList<Byte>(primBytes.length);
-      for (var b : primBytes) {
-        bytes.add(b);
-      }
-      return new CachedData(bytes);
-    }
-  }
+  private record CachedData(byte[] bytes) {}
 
   private static final class Metadata {}
 
@@ -188,16 +170,17 @@ public final class CacheTests {
     public CachedData deserialize(
         EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger) {
       deserializeBuffer = data;
-      var bytes = new ArrayList<Byte>();
+      byte[] bytes = new byte[data.remaining()];
+      int bytesIdx = 0;
       while (data.hasRemaining()) {
-        bytes.add(data.get());
+        bytes[bytesIdx++] = data.get();
       }
       return new CachedData(bytes);
     }
 
     @Override
     public byte[] serialize(EnsoContext context, CachedData entry) {
-      return entry.toPrimitive();
+      return entry.bytes;
     }
 
     @Override
@@ -212,7 +195,7 @@ public final class CacheTests {
 
     @Override
     public Optional<String> computeDigest(CachedData entry, TruffleLogger logger) {
-      var hash = Arrays.hashCode(entry.toPrimitive());
+      var hash = Arrays.hashCode(entry.bytes);
       return Optional.of(Integer.toString(hash));
     }
 
