@@ -41,10 +41,10 @@ public final class SuggestionsCache
   }
 
   public static Cache<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> create(
-      LibraryName libraryName) {
+      LibraryName libraryName, CacheStatistics cacheStatistics) {
     var impl = new SuggestionsCache(libraryName);
     var logName = "Suggestions(" + libraryName + ")";
-    return Cache.create(impl, Level.FINE, logName, true, false);
+    return Cache.create(impl, Level.FINE, logName, true, false, cacheStatistics);
   }
 
   @Override

@@ -45,6 +45,7 @@ import org.enso.compiler.suggestions.SuggestionBuilder;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.CompilationAbortedException;
 import org.enso.interpreter.caches.Cache;
+import org.enso.interpreter.caches.CacheStatistics;
 import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
@@ -66,6 +67,7 @@ final class TruffleCompilerContext implements CompilerContext {
   private final TruffleLogger loggerSerializationManager;
   private final RuntimeStubsGenerator stubsGenerator;
   private final SerializationPool serializationPool;
+  private final CacheStatistics cacheStatistics;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
@@ -73,6 +75,7 @@ final class TruffleCompilerContext implements CompilerContext {
     this.loggerSerializationManager = context.getLogger(SerializationPool.class);
     this.serializationPool = new SerializationPool(this);
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
+    this.cacheStatistics = context.getCacheStatistics();
   }
 
   @Override
@@ -544,7 +547,7 @@ final class TruffleCompilerContext implements CompilerContext {
         boolean result =
             doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
         try {
-          var cache = ImportExportCache.create(libraryName);
+          var cache = ImportExportCache.create(libraryName, cacheStatistics);
           var file = saveCache(cache, bindingsCache, useGlobalCacheLocations);
           result &= file != null;
         } catch (Throwable e) {
@@ -594,7 +597,7 @@ final class TruffleCompilerContext implements CompilerContext {
           .foreach(suggestions::add);
 
       var cachedSuggestions = new SuggestionsCache.CachedSuggestions(libraryName, suggestions);
-      var cache = SuggestionsCache.create(libraryName);
+      var cache = SuggestionsCache.create(libraryName, cacheStatistics);
       var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
       return file != null;
     } catch (Throwable e) {
@@ -621,7 +624,7 @@ final class TruffleCompilerContext implements CompilerContext {
       return scala.Option.empty();
     } else {
       pool.waitWhileSerializing(toQualifiedName(libraryName));
-      var cache = SuggestionsCache.create(libraryName);
+      var cache = SuggestionsCache.create(libraryName, cacheStatistics);
       var loaded = loadCache(cache);
       if (loaded.isPresent()) {
         logSerializationManager(Level.FINE, "Restored suggestions for library [{0}].", libraryName);
@@ -642,7 +645,7 @@ final class TruffleCompilerContext implements CompilerContext {
       return scala.Option.empty();
     } else {
       pool.waitWhileSerializing(toQualifiedName(libraryName));
-      var cache = ImportExportCache.create(libraryName);
+      var cache = ImportExportCache.create(libraryName, cacheStatistics);
       var loaded = loadCache(cache);
       if (loaded.isPresent()) {
         logSerializationManager(Level.FINE, "Restored bindings for library [{0}].", libraryName);

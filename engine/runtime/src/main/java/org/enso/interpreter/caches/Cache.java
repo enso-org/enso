@@ -14,6 +14,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
@@ -51,6 +52,8 @@ public final class Cache<T, M> {
    */
   private final boolean needsDataDigestVerification;
 
+  private final CacheStatistics cacheStatistics;
+
   /**
    * Constructor for subclasses.
    *
@@ -61,18 +64,21 @@ public final class Cache<T, M> {
    *     stored metadata entry.
    * @param needsDataDigestVerification Flag indicating if the de-serialization process should
    *     compute the hash of the stored cache and compare it with the stored metadata entry.
+   * @param cacheStatistics Optional cache statistics collector
    */
   private Cache(
       Spi<T, M> spi,
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
-      boolean needsDataDigestVerification) {
+      boolean needsDataDigestVerification,
+      CacheStatistics cacheStatistics) {
     this.spi = spi;
     this.logLevel = logLevel;
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
+    this.cacheStatistics = cacheStatistics;
     this.memoryArena = Arena.ofConfined();
   }
 
@@ -95,7 +101,29 @@ public final class Cache<T, M> {
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification) {
     return new Cache<>(
-        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification);
+        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification, null);
+  }
+
+  /**
+   * Creates cache with statistics collection enabled.
+   *
+   * @see #create(Spi, Level, String, boolean, boolean)
+   */
+  static <T, M> Cache<T, M> create(
+      Spi<T, M> spi,
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification,
+      CacheStatistics cacheStats) {
+    assert cacheStats != null;
+    return new Cache<>(
+        spi,
+        logLevel,
+        logName,
+        needsSourceDigestVerification,
+        needsDataDigestVerification,
+        cacheStats);
   }
 
   /**
@@ -162,6 +190,7 @@ public final class Cache<T, M> {
                 + "] to ["
                 + toMaskedPath(parentPath).applyMasking()
                 + "].");
+        recordCacheEvent(() -> new CacheEvent.Save(spi.entryName(), bytesToWrite.length));
         memoryArena.close();
         return true;
       } else {
@@ -272,8 +301,12 @@ public final class Cache<T, M> {
           logger.log(Level.SEVERE, "Failed to mmap cache file " + file, e);
           throw e;
         }
+        recordCacheEvent(
+            () -> new CacheEvent.MmapLoad(spi.entryName(), (int) file.length(), file.getPath()));
       } else {
         blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
+        recordCacheEvent(
+            () -> new CacheEvent.FileLoad(spi.entryName(), (int) file.length(), file.getPath()));
       }
       boolean blobDigestValid =
           !needsDataDigestVerification
@@ -289,6 +322,7 @@ public final class Cache<T, M> {
                 Level.FINEST,
                 "Loaded cache for {0} with {1} bytes in {2} ms",
                 new Object[] {logName, blobBytes.limit(), took});
+            recordCacheEvent(() -> new CacheEvent.Deserialize(spi.entryName()));
             return cachedObject;
           } else {
             invalidateCache(cacheRoot, logger);
@@ -310,6 +344,12 @@ public final class Cache<T, M> {
           "Could not load the cache metadata at ["
               + toMaskedPath(metadataPath).applyMasking()
               + "].");
+    }
+  }
+
+  private void recordCacheEvent(Supplier<CacheEvent> eventSupply) {
+    if (cacheStatistics != null) {
+      cacheStatistics.addEvent(eventSupply.get());
     }
   }
 
@@ -360,6 +400,8 @@ public final class Cache<T, M> {
   private void invalidateCache(TruffleFile cacheRoot, TruffleLogger logger) {
     TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
     TruffleFile dataFile = getCacheDataPath(cacheRoot);
+
+    recordCacheEvent(() -> new CacheEvent.Invalidate(spi.entryName()));
 
     doDeleteAt(cacheRoot, metadataFile, logger);
     doDeleteAt(cacheRoot, dataFile, logger);
