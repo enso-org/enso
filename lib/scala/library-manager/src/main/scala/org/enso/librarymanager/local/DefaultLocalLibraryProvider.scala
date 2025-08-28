@@ -96,10 +96,8 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
                     MaskedPath(potentialPath).applyMasking()
                   )
                 })
-                false
-              } else {
-                pkg.libraryName == libraryName
               }
+              pkg.libraryName == libraryName
             }
           }
         if (isGood) {

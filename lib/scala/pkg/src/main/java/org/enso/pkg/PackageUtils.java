@@ -11,6 +11,12 @@ import org.graalvm.nativeimage.ImageInfo;
  * AOT_READY} map by a native image feature will not be persist in heap.
  */
 final class PackageUtils {
+  static {
+    if (ImageInfo.inImageRuntimeCode()) {
+      throw new IllegalStateException("This class has to be initialized in built time!");
+    }
+  }
+
   private static final int INDEX_READY = 0;
   private static final int INDEX_WARNED = 1;
 
@@ -51,11 +57,13 @@ final class PackageUtils {
     return forConfig(cfg)[INDEX_READY];
   }
 
-  static boolean checkAotReady(Config cfg) {
+  static boolean checkAotReady(Config cfg, Boolean newValue) {
     var arr = forConfig(cfg);
     var warned = arr[INDEX_WARNED];
-    // next time return true
-    arr[INDEX_WARNED] = true;
+    if (newValue != null) {
+      // next time return new value
+      arr[INDEX_WARNED] = newValue;
+    }
     return warned;
   }
 }

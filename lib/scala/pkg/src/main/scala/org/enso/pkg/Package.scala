@@ -81,7 +81,7 @@ final class Package[F](
     * AOT ready.
     */
   final def checkAotReady(warn: Runnable): Unit = {
-    if (!PackageUtils.checkAotReady(getConfig())) {
+    if (!PackageUtils.checkAotReady(getConfig(), true)) {
       warn.run()
     }
   }
