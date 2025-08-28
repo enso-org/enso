@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
 import java.util.Objects;
+
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -105,7 +106,7 @@ public interface Builder {
           case BigDecimalType t -> getForBigDecimal(size);
           case BigIntegerType t -> getForBigInteger(size, problemAggregator);
           case NullType t -> new NullBuilder();
-          case null -> getInferredBuilder(size, problemAggregator);
+          case null, default -> getInferredBuilder(size, problemAggregator);
         };
 
     assert Objects.equals(builder.getType(), type);

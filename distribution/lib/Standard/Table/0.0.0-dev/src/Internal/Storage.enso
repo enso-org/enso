@@ -50,6 +50,9 @@ to_value_type storage_type = case storage_type of
     _ : BigIntegerType -> Value_Type.Decimal scale=0
     _ : NullType -> Value_Type.Null
     _ : AnyObjectType -> Value_Type.Mixed
+    proxy ->
+        if proxy.isNumeric.not then Error.throw "Unknown object "+proxy.to_text else
+            Value_Type.Integer (Bits.from_integer proxy.bits.toInteger)
 
 ## ---
    private: true
