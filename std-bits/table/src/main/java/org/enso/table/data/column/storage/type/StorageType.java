@@ -90,13 +90,6 @@ TimeOfDayType*/ {
   }
 
   /**
-   * A unique identifier for the storage type. This is used for serialization and
-   * deserialization.
-   * @return the unique id of the storage type.
-   */
-  long uniqueId();
-
-  /**
    * @return true if the storage type is numeric.
    */
   default boolean isNumeric() {
