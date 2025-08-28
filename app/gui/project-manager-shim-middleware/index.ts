@@ -82,8 +82,10 @@ const COOP_COEP_CORP_HEADERS = [
 export class ProjectManagerShimMiddleware {
   private projectService?: ProjectService
 
+  /** Create the new middleware. */
   constructor(private readonly setup: () => Promise<void>) {}
 
+  /** Get the project service. */
   async getProjectService(): Promise<ProjectService> {
     if (!this.projectService) {
       await this.setup()
