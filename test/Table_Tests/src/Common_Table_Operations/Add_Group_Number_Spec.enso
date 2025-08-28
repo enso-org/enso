@@ -210,6 +210,12 @@ add_group_number_specs suite_builder setup =
             g3 = t.add_group_number (..Standard_Deviation "y" 5) "g"
             g3.at 'g' . to_vector . should_equal [-1, 1, 1, -1, 1, -1, -1, -1, -1]
 
+        group_builder.specify "should add group number by standard deviation, with from and step" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]]]
+
+            g0 = t.add_group_number (..Standard_Deviation "x" 7 population=True) "g" from=10 step=3
+            g0.at 'g' . to_vector . should_equal [-3, 0, 0, 0, -3, 0, 9, 0, -3]
+
         group_builder.specify "should respect standard deviation 'population' parameter" <|
             t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]]]
 
@@ -229,6 +235,11 @@ add_group_number_specs suite_builder setup =
             t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, '3']], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
 
             t.add_group_number (..Standard_Deviation "x" 3) "g" . should_fail_with Illegal_Argument
+
+        group_builder.specify "add group number cannot take an even number of groups" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, '3']]]
+
+            t.add_group_number (..Standard_Deviation "x" 4) "g" . should_fail_with Illegal_Argument
 
         group_builder.specify "should report a warning if not enough groups are generated" <|
             t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [4, 4, 4, 4, 4]]]
