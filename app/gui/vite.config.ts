@@ -149,10 +149,14 @@ async function projectManagerShim(): Promise<Plugin> {
   return {
     name: 'project-manager-shim',
     configureServer(server) {
-      server.middlewares.use(projectManagerShimMiddleware.handler)
+      server.middlewares.use(
+        projectManagerShimMiddleware.handler.bind(projectManagerShimMiddleware),
+      )
     },
     configurePreviewServer(server) {
-      server.middlewares.use(projectManagerShimMiddleware.handler)
+      server.middlewares.use(
+        projectManagerShimMiddleware.handler.bind(projectManagerShimMiddleware),
+      )
     },
   }
 }
