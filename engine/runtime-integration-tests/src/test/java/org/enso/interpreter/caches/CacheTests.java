@@ -2,11 +2,16 @@ package org.enso.interpreter.caches;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.logging.Level;
 import org.enso.interpreter.caches.Cache.Roots;
 import org.enso.interpreter.caches.Cache.Spi;
@@ -17,8 +22,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public final class CacheTests {
+
   @Rule public final TemporaryFolder tempFolder = new TemporaryFolder();
   @Rule public final ContextUtils ctx = ContextUtils.createDefault();
+  private static final Random random = new Random(42);
 
   @Test
   public void cacheCanBeSaved_ToLocalCacheRoot() throws IOException {
@@ -26,7 +33,8 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
-    var ret = cache.save(new CachedData((byte) 42), ensoCtx, false);
+    var data = new CachedData(List.of((byte) 42));
+    var ret = cache.save(data, ensoCtx, false);
     assertThat("was saved to local cache root", ret, is(cacheRoots.localCacheRoot()));
     var localCacheFile =
         cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
@@ -39,11 +47,77 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
-    var ret = cache.save(new CachedData((byte) 42), ensoCtx, true);
+    var data = new CachedData(List.of((byte) 42));
+    var ret = cache.save(data, ensoCtx, true);
     assertThat("was saved to global cache root", ret, is(cacheRoots.globalCacheRoot()));
     var globalCacheFile =
         cacheRoots.globalCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
     assertThat("global cache file was created", globalCacheFile.exists(), is(true));
+  }
+
+  @Test
+  public void cacheCannotBeLoadedViaSameInstance_AfterSave() throws IOException {
+    var cacheRoots = createCacheRoots();
+    var ensoCtx = ctx.ensoContext();
+    var spi = new CacheSpi(cacheRoots);
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
+    var data = new CachedData(List.of((byte) 42));
+    var ret = cache.save(data, ensoCtx, false);
+    assertThat("was saved", ret, is(notNullValue()));
+    var loaded = cache.load(ensoCtx);
+    assertThat(
+        "cache should be closed - unable to load after save via the same instance",
+        loaded.isEmpty(),
+        is(true));
+  }
+
+  @Test
+  public void cacheCannotBeLoaded_WithoutMetadataOnDisk() throws IOException {
+    var ensoCtx = ctx.ensoContext();
+    var cacheRoots = createCacheRoots();
+    var localCacheFile =
+        cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
+    var data = new CachedData(List.of((byte) 42));
+    // Saving only data and no metadata
+    try (var os = localCacheFile.newOutputStream()) {
+      os.write(data.toPrimitive());
+    }
+    var spi = new CacheSpi(cacheRoots);
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
+    var loaded = cache.load(ensoCtx);
+    assertThat("Cannot be loaded without metadata on disk", loaded.isPresent(), is(false));
+  }
+
+  @Test
+  public void byteBufferIsClosed_AfterCacheIsSaved() throws IOException {
+    var ensoCtx = ctx.ensoContext();
+    var cacheRoots = createCacheRoots();
+    var bigData = randomData(10 * 1024 * 1024);
+    saveToLocalRoot(bigData, cacheRoots);
+    var spi = new CacheSpi(cacheRoots);
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
+    var loaded = cache.load(ensoCtx);
+    var deserializeBuffer = spi.deserializeBuffer;
+    assertThat("was loaded", loaded.isPresent(), is(true));
+
+    cache.invalidate(ensoCtx);
+    assertThat(
+        "byte buffer got in deserialize is invalid", deserializeBuffer.hasRemaining(), is(false));
+  }
+
+  @Test
+  public void byteBufferIsValid_AfterCacheLoad() throws IOException {
+    var ensoCtx = ctx.ensoContext();
+    var cacheRoots = createCacheRoots();
+    var bigData = randomData(10 * 1024 * 1024);
+    saveToLocalRoot(bigData, cacheRoots);
+    var spi = new CacheSpi(cacheRoots);
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
+    var loaded = cache.load(ensoCtx);
+    assertThat("was loaded", loaded.isPresent(), is(true));
+
+    var deserializeBuffer = spi.deserializeBuffer;
+    assertThat("byte buffer is still readable", deserializeBuffer.hasRemaining(), is(true));
   }
 
   private Roots createCacheRoots() throws IOException {
@@ -58,7 +132,43 @@ public final class CacheTests {
         ensoCtx.getTruffleFile(globalCacheDir.toFile()));
   }
 
-  private record CachedData(byte data) {}
+  /** Saves data as well as empty metadata on the disk. */
+  private static void saveToLocalRoot(CachedData data, Roots cacheRoots) throws IOException {
+    var localCacheFile =
+        cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
+    var localMetadataFile =
+        cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.METADATA_SUFFIX);
+    try (var os = localCacheFile.newOutputStream()) {
+      os.write(data.toPrimitive());
+    }
+    try (var os = localMetadataFile.newOutputStream()) {
+      os.write(42);
+    }
+  }
+
+  private static CachedData randomData(int size) {
+    byte[] primBytes = new byte[size];
+    random.nextBytes(primBytes);
+    return CachedData.fromPrimitive(primBytes);
+  }
+
+  private record CachedData(List<Byte> bytes) {
+    private byte[] toPrimitive() {
+      byte[] primBytes = new byte[bytes.size()];
+      for (int i = 0; i < bytes.size(); i++) {
+        primBytes[i] = bytes.get(i);
+      }
+      return primBytes;
+    }
+
+    private static CachedData fromPrimitive(byte[] primBytes) {
+      var bytes = new ArrayList<Byte>(primBytes.length);
+      for (var b : primBytes) {
+        bytes.add(b);
+      }
+      return new CachedData(bytes);
+    }
+  }
 
   private static final class Metadata {}
 
@@ -68,6 +178,7 @@ public final class CacheTests {
     public static final String ENTRY_NAME = "test-entry";
 
     private final Roots cacheRoots;
+    private ByteBuffer deserializeBuffer;
 
     private CacheSpi(Roots cacheRoots) {
       this.cacheRoots = cacheRoots;
@@ -76,12 +187,17 @@ public final class CacheTests {
     @Override
     public CachedData deserialize(
         EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger) {
-      return new CachedData(data.get(0));
+      deserializeBuffer = data;
+      var bytes = new ArrayList<Byte>();
+      while (data.hasRemaining()) {
+        bytes.add(data.get());
+      }
+      return new CachedData(bytes);
     }
 
     @Override
     public byte[] serialize(EnsoContext context, CachedData entry) {
-      return new byte[] {entry.data};
+      return entry.toPrimitive();
     }
 
     @Override
@@ -90,13 +206,14 @@ public final class CacheTests {
     }
 
     @Override
-    public Metadata metadataFromBytes(byte[] bytes, TruffleLogger logger) throws IOException {
-      return null;
+    public Metadata metadataFromBytes(byte[] bytes, TruffleLogger logger) {
+      return new Metadata();
     }
 
     @Override
     public Optional<String> computeDigest(CachedData entry, TruffleLogger logger) {
-      return Optional.of(Byte.toString(entry.data));
+      var hash = Arrays.hashCode(entry.toPrimitive());
+      return Optional.of(Integer.toString(hash));
     }
 
     @Override
