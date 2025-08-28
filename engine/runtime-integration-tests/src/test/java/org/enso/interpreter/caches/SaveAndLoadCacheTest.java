@@ -2,6 +2,7 @@ package org.enso.interpreter.caches;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -84,6 +85,60 @@ public class SaveAndLoadCacheTest {
     }
   }
 
+  @Test
+  public void bindingCachesOfBigProject_AreMmapped() throws IOException {
+    var projDir = tmpFolder.newFolder("Proj").toPath();
+    var mainSrc = createBigSource(6_000);
+    ProjectUtils.createProject("Proj", mainSrc, projDir);
+    var libName = LibraryName.apply("local", "Proj");
+
+    int bindingsCacheSize;
+    try (var ctx =
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
+                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
+            .withProjectRoot(projDir)
+            .build()) {
+      compileAndAssertCreatedCaches(ctx, libName);
+      var cacheEvents = ctx.ensoContext().getCacheStatistics().getCacheEvents();
+      assertThat(cacheEvents, is(notNullValue()));
+      var bindingCacheSave =
+          cacheEvents.stream()
+              .filter(e -> isImportExportCacheEvent(e, libName))
+              .map(e -> (CacheEvent.Save) e)
+              .findFirst()
+              .orElseThrow(() -> new AssertionError("No binding cache events found"));
+      bindingsCacheSize = bindingCacheSave.size();
+      var savedMb = bindingCacheSave.size() / 1024 / 1024;
+      assertThat("binding cache is at least 10MB", savedMb > 10, is(true));
+    }
+
+    // Run after compilation. Bindings cache should be mmapped.
+    try (var ctx =
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
+                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
+            .withProjectRoot(projDir)
+            .build()) {
+      var res = runMain(ctx, projDir);
+      assertThat("execution is OK", res.asInt(), is(42));
+      var cacheEvents = ctx.ensoContext().getCacheStatistics().getCacheEvents();
+      var mmapLoad =
+          cacheEvents.stream()
+              .filter(e -> e instanceof CacheEvent.MmapLoad)
+              .map(e -> (CacheEvent.MmapLoad) e)
+              .findFirst()
+              .orElseThrow(() -> new AssertionError("No mmap load events found"));
+      assertThat("Loaded same cached as previously saved", mmapLoad.size(), is(bindingsCacheSize));
+    }
+  }
+
   /**
    * Compiles the project and asserts that suggestions and import/export (binding) caches were
    * created (saved).
@@ -130,5 +185,22 @@ public class SaveAndLoadCacheTest {
     if (!hasItem) {
       throw new AssertionError("Expected to find event: " + descr + " in " + events);
     }
+  }
+
+  private static String createBigSource(int methodCount) {
+    var sb = new StringBuilder();
+    sb.append("""
+        method_0 =
+            42
+        """);
+    for (var i = 1; i < methodCount; i++) {
+      sb.append("\n");
+      sb.append("method_").append(i).append(" = \n");
+      sb.append("    method_0");
+      sb.append("\n");
+    }
+    sb.append("main = \n");
+    sb.append("    ").append("method_").append(methodCount - 1).append("\n");
+    return sb.toString();
   }
 }
