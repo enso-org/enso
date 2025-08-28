@@ -19,7 +19,6 @@ package org.apache.poi.util;
  * ====================================================================
  */
 
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,7 +39,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.poi.common.usermodel.GenericRecord;
 import org.apache.poi.util.GenericRecordUtil.AnnotatedFlag;
 
@@ -102,7 +100,10 @@ public class GenericRecordJsonWriter implements Closeable {
   protected int childIndex = 0;
 
   public GenericRecordJsonWriter(File fileName) throws IOException {
-    OutputStream os = ("null".equals(fileName.getName())) ? OutputStream.nullOutputStream() : new FileOutputStream(fileName);
+    OutputStream os =
+        ("null".equals(fileName.getName()))
+            ? OutputStream.nullOutputStream()
+            : new FileOutputStream(fileName);
     aw = new AppendableWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8));
     fw = new PrintWriter(aw);
   }
