@@ -93,11 +93,7 @@ export class ProjectManagerShimMiddleware {
   }
 
   /** A middleware handler.  */
-  handler(
-    request: http.IncomingMessage,
-    response: http.ServerResponse,
-    next: () => void,
-  ) {
+  handler(request: http.IncomingMessage, response: http.ServerResponse, next: () => void) {
     const requestUrl = request.url ?? ''
     if (!requestUrl.startsWith('/api/')) return next()
     const url = new URL(requestUrl, 'https://apishim.local')
@@ -158,7 +154,8 @@ export class ProjectManagerShimMiddleware {
             const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
             const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
-            fs.mkdir(projectRootDirectory, { recursive: true })
+            fs.rm(parentDirectory, { recursive: true, force: true, maxRetries: FS_MAX_RETRIES })
+              .then(() => fs.mkdir(projectRootDirectory, { recursive: true }))
               .then(() => projectManagement.unpackBundle(actualResponse, projectRootDirectory))
               .then(() => {
                 response
