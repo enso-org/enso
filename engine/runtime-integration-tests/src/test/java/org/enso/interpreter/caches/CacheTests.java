@@ -33,6 +33,19 @@ public final class CacheTests {
     assertThat("local cache file was created", localCacheFile.exists(), is(true));
   }
 
+  @Test
+  public void globalCacheIsPreferred() throws IOException {
+    var cacheRoots = createCacheRoots();
+    var ensoCtx = ctx.ensoContext();
+    var spi = new CacheSpi(cacheRoots);
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
+    var ret = cache.save(new CachedData((byte) 42), ensoCtx, true);
+    assertThat("was saved to global cache root", ret, is(cacheRoots.globalCacheRoot()));
+    var globalCacheFile =
+        cacheRoots.globalCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
+    assertThat("global cache file was created", globalCacheFile.exists(), is(true));
+  }
+
   private Roots createCacheRoots() throws IOException {
     var cacheRootDirPath = tempFolder.newFolder("cacheRoot").toPath();
     var localCacheDir = cacheRootDirPath.resolve("local");
