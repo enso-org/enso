@@ -2,12 +2,9 @@ package org.enso.interpreter.caches;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.enso.common.RuntimeOptions;
-import org.enso.compiler.context.CompilerContext;
+import org.enso.editions.LibraryName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
@@ -20,7 +17,7 @@ public class CacheClosingTest {
   @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
 
   @Test
-  public void cacheCannotBeSavedTwice() throws IOException {
+  public void compilationSavesSuggestionsAndImportExportCache() throws Exception {
     var projDir = tmpFolder.newFolder("Proj").toPath();
     ProjectUtils.createProject("Proj", """
         main =
@@ -28,37 +25,40 @@ public class CacheClosingTest {
         """, projDir);
     try (var ctx =
         ContextUtils.newBuilder()
-            .withModifiedContext(bldr -> bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                        .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
+                        .option(RuntimeOptions.ENABLE_CACHE_STATS, "true"))
             .withProjectRoot(projDir)
             .build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var compilerCtx = ctx.ensoContext().getCompiler().context();
-      var modOpt = ctx.ensoContext().getPackageRepository().getLoadedModule("local.Proj.Main");
-      assertThat(modOpt.isDefined(), is(true));
-      var mod = modOpt.get();
-      boolean serialized = false;
-      try {
-        serialized = serialize(compilerCtx, ctx, mod);
-      } catch (ExecutionException | InterruptedException e) {
-        fail("First serialization should be OK");
-      }
-      assertThat("First serialization should be OK", serialized, is(true));
-
-      try {
-        serialize(compilerCtx, ctx, mod);
-        fail("Second serialization should fail");
-      } catch (ExecutionException | InterruptedException e) {
-        // OK
-      }
+      var cacheEvents = ctx.ensoContext().getCacheStatistics().getCacheEvents();
+      var libName = LibraryName.apply("local", "Proj");
+      var hasSaveSuggestionCacheEvent =
+          cacheEvents.stream()
+              .anyMatch(e -> isSuggestionCacheEvent(e, libName) && e instanceof CacheEvent.Save);
+      var hasSaveImportExportCacheEvent =
+          cacheEvents.stream()
+              .anyMatch(e -> isImportExportCacheEvent(e, libName) && e instanceof CacheEvent.Save);
+      assertThat(
+          "There should be a save event for SuggestionsCache",
+          hasSaveSuggestionCacheEvent,
+          is(true));
+      assertThat(
+          "There should be a save event for ImportExportCache",
+          hasSaveImportExportCacheEvent,
+          is(true));
     }
   }
 
-  private static boolean serialize(
-      CompilerContext compilerCtx, ContextUtils ctx, CompilerContext.Module mod)
-      throws ExecutionException, InterruptedException {
-    var serializeFut =
-        compilerCtx.serializeModule(ctx.ensoContext().getCompiler(), mod, false, false);
-    return serializeFut.get();
+  private static boolean isSuggestionCacheEvent(CacheEvent event, LibraryName libName) {
+    return event.cacheName().contains("Suggestions")
+        && event.cacheName().contains(libName.toString());
+  }
+
+  private static boolean isImportExportCacheEvent(CacheEvent event, LibraryName libName) {
+    return libName.toString().equals(event.cacheName());
   }
 }
