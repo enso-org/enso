@@ -15,6 +15,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.persist.Persistance.Reference
 
 /** This pass converts operator sections to applications of binary operators.
   *
@@ -137,18 +138,19 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .passData(passData)
             .diagnostics(sectionLeft.diagnostics)
             .build()
-
-          val rightLam = new Function.Lambda(
-            List(rightDefArg),
-            opCall,
-            identifiedLocation = null
-          )
-
-          new Function.Lambda(
-            List(leftDefArg),
-            rightLam,
-            loc
-          )
+          val rightLam = Function.Lambda
+            .builder()
+            .arguments(List(rightDefArg))
+            .bodyReference(Reference.of(opCall))
+            .canBeTCO(true)
+            .build()
+          Function.Lambda
+            .builder()
+            .arguments(List(leftDefArg))
+            .bodyReference(Reference.of(rightLam))
+            .location(loc)
+            .canBeTCO(true)
+            .build()
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
@@ -199,17 +201,20 @@ case object SectionsToBinOpMegaPass extends IRPass {
           .diagnostics(sectionSides.diagnostics)
           .build()
 
-        val rightLambda = new Function.Lambda(
-          List(rightDefArg),
-          opCall,
-          identifiedLocation = null
-        )
+        val rightLambda = Function.Lambda
+          .builder()
+          .arguments(List(rightDefArg))
+          .bodyReference(Reference.of(opCall))
+          .canBeTCO(true)
+          .build()
 
-        new Function.Lambda(
-          List(leftDefArg),
-          rightLambda,
-          loc
-        )
+        Function.Lambda
+          .builder()
+          .arguments(List(leftDefArg))
+          .bodyReference(Reference.of(rightLambda))
+          .location(loc)
+          .canBeTCO(true)
+          .build()
 
       /* Note [Blanks in Sections]
        * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,17 +273,20 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .diagnostics(sectionRight.diagnostics)
             .build()
 
-          val leftLam = new Function.Lambda(
-            List(leftDefArg),
-            opCall,
-            identifiedLocation = null
-          )
+          val leftLam = Function.Lambda
+            .builder()
+            .arguments(List(leftDefArg))
+            .bodyReference(Reference.of(opCall))
+            .canBeTCO(true)
+            .build()
 
-          new Function.Lambda(
-            List(rightDefArg),
-            leftLam,
-            loc
-          )
+          Function.Lambda
+            .builder()
+            .arguments(List(rightDefArg))
+            .bodyReference(Reference.of(leftLam))
+            .location(loc)
+            .canBeTCO(true)
+            .build()
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
 
@@ -291,11 +299,13 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .diagnostics(sectionRight.diagnostics)
             .build()
 
-          new Function.Lambda(
-            List(leftDefArg),
-            opCall,
-            loc
-          )
+          Function.Lambda
+            .builder()
+            .arguments(List(leftDefArg))
+            .bodyReference(Reference.of(opCall))
+            .location(loc)
+            .canBeTCO(true)
+            .build()
         }
     }
   }

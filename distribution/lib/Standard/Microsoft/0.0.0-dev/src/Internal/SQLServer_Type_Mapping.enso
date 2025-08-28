@@ -8,8 +8,6 @@ import Standard.Table.Internal.Java_Exports
 from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
-import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -115,6 +113,14 @@ type SQLServer_Type_Mapping
 
     ## ---
        private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for this backend.
+    column_fetcher_factory : Any
+    column_fetcher_factory = SQL_Type_Mapping.default_column_fetcher_factory
+
+    ## ---
+       private: true
        ---
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type = SQL_Type_Mapping.default_sql_type_to_text sql_type
@@ -143,16 +149,6 @@ type SQLServer_Type_Mapping
     prepare_type_overrides column_type_suggestions = case column_type_suggestions of
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .to_type_override
-
-    ## ---
-       private: true
-       ---
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher : SQL_Type -> Column_Fetcher
-    make_column_fetcher self sql_type =
-        value_type = self.sql_type_to_value_type sql_type
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## ---
        private: true

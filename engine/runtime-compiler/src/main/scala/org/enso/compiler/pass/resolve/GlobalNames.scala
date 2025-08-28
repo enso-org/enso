@@ -183,7 +183,7 @@ case object GlobalNames extends IRPass {
                 new MetadataPair(this, Resolution(ResolvedModule(modRef)))
               )
             case _ =>
-              if (!lit.isMethod && !isLocalVar(lit)) {
+              if (hasAliasMeta(lit) && !lit.isMethod && !isLocalVar(lit)) {
                 val resolution = bindings.resolveName(lit.name)
                 resolution match {
                   case Left(error) =>
@@ -492,18 +492,21 @@ case object GlobalNames extends IRPass {
   private def asGlobalVar(ir: IR): Option[Name.Literal] =
     ir match {
       case name: Name.Literal =>
-        if (isLocalVar(name)) None else Some(name)
+        if (!hasAliasMeta(name) || isLocalVar(name)) None else Some(name)
       case _ => None
     }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
-    val aliasInfo = name
-      .unsafeGetMetadata(
-        AliasAnalysis,
-        "no alias analysis info on a name"
-      )
-      .unsafeAs[AliasInfo.Occurrence]
-    val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
-    defLink.isDefined
+    name.getMetadata(AliasAnalysis) match {
+      case None => false
+      case Some(aliasMeta) =>
+        val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]
+        val defLink   = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        defLink.isDefined
+    }
+  }
+
+  private def hasAliasMeta(ir: IR): Boolean = {
+    ir.getMetadata(AliasAnalysis).isDefined
   }
 }

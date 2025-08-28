@@ -33,6 +33,7 @@ import org.enso.compiler.pass.resolve.{
   IgnoredBindings,
   OverloadsResolution
 }
+import org.enso.persist.Persistance.Reference
 
 /** Original implementation of [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]].
   * Now serves as the test verification of the new [[org.enso.compiler.pass.desugar.LambdaShorthandToLambdaMini]] mini pass version.
@@ -148,23 +149,26 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
       case blank: Name.Blank =>
         val newName = supply.newName()
 
-        new Function.Lambda(
-          List(
-            DefinitionArgument.Specified
-              .builder()
-              .name(
-                Name.Literal(
-                  newName.name,
-                  isMethod = false,
-                  null
+        Function.Lambda
+          .builder()
+          .arguments(
+            List(
+              DefinitionArgument.Specified
+                .builder()
+                .name(
+                  Name.Literal(
+                    newName.name,
+                    isMethod = false,
+                    null
+                  )
                 )
-              )
-              .suspended(false)
-              .build()
-          ),
-          newName,
-          blank.location.orNull
-        )
+                .suspended(false)
+                .build()
+            )
+          )
+          .bodyReference(Reference.of(newName))
+          .location(blank.location().orNull)
+          .build()
       case _ => name
     }
   }
@@ -227,32 +231,39 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            new Function.Lambda(List(arg), body, null)
+            Function.Lambda
+              .builder()
+              .arguments(List(arg))
+              .bodyReference(Reference.of(body))
+              .build()
           )
 
         // If the function is shorthand, do the same
         val resultExpr = if (functionIsShorthand) {
-          new Function.Lambda(
-            List(
-              DefinitionArgument.Specified
-                .builder()
-                .name(
-                  Name.Literal(
-                    updatedName.get,
-                    isMethod = false,
-                    p.function.location.orNull
+          Function.Lambda
+            .builder()
+            .arguments(
+              List(
+                DefinitionArgument.Specified
+                  .builder()
+                  .name(
+                    Name.Literal(
+                      updatedName.get,
+                      isMethod = false,
+                      p.function.location.orNull
+                    )
                   )
-                )
-                .build()
-            ),
-            appResult,
-            null
-          )
+                  .build()
+              )
+            )
+            .bodyReference(Reference.of(appResult))
+            .build()
         } else appResult
 
         resultExpr match {
-          case lam: Function.Lambda => lam.copy(location = p.location)
-          case result               => result
+          case lam: Function.Lambda =>
+            Function.Lambda.builder(lam).location(p.location().orNull).build()
+          case result => result
         }
       case f: Application.Force =>
         f.copyWithTarget(desugarExpression(f.target, freshNameSupply))
@@ -280,7 +291,12 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
             .name(bindingName)
             .suspended(false)
             .build()
-          new Function.Lambda(List(defArg), body, locWithoutId.orNull)
+          Function.Lambda
+            .builder()
+            .arguments(List(defArg))
+            .bodyReference(Reference.of(body))
+            .location(locWithoutId.orNull)
+            .build()
         }
       case tSet: Application.Typeset =>
         tSet.copyWithExpression(
@@ -425,12 +441,15 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           newBranches
         )
 
-        new Function.Lambda(
-          caseExpr,
-          List(lambdaArg),
-          newCaseExpr,
-          caseExpr.location.orNull
-        )
+        Function.Lambda
+          .builder()
+          .arguments(List(lambdaArg))
+          .bodyReference(Reference.of(newCaseExpr, true))
+          .passData(caseExpr.passData().duplicate())
+          .location(caseExpr.location().orNull)
+          .diagnostics(caseExpr.diagnostics())
+          .canBeTCO(true)
+          .build()
       case x =>
         caseExpr.copy(
           desugarExpression(x, freshNameSupply),

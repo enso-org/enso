@@ -11,10 +11,7 @@ import org.netbeans.api.project.SourceGroup;
 import org.netbeans.spi.java.project.support.ui.PackageView;
 import org.netbeans.spi.project.ui.LogicalViewProvider;
 import org.netbeans.spi.project.ui.support.CommonProjectActions;
-import org.openide.awt.ActionID;
-import org.openide.awt.ActionReference;
-import org.openide.awt.ActionReferences;
-import org.openide.filesystems.*;
+import org.openide.filesystems.FileObject;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.ChildFactory;
 import org.openide.nodes.Children;
@@ -43,7 +40,7 @@ final class EnsoLogicalView implements LogicalViewProvider  {
         if (target instanceof FileObject) {
             FileObject fo = (FileObject) target;
             for (Node n : root.getChildren().getNodes(true)) {
-                Node result = PackageView.findPath(n, target);
+                Node result = PackageView.findPath(n, fo);
                 if (result != null) {
                     return result;
                 }

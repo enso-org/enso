@@ -1,24 +1,30 @@
 package org.enso.compiler.test.pass;
 
+import static org.enso.compiler.test.ir.IRUtils.binaryOperator;
+import static org.enso.compiler.test.ir.IRUtils.callArg;
+import static org.enso.compiler.test.ir.IRUtils.defArg;
+import static org.enso.compiler.test.ir.IRUtils.emptyIr;
+import static org.enso.compiler.test.ir.IRUtils.literal;
+import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 import java.util.List;
-import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
-import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
+import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.pass.MiniIRPass;
-import org.enso.scala.wrapper.ScalaConversions;
+import org.enso.persist.Persistance.Reference;
 import org.junit.Test;
-import scala.Option;
 
 public class MiniPassTraverserTest {
   @Test
   public void traversesOneExpression() {
-    var expr = new MockExpression(false);
+    var expr = new MockExpression(null);
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, expr, miniPass);
     assertThat(
@@ -28,53 +34,73 @@ public class MiniPassTraverserTest {
 
   @Test
   public void traversesExpressionWithOneChild() {
-    var parentExpr = new MockExpression(false);
-    var childExpr = new MockExpression(true);
-    parentExpr.addChild(childExpr);
+    var parentExpr = new MockExpression(null);
+    var childExpr = new MockExpression(parentExpr);
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, parentExpr, miniPass);
-    assertThat(
-        "Prepare must be called on a child expression", childExpr.isPreparedByAny(), is(true));
+    assertThat(parentExpr.isPreparedByAny(), is(true));
     assertThat(childExpr.isTransformedByAny(), is(true));
     assertThat(parentExpr.isTransformedByAny(), is(true));
   }
 
   @Test
   public void traversesExpressionWithManyChildren() {
-    var parentExpr = new MockExpression(false);
-    var children = List.of(new MockExpression(true), new MockExpression(true));
-    children.forEach(parentExpr::addChild);
+    var parentExpr = new MockExpression(null);
+    var children = List.of(new MockExpression(parentExpr), new MockExpression(parentExpr));
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, parentExpr, miniPass);
     for (var ch : children) {
-      assertThat("Prepare must be called on a child expression", ch.isPreparedByAny(), is(true));
       assertThat(ch.isTransformedByAny(), is(true));
     }
     assertThat(parentExpr.isTransformedByAny(), is(true));
   }
 
   @Test
+  public void traverseModule_SingleExpression() {
+    var root = new MockExpression(null);
+    var module = MockModule.createWithSingleMethod(root);
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(MockModule.class, module, miniPass);
+    assertThat(root.isTransformedBy(miniPass), is(true));
+  }
+
+  @Test
+  public void traverseExpression_UnderNonExpression() {
+    var root = new MockExpression(null);
+    var child = new MockIR(root);
+    var expr = new MockExpression(child);
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(MockExpression.class, root, miniPass);
+    assertThat(
+        "Root is prepared - this is a known violation of IR.prepare contract. "
+            + "Note that `child` should be prepared instead.",
+        root.isPreparedBy(miniPass),
+        is(true));
+    assertThat(expr.isTransformedBy(miniPass), is(true));
+    assertThat(root.isTransformedBy(miniPass), is(true));
+  }
+
+  @Test
   public void stopTraversingWhenPrepareReturnsNull() {
-    var e1 = new MockExpression(false);
-    var e2 = new MockExpression(true);
-    var e3 = new MockExpression(true);
-    e1.addChild(e2);
-    e2.addChild(e3);
+    var e1 = new MockExpression(null);
+    var e2 = new MockExpression(e1);
+    var e3 = new MockExpression(e2);
     // Should stop traversing when e3 is encountered.
     // Should only process e1 and e2, not e3
     var miniPass = MockMiniPass.builder().stopExpr(e3).build();
     MiniIRPass.compile(MockExpression.class, e1, miniPass);
-    assertThat("e3 should not be processed", e3.isPreparedByAny(), is(false));
-    assertThat("e3 should not be processed", e3.isTransformedByAny(), is(false));
-    assertThat("e2 should still be processed", e2.isPreparedByAny(), is(true));
+    assertThat(e1.isPreparedByAny(), is(true));
+    assertThat(e2.isPreparedByAny(), is(true));
+    assertThat("e3 should not be processed - it is stopped expr", e3.isPreparedByAny(), is(false));
+    assertThat(
+        "e3 should not be processed - it is stopped expr", e3.isTransformedByAny(), is(false));
     assertThat("e2 should still be processed", e2.isTransformedByAny(), is(true));
   }
 
   @Test
   public void chainedMiniPass_TraversesSingleExpression() {
-    var parentExpr = new MockExpression(false);
-    var childExpr = new MockExpression(true);
-    parentExpr.addChild(childExpr);
+    var parentExpr = new MockExpression(null);
+    var childExpr = new MockExpression(parentExpr);
     var miniPass1 = MockMiniPass.builder().build();
     var miniPass2 = MockMiniPass.builder().build();
     var chainedPass = MiniIRPass.combine(miniPass1, miniPass2);
@@ -88,25 +114,26 @@ public class MiniPassTraverserTest {
         childExpr.isTransformedBy(miniPass2),
         is(true));
     assertThat(
-        "Child expression is prepared by both passes", childExpr.isPreparedBy(miniPass1), is(true));
+        "Parent expression is prepared by both passes",
+        parentExpr.isPreparedBy(miniPass1),
+        is(true));
     assertThat(
-        "Child expression is prepared by both passes", childExpr.isPreparedBy(miniPass2), is(true));
+        "Parent expression is prepared by both passes",
+        parentExpr.isPreparedBy(miniPass2),
+        is(true));
   }
 
   @Test
   public void chainedMiniPass_StopsTraversingWhenPrepareReturnsNull() {
-    var e1 = new MockExpression(false);
-    var e2 = new MockExpression(true);
-    var e3 = new MockExpression(true);
-    e1.addChild(e2);
-    e2.addChild(e3);
+    var e1 = new MockExpression(null);
+    var e2 = new MockExpression(e1);
+    var e3 = new MockExpression(e2);
     // miniPass1 stops traversing on e2.
     var miniPass1 = MockMiniPass.builder().stopExpr(e3).build();
     // miniPass2 traverses everything.
     var miniPass2 = MockMiniPass.builder().build();
     var chainedPass = MiniIRPass.combine(miniPass1, miniPass2);
     MiniIRPass.compile(MockExpression.class, e1, chainedPass);
-    assertThat("e3 should be prepared only by miniPass2", e3.isPreparedBy(miniPass2), is(true));
     assertThat(
         "e3 should be transformed only by miniPass2", e3.isTransformedBy(miniPass2), is(true));
     assertThat("e3 must not be transformed by miniPass1", e3.isTransformedBy(miniPass1), is(false));
@@ -116,22 +143,20 @@ public class MiniPassTraverserTest {
 
   @Test
   public void chainedMiniPass_StopsTraversingWhenPrepareFromBothPassesReturnNull() {
-    var e1 = new MockExpression(false);
-    var e2 = new MockExpression(true);
-    var e3 = new MockExpression(true);
-    e1.addChild(e2);
-    e2.addChild(e3);
+    var e1 = new MockExpression(null);
+    var e2 = new MockExpression(e1);
+    var e3 = new MockExpression(e2);
     // Both mini passes process just e1.
     var miniPass1 = MockMiniPass.builder().stopExpr(e2).build();
     var miniPass2 = MockMiniPass.builder().stopExpr(e2).build();
     var chainedPass = MiniIRPass.combine(miniPass1, miniPass2);
     MiniIRPass.compile(MockExpression.class, e1, chainedPass);
-    assertThat("e3 should not be prepared by any pass", e3.isPreparedByAny(), is(false));
     assertThat("e3 should not be transformed by any pass", e3.isTransformedByAny(), is(false));
-    assertThat("e2 should not be prepared by any pass", e2.isPreparedByAny(), is(false));
     assertThat("e2 should not be transformed by any pass", e2.isTransformedByAny(), is(false));
     assertThat("e1 should be processed by both passes", e1.isTransformedBy(miniPass1), is(true));
     assertThat("e1 should be processed by both passes", e1.isTransformedBy(miniPass2), is(true));
+    assertThat("e1 should be prepared by both passes", e1.isPreparedBy(miniPass1), is(true));
+    assertThat("e1 should be prepared by both passes", e1.isPreparedBy(miniPass2), is(true));
   }
 
   /** MiniPassTraverser ignores Case.Branch.pattern */
@@ -143,22 +168,48 @@ public class MiniPassTraverserTest {
     var empty1 = emptyIr();
     var empty2 = emptyIr();
     var branch = Case.Branch.builder().pattern(pattern).expression(empty1).build();
-    var caseExpr =
-        Case.Expr.builder()
-            .branches(ScalaConversions.asScala(List.of(branch)))
-            .scrutinee(empty2)
-            .build();
+    var caseExpr = Case.Expr.builder().branches(asScala(List.of(branch))).scrutinee(empty2).build();
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, caseExpr, miniPass);
-    var visitedExprs = miniPass.getTransformedExpressions();
-    assertThat(visitedExprs, is(List.of(empty2, empty1, caseExpr)));
+    var visited = miniPass.getTransformedExpressions();
+    assertThat(visited, containsInAnyOrder(empty1, empty2, caseExpr, branch));
   }
 
-  private static Name.Literal literal(String lit) {
-    return new Name.Literal(lit, false, null, Option.empty(), new MetadataStorage());
+  /**
+   * {@link Operator.Binary} traverses over {@code left} and {@code right}, but not over {@code
+   * operator}.
+   */
+  @Test
+  public void traverseOver_BinaryOperator() {
+    var a = literal("a");
+    var b = literal("b");
+    var left = callArg(a);
+    var right = callArg(b);
+    var operator = literal("+");
+    var binaryOperator = binaryOperator(left, right, operator);
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(Expression.class, binaryOperator, miniPass);
+    var visited = miniPass.getTransformedExpressions();
+    assertThat(visited, containsInAnyOrder(a, b, binaryOperator));
   }
 
-  private static Empty emptyIr() {
-    return Empty.builder().build();
+  @Test
+  public void traverseOver_FunctionLambda() {
+    var body = emptyIr();
+    var self = literal("self");
+    var selfArg = defArg(self);
+    var lambda =
+        Function.Lambda.builder()
+            .bodyReference(Reference.of(body))
+            .arguments(scalaList(selfArg))
+            .build();
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(Expression.class, lambda, miniPass);
+    var visited = miniPass.getTransformedExpressions();
+    assertThat(visited, containsInAnyOrder(lambda, body));
+  }
+
+  private static <T> scala.collection.immutable.List<T> scalaList(T elem) {
+    return asScala(List.of(elem));
   }
 }

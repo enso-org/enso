@@ -15,7 +15,7 @@ final class MockMiniPass extends MiniIRPass {
 
   /**
    * @param stopExpr When encountered this expression, {@code prepare} method will return null to
-   *     signal that the traversal should stop. Can be null.
+   *     signal that the traversal should stop. If null, this mini pass will not stop.
    */
   private MockMiniPass(MockExpression stopExpr) {
     this.stopExpr = stopExpr;
@@ -28,12 +28,6 @@ final class MockMiniPass extends MiniIRPass {
   @Override
   public Expression transformExpression(Expression expr) {
     if (expr instanceof MockExpression mockExpr) {
-      if (mockExpr.hasParent()) {
-        assertThat(
-            "Prepare must be called on an expression with a parent",
-            mockExpr.isPreparedBy(this),
-            is(true));
-      }
       assertThat(
           "Transform is called just once by one pass", mockExpr.isTransformedBy(this), is(false));
       mockExpr.setTransformedByPass(this);
@@ -44,12 +38,14 @@ final class MockMiniPass extends MiniIRPass {
 
   @Override
   public MiniIRPass prepare(IR parent, Expression child) {
+    if (child instanceof MockIR mockChild) {
+      assertThat("prepare runs from top to bottom", mockChild.isPreparedBy(this), is(false));
+    }
+    if (parent instanceof MockIR mockParent) {
+      mockParent.setPreparedBy(this);
+    }
     if (stopExpr == child) {
       return null;
-    }
-    if (child instanceof MockExpression mockExpr) {
-      assertThat("Prepare is called just once by one pass", mockExpr.isPreparedBy(this), is(false));
-      mockExpr.setPreparedBy(this);
     }
     return this;
   }

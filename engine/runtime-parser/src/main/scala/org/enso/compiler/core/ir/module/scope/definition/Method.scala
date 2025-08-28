@@ -72,9 +72,9 @@ object Method {
       this(
         ir.methodReference,
         Persistance.Reference.of(body, false),
-        Explicit.computeIsStatic(body),
+        Function.computeIsStatic(body),
         ir.isPrivate,
-        Explicit.computeIsStaticWrapperForInstanceMethod(body),
+        Function.computeIsStaticWrapperForInstanceMethod(body),
         ir.identifiedLocation,
         ir.passData
       )
@@ -154,7 +154,7 @@ object Method {
           keepDiagnostics,
           keepIdentifiers
         ),
-        isStatic = Explicit.computeIsStatic(body),
+        isStatic = Function.computeIsStatic(body),
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
@@ -219,26 +219,7 @@ object Method {
     ] = {
       Some((m.methodReference, m.body, m.location, m.passData, m.diagnostics))
     }
-    def computeIsStatic(body: IR): Boolean = body match {
-      case function: Function.Lambda =>
-        function.arguments.headOption.map(_.name) match {
-          case Some(self: Name.Self) => self.synthetic
-          case _                     => false
-        }
-      case _ =>
-        true // if it's not a function, it has no arguments, therefore no `self`
-    }
 
-    private def computeIsStaticWrapperForInstanceMethod(body: IR): Boolean =
-      body match {
-        case function: Function.Lambda =>
-          function.arguments.map(_.name) match {
-            case (self1: Name.Self) :: (self2: Name.Self) :: _ =>
-              self1.synthetic && !self2.synthetic
-            case _ => false
-          }
-        case _ => false
-      }
   }
 
   /** The definition of a method for a given constructor using sugared

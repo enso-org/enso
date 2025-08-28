@@ -9,6 +9,8 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL.SQL_Type
 
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+
 ## ---
    private: true
    ---
@@ -40,6 +42,15 @@ type SQL_Type_Mapping
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
         _ = sql_type
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for this backend.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -168,3 +179,9 @@ default_should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Valu
        or changing Float32 to Float64 are silently ignored.
        However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
     (Meta.meta db_type . constructor) != (Meta.meta in_memory_type . constructor)
+
+## ---
+   private: true
+   ---
+default_column_fetcher_factory =
+    ColumnFetcherFactory.DEFAULT

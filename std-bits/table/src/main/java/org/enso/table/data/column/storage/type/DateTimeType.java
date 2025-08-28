@@ -7,8 +7,9 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record DateTimeType() implements StorageType<ZonedDateTime> {
-  public static final DateTimeType INSTANCE = new DateTimeType();
+public record DateTimeType(boolean hasTimeZone) implements StorageType<ZonedDateTime> {
+  public static final DateTimeType INSTANCE = new DateTimeType(true);
+  public static final DateTimeType INSTANCE_NO_TZ = new DateTimeType(false);
 
   @Override
   public boolean isNumeric() {

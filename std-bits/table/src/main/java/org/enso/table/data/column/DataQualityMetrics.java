@@ -62,6 +62,9 @@ public abstract class DataQualityMetrics {
   public static final String NEEDS_FORMATTING = "_Needs Formatting";
   public static final String TYPE_RECORD = "Types and Counts";
 
+  // Default threshold for checking distinct values count.
+  public static final int DISTINCT_THRESHOLD = 100;
+
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
   public static final long RANDOM_SEED = 677280131;
@@ -200,7 +203,7 @@ public abstract class DataQualityMetrics {
 
       public Result getResult() {
         String distinctJson = null;
-        if (distinct.size() < 100) {
+        if (distinct.size() < DISTINCT_THRESHOLD) {
           distinctJson =
               "["
                   + distinct.stream()
@@ -308,13 +311,11 @@ public abstract class DataQualityMetrics {
     }
 
     public T getMinimum() {
-      var current = result.getNow(null);
-      return current != null ? current.minimum : null;
+      return result.thenApply(Result::minimum).getNow(null);
     }
 
     public T getMaximum() {
-      var current = result.getNow(null);
-      return current != null ? current.maximum : null;
+      return result.thenApply(Result::maximum).getNow(null);
     }
 
     @Override
