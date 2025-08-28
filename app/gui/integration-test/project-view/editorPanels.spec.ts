@@ -227,7 +227,7 @@ test.describe('User-defined component documentation', () => {
     }
 
     async expectArguments(count: number): Promise<FunctionSignatureEditorArgument[]> {
-      const argLocators = this.locator.locator('.FunctionDefArguments').locator('.ArgumentRow')
+      const argLocators = this.locator.locator('.ArgumentRow')
       await expect(argLocators).toHaveCount(count)
       const args = await argLocators.all()
       expect(args.length).toBe(count)
