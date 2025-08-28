@@ -139,25 +139,33 @@ export default defineConfig({
 })
 
 async function projectManagerShim(): Promise<Plugin> {
+  const module = await import('./project-manager-shim-middleware')
+  const projectManagerShimMiddleware = new module.ProjectManagerShimMiddleware(setupEnsoRunnerPath)
+
+  if (isDevMode) {
+    await setupEnsoRunnerPath()
+  }
+
+  return {
+    name: 'project-manager-shim',
+    configureServer(server) {
+      server.middlewares.use(projectManagerShimMiddleware.handler)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(projectManagerShimMiddleware.handler)
+    },
+  }
+}
+
+async function setupEnsoRunnerPath(): Promise<void> {
   const projectRoot = fileURLToPath(new URL('../..', import.meta.url))
   let ensoExecutable = findEnsoExecutable(projectRoot)
-  if (ensoExecutable === undefined) {
+  if (!ensoExecutable) {
     await downloadEnsoEngine(projectRoot)
     ensoExecutable = findEnsoExecutable(projectRoot)
   }
   if (ensoExecutable) {
     console.log('Found enso executable:', ensoExecutable)
     process.env.ENSO_RUNNER_PATH = ensoExecutable
-  }
-
-  const module = await import('./project-manager-shim-middleware')
-  return {
-    name: 'project-manager-shim',
-    configureServer(server) {
-      server.middlewares.use(module.default)
-    },
-    configurePreviewServer(server) {
-      server.middlewares.use(module.default)
-    },
   }
 }
