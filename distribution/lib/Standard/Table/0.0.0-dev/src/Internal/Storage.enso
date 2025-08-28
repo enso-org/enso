@@ -59,7 +59,6 @@ to_value_type storage_type = case storage_type of
 closest_storage_type value_type = case value_type of
     Value_Type.Byte -> IntegerType.INT_8
     Value_Type.Integer bits -> case bits of
-        Bits.Bits_8 -> IntegerType.INT_8
         Bits.Bits_16 -> IntegerType.INT_16
         Bits.Bits_32 -> IntegerType.INT_32
         Bits.Bits_64 -> IntegerType.INT_64
