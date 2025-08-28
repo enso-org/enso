@@ -92,17 +92,23 @@ TimeOfDayType*/ {
   /**
    * @return true if the storage type is numeric.
    */
-  boolean isNumeric();
+  default boolean isNumeric() {
+    return false;
+  }
 
   /**
    * @return true if the storage type has a date part.
    */
-  boolean hasDate();
+  default boolean hasDate() {
+    return false;
+  }
 
   /**
    * @return true if the storage type has a time part.
    */
-  boolean hasTime();
+  default boolean hasTime() {
+    return false;
+  }
 
   /**
    * @return true if the storage type is of the same type as the other.

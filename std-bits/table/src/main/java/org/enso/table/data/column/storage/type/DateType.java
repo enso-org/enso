@@ -7,22 +7,14 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record DateType() implements StorageType<LocalDate> {
+public final class DateType implements StorageType<LocalDate> {
   public static final DateType INSTANCE = new DateType();
 
-  @Override
-  public boolean isNumeric() {
-    return false;
-  }
+  private DateType() {}
 
   @Override
   public boolean hasDate() {
     return true;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   @Override

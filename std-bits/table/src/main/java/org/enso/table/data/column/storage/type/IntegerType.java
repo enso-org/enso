@@ -8,34 +8,26 @@ import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
+public final class IntegerType implements StorageType<Long>, NumericType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
   public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
   public static final IntegerType INT_8 = new IntegerType(Bits.BITS_8);
 
-  public static IntegerType create(Bits bits) {
-    return switch (bits) {
-      case BITS_8 -> INT_8;
-      case BITS_16 -> INT_16;
-      case BITS_32 -> INT_32;
-      case BITS_64 -> INT_64;
-    };
+  private final Bits bits;
+
+  private IntegerType(Bits bits) {
+    this.bits = bits;
+  }
+
+  /** Returns the number of bits of this integer type. */
+  public Bits bits() {
+    return bits;
   }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   public long getMaxValue() {

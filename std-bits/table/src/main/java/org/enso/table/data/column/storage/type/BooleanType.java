@@ -6,23 +6,10 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record BooleanType() implements StorageType<Boolean> {
+public final class BooleanType implements StorageType<Boolean> {
   public static final BooleanType INSTANCE = new BooleanType();
 
-  @Override
-  public boolean isNumeric() {
-    return false;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
-  }
+  private BooleanType() {}
 
   @Override
   public boolean isOfType(StorageType<?> other) {

@@ -14,7 +14,6 @@ polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
 polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
 polyglot java import org.enso.table.data.column.storage.type.BigIntegerType
-polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
 polyglot java import org.enso.table.data.column.storage.type.BooleanType
 polyglot java import org.enso.table.data.column.storage.type.DateTimeType
 polyglot java import org.enso.table.data.column.storage.type.DateType
@@ -59,17 +58,18 @@ to_value_type storage_type = case storage_type of
    ---
 closest_storage_type value_type = case value_type of
     Value_Type.Byte -> IntegerType.INT_8
-    Value_Type.Integer bits ->
-        java_bits = Java_Bits.fromInteger bits.to_integer
-        IntegerType.create java_bits
+    Value_Type.Integer bits -> case bits of
+        Bits.Bits_8 -> IntegerType.INT_8
+        Bits.Bits_16 -> IntegerType.INT_16
+        Bits.Bits_32 -> IntegerType.INT_32
+        Bits.Bits_64 -> IntegerType.INT_64
     Value_Type.Float _ -> FloatType.FLOAT_64
     Value_Type.Boolean -> BooleanType.INSTANCE
     Value_Type.Char Nothing True -> TextType.VARIABLE_LENGTH
     Value_Type.Char Nothing False ->
         Error.throw (Illegal_Argument.Error "Value_Type.Char with fixed length must have a non-nothing size")
-    Value_Type.Char max_length variable_length ->
-        fixed_length = variable_length.not
-        TextType.new (max_length : Integer) fixed_length
+    Value_Type.Char max_length True -> TextType.variableLengthWithLimit (max_length : Integer)
+    Value_Type.Char max_length False -> TextType.fixedLength (max_length : Integer)
     Value_Type.Date -> DateType.INSTANCE
     # We currently will not support storing dates without timezones in in-memory mode.
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE

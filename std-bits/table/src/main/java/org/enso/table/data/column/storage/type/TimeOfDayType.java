@@ -7,18 +7,10 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record TimeOfDayType() implements StorageType<LocalTime> {
+public final class TimeOfDayType implements StorageType<LocalTime> {
   public static final TimeOfDayType INSTANCE = new TimeOfDayType();
 
-  @Override
-  public boolean isNumeric() {
-    return false;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
+  private TimeOfDayType() {}
 
   @Override
   public boolean hasTime() {
