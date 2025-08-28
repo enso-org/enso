@@ -14,12 +14,13 @@ from project.Helpers import time_visualization
     - `table`: the Table to be visualized.
 json_from_table : Table -> JS_Object
 json_from_table table =
-    names = ['label', 'latitude', 'longitude', 'radius', 'color']
-    pairs = names.map <| name->
-        column = table.lookup_ignore_case name
-        column.when_valid ["df_" + name, column.to_vector] . catch Nothing
+    name_sets = [['label', 'name'], ['latitude', 'lat', 'lt'], ['longitude', 'lon', 'lng', 'long'], ['radius', 'size'], ['color', 'colour']]
+    with_known = table.set "X" as="X"
+    pairs = name_sets.map set->
+        chosen = with_known.select_columns ["X"]+set reorder=True case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore
+        if chosen.column_count == 1 then Nothing else ["df_" + set.first, chosen.at 1 . to_vector]
 
-    JS_Object.from_pairs <| pairs.filter (x -> x.is_nothing.not)
+    JS_Object.from_pairs <| pairs.filter ..Not_Nothing
 
 ## ---
    private: true

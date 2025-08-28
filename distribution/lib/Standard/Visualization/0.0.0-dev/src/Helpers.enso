@@ -47,45 +47,6 @@ Any.to_default_visualization_data self =
 ## ---
    private: true
    ---
-   Returns the given value if this is not an error. Propagates error otherwise.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Any.when_valid : Any -> Any
-Any.when_valid self ~val = self.map_valid (_-> val)
-
-## ---
-   private: true
-   ---
-   Checks if the value is not an error.
-Any.is_valid : Any
-Any.is_valid self = self.is_error.not
-
-## ---
-   private: true
-   ---
-   Maps over non-error value.
-
-   ## Arguments
-    - `f`: a function that will be used to generate return value from a non-error
-      `self` value.
-Any.map_valid : Any -> Any
-Any.map_valid self f = f self
-
-## ---
-   private: true
-   ---
-   Recovers from the error by returning the parameter value.
-   The error contents will be ignored.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Any.catch_ : Any -> Any
-Any.catch_ self ~val = self.catch Any (_-> val)
-
-## ---
-   private: true
-   ---
    Returns a Text used to display this value in the IDE.
 Nothing.to_default_visualization_data : Text
 Nothing.to_default_visualization_data self =
@@ -106,46 +67,6 @@ Nothing.to_default_visualization_data self =
    ```
 Error.to_default_visualization_data : Text
 Error.to_default_visualization_data self = self.catch . to_default_visualization_data
-
-## ---
-   private: true
-   ---
-   Returns the given value if this is not an error. Propagates error otherwise.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Error.when_valid : Any -> Any
-Error.when_valid self ~val = self.map_valid (_-> val)
-
-## ---
-   private: true
-   ---
-   Checks if the value is not an error.
-Error.is_valid : Any
-Error.is_valid self = self.is_error.not
-
-## ---
-   private: true
-   ---
-   Maps over non-error value.
-
-   ## Arguments
-    - `f`: a function that will be used to generate return value from a non-error
-      `self` value.
-Error.map_valid : Any -> Any
-Error.map_valid self f =
-    const self f
-
-## ---
-   private: true
-   ---
-   Recovers from the error by returning the parameter value.
-   The error contents will be ignored.
-
-   ## Arguments
-    - `val`: a value that will be evaluated and returned if `self` is an error.
-Error.catch_ : Any -> Any
-Error.catch_ self ~val = self.catch Any (_-> val)
 
 ## ---
    private: true
@@ -206,20 +127,6 @@ Array.to_default_visualization_data self =
 ## ---
    private: true
    ---
-   Looks for a column by a given name.
-   Unlike `Table.at` looks into index columns and name comparison is
-   case-insensitive.
-
-   ## Arguments
-    - `text`: the case-insensitive name of the searched column.
-Table.lookup_ignore_case : Text -> Column ! Nothing
-Table.lookup_ignore_case self name =
-    self.columns.find if_missing=(Error.throw Nothing) <| col->
-        col.name.equals_ignore_case name
-
-## ---
-   private: true
-   ---
    Guides the visualization system to display the most suitable graphical
    representation for this table.
 Table.default_visualization : Id
@@ -249,14 +156,6 @@ Table.to_default_visualization_data self =
    representation for this Column.
 Column.default_visualization : Id
 Column.default_visualization self = Id.table
-
-## ---
-   private: true
-   ---
-   Checks if the column stores numbers.
-Column.is_numeric : Boolean
-Column.is_numeric self =
-    self.value_type.is_numeric
 
 ## ---
    private: true
