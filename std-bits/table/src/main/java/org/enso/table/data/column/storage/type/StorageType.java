@@ -90,6 +90,13 @@ TimeOfDayType*/ {
   }
 
   /**
+   * A unique identifier for the storage type. This is used for serialization and
+   * deserialization.
+   * @return the unique id of the storage type.
+   */
+  long uniqueId();
+
+  /**
    * @return true if the storage type is numeric.
    */
   default boolean isNumeric() {
@@ -134,4 +141,14 @@ TimeOfDayType*/ {
    * @return the storage as a typed storage.
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
+
+  abstract class BaseStorageType {
+    long uniqueId;
+
+    protected BaseStorageType(char typeLetter, int size) {
+      long charCode = (long) typeLetter;
+      assert charCode >= 'A' && charCode <= 'Z' : "Type letter must be an uppercase letter";
+      uniqueId = size * 32L + (charCode - 'A');
+    }
+  }
 }
