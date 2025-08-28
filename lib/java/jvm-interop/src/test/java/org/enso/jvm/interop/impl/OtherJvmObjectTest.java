@@ -182,6 +182,33 @@ public class OtherJvmObjectTest {
     assertFalse("Other JVM objects don't have type", noType);
   }
 
+  @Test
+  public void nullIsSame() throws Exception {
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("nullInstance");
+    var other2 = otherClass.invokeMember("nullInstance");
+    assertEquals(other1, other2);
+
+    var raw1 = ctx.unwrapValue(other1);
+    var raw2 = ctx.unwrapValue(other2);
+    assertSame("The other null is represented by the same instance", raw1, raw2);
+
+    CHANNEL
+        .getConfig()
+        .assertMessagesCount(
+            "No messages for checks on null",
+            0,
+            () -> {
+              assertFalse(other1.isBoolean());
+              assertFalse(other1.isException());
+              assertFalse(other1.canExecute());
+            });
+  }
+
+  public static Object nullInstance() {
+    return null;
+  }
+
   private static final class MockObject {}
 
   private static final Object IDENTICAL = new MockObject();

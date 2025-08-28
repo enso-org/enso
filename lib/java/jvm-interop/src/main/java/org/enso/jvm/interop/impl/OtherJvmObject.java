@@ -249,7 +249,9 @@ final class OtherJvmObject implements TruffleObject {
       Function<OtherJvmObject, OtherJvmObject> findCached) {
     return switch (obj) {
       case OtherJvmObject other -> {
-        if (other.id() < 0) {
+        if (other.id() == 0) {
+          yield OtherNull.NULL;
+        } else if (other.id() < 0) {
           // the other object with negative number came back
           // it is our own object
           var ourOwn = findObject.apply(-other.id());
@@ -290,6 +292,9 @@ final class OtherJvmObject implements TruffleObject {
           }
         }
         var mask = OtherInteropType.findType(foreign);
+        if (OtherInteropType.isNull(mask)) {
+          yield new OtherJvmObject(null, 0, mask);
+        }
         var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);
         // our own truffle objects send to the other side should
