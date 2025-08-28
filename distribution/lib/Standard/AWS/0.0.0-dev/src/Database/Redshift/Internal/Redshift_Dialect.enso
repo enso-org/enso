@@ -10,7 +10,6 @@ import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Base_Generator
-import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column

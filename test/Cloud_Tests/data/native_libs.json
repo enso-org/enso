@@ -1,0 +1,16 @@
+{
+  "component/truffle-api-24.2.0.jar": [
+    "META-INF/resources/engine/libtruffleattach/linux/amd64/bin/libtruffleattach.so",
+    "META-INF/resources/engine/libtruffleattach/linux/aarch64/bin/libtruffleattach.so",
+    "META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib",
+    "META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib",
+    "META-INF/resources/engine/libtruffleattach/windows/amd64/bin/truffleattach.dll"
+  ],
+  "component/truffle-nfi-libffi-24.2.0.jar": [
+    "META-INF/resources/nfi-native/libnfi/linux/amd64/bin/libtrufflenfi.so",
+    "META-INF/resources/nfi-native/libnfi/linux/aarch64/bin/libtrufflenfi.so",
+    "META-INF/resources/nfi-native/libnfi/darwin/amd64/bin/libtrufflenfi.dylib",
+    "META-INF/resources/nfi-native/libnfi/darwin/aarch64/bin/libtrufflenfi.dylib",
+    "META-INF/resources/nfi-native/libnfi/windows/amd64/bin/trufflenfi.dll"
+  ]
+}

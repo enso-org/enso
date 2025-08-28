@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Floating_Point_Equality, Missing_Argument, No_Such_Method
+from Standard.Base.Errors.Common import Floating_Point_Equality, No_Such_Method
 
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Aggregate_Column_Helper.Internal_Order_By_Column_Reference

@@ -20,7 +20,7 @@ import org.enso.librarymanager.test.published.repository.{
   ExampleRepository
 }
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
-import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
+import org.enso.testkit.ReportLogsOnFailure
 import org.enso.version.BuildVersion
 import org.enso.yaml.YamlHelper
 
@@ -28,10 +28,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import scala.concurrent.duration._
 
-class LibrariesTest
-    extends BaseServerTest
-    with ReportLogsOnFailure
-    with FlakySpec {
+class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   private val libraryRepositoryPort: Int = 47308
   private val defaultTimeout             = 30.seconds
 
@@ -60,7 +57,7 @@ class LibrariesTest
   )
 
   "LocalLibraryManager" should {
-    "create a library project and include it on the list of local projects" taggedAs SkipOnFailure in {
+    "create a library project and include it on the list of local projects" in {
       val client          = getInitialisedWsClient()
       val testLibraryName = LibraryName("user", "My_Local_Lib")
 
@@ -328,7 +325,10 @@ class LibrariesTest
             componentGroups =
               Some(TestComponentGroups.testLibraryComponentGroups)
           )
-      Files.writeString(packageFile, packageConfig.toYaml)
+      Files.writeString(
+        packageFile,
+        packageConfig.toYaml(keepDevVersions = true)
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",

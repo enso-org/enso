@@ -316,7 +316,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       val nestedLambda = resultLambda.body.asInstanceOf[Function.Lambda]
       nestedLambda.arguments.size shouldEqual 1
-      nestedLambda.arguments(0).name shouldBe an[Name.Self]
+      nestedLambda.arguments().apply(0).name shouldBe an[Name.Self]
     }
   }
 

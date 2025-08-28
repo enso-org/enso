@@ -876,9 +876,9 @@ public class TestIRProcessorInline {
         """);
     assertThat(src, containsString("class JNameGen"));
     assertThat(
-        "has getter method for expression with a different return type",
+        "has getter method for expression with the same return type",
         src,
-        containsString("IR expression()"));
+        containsString("Reference<IR> expression()"));
   }
 
   /** JCase contains JExpr and JBranch, JExpr references JBranch as its IRChild. */

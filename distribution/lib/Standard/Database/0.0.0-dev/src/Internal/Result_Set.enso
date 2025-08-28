@@ -1,80 +1,37 @@
 from Standard.Base import all
 
+from Standard.Table import Table, Value_Type
 import Standard.Table.Internal.Java_Problems
-from Standard.Table import Table
+import Standard.Table.Internal.Storage
+from Standard.Table.In_Memory_Table import from_java_table
 
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.SQL.SQL_Type
-from project.Internal.SQL_Warning_Helper import extract_warnings_into_builder
 
 polyglot java import java.sql.ResultSet
-
-## ---
-   private: true
-   ---
-   Read a single column from a ResultSet into a Vector
-read_column : ResultSet -> Text -> Vector
-read_column result_set column_name =
-    # TODO use fetcher
-    if result_set.isClosed then [] else
-        index = result_set.findColumn column_name
-
-        Vector.build builder->
-            go has_next = if has_next.not then Nothing else
-                builder.append (result_set.getObject index)
-                @Tail_Call go result_set.next
-
-            go result_set.next
+polyglot java import org.enso.database.fetchers.ColumnFetcher
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
+polyglot java import org.enso.table.data.column.storage.type.DateTimeType
 
 ## ---
    private: true
    ---
    Converts a ResultSet into a Table.
-result_set_to_table : ResultSet -> (SQL_Type -> Column_Fetcher) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
-result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_row_only=False row_limit=-1 =
-    metadata = result_set.getMetaData
-    ncols = metadata.getColumnCount
-    column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
-    metadata_types = Vector.new ncols ix-> SQL_Type.from_metadata metadata ix+1
-    column_types = case type_overrides of
-        Nothing -> metadata_types
-        _ : Vector ->
-            effective_types = type_overrides.zip metadata_types overridden_type-> metadata_type->
-                case overridden_type of
-                    Nothing -> metadata_type
-                    _       -> overridden_type
-            effective_types
-    column_fetchers = column_types.map make_column_fetcher
-    initial_size = 10
+result_set_to_table : ResultSet -> (SQL_Type -> Value_Type | Nothing) -> Any -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
+result_set_to_table result_set sql_type_to_value_type=(_->Nothing) column_fetcher_factory=ColumnFetcherFactory.DEFAULT type_overrides=Nothing last_row_only=False row_limit=-1 =
+    storageTypeMapper metadata index =
+        sql_type = type_overrides.get index . if_nothing <|
+            SQL_Type.from_metadata metadata index+1
+        value_type = sql_type_to_value_type sql_type
+        case value_type of
+            Nothing -> AnyObjectType.INSTANCE
+            Value_Type.Binary _ _ -> AnyObjectType.INSTANCE
+            Value_Type.Unsupported_Data_Type _ _ -> AnyObjectType.INSTANCE
+            Value_Type.Mixed -> AnyObjectType.INSTANCE
+            Value_Type.Date_Time True -> DateTimeType.INSTANCE_NO_TZ
+            _       -> Storage.closest_storage_type value_type
+
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-        column_builders = column_fetchers.map fetcher->
-            fetcher.make_builder initial_size java_problem_aggregator
-        fetchers_and_builders = column_fetchers.zip column_builders
-        warnings = Vector.build warnings_builder->
-            case last_row_only of
-                True ->
-                    ## Not using the `ResultSet.last` as not supported by all connection types.
-                    go has_next current = case has_next.not of
-                        True ->
-                            if current.is_nothing then Nothing else
-                                column_builders.each_with_index ix-> builder-> builder.append (current.at ix)
-                                Nothing
-                        False ->
-                            values = column_fetchers.map_with_index ix-> fetcher-> fetcher.fetch_value result_set ix+1
-                            extract_warnings_into_builder warnings_builder result_set
-                            @Tail_Call go result_set.next values
-                    go result_set.next Nothing
-                False ->
-                    go has_next row_number = if has_next.not || (row_limit>0 && row_number>=row_limit) then Nothing else
-                        fetchers_and_builders.each_with_index ix-> pair->
-                            fetcher = pair.first
-                            builder = pair.second
-                            value = fetcher.fetch_value result_set ix+1
-                            builder.append value
-                        extract_warnings_into_builder warnings_builder result_set
-                        @Tail_Call go result_set.next row_number+1
-                    go result_set.next 0
-        Problem_Behavior.Report_Warning.attach_problems_before warnings <|
-            columns = column_builders.zip column_names builder-> name->
-                builder.make_column name
-            Table.new columns
+        java_table = if last_row_only then ColumnFetcher.readLastRow result_set java_problem_aggregator storageTypeMapper column_fetcher_factory else
+            ColumnFetcher.readResultSet result_set row_limit java_problem_aggregator storageTypeMapper column_fetcher_factory
+        from_java_table java_table

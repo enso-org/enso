@@ -105,7 +105,6 @@ public class RuntimeProgressTest {
                 true)));
 
     var reply1 = context.receiveNIgnoreStdLib(9, 60);
-    assertEquals(9, reply1.size());
     assertSameElements(
         reply1,
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
@@ -176,7 +175,6 @@ public class RuntimeProgressTest {
                 true)));
 
     var reply1 = context.receiveNIgnoreStdLib(11, 60);
-    assertEquals(11, reply1.size());
     assertSameElements(
         reply1,
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),

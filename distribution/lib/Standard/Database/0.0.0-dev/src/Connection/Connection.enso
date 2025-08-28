@@ -33,12 +33,14 @@ import project.SQL.SQL_Type
 import project.SQL_Query.SQL_Query
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
-from project.Internal.Result_Set import read_column, result_set_to_table
+from project.Internal.Result_Set import result_set_to_table
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from project.Internal.Upload.Operations.Create import create_table_implementation
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
+polyglot java import org.enso.database.JDBCUtils
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 
 type Connection
     ## ---
@@ -100,7 +102,7 @@ type Connection
     databases : Vector Text
     databases self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getCatalogs "TABLE_CAT"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getCatalogs "TABLE_CAT"
 
     ## ---
        private: true
@@ -130,7 +132,7 @@ type Connection
     schemas : Vector Text
     schemas self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getSchemas "TABLE_SCHEM"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getSchemas "TABLE_SCHEM"
 
     ## ---
        private: true
@@ -159,7 +161,7 @@ type Connection
     table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getTableTypes "TABLE_TYPE"
+            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getTableTypes "TABLE_TYPE"
 
     ## ---
        group: Standard.Base.Metadata
@@ -202,7 +204,8 @@ type Connection
             Nothing -> Nothing
             _ : Vector -> types
             _ -> [types]
-        result = get_tables_advanced self.jdbc_connection name_like database schema types_vector self.dialect.get_type_mapping.make_column_fetcher all_fields
+        tm = self.dialect.get_type_mapping
+        result = get_tables_advanced self.jdbc_connection name_like database schema types_vector tm.sql_type_to_value_type tm.column_fetcher_factory all_fields
         case include_hidden of
             True -> result
             False ->
@@ -362,8 +365,9 @@ type Connection
                     sql_type_reference.cache_computed_type <| SQL_Type.from_metadata metadata ix+1
 
             # And finally, materialize the results.
+            tm = self.dialect.get_type_mapping
             SQL_Warning_Helper.process_warnings stmt <|
-                result_set_to_table rs self.dialect.get_type_mapping.make_column_fetcher type_overrides last_row_only
+                result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory type_overrides last_row_only
 
     ## ---
        private: true
@@ -380,10 +384,10 @@ type Connection
        ---
        Internal helper method to run a query and read a single column from the
        result as a Vector.
-    read_single_column : Text -> Text -> Vector Text
-    read_single_column self query column_name = self.jdbc_connection.with_connection connection->
+    read_text_column : Text -> Text -> Vector Text
+    read_text_column self query column_name = self.jdbc_connection.with_connection connection->
         result_set = connection.createStatement.executeQuery query
-        read_column result_set column_name
+        Vector.from_polyglot_array <| JDBCUtils.readTextColumn result_set column_name
 
     ## ---
        private: true
@@ -410,7 +414,8 @@ type Connection
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
                 _check_statement_is_allowed self stmt
                 rs = stmt.executeQuery
-                table = result_set_to_table rs self.dialect.get_type_mapping.make_column_fetcher row_limit=(limit.rows_to_read.if_nothing -1)
+                tm = self.dialect.get_type_mapping
+                table = result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory row_limit=(limit.rows_to_read.if_nothing -1)
                 limit.attach_warning table
 
     ## ---
@@ -660,11 +665,11 @@ private _check_statement_is_allowed connection stmt =
    private: true
    ---
    Get a metadata table for tables.
-get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text|Nothing schema:Text|Nothing types:Nothing|Vector column_fetcher all_fields:Boolean=False =
+get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text|Nothing schema:Text|Nothing types:Nothing|Vector sql_type_to_value_type=(_->Nothing) column_fetcher_factory=ColumnFetcherFactory.DEFAULT all_fields:Boolean=False =
     name_dict = Dictionary.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
     jdbc_connection.with_metadata metadata->
         table = Managed_Resource.bracket (metadata.getTables database schema name_like types) .close result_set->
-            result_set_to_table result_set column_fetcher
+            result_set_to_table result_set sql_type_to_value_type column_fetcher_factory
         renamed = table.rename_columns name_dict error_on_missing_columns=False on_problems=..Ignore
         if all_fields then renamed else
             renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]

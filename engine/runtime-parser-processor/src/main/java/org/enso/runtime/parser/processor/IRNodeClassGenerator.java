@@ -468,26 +468,14 @@ final class IRNodeClassGenerator {
   private String userDefinedGetters() {
     var sb = new StringBuilder();
     for (var field : generatedClassContext.getUserFields()) {
-      String code;
-      if (field.isPersistanceReference()) {
-        code =
-            """
-            public ${returnType} ${fieldName}() {
-              return ${fieldName}.get(${returnType}.class);
-            }
-            """
-                .replace("${returnType}", field.getTypeParameter().getSimpleName())
-                .replace("${fieldName}", field.getName());
-      } else {
-        code =
-            """
-            public ${returnType} ${fieldName}() {
-              return ${fieldName};
-            }
-            """
-                .replace("${returnType}", field.getSimpleTypeName())
-                .replace("${fieldName}", field.getName());
-      }
+      var code =
+          """
+          public ${returnType} ${fieldName}() {
+            return ${fieldName};
+          }
+          """
+              .replace("${returnType}", field.getSimpleTypeName())
+              .replace("${fieldName}", field.getName());
       sb.append(code);
       sb.append(System.lineSeparator());
     }

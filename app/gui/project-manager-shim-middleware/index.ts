@@ -57,6 +57,8 @@ import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 // === Constants ===
 // =================
 
+const FS_MAX_RETRIES = 3
+
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404

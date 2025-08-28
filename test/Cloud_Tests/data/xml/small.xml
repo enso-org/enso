@@ -1,0 +1,9 @@
+<class>
+    <teacher id="100">
+        <firstname>Mary</firstname>
+        <lastname>Smith</lastname>
+        <bio>
+            Blah blah
+        </bio>
+    </teacher>
+</class>
