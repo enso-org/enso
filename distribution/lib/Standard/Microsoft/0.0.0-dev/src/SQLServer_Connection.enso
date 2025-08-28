@@ -96,7 +96,7 @@ type SQLServer_Connection
        (or catalog).
     schemas : Vector Text
     schemas self =
-        self.connection.read_single_column "show schemas in database" "name"
+        self.connection.read_text_column "show schemas in database" "name"
 
     ## ---
        icon: metadata
