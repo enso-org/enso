@@ -1,11 +1,9 @@
 package org.enso.interpreter.caches;
 
-import org.enso.interpreter.caches.Cache.Spi;
-
 public sealed interface CacheEvent {
 
   /**
-   * {@link Spi#entryName() entry name} of the cache.
+   * Unique name for the cache. For example {@link Cache#logName}.
    *
    * @return not null.
    */
