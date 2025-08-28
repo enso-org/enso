@@ -143,12 +143,14 @@ TimeOfDayType*/ {
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
   abstract class BaseStorageType {
-    long uniqueId;
+    private final char typeLetter;
+    private final int size;
 
     protected BaseStorageType(char typeLetter, int size) {
-      long charCode = (long) typeLetter;
-      assert charCode >= 'A' && charCode <= 'Z' : "Type letter must be an uppercase letter";
-      uniqueId = size * 32L + (charCode - 'A');
+      assert typeLetter >= 'A' && typeLetter <= 'Z';
+      assert size >= 0;
+      this.typeLetter = typeLetter;
+      this.size = size;
     }
   }
 }
